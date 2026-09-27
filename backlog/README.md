@@ -35,7 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:01 |
+| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:03 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-27 17:52 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-27 17:52 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-27 17:50 |

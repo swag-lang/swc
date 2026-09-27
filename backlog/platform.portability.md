@@ -36,6 +36,153 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
+### platform.portability.001 — No build-only non-Windows portability configuration
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define non-Windows build-only acceptance.
+
+Prove the boundary with a build-only non-Windows configuration as early as possible. It may use
+  no-sound and headless implementations at first, but it must compile every platform-neutral file.
+
+- Complete when: A non-Windows configuration compiles every neutral runtime and bin source with headless/no-sound stubs where needed, and its build fails on an accidental native Windows import.
+
+### platform.portability.002 — Portability progress has no capability inventory
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define capability-inventory acceptance.
+
+Track both native source lines and, more importantly, native capabilities a new backend must
+  implement. Moving 200 lines of orchestration to common Swag is valuable; compressing 200 required
+  system calls into a clever wrapper is not.
+
+- Related: platform.portability.001
+
+- Complete when: The inventory names each host capability and its owning adapter, states availability for Windows and the chosen next target, and is updated by the same review that changes an adapter or public portability boundary.
+
+### platform.portability.005 — Runtime startup cannot accept an argument vector
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define argument-vector startup acceptance.
+
+Give startup a host ABI that can accept an argument vector directly. Windows may continue to
+  parse its process command line, while a Unix entry point supplies `argc`/`argv`; the rest of the
+  runtime must see the same `Swag.args()` contract.
+
+- Related: platform.portability.003, platform.portability.008, platform.portability.010
+
+- Complete when: A Unix host entry point passes argc/argv directly to runtime startup, Windows retains its command-line parser, and the same argument-order, quoting, and empty-argument tests pass through Swag.args on both hosts.
+
+### platform.portability.007 — Hosted runtime library dependencies have no target matrix
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define hosted-runtime dependency-matrix acceptance.
+
+Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm where required, and
+  any future freestanding runtime. A Linux port is not improved by replacing a stable libc call
+  with direct kernel syscalls and thereby coupling the runtime to one kernel and architecture.
+
+- Related: platform.portability.031
+
+- Complete when: A checked target matrix names required hosted libraries and link inputs for Windows and the chosen Linux target, distinguishes any freestanding contract, and both targets build without hidden platform-library assumptions.
+
+### platform.portability.008 — Make process launch argv-first
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define argv-first process-launch acceptance.
+- `StartInfo.arguments` is one already-quoted string, which makes Windows command-line quoting the
+  public contract. Make an argument slice the normal API. Windows alone serializes it with the
+  backslash-before-quote rules; Unix passes the vector unchanged. Keep a clearly named raw native
+  command-line escape hatch only if an actual caller needs it.
+
+- Complete when: StartInfo accepts an argument vector as its normal API; Windows quoting and Unix direct argv preserve empty, spaced, quoted, and backslash-containing arguments in child-process tests, with any raw command-line form explicitly named.
+
+### platform.portability.011 — Process-tree resource accounting has no portable capability contract
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define process-tree accounting acceptance.
+
+Preserve the stronger resource contract deliberately. Windows Job Objects account a process
+  tree; a Linux implementation needs an explicit process-group/cgroup strategy or must report that
+  the capability is unavailable rather than silently measuring only the first child.
+
+- Related: platform.portability.032, platform.portability.009
+
+- Complete when: A process-resource query reports whether tree accounting is supported, and tests with a child that spawns another process prove supported totals include descendants or return an explicit unavailable result.
+
+### platform.portability.012 — Filesystems have no cross-host conformance suite
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:04 — define cross-host filesystem acceptance.
+
+Add filesystem conformance tests on each host for Unicode names, links, permissions, partial I/O,
+and recursive traversal.
+
+- Related: platform.portability.033, platform.portability.013
+
+- Complete when: The same filesystem contract suite runs on Windows and the chosen second host for Unicode names, links, permissions, partial I/O, and recursive traversal, with host-specific expected capabilities stated explicitly.
+
+### platform.portability.015 — Desktop actions and application registration share one environment API
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define desktop-action and registration separation.
+
+Separate generic desktop actions (`openUrl`, reveal a path, enumerate monitors, locale, special
+  directories) from platform registration (`registerApplication`, file associations, native
+  window creation). Registration belongs in an application-integration module with an explicit
+  capability/failure contract, not in the portable core environment namespace.
+
+- Related: platform.portability.038
+
+- Complete when: Common environment APIs expose desktop actions without registration or native window types; a separate application-integration API reports support and failures for registration, and current Windows callers migrate with focused tests.
+
+### platform.portability.016 — Replace the native installed-font descriptor
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define portable installed-font descriptor acceptance.
+- `SystemFontFaceInfo` currently stores `LOGFONTW`, so Pixel's public system-font model is a Windows
+  descriptor. Replace it with family/subfamily names, normalized style properties, file path, and
+  face index. The platform hook should enumerate font files or configured font directories, not
+  manufacture a native font handle.
+
+- Complete when: The public installed-font descriptor contains normalized family, subfamily, style, path, and face index without LOGFONTW or native handles, while Windows enumeration still loads and selects the same installed faces.
+
+### platform.portability.017 — Installed-font scanning is not common Swag
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:04 — define common installed-font scanning acceptance.
+
+Use the existing TrueType/OpenType readers (`Face.countFaces`, `familyNameAt`, style/name tables,
+  and `Face.loadAt`) to scan configured files and collections into portable face descriptors.
+
+- Related: platform.portability.016, platform.portability.019, platform.portability.020, platform.portability.018
+
+- Complete when: Common Swag code scans font files and collections with the existing TrueType/OpenType reader into portable face descriptors, and a host-supplied file list produces the same catalog independently of enumeration backend.
+
+### platform.portability.018 — Installed-font family grouping is not common Swag
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:04 — define common font-family grouping acceptance.
+
+Group scanned descriptors into families, select regular/bold/italic fallbacks, sort, and cache the
+catalog independently of platform enumeration.
+
+- Related: platform.portability.016, platform.portability.017
+
+- Complete when: One common catalog groups scanned faces by family, selects regular/bold/italic fallbacks, and sorts and caches results identically for equivalent Windows and synthetic second-host font lists.
+
+### platform.portability.020 — Linux has no installed-font source
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:04 — define Linux font-source acceptance.
+
+A first Linux backend may provide conventional directories. Fontconfig can be added later for
+  aliases, user configuration and substitutions without making basic parsing and grouping depend
+  on it.
+
+- Related: platform.portability.017
+
+- Complete when: A Linux backend discovers installed fonts from documented system and user directories and feeds the common scanner, with tests for collections, missing directories, duplicates, and readable fallback families.
+
 ### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
 
 - Recorded: 2026-08-09 11:30
@@ -597,129 +744,6 @@ parses `GetCommandLineA` in `sandbox.win32.swg`.
   has to be usable without the application window. That constraint is worth checking before committing.
 - Related: app.scope.viewers.009, app.scope.viewers.011, platform.portability.073,
   platform.portability.074
-
-### platform.portability.001 — No build-only non-Windows portability configuration
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Prove the boundary with a build-only non-Windows configuration as early as possible. It may use
-  no-sound and headless implementations at first, but it must compile every platform-neutral file.
-
-### platform.portability.002 — Portability progress has no capability inventory
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Track both native source lines and, more importantly, native capabilities a new backend must
-  implement. Moving 200 lines of orchestration to common Swag is valuable; compressing 200 required
-  system calls into a clever wrapper is not.
-
-- Related: platform.portability.001
-
-### platform.portability.005 — Runtime startup cannot accept an argument vector
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Give startup a host ABI that can accept an argument vector directly. Windows may continue to
-  parse its process command line, while a Unix entry point supplies `argc`/`argv`; the rest of the
-  runtime must see the same `Swag.args()` contract.
-
-- Related: platform.portability.003, platform.portability.008, platform.portability.010
-
-### platform.portability.007 — Hosted runtime library dependencies have no target matrix
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm where required, and
-  any future freestanding runtime. A Linux port is not improved by replacing a stable libc call
-  with direct kernel syscalls and thereby coupling the runtime to one kernel and architecture.
-
-- Related: platform.portability.031
-
-### platform.portability.008 — Make process launch argv-first
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- `StartInfo.arguments` is one already-quoted string, which makes Windows command-line quoting the
-  public contract. Make an argument slice the normal API. Windows alone serializes it with the
-  backslash-before-quote rules; Unix passes the vector unchanged. Keep a clearly named raw native
-  command-line escape hatch only if an actual caller needs it.
-
-### platform.portability.011 — Process-tree resource accounting has no portable capability contract
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Preserve the stronger resource contract deliberately. Windows Job Objects account a process
-  tree; a Linux implementation needs an explicit process-group/cgroup strategy or must report that
-  the capability is unavailable rather than silently measuring only the first child.
-
-- Related: platform.portability.032, platform.portability.009
-
-### platform.portability.012 — Filesystems have no cross-host conformance suite
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add filesystem conformance tests on each host for Unicode names, links, permissions, partial I/O,
-and recursive traversal.
-
-- Related: platform.portability.033, platform.portability.013
-
-### platform.portability.015 — Desktop actions and application registration share one environment API
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Separate generic desktop actions (`openUrl`, reveal a path, enumerate monitors, locale, special
-  directories) from platform registration (`registerApplication`, file associations, native
-  window creation). Registration belongs in an application-integration module with an explicit
-  capability/failure contract, not in the portable core environment namespace.
-
-- Related: platform.portability.038
-
-### platform.portability.016 — Replace the native installed-font descriptor
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- `SystemFontFaceInfo` currently stores `LOGFONTW`, so Pixel's public system-font model is a Windows
-  descriptor. Replace it with family/subfamily names, normalized style properties, file path, and
-  face index. The platform hook should enumerate font files or configured font directories, not
-  manufacture a native font handle.
-
-### platform.portability.017 — Installed-font scanning is not common Swag
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Use the existing TrueType/OpenType readers (`Face.countFaces`, `familyNameAt`, style/name tables,
-  and `Face.loadAt`) to scan configured files and collections into portable face descriptors.
-
-- Related: platform.portability.016, platform.portability.019, platform.portability.020, platform.portability.018
-
-### platform.portability.018 — Installed-font family grouping is not common Swag
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Group scanned descriptors into families, select regular/bold/italic fallbacks, sort, and cache the
-catalog independently of platform enumeration.
-
-- Related: platform.portability.016, platform.portability.017
-
-### platform.portability.020 — Linux has no installed-font source
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-A first Linux backend may provide conventional directories. Fontconfig can be added later for
-  aliases, user configuration and substitutions without making basic parsing and grouping depend
-  on it.
-
-- Related: platform.portability.017
 
 ### platform.portability.023 — System-icon retrieval and caching are coupled in native GUI code
 

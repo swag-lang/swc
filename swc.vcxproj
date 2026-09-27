@@ -876,6 +876,7 @@
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Variable.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h"/>
+        <ClInclude Include="src\Compiler\Sema\Symbol\SymbolOrder.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbols.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeGenGenericArg.h"/>

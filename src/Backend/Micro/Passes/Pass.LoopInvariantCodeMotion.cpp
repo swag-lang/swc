@@ -742,17 +742,17 @@ namespace
                         if (!inst)
                             continue;
 
+                        const MicroReg destReg = slotDefReg[i];
+                        if (!destReg.isValid() || banned.contains(destReg) || !webEligible(destReg))
+                            continue;
+                        if (!slotIsFullDef[i] && !slotIsCompute[i])
+                            continue;
+
                         // A relocation names the instruction it patches. The
                         // clone of a relocated load or address materialization
                         // takes the relocation over when it is emitted; any
                         // other relocated instruction stays where it is.
                         if (firstRelocation.contains(ref.get()) && !isRelocatableHoist(inst->op))
-                            continue;
-
-                        const MicroReg destReg = slotDefReg[i];
-                        if (!destReg.isValid() || banned.contains(destReg) || !webEligible(destReg))
-                            continue;
-                        if (!slotIsFullDef[i] && !slotIsCompute[i])
                             continue;
 
                         if (slotIsCompute[i])

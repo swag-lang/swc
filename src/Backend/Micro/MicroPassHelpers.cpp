@@ -792,25 +792,11 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     }
 
     out.liveIn.assign(instCount, 0);
-    // Every node enters the worklist below. Its live-out is overwritten on
-    // its first visit; propagation reads only live-in, so no seed is needed.
+    // Every node is visited below. Its live-out is overwritten on its first
+    // visit; propagation reads only live-in, so no seed is needed.
     out.liveOut.resize(instCount);
 
-    // Graph walks run sequentially on a worker and reuse the same buffers.
-    auto& inWorklist = scratch.marks;
-    auto& worklist   = scratch.stack;
-    inWorklist.assign(instCount, 1);
-    worklist.clear();
-    worklist.reserve(instCount);
-    for (uint32_t i = 0; i < instCount; ++i)
-        worklist.push_back(i);
-
-    while (!worklist.empty())
-    {
-        const uint32_t i = worklist.back();
-        worklist.pop_back();
-        inWorklist[i] = 0;
-
+    const auto updateLiveIn = [&](const uint32_t i) {
         uint64_t newOut = 0;
         if (successors[i].empty())
         {
@@ -827,9 +813,38 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         // live_in = (live_out \ defs) | uses
         const uint64_t newIn = (newOut & ~scratch.defMasks[i]) | scratch.useMasks[i];
 
-        if (newIn != out.liveIn[i])
+        if (newIn == out.liveIn[i])
+            return false;
+        out.liveIn[i] = newIn;
+        return true;
+    };
+
+    // With no back-edge, every successor has already been solved by a single
+    // reverse sweep. Only cyclic graphs need predecessor requeues.
+    if (!cfg.hasLoop())
+    {
+        for (uint32_t i = instCount; i != 0;)
+            updateLiveIn(--i);
+    }
+    else
+    {
+        // Graph walks run sequentially on a worker and reuse the same buffers.
+        auto& inWorklist = scratch.marks;
+        auto& worklist   = scratch.stack;
+        inWorklist.assign(instCount, 1);
+        worklist.clear();
+        worklist.reserve(instCount);
+        for (uint32_t i = 0; i < instCount; ++i)
+            worklist.push_back(i);
+
+        while (!worklist.empty())
         {
-            out.liveIn[i] = newIn;
+            const uint32_t i = worklist.back();
+            worklist.pop_back();
+            inWorklist[i] = 0;
+            if (!updateLiveIn(i))
+                continue;
+
             for (const uint32_t pred : predecessors[i])
             {
                 if (!inWorklist[pred])

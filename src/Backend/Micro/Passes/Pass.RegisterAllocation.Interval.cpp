@@ -1120,24 +1120,29 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     const size_t virtualCount = denseVirtualRegs_.regs().size();
     // The initial nodes are already in dense-value order. Only a split (or a
     // parked call range) appends nodes and requires regrouping them.
-    if (out.nodes.size() != virtualCount)
+    if (out.nodes.size() == virtualCount)
     {
-        std::vector<uint32_t> order(out.nodes.size());
-        for (uint32_t i = 0; i < order.size(); ++i)
-            order[i] = i;
-        std::ranges::sort(order, [&](const uint32_t a, const uint32_t b) {
-            if (out.nodes[a].denseIndex != out.nodes[b].denseIndex)
-                return out.nodes[a].denseIndex < out.nodes[b].denseIndex;
-            return out.nodes[a].start() < out.nodes[b].start();
-        });
-        std::vector<LiveInterval> sorted;
-        sorted.reserve(out.nodes.size());
-        for (const uint32_t i : order)
-            sorted.push_back(std::move(out.nodes[i]));
-        out.nodes = std::move(sorted);
+        out.valueNodesBegin.resize(virtualCount + 1);
+        for (uint32_t i = 0; i <= virtualCount; ++i)
+            out.valueNodesBegin[i] = i;
+        return true;
     }
 
     // Group nodes per value for the consumers (rewrite, resolution, dump).
+    std::vector<uint32_t> order(out.nodes.size());
+    for (uint32_t i = 0; i < order.size(); ++i)
+        order[i] = i;
+    std::ranges::sort(order, [&](const uint32_t a, const uint32_t b) {
+        if (out.nodes[a].denseIndex != out.nodes[b].denseIndex)
+            return out.nodes[a].denseIndex < out.nodes[b].denseIndex;
+        return out.nodes[a].start() < out.nodes[b].start();
+    });
+    std::vector<LiveInterval> sorted;
+    sorted.reserve(out.nodes.size());
+    for (const uint32_t i : order)
+        sorted.push_back(std::move(out.nodes[i]));
+    out.nodes = std::move(sorted);
+
     out.valueNodesBegin.assign(virtualCount + 1, 0);
     for (const LiveInterval& node : out.nodes)
         ++out.valueNodesBegin[node.denseIndex + 1];

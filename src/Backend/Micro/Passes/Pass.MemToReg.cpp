@@ -432,7 +432,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     {
         bool spMoved    = false;
         bool inEntryRun = true;
-        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !spMoved; ++it)
         {
             const MicroInstrOperand* ops = it->ops(operands);
             if (it->op == MicroInstrOpcode::Nop || it->op == MicroInstrOpcode::Label)

@@ -1,9 +1,12 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -99,6 +102,232 @@ namespace
     // A header carrying more than this around its compare is not worth
     // duplicating for the one jump the rotation removes.
     constexpr uint32_t K_MAX_TEST_RUN = 8;
+
+    // Thread a repeated indexed zero test when the two returns of an inlined
+    // search already establish its result. A path through a read-only call is
+    // admissible, but a write to the cell or either address register is not.
+    bool threadRepeatedIndexedZeroTest(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
+    {
+        MicroStorage&        storage  = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        bool                 hasShape = false;
+        for (uint32_t at = 2; at + 3 < order.size(); ++at)
+        {
+            const MicroInstr* first  = storage.ptr(order[at - 2]);
+            const MicroInstr* second = storage.ptr(order[at - 1]);
+            const MicroInstr* cmp    = storage.ptr(order[at]);
+            const MicroInstr* jump   = storage.ptr(order[at + 1]);
+            if (first && first->op == MicroInstrOpcode::Label && second && second->op == MicroInstrOpcode::Label &&
+                cmp && cmp->op == MicroInstrOpcode::CmpAmcImm && jump && jump->op == MicroInstrOpcode::JumpCond)
+            {
+                hasShape = true;
+                break;
+            }
+        }
+        if (!hasShape)
+            return false;
+        const auto&          cfg      = context.builder->controlFlowGraph();
+        if (cfg.hasUnsupportedControlFlowForCfgLiveness() || cfg.instructionCount() != order.size())
+            return false;
+
+        const auto isZeroCellCompare = [&](const MicroInstr* inst) {
+            if (!inst || inst->op != MicroInstrOpcode::CmpAmcImm)
+                return false;
+            const auto* ops = inst->ops(operands);
+            return ops && ops[2].opBits == MicroOpBits::B8 && ops[3].opBits == MicroOpBits::B64 &&
+                   !ops[6].hasWideImmediateValue() && ops[6].valueU64 == 0 &&
+                   ops[0].reg.isInt() && ops[1].reg.isInt();
+        };
+        const auto sameCell = [&](const MicroInstr* left, const MicroInstr* right) {
+            if (!isZeroCellCompare(left) || !isZeroCellCompare(right))
+                return false;
+            const auto* a = left->ops(operands);
+            const auto* b = right->ops(operands);
+            return a[0].reg == b[0].reg && a[1].reg == b[1].reg &&
+                   a[4].valueU64 == b[4].valueU64 && a[5].valueU64 == b[5].valueU64;
+        };
+
+        std::unordered_map<uint32_t, const Symbol*> callTargets;
+        for (const MicroRelocation& relocation : context.builder->codeRelocations())
+        {
+            if (relocation.instructionRef.isValid() && relocation.targetSymbol)
+                callTargets[relocation.instructionRef.get()] = relocation.targetSymbol;
+        }
+        const auto isReadOnlyCall = [&](const MicroInstrRef ref, const MicroInstr& inst) {
+            if (inst.op != MicroInstrOpcode::CallLocal && inst.op != MicroInstrOpcode::CallExtern)
+                return false;
+            const auto it = callTargets.find(ref.get());
+            return it != callTargets.end() && it->second->isFunction() &&
+                   it->second->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly);
+        };
+
+        for (uint32_t at = 2; at + 3 < order.size(); ++at)
+        {
+            const MicroInstr* emptyLabel = storage.ptr(order[at - 2]);
+            const MicroInstr* matchLabel = storage.ptr(order[at - 1]);
+            const MicroInstr* compare    = storage.ptr(order[at]);
+            const MicroInstr* branch     = storage.ptr(order[at + 1]);
+            uint32_t          emptyId    = 0;
+            uint32_t          matchId    = 0;
+            if (!emptyLabel || !matchLabel || !tryGetLabelId(emptyId, *emptyLabel, emptyLabel->ops(operands)) ||
+                !tryGetLabelId(matchId, *matchLabel, matchLabel->ops(operands)) ||
+                !isZeroCellCompare(compare) || !branch || branch->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* branchOps = branch->ops(operands);
+            if (!branchOps || (branchOps[0].cpuCond != MicroCond::Equal && branchOps[0].cpuCond != MicroCond::NotEqual) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, order[at + 1]))
+                continue;
+            uint32_t branchTarget = 0;
+            if (!tryGetJumpTargetLabelId(branchTarget, *branch, branchOps) ||
+                branchTarget == emptyId || branchTarget == matchId)
+                continue;
+            const auto addressTaken = cfg.addressTakenLabelIndices();
+            if (std::ranges::find(addressTaken, at - 2) != addressTaken.end() ||
+                std::ranges::find(addressTaken, at - 1) != addressTaken.end())
+                continue;
+
+            // This rewrite removes matchLabel. Every explicit edge to it
+            // must be a direct jump that the retargeting below can update.
+            bool directMatchEdges = true;
+            for (const uint32_t predecessor : cfg.predecessors(at - 1))
+            {
+                if (predecessor == at - 2)
+                    continue;
+                const MicroInstr* incoming = storage.ptr(order[predecessor]);
+                uint32_t          target   = 0;
+                if (!incoming || !tryGetJumpTargetLabelId(target, *incoming, incoming->ops(operands)) || target != matchId)
+                {
+                    directMatchEdges = false;
+                    break;
+                }
+            }
+            if (!directMatchEdges)
+                continue;
+
+            const auto* cellOps = compare->ops(operands);
+            uint32_t    visits  = 0;
+            std::unordered_set<uint64_t> visiting;
+            const auto provesEdge = [&](auto&& self, const uint32_t predecessor, const uint32_t successor, const bool wantZero) -> bool {
+                if (++visits > 512 || predecessor >= order.size() || successor >= order.size())
+                    return false;
+                const uint64_t edge = (static_cast<uint64_t>(predecessor) << 32) | successor;
+                if (!visiting.insert(edge).second)
+                    return false;
+                const MicroInstrRef ref  = order[predecessor];
+                const MicroInstr*   inst = storage.ptr(ref);
+                if (!inst)
+                    return false;
+                if (inst->op == MicroInstrOpcode::JumpCond && predecessor != 0)
+                {
+                    const MicroInstr* guard = storage.ptr(order[predecessor - 1]);
+                    if (sameCell(guard, compare))
+                    {
+                        const auto* jumpOps = inst->ops(operands);
+                        uint32_t    target  = 0;
+                        if (jumpOps && tryGetJumpTargetLabelId(target, *inst, jumpOps) &&
+                            (jumpOps[0].cpuCond == MicroCond::Equal || jumpOps[0].cpuCond == MicroCond::NotEqual))
+                        {
+                            const bool taken = cfg.indexOfLabel(target) == successor;
+                            if (taken != (successor == predecessor + 1))
+                            {
+                                const bool zero = taken == (jumpOps[0].cpuCond == MicroCond::Equal);
+                                visiting.erase(edge);
+                                return zero == wantZero;
+                            }
+                        }
+                    }
+                }
+
+                const auto flags = MicroInstr::info(inst->op).flags;
+                if (flags.has(MicroInstrFlagsE::WritesMemory) ||
+                    (flags.has(MicroInstrFlagsE::IsCallInstruction) && !isReadOnlyCall(ref, *inst)))
+                    return false;
+                const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                for (const MicroReg def : useDef.defs)
+                {
+                    if (def == cellOps[0].reg || def == cellOps[1].reg)
+                        return false;
+                }
+                const auto& incoming = cfg.predecessors(predecessor);
+                if (incoming.empty())
+                    return false;
+                for (const uint32_t prior : incoming)
+                {
+                    if (!self(self, prior, predecessor, wantZero))
+                        return false;
+                }
+                visiting.erase(edge);
+                return true;
+            };
+
+            bool safe = !cfg.predecessors(at - 2).empty() && !cfg.predecessors(at - 1).empty();
+            for (const uint32_t predecessor : cfg.predecessors(at - 2))
+            {
+                visits = 0;
+                visiting.clear();
+                safe &= provesEdge(provesEdge, predecessor, at - 2, true);
+            }
+            bool hasMatchJump = false;
+            for (const uint32_t predecessor : cfg.predecessors(at - 1))
+            {
+                if (predecessor == at - 2)
+                    continue; // the empty fallthrough is removed by this rewrite
+                hasMatchJump = true;
+                visits       = 0;
+                visiting.clear();
+                safe &= provesEdge(provesEdge, predecessor, at - 1, false);
+            }
+            if (!safe || !hasMatchJump)
+                continue;
+
+            const MicroInstr* afterBranch = storage.ptr(order[at + 2]);
+            uint32_t          fallthrough = 0;
+            const bool        needsLabel  = !tryGetLabelId(fallthrough, *afterBranch, afterBranch->ops(operands));
+            if (needsLabel)
+                fallthrough = context.builder->createLabel().get();
+            const uint32_t zeroTarget    = branchOps[0].cpuCond == MicroCond::Equal ? branchTarget : fallthrough;
+            const uint32_t nonzeroTarget = branchOps[0].cpuCond == MicroCond::Equal ? fallthrough : branchTarget;
+            const MicroInstrOperand branchSize = branchOps[1];
+
+            // Every incoming jump was proved above. The empty edge that falls
+            // out of the probe's last comparison still arrives at emptyLabel.
+            for (const MicroInstrRef ref : order)
+            {
+                MicroInstr* inst = storage.ptr(ref);
+                if (!inst || inst->op != MicroInstrOpcode::JumpCond)
+                    continue;
+                MicroInstrOperand* ops = inst->ops(operands);
+                uint32_t target = 0;
+                if (!tryGetJumpTargetLabelId(target, *inst, ops))
+                    continue;
+                if (target == emptyId)
+                    ops[2].valueU64 = zeroTarget;
+                else if (target == matchId)
+                    ops[2].valueU64 = nonzeroTarget;
+            }
+            if (needsLabel)
+            {
+                MicroInstrOperand labelOps[1];
+                labelOps[0].valueU64 = fallthrough;
+                storage.insertDerivedBefore(operands, order[at + 2], MicroInstrOpcode::Label, labelOps);
+            }
+            if (zeroTarget != fallthrough)
+            {
+                MicroInstrOperand jumpOps[3] = {};
+                jumpOps[0].cpuCond  = MicroCond::Unconditional;
+                jumpOps[1]          = branchSize;
+                jumpOps[2].valueU64 = zeroTarget;
+                storage.insertDerivedBefore(operands, order[at - 1], MicroInstrOpcode::JumpCond, jumpOps);
+            }
+            storage.erase(order[at - 1]);
+            storage.erase(order[at]);
+            storage.erase(order[at + 1]);
+            context.builder->invalidateControlFlowGraph();
+            context.passChanged = true;
+            return true;
+        }
+        return false;
+    }
 
     // Move flag-neutral preparations behind the latch's taken back edge. An
     // entry jump skips them on the first iteration; later iterations execute
@@ -457,6 +686,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     if (!hasJumpCond)
         return Result::Continue;
 
+    if (threadRepeatedIndexedZeroTest(context, order))
+        return Result::Continue;
     if (placeShortLoopStep(context, order))
         return Result::Continue;
     if (placeMismatchStepBeforeHeader(context, order))

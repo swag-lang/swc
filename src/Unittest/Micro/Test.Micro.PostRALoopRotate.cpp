@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -116,6 +117,80 @@ SWC_TEST_BEGIN(PostRALoopRotate_RotatesLatchConnectors)
         if (kind == 4 && (builder.codeRelocations().size() != 1 ||
                           builder.codeRelocations()[0].instructionRef == connectorRef ||
                           !builder.instructions().ptr(builder.codeRelocations()[0].instructionRef)))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopRotate_ThreadsRepeatedIndexedZeroTestOnlyOnProvenPaths)
+{
+    constexpr MicroReg base  = MicroReg::intReg(12);
+    constexpr MicroReg index = MicroReg::intReg(13);
+    constexpr MicroReg other = MicroReg::intReg(14);
+    constexpr MicroReg value = MicroReg::intReg(0);
+    for (uint32_t mode = 0; mode < 7; ++mode)
+    {
+        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        if (mode != 1)
+        {
+            AttributeList attributes;
+            attributes.addRtFlag(RtAttributeFlagsE::ReadOnly);
+            callee.setAttributes(ctx, attributes);
+        }
+        MicroBuilder builder(ctx);
+        const auto   probe    = builder.createLabel();
+        const auto   empty    = builder.createLabel();
+        const auto   match    = builder.createLabel();
+        const auto   occupied = builder.createLabel();
+        const auto   done     = builder.createLabel();
+        const auto emitUsedTest = [&](const MicroReg cellBase) {
+            builder.emitCmpRegImm(value, ApInt(0, 8), MicroOpBits::B8);
+            const MicroInstrRef old = builder.instructions().lastInstructionRef();
+            MicroInstrOperand   ops[7] = {};
+            ops[0].reg                 = cellBase;
+            ops[1].reg                 = index;
+            ops[2].opBits              = MicroOpBits::B8;
+            ops[3].opBits              = MicroOpBits::B64;
+            ops[4].valueU64            = 1;
+            ops[5].valueU64            = 0;
+            ops[6].setImmediateValue(ApInt(0, 8));
+            const MicroInstrRef result = builder.instructions().insertDerivedBefore(builder.operands(), old, MicroInstrOpcode::CmpAmcImm, ops);
+            builder.instructions().erase(old);
+            return result;
+        };
+
+        emitUsedTest(base);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, empty);
+        builder.placeLabel(probe);
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        if (mode == 2)
+            builder.emitLoadMemImm(base, 0, ApInt(1, 8), MicroOpBits::B8);
+        if (mode == 3)
+            builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(value, ApInt(0, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, match);
+        if (mode == 6)
+        {
+            const std::array targets{match};
+            builder.emitJumpReg(value, targets);
+        }
+        builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        emitUsedTest(base);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, probe);
+        builder.placeLabel(empty);
+        builder.placeLabel(match);
+        const MicroInstrRef repeated = emitUsedTest(mode == 4 ? other : base);
+        builder.emitJumpToLabel(mode == 5 ? MicroCond::Equal : MicroCond::NotEqual, MicroOpBits::B32, occupied);
+        builder.emitLoadRegImm(value, ApInt(mode == 5 ? 2 : 1, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+        builder.placeLabel(occupied);
+        builder.emitLoadRegImm(value, ApInt(mode == 5 ? 1 : 2, 64), MicroOpBits::B64);
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        if ((builder.instructions().ptr(repeated) == nullptr) != (mode == 0 || mode == 5))
             return Result::Error;
     }
     return Result::Continue;

@@ -109,16 +109,6 @@ namespace
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
-    CastRequest makeNestedCastRequest(const CastRequest& parent)
-    {
-        CastRequest nested(parent.kind);
-        nested.flags        = parent.flags;
-        nested.errorNodeRef = parent.errorNodeRef;
-        nested.errorCodeRef = parent.errorCodeRef;
-        nested.probing      = parent.probing;
-        return nested;
-    }
-
     Result waitEnumCompletion(Sema& sema, const CastRequest& castRequest, const TypeInfo& typeInfo)
     {
         if (!typeInfo.isEnum())
@@ -197,7 +187,7 @@ namespace
             if (srcName.isValid() && (!dstName.isValid() || srcName != dstName))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-            CastRequest  elemRequest = makeNestedCastRequest(castRequest);
+            CastRequest  elemRequest = castRequest.makeNested();
             const Result res         = Cast::castAllowed(sema, elemRequest, srcAggregate.types[i], dstAggregate.types[i]);
             if (res != Result::Continue)
             {
@@ -217,7 +207,7 @@ namespace
         castedValues.reserve(srcValues.size());
         for (size_t i = 0; i < srcValues.size(); ++i)
         {
-            CastRequest elemRequest = makeNestedCastRequest(castRequest);
+            CastRequest elemRequest = castRequest.makeNested();
             elemRequest.setConstantFoldingSrc(srcValues[i]);
             const Result res = Cast::castAllowed(sema, elemRequest, srcAggregate.types[i], dstAggregate.types[i]);
             if (res != Result::Continue)

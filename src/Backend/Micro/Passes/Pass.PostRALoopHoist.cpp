@@ -207,10 +207,9 @@ namespace
         out.localSpaceEscapes = true;
     }
 
-    void analyzeFrameReachability(FrameReachability& out, const MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder)
+    void analyzeFrameReachability(FrameReachability& out, const MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv)
     {
-        out.computed     = true;
-        out.localBaseReg = findLocalBaseRegister(storage, operands, conv, encoder);
+        out.computed = true;
 
         if (context.sanitizerFunction)
         {
@@ -864,29 +863,68 @@ namespace
 
         const auto instrRefs = cfg.instructionRefs();
 
-        // Cheap pre-scan: no frame reload anywhere means no work, and the
-        // dominator, loop and liveness analyses below are never paid for.
+        // Only base-register detection is needed to find a frame reload.
+        // Classify escaped objects after one has been found.
         if (!framePrivacy.computed)
-            analyzeFrameReachability(framePrivacy, context, storage, operands, conv, context.encoder);
-        const FrameReachability& reach = framePrivacy;
+            framePrivacy.localBaseReg = findLocalBaseRegister(storage, operands, conv, context.encoder);
 
         bool anyFrameLoad = false;
         for (uint32_t i = 0; i < n && !anyFrameLoad; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
             FrameRef          slot;
-            if (inst && isFrameLoad(slot, *inst, inst->ops(operands), conv, reach.localBaseReg))
+            if (inst && isFrameLoad(slot, *inst, inst->ops(operands), conv, framePrivacy.localBaseReg))
                 anyFrameLoad = true;
         }
         if (!anyFrameLoad)
             return false;
 
-        const bool framePrivate = reach.wholeFramePrivate;
-
         const auto dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
         auto       loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
         if (loopsByHeader.empty())
             return false;
+
+        // Physical liveness is only useful for a loop with a clean
+        // fall-through preheader. The instruction stream stays unchanged
+        // until all candidate loops have been analyzed.
+        std::vector<const NaturalLoop*> loops;
+        loops.reserve(loopsByHeader.size());
+        for (const auto& loop : loopsByHeader | std::views::values)
+        {
+            const uint32_t      header    = loop.header;
+            const auto&         inBody    = loop.inBody;
+            const MicroInstrRef headerRef = instrRefs[header];
+            uint32_t            externalPredCount = 0;
+            for (const uint32_t p : cfg.predecessors(header))
+            {
+                if (p < n && !inBody[p])
+                    ++externalPredCount;
+            }
+            if (externalPredCount != 1)
+                continue;
+
+            const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
+            if (!prevRef.isValid() || !header || instrRefs[header - 1] != prevRef || inBody[header - 1])
+                continue;
+            const MicroInstr* prevInst = storage.ptr(prevRef);
+            if (!prevInst)
+                continue;
+            const MicroInstrFlags prevFlags = MicroInstr::info(prevInst->op).flags;
+            if (prevFlags.has(MicroInstrFlagsE::TerminatorInstruction) &&
+                !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
+                continue;
+            if (prevFlags.has(MicroInstrFlagsE::JumpInstruction) &&
+                !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
+                continue;
+            loops.push_back(&loop);
+        }
+        if (loops.empty())
+            return false;
+
+        if (!framePrivacy.computed)
+            analyzeFrameReachability(framePrivacy, context, storage, operands, conv);
+        const FrameReachability& reach        = framePrivacy;
+        const bool               framePrivate = reach.wholeFramePrivate;
 
         MicroPhysLiveness liveness;
         MicroPassHelpers::computePhysicalLiveness(liveness, context);
@@ -895,10 +933,6 @@ namespace
 
         // Innermost first, so a load leaves the loop it costs most in before the
         // enclosing one is considered.
-        std::vector<const NaturalLoop*> loops;
-        loops.reserve(loopsByHeader.size());
-        for (const auto& loop : loopsByHeader | std::views::values)
-            loops.push_back(&loop);
         std::ranges::sort(loops, [](const NaturalLoop* a, const NaturalLoop* b) { return a->bodySize < b->bodySize; });
 
         struct Rewrite
@@ -919,38 +953,6 @@ namespace
             const uint32_t      header    = loop->header;
             const auto&         inBody    = loop->inBody;
             const MicroInstrRef headerRef = instrRefs[header];
-
-            // A clean preheader: exactly one predecessor from outside the loop,
-            // and it is the immediate linear predecessor falling through into
-            // the header. Anything else and the instruction we insert before the
-            // header would sit on a path that does not always reach it, or would
-            // be skipped by a jump that does.
-            uint32_t externalPredCount = 0;
-            for (const uint32_t p : cfg.predecessors(header))
-            {
-                if (p < n && !inBody[p])
-                    ++externalPredCount;
-            }
-            if (externalPredCount != 1)
-                continue;
-
-            const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
-            if (!prevRef.isValid())
-                continue;
-            // The CFG keeps listing order, and this round defers every insertion
-            // and erasure until all loops have been analyzed.
-            if (!header || instrRefs[header - 1] != prevRef || inBody[header - 1])
-                continue;
-            const MicroInstr* prevInst = storage.ptr(prevRef);
-            if (!prevInst)
-                continue;
-            const MicroInstrFlags prevFlags = MicroInstr::info(prevInst->op).flags;
-            if (prevFlags.has(MicroInstrFlagsE::TerminatorInstruction) &&
-                !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
-                continue;
-            if (prevFlags.has(MicroInstrFlagsE::JumpInstruction) &&
-                !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
-                continue;
 
             const uint32_t preheaderIndex = header - 1;
 

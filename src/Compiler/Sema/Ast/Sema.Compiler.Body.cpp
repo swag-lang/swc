@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaFileError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInitFlow.h"
@@ -36,14 +37,6 @@ namespace
         if (const auto* runBlock = node.safeCast<AstCompilerRunBlock>())
             return runBlock->nodeBodyRef;
         return AstNodeRef::invalid();
-    }
-
-    Result reportCompilerFileError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = SemaError::build(sema, id, nodeRef);
-        FileSystem::setDiagnosticPathAndBecause(diag, &sema.ctx(), path, because);
-        diag.report(sema.ctx());
-        return Result::Error;
     }
 
     bool compilerAstStringType(Sema& sema, TypeRef typeRef)
@@ -296,7 +289,7 @@ namespace
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
         if (sema.compiler().appendGeneratedSource(appendResult, because, sectionText.view(), sectionCodeOffset) != Result::Continue)
-            return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, appendResult.path, because);
+            return SemaFileError::reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, appendResult.path, because);
 
         SourceFile& sourceFile = sema.compiler().addLoadedFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, appendResult.snapshot.view());
         sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);

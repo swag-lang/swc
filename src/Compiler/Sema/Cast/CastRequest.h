@@ -67,6 +67,16 @@ struct CastRequest
     CastRequest() = delete;
     explicit CastRequest(CastKind kind);
 
+    CastRequest makeNested() const
+    {
+        CastRequest nested(kind);
+        nested.flags        = flags;
+        nested.errorNodeRef = errorNodeRef;
+        nested.errorCodeRef = errorCodeRef;
+        nested.probing      = probing;
+        return nested;
+    }
+
     Result fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value = "", DiagnosticId note = DiagnosticId::None);
 
     bool isConstantFolding() const { return srcConstRef.isValid(); }

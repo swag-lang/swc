@@ -101,6 +101,8 @@ namespace PostRaPeephole
         };
 
         constexpr uint32_t K_MAX_SPAN = 64;
+        std::vector<uint8_t>  visited;
+        std::vector<uint32_t> pending;
         for (uint32_t candidateIndex = 1; candidateIndex + 2 < refs.size(); ++candidateIndex)
         {
             const MicroInstrRef candidateRef = refs[candidateIndex];
@@ -124,13 +126,18 @@ namespace PostRaPeephole
                     sourceOps[3].valueU64 != load[3].valueU64)
                     continue;
 
-                const bool sourceObjectSlot   = isSourceObjectSlot(sourceOps);
+                std::optional<bool> sourceObjectSlot;
                 const auto disjointSpillStore = [&](const MicroInstr& step) {
-                    if (!sourceObjectSlot || ctx.passContext->spillAreaLo >= ctx.passContext->spillAreaHi)
+                    if (ctx.passContext->spillAreaLo >= ctx.passContext->spillAreaHi)
+                        return false;
+                    if (step.op != MicroInstrOpcode::LoadMemReg && step.op != MicroInstrOpcode::LoadMemImm)
                         return false;
                     const MicroInstrOperand* ops = step.ops(*ctx.operands);
-                    if (!ops || (step.op != MicroInstrOpcode::LoadMemReg && step.op != MicroInstrOpcode::LoadMemImm) ||
-                        ops[0].reg != conv.stackPointer)
+                    if (!ops || ops[0].reg != conv.stackPointer)
+                        return false;
+                    if (!sourceObjectSlot)
+                        sourceObjectSlot = isSourceObjectSlot(sourceOps);
+                    if (!*sourceObjectSlot)
                         return false;
                     const uint64_t offset = ops[step.op == MicroInstrOpcode::LoadMemReg ? 3 : 2].valueU64;
                     const uint64_t width  = getNumBytes(ops[step.op == MicroInstrOpcode::LoadMemReg ? 2 : 1].opBits);
@@ -138,9 +145,10 @@ namespace PostRaPeephole
                            offset <= ctx.passContext->spillAreaHi && width <= ctx.passContext->spillAreaHi - offset;
                 };
 
-                std::vector<uint8_t>  visited(refs.size());
-                std::vector<uint32_t> pending{candidateIndex};
-                bool                  valid = true;
+                visited.assign(refs.size(), 0);
+                pending.clear();
+                pending.push_back(candidateIndex);
+                bool valid = true;
                 while (!pending.empty() && valid)
                 {
                     const uint32_t index = pending.back();
@@ -164,7 +172,7 @@ namespace PostRaPeephole
                         }
                         if (MicroInstr::info(step->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                         {
-                            if (!readOnlyCall(refs[predecessor]) || !conv.isIntPersistentReg(load[1].reg))
+                            if (!conv.isIntPersistentReg(load[1].reg) || !readOnlyCall(refs[predecessor]))
                             {
                                 valid = false;
                                 break;

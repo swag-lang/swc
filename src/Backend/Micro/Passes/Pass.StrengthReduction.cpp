@@ -159,15 +159,14 @@ namespace
     // with C = C0 * 2^k and C0 odd. Multiplying by the inverse maps the
     // multiples of C0 onto [0, (2^N - 1) / C0], and the rotation also sends
     // anything with a low bit set among the k low bits above the limit.
-    bool tryReduceUnsignedModuloEquality(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState* ssaState, MicroInstrRef instRef, MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
+    bool tryReduceUnsignedModuloEquality(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState*& ssaState, MicroSsaState& localSsaState, MicroInstrRef instRef, MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
     {
         const MicroOpBits opBits  = ops[1].opBits;
         const uint32_t    bits    = getNumBits(opBits);
         const uint64_t    mask    = getBitsMask(opBits);
         const uint64_t    divisor = ops[3].valueU64 & mask;
         const MicroReg    value   = ops[0].reg;
-        if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || divisor < 3 || Math::isPowerOfTwo(divisor) || !value.isVirtualInt() || !ssaState ||
-            !ssaState->isValid())
+        if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || divisor < 3 || Math::isPowerOfTwo(divisor) || !value.isVirtualInt())
             return false;
 
         // The compare may follow a few moves that leave the flags alone, as
@@ -193,6 +192,11 @@ namespace
         if (!findEqualityReader(storage, operands, cmpRef, readerRef, cond))
             return false;
         if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, readerRef, context.builder))
+            return false;
+        // Only the matching compare and reader need SSA to prove unique use.
+        if (!ssaState)
+            ssaState = MicroSsaState::ensureFor(context, localSsaState);
+        if (!ssaState || !ssaState->isValid())
             return false;
         // The compare is the remainder's only reader.
         uint32_t remainderId = MicroSsaState::K_INVALID_VALUE;
@@ -666,6 +670,19 @@ namespace
             immediate = magnitude;
         }
 
+        // These cases never need a fresh register. Powers of two (and 1) are
+        // normally reduced earlier; a masked immediate can still become one
+        // when its stored value carried bits above the operand width.
+        if (!isSigned && Math::isPowerOfTwo(immediate))
+            return false;
+        if (isSigned && immediate == 1)
+        {
+            // n / 1 == n, n % 1 == 0, for any signed n.
+            ops[2].microOp  = isModulo ? MicroOp::And : MicroOp::Add;
+            ops[3].valueU64 = 0;
+            return true;
+        }
+
         if (nextVirtualIntRegIndex == 0)
             nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
@@ -673,12 +690,6 @@ namespace
 
         if (!isSigned)
         {
-            // Powers of two (and 1) are reduced to shift/mask before this point; the
-            // masked immediate can still be one when the stored value carried bits
-            // above the operand width. Leave that oddity to the hardware divide.
-            if (Math::isPowerOfTwo(immediate))
-                return false;
-
             const UnsignedDivisionMagic magic = computeUnsignedDivisionMagic(immediate, bits);
             if (isModulo)
             {
@@ -693,14 +704,6 @@ namespace
             }
 
             storage.erase(instRef);
-            return true;
-        }
-
-        if (immediate == 1)
-        {
-            // n / 1 == n, n % 1 == 0, for any signed n.
-            ops[2].microOp  = isModulo ? MicroOp::And : MicroOp::Add;
-            ops[3].valueU64 = 0;
             return true;
         }
 
@@ -815,9 +818,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     changed = true;
                     break;
                 }
-                if (!ssaState)
-                    ssaState = MicroSsaState::ensureFor(context, localSsaState);
-                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, instRef, ops, nextVirtualIntRegIndex) ||
+                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, localSsaState, instRef, ops, nextVirtualIntRegIndex) ||
                           tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;
 

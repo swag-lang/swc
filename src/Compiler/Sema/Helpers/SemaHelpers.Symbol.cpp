@@ -92,19 +92,6 @@ namespace
         return leftPayloadTypeRef == rightPayloadTypeRef;
     }
 
-    const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return nullptr;
-
-        const TypeRef   enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
-        if (enumType.isEnum())
-            return &enumType.payloadSymEnum();
-
-        return nullptr;
-    }
-
     bool isPointerOrReferenceAliasAware(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo& typeInfo = SemaHelpers::aliasEnumType(sema, view);
@@ -1514,7 +1501,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     }
 
     // Enum
-    if (const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, nodeLeftView.typeRef()))
+    if (const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, nodeLeftView.typeRef()))
         return memberEnum(sema, memberRef, node, *enumSym, idRef, tokNameRef, allowOverloadSet);
 
     // Use-site nullability: reaching a member through a value whose type is still

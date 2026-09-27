@@ -631,6 +631,12 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (shape.addrBitsSlot != K_NO_SLOT && ops[shape.addrBitsSlot].opBits != MicroOpBits::B64)
             continue;
 
+        if (inst->op == MicroInstrOpcode::OpBinaryRegMem &&
+            (ops[3].microOp != MicroOp::FloatXor ||
+             (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+             !ops[1].reg.isInstructionPointer()))
+            continue;
+
         if (!relocationsReady && (shape.readsMemory || shape.keyedByRelocationToo))
         {
             // Both lookups below need the same snapshot. Relocations remain
@@ -646,10 +652,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (inst->op == MicroInstrOpcode::OpBinaryRegMem)
         {
             const auto relocIt = relocationByInstruction.find(instRef);
-            if (ops[3].microOp != MicroOp::FloatXor ||
-                (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
-                !ops[1].reg.isInstructionPointer() ||
-                relocIt == relocationByInstruction.end() ||
+            if (relocIt == relocationByInstruction.end() ||
                 relocIt->second->kind != MicroRelocation::Kind::ConstantAddress ||
                 relocIt->second->form != MicroRelocation::Form::Relative32)
                 continue;

@@ -655,8 +655,10 @@
         <ClInclude Include="src\Backend\Micro\MicroReg.h"/>
         <ClInclude Include="src\Backend\Micro\MicroRelocation.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenArraySlice.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerConstant.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h"/>
@@ -828,6 +830,7 @@
         <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaAccess.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaCallArgument.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>

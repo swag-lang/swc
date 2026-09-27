@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenPointerConstant.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -18,21 +19,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void emitPointerConstant(CodeGen& codeGen, MicroReg reg, uint64_t value, ConstantRef cstRef)
-    {
-        if (!value)
-        {
-            codeGen.builder().emitLoadRegImm(reg, ApInt(0, 64), MicroOpBits::B64);
-            return;
-        }
-
-        DataSegmentRef sourceRef;
-        if (codeGen.cstMgr().resolveConstantDataSegmentRef(sourceRef, cstRef, reinterpret_cast<const void*>(value)))
-            codeGen.builder().emitLoadRegPtrReloc(reg, value, cstRef);
-        else
-            codeGen.builder().emitLoadRegPtrImm(reg, value);
-    }
-
     bool prefersAddressBackedCallConstantPayload(const TypeInfo& typeInfo)
     {
         return typeInfo.isStruct() ||
@@ -127,12 +113,12 @@ namespace
             }
 
             case ConstantKind::ValuePointer:
-                emitPointerConstant(codeGen, outPayload.reg, cst.getValuePointer(), cstRef);
+                CodeGenPointerConstant::emitPointerConstant(codeGen, outPayload.reg, cst.getValuePointer(), cstRef);
                 outPayload.setIsValue();
                 return true;
 
             case ConstantKind::BlockPointer:
-                emitPointerConstant(codeGen, outPayload.reg, cst.getBlockPointer(), cstRef);
+                CodeGenPointerConstant::emitPointerConstant(codeGen, outPayload.reg, cst.getBlockPointer(), cstRef);
                 outPayload.setIsValue();
                 return true;
 

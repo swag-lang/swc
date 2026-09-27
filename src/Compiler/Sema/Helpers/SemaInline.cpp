@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -684,21 +685,6 @@ namespace
         }
 
         return bindingValueArgumentRef(sema, argRef);
-    }
-
-    bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)
-    {
-        const AstNode& argNode = sema.node(argRef);
-        if (!argNode.is(AstNodeId::CompilerCodeBlock))
-            return false;
-
-        const AstNodeRef bodyRef = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
-        if (bodyRef.isInvalid())
-            return false;
-        if (!sema.node(bodyRef).is(AstNodeId::EmbeddedBlock))
-            return false;
-
-        return sema.node(bodyRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
     }
 
     AstNodeRef sourceArgRefAt(const InlineArgumentMapContext& context, size_t index, AstNodeRef fallbackArgRef)
@@ -2420,7 +2406,7 @@ namespace
                 continue;
 
             if (numFixed &&
-                isImplicitTrailingCodeBlockArg(sema, argRef) &&
+                SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argRef) &&
                 params[numFixed - 1]->type(sema.ctx()).isCodeBlock() &&
                 !isBindingAssigned(bound[numFixed - 1]))
             {

@@ -1007,7 +1007,7 @@ namespace
 
         const auto                                        refs = cfg.instructionRefs();
         const auto                                        n    = cfg.instructionCount();
-        std::vector<const MicroPassHelpers::NaturalLoop*> candidates;
+        SmallVector<const MicroPassHelpers::NaturalLoop*, 4> candidates;
         for (const auto& loop : loops | std::views::values)
             candidates.push_back(&loop);
         std::ranges::sort(candidates, [](const auto* lhs, const auto* rhs) { return lhs->bodySize > rhs->bodySize; });

@@ -473,6 +473,9 @@ void MicroRegisterAllocationPass::computeConcreteLoopCarried()
 {
     // A concrete register whose value is live-in at a loop header crosses that
     // loop's back-edge, so its uses can precede the point that wants it.
+    concreteLoopCarried_.clear();
+    if (!functionHasLoop_)
+        return;
     concreteLoopCarried_.assign(denseConcreteRegs_.regs().size(), 0);
 
     const uint32_t wordCount = denseConcreteRegs_.wordCount();

@@ -573,6 +573,7 @@
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceOrigin.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceStorage.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericSemaGate.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaDeclHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>
         <ClInclude Include="src\Main\Command\CommandRun.h"/>
         <ClInclude Include="src\Support\Math\Sha256.h"/>

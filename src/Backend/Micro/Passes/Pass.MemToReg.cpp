@@ -45,8 +45,9 @@ namespace
 
     struct SlotInfo
     {
-        uint64_t                maxAccessEnd = 0;
-        bool                    hasWrite     = false;
+        uint64_t                maxAccessEnd       = 0;
+        bool                    hasWrite           = false;
+        bool                    stackPointerAccess = false;
         SmallVector<SlotAccess> accesses;
     };
 
@@ -475,11 +476,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // ---- Pass 1: collect address registers `lea ar, [fb + off]`. ----
     struct AddrRegInfo
     {
-        uint64_t      offset = 0;
-        MicroInstrRef defRef = MicroInstrRef::invalid();
+        uint64_t      offset    = 0;
+        MicroInstrRef defRef    = MicroInstrRef::invalid();
+        bool          ambiguous = false;
     };
     std::unordered_map<MicroReg, AddrRegInfo> addrRegOffset;
-    std::unordered_set<MicroReg>              badAddrReg;
     std::unordered_set<uint32_t>              addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
@@ -522,14 +523,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 }
             }
             if (!ar.isVirtualInt() || ar == frameBase)
-                badAddrReg.insert(ar);
-            else if (addrRegOffset.contains(ar))
+                continue;
+            const auto [found, inserted] = addrRegOffset.try_emplace(ar, AddrRegInfo{offset, it.current});
+            if (!inserted)
             {
-                badAddrReg.insert(ar);
+                found->second.ambiguous = true;
                 addrRegMoreOffsets[ar].push_back(offset);
             }
-            else
-                addrRegOffset[ar] = {offset, it.current};
         }
     }
 
@@ -565,7 +565,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                                                    isFrameRegister(ops[1].reg);
                     if (!knownFrameAddress)
                         return Result::Continue;
-                    badAddrReg.insert(ops[i].reg);
+                    found->second.ambiguous = true;
                 }
             }
         }
@@ -692,10 +692,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     bool                                   bail = false;
     bool                                   hasFieldSplitWrite = false;
     bool                                   hasNarrowFieldRead = false;
-    // Slots the stack pointer addresses directly. Those include the outgoing
-    // argument area, which a callee reads behind the analysis: they take part
-    // in the overlap checks but are never promoted.
-    std::unordered_set<uint64_t> stackPointerSlots;
+    // Slots addressed directly by the stack pointer include outgoing arguments;
+    // a callee can read those behind this analysis, so they cannot be promoted.
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
     {
         const MicroInstrRef      ref  = it.current;
@@ -731,7 +729,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             else
             {
                 const auto found = addrRegOffset.find(reg);
-                if (found != addrRegOffset.end() && !badAddrReg.contains(reg))
+                if (found != addrRegOffset.end() && !found->second.ambiguous)
                 {
                     baseReg   = reg;
                     baseSlot  = found->second.offset + extraOffset;
@@ -943,8 +941,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         if (hasPending)
         {
-            if (baseReg == stackPointer)
-                stackPointerSlots.insert(pending.offset);
             if (baseReg != stackPointer && inst.op == MicroInstrOpcode::LoadMemReg &&
                 pending.bits == MicroOpBits::B64 && ops[1].reg.isAnyInt())
                 hasFieldSplitWrite = true;
@@ -952,6 +948,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 (pending.bits == MicroOpBits::B8 || pending.bits == MicroOpBits::B16 || pending.bits == MicroOpBits::B32))
                 hasNarrowFieldRead = true;
             SlotInfo& slot = slots[pending.offset];
+            slot.stackPointerAccess |= baseReg == stackPointer;
             slot.accesses.push_back(pending);
             // Compare computed ends, not widths: displacement addition can wrap.
             slot.maxAccessEnd = std::max(slot.maxAccessEnd, pending.offset + getNumBytes(pending.bits));
@@ -1025,7 +1022,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 {
                     if (otherSlot.maxAccessEnd <= lo || other >= hi)
                         continue;
-                    if (stackPointerSlots.contains(other))
+                    if (otherSlot.stackPointerAccess)
                         uniform = false;
                     for (const SlotAccess& inner : otherSlot.accesses)
                     {
@@ -1083,7 +1080,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
     for (auto& [offset, slot] : slots)
     {
-        if (slot.accesses.empty() || !slot.hasWrite || stackPointerSlots.contains(offset))
+        if (slot.accesses.empty() || !slot.hasWrite || slot.stackPointerAccess)
             continue;
 
         // A slot inside an escaped variable can be written behind the scalar
@@ -1290,7 +1287,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         for (const auto& [offset, slot] : slots)
         {
-            if (stackPointerSlots.contains(offset))
+            if (slot.stackPointerAccess)
                 continue;
 
             const SlotAccess* write  = nullptr;
@@ -1320,7 +1317,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 if (otherSlot.maxAccessEnd <= offset || other >= end)
                     continue;
-                if (other < offset || otherSlot.maxAccessEnd > end || (other != offset && otherSlot.hasWrite) || stackPointerSlots.contains(other))
+                if (other < offset || otherSlot.maxAccessEnd > end || (other != offset && otherSlot.hasWrite) || otherSlot.stackPointerAccess)
                 {
                     usable = false;
                     break;

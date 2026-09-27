@@ -55,3 +55,51 @@ using Core, Win32, Ogl
     Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
     Swag.assert(not surface.preparedFrame and not surface.isDirty)
 }
+
+// A taskbar restore must return a minimized maximized window to its maximized bounds.
+// Restoring a minimized normal window must still return it to its normal bounds.
+#[Swag.TestTag("gpu")]
+#test
+{
+    var app: Application
+    let surface = (expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-minimized-restore-test"))!
+    surface.show()
+
+    let normal = surface.position
+    surface.showMaximized()
+    let maximized = surface.position
+
+    discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_MINIMIZE, 0)
+    app.runFrame()
+    Swag.assert(surface.isMinimized and surface.isMaximized)
+    Swag.assert(surface.position == maximized)
+
+    discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_RESTORE, 0)
+    app.runFrame()
+    let maximizedStyle = cast(u32) GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE)
+    Swag.assert(not surface.isMinimized and surface.isMaximized)
+    Swag.assert(maximizedStyle & WS_MAXIMIZE and not (maximizedStyle & WS_MINIMIZE))
+    Swag.assert(IsWindowVisible(surface.win32Handle()))
+    Swag.assert(surface.position == maximized)
+
+    surface.showNormal()
+    discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_MINIMIZE, 0)
+    app.runFrame()
+    discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_RESTORE, 0)
+    app.runFrame()
+    let normalStyle = cast(u32) GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE)
+    Swag.assert(not surface.isMinimized and not surface.isMaximized)
+    Swag.assert(not (normalStyle & WS_MINIMIZE) and not (normalStyle & WS_MAXIMIZE))
+    Swag.assert(IsWindowVisible(surface.win32Handle()))
+    Swag.assert(surface.position == normal)
+
+    surface.showMaximized()
+    discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_MINIMIZE, 0)
+    app.runFrame()
+    surface.showNormal()
+    let restoredStyle = cast(u32) GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE)
+    Swag.assert(not surface.isMinimized and not surface.isMaximized)
+    Swag.assert(not (restoredStyle & WS_MINIMIZE) and not (restoredStyle & WS_MAXIMIZE))
+    Swag.assert(IsWindowVisible(surface.win32Handle()))
+    Swag.assert(surface.position == normal)
+}

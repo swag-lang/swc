@@ -475,6 +475,11 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
         case WM_MOVE:
 
+            // Windows moves a minimized HWND to its icon position. Keep the last window bounds
+            // for restoration and for choosing the monitor when it is maximized again.
+            if surface.isMinimized do
+                return 0
+
             // lParam holds the client origin in screen space as *signed* 16-bit coordinates.
             // A maximized window is positioned slightly off the work area (negative origin
             // because of the surface shadow), so a raw LOWORD/HIWORD would wrap to a huge
@@ -1084,8 +1089,22 @@ impl Surface
     // the whole monitor as the size to restore to.
     mtd showMaximized(restoreTo: Math.Rectangle)
     {
-        if .isMaximized do
+        if .isMaximized and not .isMinimized do
             return
+        if .isMaximized
+        {
+            .isMinimized = false
+            if not .app.renderer.needsNativeWindow()
+            {
+                .invalidate()
+                return
+            }
+
+            .applyNativeDwmStyle()
+            ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
+            return
+        }
+
         .isMaximized      = true
         .isMinimized      = false
         .restoredPosition = restoreTo
@@ -1158,6 +1177,15 @@ impl Surface
     {
         if not .isMaximized and not .isMinimized do
             return
+
+        // SW_RESTORE returns a minimized maximized HWND to maximized state. Explicit normal
+        // placement is needed when the caller asks to leave both states at once.
+        if .isMaximized and .isMinimized
+        {
+            .showNormalAt(.restoredPosition)
+            return
+        }
+
         let wasMaximized = .isMaximized
         .isMaximized = false
         .isMinimized = false

@@ -144,10 +144,20 @@ impl IWnd for SurfaceWnd
         let srfn = .surface!
         switch evt.kind
         {
-        case .Maximize: srfn.showMaximized()
-        case .Minimize: srfn.showMinimized()
-        case .Restore:  srfn.showNormal()
-        case .Close:    srfn.destroy()
+        case .Maximize:
+            srfn.showMaximized()
+
+        case .Minimize:
+            srfn.showMinimized()
+
+        case .Restore:
+            if srfn.isMinimized and srfn.isMaximized do
+                srfn.showMaximized()
+            else do
+                srfn.showNormal()
+
+        case .Close:
+            srfn.destroy()
         }
     }
 

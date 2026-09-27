@@ -32,8 +32,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_INVALID_ORDINAL = std::numeric_limits<uint32_t>::max();
-
     // A register value known at compile time, and the WIDTH it is known at: a narrower
     // definition says nothing about the bits above it, which a wider reader would observe.
     // Every producer records the width it actually wrote and every consumer refuses to read
@@ -224,7 +222,9 @@ namespace
     {
         outLayout.order.clear();
         outLayout.order.reserve(storage.count());
-        outLayout.ordinalByRef.assign(storage.slotCount(), K_INVALID_ORDINAL);
+        // Only live jump references query this table, and every live slot is
+        // overwritten below. Retain the unused slots across repeated scans.
+        outLayout.ordinalByRef.resize(storage.slotCount());
         outLayout.labelOrdinalById.clear();
         outLayout.hasAnyLabel         = false;
         outLayout.hasConditionalJump  = false;
@@ -462,9 +462,6 @@ namespace
             return false;
 
         const uint32_t jumpOrdinal = layout.ordinalByRef[jumpRef.get()];
-        if (jumpOrdinal == K_INVALID_ORDINAL)
-            return false;
-
         for (uint32_t ordinal = jumpOrdinal + 1; ordinal < layout.order.size(); ++ordinal)
         {
             const MicroInstr* nextInst = storage.ptr(layout.order[ordinal]);

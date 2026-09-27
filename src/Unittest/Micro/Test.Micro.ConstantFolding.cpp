@@ -545,6 +545,85 @@ SWC_TEST_BEGIN(ConstantFolding_AddressChainFromConstantFolds)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantFolding_IndexedConstantFloatComparisonIsUniform)
+{
+    enum class Case
+    {
+        AllAbove,
+        NoneAbove,
+        Mixed,
+        MutableBase,
+        Float32AllAbove,
+        NanBelowOrEqual,
+    };
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg zero  = MicroReg::virtualFloatReg(2);
+
+    for (const Case test : {Case::AllAbove, Case::NoneAbove, Case::Mixed, Case::MutableBase, Case::Float32AllAbove, Case::NanBelowOrEqual})
+    {
+        const bool        float32   = test == Case::Float32AllAbove;
+        const MicroOpBits bits      = float32 ? MicroOpBits::B32 : MicroOpBits::B64;
+        const MicroCond   condition = test == Case::NanBelowOrEqual ? MicroCond::BelowOrEqual : MicroCond::Above;
+        std::array<double, 4> values{-0.25, 0.5, 1.0, 2.0};
+        if (test == Case::AllAbove)
+            values = {0.25, 0.5, 1.0, 2.0};
+        else if (test == Case::NoneAbove)
+            values = {-0.25, 0.0, -1.0, -2.0};
+        else if (test == Case::NanBelowOrEqual)
+            values = {std::numeric_limits<double>::quiet_NaN(), -0.5, 0.0, -2.0};
+        const std::array<float, 4> floatValues{0.25f, 0.5f, 1.0f, 2.0f};
+        std::span<const std::byte> bytes = std::as_bytes(std::span{values});
+        if (float32)
+            bytes = std::as_bytes(std::span{floatValues});
+        std::array            dims{bytes.size()};
+        const TypeRef         arrayType   = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+        const ConstantRef     constantRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, bytes));
+        const ConstantValue& constant = ctx.cstMgr().get(constantRef);
+        const uint64_t       address  = reinterpret_cast<uint64_t>(constant.getArray().data());
+
+        MicroBuilder builder(ctx);
+        if (test == Case::MutableBase)
+            builder.emitLoadRegImm(base, ApInt(address, 64), MicroOpBits::B64);
+        else
+            builder.emitLoadRegPtrReloc(base, address, constantRef);
+        builder.emitLoadAmcRegMem(value, bits, base, index, float32 ? 4 : 8, 0, MicroOpBits::B64);
+        builder.emitClearReg(zero, bits);
+        builder.emitCmpRegReg(value, zero, bits);
+        const MicroLabelRef done = builder.createLabel();
+        builder.emitJumpToLabel(condition, MicroOpBits::B32, done);
+        const MicroInstrRef jumpRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        MicroSsaValueScratch scratch;
+        MicroPassContext passContext;
+        passContext.taskContext     = &ctx;
+        passContext.builder         = &builder;
+        passContext.instructions    = &builder.instructions();
+        passContext.operands        = &builder.operands();
+        passContext.callConvKind    = CallConvKind::Swag;
+        passContext.ssaValueScratch = &scratch;
+        MicroConstantFoldingPass pass;
+        SWC_RESULT(pass.run(passContext));
+
+        const MicroInstr* jump = builder.instructions().ptr(jumpRef);
+        if (test == Case::NoneAbove)
+        {
+            if (jump)
+                return Result::Error;
+        }
+        else if (!jump || jump->op != MicroInstrOpcode::JumpCond ||
+                 jump->ops(builder.operands())[0].cpuCond !=
+                     (test == Case::AllAbove || test == Case::Float32AllAbove || test == Case::NanBelowOrEqual ? MicroCond::Unconditional : MicroCond::Above))
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

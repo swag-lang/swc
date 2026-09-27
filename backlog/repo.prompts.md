@@ -1106,12 +1106,15 @@ THE LOOP — PRIORITIZE CODE ITERATIONS
      Search for all exact references and update them in the same batch.
   3. Inspect the diff immediately. Reject unrelated formatting, line-ending churn, reordered code,
      or an edit whose safety depends on an assumption not visible in the source. Admit and run a
-     small incremental DevMode recompile promptly after each source batch. Fix or revert a failed
-     edit before starting another; do not accumulate uncompiled source changes.
+     small incremental DevMode recompile promptly after each executable source batch. For a
+     comment-only edit in a broadly included header or definition table, use static diff checks
+     instead of rebuilding most of the compiler. Fix or revert a failed edit before starting
+     another; do not accumulate uncompiled executable changes.
   4. Run the smallest focused test when the batch changes code that a test can meaningfully
-     exercise. Include-only, comment-only, and project-entry batches can stop at the recompile or
-     project-file check. Rotate a targeted test from another affected area every few retained
-     batches; run a broader relevant suite at spaced milestones, after a risky shared-header or
+     exercise. Include-only and project-entry batches can stop at the recompile or project-file
+     check; comment-only batches can stop at a static diff check. Rotate a targeted test from
+     another affected area every few retained batches; run a broader relevant suite at spaced
+     milestones, after a risky shared-header or
      cross-subsystem change, and before final integration. Follow validate-swag-changes and load
      admission before each build and test. Do not run a broad suite after every small edit or a
      reverted trial.
@@ -1131,8 +1134,9 @@ worktree does not provide separate machine resources.
 Select validation from the final diff using validate-swag-changes:
 
   - Parse the Visual Studio project files after changing their entries or filters.
-  - Rebuild DevMode incrementally after each source batch, and ensure the final source batch has a
-    green build. Recheck after integration when merged source differs from the validated worktree.
+  - Rebuild DevMode incrementally after each executable source batch, and ensure the final
+    executable source batch has a green build. Recheck after integration when merged source
+    differs from the validated worktree.
   - Also build Release when the campaign crosses compiler architecture, shared headers, conditional
     compilation, or source sets; otherwise do not add Release by habit.
   - Run the focused C++ or compiler suite boundaries that exercise code moved or mechanically

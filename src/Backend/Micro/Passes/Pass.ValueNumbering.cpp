@@ -486,12 +486,12 @@ namespace
 
         void reset(const uint32_t instructionCount)
         {
-            relocationByInstruction.clear();
-            frameDerivedRegs.clear();
             table.clear();
             rewrites.clear();
             valueAliases.clear();
-            epochAt.assign(instructionCount, 0);
+            // The source-order walk writes each entry before a later label
+            // reads that instruction's epoch as its predecessor.
+            epochAt.resize(instructionCount);
         }
     };
 
@@ -530,11 +530,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
 
-    MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
-    if (!ssaState || !ssaState->isValid())
+    if (!context.builder)
         return Result::Continue;
-
     const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
     if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
         return Result::Continue;
@@ -545,6 +542,12 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
     const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
     if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
+        return Result::Continue;
+
+    // These CFG checks can reject a function without constructing its SSA.
+    MicroSsaState        localSsaState;
+    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 
     MicroPassHelpers::MicroDomTree dom;
@@ -575,7 +578,10 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         const MicroInstrRef instRef = instrRefs[i];
         const MicroInstr*   inst    = storage.ptr(instRef);
         if (!inst)
+        {
+            epochAt[i] = 0;
             continue;
+        }
 
         if (inst->op == MicroInstrOpcode::Label && cfg.predecessors(i).size() == 1 && cfg.predecessors(i)[0] < i)
             memoryEpoch = epochAt[cfg.predecessors(i)[0]];
@@ -627,6 +633,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         {
             // Both lookups below need the same snapshot. Relocations remain
             // untouched until the queued rewrites are applied after this scan.
+            relocationByInstruction.clear();
             for (const MicroRelocation& reloc : context.builder->codeRelocations())
             {
                 if (reloc.instructionRef.isValid())
@@ -671,6 +678,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             {
                 // Rewrites are queued, so even a late first load sees the same
                 // whole-function closure, including definitions after the load.
+                frameDerivedRegs.clear();
                 collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
                 frameDerivedRegsReady = true;
             }
@@ -831,7 +839,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         // A rewritten instruction no longer carries the address the relocation
         // was going to patch. Leaving the relocation attached would have the
         // emitter bind it to whatever the copy encodes.
-        if (relocationByInstruction.contains(rewrite.instRef))
+        if (relocationsReady && relocationByInstruction.contains(rewrite.instRef))
             context.builder->invalidateRelocationForInstruction(rewrite.instRef);
 
         inst->op      = rewrite.op;

@@ -676,12 +676,12 @@ void MicroRegisterAllocationPass::computeLoopDepth()
     // staying register-resident).
     loopDepth_.assign(instructionCount_, 0);
     functionHasLoop_ = false;
-    if (!hasControlFlow_ || instructionCount_ == 0)
+    // The CFG records the same backward edges the depth sweep counts.
+    if (!hasControlFlow_ || instructionCount_ == 0 || !controlFlowGraph_->hasLoop())
         return;
 
     auto& delta = loopDepthDelta_;
     delta.assign(static_cast<size_t>(instructionCount_) + 1, 0);
-    bool anyBackEdge = false;
     for (uint32_t s = 0; s < instructionCount_; ++s)
     {
         for (const uint32_t p : predecessors_[s])
@@ -690,13 +690,10 @@ void MicroRegisterAllocationPass::computeLoopDepth()
             {
                 ++delta[s];
                 --delta[p + 1];
-                anyBackEdge = true;
             }
         }
     }
-    functionHasLoop_ = anyBackEdge;
-    if (!anyBackEdge)
-        return;
+    functionHasLoop_ = true;
 
     int32_t running = 0;
     for (uint32_t i = 0; i < instructionCount_; ++i)
@@ -1074,7 +1071,7 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
     // above falling through, and no label inside the region is reachable from
     // outside it.
     outRegions.clear();
-    if (!hasControlFlow_ || !instructionCount_)
+    if (!hasControlFlow_ || !instructionCount_ || !functionHasLoop_)
         return;
 
     auto& isLabelAt           = loopRegionIsLabelAt_;
@@ -1085,17 +1082,11 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         uint32_t idx = 0;
         for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
-            if (it->op != MicroInstrOpcode::Label)
-                continue;
-            isLabelAt[idx] = 1;
-        }
+            if (it->op == MicroInstrOpcode::Label)
+                isLabelAt[idx] = 1;
 
-        // A jump whose target is the very next label lands after anything
-        // inserted before that label, so such a predecessor cannot be the
-        // entry that runs the fill.
-        idx = 0;
-        for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
-        {
+            // A jump to the next label lands after anything inserted before
+            // that label, so it cannot enter through the reservation fill.
             if (!MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::JumpInstruction))
                 continue;
             if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
@@ -2019,7 +2010,7 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
     // fast path. Rematerialization is left untouched: the existing multi-def
     // guard already forbids rematerializing a value redefined across the loop,
     // while a single-def loop-invariant constant must stay rematerializable.
-    if (!hasControlFlow_ || instructionCount_ == 0)
+    if (!hasControlFlow_ || instructionCount_ == 0 || !functionHasLoop_)
         return;
 
     const auto&    vregs     = denseVirtualRegs_.regs();
@@ -2348,12 +2339,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
     worklist_.clear();
     worklist_.reserve(instructionCount_);
-    inWorklist_.assign(instructionCount_, 0);
+    inWorklist_.assign(instructionCount_, 1);
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-    {
         worklist_.push_back(idx);
-        inWorklist_[idx] = 1;
-    }
 
     tempOutVirtual_.assign(virtualWordCount, 0);
     tempOutConcrete_.assign(concreteWordCount, 0);

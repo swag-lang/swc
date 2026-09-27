@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -52,20 +53,6 @@ namespace
     };
 
     thread_local SinkScratch sinkScratch;
-
-    bool instructionReadsMemory(const MicroInstr& inst)
-    {
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
-        if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
-            !info.flags.has(MicroInstrFlagsE::WritesMemory) &&
-            inst.op != MicroInstrOpcode::LoadAddrRegMem)
-            return true;
-
-        return inst.op == MicroInstrOpcode::LoadAmcRegMem ||
-               inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
-               inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
-               inst.op == MicroInstrOpcode::VecUnaryAmcRegMem;
-    }
 
     // A definition this pass may move: writes exactly one virtual register,
     // reads and writes no CPU flags, has no side effect beyond that write,
@@ -224,7 +211,7 @@ namespace
             // cluster in front of a consumer must reach a stable order, or the
             // members endlessly rotate past one another and the optimization
             // loop never converges.
-            const bool readsMemory   = instructionReadsMemory(*inst);
+            const bool readsMemory   = MicroPassHelpers::instructionReadsMemory(*inst);
             bool       blocked       = false;
             bool       meaningfulGap = false;
             for (uint32_t k = i + 1; k < useIdx && !blocked; ++k)

@@ -387,20 +387,6 @@ namespace
         return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, ssaState, knownValues, knownFlags, reg, instRef);
     }
 
-    uint64_t extendBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned)
-    {
-        const uint64_t srcMask = getBitsMask(srcBits);
-        uint64_t       masked  = value & srcMask;
-        if (isSigned)
-        {
-            const uint32_t srcBitsNum = getNumBits(srcBits);
-            const uint64_t signBit    = 1ULL << (srcBitsNum - 1);
-            if (masked & signBit)
-                masked |= ~srcMask;
-        }
-        return masked & getBitsMask(dstBits);
-    }
-
     // Convert an IEEE-754 bit pattern between f32/f64. On success fills the
     // destination bit pattern and its width; returns false for unsupported
     // source widths.
@@ -603,7 +589,7 @@ namespace
                     return false;
 
                 const bool isSigned = inst->op == MicroInstrOpcode::LoadSignedExtRegReg;
-                outValue.value      = extendBits(src.value, ops[3].opBits, ops[2].opBits, isSigned);
+                outValue.value      = MicroPassHelpers::extendImmediateBits(src.value, ops[3].opBits, ops[2].opBits, isSigned);
                 outValue.opBits     = ops[2].opBits;
                 return true;
             }
@@ -829,7 +815,7 @@ namespace
 
         inst.op          = MicroInstrOpcode::LoadRegImm;
         ops[1].opBits    = dstBits;
-        ops[2].valueU64  = extendBits(bits, loadBits, dstBits, signExtend);
+        ops[2].valueU64  = MicroPassHelpers::extendImmediateBits(bits, loadBits, dstBits, signExtend);
         inst.numOperands = 3;
         return true;
     }

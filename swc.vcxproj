@@ -607,6 +607,7 @@
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PreRAPeephole.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PreRAPeephole.Internal.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRAPeephole.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRAPeephole.ForwardRegTouch.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRAPeephole.Internal.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRADeadCodeElim.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRALoopHoist.h"/>
@@ -661,6 +662,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCString.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenExprView.h"/>
         <ClInclude Include="src\Unittest\Format\FormatRewriteCheck.h"/>
+        <ClInclude Include="src\Unittest\Compiler\CompilerTestFile.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenParameterReg.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerConstant.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>

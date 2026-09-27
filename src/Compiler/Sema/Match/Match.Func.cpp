@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -306,19 +307,6 @@ namespace
         TypeRef typeRef = TypeRef::invalid();
     };
 
-    const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return nullptr;
-
-        const TypeRef   enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
-        if (enumType.isEnum())
-            return &enumType.payloadSymEnum();
-
-        return nullptr;
-    }
-
     AstNodeRef autoEnumArgRef(Sema& sema, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -400,21 +388,6 @@ namespace
     uint32_t callArgIndexFromUserIndex(uint32_t userArgIndex, AstNodeRef ufcsArg)
     {
         return ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
-    }
-
-    bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)
-    {
-        const AstNode& argNode = sema.node(argRef);
-        if (!argNode.is(AstNodeId::CompilerCodeBlock))
-            return false;
-
-        const AstNodeRef bodyRef = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
-        if (bodyRef.isInvalid())
-            return false;
-        if (!sema.node(bodyRef).is(AstNodeId::EmbeddedBlock))
-            return false;
-
-        return sema.node(bodyRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
     }
 
     bool allowsImplicitAddressBinding(const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef ufcsArg)
@@ -656,7 +629,7 @@ namespace
                 continue;
             }
 
-            if (isImplicitTrailingCodeBlockArg(sema, argRef) &&
+            if (SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argRef) &&
                 numParams > 0 &&
                 params.back()->type(sema.ctx()).isCodeBlock() &&
                 !outMapping.paramArgs.back().argRef.isValid())
@@ -1355,7 +1328,7 @@ namespace
         const AstNode& argNode = sema.node(finalArgRef);
         const auto&    autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
-        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTy);
+        const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, paramTy);
         if (!enumSym)
             return Result::Continue;
 
@@ -1401,7 +1374,7 @@ namespace
         const AstNode& argNode = sema.node(finalArgRef);
         const auto&    autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
-        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTy);
+        const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, paramTy);
         if (!enumSym)
             return Result::Continue;
 
@@ -1457,7 +1430,7 @@ namespace
         if (autoEnumArgRef(sema, argRef).isInvalid())
             return false;
 
-        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTypeRef);
+        const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, paramTypeRef);
         if (!enumSym || paramTypeRef == enumSym->typeRef())
             return false;
         if (argView.typeRef() != enumSym->typeRef())
@@ -1736,7 +1709,7 @@ namespace
             }
 
             // The concrete signature validates a trailing implicit code block, including aliases.
-            if (isImplicitTrailingCodeBlockArg(sema, argRef))
+            if (SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argRef))
                 continue;
             if (seenNamed)
             {

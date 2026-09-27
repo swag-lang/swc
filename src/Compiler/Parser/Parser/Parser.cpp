@@ -242,6 +242,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
     }
 
     std::unordered_map<std::string_view, uint32_t>                       callCounts;
+    std::unordered_map<std::string_view, uint32_t>                       hotCallCounts;
     std::unordered_map<std::string_view, uint32_t>                       useCounts;
     std::unordered_map<const Ast*, AutoInlineCallGraph>                  callGraphs;
     std::unordered_map<const Ast*, std::unordered_set<std::string_view>> unsupportedFunctionNames;
@@ -250,7 +251,16 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
         if (!ast || ast->root().isInvalid())
             continue;
 
-        Ast::visit(*ast, ast->root(), [&](AstNodeRef, const AstNode& node) {
+        SmallVector<std::pair<AstNodeRef, bool>> pending;
+        SmallVector<AstNodeRef>                  children;
+        pending.push_back({ast->root(), false});
+        while (!pending.empty())
+        {
+            const auto [nodeRef, parentInLoop] = pending.back();
+            pending.pop_back();
+            const AstNode& node = ast->node(nodeRef);
+            const bool inLoop = parentInLoop || node.is(AstNodeId::WhileStmt) || node.is(AstNodeId::ForeachStmt) ||
+                                node.is(AstNodeId::ForStmt) || node.is(AstNodeId::ParallelForStmt) || node.is(AstNodeId::InfiniteLoopStmt);
             if (const auto* decl = node.safeCast<AstFunctionDecl>())
             {
                 callGraphs[ast].addFunction(*ast, *decl);
@@ -262,14 +272,23 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 useCounts[ast->srcView().tokenString(node.tokRef())]++;
 
             const auto* call = node.safeCast<AstCallExpr>();
-            if (!call)
-                return Ast::VisitResult::Continue;
+            if (call)
+            {
+                const std::string_view name = autoInlineCallName(*ast, call->nodeExprRef);
+                if (!name.empty())
+                {
+                    callCounts[name]++;
+                    if (inLoop)
+                        hotCallCounts[name]++;
+                }
+            }
 
-            const std::string_view name = autoInlineCallName(*ast, call->nodeExprRef);
-            if (!name.empty())
-                callCounts[name]++;
-            return Ast::VisitResult::Continue;
-        });
+            children.clear();
+            node.collectChildrenFromAst(children, *ast);
+            for (const AstNodeRef childRef : std::ranges::reverse_view(children))
+                if (childRef.isValid())
+                    pending.push_back({childRef, inLoop});
+        }
     }
 
     // Auto-inlining waits for the callee's resolved body before cloning it. A cycle of candidates
@@ -314,7 +333,12 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             const auto useIt            = useCounts.find(name);
             const bool hasLastCallBonus = it != callCounts.end() && it->second == 1 &&
                                           useIt != useCounts.end() && useIt->second == 1;
-            if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hasLastCallBonus)
+            // Volunteer a small wrapper with calls when at least one site is in a loop.
+            // Bound total duplication, including its cold call sites.
+            const bool hotCallBody = bodyHasCall && hotCallCounts.contains(name) &&
+                                     decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS && it != callCounts.end() &&
+                                     uint64_t{decl->autoInlineCost} * it->second <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS;
+            if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hotCallBody || hasLastCallBonus)
                 mutableDecl->addFlag(AstFunctionFlagsE::AutoInlineBody);
             return Ast::VisitResult::Continue;
         });

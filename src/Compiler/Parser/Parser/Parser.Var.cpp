@@ -130,12 +130,9 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseVarDecl()
+EnumFlags<AstVarStorageFlagsE> Parser::parseStorageModifiers()
 {
-    EnumFlags<AstVarDeclFlagsE>    flags        = AstVarDeclFlagsE::Zero;
     EnumFlags<AstVarStorageFlagsE> storageFlags = AstVarStorageFlagsE::Zero;
-    const TokenRef                 tokStart     = ref();
-
     for (;;)
     {
         AstVarStorageFlagsE storageFlag = AstVarStorageFlagsE::Zero;
@@ -157,6 +154,15 @@ AstNodeRef Parser::parseVarDecl()
         storageFlags.add(storageFlag);
         consume();
     }
+
+    return storageFlags;
+}
+
+AstNodeRef Parser::parseVarDecl()
+{
+    EnumFlags<AstVarDeclFlagsE>    flags        = AstVarDeclFlagsE::Zero;
+    const TokenRef                 tokStart     = ref();
+    EnumFlags<AstVarStorageFlagsE> storageFlags = parseStorageModifiers();
 
     if (consumeIf(TokenId::KwdConst).isValid())
         flags.add(AstVarDeclFlagsE::Const);

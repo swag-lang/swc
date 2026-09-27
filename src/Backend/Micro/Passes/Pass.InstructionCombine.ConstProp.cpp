@@ -297,31 +297,6 @@ namespace InstructionCombine
 
     namespace
     {
-        // Condition code for the operand-swapped compare (cmp a,b -> cmp b,a).
-        // Returns false for conditions whose meaning depends on signed/unsigned
-        // directional flags that don't have a clean swap (Sign, Parity,
-        // Overflow and friends): we refuse the swap rather than risk miscompile.
-        bool swapCmpCond(MicroCond in, MicroCond& out)
-        {
-            switch (in)
-            {
-                case MicroCond::Equal: out = MicroCond::Equal; return true;
-                case MicroCond::NotEqual: out = MicroCond::NotEqual; return true;
-                case MicroCond::Zero: out = MicroCond::Zero; return true;
-                case MicroCond::NotZero: out = MicroCond::NotZero; return true;
-                case MicroCond::Above: out = MicroCond::Below; return true;
-                case MicroCond::AboveOrEqual: out = MicroCond::BelowOrEqual; return true;
-                case MicroCond::Below: out = MicroCond::Above; return true;
-                case MicroCond::BelowOrEqual: out = MicroCond::AboveOrEqual; return true;
-                case MicroCond::Greater: out = MicroCond::Less; return true;
-                case MicroCond::GreaterOrEqual: out = MicroCond::LessOrEqual; return true;
-                case MicroCond::Less: out = MicroCond::Greater; return true;
-                case MicroCond::LessOrEqual: out = MicroCond::GreaterOrEqual; return true;
-                default:
-                    return false;
-            }
-        }
-
         // Operand index of the MicroCond for each UsesCpuFlags opcode we
         // handle. Anything else causes us to bail out of the swap.
         struct FlagConsumer
@@ -360,7 +335,7 @@ namespace InstructionCombine
                         continue;
 
                     MicroCond dstCond;
-                    if (!swapCmpCond(srcCond, dstCond))
+                    if (!MicroPassHelpers::swapCompareCondition(dstCond, srcCond))
                         return false;
 
                     if (ctx.isClaimed(walker.current))

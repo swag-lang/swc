@@ -267,6 +267,7 @@ private:
     AstNodeRef parseRetValType();
     AstNodeRef parseReturn();
     AstNodeRef parseSingleType();
+    EnumFlags<AstVarStorageFlagsE> parseStorageModifiers();
     AstNodeRef parseStructDecl();
     AstNodeRef parseSubType();
     AstNodeRef parseSubType(bool allowNullableSuffix);

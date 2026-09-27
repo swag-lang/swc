@@ -971,18 +971,8 @@ namespace InstructionCombine
         if (!ops || !ops[countIndex].reg.isVirtualInt() ||
             (ops[countIndex + 1].opBits != MicroOpBits::B32 && ops[countIndex + 1].opBits != MicroOpBits::B64))
             return false;
-        switch (ops[countIndex + 2].microOp)
-        {
-            case MicroOp::ShiftLeft:
-            case MicroOp::ShiftArithmeticLeft:
-            case MicroOp::ShiftRight:
-            case MicroOp::ShiftArithmeticRight:
-            case MicroOp::RotateLeft:
-            case MicroOp::RotateRight:
-                break;
-            default:
-                return false;
-        }
+        if (!MicroPassHelpers::isVariableScalarShiftOp(ops[countIndex + 2].microOp))
+            return false;
 
         MicroOpBits                  sourceBits = MicroOpBits::Zero;
         std::array<MicroInstrRef, 2> claims;

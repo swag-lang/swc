@@ -690,6 +690,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     //      pinned to one. ----
     std::unordered_map<uint64_t, SlotInfo> slots;
     bool                                   bail = false;
+    bool                                   hasFieldSplitWrite = false;
+    bool                                   hasNarrowFieldRead = false;
     // Slots the stack pointer addresses directly. Those include the outgoing
     // argument area, which a callee reads behind the analysis: they take part
     // in the overlap checks but are never promoted.
@@ -943,6 +945,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         {
             if (baseReg == stackPointer)
                 stackPointerSlots.insert(pending.offset);
+            if (baseReg != stackPointer && inst.op == MicroInstrOpcode::LoadMemReg &&
+                pending.bits == MicroOpBits::B64 && ops[1].reg.isAnyInt())
+                hasFieldSplitWrite = true;
+            if (!pending.isWrite && isFieldReadOp(inst.op) &&
+                (pending.bits == MicroOpBits::B8 || pending.bits == MicroOpBits::B16 || pending.bits == MicroOpBits::B32))
+                hasNarrowFieldRead = true;
             SlotInfo& slot = slots[pending.offset];
             slot.accesses.push_back(pending);
             // Compare computed ends, not widths: displacement addition can wrap.
@@ -1263,6 +1271,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         SmallVector<SlotAccess> reads;
     };
     SmallVector<FieldSplit> splits;
+    // A split needs a word store and a narrower field reader. Without both,
+    // no candidate can use instruction ordinals or the entry boundary.
+    if (hasFieldSplitWrite && hasNarrowFieldRead)
     {
         std::unordered_map<uint32_t, uint32_t> position;
         uint32_t                               entryEnd = std::numeric_limits<uint32_t>::max();

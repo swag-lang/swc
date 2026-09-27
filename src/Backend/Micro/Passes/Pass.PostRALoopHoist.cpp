@@ -207,10 +207,9 @@ namespace
         out.localSpaceEscapes = true;
     }
 
-    void analyzeFrameReachability(FrameReachability& out, const MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder)
+    void analyzeFrameReachability(FrameReachability& out, const MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv)
     {
-        out.computed     = true;
-        out.localBaseReg = findLocalBaseRegister(storage, operands, conv, encoder);
+        out.computed = true;
 
         if (context.sanitizerFunction)
         {
@@ -996,24 +995,21 @@ namespace
 
         const auto instrRefs = cfg.instructionRefs();
 
-        // Cheap pre-scan: no frame reload anywhere means no work, and the
-        // dominator, loop and liveness analyses below are never paid for.
+        // Only base-register detection is needed to find a frame reload.
+        // Classify escaped objects after one has been found.
         if (!framePrivacy.computed)
-            analyzeFrameReachability(framePrivacy, context, storage, operands, conv, context.encoder);
-        const FrameReachability& reach = framePrivacy;
+            framePrivacy.localBaseReg = findLocalBaseRegister(storage, operands, conv, context.encoder);
 
         bool anyFrameLoad = false;
         for (uint32_t i = 0; i < n && !anyFrameLoad; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
             FrameRef          slot;
-            if (inst && isFrameLoad(slot, *inst, inst->ops(operands), conv, reach.localBaseReg))
+            if (inst && isFrameLoad(slot, *inst, inst->ops(operands), conv, framePrivacy.localBaseReg))
                 anyFrameLoad = true;
         }
         if (!anyFrameLoad)
             return false;
-
-        const bool framePrivate = reach.wholeFramePrivate;
 
         const auto dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
         auto       loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
@@ -1056,6 +1052,11 @@ namespace
         }
         if (loops.empty())
             return false;
+
+        if (!framePrivacy.computed)
+            analyzeFrameReachability(framePrivacy, context, storage, operands, conv);
+        const FrameReachability& reach        = framePrivacy;
+        const bool               framePrivate = reach.wholeFramePrivate;
 
         MicroPhysLiveness liveness;
         MicroPassHelpers::computePhysicalLiveness(liveness, context);

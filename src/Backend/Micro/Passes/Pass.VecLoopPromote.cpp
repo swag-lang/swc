@@ -304,12 +304,16 @@ namespace
         return true;
     }
 
-    // Attempts the promotion on one loop. Returns true when the IR changed.
-    bool promoteLoop(const MicroPassContext& context, FunctionModel& fn, const MicroControlFlowGraph& cfg, const NaturalLoop& loop, std::span<const MicroInstrRef> instrRefs)
+    struct LoopPlacement
     {
-        MicroStorage&        storage  = *fn.storage;
-        MicroOperandStorage& operands = *fn.operands;
-        const uint32_t       n        = cfg.instructionCount();
+        const NaturalLoop* loop = nullptr;
+        MicroInstrRef      headerRef = MicroInstrRef::invalid();
+        uint32_t           exitTo = K_INVALID;
+    };
+
+    bool findLoopPlacement(LoopPlacement& out, MicroStorage& storage, const MicroControlFlowGraph& cfg, const NaturalLoop& loop, std::span<const MicroInstrRef> instrRefs)
+    {
+        const uint32_t n = cfg.instructionCount();
 
         // ---- A clean preheader, exactly like LICM requires one: a single
         //      external predecessor that is the linear predecessor and falls
@@ -365,6 +369,20 @@ namespace
             return false;
         if (storage.findNextInstructionRef(instrRefs[exitFrom]) != instrRefs[exitTo])
             return false;
+
+        out = {.loop = &loop, .headerRef = headerRef, .exitTo = exitTo};
+        return true;
+    }
+
+    // Attempts the promotion on one loop. Returns true when the IR changed.
+    bool promoteLoop(const MicroPassContext& context, FunctionModel& fn, const MicroControlFlowGraph& cfg, const LoopPlacement& placement, std::span<const MicroInstrRef> instrRefs)
+    {
+        MicroStorage&        storage  = *fn.storage;
+        MicroOperandStorage& operands = *fn.operands;
+        const uint32_t       n        = cfg.instructionCount();
+        const NaturalLoop&   loop     = *placement.loop;
+        const MicroInstrRef  headerRef = placement.headerRef;
+        const uint32_t       exitTo   = placement.exitTo;
 
         // ---- Scan every body instruction's memory behavior; a call, a
         //      stack-pointer adjustment, or an unexplainable access
@@ -603,8 +621,24 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
 
     const auto instrRefs = cfg.instructionRefs();
 
-    // The backward-edge flag is conservative. Only an actual natural loop
-    // needs whole-function definitions and address-root classification.
+    // Only loops with a usable preheader and a unique fall-through exit need
+    // whole-function definitions and address-root classification.
+    std::vector<LoopPlacement> loops;
+    loops.reserve(loopsByHeader.size());
+    for (const auto& loop : loopsByHeader | std::views::values)
+    {
+        LoopPlacement placement;
+        if (findLoopPlacement(placement, storage, cfg, loop, instrRefs))
+            loops.push_back(placement);
+    }
+    if (loops.empty())
+        return Result::Continue;
+    std::ranges::sort(loops, [](const LoopPlacement& a, const LoopPlacement& b) {
+        if (a.loop->bodySize != b.loop->bodySize)
+            return a.loop->bodySize < b.loop->bodySize;
+        return a.loop->header < b.loop->header;
+    });
+
     FunctionModel fn;
     fn.storage      = &storage;
     fn.operands     = &operands;
@@ -648,23 +682,13 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
         }
     }
 
-    std::vector<NaturalLoop*> loops;
-    loops.reserve(loopsByHeader.size());
-    for (auto& loop : loopsByHeader | std::views::values)
-        loops.push_back(&loop);
-    std::ranges::sort(loops, [](const NaturalLoop* a, const NaturalLoop* b) {
-        if (a->bodySize != b->bodySize)
-            return a->bodySize < b->bodySize;
-        return a->header < b->header;
-    });
-
     // One loop per run, innermost first: the enclosing optimization loop
     // re-runs the pass on the fresh IR, which is how a chunk climbs out of a
     // loop nest one level per sweep, and how the analysis never reasons about
     // instructions this very run displaced.
-    for (const NaturalLoop* loop : loops)
+    for (const LoopPlacement& loop : loops)
     {
-        if (promoteLoop(context, fn, cfg, *loop, instrRefs))
+        if (promoteLoop(context, fn, cfg, loop, instrRefs))
         {
             context.passChanged = true;
             if (context.ssaState)

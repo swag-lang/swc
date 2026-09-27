@@ -243,8 +243,8 @@ namespace
     {
         MicroStorage&        storage   = *context.instructions;
         MicroOperandStorage& operands  = *context.operands;
-        const auto           findLabel = [&](const uint64_t id) {
-            for (uint32_t index = 0; index < order.size(); ++index)
+        const auto           findLabel = [&](const uint64_t id, const uint32_t endOrdinal) {
+            for (uint32_t index = 0; index < endOrdinal; ++index)
             {
                 const MicroInstr* inst = storage.ptr(order[index]);
                 if (inst && inst->op == MicroInstrOpcode::Label && inst->ops(operands)[0].valueU64 == id)
@@ -282,7 +282,8 @@ namespace
             if (!invertCondition(secondOps[0].cpuCond, inverted))
                 continue;
 
-            const uint32_t stepOrdinal = findLabel(secondOps[2].valueU64);
+            const uint32_t stepSearchEnd = static_cast<uint32_t>(std::min<size_t>(order.size(), static_cast<size_t>(ordinal) + 81));
+            const uint32_t stepOrdinal   = findLabel(secondOps[2].valueU64, stepSearchEnd);
             if (stepOrdinal <= ordinal + 4 ||
                 stepOrdinal - ordinal > 80 || stepOrdinal + 3 >= order.size())
                 continue;
@@ -309,7 +310,7 @@ namespace
                 (beforeStep->op == MicroInstrOpcode::JumpCond &&
                  beforeStep->ops(operands)[0].cpuCond == MicroCond::Unconditional))
                 continue;
-            if (findLabel(backOps[2].valueU64) >= ordinal)
+            if (findLabel(backOps[2].valueU64, ordinal) >= ordinal)
                 continue;
 
             // Capture operands before insertions can grow their storage.

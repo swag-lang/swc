@@ -141,6 +141,35 @@ namespace Backend::Unittest
         return count;
     }
 
+    uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op)
+    {
+        const MicroOperandStorage& operands = builder.operands();
+        uint32_t                   count    = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (ops && ops[3].microOp == op)
+                ++count;
+        }
+
+        return count;
+    }
+
+    uint32_t firstOpcodePosition(const MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        uint32_t position = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == opcode)
+                return position;
+            ++position;
+        }
+
+        return std::numeric_limits<uint32_t>::max();
+    }
+
     Result assertNoVirtualRegs(MicroBuilder& builder)
     {
         auto& storeOps = builder.operands();

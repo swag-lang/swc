@@ -323,13 +323,18 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     Utf8 because;
     if (resolveExistingFolder(folder, because) != Result::Continue)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        setDiagnosticPathAndBecause(diag, &ctx, folder, because);
-        diag.report(ctx);
-        return Result::Error;
+        return reportInvalidFolder(ctx, folder, because);
     }
 
     return Result::Continue;
+}
+
+Result FileSystem::reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because)
+{
+    Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+    setDiagnosticPathAndBecause(diag, &ctx, path, because);
+    diag.report(ctx);
+    return Result::Error;
 }
 
 Result FileSystem::readBinaryFile(const fs::path& path, std::vector<char>& outData, IoErrorInfo& error)

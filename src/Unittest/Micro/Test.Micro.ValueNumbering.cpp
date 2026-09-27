@@ -26,22 +26,6 @@ namespace
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
-    uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op)
-    {
-        const MicroOperandStorage& operands = builder.operands();
-        uint32_t                   count    = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
-                continue;
-            const MicroInstrOperand* ops = inst.ops(operands);
-            if (ops && ops[3].microOp == op)
-                ++count;
-        }
-
-        return count;
-    }
-
 }
 
 // Two identical adds on the same values: the second becomes a plain copy.
@@ -66,7 +50,7 @@ SWC_TEST_BEGIN(ValueNumbering_DedupIdenticalCompute)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countBinaryRegRegOp(builder, MicroOp::Add) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 1)
         return Result::Error;
 
     return Result::Continue;
@@ -94,7 +78,7 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsDifferentInputs)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countBinaryRegRegOp(builder, MicroOp::Add) != 2)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 2)
         return Result::Error;
 
     return Result::Continue;
@@ -125,7 +109,7 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsComputeWithLiveFlags)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countBinaryRegRegOp(builder, MicroOp::Add) != 2)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 2)
         return Result::Error;
 
     return Result::Continue;

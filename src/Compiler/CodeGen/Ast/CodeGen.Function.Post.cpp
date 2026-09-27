@@ -609,16 +609,6 @@ namespace
         return Result::Continue;
     }
 
-    void emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
-    {
-        if (!codeGen.hasLocalStackFrame())
-            return;
-
-        const CallConv& callConv = CallConv::get(callConvKind);
-        MicroBuilder&   builder  = codeGen.builder();
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
-    }
-
     const SymbolVariable& inlineResultStorageSymbol(CodeGen& codeGen, const SemaInlinePayload& inlinePayload)
     {
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
@@ -988,7 +978,7 @@ namespace
             // Void returns only need control transfer; ABI return registers are irrelevant.
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
             const ScopedDebugNoStep noStep(builder, true);
-            emitLocalStackFrameEpilogue(codeGen, callConvKind);
+            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
             return Result::Continue;
         }
@@ -1104,20 +1094,10 @@ namespace
 
         {
             const ScopedDebugNoStep noStep(builder, true);
-            emitLocalStackFrameEpilogue(codeGen, callConvKind);
+            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
         }
         return Result::Continue;
-    }
-
-    void emitCompilerRunBlockStackEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
-    {
-        if (!codeGen.hasLocalStackFrame())
-            return;
-
-        const CallConv& callConv = CallConv::get(callConvKind);
-        MicroBuilder&   builder  = codeGen.builder();
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
     }
 
     bool canUseCompilerRunBlockDirectCallWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
@@ -1179,7 +1159,7 @@ namespace
         SWC_RESULT(codeGen.emitDeferredActionsForReturn());
         {
             const ScopedDebugNoStep noStep(builder, true);
-            emitCompilerRunBlockStackEpilogue(codeGen, callConvKind);
+            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
         }
         return Result::Continue;
@@ -1276,7 +1256,7 @@ namespace
             }
 
             const ScopedDebugNoStep noStep(builder, true);
-            emitCompilerRunBlockStackEpilogue(codeGen, callConvKind);
+            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
             return Result::Continue;
         }
@@ -1284,7 +1264,7 @@ namespace
         if (normalizedRet.isVoid)
         {
             const ScopedDebugNoStep noStep(builder, true);
-            emitLocalStackFrameEpilogue(codeGen, callConvKind);
+            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
             return Result::Continue;
         }
@@ -1316,7 +1296,7 @@ namespace
 
         {
             const ScopedDebugNoStep noStep(builder, true);
-            emitLocalStackFrameEpilogue(codeGen, callConvKind);
+            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
         }
 

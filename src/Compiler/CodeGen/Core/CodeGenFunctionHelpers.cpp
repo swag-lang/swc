@@ -458,6 +458,16 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     return !normalizedParam.isIndirect;
 }
 
+void CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
+{
+    if (!codeGen.hasLocalStackFrame())
+        return;
+
+    const CallConv& callConv = CallConv::get(callConvKind);
+    MicroBuilder&   builder  = codeGen.builder();
+    builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
+}
+
 void CodeGenFunctionHelpers::emitLocalStackFramePrologue(CodeGen& codeGen, CallConvKind callConvKind)
 {
     if (!codeGen.hasLocalStackFrame())

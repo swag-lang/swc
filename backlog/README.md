@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:01 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-27 17:52 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-27 17:52 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-27 17:50 |
@@ -50,7 +51,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-12 18:05 |
-| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-12 10:02 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-12 07:12 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-12 06:43 |
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-12 06:37 |

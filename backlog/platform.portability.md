@@ -36,6 +36,241 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
+### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define portable secure-clear acceptance.
+
+`crypto/security.win32.swg` already calls the foreign `RtlZeroMemory` routine; the shipped
+implementation is no longer a plain Swag loop. Give the same public operation a runtime/compiler
+primitive or narrow host implementations on other targets, preserving its no-elide guarantee.
+
+- Related: platform.portability.075
+
+- Complete when: Crypto.secureClear is available on Windows and the chosen second target, clears every requested byte, and optimized-code inspection or an equivalent no-elide check proves the wipe survives optimization.
+
+### platform.portability.009 — Process orchestration remains in the Windows backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define common process-orchestration acceptance.
+
+The process value, environment map, recorded-status accessors, and convenience
+`startProcess`/`runProcess` overloads already live in common `process.swg`. Move the remaining
+portable orchestration out of `process.win32.swg`: redirection setup policy, ownership and cleanup
+order, output/error accumulation, draining both pipes while waiting, and timeout loops. The host
+leaf should spawn, poll/wait, terminate, and read/write/close one native endpoint.
+
+- Related: platform.portability.032, platform.portability.008, platform.portability.011
+
+- Complete when: Redirection ownership, concurrent stdout/stderr draining, timeout, and cleanup live in common code; Windows and the chosen second host pass the same process contract tests while native leaves only spawn, wait, terminate, and operate endpoints.
+
+### platform.portability.013 — Paths have no target-independent lexical conformance suite
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:03 — define dual-policy path conformance acceptance.
+
+`core/src/tests/filesystem/path.test.swg` already tests lexical Windows path behavior without
+touching the filesystem. Extend that coverage to independent target-policy tables for Windows
+and Unix: root forms, case policy, trailing separators, dot segments, invalid names, and
+normalization. A host must be able to exercise both policies without running another OS.
+
+- Related: platform.portability.012
+
+- Complete when: One test run on either host exercises Windows and Unix lexical policy tables for root, case, separators, dot segments, invalid names, and normalization, without filesystem access or host-dependent expectations.
+
+### platform.portability.054 — Native input has no portable mouse, touch, and pen adapter
+
+- Recorded: 2026-08-30 12:27
+- Updated: 2026-09-27 18:03 — define cross-platform pointer-adapter acceptance.
+
+Implement native adapters for the pointer contract in std.gui.011. The current Windows backend
+polls mouse state but does not translate `WM_POINTER`, `WM_TOUCH`, or `WM_GESTURE` into contacts.
+Add pointer identity, contact lifetime and capture cancellation, suppress duplicate compatibility
+mouse events, then map the same contract on the next platform. Keep gesture recognition and
+arbitration in the portable GUI layer.
+
+- Related: std.gui.011, platform.portability.052
+
+- Complete when: Windows and the chosen second platform deliver stable pointer identity and contact lifetimes for mouse, touch, and pen through the common event model; cancellation and capture release are tested, and compatibility mouse messages do not duplicate touch or pen actions.
+
+### platform.portability.051 — No second-platform monitor and DPI integration
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define monitor and DPI acceptance on a second host.
+
+Implement monitor enumeration and per-monitor scale for the platform whose surface exists under
+platform.portability.050.
+
+- Related: platform.portability.050, platform.portability.084, platform.portability.052, platform.portability.055, platform.portability.056
+
+- Complete when: The chosen second-platform surface enumerates active monitors, uses the correct per-monitor scale during open, move, and resize, and updates placement after topology or scale changes without exposing native monitor handles.
+
+### platform.portability.052 — No second-platform keyboard routing
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define keyboard-routing acceptance on a second host.
+
+Translate native key identity, modifier, repeat, and layout state into the portable keyboard
+events.
+
+- Related: platform.portability.050, platform.portability.085, platform.portability.053, platform.portability.054
+
+- Complete when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable keyboard events, with tests covering key-down/up, repeated keys, and text input independently.
+
+### platform.portability.056 — No second-platform system-theme notifications
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define second-host theme-notification acceptance.
+
+Translate the platform's live theme and high-contrast changes into the portable settings event.
+
+- Related: platform.portability.082, platform.portability.050, platform.portability.083
+
+- Complete when: Changing light/dark or high-contrast settings while the chosen second-platform GUI runs updates its portable settings event and visible palette without a restart, with platform integration coverage.
+
+### platform.portability.082 — System theme changes are ignored
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define live Windows theme-refresh acceptance.
+- Owner: std/gui
+- Evidence: `gui/src/surface.win32.swg` handles `WM_SETTINGCHANGE` only by calling `refreshSystemMotionPreference`; it does not refresh theme policy.
+
+Handle the platform settings-change notification and update live light/dark policy without
+restarting the application.
+
+- Related: platform.portability.083
+
+- Complete when: A Windows light/dark setting change refreshes active surface and widget theme policy without restarting or discarding the current document, with an integration test for the settings notification.
+
+### platform.portability.083 — System high-contrast changes are ignored
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define live high-contrast acceptance.
+- Owner: std/gui
+- Evidence: `gui/src/surface.win32.swg` handles settings changes for reduced motion, but neither that handler nor `application.swg` refreshes high-contrast policy.
+
+Refresh high-contrast policy on the platform settings notification and ensure it overrides visual
+theme choices as required for accessibility.
+
+- Related: platform.portability.048, platform.portability.082
+
+- Complete when: A Windows high-contrast change updates active surfaces and controls immediately, overrides conflicting theme choices, and restores the prior user theme when high contrast is disabled; an integration test covers both transitions.
+
+### platform.portability.084 — Display-topology changes are ignored
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define display-topology refresh acceptance.
+- Owner: std/gui
+- Evidence: `gui/src/surface.win32.swg` has no `WM_DISPLAYCHANGE` route; monitor enumeration is not refreshed from a topology notification.
+
+Refresh monitor enumeration, placement constraints, and dependent application state when a monitor
+is added, removed, or rearranged.
+
+- Related: platform.portability.071, platform.portability.051
+
+- Complete when: Adding, removing, or rearranging a monitor refreshes enumeration and placement constraints, leaves visible application windows reachable, and has a reproducible Windows integration check.
+
+### platform.portability.085 — Input-language changes are ignored
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define input-language refresh acceptance.
+- Owner: std/gui
+- Evidence: `gui/src/surface.win32.swg` handles key and character messages but has no `WM_INPUTLANGCHANGE` route.
+
+Handle the platform input-language notification and update keyboard-layout-dependent state.
+
+- Related: platform.portability.049
+
+- Complete when: A Windows input-language change updates layout-dependent keyboard state before the next key event, keeps key identity distinct from produced text, and is covered by a layout-switch integration test.
+
+### platform.portability.086 — No printer discovery or native print-job backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:03 — define native printing acceptance.
+- Owner: std/gui
+- Evidence: `bin/std/modules/gui/src` has no printer enumeration or print-job backend; the portable pagination contract remains std.gui.030.
+
+Enumerate printers and capabilities, open a native job, spool every page from std.gui.030, and report
+failure at each stage. Keep one optional virtual-PDF integration test; correctness must
+not depend on an installed driver.
+
+- Related: std.gui.030, std.gui.033, std.gui.032
+
+- Complete when: Printer discovery and capability reporting drive a native job that spools all pages from the portable pagination model; tests cover unavailable printers, start/page/end failures, and cancellation without requiring a permanently installed driver.
+
+### platform.portability.089 — Allocator stress is not run under Windows heap instrumentation
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:01 — define instrumented allocator-stress acceptance.
+- Historical provenance: moved from retired runtime.allocator.009.
+
+Run the allocator stress suite under Windows Application Verifier and page heap, and make the
+invocation reproducible without folding it into failure injection.
+
+- Related: runtime.allocator.001, runtime.allocator.008
+
+- Complete when: A documented repeatable command runs the allocator stress suite under Windows Application Verifier and page heap, checks the tool's reported failures and test exit status, and leaves allocator failure-injection coverage with runtime.allocator.008.
+
+### platform.portability.021 — Application-message payloads have no ownership contract
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:01 — define owned application-message payload acceptance.
+
+Application-message identifiers are platform-neutral, but `SysUserEvent.param` carries
+one opaque `u64` by value. It supplies no ownership or lifetime contract for any data the
+caller encodes through that integer. Give messages an owned payload and document its dispatch
+lifetime independently of tray interaction.
+
+- Related: platform.portability.022
+
+- Complete when: A sender can release or mutate its source buffer after posting a message without changing the payload observed during dispatch, and tests cover queued delivery, cancellation or target destruction, and payload cleanup without exposing native handles in the common event API.
+
+### platform.portability.035 — Synchronization primitives have no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:01 — define second-platform synchronization acceptance.
+
+Implement mutexes, read-write locks, conditions, and events for the chosen second platform behind
+the existing portable contracts. `bin/runtime` reaches them through its `__hostLock*`,
+`__hostCondition*` and `__hostThread*` functions. Core also retains Windows-only
+`Sync.Event`, including the named interprocess event used by Prism through `initNamed`; that
+contract is not supplied by the runtime lock/condition hooks alone. A second backend must
+match its shared-name scope, reset mode, signal-before-wait behavior, and independent handle
+lifetimes without exposing Windows handles or the `Local\` namespace to common callers.
+
+- Related: platform.portability.034, language.parallelism.003
+
+- Complete when: The chosen second platform passes runtime lock, read-write lock, condition, thread, and event contract tests, including concurrent waits and shutdown; named Core events preserve cross-process scope, reset and signal-before-wait semantics without leaking native handle or namespace types into common callers.
+
+### platform.portability.062 — Drag and drop has no second-platform integration
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:01 — define second-platform drag-and-drop acceptance.
+
+Map the platform's data-transfer and gesture service to the drag and drop contract the Win32
+backend already implements.
+
+- Related: platform.portability.050
+
+- Complete when: The chosen second-platform GUI backend can accept and initiate the data and gestures supported by the Win32 drag-and-drop contract, with explicit cancellation and data lifetime behavior, while common GUI callers and tests use no native transfer type.
+
+### platform.portability.022 — Application-to-application messaging has no portable contract
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:01 — define portable single-instance messaging acceptance.
+
+Give single-instance/application messaging a portable contract. The Windows backend may keep
+  `FindWindow`/`SendMessage`; another backend may use a local socket or bus. The public identifier,
+  payload, delivery, timeout, and failure semantics must be the same.
+
+Swag Scope is a concrete consumer: an association launch currently creates another process.
+Forward its requested file to a running instance through this contract, preserving launch failure
+reporting and the receiving application's ownership of queued document opens.
+
+- Related: app.scope.001
+
+- Complete when: A second Swag Scope launch forwards its requested file to the running instance on Windows and the chosen second platform, or reports a bounded delivery failure; tests cover payload ownership, timeout, receiver shutdown, and exactly one queued open.
+
 ### platform.portability.090 — A COM object's ABI header is held first by a comment, not by the language
 
 - Recorded: 2026-09-08 18:59
@@ -127,29 +362,6 @@ associations the portable script contract. Machine-wide mutation remains explici
 - Moving the checkout and rerunning setup refreshes stale interpreter paths, and removal instructions undo installed associations.
 
 **Related:** compiler.core.016.
-
-### platform.portability.089 — Allocator stress is not run under Windows heap instrumentation
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-12 06:42 — Move Windows-specific validation to the platform integration owner.
-- Historical provenance: moved from retired runtime.allocator.009.
-
-Run the allocator stress suite under Windows Application Verifier and page heap, and make the
-invocation reproducible without folding it into failure injection.
-
-- Related: runtime.allocator.001, runtime.allocator.008
-
-### platform.portability.021 — Application-message payloads have no ownership contract
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-10 20:28 — Describe the actual opaque integer message parameter.
-
-Application-message identifiers are platform-neutral, but `SysUserEvent.param` carries
-one opaque `u64` by value. It supplies no ownership or lifetime contract for any data the
-caller encodes through that integer. Give messages an owned payload and document its dispatch
-lifetime independently of tray interaction.
-
-- Related: platform.portability.022
 
 ### platform.portability.066 — Renderer backend choice has no target matrix
 
@@ -285,21 +497,6 @@ parses `GetCommandLineA` in `sandbox.win32.swg`.
   and preserve sandbox, smoke, and corpus argument behavior.
 - Related: platform.portability.005, platform.portability.008
 
-### platform.portability.035 — Synchronization primitives have no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-10 19:53 — Include Core named interprocess events beside the runtime synchronization hooks.
-
-Implement mutexes, read-write locks, conditions, and events for the chosen second platform behind
-the existing portable contracts. `bin/runtime` reaches them through its `__hostLock*`,
-`__hostCondition*` and `__hostThread*` functions. Core also retains Windows-only
-`Sync.Event`, including the named interprocess event used by Prism through `initNamed`; that
-contract is not supplied by the runtime lock/condition hooks alone. A second backend must
-match its shared-name scope, reset mode, signal-before-wait behavior, and independent handle
-lifetimes without exposing Windows handles or the `Local\` namespace to common callers.
-
-- Related: platform.portability.034, language.parallelism.003
-
 ### platform.portability.014 — The Windows virtual-key alias remains in portable input declarations
 
 - Recorded: 2026-08-09 11:06
@@ -325,31 +522,6 @@ lifetimes without exposing Windows handles or the `Local\` namespace to common c
   targets; WASAPI directly would also remove the XAudio2 dependency on Windows.
 - Complete when: one chosen non-Windows target opens a real output device and passes the common
   engine, voice, bus, streaming, and device-lifecycle contract while `NoSound` remains explicit.
-
-### platform.portability.062 — Drag and drop has no second-platform integration
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-07 16:28 — moved misplaced surface-port acceptance text back to platform.portability.050
-
-Map the platform's data-transfer and gesture service to the drag and drop contract the Win32
-backend already implements.
-
-- Related: platform.portability.050
-
-### platform.portability.022 — Application-to-application messaging has no portable contract
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
-
-Give single-instance/application messaging a portable contract. The Windows backend may keep
-  `FindWindow`/`SendMessage`; another backend may use a local socket or bus. The public identifier,
-  payload, delivery, timeout, and failure semantics must be the same.
-
-Swag Scope is a concrete consumer: an association launch currently creates another process.
-Forward its requested file to a running instance through this contract, preserving launch failure
-reporting and the receiving application's ownership of queued document opens.
-
-- Related: app.scope.001
 
 ### platform.portability.048 — Accessibility has no portable semantic tree or Windows adapter
 
@@ -380,42 +552,6 @@ reporting and the receiving application's ownership of queued document opens.
 - Complete when: Chinese, Japanese, Korean, and Vietnamese composition works on Windows, headless
   tests cover the common model, and platform.portability.061 can add another OS without changing editor APIs.
 
-### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-`crypto/security.win32.swg` already calls the foreign `RtlZeroMemory` routine; the shipped
-implementation is no longer a plain Swag loop. Give the same public operation a runtime/compiler
-primitive or narrow host implementations on other targets, preserving its no-elide guarantee.
-
-- Related: platform.portability.075
-
-### platform.portability.009 — Process orchestration remains in the Windows backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-The process value, environment map, recorded-status accessors, and convenience
-`startProcess`/`runProcess` overloads already live in common `process.swg`. Move the remaining
-portable orchestration out of `process.win32.swg`: redirection setup policy, ownership and cleanup
-order, output/error accumulation, draining both pipes while waiting, and timeout loops. The host
-leaf should spawn, poll/wait, terminate, and read/write/close one native endpoint.
-
-- Related: platform.portability.032, platform.portability.008, platform.portability.011
-
-### platform.portability.013 — Paths have no target-independent lexical conformance suite
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-`core/src/tests/filesystem/path.test.swg` already tests lexical Windows path behavior without
-touching the filesystem. Extend that coverage to independent target-policy tables for Windows
-and Unix: root forms, case policy, trailing separators, dot segments, invalid names, and
-normalization. A host must be able to exercise both policies without running another OS.
-
-- Related: platform.portability.012
-
 ### platform.portability.088 — Network transports have no host backends
 
 - Recorded: 2026-08-30 12:27
@@ -430,48 +566,6 @@ normalization. A host must be able to exercise both policies without running ano
   resolution-failure, and handle-lifetime tests without exposing native types to callers.
 - Related: std.core.001, std.core.002, std.core.003, std.core.004, language.parallelism.001.
 
-### platform.portability.054 — Native input has no portable mouse, touch, and pen adapter
-
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-Implement native adapters for the pointer contract in std.gui.011. The current Windows backend
-polls mouse state but does not translate `WM_POINTER`, `WM_TOUCH`, or `WM_GESTURE` into contacts.
-Add pointer identity, contact lifetime and capture cancellation, suppress duplicate compatibility
-mouse events, then map the same contract on the next platform. Keep gesture recognition and
-arbitration in the portable GUI layer.
-
-- Related: std.gui.011, platform.portability.052
-
-### platform.portability.051 — No second-platform monitor and DPI integration
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-
-Implement monitor enumeration and per-monitor scale for the platform whose surface exists under
-platform.portability.050.
-
-- Related: platform.portability.050, platform.portability.084, platform.portability.052, platform.portability.055, platform.portability.056
-
-### platform.portability.052 — No second-platform keyboard routing
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-
-Translate native key identity, modifier, repeat, and layout state into the portable keyboard
-events.
-
-- Related: platform.portability.050, platform.portability.085, platform.portability.053, platform.portability.054
-
-### platform.portability.056 — No second-platform system-theme notifications
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-
-Translate the platform's live theme and high-contrast changes into the portable settings event.
-
-- Related: platform.portability.082, platform.portability.050, platform.portability.083
-
 ### platform.portability.081 — Foreign vector ABIs are unavailable
 
 - Recorded: 2026-08-20 08:56
@@ -482,66 +576,6 @@ Translate the platform's live theme and high-contrast changes into the portable 
   interoperate with C/C++ fixtures, unsupported conventions fail semantically, and the contract is
   documented per target.
 - Related: cpu.simd.002.
-
-### platform.portability.082 — System theme changes are ignored
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-- Owner: std/gui
-- Evidence: `gui/src/surface.win32.swg` handles `WM_SETTINGCHANGE` only by calling `refreshSystemMotionPreference`; it does not refresh theme policy.
-
-Handle the platform settings-change notification and update live light/dark policy without
-restarting the application.
-
-- Related: platform.portability.083
-
-### platform.portability.083 — System high-contrast changes are ignored
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-- Owner: std/gui
-- Evidence: `gui/src/surface.win32.swg` handles settings changes for reduced motion, but neither that handler nor `application.swg` refreshes high-contrast policy.
-
-Refresh high-contrast policy on the platform settings notification and ensure it overrides visual
-theme choices as required for accessibility.
-
-- Related: platform.portability.048, platform.portability.082
-
-### platform.portability.084 — Display-topology changes are ignored
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-- Owner: std/gui
-- Evidence: `gui/src/surface.win32.swg` has no `WM_DISPLAYCHANGE` route; monitor enumeration is not refreshed from a topology notification.
-
-Refresh monitor enumeration, placement constraints, and dependent application state when a monitor
-is added, removed, or rearranged.
-
-- Related: platform.portability.071, platform.portability.051
-
-### platform.portability.085 — Input-language changes are ignored
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-- Owner: std/gui
-- Evidence: `gui/src/surface.win32.swg` handles key and character messages but has no `WM_INPUTLANGCHANGE` route.
-
-Handle the platform input-language notification and update keyboard-layout-dependent state.
-
-- Related: platform.portability.049
-
-### platform.portability.086 — No printer discovery or native print-job backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-- Owner: std/gui
-- Evidence: `bin/std/modules/gui/src` has no printer enumeration or print-job backend; the portable pagination contract remains std.gui.030.
-
-Enumerate printers and capabilities, open a native job, spool every page from std.gui.030, and report
-failure at each stage. Keep one optional virtual-PDF integration test; correctness must
-not depend on an installed driver.
-
-- Related: std.gui.030, std.gui.033, std.gui.032
 
 ### platform.portability.072 — Swag Scope has no portable preview-provider boundary
 

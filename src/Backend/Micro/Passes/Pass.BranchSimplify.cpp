@@ -353,13 +353,28 @@ namespace
 
     struct JumpLabelReferenceCache
     {
-        std::unordered_map<uint32_t, uint32_t> counts;
-        bool                                   built = false;
+        std::unordered_map<uint32_t, uint32_t>        counts;
+        const std::unordered_map<uint32_t, uint32_t>* borrowed = nullptr;
+        bool                                         built    = false;
 
-        void invalidate() { built = false; }
+        void invalidate()
+        {
+            borrowed = nullptr;
+            built    = false;
+        }
+
+        void borrow(const std::unordered_map<uint32_t, uint32_t>& source)
+        {
+            // Keep the same scratch-node lifetime as a fresh count build.
+            counts.clear();
+            borrowed = &source;
+            built    = false;
+        }
 
         const std::unordered_map<uint32_t, uint32_t>& get(const MicroStorage& storage, const MicroOperandStorage& operands)
         {
+            if (borrowed)
+                return *borrowed;
             if (!built)
             {
                 counts.clear();
@@ -7509,6 +7524,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     thread_local JumpLabelReferenceCache jumpLabelCache;
     jumpLabelCache.invalidate();
+    // The richer branch scan already counted these jumps when its snapshot is
+    // still current and no computed jump interrupted the count.
+    if (scanCache.built && !scanCache.scan.indirectJump)
+        jumpLabelCache.borrow(scanCache.scan.labelReferences);
     // Both shapes begin at a conditional jump. Reuse the current layout when
     // the structural cleanup above left its instruction stream unchanged.
     if ((!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump) &&

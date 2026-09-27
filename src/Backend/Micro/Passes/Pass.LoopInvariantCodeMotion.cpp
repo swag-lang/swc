@@ -341,6 +341,41 @@ namespace
         if (loopsByHeader.empty())
             return false;
 
+        // Only a loop with a clean fall-through preheader can move code. Keep
+        // the existing loop order, but reject the others before collecting
+        // whole-function register effects, relocations, and frame privacy.
+        std::vector<NaturalLoop*> loops;
+        loops.reserve(loopsByHeader.size());
+        for (auto& loop : loopsByHeader | std::views::values)
+            loops.push_back(&loop);
+        std::ranges::sort(loops, [](const NaturalLoop* a, const NaturalLoop* b) {
+            return a->bodySize < b->bodySize;
+        });
+        std::erase_if(loops, [&](const NaturalLoop* loop) {
+            const uint32_t header = loop->header;
+            if (!header)
+                return true;
+
+            uint32_t externalPredCount = 0;
+            for (const uint32_t p : cfg.predecessors(header))
+                if (p < n && !loop->inBody[p])
+                    ++externalPredCount;
+            if (externalPredCount != 1)
+                return true;
+
+            const MicroInstrRef prevRef = storage.findPreviousInstructionRef(instrRefs[header]);
+            if (prevRef.isInvalid() || instrRefs[header - 1] != prevRef || loop->inBody[header - 1])
+                return true;
+            const MicroInstr* prevInst = storage.ptr(prevRef);
+            if (!prevInst)
+                return true;
+            const MicroInstrFlags prevFlags = MicroInstr::info(prevInst->op).flags;
+            return (prevFlags.has(MicroInstrFlagsE::JumpInstruction) || prevFlags.has(MicroInstrFlagsE::TerminatorInstruction)) &&
+                   !prevFlags.has(MicroInstrFlagsE::ConditionalJump);
+        });
+        if (loops.empty())
+            return false;
+
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
         std::vector<MicroInstrUseDef>          useDefs(n);
@@ -393,14 +428,6 @@ namespace
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
         const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, defCount, context.encoder);
 
-        std::vector<NaturalLoop*> loops;
-        loops.reserve(loopsByHeader.size());
-        for (auto& loop : loopsByHeader | std::views::values)
-            loops.push_back(&loop);
-        std::ranges::sort(loops, [](const NaturalLoop* a, const NaturalLoop* b) {
-            return a->bodySize < b->bodySize;
-        });
-
         std::unordered_set<uint32_t> claimed; // instruction slot ids planned this round
         std::vector<HoistPlan>       plans;
         std::vector<uint32_t>        bodyIndices;
@@ -413,38 +440,8 @@ namespace
             const uint32_t      header    = loop->header;
             const auto&         inBody    = loop->inBody;
             const MicroInstrRef headerRef = instrRefs[header];
-
-            // Validate a clean preheader: exactly one predecessor outside the
-            // loop, that predecessor is the immediate linear predecessor, and it
-            // falls through into the header.
-            uint32_t externalPredCount = 0;
-            for (const uint32_t p : cfg.predecessors(header))
-                if (p < n && !inBody[p])
-                    ++externalPredCount;
-            if (externalPredCount != 1)
-            {
-                continue;
-            }
-
-            const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
-            if (!prevRef.isValid())
-                continue;
-            // The CFG snapshot follows storage order, and planning does not
-            // mutate instructions until every loop has been considered.
-            if (header == 0 || instrRefs[header - 1] != prevRef || inBody[header - 1])
-                continue;
-            const MicroInstr* prevInst = storage.ptr(prevRef);
-            if (!prevInst)
-                continue;
-            const MicroInstrFlags prevFlags = MicroInstr::info(prevInst->op).flags;
-            const bool            prevIsUncondJump =
-                prevFlags.has(MicroInstrFlagsE::JumpInstruction) && !prevFlags.has(MicroInstrFlagsE::ConditionalJump);
-            const bool prevIsUncondTerm =
-                prevFlags.has(MicroInstrFlagsE::TerminatorInstruction) && !prevFlags.has(MicroInstrFlagsE::ConditionalJump);
-            if (prevIsUncondJump || prevIsUncondTerm)
-            {
-                continue;
-            }
+            // The prefilter proved this is the physical fall-through predecessor.
+            const MicroInstrRef prevRef = instrRefs[header - 1];
 
             // Pure loads/copies never touch CPU flags, but a hoisted copy+compute
             // pair inserts a flag-writing instruction at the preheader insertion

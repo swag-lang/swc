@@ -18,6 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.090 — CSV aggregation regresses with the shadow-free Swag ABI
 
 - Recorded: 2026-09-27 10:24
+- Updated: 2026-09-27 10:44 — Rejected loop-alignment experiments that moved the regression
 - Area: compiler/backend, native code layout and calling convention
 - Evidence: in eight alternating, pinned pairs, the six-integer/six-float Swag ABI with
   no caller shadow space makes `bench/src/swagnat/csvagg.swg` about 14.6% slower than
@@ -32,8 +33,15 @@ block, and the hot path keeps the register.
   eight-argument calls about 5% and 4% slower in the call matrix. None of these
   experiments is part of the retained implementation.
 - The emitted Micro instructions in CSV's hot loop are essentially identical after
-  accounting for stack offsets. Investigate machine-code layout and call-frame
-  placement with hardware counters or disassembly before changing the ABI again.
+  accounting for stack offsets. PDB-assisted disassembly shows the hot loop's
+  machine instructions are also essentially identical; its address and the
+  frame offsets change. Aligning loops with at least 64 Micro instructions to
+  32 bytes lowers CSV's median regression to about 1.6% but makes some mixed
+  call cases about 4–6% slower. A 128-instruction threshold puts CSV at parity
+  but makes mixed calls up to 7% slower. Restricting alignment to large nested
+  loops makes CSV more than 15% slower. These heuristics were reverted.
+- Next: use hardware counters to distinguish instruction fetch, branch, and
+  memory-alias effects before changing native code layout or call-frame policy.
 - Complete when the shadow-free ABI no longer regresses CSV in repeated paired runs,
   the call matrix remains at least at parity, and the broader native/JIT/app tests pass.
 

@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCString.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -811,23 +812,13 @@ namespace
         return Result::Continue;
     }
 
-    MicroReg emitLoadCStringReg(CodeGen& codeGen, const CodeGenNodePayload& payload)
-    {
-        const MicroReg cstrReg = codeGen.nextVirtualIntRegister();
-        if (payload.isAddress())
-            codeGen.builder().emitLoadRegMem(cstrReg, payload.reg, 0, MicroOpBits::B64);
-        else
-            codeGen.builder().emitLoadRegReg(cstrReg, payload.reg, MicroOpBits::B64);
-        return cstrReg;
-    }
-
     Result emitCStringToStringOrSliceCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& dstType)
     {
         SWC_ASSERT(dstType.isString() || dstType.isSlice());
 
         MicroBuilder&            builder    = codeGen.builder();
         const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
-        const MicroReg           cstrReg    = emitLoadCStringReg(codeGen, srcPayload);
+        const MicroReg           cstrReg    = CodeGenCString::emitLoadCStringReg(codeGen, srcPayload);
 
         const MicroReg countReg = codeGen.nextVirtualIntRegister();
         CodeGenMemoryHelpers::emitCStringCountReg(codeGen, countReg, cstrReg);

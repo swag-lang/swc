@@ -5278,7 +5278,7 @@ namespace
 
     // True when something outside `insideRefs` reads the value — directly, or
     // through the phis that merge it with the other arm's result at the join.
-    bool isValueReadOutside(const MicroSsaState& ssa, uint32_t valueId, const std::unordered_set<uint32_t>& insideRefs, SmallVector<uint32_t>& visitedPhis)
+    bool isValueReadOutside(const MicroSsaState& ssa, uint32_t valueId, const std::span<const MicroInstrRef> insideRefs, SmallVector<uint32_t>& visitedPhis)
     {
         const MicroSsaState::ValueInfo* info = ssa.valueInfo(valueId);
         if (!info)
@@ -5288,7 +5288,7 @@ namespace
         {
             if (use.kind == MicroSsaState::UseSite::Kind::Instruction)
             {
-                if (!insideRefs.contains(use.instRef.get()))
+                if (std::ranges::find(insideRefs, use.instRef) == insideRefs.end())
                     return true;
                 continue;
             }
@@ -5314,10 +5314,6 @@ namespace
     // other than that one register.
     bool analyzeDiamondArm(DiamondArm& arm, MicroReg& outResult, const DiamondScan& scan)
     {
-        std::unordered_set<uint32_t> insideRefs;
-        for (const MicroInstrRef ref : arm.refs)
-            insideRefs.insert(ref.get());
-
         outResult              = MicroReg::invalid();
         bool definedFlagsSoFar = false;
         for (const MicroInstrRef ref : arm.refs)
@@ -5349,7 +5345,7 @@ namespace
                     return false;
 
                 SmallVector<uint32_t> visitedPhis;
-                if (!isValueReadOutside(*scan.ssa, valueId, insideRefs, visitedPhis))
+                if (!isValueReadOutside(*scan.ssa, valueId, arm.refs.span(), visitedPhis))
                     continue;
 
                 // Exactly one register may leave the arm, and only its last

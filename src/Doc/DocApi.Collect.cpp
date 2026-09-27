@@ -301,7 +301,7 @@ namespace
 
         const Token&           token  = srcView.token(endTokRef);
         const std::string_view source = srcView.stringView();
-        const size_t           start  = std::min<size_t>(ModuleApi::sourceTokenByteEnd(srcView, token), source.size());
+        const size_t           start  = std::min<size_t>(srcView.tokenByteEnd(token), source.size());
         size_t                 end    = source.find_first_of("\r\n", start);
         if (end == std::string_view::npos)
             end = source.size();
@@ -382,7 +382,7 @@ namespace
                         if (functionBodyRef.isValid())
                             bodyTokRef = functionBodyRef;
                     }
-                    endOffset = ModuleApi::sourceTokenByteStart(srcView, srcView.token(bodyTokRef));
+                    endOffset = srcView.tokenByteStart(srcView.token(bodyTokRef));
                 }
             }
         }

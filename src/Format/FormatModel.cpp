@@ -7,13 +7,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t sourceTokenByteStart(const SourceView& srcView, const Token& token)
-    {
-        if (token.id == TokenId::Identifier)
-            return srcView.identifiers()[token.byteStart].byteStart;
-        return token.byteStart;
-    }
-
     bool isEolChar(const char c)
     {
         return c == '\n' || c == '\r';
@@ -206,7 +199,7 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
         if (token.is(TokenId::EndOfFile))
             break;
 
-        pushPiece(sourceTokenByteStart(srcView, token), token.string(srcView), token.id, tokenIndex);
+        pushPiece(srcView.tokenByteStart(token), token.string(srcView), token.id, tokenIndex);
     }
 
     // Trailing whitespace before the end of file.

@@ -21,8 +21,6 @@ namespace ModuleApiExport
     using ModuleApi::isModuleApiOpaqueType;
     using ModuleApi::moduleApiNodeSourceView;
     using ModuleApi::moduleApiSnippetStartTokRef;
-    using ModuleApi::sourceTokenByteEnd;
-    using ModuleApi::sourceTokenByteStart;
     using ModuleApi::tryFindReachableNodeRef;
     using ModuleApi::tryGetModuleApiSnippet;
     using ModuleApi::tryGetModuleApiSnippetOffsets;

@@ -30,8 +30,6 @@ namespace
     using ModuleApiExport::moduleApiSnippetStartTokRef;
     using ModuleApiExport::removeModuleApiAttributes;
     using ModuleApiExport::sameNamespacePath;
-    using ModuleApiExport::sourceTokenByteEnd;
-    using ModuleApiExport::sourceTokenByteStart;
     using ModuleApiExport::tryBuildImplPrefix;
     using ModuleApiExport::tryFindReachableNodeRef;
     using ModuleApiExport::tryGetModuleApiSnippet;
@@ -254,7 +252,7 @@ namespace
             return false;
 
         const SourceView&      srcView         = moduleApiNodeSourceView(ctx, ast, root.nodeRef);
-        const uint32_t         bodyStartOffset = sourceTokenByteStart(srcView, srcView.token(bodyNode.tokRef()));
+        const uint32_t         bodyStartOffset = srcView.tokenByteStart(srcView.token(bodyNode.tokRef()));
         const std::string_view source          = srcView.stringView();
         if (bodyStartOffset <= startOffset || bodyStartOffset > source.size())
             return false;
@@ -415,7 +413,7 @@ namespace
             return false;
 
         const SourceView& srcView = ast.srcView();
-        outBodyStartOffset        = sourceTokenByteStart(srcView, srcView.token(bodyTokRef));
+        outBodyStartOffset        = srcView.tokenByteStart(srcView.token(bodyTokRef));
         return true;
     }
 
@@ -471,7 +469,7 @@ namespace
         for (uint32_t tokIndex = paramsEndTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
         {
             const Token& token = srcView.token(TokenRef(tokIndex));
-            if (sourceTokenByteStart(srcView, token) >= prefixEndOffset)
+            if (srcView.tokenByteStart(token) >= prefixEndOffset)
                 break;
 
             if (token.id == TokenId::SymMinusGreater)
@@ -497,13 +495,13 @@ namespace
         for (uint32_t tokIndex = paramsEndTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
         {
             const Token& token = srcView.token(TokenRef(tokIndex));
-            if (sourceTokenByteStart(srcView, token) >= prefixEndOffset)
+            if (srcView.tokenByteStart(token) >= prefixEndOffset)
                 break;
 
             switch (token.id)
             {
                 case TokenId::SymMinusGreater:
-                    outInsertOffset = sourceTokenByteStart(srcView, token);
+                    outInsertOffset = srcView.tokenByteStart(token);
                     return true;
 
                 case TokenId::KwdFail:
@@ -511,7 +509,7 @@ namespace
                 case TokenId::SymEqualGreater:
                 case TokenId::SymLeftCurly:
                 case TokenId::SymSemiColon:
-                    outInsertOffset = sourceTokenByteStart(srcView, token);
+                    outInsertOffset = srcView.tokenByteStart(token);
                     return true;
 
                 default:
@@ -519,7 +517,7 @@ namespace
             }
         }
 
-        outInsertOffset = sourceTokenByteEnd(srcView, srcView.token(paramsEndTokRef));
+        outInsertOffset = srcView.tokenByteEnd(srcView.token(paramsEndTokRef));
         return true;
     }
 
@@ -806,7 +804,7 @@ namespace ModuleApiExport
             if (token.id != TokenId::SymLeftCurly)
                 continue;
 
-            endOffset = sourceTokenByteStart(srcView, token);
+            endOffset = srcView.tokenByteStart(token);
             break;
         }
 

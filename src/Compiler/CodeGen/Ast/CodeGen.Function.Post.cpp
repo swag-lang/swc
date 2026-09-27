@@ -6,6 +6,7 @@
 #include "Backend/RuntimeContext.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
@@ -103,14 +104,6 @@ namespace
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isFunction());
         return typeInfo.payloadSymFunction();
-    }
-
-    SymbolFunction* singleFunctionFromView(const SemaNodeView& view)
-    {
-        Symbol* symbol = view.singleSymbol();
-        if (!symbol || !symbol->isFunction())
-            return nullptr;
-        return &symbol->cast<SymbolFunction>();
     }
 
     enum class FallibleHandlerKind : uint8_t
@@ -567,9 +560,9 @@ namespace
         if (resolvedExprRef.isInvalid() || codeGen.node(resolvedExprRef).isNot(AstNodeId::CallExpr))
             return false;
 
-        const SymbolFunction* calledFunction = singleFunctionFromView(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
+        const SymbolFunction* calledFunction = CodeGenExprView::singleFunction(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
         if (!calledFunction)
-            calledFunction = singleFunctionFromView(codeGen.viewSymbol(resolvedExprRef));
+            calledFunction = CodeGenExprView::singleFunction(codeGen.viewSymbol(resolvedExprRef));
         if (!calledFunction || !calledFunction->returnTypeRef().isValid())
             return false;
         return !codeGen.typeMgr().get(calledFunction->returnTypeRef()).isReference();
@@ -660,9 +653,9 @@ namespace
         if (exprNode.isNot(AstNodeId::CallExpr))
             return false;
 
-        const SymbolFunction* calledFunction = singleFunctionFromView(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
+        const SymbolFunction* calledFunction = CodeGenExprView::singleFunction(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
         if (!calledFunction)
-            calledFunction = singleFunctionFromView(codeGen.viewSymbol(resolvedExprRef));
+            calledFunction = CodeGenExprView::singleFunction(codeGen.viewSymbol(resolvedExprRef));
         if (!calledFunction)
             return false;
 

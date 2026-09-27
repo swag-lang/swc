@@ -1381,13 +1381,15 @@ namespace
             return false;
 
         bool                  changed = false;
-        std::vector<uint32_t> targetLabels(tails.size(), UINT32_MAX);
+        std::vector<uint32_t> targetLabels;
         for (size_t i = 0; i < tails.size(); ++i)
         {
             for (size_t j = tails.size(); j-- > i + 1;)
             {
                 if (!sameReturnTail(context, tails[i], tails[j]))
                     continue;
+                if (targetLabels.empty())
+                    targetLabels.assign(tails.size(), UINT32_MAX);
                 if (targetLabels[j] == UINT32_MAX)
                 {
                     targetLabels[j]               = context.builder->createLabel().get();

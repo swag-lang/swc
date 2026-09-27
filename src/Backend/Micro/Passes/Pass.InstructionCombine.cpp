@@ -174,13 +174,20 @@ namespace
         // the consumer. Skipping other anchors here handles rules rewriting their own anchor;
         // claimAll's relocated check handles rules that consume neighboring
         // instructions (a fused load-op-store must not swallow a RIP access).
-        const PatternRegistry& reg                  = registry();
-        const auto             view                 = ctx.storage->view();
-        const auto             endIt                = view.end();
-        bool                   hasForwardableMemory = false;
+        const PatternRegistry& reg                = registry();
+        const auto             view               = ctx.storage->view();
+        const auto             endIt              = view.end();
+        bool                   hasMemoryProducer  = false;
+        bool                   hasForwardableLoad = false;
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            hasForwardableMemory |= it->op == MicroInstrOpcode::LoadRegMem || it->op == MicroInstrOpcode::LoadMemReg;
+            if (it->op == MicroInstrOpcode::LoadRegMem)
+            {
+                hasForwardableLoad |= hasMemoryProducer;
+                hasMemoryProducer = true;
+            }
+            else if (it->op == MicroInstrOpcode::LoadMemReg)
+                hasMemoryProducer = true;
             if (!ctx.relocated.empty() && ctx.isRelocated(it.current) && it->op != MicroInstrOpcode::LoadRegPtrReloc)
             {
                 if (it->op == MicroInstrOpcode::LoadRegMem)
@@ -193,7 +200,8 @@ namespace
                     break;
             }
         }
-        return hasForwardableMemory;
+        // Forwarding needs a load after an earlier load or store.
+        return hasForwardableLoad;
     }
 }
 

@@ -568,6 +568,7 @@
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Loop.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Switch.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\CodeGenLoweringPayload.h"/>
+        <ClInclude Include="src\Compiler\Sema\Generic\GenericCloneFlags.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceKey.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceOrigin.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceStorage.h"/>
@@ -577,6 +578,7 @@
         <ClInclude Include="src\Support\Math\Sha256.h"/>
         <ClInclude Include="src\Support\Report\ScopedTimedLog.h"/>
         <ClInclude Include="src\Backend\Micro\MicroInstrInfo.h"/>
+        <ClInclude Include="src\Backend\Micro\MicroLabelHelpers.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\Micro\MicroSsaState.h"/>
         <ClInclude Include="src\Backend\Micro\MicroStorage.h"/>

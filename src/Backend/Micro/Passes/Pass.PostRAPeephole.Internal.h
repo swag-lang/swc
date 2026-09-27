@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/RefTypes.h"
+#include <algorithm>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -60,6 +61,37 @@ namespace PostRaPeephole
             return claimAll(std::span<const MicroInstrRef>{refs.begin(), refs.size()});
         }
         bool isPrivateFrameBase(MicroReg reg) const;
+    };
+
+    struct WidenableAmcLoadPair
+    {
+        MicroInstrRef     resultRef;
+        MicroInstrRef     otherRef;
+        MicroInstrOperand resultOps[7];
+        MicroInstrOperand otherOps[7];
+
+        bool match(Context& ctx, MicroInstrRef afterRef, MicroReg result, MicroReg other, MicroOpBits bits)
+        {
+            otherRef = ctx.previousRef(afterRef);
+            const MicroInstr*        otherLoad    = ctx.instruction(otherRef);
+            const MicroInstrOperand* otherLoadOps = otherLoad ? otherLoad->ops(*ctx.operands) : nullptr;
+            resultRef = ctx.previousRef(otherRef);
+            const MicroInstr*        resultLoad    = ctx.instruction(resultRef);
+            const MicroInstrOperand* resultLoadOps = resultLoad ? resultLoad->ops(*ctx.operands) : nullptr;
+            if (!otherLoad || otherLoad->op != MicroInstrOpcode::LoadAmcRegMem || !otherLoadOps ||
+                otherLoadOps[0].reg != other || otherLoadOps[3].opBits != bits || otherLoadOps[4].opBits != MicroOpBits::B64 ||
+                !resultLoad || resultLoad->op != MicroInstrOpcode::LoadAmcRegMem || !resultLoadOps ||
+                resultLoadOps[0].reg != result || resultLoadOps[3].opBits != bits || resultLoadOps[4].opBits != MicroOpBits::B64)
+                return false;
+
+            std::copy_n(resultLoadOps, 7, resultOps);
+            std::copy_n(otherLoadOps, 7, otherOps);
+            resultOps[3].opBits = MicroOpBits::B32;
+            resultOps[4].opBits = bits;
+            otherOps[3].opBits  = MicroOpBits::B32;
+            otherOps[4].opBits  = bits;
+            return true;
+        }
     };
 
     using PatternFn = bool (*)(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

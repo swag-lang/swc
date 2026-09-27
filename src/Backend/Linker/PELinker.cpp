@@ -77,14 +77,6 @@ namespace
         return isDebugSectionName(name) || name.view() == SymbolTable::OBJECT_SECTION;
     }
 
-    uint32_t alignmentFromCharacteristics(const uint32_t characteristics)
-    {
-        const uint32_t field = (characteristics & 0x00F00000u) >> 20;
-        if (field == 0)
-            return 1;
-        return 1u << (field - 1);
-    }
-
     void appendAlignedBytes(ByteArray& outBytes, uint32_t& outOffset, const ByteArray& bytes)
     {
         const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(outBytes.size()), 16);
@@ -689,7 +681,7 @@ namespace
             }
 
             LinkSection&   linkSection = image_->sections[sectionIndex];
-            const uint32_t align       = alignmentFromCharacteristics(section.characteristics);
+            const uint32_t align       = coffSectionAlignmentFromCharacteristics(section.characteristics);
             linkSection.align          = std::max(linkSection.align, align);
             linkSection.flags.add(linkSectionFlagsFromCoffCharacteristics(section.characteristics));
 

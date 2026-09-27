@@ -1355,14 +1355,30 @@ namespace
         if (!context.builder)
             return false;
         std::vector<ReturnTail> tails;
+        MicroInstrRef            firstRet       = MicroInstrRef::invalid();
+        bool                     collectedFirst = false;
         for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
         {
             if (it->op != MicroInstrOpcode::Ret)
                 continue;
+            if (firstRet.isInvalid())
+            {
+                firstRet = it.current;
+                continue;
+            }
+            if (!collectedFirst)
+            {
+                ReturnTail firstTail;
+                if (collectReturnTail(context, conv.stackPointer, firstRet, firstTail))
+                    tails.push_back(std::move(firstTail));
+                collectedFirst = true;
+            }
             ReturnTail tail;
             if (collectReturnTail(context, conv.stackPointer, it.current, tail))
                 tails.push_back(std::move(tail));
         }
+        if (tails.size() < 2)
+            return false;
 
         bool                  changed = false;
         std::vector<uint32_t> targetLabels(tails.size(), UINT32_MAX);

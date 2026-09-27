@@ -432,7 +432,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     {
         bool spMoved    = false;
         bool inEntryRun = true;
-        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !spMoved; ++it)
         {
             const MicroInstrOperand* ops = it->ops(operands);
             if (it->op == MicroInstrOpcode::Nop || it->op == MicroInstrOpcode::Label)
@@ -594,20 +594,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     };
     std::vector<FrameVarRange> varRanges;
 
-    bool rangesUsable = context.sanitizerFunction != nullptr &&
-                        (!context.debugStackBaseVirtualReg.isValid() || context.debugStackBaseVirtualReg == frameBase);
-    if (rangesUsable)
-    {
-        for (const SymbolVariable* localVar : context.sanitizerFunction->localVariables())
-        {
-            if (!localVar || !localVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
-                continue;
-            const uint64_t size = localVar->codeGenLocalSize();
-            if (!size)
-                continue;
-            varRanges.push_back({.lo = localVar->offset(), .hi = localVar->offset() + size});
-        }
-    }
+    const bool rangesUsable = context.sanitizerFunction != nullptr &&
+                              (!context.debugStackBaseVirtualReg.isValid() || context.debugStackBaseVirtualReg == frameBase);
+    bool varRangesReady = false;
 
     // An escape at an offset outside every known variable exposes an object the
     // analysis cannot bound - a compiler temporary such as an error payload,
@@ -623,6 +612,19 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     auto poisonEscapedOffset = [&](const uint64_t offset) -> bool {
         if (!rangesUsable)
             return false;
+        if (!varRangesReady)
+        {
+            for (const SymbolVariable* localVar : context.sanitizerFunction->localVariables())
+            {
+                if (!localVar || !localVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+                    continue;
+                const uint64_t size = localVar->codeGenLocalSize();
+                if (!size)
+                    continue;
+                varRanges.push_back({.lo = localVar->offset(), .hi = localVar->offset() + size});
+            }
+            varRangesReady = true;
+        }
         bool found = false;
         for (FrameVarRange& range : varRanges)
         {

@@ -159,15 +159,14 @@ namespace
     // with C = C0 * 2^k and C0 odd. Multiplying by the inverse maps the
     // multiples of C0 onto [0, (2^N - 1) / C0], and the rotation also sends
     // anything with a low bit set among the k low bits above the limit.
-    bool tryReduceUnsignedModuloEquality(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState* ssaState, MicroInstrRef instRef, MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
+    bool tryReduceUnsignedModuloEquality(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState*& ssaState, MicroSsaState& localSsaState, MicroInstrRef instRef, MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
     {
         const MicroOpBits opBits  = ops[1].opBits;
         const uint32_t    bits    = getNumBits(opBits);
         const uint64_t    mask    = getBitsMask(opBits);
         const uint64_t    divisor = ops[3].valueU64 & mask;
         const MicroReg    value   = ops[0].reg;
-        if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || divisor < 3 || Math::isPowerOfTwo(divisor) || !value.isVirtualInt() || !ssaState ||
-            !ssaState->isValid())
+        if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || divisor < 3 || Math::isPowerOfTwo(divisor) || !value.isVirtualInt())
             return false;
 
         // The compare may follow a few moves that leave the flags alone, as
@@ -193,6 +192,11 @@ namespace
         if (!findEqualityReader(storage, operands, cmpRef, readerRef, cond))
             return false;
         if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, readerRef, context.builder))
+            return false;
+        // Only the matching compare and reader need SSA to prove unique use.
+        if (!ssaState)
+            ssaState = MicroSsaState::ensureFor(context, localSsaState);
+        if (!ssaState || !ssaState->isValid())
             return false;
         // The compare is the remainder's only reader.
         uint32_t remainderId = MicroSsaState::K_INVALID_VALUE;
@@ -814,9 +818,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     changed = true;
                     break;
                 }
-                if (!ssaState)
-                    ssaState = MicroSsaState::ensureFor(context, localSsaState);
-                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, instRef, ops, nextVirtualIntRegIndex) ||
+                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, localSsaState, instRef, ops, nextVirtualIntRegIndex) ||
                           tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;
 

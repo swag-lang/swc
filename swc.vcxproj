@@ -607,6 +607,7 @@
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PreRAPeephole.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PreRAPeephole.Internal.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRAPeephole.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRAPeephole.ForwardRegTouch.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRAPeephole.Internal.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRADeadCodeElim.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRALoopHoist.h"/>

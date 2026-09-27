@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Doc/DocApi.h"
+#include "Doc/DocApiSort.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -18,21 +19,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool alphabeticLess(const std::string_view lhs, const std::string_view rhs)
-    {
-        const size_t size = std::min(lhs.size(), rhs.size());
-        for (size_t i = 0; i < size; ++i)
-        {
-            const int left  = std::tolower(static_cast<unsigned char>(lhs[i]));
-            const int right = std::tolower(static_cast<unsigned char>(rhs[i]));
-            if (left != right)
-                return left < right;
-        }
-        if (lhs.size() != rhs.size())
-            return lhs.size() < rhs.size();
-        return lhs < rhs;
-    }
-
     struct DocNamespace
     {
         Utf8                        fullName;
@@ -329,7 +315,7 @@ namespace
         }
 
         std::vector sortedNames(names.begin(), names.end());
-        std::ranges::sort(sortedNames, alphabeticLess);
+        std::ranges::sort(sortedNames, DocApiSort::alphabeticLess);
         std::unordered_map<Utf8, size_t> indices;
         for (Utf8& name : sortedNames)
         {
@@ -589,8 +575,8 @@ namespace
     {
         SWC_ASSERT(lhs != nullptr && rhs != nullptr);
         if (lhs->displayName != rhs->displayName)
-            return alphabeticLess(lhs->displayName, rhs->displayName);
-        return alphabeticLess(lhs->fullName, rhs->fullName);
+            return DocApiSort::alphabeticLess(lhs->displayName, rhs->displayName);
+        return DocApiSort::alphabeticLess(lhs->fullName, rhs->fullName);
     }
 
     void sortDocItems(std::vector<const DocItem*>& items)

@@ -686,6 +686,7 @@
         <ClInclude Include="src\Support\Core\Utf8Helper.h"/>
         <ClInclude Include="src\Compiler\Lexer\LangSpec.h"/>
         <ClInclude Include="src\Doc\DocApi.h"/>
+        <ClInclude Include="src\Doc\DocApiSort.h"/>
         <ClInclude Include="src\Doc\DocFile.h"/>
         <ClInclude Include="src\Doc\DocGenerator.h"/>
         <ClInclude Include="src\Doc\DocMarkdown.h"/>

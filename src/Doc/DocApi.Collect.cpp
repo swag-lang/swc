@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Doc/DocApi.h"
+#include "Doc/DocApiSort.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -36,21 +37,6 @@ Utf8 DocApi::displayNameFor(const std::string_view fullName, const DocItemKind k
 
 namespace
 {
-    bool alphabeticLess(const std::string_view lhs, const std::string_view rhs)
-    {
-        const size_t size = std::min(lhs.size(), rhs.size());
-        for (size_t i = 0; i < size; ++i)
-        {
-            const int left  = std::tolower(static_cast<unsigned char>(lhs[i]));
-            const int right = std::tolower(static_cast<unsigned char>(rhs[i]));
-            if (left != right)
-                return left < right;
-        }
-        if (lhs.size() != rhs.size())
-            return lhs.size() < rhs.size();
-        return lhs < rhs;
-    }
-
     int itemSortOrder(const DocItemKind kind)
     {
         return static_cast<int>(kind);
@@ -748,8 +734,8 @@ namespace
 
         std::ranges::sort(item.members, [](const DocMember& lhs, const DocMember& rhs) {
             if (lhs.name != rhs.name)
-                return alphabeticLess(lhs.name, rhs.name);
-            return alphabeticLess(lhs.fullName, rhs.fullName);
+                return DocApiSort::alphabeticLess(lhs.name, rhs.name);
+            return DocApiSort::alphabeticLess(lhs.fullName, rhs.fullName);
         });
     }
 }
@@ -1095,8 +1081,8 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         if (lhsOrder != rhsOrder)
             return lhsOrder < rhsOrder;
         if (lhs.category != rhs.category)
-            return alphabeticLess(lhs.category, rhs.category);
-        return alphabeticLess(lhs.fullName, rhs.fullName);
+            return DocApiSort::alphabeticLess(lhs.category, rhs.category);
+        return DocApiSort::alphabeticLess(lhs.fullName, rhs.fullName);
     });
 
     for (DocItem& item : outItems)

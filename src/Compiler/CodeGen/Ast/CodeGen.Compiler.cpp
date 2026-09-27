@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenParameterReg.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -184,18 +185,6 @@ namespace
         return payload.isValue();
     }
 
-    MicroReg parameterSourcePhysReg(const CallConv& callConv, const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo)
-    {
-        if (paramInfo.isFloat)
-        {
-            SWC_ASSERT(paramInfo.registerIndex < callConv.floatArgRegs.size());
-            return callConv.floatArgRegs[paramInfo.registerIndex];
-        }
-
-        SWC_ASSERT(paramInfo.registerIndex < callConv.intArgRegs.size());
-        return callConv.intArgRegs[paramInfo.registerIndex];
-    }
-
     void collectCompilerFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
@@ -259,7 +248,7 @@ namespace
                 if (paramInfos[laterParamIndex].isFloat != paramInfos[paramIndex].isFloat)
                     continue;
 
-                futureSourceRegs.push_back(parameterSourcePhysReg(callConv, paramInfos[laterParamIndex]));
+                futureSourceRegs.push_back(CodeGenParameterReg::parameterSourcePhysReg(callConv, paramInfos[laterParamIndex]));
             }
 
             builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs.span());

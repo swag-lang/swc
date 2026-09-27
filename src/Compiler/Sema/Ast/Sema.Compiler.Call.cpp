@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaFileError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -64,14 +65,6 @@ namespace
         }
 
         return nullptr;
-    }
-
-    Result reportCompilerFileError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = SemaError::build(sema, id, nodeRef);
-        FileSystem::setDiagnosticPathAndBecause(diag, &sema.ctx(), path, because);
-        diag.report(sema.ctx());
-        return Result::Error;
     }
 
     bool isModuleSetupDirectiveContext(const Sema& sema)
@@ -174,7 +167,7 @@ namespace
         fs::path resolvedPath = includePath;
         Utf8     because;
         if (FileSystem::resolveExistingFile(resolvedPath, because) != Result::Continue)
-            return reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, resolvedPath, because);
+            return SemaFileError::reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, resolvedPath, because);
 
         outPath = std::move(resolvedPath);
         return Result::Continue;
@@ -186,7 +179,7 @@ namespace
         if (FileSystem::readBinaryFile(resolvedPath, outBytes, ioError) != Result::Continue)
         {
             const DiagnosticId diagId = ioError.problem == FileSystem::IoProblem::OpenRead ? DiagnosticId::io_err_open_file : DiagnosticId::io_err_read_file;
-            return reportCompilerFileError(sema, diagId, nodeRef, resolvedPath, ioError.because);
+            return SemaFileError::reportCompilerFileError(sema, diagId, nodeRef, resolvedPath, ioError.because);
         }
 
         return Result::Continue;

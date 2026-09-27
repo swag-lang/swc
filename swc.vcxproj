@@ -658,6 +658,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenArraySlice.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenParameterReg.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerConstant.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h"/>
@@ -820,6 +821,7 @@
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantValue.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantFoldStorage.h"/>
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantShardPreference.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantLower.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantExtract.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h"/>
@@ -834,6 +836,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaFileError.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h"/>

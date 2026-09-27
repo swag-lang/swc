@@ -906,8 +906,6 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
     // unguarded to the other readers, so avoid zeroing one byte per instruction.
     if (callPositions_.empty() || !hasControlFlow_ || !instructionCount_)
         return;
-    guardedCallPositions_.assign(instructionCount_, 0);
-
     uint32_t idx = 0;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
@@ -941,6 +939,8 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         if (!regionIsGuard)
             continue;
 
+        if (guardedCallPositions_.empty())
+            guardedCallPositions_.assign(instructionCount_, 0);
         for (auto call = std::ranges::lower_bound(callPositions_, idx + (jumpOver ? 2u : 1u));
              call != callPositions_.end() && *call < targetIdx; ++call)
             guardedCallPositions_[*call] = 1;

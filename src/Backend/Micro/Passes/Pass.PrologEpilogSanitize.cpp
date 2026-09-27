@@ -217,11 +217,11 @@ namespace
         // `frameDelta` bytes ABOVE the final stack pointer, and addresses stack arguments as `[fp + disp]`
         // under that assumption. Since fp is now `frameDelta` lower, each frame-pointer-relative access is
         // re-anchored by adding frameDelta to its displacement so it still reaches the same address.
-        std::vector<MicroInstrRef> framePointerSetupRefs;
-        MicroInstrRef              framePointerPushRef = MicroInstrRef::invalid();
-        MicroInstrRef              afterStackShapeRef  = MicroInstrRef::invalid();
-        uint64_t                   frameDelta          = 0;
-        bool                       seenPrologueStore   = false;
+        SmallVector<MicroInstrRef, 2> framePointerSetupRefs;
+        MicroInstrRef                 framePointerPushRef = MicroInstrRef::invalid();
+        MicroInstrRef                 afterStackShapeRef  = MicroInstrRef::invalid();
+        uint64_t                      frameDelta          = 0;
+        bool                          seenPrologueStore   = false;
 
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
@@ -1276,8 +1276,8 @@ namespace
 
     bool collectReturnTail(const MicroPassContext& context, const MicroReg stackPointer, const MicroInstrRef retRef, ReturnTail& tail)
     {
-        MicroInstrRef              ref = context.instructions->findPreviousInstructionRef(retRef);
-        std::vector<MicroInstrRef> reversed;
+        MicroInstrRef                 ref = context.instructions->findPreviousInstructionRef(retRef);
+        SmallVector<MicroInstrRef, 8> reversed;
         reversed.push_back(retRef);
         while (const MicroInstr* inst = context.instructions->ptr(ref))
         {

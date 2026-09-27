@@ -901,11 +901,11 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
 {
     // Guarded calls sit either below a conditional jump to their join, or
     // below a jump over a labeled panic block. Both shapes are presumed cold.
-    if (callPositions_.empty())
+    // With linear control flow every call is hot. An empty table already means
+    // unguarded to the other readers, so avoid zeroing one byte per instruction.
+    if (callPositions_.empty() || !hasControlFlow_ || !instructionCount_)
         return;
     guardedCallPositions_.assign(instructionCount_, 0);
-    if (!hasControlFlow_ || !instructionCount_)
-        return;
 
     uint32_t idx = 0;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
@@ -4504,7 +4504,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     computeGuardedCallPositions();
     for (const uint32_t idx : callPositions_)
     {
-        if (!guardedCallPositions_[idx])
+        if (guardedCallPositions_.empty() || !guardedCallPositions_[idx])
             hotCallPositions_.push_back(idx);
     }
     analyzeLiveness();

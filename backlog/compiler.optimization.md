@@ -18,13 +18,19 @@ block, and the hot path keeps the register.
 ### compiler.optimization.090 — CSV aggregation regresses with the shadow-free Swag ABI
 
 - Recorded: 2026-09-27 10:24
-- Updated: 2026-09-27 10:44 — Rejected loop-alignment experiments that moved the regression
+- Updated: 2026-09-27 10:57 — Confirmed workload-size crossover with identical module names
 - Area: compiler/backend, native code layout and calling convention
 - Evidence: in eight alternating, pinned pairs, the six-integer/six-float Swag ABI with
   no caller shadow space makes `bench/src/swagnat/csvagg.swg` about 14.6% slower than
   the preceding ABI (median candidate/baseline). The application returns the same
   checksum. Seven application benchmarks and sixteen no-inline call signatures were
   also compared; CSV aggregation is the largest confirmed application regression.
+- Rebuilding both compilers with the identical module name `csvagg` in separate
+  output directories still gives a median 8.9% regression over eight paired runs
+  at the original 400,000 rows. With only `ROWS` changed to 4,000,000 and an
+  identical `csvagg4m` module name, the candidate instead improves by 4.7% over
+  six paired runs. Both sizes must be kept in the performance gate: the larger
+  working set does not invalidate the smaller workload's regression.
 - The old ABI compiled with the new convention-independent backend passes is at
   parity with the preceding compiler over six pairs (median about 0.99). A temporary
   32-byte pad in the caller's body frame leaves CSV about 8% slower. Aligning native

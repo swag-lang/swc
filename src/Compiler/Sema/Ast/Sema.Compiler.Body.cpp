@@ -165,14 +165,6 @@ namespace
         return section;
     }
 
-    uint32_t compilerAstTokenStartOffset(const SourceView& srcView, const Token& token)
-    {
-        if (token.id == TokenId::Identifier)
-            return srcView.identifiers()[token.byteStart].byteStart;
-
-        return token.byteStart;
-    }
-
     TokenRef findCompilerAstStartTokenRef(const SourceView& srcView, const uint32_t codeStartOffset)
     {
         const uint32_t numTokens = srcView.numTokens();
@@ -182,7 +174,7 @@ namespace
         for (uint32_t i = 0; i < numTokens; i++)
         {
             const TokenRef tokRef(i);
-            if (compilerAstTokenStartOffset(srcView, srcView.token(tokRef)) >= codeStartOffset)
+            if (srcView.tokenByteStart(srcView.token(tokRef)) >= codeStartOffset)
                 return tokRef;
         }
 

@@ -312,19 +312,6 @@ namespace
         functions.resize(writeIndex);
     }
 
-    std::vector<SymbolFunction*> collectPreparedFunctions(const NativeBackendBuilder& builder)
-    {
-        std::vector<SymbolFunction*> result;
-        result.reserve(builder.functionInfos.size());
-        for (const NativeFunctionInfo& info : builder.functionInfos)
-        {
-            if (info.symbol)
-                result.push_back(info.symbol);
-        }
-
-        return result;
-    }
-
     bool isRuntimeTestFunction(const CompilerInstance& compiler, const SymbolFunction& function)
     {
         if (function.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
@@ -530,7 +517,7 @@ namespace
                 return !function || !compiler.matchesTestFilter(*function);
             });
 
-            allFunctions                            = collectPreparedFunctions(nativeBuilder);
+            allFunctions                            = nativeBuilder.collectPreparedFunctions();
             const JitFunctionSelection jitSelection = selectJitFunctions(compiler, allFunctions, nativeBuilder.testFunctions);
             expectedTestCount                       = jitSelection.expectedTestCount;
             initFunctions                           = std::move(nativeBuilder.initFunctions);

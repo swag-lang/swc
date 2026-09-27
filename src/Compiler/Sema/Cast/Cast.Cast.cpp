@@ -256,11 +256,6 @@ namespace
         }
     }
 
-    bool isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType)
-    {
-        return srcType.isAny() && srcType.isNullable() && dstType.isString() && dstType.isNullable();
-    }
-
     Result castChangeNullableQualifier(Sema& sema, CastRequest& castRequest, const TypeRef dstTypeRef)
     {
         if (!castRequest.materializeConstantResult())
@@ -471,7 +466,7 @@ namespace
             return Result::Continue;
 
         const bool fromExplicitNode = castFlags.has(CastFlagsE::FromExplicitNode);
-        if (!fromExplicitNode && !isImplicitNullableAnyStringCast(srcType, dstType))
+        if (!fromExplicitNode && !Cast::isImplicitNullableAnyStringCast(srcType, dstType))
             return Result::Continue;
 
         const bool hasDynCastSafety     = sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::DynCast);
@@ -924,6 +919,11 @@ namespace
         return Result::Continue;
     }
 
+}
+
+bool Cast::isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType)
+{
+    return srcType.isAny() && srcType.isNullable() && dstType.isString() && dstType.isNullable();
 }
 
 Result Cast::castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)

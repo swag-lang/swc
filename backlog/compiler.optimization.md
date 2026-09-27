@@ -15,14 +15,53 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.091 — Keep raytrace row values in registers across trace calls
+### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 
-- Recorded: 2026-09-27 20:19
-- Area: compiler/backend, floating register allocation across calls
-- Evidence: Odin's raytrace main keeps the row value and its square in callee-saved `xmm13` and `xmm14` through each `trace` call. Swag stores them at `[rsp+0x68]` and `[rsp+0x70]` before the pixel loop and reloads both for every pixel. Its six floating argument lanes occupy `xmm6`–`xmm11`, leaving fewer persistent registers for these row values and the loop constants. An attempted latch rewrite that executed the four next-iteration loads on the exit path did not remove the inner jump: `xmm12` still carries the value used by the following outer iteration, so replacing it on exit is unsound. Moving those loads to a backedge-only preparation block removes the inner unconditional jump but leaves the two stack reloads.
-- Next: compare allocation and call lowering with a transient floating argument bank in an isolated experiment. Keep a change only if the full inner-loop instruction and memory traffic improves without a compensating cost in the callee or other benchmark loops.
-- Complete when: the two per-pixel row reloads disappear with a validated general allocation or call rule, or a static comparison establishes that retaining them is the better tradeoff.
-- Related: compiler.optimization.089
+- Recorded: 2026-09-27 08:13
+- Updated: 2026-09-27 21:13 — Retained the mixed-call measurement gate after changing float lanes
+- Area: compiler/backend, Swag calling convention and register allocation
+- Evidence: with the independent six-integer/six-float Swag argument banks, a release
+  executable making 20 million no-inline calls with alternating six `u64` and six `f64`
+  parameters takes about 61–64 ms after warmup, versus 34–36 ms with the prior
+  positional convention on this machine. Both return the same value. Six-integer calls
+  improve from roughly 37–41 ms to 31–33 ms over 40 million calls; six-float calls stay
+  near 59–62 ms. These are process-wall microbenchmarks, not application measurements.
+  With the same twelve-parameter signature but an integer-only body, the candidate
+  improves to roughly 22–25 ms from 26–30 ms; with a floating-only body, it takes
+  56–60 ms against 26–30 ms. Full-width XMM copies, pruning unused XMM saves,
+  making XMM6/XMM7 volatile, and reducing Swag's float bank to three registers
+  did not close the mixed-case gap in local experiments. The last result suggests
+  that register count alone does not explain the slow floating body.
+- The post-RA Micro dump for the floating-only body has a 17-instruction leaf
+  callee under the old ABI, with three floating adds reading stack operands.
+  The candidate has 25 instructions after dead-code elimination: five register
+  floating adds plus a prologue and epilogue that save XMM6 and XMM7. Its first
+  floating register copy is removed after the save plan is made. A temporary
+  late save-pruning experiment still measured around 58 ms, so the saved-register
+  instructions alone do not explain the entire gap.
+- An experimental mapping that kept six independent integer lanes but assigned
+  floating arguments by their position in the full signature measured roughly
+  37–42 ms on the mixed sum, close to the old 39–42 ms in the same run. It gives
+  up independent floating lanes for mixed signatures, so it was not selected as
+  the new Swag convention.
+- The preceding candidate used the already persistent XMM6–XMM11 as floating argument
+  lanes. Pre-prologue dead-definition elimination avoids saving unused persistent
+  registers; a property-based loop pass hoists invariant persistent-argument copies.
+  In five alternating call-matrix pairs, six-integer calls are about 10% faster,
+  six-float calls about 16% faster, and alternating six/eight mixed calls remain
+  about 3% slower than the preceding ABI. These backend passes apply by convention
+  properties and remain useful even if the Swag ABI changes again.
+- The transient XMM0–XMM5 experiment removes two per-pixel row reloads from raytrace's
+  inner loop and reduces its `main` and `trace` from 155/201 to 136/173 optimized Micro
+  instructions. All seven benchmark checksums remain unchanged; the six other tasks
+  retain their instruction counts. C++ (1,147), native Release
+  and DevMode (3,483 each), JIT Release (1,500), and workspace Release pass with the
+  cache identity advanced to build 1173. The old persistent-argument copy hoist became
+  unreachable and was removed. No elapsed-time sample informed the choice.
+- Next: compare the mixed-call signatures and the seven tasks in a paired campaign with
+  the new float bank; isolate any signature or task that regresses before closing this entry.
+- Complete when: repeated paired runs put the mixed calls at parity or better and
+  the six-integer and six-float gains remain.
 
 ### compiler.optimization.085 — Measure short-key comparison cost against LDC
 
@@ -95,46 +134,6 @@ block, and the hot path keeps the register.
   memory-alias effects before changing native code layout or call-frame policy.
 - Complete when: the shadow-free ABI no longer regresses CSV in repeated paired runs,
   the call matrix remains at least at parity, and the broader native/JIT/app tests pass.
-
-### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
-
-- Recorded: 2026-09-27 08:13
-- Updated: 2026-09-27 10:24 — Narrowed the remaining mixed-call gap after backend fixes
-- Area: compiler/backend, Swag calling convention and register allocation
-- Evidence: with the independent six-integer/six-float Swag argument banks, a release
-  executable making 20 million no-inline calls with alternating six `u64` and six `f64`
-  parameters takes about 61–64 ms after warmup, versus 34–36 ms with the prior
-  positional convention on this machine. Both return the same value. Six-integer calls
-  improve from roughly 37–41 ms to 31–33 ms over 40 million calls; six-float calls stay
-  near 59–62 ms. These are process-wall microbenchmarks, not application measurements.
-  With the same twelve-parameter signature but an integer-only body, the candidate
-  improves to roughly 22–25 ms from 26–30 ms; with a floating-only body, it takes
-  56–60 ms against 26–30 ms. Full-width XMM copies, pruning unused XMM saves,
-  making XMM6/XMM7 volatile, and reducing Swag's float bank to three registers
-  did not close the mixed-case gap in local experiments. The last result suggests
-  that register count alone does not explain the slow floating body.
-- The post-RA Micro dump for the floating-only body has a 17-instruction leaf
-  callee under the old ABI, with three floating adds reading stack operands.
-  The candidate has 25 instructions after dead-code elimination: five register
-  floating adds plus a prologue and epilogue that save XMM6 and XMM7. Its first
-  floating register copy is removed after the save plan is made. A temporary
-  late save-pruning experiment still measured around 58 ms, so the saved-register
-  instructions alone do not explain the entire gap.
-- An experimental mapping that kept six independent integer lanes but assigned
-  floating arguments by their position in the full signature measured roughly
-  37–42 ms on the mixed sum, close to the old 39–42 ms in the same run. It gives
-  up independent floating lanes for mixed signatures, so it was not selected as
-  the new Swag convention.
-- Current candidate uses the already persistent XMM6–XMM11 as floating argument
-  lanes. Pre-prologue dead-definition elimination avoids saving unused persistent
-  registers; a property-based loop pass hoists invariant persistent-argument copies.
-  In five alternating call-matrix pairs, six-integer calls are about 10% faster,
-  six-float calls about 16% faster, and alternating six/eight mixed calls remain
-  about 3% slower than the preceding ABI. These backend passes apply by convention
-  properties and remain useful even if the Swag ABI changes again.
-- Next: isolate the residual 3% mixed-call gap without slowing other signatures.
-- Complete when: repeated paired runs put the mixed calls at parity or better and
-  the six-integer and six-float gains remain.
 
 ### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 

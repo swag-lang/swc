@@ -472,9 +472,10 @@ SWC_TEST_BEGIN(PostRALoopHoist_SecondDefinitionOfDestinationBlocks)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(PostRALoopHoist_PersistentFloatArgumentCopy)
+SWC_TEST_BEGIN(PostRALoopHoist_TransientFloatArgumentCopyStaysInLoop)
 {
     const CallConv& conv = CallConv::get(CallConvKind::Swag);
+    // A call clobbers its transient float argument register, so every iteration needs the copy.
     for (const bool changesSource : {false, true})
     {
         MicroBuilder   builder(ctx);
@@ -497,7 +498,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_PersistentFloatArgumentCopy)
         builder.emitRet();
 
         SWC_RESULT(runPostRaLoopHoistPass(builder));
-        if ((builder.instructions().ptr(copy) != nullptr) != changesSource)
+        if (builder.instructions().ptr(copy) == nullptr)
             return Result::Error;
     }
     return Result::Continue;

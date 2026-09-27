@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
@@ -458,14 +459,6 @@ namespace
         return codeGen.payload(exprRef);
     }
 
-    SemaNodeView countOfExprView(CodeGen& codeGen, AstNodeRef exprRef)
-    {
-        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
-        if (storedView.type() != nullptr)
-            return storedView;
-        return codeGen.viewType(exprRef);
-    }
-
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)
     {
         const auto* countPayload = codeGen.sema().semaPayload<CountOfSpecOpPayload>(codeGen.curNodeRef());
@@ -473,7 +466,7 @@ namespace
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), countPayload->calledFn);
 
         MicroBuilder&      builder       = codeGen.builder();
-        const SemaNodeView exprView      = countOfExprView(codeGen, exprRef);
+        const SemaNodeView exprView      = CodeGenExprView::storedOrType(codeGen, exprRef);
         CodeGenNodePayload exprPayload   = countOfExprPayload(codeGen, exprRef);
         TypeRef            exprTypeRef   = exprPayload.effectiveTypeRef(exprView.typeRef());
         const TypeRef      resultTypeRef = codeGen.curViewType().typeRef();

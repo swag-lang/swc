@@ -2335,7 +2335,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // storage mutations do not rebuild the CFG during this pass.
     predecessors_ = controlFlowGraph.predecessors();
 
-    computeReachability();
+    // The only reader treats every instruction in a linear function as reachable.
+    if (hasControlFlow_)
+        computeReachability();
     computeLoopDepth();
 
     worklist_.clear();

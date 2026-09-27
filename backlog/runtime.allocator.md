@@ -59,6 +59,33 @@ alone. Comparative reference points for that investigation:
 | [TCMalloc](https://google.github.io/tcmalloc/design.html) | Per-CPU caches, batched transfers and a hugepage-aware backend are useful architectural reference points. Its [per-CPU restartable sequences](https://google.github.io/tcmalloc/rseq.html) use Linux facilities, so this is not a direct Windows backend comparison. |
 | [Scudo](https://llvm.org/docs/ScudoHardenedAllocator.html) and [hardened_malloc](https://github.com/GrapheneOS/hardened_malloc) | Hardening reference points for state/integrity checks, metadata isolation, randomization and quarantine. Features differ by allocator and configuration; do not imply all protections are enabled by default or provide complete memory safety. |
 
+### runtime.allocator.008 — Add allocator OS-failure injection
+
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-09-27 17:52 — define failure-injection acceptance at OS transitions.
+- `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
+  obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
+  through the FLS destructor, and a 32-thread abandon/remote-free/trim stress. What it does not
+  cover is failure injection.
+- Inject reserve and commit failures at every transition and verify that page masks, segment lists,
+  and the abandoned list stay consistent and that the allocation returns null rather than a
+  half-built page.
+- Related: platform.portability.089, platform.portability.004
+
+- Complete when: Focused native tests force each reserve and commit failure path, verify page masks, segment and abandoned lists stay valid, and confirm allocation returns null without leaked or partially published pages.
+
+### runtime.allocator.006 — Huge allocations have no separately measured policy
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 17:52 — define a measurable huge-allocation contract.
+
+Define the threshold and reserve/commit/release behavior for genuinely huge allocations after the
+medium tier is separated. Benchmark large growth and release independently of size-class caching.
+
+- Related: runtime.allocator.001, runtime.allocator.005
+
+- Complete when: The huge-allocation threshold and reserve/commit/release policy are documented and tested, and isolated large-growth and release benchmarks report latency and memory retention separately from size-class caching.
+
 ### runtime.allocator.010 — Decide what the security properties are, and write them down
 
 - Recorded: 2026-08-06 06:22
@@ -295,26 +322,3 @@ alone. Comparative reference points for that investigation:
   foreign-thread exit cleanup and nested catch/rethrow behavior.
 - Complete when: repeated handled errors reclaim their storage and simultaneous threads cannot
   overwrite one another's errors, with native regression coverage.
-
-### runtime.allocator.008 — Add allocator OS-failure injection
-
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
-  obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
-  through the FLS destructor, and a 32-thread abandon/remote-free/trim stress. What it does not
-  cover is failure injection.
-- Inject reserve and commit failures at every transition and verify that page masks, segment lists,
-  and the abandoned list stay consistent and that the allocation returns null rather than a
-  half-built page.
-- Related: platform.portability.089, platform.portability.004
-
-### runtime.allocator.006 — Huge allocations have no separately measured policy
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Define the threshold and reserve/commit/release behavior for genuinely huge allocations after the
-medium tier is separated. Benchmark large growth and release independently of size-class caching.
-
-- Related: runtime.allocator.001, runtime.allocator.005

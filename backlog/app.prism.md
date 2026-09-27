@@ -14,6 +14,26 @@ in their viewer, and the readouts report measured compilation and frame renderin
 
 ## Entries
 
+### app.prism.002 — Read the pipeline instead of printing it
+
+- Recorded: 2026-09-08 21:53
+- Updated: 2026-09-27 17:52 — define observable pipeline navigation and comparison acceptance.
+
+The output pane retains the compiler's terminal colors while displaying plain selectable text. The compiler knows
+much more than that text: `MicroPassManager` prints a header naming the stage, the optimization
+level, and the instruction count before and after with the gain it produced, and it colors every
+token by a `SyntaxColor` category that separates a physical register from a virtual one.
+
+Parsing that header turns the pane into the view the application is for: a frieze of the stages
+with the instruction count under each, a mark on the passes that changed the function and on those
+that left it alone, and a diff between the two sides of one pass. `SyntaxColorMode::ForDoc` already
+emits the same categories as tags rather than as escapes, which is the stream to read.
+
+Next: parse the `[micro]` header and instruction block, map the categories onto the theme palette,
+and show the count and the gain beside the stage selector.
+
+- Complete when: The viewer groups parsed `[micro]` stages, shows each stage's instruction counts and gain, distinguishes changed passes, and renders a selectable before/after diff with category colors across shipped themes; malformed or incomplete compiler output remains readable and has focused coverage.
+
 ### app.prism.003 — Forward continuous input to the running preview
 
 - Recorded: 2026-09-08 21:53
@@ -61,21 +81,3 @@ in their viewer, and the readouts report measured compilation and frame renderin
 - Complete when: the saved image is a complete frame, reproducing its source and options is
   possible, export cannot race frame publication, and existing golden files are not overwritten
   without an explicit destination choice.
-
-### app.prism.002 — Read the pipeline instead of printing it
-
-- Recorded: 2026-09-08 21:53
-- Updated: 2026-09-09 08:31 — Correct the baseline: terminal colors are already preserved.
-
-The output pane retains the compiler's terminal colors while displaying plain selectable text. The compiler knows
-much more than that text: `MicroPassManager` prints a header naming the stage, the optimization
-level, and the instruction count before and after with the gain it produced, and it colors every
-token by a `SyntaxColor` category that separates a physical register from a virtual one.
-
-Parsing that header turns the pane into the view the application is for: a frieze of the stages
-with the instruction count under each, a mark on the passes that changed the function and on those
-that left it alone, and a diff between the two sides of one pass. `SyntaxColorMode::ForDoc` already
-emits the same categories as tags rather than as escapes, which is the stream to read.
-
-Next: parse the `[micro]` header and instruction block, map the categories onto the theme palette,
-and show the count and the gain beside the stage selector.

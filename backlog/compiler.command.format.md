@@ -35,41 +35,57 @@ data table. Reopen that decision only for a wrapping shape that cannot be stated
 ### compiler.command.format.002 — Format stdin to stdout
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
+- Updated: 2026-09-27 17:45 — Define acceptance for formatting stdin without filesystem writes.
 
 The command only reads paths and writes files in place. Accept a buffer on standard input and
 return the formatted result on standard output so an editor can format unsaved content without a
 filesystem round trip.
+
+- Complete when: standard input can be formatted to standard output with the selected style,
+  without reading or writing a source path; diagnostics and exit status distinguish invalid input,
+  and tests cover an unsaved buffer and an unchanged buffer.
 
 - Related: compiler.command.format.003
 
 ### compiler.command.format.005 — Format source that is temporarily invalid
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-09-04 22:21 — git: Stop `fail` from being read as the operator of the expression around it
+- Updated: 2026-09-27 17:45 — Define recovery acceptance for incomplete source.
 
 A file that fails to parse is counted and skipped
 ([FormatJob.cpp:34](../src/Format/FormatJob.cpp#L34)). Define and implement the token-level recovery
 contract needed for format-on-type, without making successful parsing a prerequisite.
+
+- Complete when: incomplete source can be formatted without dropping or reinterpreting its tokens,
+  unrecoverable regions remain intact with a reported limitation, and tests cover representative
+  format-on-type states while valid-source formatting remains stable.
 
 - Related: compiler.command.format.002, compiler.command.format.003
 
 ### compiler.command.format.001 — Add a CI check mode
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Updated: 2026-09-27 17:45 — Define acceptance for CI check mode.
 
 `--dry-run` suppresses writes and counts what *would* be rewritten, but there is no check-mode
 exit-code contract, no list of differing files, and no optional diff. Add those as one CI-facing
 contract. The file list must also expose end-of-line-only rewrites that `git diff` can hide.
 
+- Complete when: check mode leaves every input byte unchanged, exits unsuccessfully if any file
+  differs, lists those files including line-ending-only differences, and an optional diff reports
+  the proposed edits with command-line regression coverage.
+
 ### compiler.command.format.003 — Format a selected source range
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Updated: 2026-09-27 17:45 — Define acceptance for selected-range formatting.
 
 Add a line- or offset-based range contract for editor format-selection. Define how the requested
 range expands to syntactic boundaries and which returned edits may fall outside it.
+
+- Complete when: a selected line or offset range yields deterministic edits bounded by the
+  documented syntactic expansion, leaves unrelated source unchanged, and editor-style tests cover
+  nested and incomplete constructs.
 
 - Related: compiler.command.format.002, compiler.command.format.005
 

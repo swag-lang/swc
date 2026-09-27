@@ -31,6 +31,25 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.031 — Nothing reaches the unordered-intersection path
+
+- Recorded: 2026-09-03 20:15
+- Updated: 2026-09-27 17:49 — repair a historically reused identifier while keeping its provenance.
+- Historical identifier provenance: `7cf248ed7` retired `std.pixel.021` for OpenGL parity readback;
+  `d2f7ec754` reused that suffix for polygon intersection cleanup. The current polygon
+  investigation now has its own identifier, while the retired suffix remains reserved.
+- Evidence: `Transform.processIntersections` in `poly/clipper.swg` now releases the nodes of a
+  scanbeam whose intersections cannot be ordered, abandons the sweep, and returns an empty
+  solution, which is what the reference library reports as a failed operation. No fixture reaches
+  that branch, so the choice is argued rather than pinned, and neither the release nor the
+  abandonment is covered.
+- Next: build the input. The ordering failure needs three or more edges meeting so closely that
+  no adjacent pair remains in the sorted edge list, which the union of near-coincident contours
+  produces; drive `fixupIntersectionOrder` from a probe until it answers false, then reduce.
+- Complete when: a test in `poly.clipper.test.swg` reaches the branch and pins the empty
+  solution, or the branch is shown to be unreachable and says so.
+- Related: std.pixel.011
+
 ### std.pixel.030 — Plain non-copy rectangles still use the general coverage shader
 
 - Recorded: 2026-09-19 09:43
@@ -94,25 +113,6 @@ output, path measurement and effects, and the modern renderer choice tracked by
   them, cached glyph resources cannot retain stale pointers, and repeated PDF open/close tests
   show bounded growth while existing process-lifetime callers retain their documented behavior.
 - Related: std.gui.pdf.028, std.gui.pdf.037
-
-### std.pixel.021 — Nothing reaches the unordered-intersection path
-
-- Recorded: 2026-09-03 20:15
-- Updated: 2026-09-12 10:02 — clarified this identifier's retired and current meanings
-- Historical identifier provenance: `7cf248ed7` retired this identifier's OpenGL parity-readback
-  entry. `d2f7ec754` reused it for polygon intersection cleanup; its current meaning is the
-  remaining coverage investigation for the unordered-intersection path.
-- Evidence: `Transform.processIntersections` in `poly/clipper.swg` now releases the nodes of a
-  scanbeam whose intersections cannot be ordered, abandons the sweep, and returns an empty
-  solution, which is what the reference library reports as a failed operation. No fixture reaches
-  that branch, so the choice is argued rather than pinned, and neither the release nor the
-  abandonment is covered.
-- Next: build the input. The ordering failure needs three or more edges meeting so closely that
-  no adjacent pair remains in the sorted edge list, which the union of near-coincident contours
-  produces; drive `fixupIntersectionOrder` from a probe until it answers false, then reduce.
-- Complete when: a test in `poly.clipper.test.swg` reaches the branch and pins the empty
-  solution, or the branch is shown to be unreachable and says so.
-- Related: std.pixel.011
 
 ### std.pixel.026 — Stroking a page costs four times filling the same geometry
 
@@ -240,7 +240,7 @@ output, path measurement and effects, and the modern renderer choice tracked by
   Preserve degenerate contours, holes and fill-rule behavior in any reduced prototype.
 - Complete when: the joining strategy is either changed with behavioral parity and measured
   benefit, or retained for a measured reason. Intersection-discovery complexity is a separate lead.
-- Related: std.pixel.011, std.pixel.021, std.pixel.024
+- Related: std.pixel.011, std.pixel.031, std.pixel.024
 
 ### std.pixel.024 — No workload establishes the clipper intersection sort's worst-case cost
 
@@ -255,7 +255,7 @@ output, path measurement and effects, and the modern renderer choice tracked by
   replacement without losing the existing nearly sorted fast case.
 - Complete when: a representative worst-case fixture justifies and protects a change, or the
   current algorithm is retained with a documented bound for the supported workload.
-- Related: std.pixel.022, std.pixel.021
+- Related: std.pixel.022, std.pixel.031
 
 ### std.pixel.011 — Painter paths cannot use polygon boolean operations
 

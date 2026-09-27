@@ -15,6 +15,42 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.085 — Measure short-key comparison cost against LDC
+
+- Recorded: 2026-09-26 13:10
+- Updated: 2026-09-27 17:44 — Retain the unmeasured short-key performance comparison after the completed runtime change.
+- Area: generated runtime code, wordfreq byte-map keys and comparators
+- Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3–8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1–64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
+- Next: compare the issued short-key path against the C runtime used by LDC and recheck the wordfreq ratio only after further static gains, since the larger generic fallback alone does not establish a benchmark speedup.
+- Complete when: final short-key code and repeated paired wordfreq measurements establish competitive cost, or isolate a reproducible remaining gap whose implementation can be specified here.
+
+### compiler.optimization.083 — Retain the probe mask without increasing spills
+
+- Recorded: 2026-09-26 12:46
+- Updated: 2026-09-27 17:44 — Retain the register-pressure question after the broad hoist was reverted.
+- Area: compiler/backend, LICM and register allocation
+- Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
+- Next: rebaseline `mapProbe` after the calling-convention change, then find a register-pressure-aware way to retain the mask and compare the complete hash and collision loops and call frame against LDC.
+- Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
+
+### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
+
+- Recorded: 2026-09-25 23:43
+- Updated: 2026-09-27 17:44 — Narrow the remaining work to the repeated indexed test after the pointer reload fix.
+- Area: compiler/backend, post-allocation private-frame load elimination
+- Evidence: In both wordfreq token-finalization paths, the inlined probe returns an index, then the caller loads the `used` pointer from its private frame, tests the indexed byte, branches if occupied, and loads the same pointer into the same physical register again on the empty fallthrough before storing. A guarded post-allocation rule removes that second load only when the base is the compiler-identified private stack base, the intervening operations are one read-only indexed compare and conditional jump, and both pointer loads have identical width and address. Wordfreq's `main` falls from 456 to 454 Micro instructions. Csvagg's `main` remains at 1,001; neither hash/collision loop changes. Both programs pass `--validate-micro` with checksums 130489 and 24828641. A C++ regression covers a private frame, a nonprivate base, and a different reload address. All 1,128 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
+- Next: rebaseline wordfreq and csvagg after the calling-convention change, then prove the inlined probe's empty/occupied result across the caller's redundant `used[idx]` test or find a path-specific branch thread that avoids additional jumps.
+- Complete when: both callers avoid the repeated indexed test with a sound proof across read-only calls and loop backedges, focused aliasing regressions pass, and no extra hot-path jump replaces the read.
+
+### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
+
+- Recorded: 2026-09-25 11:15
+- Updated: 2026-09-27 17:44 — Require a current quicksort baseline before addressing the remaining pointer reload.
+- Area: compiler/backend, loop-invariant code motion and call effects
+- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
+- Next: rebaseline the current quicksort dump after the calling-convention change. If a comparator still reloads either pointer, improve allocation for loop-invariant values live across calls without increasing spills; recount both inner loops and csvagg's row loop.
+- Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
+
 ### compiler.optimization.090 — CSV aggregation regresses with the shadow-free Swag ABI
 
 - Recorded: 2026-09-27 10:24
@@ -48,7 +84,7 @@ block, and the hot path keeps the register.
   loops makes CSV more than 15% slower. These heuristics were reverted.
 - Next: use hardware counters to distinguish instruction fetch, branch, and
   memory-alias effects before changing native code layout or call-frame policy.
-- Complete when the shadow-free ABI no longer regresses CSV in repeated paired runs,
+- Complete when: the shadow-free ABI no longer regresses CSV in repeated paired runs,
   the call matrix remains at least at parity, and the broader native/JIT/app tests pass.
 
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
@@ -167,267 +203,6 @@ block, and the hot path keeps the register.
 - Complete when: the sweep distribution over `bin/std` is recorded, and the budget is either
   justified by it or replaced by what the measurement shows is needed.
 - Related: compiler.optimization.029, compiler.core.004.
-
-### compiler.optimization.088 — Encode unary memory updates with the full base register
-
-- Recorded: 2026-09-26 16:04
-- Area: compiler/backend, x64 encoding and pre-RA memory folding
-- Evidence: the Release `std/pixel` clipper test crashed on a deterministic union of 22 XOR contours. DevMode and Release O0 passed; the old September 23 compiler passed at O1. A compiler revision bisect found `4c1bc7058`, which first folds ordinary unary load/modify/store triples into `OpUnaryMem`. Its x64 encoder omitted the base register's REX.B bit, so an operation on `[r12+offset]` or `[r13+offset]` instead touched `[rsp+offset]` or `[rbp+offset]`. Existing encoder tests expected those wrong bytes. The encoder now includes the base register, and the tests expect its REX.B prefix. The fold also supplied a five-operand buffer to the four-operand opcode; it now supplies exactly four, with a C++ regression for both unary operations. The formerly crashing isolated geometry, all 570 `std/pixel` tests in both Release JIT and native execution, all 1,141 C++ tests, and all 3,481 native Release tests pass. The native recovery probes report their expected failures.
-- Next: keep encoding tests tied to the intended register and operand shape when a new fold first activates an existing opcode.
-
-### compiler.optimization.086 — Unroll four constant-table cases with a larger branched body
-
-- Recorded: 2026-09-26 13:51
-- Area: compiler/backend, loop unrolling and raytrace intersection
-- Evidence: Odin emits four straight-line sphere cases for raytrace's `intersect`, while Swag retained a counted loop because its pre-unroll body exceeded the 96-instruction cap. A four-trip loop over constant tables now admits up to 144 body instructions and 576 total cloned instructions; ordinary and longer loops retain their prior 96/384 caps. Constant indices expose each sphere's values to folding, and the loop backedge disappears. The final `intersect` stream falls from 206 to 205 Micro instructions despite containing all four cases, with the same 0x108 frame and no added save/restore traffic. The raytrace checksum remains 56061776 under `--validate-micro`. A focused C++ test covers a large branched constant-table body and rejects an equally large dynamic-table loop. All 1,100 C++ tests, 3,481 native DevMode tests, and 1,500 JIT DevMode tests pass; the native recovery probes produce their expected failure outcomes. No elapsed-time sample informed the decision.
-- Next: compare the floating-point dependency chain and root selection in each unrolled sphere against Odin, then inspect the remaining `trace` gap.
-
-### compiler.optimization.085 — Compare dynamic short memory ranges in chunks
-
-- Recorded: 2026-09-26 13:10
-- Area: generated runtime code, wordfreq byte-map keys and comparators
-- Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3–8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1–64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
-- Next: compare the issued short-key path against the C runtime used by LDC and recheck the wordfreq ratio only after further static gains, since the larger generic fallback alone does not establish a benchmark speedup.
-
-### compiler.optimization.084 — Rebase an indexed load on a related address
-
-- Recorded: 2026-09-26 12:47
-- Area: compiler/backend, indexed address folding
-- Evidence: MSVC `/O2` computes Dijkstra's child index `2*i+1` once per `pop` iteration. Swag computed both `2*i` and `2*i+1`, then addressed the same child through `[heap + (2*i)*8 + 8]`. Instruction combine now recognizes two address definitions with identical reaching source values and scale, and replaces a single-use index with the related index plus an adjusted displacement. The dead `lea` drops out in the cleanup sweep. Dijkstra's `pop` falls from 49 to 48 Micro instructions and `__main_0` from 436 to 435; the inner `pop` loop has one fewer instruction and no extra memory access. Its checksum remains 4431000 with `--validate-micro`. Wordfreq `mapProbe`/`qsort`/main remain 81/72/328, raytrace `trace`/`intersect` remain 183/206, ChaCha main remains 431, and CSV main remains 1000. All 1,138 C++ tests and the independently drawn six native Release pointer-arithmetic tests pass. The focused C++ test accepts equivalent source values and rejects a source redefinition. No runtime timing informed the decision.
-- Next: compare Dijkstra's remaining heap-loop memory accesses against MSVC's pointer residency without assuming that an arbitrary heap pointer cannot alias a global.
-
-### compiler.optimization.083 — Hoisting a probe mask before load folding increases spills
-
-- Recorded: 2026-09-26 12:46
-- Area: compiler/backend, LICM and register allocation
-- Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
-- Next: find a register-pressure-aware way to retain the mask, then compare the complete hash and collision loops and the call frame against LDC.
-
-### compiler.optimization.082 — Rotate packed 32-bit words by 16 with two shuffles
-
-- Recorded: 2026-09-26 12:00
-- Area: compiler/backend, SLP vectorization and x64 encoding
-- Evidence: ChaCha's vectorized round loop rotated four 32-bit words by 16 using a packed left shift, right shift, and OR. `pshuflw` swaps the two 16-bit words in the lower half, and `pshufhw` does the same in the upper half, so the two instructions perform the same four rotations. The SLP plan now selects the shuffles for rotation by 16; the x64 encoder and its byte-level tests cover both forms. The final ChaCha main falls from 433 to 431 pre-emit Micro instructions, removing two instructions on every ten-round iteration without adding memory traffic. Disassembly confirms two `pshuflw`/`pshufhw` pairs, and `--validate-micro` preserves checksum 633277775. All 1,136 C++, 3,480 native Release, and 1,500 JIT Release tests pass. No runtime timing informed the decision.
-- Next: compare ChaCha's scalar output and checksum loops with clang-cl's issued instructions, then move to the next largest unexhausted gap.
-
-### compiler.optimization.081 — Price memory intrinsics as possible calls when auto-inlining
-
-- Recorded: 2026-09-26 11:47
-- Area: compiler/parser, automatic inlining cost
-- Evidence: `Swag.memcmp` is an `IntrinsicCallExpr`, so the parse-time body scan treated wordfreq's `mapProbe` as a call-free leaf. Its runtime-sized comparison emits a call. Inlining the probe at two call sites duplicated its hash and collision loops and spilled the caller's byte index across the whole tokenization loop. The cost scan now counts the four memory intrinsics that can lower to runtime calls. Wordfreq's main falls from 452 to 328 pre-emit Micro instructions, with no per-byte index spill/reload on the loop backedge; its `mapProbe` remains an 81-instruction out-of-line function. This matches LDC's out-of-line probe and register-resident token index more closely. The checksum remains 130489 with `--validate-micro`. A C++ regression asserts that a repeatedly called memory-intrinsic wrapper is recognized as containing a possible call and is not auto-inlined. All 1,136 C++, 3,480 native Release, and 1,500 JIT Release tests pass. No runtime timing informed the decision.
-- Next: compare wordfreq's remaining per-character branch and `mapProbe` hash loop with LDC, then inspect the next benchmark's excess operations.
-
-### compiler.optimization.080 — Add a doubled value with one scaled address
-
-- Recorded: 2026-09-26 11:35
-- Area: compiler/backend, post-allocation integer address folding
-- Evidence: Odin forms raytrace's `ir + 2 * ig` with one `lea` in the pixel loop. Swag first formed `2 * ig` in a temporary register, then added it to `ir`. A post-allocation rule rewrites the adjacent pair to `lea dst, [dst + source * 2]` only when the temporary is dead, the widths match, the encoder accepts the address, and no later instruction needs the original `add` flags. Raytrace's `__main_0` falls from 139 to 138 post-emit Micro instructions, with one fewer instruction on every pixel iteration and unchanged memory references. The checksum remains 56061776 with `--validate-micro`. All 1,136 C++ and 1,500 JIT Release tests pass; the independently drawn native Release `float_literal_rounding.swg` passes 2 tests. The focused C++ test accepts a dead temporary and refuses a later temporary read, live flags, or another scale. No runtime timing informed the decision.
-- Next: compare raytrace's remaining pixel and `trace` dependency chains against Odin, then inspect wordfreq's tokenization path against LDC.
-
-### compiler.optimization.079 — Share identical floating-register return tails
-
-- Recorded: 2026-09-26 11:26
-- Area: compiler/backend, final return layout
-- Evidence: Odin's raytrace `trace` uses one XMM restore and stack-release epilogue. Swag emitted the same ten XMM restores, stack release, three pops, and return twice. The final Micro pass now shares return tails only when every restore, offset, width, stack adjustment, and pop matches. The early return jumps to the later tail, leaving the hot hit path as fallthrough. `trace` falls from 196 to 183 post-emit Micro instructions; direct stack reads fall from 21 to 11. Its checksum remains 56061776 with `--validate-micro`. C++ coverage checks an identical pair and refuses a different restore offset. All 1,135 C++, 3,480 native Release, and 1,500 JIT Release tests pass, as does the independently drawn native `return_conversion_storage.swg` test. No runtime timing informed the decision.
-- Negative lead: After the prior spill-reload forwarding, the store at `[rsp+0xF0]` appeared unread. Erasing it under an allocator-spill-range and direct-access scan reduced `trace` from 196 to 195 instructions with the same checksum, but a guard for intermediate stack-pointer adjustments blocked that deletion before final frame sanitation. The scan did not prove aliases across all stack-pointer states, so the store-erasure experiment was reverted. The earlier read elimination remains.
-- Next: compare raytrace's remaining `trace` call setup and pixel accumulation against Odin. Revisit dead spill stores only after final stack layout or with a CFG-aware stack-address proof.
-
-### compiler.optimization.078 — Produce converted colors in their selected registers
-
-- Recorded: 2026-09-26 10:12
-- Updated: 2026-09-26 10:55 — Removed one stack reload from raytrace's `trace` path.
-- Area: compiler/backend, post-allocation conversion and comparison forwarding
-- Evidence: Odin's raytrace pixel loop converts each color directly into the integer register it later clamps, while Swag copied all three converted values to separate registers before comparing them. A post-allocation rule now retargets a float-to-integer conversion and its sole later comparison to the copy destination when the original register is dead after that comparison. It proves the intervening instructions, encoder legality, and physical liveness on the current Micro stream. The three copies disappear: `__main_0` falls from 142 to 139 post-emit Micro instructions, with 35 stack/RIP memory references unchanged. The raytrace checksum remains 56061776 with `--validate-micro`. All 1,132 C++ tests pass, including a positive chain and cases with an extra source read, destination clobber, or live source; an independent native release test (`static_control.swg`) and a focused JIT/native conversion-and-clamp probe pass. No runtime timing informed the decision.
-- Evidence (2026-09-26): Odin reserves its outgoing call area outside raytrace's pixel loop. A late Micro pass now moves one balanced `sub rsp`/`add rsp` pair from a contiguous natural loop to its single entry and exit, after proving the loop's CFG edges, stack-pointer uses, one-call balance, and flag liveness. In raytrace the pair moves outside the pixel loop, removing two instructions from every pixel iteration without changing the function's total instruction count. The `--validate-micro` raytrace checksum remains 56061776. All 1,133 C++, 3,480 native Release, and 1,500 JIT Release tests pass; the scripts campaign also passes. A C++ test covers the nested-loop hoist, an external stack use, and an early exit. No runtime timing informed the decision.
-- Evidence (2026-09-26): Immediately before raytrace's second `intersect` call, Swag stored a scalar XMM value to `[rsp+0xF0]`, replaced its source register, then reloaded the same slot into a persistent XMM register. Odin kept that value in a register. A post-allocation rule for this adjacent store/copy/reload sequence now copies the old value before the source overwrite and then performs the original replacement. It keeps the store for later readers. `trace` remains at 196 post-emit Micro instructions but loses one stack read; the raytrace checksum remains 56061776 with `--validate-micro`. C++ coverage includes the positive float sequence, a different stack slot, and an overlapping replacement register. No runtime timing informed the decision.
-- Next: prove whether the now-unread `[rsp+0xF0]` spill store can be removed generally without weakening alias or control-flow safety, then compare the remaining `trace` hot path with Odin.
-
-### compiler.optimization.077 — Reuse constant float sign masks across branches
-
-- Recorded: 2026-09-26 10:01
-- Area: compiler/backend, value numbering of immutable relocated operands
-- Evidence: Odin computes raytrace's sphere intersections with one floating sign inversion for each sphere, while Swag repeated the same `fxor [rip]` on both root-selection paths. Value numbering now recognizes `FloatXor` with a constant-pool RIP operand as a pure expression keyed by its input value and full relocation identity. Dominance and the existing reaching-definition check permit reuse after a branch; mutable globals and different constant offsets remain distinct. `intersect` falls from 214 to 206 post-emit Micro instructions, from eight to four `fxor [rip]` operations, from 27 to 23 float-register copies, and from 44 to 40 stack/RIP memory references. The raytrace checksum remains 56061776 with `--validate-micro`. All 1,131 C++ tests pass, including new f32/f64 positive and mutable/different-mask negative cases; an independent native release test (`enum_progress.swg`) and a focused JIT/native f32/f64 branch probe pass. No runtime timing informed the decision.
-- Next: compare raytrace's `trace` and pixel accumulation loops against Odin's emitted code and remove the next general instruction or memory-operation excess.
-
-### compiler.optimization.076 — Keep local pointers across disjoint spills
-
-- Recorded: 2026-09-26 00:47
-- Updated: 2026-09-26 00:47 — Removed one csvagg row-path pointer load.
-- Area: compiler/backend, post-allocation frame value forwarding
-- Evidence: Csvagg's inlined table probe keeps `agg.used` in `r14`, but the caller reloaded that pointer for its indexed test. A spill store to `[rsp+offset]` between the two reads made the previous all-writes barrier decline the proof. The frame allocator exposes its private spill byte range, and the function symbol exposes each local object's extent. The backward path walk now permits only a direct store wholly inside that spill range when the earlier pointer load lies wholly inside a known local object; other stores still stop it. If the reloaded physical register is dead after the branch, the indexed compare uses the persistent register directly and the reload is erased. Csvagg's `main` falls from 1,001 to 1,000 Micro instructions and loses one memory read on the row path, matching clang-cl's retained table pointer more closely. Wordfreq stays at 452. Both programs pass `--validate-micro` and checksums 130489 and 24828641. A C++ test covers a declared local object and spill, an unknown object, and a store outside the spill area. All 1,130 C++, 3,480 native, and 1,500 JIT tests pass before integration. No millisecond reading informed the decision.
-- Next: the caller still repeats `used[idx]` after the inlined probe in both programs; eliminate that test only with a path-sensitive memory fact that survives the read-only comparison call and every loop backedge.
-
-### compiler.optimization.075 — Forward private-frame pointers through read-only branches
-
-- Recorded: 2026-09-26 00:20
-- Updated: 2026-09-26 00:20 — Removed two wordfreq probe-pointer reloads.
-- Area: compiler/backend, post-allocation frame value forwarding
-- Evidence: After an inlined `mapProbe`, wordfreq reloads `counts.used` from the local frame for the caller's indexed test, although the probe still holds the same pointer in a persistent register. A bounded backward walk of the instruction CFG now requires every path to reach the earlier frame load, with no register clobber or memory write in between. It permits a call only when its function is marked `Swag.ReadOnly` and the ABI preserves both the held pointer and frame base. When the indexed store after the branch is the final use of the reloaded register on either edge, it retargets the test and store and removes both loads. Wordfreq's `main` falls from 454 to 452 Micro instructions; the generated machine code uses the retained register directly. Csvagg remains at 1,001 because a frame spill between the two loads blocks this deliberately conservative proof. Both benchmark checksums remain 130489 and 24828641. The C++ test covers a valid branch join, an intervening store, a register clobber, and a path that bypasses the first load; all 1,129 C++, 3,480 native, and 1,500 JIT tests pass before integration. No millisecond reading influenced this decision.
-- Next: determine whether a disjoint frame spill can be proved harmless for csvagg without weakening the call and path guards, then revisit the still-repeated `used[idx]` memory comparison at the probe/caller join.
-
-### compiler.optimization.074 — Reuse private frame pointers after a branch
-
-- Recorded: 2026-09-25 23:43
-- Updated: 2026-09-25 23:43 — Removed two redundant `used` pointer reloads from wordfreq.
-- Area: compiler/backend, post-allocation private-frame load elimination
-- Evidence: In both wordfreq token-finalization paths, the inlined probe returns an index, then the caller loads the `used` pointer from its private frame, tests the indexed byte, branches if occupied, and loads the same pointer into the same physical register again on the empty fallthrough before storing. A guarded post-allocation rule removes that second load only when the base is the compiler-identified private stack base, the intervening operations are one read-only indexed compare and conditional jump, and both pointer loads have identical width and address. Wordfreq's `main` falls from 456 to 454 Micro instructions. Csvagg's `main` remains at 1,001; neither hash/collision loop changes. Both programs pass `--validate-micro` with checksums 130489 and 24828641. A C++ regression covers a private frame, a nonprivate base, and a different reload address. All 1,128 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
-- Next: prove the inlined probe's empty/occupied result across the caller's redundant `used[idx]` test, or find a narrower path-specific branch thread that avoids additional jumps. Compare the remaining wordfreq tokenization and csvagg row path against LDC and clang-cl assembly.
-
-### compiler.optimization.073 — Reserve call shadow once in fixed local frames
-
-- Recorded: 2026-09-25 23:28
-- Updated: 2026-09-25 23:28 — Removed repeated call-frame adjustments from wordfreq and csvagg parsing loops.
-- Area: compiler/backend, final stack layout and call ABI
-- Evidence: Unlike LDC and clang-cl, Swag adjusted `rsp` down and up by 40 bytes around every ordinary call from the two benchmark main functions, including their collision-loop `memcmp` calls. Each function has a frame-pointer anchor, a copied base for its local frame, and a final argument frame. A conservative final pass now reserves the 40-byte Windows x64 shadow/alignment area once immediately after the local-base copy, rebases only direct accesses proven inside that local frame, and removes only individually matched simple call pairs with no stack operand between them. It shrinks the later final argument-frame subtract by 40 bytes, restoring the exact original `rsp` before that frame is addressed; its contents and epilogue are unchanged. Wordfreq's `main` falls from 483 to 456 Micro instructions (14 pairs removed, one reserve added); csvagg's `main` falls from 1,020 to 1,001 (10 pairs removed, one reserve added). The final 144-byte argument-frame subtract becomes 104 bytes in both and encodes with a short immediate. Both programs pass `--validate-micro` with checksums 130489 and 24828641. The focused C++ regression covers re-based locals and rejects a stack argument or stack-pointer copy within a candidate call frame. All 1,127 C++, 3,480 native, and 1,500 JIT tests pass, including the native recovery probes. No elapsed-time sample informed the decision.
-- Next: revisit the redundant used-slot retest after inlined `mapProbe` with a memory-safe CFG proof, and compare remaining wordfreq tokenization and csvagg row parsing operations against the competitor assembly.
-
-### compiler.optimization.072 — Fold dead scalar increments after allocation
-
-- Recorded: 2026-09-25 23:08
-- Updated: 2026-09-25 23:08 — Matched direct memory increments in wordfreq and csvagg.
-- Area: compiler/backend, post-allocation integer memory operations
-- Evidence: LDC increments wordfreq's new-key count in memory, and clang-cl does the same for csvagg's new-slot count. Swag's loop-local field update was `mov reg,[base+offset]; add reg,1; mov [base+offset],reg`. A post-allocation rule now replaces this exact adjacent triple with one memory add only when load/store address and width match, the result register differs from the address base and is dead after the store, and the x64 encoder accepts the replacement. Wordfreq's generated `main` falls from 485 to 483 Micro instructions; csvagg's `main` falls from 1,022 to 1,020. Their collision/hash loops retain the same instructions. Both builds pass `--validate-micro`, and their checksums remain 130489 and 24828641. The focused C++ regression covers a dead value, a live value, an address-register overlap, and a different store address. All 1,126 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
-- Negative lead: Allowing the pre-allocation memory-combine rule to fold frame-derived updates inside loops reduced wordfreq by two instructions but grew csvagg's `main` from 1,022 to 1,036 after register allocation. That broad trial was reverted; the post-allocation rule achieves both two-instruction gains without perturbing register assignment.
-- Next: inspect the redundant used-slot retest after inlined `mapProbe` in both programs, then assess whether reserved call shadow space can be reused in the main parsing loops without moving local or outgoing argument slots.
-
-### compiler.optimization.071 — Trim empty call frames to their ABI reserve
-
-- Recorded: 2026-09-25 22:45
-- Updated: 2026-09-25 22:45 — Removed unused local space from wordfreq's collision-probe frame.
-- Area: compiler/backend, final stack-frame layout and wordfreq probing
-- Evidence: Wordfreq's generated `mapProbe` retained a 136-byte frame after optimization, although its body has no surviving direct stack access; it only needs call shadow space and alignment for `memcmp`. LDC saves seven registers and reserves 32 bytes, a total of 88 bytes. Swag saves six registers and now reserves 40 bytes, also 88 in total. The paired `sub`/`add` instructions now encode with 8-bit rather than 32-bit immediates, removing six machine-code bytes per call while leaving the 81-instruction probe and its hash and collision loops unchanged. The rule requires one fixed frame, a single release/return, an actual call, no address escape or direct stack access, and preserves the original frame's alignment residue. Wordfreq's `qsort` remains at a 72-byte frame and 132 Micro instructions; csvagg's `main` remains at 1,022. Focused C++ coverage includes an empty call frame and a nonempty frame that must stay fixed. All 1,125 C++, 3,480 native, and 1,500 JIT tests pass; the independently drawn safety suite exits successfully with its expected failing cases. Both benchmarks pass `--validate-micro`, with checksums 130489 and 24828641. No elapsed-time sample informed the decision.
-- Negative lead: Extending the post-allocation `ADD` plus result-copy fold across one independent instruction changed neither wordfreq's `qsort` or `main` nor csvagg's `main`. The intervening instruction in the targeted `memcmp` setup reads the old destination register, so moving the result definition earlier would be incorrect. The rule and its test were reverted.
-- Next: inspect the two-pointer argument setup around `memcmp` as a scheduling and register-allocation problem, then compare csvagg's row parser and hash-mask residency with clang-cl.
-
-### compiler.optimization.070 — Compact private spill frames after allocation
-
-- Recorded: 2026-09-25 22:25
-- Updated: 2026-09-25 22:25 — Reduced wordfreq's recursive sort frame after register allocation.
-- Area: compiler/backend, stack-frame layout and wordfreq sorting
-- Evidence: The final `qsort` stream used only three allocator-owned spill slots at `rsp+168`, `+176`, and `+184`, but reserved 200 bytes. LDC's corresponding sort reserves 88 bytes. A final guarded pass now moves only proven spill accesses and reduces the paired frame adjustments by the same aligned amount; `qsort` reserves 72 bytes and uses slots `rsp+40`, `+48`, and `+56`. The `sub` and `add` each encode with an 8-bit rather than 32-bit immediate, removing six machine-code bytes per function without changing the comparator loops' 115 machine instructions or their memory access count. The guard requires one fixed frame, a single return, no address escape, no physical debug stack base, and every direct stack access inside the allocator-owned spill area. An initial broader rewrite moved the stack-passed arguments of an eight-argument call and failed a native test; the spill-area guard excludes that call. The focused C++ regression covers a private spill frame, an outgoing stack argument, a lower non-spill access, an address escape, and a physical debug stack base. All 1,124 C++, 3,480 native, and 1,500 JIT tests pass; the independently drawn workspace suite passes. Wordfreq and csvagg pass `--validate-micro` with checksums 130489 and 24828641; csvagg's `main` remains at 1,022 Micro instructions. No elapsed-time sample informed the decision.
-- Negative lead: Forcing csvagg's `mapInit` inline exposed the constant mask but grew `main` from 1,022 to 1,037 instructions and added row-path spills. Replacing its mask read with literal 63 grew `main` to 1,023 instructions because a two-instruction collision step became three instructions. Both source-only trials were reverted.
-- Next: compare wordfreq's spill and pointer residency through `memcmp` against LDC, and csvagg's decimal parsing and existing-slot branch against clang-cl, using per-loop assembly counts.
-
-### compiler.optimization.069 — Compare indexed float slots in memory
-
-- Recorded: 2026-09-25 21:33
-- Updated: 2026-09-25 21:33 — Matched the memory-operand comparison in csvagg's existing-slot path.
-- Area: compiler/backend, x64 scalar comparison and csvagg row aggregation
-- Evidence: clang-cl compares price to `slotMax[slot]` with `ucomisd xmm9, [base + index*8]`. Swag had a separate indexed load followed by `comisd xmm10, xmm0`. A guarded post-allocation rewrite now emits a new `CmpRegAmc` form only for adjacent f32/f64 loads whose loaded register dies at the compare. The x64 encoder uses the existing register-register `comis` opcode, preserving its floating-point exception behavior while reading the second operand directly from memory. The actual binary contains `comisd xmm10, qword ptr [r14 + 8*rcx]`; csvagg's generated `main` falls from 1,023 to 1,022 Micro instructions, and the row path loses the separate load. Csvagg's checksum stays 24828641. Wordfreq's `mapProbe`, `qsort`, and `main` remain at 81, 132 (115 machine instructions), and 485 Micro instructions, checksum 130489. The focused C++ test checks f32/f64 and rejects a live loaded register. All 1,123 C++, 3,480 native, and 1,500 JIT tests pass; the sema positive and expected-error suites pass. Both benchmarks pass `--validate-micro`. No elapsed-time sample informed the decision.
-- Negative lead: naming one cached length across wordfreq's `memcmp` did not reduce the 115 machine instructions in `qsort`; stack accesses rose from 6 to 8 because the extra live range displaced a persistent register. Making the preferred debug stack-base register available to allocation left this code unchanged. Both experiments were reverted.
-- Next: continue comparing csvagg's decimal parser and row-loop branches with clang-cl, and find a wordfreq length or pointer residency improvement that accounts for spill cost across `memcmp`.
-
-### compiler.optimization.068 — Let count-mismatch comparisons fall through
-
-- Recorded: 2026-09-25 21:08
-- Updated: 2026-09-25 21:08 — Removed one executed back-edge jump from each wordfreq comparator advance.
-- Area: compiler/backend, post-allocation loop layout and wordfreq sorting
-- Evidence: In both `qsort` comparator loops, a count mismatch that advances `i` or `j` previously executed an unconditional jump back to the indexed load. LDC places the increment or decrement before the header, branches backward to it on a mismatch, then falls through to the next load. A guarded post-allocation layout rewrite now uses that shape for the one- or two-load header followed by a count comparison, equality branch, ordered exit, unit index update, and back edge. Each advancing mismatch path loses one executed jump; a one-time jump enters the header. The generated `qsort` still contains 115 machine instructions, while the Micro listing grows from 130 to 132 entries only because it includes two new zero-byte labels. The register and memory operands in both comparator loops remain unchanged. Wordfreq's `mapProbe` stays at 81 instructions and its checksum at 130489. Csvagg's `main` remains at 1,023 instructions with checksum 24828641. A C++ test covers both header lengths, increment/decrement steps, and rejection of a non-unit step. All 1,122 C++, 3,480 native, and 1,500 JIT tests pass; parser positive and expected-error suites pass. Both benchmarks pass `--validate-micro`. No elapsed-time sample informed the decision.
-- Next: inspect the spill-backed global pointers and comparator lengths around `memcmp` against LDC, accounting for the register pressure caused by any longer live range; continue examining csvagg's row parsers against clang-cl.
-
-### compiler.optimization.067 — Share identical post-allocation return tails
-
-- Recorded: 2026-09-25 20:58
-- Updated: 2026-09-25 20:58 — Gave wordfreq's collision probe one return epilogue.
-- Area: compiler/backend, post-allocation control flow and wordfreq probing
-- Evidence: LDC's `mapProbe` branches from a successful `memcmp` to one common return after the collision step, while Swag emitted the same register copy, stack release, six pops, and `ret` twice. A guarded post-allocation rule now recognizes a conditional branch followed by a simple return tail, its collision label, a short continuation, and a second identical tail. It inverts the branch to the later tail and removes the first; the collision path becomes fallthrough with no added jump. The generated `mapProbe` falls from 90 to 81 instructions, versus LDC's 84, while the collision loop's memory operations remain unchanged. Wordfreq's `qsort` and `main` stay at 130 and 485 instructions, checksum 130489. Csvagg's `main` stays at 1,023 instructions, checksum 24828641. A C++ test checks an identical copied result, stack release and pop sequence, plus a different-return-value refusal. All 1,121 C++, 3,480 native, and 1,500 JIT tests pass; lexer positive and expected-error suites pass. Both benchmarks pass `--validate-micro`. No elapsed-time sample informed the decision.
-- Next: compare wordfreq's `qsort` inner comparator path with LDC, especially the spill-backed pointer reloads around `memcmp`, and inspect whether csvagg's field loads can be reduced without adding spills.
-
-### compiler.optimization.066 — Fold indexed scalar accumulation into the add
-
-- Recorded: 2026-09-25 20:47
-- Updated: 2026-09-25 20:47 — Matched clang-cl's indexed memory addition in csvagg's existing-slot path.
-- Area: compiler/backend, post-allocation float peephole and csvagg aggregation
-- Evidence: clang-cl adds the previous slot revenue from `[base + index*8]` to the newly computed product and stores the product register back to the same indexed slot. Swag loaded the previous value into a separate XMM register before `fadd`. A guarded post-allocation rule now recognizes the adjacent indexed load, scalar addition, and same-address store; it rewrites the addition to use the indexed memory operand and stores from the product register. The rule requires matching memory width and dead loaded/product values after the store. The existing-slot sequence falls from three instructions to two with the same one memory read and one write. Csvagg's `main` falls from 1,024 to 1,023 instructions, its row region from 243 to 242, and its checksum remains 24828641. Wordfreq's `mapProbe`, `qsort`, and `main` remain 90, 130, and 485 instructions with checksum 130489. A focused C++ test covers the fold, a different store address, a live product, and mismatched memory width. All 1,120 C++, 3,480 native, and 1,500 JIT tests pass; the sema positive and expected-error suites pass. Both benchmarks pass `--validate-micro`. No elapsed-time sample informed the decision.
-- Next: compare wordfreq's `qsort` register residency and collision-probe code with LDC; for csvagg, inspect repeated field loads and decimal parser branches against clang-cl without lengthening hot live ranges.
-
-### compiler.optimization.065 — Forward indexed store addresses through conversion chains
-
-- Recorded: 2026-09-25 20:22
-- Updated: 2026-09-25 20:22 — Removed an address calculation from csvagg's existing-slot row path.
-- Area: compiler/backend, pre-allocation address forwarding
-- Evidence: clang-cl writes the accumulated revenue directly to `[base + index*8]`. Swag previously computed that address with `lea`, then carried it through the integer-to-float conversion, an indexed load and the addition before storing through the temporary pointer. The pre-allocation address-forwarding walk already proves that the base and index stay unchanged, but its eight-instruction window ended immediately before this store. Extending the bounded walk to sixteen instructions lets it rewrite the store to an indexed form; later dead-code elimination removes the `lea`. The generated csvagg row region shrinks from 244 to 243 instructions with stack accesses unchanged at 17; `main` shrinks from 1,027 to 1,024 instructions. Csvagg keeps checksum 24828641. Wordfreq's `mapProbe` and `qsort` remain at 90 and 130 instructions with checksum 130489. A focused C++ test covers a nine-operation gap and a base-register redefinition that blocks the rewrite; all 1,119 C++ tests pass. The randomly drawn parser suite passed its positive and expected-error files. Both benchmark programs pass `--validate-micro`. No elapsed-time sample informed the decision.
-- Next: inspect the scalar floating-point load/add/store on this same row path; clang-cl adds the old value as a memory operand and stores without the separate load. Check operand-order and floating-point semantics before changing the combiner.
-
-### compiler.optimization.064 — Price speculative loop loads by resulting spill traffic
-
-- Recorded: 2026-09-25 20:03
-- Updated: 2026-09-25 20:15 — Checked register availability and hash arithmetic against both winning compilers.
-- Area: compiler/backend, loop-invariant motion and register allocation
-- Evidence: LDC keeps the byte-map mask in `r12` across collision probes; Swag folds its mask read into `and index, [map+40]`. Preventing that fold and hoisting the field made `mapProbe` grow from 90 to 98 instructions, because the mask occupied a volatile register and the `memcmp` path added a save, reload and register shuffles. Reducing the allocator's persistent-register reserve from two to one did not change this code. Admitting the preferred local-stack-base register when no debug base is pinned, together with the mask hoist, still gave 98 instructions in `mapProbe` and enlarged wordfreq's `main` to 497 instructions; the new register was not selected for this value. In `qsort`, LDC retains both key lengths across `memcmp`. A scratch-source experiment that named both lengths once removed the three memory operands on one equality path, but whole-function instructions rose from 130 to 131 and stack operands from 2 to 10. Allowing non-dominating RIP-relative global pointer loads to hoist across read-only calls moved several pointers to the inner-loop preheader, but `qsort` rose from 130 to 150 instructions and stack operands from 2 to 18; the new spill and reload traffic outweighed the removed global loads. Narrowing the XOR before each 32-bit hash multiply matched LDC's operand width, but left `mapProbe` at 90 instructions with the same memory operations and encoding size for its extended register operands; it also diverged from clang-cl's 64-bit XOR in csvagg. All compiler-source trials were reverted. These are static instruction and memory counts; elapsed milliseconds were not used.
-- Next: select residency using a cost that includes additional live ranges and spills, or reuse the lengths across `memcmp` without extending their lifetime through both comparator loops. Continue comparing csvagg's row loop with clang-cl.
-
-### compiler.optimization.057 — Price constant-pool hoists by register pressure
-
-- Recorded: 2026-09-25 13:59
-- Updated: 2026-09-25 19:36 — Kept CSV conversion constants in vector registers across the row loop and shared their reads across writes.
-- Area: compiler/backend, loop-invariant code motion and value numbering
-- Evidence: clang-cl loads the two 128-bit constants used for `u64` to `f64` conversion before csvagg's row loop and reuses them for price and quantity conversion. Swag previously read the pair three times per row. LICM now recognizes a RIP-relative `ConstantAddress` vector load as immutable across calls and pointer stores; value numbering likewise permits identical constant-pool reads to match across memory epochs, while global loads retain the epoch barrier. In the generated CSV row region, the six per-row constant reads disappear, the instruction count drops from 251 to 244, and stack accesses stay at 17. The whole `main` changes from 1,028 to 1,027 instructions after register allocation; its checksum remains 24828641. Wordfreq's `mapProbe` and `qsort` stay at 90 and 130 instructions with checksum 130489. Raytrace's `main` and `trace` stay at 142 and 196 instructions with checksum 56061776. Focused C++ tests distinguish constant-pool reads from mutable globals, missing relocations and distinct constant targets. All 1,118 C++, 3,480 native, and 1,500 JIT tests pass; csvagg, wordfreq and raytrace pass `--validate-micro`. An earlier trial was rejected because the whole function grew; the row-loop comparison with clang-cl provides the relevant static evidence. No elapsed-time sample informed the decision.
-- Next: compare the remaining CSV parsing and aggregation instructions with clang-cl, especially repeated map-field loads and integer-to-float conversion steps; revisit constant residency only if loop spills appear.
-
-### compiler.optimization.063 — Keep decimal byte values zero-extended through parsing
-
-- Recorded: 2026-09-25 19:13
-- Updated: 2026-09-25 19:13 — Removed three redundant byte extensions from csvagg's row parsers.
-- Area: compiler/backend, post-allocation peephole and csvagg parsing
-- Evidence: clang-cl loads each digit with `movzx` before the decimal arithmetic. In csvagg's quantity and integer-price loops, Swag already used a zero-extending indexed byte load but repeated `movzx` after subtracting `'0'` in the low byte. The x86 byte subtraction preserves the previously zero high bits, including when the byte wraps. A guarded rule removes that second extension after a delimiter compare and an independent LEA. In the fractional-price loop, Swag used a plain byte load followed by the same subtraction and extension; a second rule moves the extension into the indexed load when no instruction reads the original high bits between the load and the final extension. The three inner loops each lose one instruction per digit. Csvagg's generated `main` shrinks from 1,031 to 1,028 instructions and the timed row span from 256 to 253; its checksum remains 24828641. Wordfreq's `mapProbe` stays at 90 and `qsort` at 130 instructions, with checksum 130489. Focused C++ cases cover indexed and simple loads, a nonzero-extended load, a wider subtraction, an intervening high-bit read, and an LEA that modifies the digit register. All 1,116 C++, 3,480 native, and 1,500 JIT tests pass; both benchmark programs pass `--validate-micro`. No elapsed-time sample informed the decision.
-- Next: compare csvagg's remaining row-loop memory traffic with clang-cl after the constant-pool improvement in compiler.optimization.057.
-
-### compiler.optimization.056 — Branch directly on an inlined comparator's result
-
-- Recorded: 2026-09-25 11:40
-- Updated: 2026-09-25 18:43 — Placed short loop-step blocks on the common comparator fall-through path after register allocation.
-- Area: compiler/backend, inlining and loop block layout
-- Evidence: The earlier branch-threading and flag-reuse rules removed `setcc`, a copy, a retest, and one repeated comparison in wordfreq's inlined comparator. The remaining unequal-count path was `cmp; je tie; ja advance; jmp stop`, while LDC lays out the advance as fall-through after a branch to stop. A guarded post-RA loop layout rule now moves a one-instruction increment/decrement block and its back edge before the tie block, inverts the second conditional to stop, and redirects the tie block's old fall-through to the moved step. It requires exact adjacent labels, a unit-width step, and a backward loop edge. Both qsort comparator directions now use `cmp; je tie; jbe stop; advance` on the unequal-count path, matching LDC's branch count. The function shrinks from 132 to 130 instructions because later branch cleanup removes two redundant jumps. The checksum remains 130489; csvagg's main stays at 1,031 instructions with checksum 24828641. Focused C++ cases cover an eligible loop and a non-unit step; all 1,114 C++, 3,480 native, and 1,500 JIT tests pass, as does wordfreq with `--validate-micro`. No millisecond sample informed the decision.
-- Next: compare the remaining global-pointer reloads at the boundary between wordfreq's two comparator loops with LDC; continue csvagg's parser and aggregation comparison with clang-cl.
-
-### compiler.optimization.062 — Update masked probe indices in place
-
-- Recorded: 2026-09-25 18:22
-- Updated: 2026-09-25 18:22 — Folded the guarded LEA/AND/copy probe update into an in-place increment and mask.
-- Area: compiler/backend, post-allocation peephole and byte-map probing
-- Evidence: LDC advances a probe index with `inc index; and index, mask`. Swag used `lea temp, [index + 1]; and temp, [mask]; mov index, temp` in the collision path. The post-allocation rule now emits `inc index; and index, [mask]` after proving the temporary dies, the mask address uses neither the index nor the temporary, the width and increment are exact, and the following AND replaces the increment's flags. It removes one instruction per collision probe and matches LDC's two-instruction in-place shape; the remaining mask memory operand is a separate register-residency question. Wordfreq's `mapProbe` shrinks from 91 to 90 instructions and csvagg's `main` from 1,032 to 1,031, with its timed row span returning from 257 to 256 instructions. Checksums remain 130489 and 24828641. A C++ regression covers an index-dependent mask address, a live temporary, and a different increment. The 1,113 C++, 3,480 native, and 1,500 JIT tests pass; the random `sema` suite passed its positive and expected-error files. No elapsed-time sample informed the decision.
-- Next: compare the remaining mask memory operand and branch layout in wordfreq's probe with LDC, and keep testing csvagg's parser loop against clang-cl's assembly.
-
-### compiler.optimization.061 — Keep byte-map probe pointers resident across read-only calls
-
-- Recorded: 2026-09-25 18:15
-- Updated: 2026-09-25 18:15 — Hoisted invariant structure fields only when their value is used as a memory base in the loop.
-- Area: compiler/backend, loop-invariant motion in wordfreq and csvagg map probing
-- Evidence: LDC keeps the byte-map `used` and `keyLen` pointers in persistent registers through `memcmp` while probing occupied slots. Swag loaded both fields from the map object on each probe. The read-only-call LICM rule now admits a 64-bit field load from an invariant virtual base when that loaded pointer is dereferenced in the same loop; existing dominance and store-alias proofs still apply. This excludes the map mask, whose speculative hoist in an earlier wider rule spilled to the stack in csvagg. In wordfreq's `mapProbe`, an occupied-slot check now uses two memory operands and two instructions for `used[idx]` and `keyLen[idx]`, down from four of each; the full function grows from 86 to 91 instructions because it loads and saves two extra persistent registers at entry and exit. The loop body now follows LDC's pointer residency. In csvagg, inlined probing makes generated `main` shrink from 1,034 to 1,032 instructions; the full timed row span changes from 256 to 257 instructions, so the gain is in repeated probe iterations rather than the flat span. Wordfreq and csvagg checksums remain 130489 and 24828641. A focused C++ test covers a writing call and an aliasing store as barriers. The 1,112 C++, 3,480 native, and 1,500 JIT tests pass; the random safety suite passed with 138 successes and 7 expected failures. No elapsed-time sample informed the decision.
-- Next: compare the probe's `(idx + 1) & mask` update with LDC's two-instruction in-place update, and examine whether keeping the mask resident avoids a memory operand without spilling a hotter pointer.
-
-### compiler.optimization.060 — Keep wordfreq's pivot count resident through comparator loops
-
-- Recorded: 2026-09-25 17:08
-- Updated: 2026-09-25 17:45 — Gave long-lived values a persistent register when a nominally free register ends at a call, then hoisted the indexed pivot count across read-only calls.
-- Area: compiler/backend, loop-invariant motion and interval allocation
-- Evidence: LDC loads the pivot's count once before wordfreq's inner comparisons and keeps it in a callee-saved register. Swag previously read that count from `g_Cnt` on every first-loop iteration. A first indexed-load hoist alone spilled the count at `Swag.memcmp` and grew `qsort` from 132 to 134 instructions. The interval trace showed all six persistent integer registers occupied at the pivot load, while a caller-saved register was free only until the call. The allocator now tries to displace the owner of a persistent register before accepting that partial free interval, and falls back to the partial register if no owner can move. This preference applies only when the free interval ends at a call: a general preference grew raytrace's `intersect` from 214 to 222 instructions, while the call-specific rule keeps it at 214. LICM can now hoist an indexed load across a read-only call when its address is invariant and the existing store-alias checks prove safety. Focused C++ tests cover the register choice and a writing call or aliasing store as barriers to the hoist. In wordfreq, the pivot count stays in a callee-saved register; the first unequal-count comparator path drops from 9 instructions and 4 explicit memory operands to 7 and 2. Full `qsort` remains 132 instructions because work outside that path grows. Csvagg's `main` drops from 1,066 to 1,034 instructions, with its timed row span from 268 to 256; its checksum remains 24828641. Wordfreq's checksum remains 130489; raytrace's remains 56061776. The 1,111 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
-- Next: compare wordfreq's second comparator and partition branches with LDC, then reduce csvagg's remaining parser and aggregation traffic against clang-cl without regressing the other generated programs.
-
-### compiler.optimization.059 — Fold indexed memory updates inside loops
-
-- Recorded: 2026-09-25 17:09
-- Updated: 2026-09-25 17:09 — Removed the blanket loop exclusion from exact indexed load/update/store folding.
-- Area: compiler/backend, instruction combine and csvagg row aggregation
-- Evidence: csvagg's existing-slot row path loaded `slotCount[slot]`, added one, then stored it; `slotQty[slot]` used the same three-instruction pattern with a register addend. clang-cl emits `inc [slot]` and `add [slot], reg`. The existing indexed memory fold already proves the load and store address, width, and single-use value match, but excluded every loop. Allowing the fold in loops emits the same two memory update forms as clang-cl, removes four instructions from csvagg's timed row span (271 to 267) and two explicit memory operands (80 to 78); generated `main` drops from 1,070 to 1,066 instructions. SLP already treats indexed accesses as opaque, so this does not hide a vectorizable scalar lane. A C++ regression covers an indexed loop update and an indexed frame-derived slot that stays scalar. The 1,109 C++, 3,480 native, and 1,500 JIT tests pass; a random lexer draw passed. Csvagg checksum remains 24828641; wordfreq checksum remains 130489, and its `qsort` remains 132 instructions. No elapsed-time sample informed the decision.
-- Next: compare the remaining row parser and hash-probe blocks with clang-cl, especially branches and redundant stack traffic around the existing-slot path.
-
-### compiler.optimization.058 — Forward stores to known global targets into following loads
-
-- Recorded: 2026-09-25 16:43
-- Updated: 2026-09-25 16:43 — Cached RIP-relative global stores by relocation identity.
-- Area: compiler/backend, instruction combine and memory forwarding
-- Evidence: the store-to-load cache discarded every RIP-relative store, even when its relocation identified a global exactly and the next instruction read that same location. It now clears potentially aliasing entries and retains the stored register for a matching global load until a write, call, control-flow barrier, or register redefinition. Focused C++ cases cover relocation kind/address/width mismatch and alias barriers. In csvagg's generated `main`, six global-seed reloads disappear (1,076 to 1,070 instructions); wordfreq's `main` loses one (485 to 484). Both changes are in input construction before the timed region; neither `qsort` nor csvagg's timed row loop changes. The wordfreq and csvagg checksums remain 130489 and 24828641. The 1,108 C++, 3,480 native, and 1,500 JIT tests pass. The random additional draw was `sema`, whose positive and expected-error files passed. No elapsed-time sample was used as evidence.
-- Next: look for the same provable store/read pair inside a measured loop, then compare its memory operations with the winning implementation. Keep the timed-loop effort on wordfreq's comparator layout and csvagg's row parser.
-
-### compiler.optimization.055 — Keep read-only global pointers resident across comparator calls
-
-- Recorded: 2026-09-25 11:15
-- Updated: 2026-09-25 16:25 — Removed a false legalization scratch requirement and reduced both comparator loops.
-- Area: compiler/backend, loop-invariant code motion and call effects
-- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
-- Next: improve register allocation for loop-invariant pointers live across calls so both `g_Idx` and `g_Cnt` remain in persistent registers, as in LDC, rather than retaining one stack reload per first comparator iteration. Recount both inner loops and csvagg's row loop after any change.
 
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
@@ -655,7 +430,7 @@ block, and the hot path keeps the register.
   read-modify-write fold. Include a vectorization candidate and a frame slot.
   Admit only a general condition that improves scalar loops while preserving
   vectorization.
-- Complete when static evidence explains which loop shapes should use direct
+- Complete when: static evidence explains which loop shapes should use direct
   memory arithmetic and which must retain the existing guard.
 
 ### compiler.optimization.052 — Check final code before adding a late indexed-select rule
@@ -674,7 +449,7 @@ block, and the hot path keeps the register.
   non-benchmark function whose final dump still has the redundant branch and
   reload. Compare final dumps after every optimization sweep, not adjacent stage
   snapshots from different sweeps.
-- Complete when that search either identifies a genuine missed final-code shape
+- Complete when: that search either identifies a genuine missed final-code shape
   with static benefit or rules out this additional post-RA rule.
 
 ### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
@@ -728,7 +503,7 @@ block, and the hot path keeps the register.
   jump while an eight-instruction header is duplicated.
 - Next: compare code size and executed jumps for unrelated loops with short and long connector
   runs, then derive a header budget from code growth and work saved instead of the fixed cutoff.
-- Complete when the cutoff or its replacement has non-benchmark profitability evidence and tests
+- Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests
   around the chosen boundary.
 
 ### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
@@ -751,7 +526,7 @@ block, and the hot path keeps the register.
 - Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
   only when a general work-saved versus code-growth rule improves them without expanding loops
   whose bodies retain their per-trip work.
-- Complete when the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
+- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
   both admitted and rejected shapes.
 
 ### compiler.optimization.048 — Check LICM's relocated address policy outside benchmarks
@@ -768,7 +543,7 @@ block, and the hot path keeps the register.
   non-benchmark functions that repeatedly access relocated tables, plus functions without such
   accesses. Keep the current rule if hoisting merely lengthens live ranges; otherwise derive a
   register-pressure condition from those cases and add focused correctness coverage.
-- Complete when the policy has static profitability evidence outside `bench/`.
+- Complete when: the policy has static profitability evidence outside `bench/`.
 
 ### compiler.optimization.047 — Calibrate span-scoped register grants on non-benchmark code
 
@@ -784,7 +559,7 @@ block, and the hot path keeps the register.
   different register pressure. Count granted ranges and memory operations in the affected loops
   before relying on timing; retain the factor or replace it with a pressure cost rule from that
   evidence.
-- Complete when the current gate or its replacement has static evidence outside `bench/` and
+- Complete when: the current gate or its replacement has static evidence outside `bench/` and
   focused correctness coverage for both accepted and rejected grants.
 
 ### compiler.optimization.046 — A local array copied whole stays in memory, and scalarizing the copy costs the vectorizer
@@ -1231,40 +1006,6 @@ block, and the hot path keeps the register.
   keep this separate from frame-slot promotion and compare every benchmark loop for new spills.
 - Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
   current experiment identifies the specific missing proof or register-pressure cost.
-
-### compiler.optimization.004 — Tracking frame addresses transitively through mem2reg does not pay on its own
-
-- Recorded: 2026-08-07 08:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: compiler/backend
-- Found while: closing the generated-code gap `bench/` measures (campaign 20260806-202546,
-  geometric mean 1.41-1.54x the better of clang-cl and MSVC over two baseline campaigns)
-- Observation: mem2reg records direct copies and constant-offset addresses of its detected frame
-  base. It does not derive arbitrary second-level addresses transitively, so `mov %x, %ar` and
-  `lea %x, [%ar + off]` from an already derived address — a copy of a known frame address, and a second-level offset from one —
-  both read as escapes and poison the whole variable. Instrumenting the escape analysis, those two
-  shapes are the top cause in the timed function of five of the seven bench tasks (csvagg main
-  56 and 29 times, chacha main 222, wordfreq 24, leven 16). Deriving them transitively instead —
-  a bounded fixed point over copies and constant leas, with disqualification propagating down the
-  chain — is a correct generalization and buys nothing measurable.
-- Evidence: two A/B sweeps per binary on csvagg, leven, sha256 and wordfreq, each sweep
-  self-normalized by the clang-cl and MSVC numbers measured in it: csvagg -7%, leven +12%,
-  sha256 +1%, wordfreq +6%, every one of them smaller than the same binary's own spread across
-  sweeps (csvagg's baseline alone ranged 1.473x to 1.785x). Statically it costs instructions:
-  csvagg main 781 -> 796, leven 526 -> 538, sha256 main 449 -> 421. Reading the loop bodies
-  explains it — no hot loop changed, and csvagg's four byte-scan loops got worse, `p += 1` going
-  from `add r8, 1` to `lea r10, [r8+1]` plus `mov r8, r10`. Reverted.
-- Re-tested after memory-form mem2reg support and loop reload hoisting, on the suspicion that the
-  `lea`+`mov` regression was only the copy-forwarding gap those changes closed. It is not: judged on the loop bodies rather than the
-  clock, the emitted code moves AWAY from clang-cl. csvagg's four byte-scan loops go back from 6
-  instructions to 7 (clang-cl emits 6), leven's inner loop 206/80 to 218/89, and over every loop
-  body 3258 to 3299 instructions and 1170 to 1180 memory operations. Reverted a second time.
-- Next step: the escape counts were real but not binding, so the remaining value is in what they
-  were masking rather than in the derivation itself. Do not re-attempt the derivation on its own a
-  third time. If it returns, it has to come with an explanation of why promoting those extra slots
-  makes register allocation emit FEWER memory operations in the loops, not more — the two
-  measurements so far both say it emits more.
-- Related: [compiler.optimization.005](#compileroptimization005--complex-loop-carried-frame-slots-still-lose-registers)
 
 ### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
 

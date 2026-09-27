@@ -45,8 +45,9 @@ namespace
 
     struct SlotInfo
     {
-        uint64_t                maxAccessEnd = 0;
-        bool                    hasWrite     = false;
+        uint64_t                maxAccessEnd       = 0;
+        bool                    hasWrite           = false;
+        bool                    stackPointerAccess = false;
         SmallVector<SlotAccess> accesses;
     };
 
@@ -692,10 +693,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     bool                                   bail = false;
     bool                                   hasFieldSplitWrite = false;
     bool                                   hasNarrowFieldRead = false;
-    // Slots the stack pointer addresses directly. Those include the outgoing
-    // argument area, which a callee reads behind the analysis: they take part
-    // in the overlap checks but are never promoted.
-    std::unordered_set<uint64_t> stackPointerSlots;
+    // Slots addressed directly by the stack pointer include outgoing arguments;
+    // a callee can read those behind this analysis, so they cannot be promoted.
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
     {
         const MicroInstrRef      ref  = it.current;
@@ -943,8 +942,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         if (hasPending)
         {
-            if (baseReg == stackPointer)
-                stackPointerSlots.insert(pending.offset);
             if (baseReg != stackPointer && inst.op == MicroInstrOpcode::LoadMemReg &&
                 pending.bits == MicroOpBits::B64 && ops[1].reg.isAnyInt())
                 hasFieldSplitWrite = true;
@@ -952,6 +949,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 (pending.bits == MicroOpBits::B8 || pending.bits == MicroOpBits::B16 || pending.bits == MicroOpBits::B32))
                 hasNarrowFieldRead = true;
             SlotInfo& slot = slots[pending.offset];
+            slot.stackPointerAccess |= baseReg == stackPointer;
             slot.accesses.push_back(pending);
             // Compare computed ends, not widths: displacement addition can wrap.
             slot.maxAccessEnd = std::max(slot.maxAccessEnd, pending.offset + getNumBytes(pending.bits));
@@ -1025,7 +1023,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 {
                     if (otherSlot.maxAccessEnd <= lo || other >= hi)
                         continue;
-                    if (stackPointerSlots.contains(other))
+                    if (otherSlot.stackPointerAccess)
                         uniform = false;
                     for (const SlotAccess& inner : otherSlot.accesses)
                     {
@@ -1083,7 +1081,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
     for (auto& [offset, slot] : slots)
     {
-        if (slot.accesses.empty() || !slot.hasWrite || stackPointerSlots.contains(offset))
+        if (slot.accesses.empty() || !slot.hasWrite || slot.stackPointerAccess)
             continue;
 
         // A slot inside an escaped variable can be written behind the scalar
@@ -1290,7 +1288,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         for (const auto& [offset, slot] : slots)
         {
-            if (stackPointerSlots.contains(offset))
+            if (slot.stackPointerAccess)
                 continue;
 
             const SlotAccess* write  = nullptr;
@@ -1320,7 +1318,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 if (otherSlot.maxAccessEnd <= offset || other >= end)
                     continue;
-                if (other < offset || otherSlot.maxAccessEnd > end || (other != offset && otherSlot.hasWrite) || stackPointerSlots.contains(other))
+                if (other < offset || otherSlot.maxAccessEnd > end || (other != offset && otherSlot.hasWrite) || otherSlot.stackPointerAccess)
                 {
                     usable = false;
                     break;

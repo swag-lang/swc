@@ -821,6 +821,7 @@
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantValue.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantFoldStorage.h"/>
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantShardPreference.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantLower.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantExtract.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h"/>

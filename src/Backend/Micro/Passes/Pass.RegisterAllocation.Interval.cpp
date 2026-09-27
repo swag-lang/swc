@@ -679,7 +679,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // The loops, from the back-edges of the instruction CFG, for the
     // election's view of a loop-carried access.
     std::vector<LoopRange> loops;
-    if (hasControlFlow_)
+    if (hasControlFlow_ && functionHasLoop_)
     {
         for (uint32_t s = 0; s < instructionCount_ && s < predecessors_.size(); ++s)
         {

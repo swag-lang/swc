@@ -486,6 +486,8 @@ namespace
 
         void reset(const uint32_t instructionCount)
         {
+            relocationByInstruction.clear();
+            frameDerivedRegs.clear();
             table.clear();
             rewrites.clear();
             valueAliases.clear();
@@ -633,7 +635,6 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         {
             // Both lookups below need the same snapshot. Relocations remain
             // untouched until the queued rewrites are applied after this scan.
-            relocationByInstruction.clear();
             for (const MicroRelocation& reloc : context.builder->codeRelocations())
             {
                 if (reloc.instructionRef.isValid())
@@ -678,7 +679,6 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             {
                 // Rewrites are queued, so even a late first load sees the same
                 // whole-function closure, including definitions after the load.
-                frameDerivedRegs.clear();
                 collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
                 frameDerivedRegsReady = true;
             }
@@ -839,7 +839,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         // A rewritten instruction no longer carries the address the relocation
         // was going to patch. Leaving the relocation attached would have the
         // emitter bind it to whatever the copy encodes.
-        if (relocationsReady && relocationByInstruction.contains(rewrite.instRef))
+        if (relocationByInstruction.contains(rewrite.instRef))
             context.builder->invalidateRelocationForInstruction(rewrite.instRef);
 
         inst->op      = rewrite.op;

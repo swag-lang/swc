@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/IntrinsicInitType.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
@@ -19,19 +20,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool intrinsicInitPreservesAliasType(const TypeInfo& rawType)
-    {
-        return rawType.isEnum() ||
-               rawType.isBool() ||
-               rawType.isIntLike() ||
-               rawType.isFloat() ||
-               rawType.isAnyPointer() ||
-               rawType.isReference() ||
-               rawType.isCString() ||
-               rawType.isTypeInfo() ||
-               (rawType.isFunction() && !rawType.isLambdaClosure());
-    }
-
     TypeRef normalizeIntrinsicInitTypeRef(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -42,7 +30,7 @@ namespace
             return typeRef;
 
         const TypeRef rawTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid() && !intrinsicInitPreservesAliasType(sema.typeMgr().get(rawTypeRef)))
+        if (rawTypeRef.isValid() && !IntrinsicInitType::preservesAliasType(sema.typeMgr().get(rawTypeRef)))
             return rawTypeRef;
         return typeRef;
     }

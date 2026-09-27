@@ -476,11 +476,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // ---- Pass 1: collect address registers `lea ar, [fb + off]`. ----
     struct AddrRegInfo
     {
-        uint64_t      offset = 0;
-        MicroInstrRef defRef = MicroInstrRef::invalid();
+        uint64_t      offset    = 0;
+        MicroInstrRef defRef    = MicroInstrRef::invalid();
+        bool          ambiguous = false;
     };
     std::unordered_map<MicroReg, AddrRegInfo> addrRegOffset;
-    std::unordered_set<MicroReg>              badAddrReg;
     std::unordered_set<uint32_t>              addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
@@ -523,14 +523,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 }
             }
             if (!ar.isVirtualInt() || ar == frameBase)
-                badAddrReg.insert(ar);
-            else if (addrRegOffset.contains(ar))
+                continue;
+            const auto [found, inserted] = addrRegOffset.try_emplace(ar, AddrRegInfo{offset, it.current});
+            if (!inserted)
             {
-                badAddrReg.insert(ar);
+                found->second.ambiguous = true;
                 addrRegMoreOffsets[ar].push_back(offset);
             }
-            else
-                addrRegOffset[ar] = {offset, it.current};
         }
     }
 
@@ -566,7 +565,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                                                    isFrameRegister(ops[1].reg);
                     if (!knownFrameAddress)
                         return Result::Continue;
-                    badAddrReg.insert(ops[i].reg);
+                    found->second.ambiguous = true;
                 }
             }
         }
@@ -730,7 +729,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             else
             {
                 const auto found = addrRegOffset.find(reg);
-                if (found != addrRegOffset.end() && !badAddrReg.contains(reg))
+                if (found != addrRegOffset.end() && !found->second.ambiguous)
                 {
                     baseReg   = reg;
                     baseSlot  = found->second.offset + extraOffset;

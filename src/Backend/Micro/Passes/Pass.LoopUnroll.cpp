@@ -240,6 +240,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
     MicroBuilder&        builder  = *context.builder;
+    if (storage.count() < 5)
+        return Result::Continue;
 
     // Unroll every candidate in this one run: leaving the rest for later runs
     // would spend one fixed-point iteration per loop, and a function with

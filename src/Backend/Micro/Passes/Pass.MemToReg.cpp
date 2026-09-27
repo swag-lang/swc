@@ -694,6 +694,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     bool                                   bail = false;
     bool                                   hasFieldSplitWrite = false;
     bool                                   hasNarrowFieldRead = false;
+    bool                                   hasVectorWrite = false;
     // Slots addressed directly by the stack pointer include outgoing arguments;
     // a callee can read those behind this analysis, so they cannot be promoted.
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
@@ -955,7 +956,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // Compare computed ends, not widths: displacement addition can wrap.
             slot.maxAccessEnd = std::max(slot.maxAccessEnd, pending.offset + getNumBytes(pending.bits));
             if (pending.isWrite)
+            {
                 slot.hasWrite = true;
+                hasVectorWrite |= pending.bits == MicroOpBits::B128;
+            }
         }
     }
 
@@ -1002,6 +1006,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // Only the zero fill is split. A whole-object copy is the other vector
     // access such an array sees, and splitting it means rebuilding the loaded
     // value element by element, which this does not attempt.
+    if (hasVectorWrite)
     {
         SmallVector<std::pair<MicroInstrRef, std::pair<uint64_t, uint64_t>>> fills;
         for (const auto& [offset, slot] : slots)

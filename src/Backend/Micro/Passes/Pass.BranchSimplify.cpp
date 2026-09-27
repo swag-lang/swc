@@ -7347,8 +7347,11 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     scanCache.ensureLayout(storage, operands);
     const bool hasConditionalJump = scanCache.scan.layout.hasConditionalJump;
 
-    MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = hasConditionalJump ? MicroSsaState::ensureFor(context, localSsaState) : nullptr;
+    // The pre-RA loop provides shared SSA. Construct a fallback only when this
+    // pass runs standalone, instead of initializing its many buffers every run.
+    std::optional<MicroSsaState> localSsaState;
+    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*        ssaState   = hasConditionalJump ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
@@ -7532,9 +7535,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // actually holds a diamond.
     if (changed)
     {
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        localSsaState.invalidate();
+        ssaScratch.invalidate();
     }
 
     // Every remaining if-conversion needs a conditional JumpCond. The shared
@@ -7556,9 +7557,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         changed = true;
         diamondCache.invalidate();
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        localSsaState.invalidate();
+        ssaScratch.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
@@ -7566,9 +7565,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         changed = true;
         diamondCache.invalidate();
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        localSsaState.invalidate();
+        ssaScratch.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
@@ -7576,29 +7573,23 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         changed = true;
         diamondCache.invalidate();
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        localSsaState.invalidate();
+        ssaScratch.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertComparedMemoryNarrowSaturatingSubtract(storage, operands, context, localSsaState, diamondCache))
+    if (convertComparedMemoryNarrowSaturatingSubtract(storage, operands, context, ssaScratch, diamondCache))
     {
         changed = true;
         diamondCache.invalidate();
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        localSsaState.invalidate();
+        ssaScratch.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertRepeatedLoadNarrowAbsoluteDifference(storage, operands, context, localSsaState, diamondCache))
+    if (convertRepeatedLoadNarrowAbsoluteDifference(storage, operands, context, ssaScratch, diamondCache))
     {
         changed = true;
         diamondCache.invalidate();
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        localSsaState.invalidate();
+        ssaScratch.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
@@ -7606,23 +7597,19 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         changed = true;
         diamondCache.invalidate();
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        localSsaState.invalidate();
+        ssaScratch.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertGuardedSelectDiamonds(storage, operands, context, localSsaState, diamondCache))
+    if (convertGuardedSelectDiamonds(storage, operands, context, ssaScratch, diamondCache))
     {
         changed = true;
         diamondCache.invalidate();
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        localSsaState.invalidate();
+        ssaScratch.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    else if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState, diamondCache))
+    else if (convertDiamondsToConditionalMoves(storage, operands, context, ssaScratch, diamondCache))
     {
         changed = true;
         diamondCache.invalidate();
@@ -7630,7 +7617,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             context.builder->invalidateControlFlowGraph();
     }
 
-    if (!changed && convertTrianglesToConditionalMoves(storage, operands, context, localSsaState, diamondCache))
+    if (!changed && convertTrianglesToConditionalMoves(storage, operands, context, ssaScratch, diamondCache))
     {
         changed = true;
         diamondCache.invalidate();

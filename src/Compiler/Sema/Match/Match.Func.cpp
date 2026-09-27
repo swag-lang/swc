@@ -1573,16 +1573,6 @@ namespace
         return TypeRef::invalid();
     }
 
-    bool isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return false;
-
-        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        const TypeRef effectiveTypeRef = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-        return sema.typeMgr().get(effectiveTypeRef).isAnyVariadic();
-    }
-
     bool isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef, bool resolveAliases)
     {
         if (typeNodeRef.isInvalid())
@@ -1594,12 +1584,12 @@ namespace
         if (!resolveAliases)
         {
             if (const auto* namedType = typeNode.safeCast<AstNamedType>())
-                return isVariadicTypeRefOrAlias(sema, safeNamedTypeRef(sema, *namedType));
+                return SemaHelpers::isVariadicTypeRefOrAlias(sema, safeNamedTypeRef(sema, *namedType));
             return false;
         }
 
         const TypeRef typeRef = SemaHelpers::structuralTypeRefFromTypeNode(sema, typeNodeRef);
-        return isVariadicTypeRefOrAlias(sema, typeRef);
+        return SemaHelpers::isVariadicTypeRefOrAlias(sema, typeRef);
     }
 
     void appendGenericRootCallParams(Sema& sema, AstNodeRef paramRef, SmallVector<GenericRootCallParam>& outParams, bool captureNames)

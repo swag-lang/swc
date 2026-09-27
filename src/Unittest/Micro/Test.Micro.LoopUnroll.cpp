@@ -71,6 +71,51 @@ SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesOnlyExactGroups)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg counter = MicroReg::virtualIntReg(2);
+    constexpr MicroReg loaded  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(4);
+    constexpr MicroReg accum   = MicroReg::virtualIntReg(5);
+    for (const auto [bound, escapedValue] : {std::pair<uint64_t, bool>{64, false}, {66, false}, {64, true}})
+    {
+        MicroBuilder builder(ctx);
+        const auto   header = builder.createLabel();
+        builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(accum, ApInt(17, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitLoadAmcRegMem(loaded, MicroOpBits::B32, base, counter, 4, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(value, loaded, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(value, counter, MicroOp::Add, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(accum, value, MicroOp::Xor, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(bound, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, header);
+        if (escapedValue)
+            builder.emitLoadMemReg(CallConv::get(CallConvKind::Swag).stackPointer, 0x20, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runLoopUnrollPass(builder));
+        const bool vectorized = bound == 64 && !escapedValue;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != (vectorized ? 1u : 0u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (vectorized ? 0u : 1u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+            return Result::Error;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
+                continue;
+            const auto* ops = inst.ops(builder.operands());
+            if (ops[0].reg == counter && ops[3].valueU64 != (vectorized ? 4u : 1u))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Four constant-table reads can repay a larger branched body: each copy gets
 // a fixed table index, while an equally large dynamic body keeps its loop.
 SWC_TEST_BEGIN(LoopUnroll_LargeBranchedConstantTable_Flattens)

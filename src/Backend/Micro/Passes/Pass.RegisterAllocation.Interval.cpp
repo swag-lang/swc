@@ -1516,14 +1516,19 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
     std::vector<RematRecipe> remat(virtualCount);
     {
-        std::vector<uint32_t> defCount(virtualCount, 0);
-        std::vector<uint32_t> defAt(virtualCount, std::numeric_limits<uint32_t>::max());
+        struct DefinitionSite
+        {
+            uint32_t count     = 0;
+            uint32_t lastIndex = 0;
+        };
+        std::vector<DefinitionSite> definitions(virtualCount);
         for (uint32_t idx = 0; idx < instructionCount_; ++idx)
         {
             for (const uint32_t denseIndex : defVirtualIndices_[idx])
             {
-                ++defCount[denseIndex];
-                defAt[denseIndex] = idx;
+                DefinitionSite& site = definitions[denseIndex];
+                ++site.count;
+                site.lastIndex = idx;
             }
         }
         std::unordered_map<uint32_t, const MicroRelocation*> relocationByInstruction;
@@ -1544,9 +1549,9 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         };
         for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         {
-            if (defCount[denseIndex] != 1)
+            if (definitions[denseIndex].count != 1)
                 continue;
-            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[defAt[denseIndex]];
+            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[definitions[denseIndex].lastIndex];
             const MicroInstr*        inst   = instructions_->ptr(defRef);
             const MicroInstrOperand* ops    = inst ? inst->ops(*operands_) : nullptr;
             if (!ops || ops[0].reg != virtualRegs[denseIndex])
@@ -1657,7 +1662,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             RematRecipe& recipe = remat[denseIndex];
             if (!recipe.valid)
                 continue;
-            recipe.defIndex             = defAt[denseIndex];
+            recipe.defIndex             = definitions[denseIndex].lastIndex;
             const LiveInterval* defNode = locate(denseIndex, recipe.defIndex * 2 + 1);
             if (!defNode || !defNode->usePositions.empty())
                 continue;

@@ -215,15 +215,7 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
         }
     }
 
-    // What each address load points at, so rematerializing one can carry its
-    // relocation along. Snapshotted by value: the builder's vector grows every
-    // time a remade load is inserted.
     relocationByDefInstruction_.clear();
-    for (const MicroRelocation& reloc : (context.builder)->codeRelocations())
-    {
-        if (reloc.instructionRef.isValid())
-            relocationByDefInstruction_[reloc.instructionRef] = reloc;
-    }
 }
 
 uint32_t MicroRegisterAllocationPass::allocRequestPriority(const AllocRequest& request)
@@ -3842,6 +3834,14 @@ void MicroRegisterAllocationPass::expireDeadMappings(uint32_t stamp)
 
 void MicroRegisterAllocationPass::rewriteInstructions()
 {
+    // Rematerialized address loads need the original relocation. Snapshot only
+    // on this fallback path, before inserted loads grow the builder's vector.
+    for (const MicroRelocation& reloc : context_->builder->codeRelocations())
+    {
+        if (reloc.instructionRef.isValid())
+            relocationByDefInstruction_[reloc.instructionRef] = reloc;
+    }
+
     // Main rewrite pass:
     // 1) assign physical registers for each virtual operand,
     // 2) queue spill loads/stores around the instruction,

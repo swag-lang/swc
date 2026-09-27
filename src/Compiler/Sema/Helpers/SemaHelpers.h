@@ -237,6 +237,19 @@ namespace SemaHelpers
         return sema.typeMgr().get(typeRef);
     }
 
+    inline const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return nullptr;
+
+        const TypeRef   enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
+        if (enumType.isEnum())
+            return &enumType.payloadSymEnum();
+
+        return nullptr;
+    }
+
     // Aliases and enum wrappers both stripped, down to the carried payload.
     inline TypeRef aliasEnumTypeRef(Sema& sema, TypeRef typeRef)
     {

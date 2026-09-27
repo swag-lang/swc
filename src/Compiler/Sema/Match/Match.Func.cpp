@@ -307,19 +307,6 @@ namespace
         TypeRef typeRef = TypeRef::invalid();
     };
 
-    const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return nullptr;
-
-        const TypeRef   enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
-        if (enumType.isEnum())
-            return &enumType.payloadSymEnum();
-
-        return nullptr;
-    }
-
     AstNodeRef autoEnumArgRef(Sema& sema, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -1341,7 +1328,7 @@ namespace
         const AstNode& argNode = sema.node(finalArgRef);
         const auto&    autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
-        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTy);
+        const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, paramTy);
         if (!enumSym)
             return Result::Continue;
 
@@ -1387,7 +1374,7 @@ namespace
         const AstNode& argNode = sema.node(finalArgRef);
         const auto&    autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
-        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTy);
+        const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, paramTy);
         if (!enumSym)
             return Result::Continue;
 
@@ -1443,7 +1430,7 @@ namespace
         if (autoEnumArgRef(sema, argRef).isInvalid())
             return false;
 
-        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTypeRef);
+        const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, paramTypeRef);
         if (!enumSym || paramTypeRef == enumSym->typeRef())
             return false;
         if (argView.typeRef() != enumSym->typeRef())

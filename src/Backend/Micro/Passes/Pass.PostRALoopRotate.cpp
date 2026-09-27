@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroLabelHelpers.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
@@ -35,25 +36,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool tryGetLabelId(uint32_t& outLabelId, const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        outLabelId = 0;
-        if (inst.op != MicroInstrOpcode::Label || !ops || ops[0].valueU64 > std::numeric_limits<uint32_t>::max())
-            return false;
-
-        outLabelId = static_cast<uint32_t>(ops[0].valueU64);
-        return true;
-    }
-
-    bool tryGetJumpTargetLabelId(uint32_t& outLabelId, const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        outLabelId = 0;
-        if (inst.op != MicroInstrOpcode::JumpCond || !ops || ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
-            return false;
-
-        outLabelId = static_cast<uint32_t>(ops[2].valueU64);
-        return true;
-    }
+    using MicroLabelHelpers::tryGetJumpTargetLabelId;
+    using MicroLabelHelpers::tryGetLabelId;
 
     // Compare and test instructions define only flags. Copying an arithmetic
     // instruction would also copy its value definition.

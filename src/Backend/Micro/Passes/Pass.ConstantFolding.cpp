@@ -257,8 +257,6 @@ namespace
         }
     }
 
-    bool tryGetKnownReachingValue(KnownValue& outValue, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef);
-
     struct UniformFloatBranchContext
     {
         ConstantMemoryContext&         memory;
@@ -356,36 +354,8 @@ namespace
         return true;
     }
 
-    struct KnownValueTraits
-    {
-        [[maybe_unused]] static bool isValid(const KnownValue&)
-        {
-            return true;
-        }
-
-        [[maybe_unused]] static bool same(const KnownValue& lhs, const KnownValue& rhs)
-        {
-            return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
-        }
-    };
-
-    struct KnownValueContext
-    {
-        const MicroSsaState*       ssaState = nullptr;
-        const MicroStorage*        storage  = nullptr;
-        const MicroOperandStorage* operands = nullptr;
-    };
-
-    bool tryGetKnownReachingValue(KnownValue& outValue, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
-    {
-        SWC_ASSERT(context.ssaState != nullptr);
-        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, *context.ssaState, knownValues, knownFlags, reg, instRef);
-    }
-
-    bool tryGetKnownReachingValue(KnownValue& outValue, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
-    {
-        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, ssaState, knownValues, knownFlags, reg, instRef);
-    }
+    using KnownValueTraits  = MicroSsaKnownValueTraits;
+    using KnownValueContext = MicroSsaKnownValueContext;
 
     // Convert an IEEE-754 bit pattern between f32/f64. On success fills the
     // destination bit pattern and its width; returns false for unsupported

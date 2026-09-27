@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Generic/GenericCloneFlags.h"
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -27,6 +28,7 @@ namespace SemaGeneric
         using Internal::buildPartialGenericContextBindings;
         using Internal::buildResolvedGenericContextBindings;
         using Internal::checkFunctionWhereConstraints;
+        using Internal::clonedGenericSymbolFlags;
         using Internal::collectAmbientGenericFunctions;
         using Internal::evalGenericClonedNode;
         using Internal::FunctionWhereInputs;
@@ -263,14 +265,6 @@ namespace SemaGeneric
 
             for (const GenericInstanceKey& arg : ownerArgs)
                 outKeys.push_back(arg);
-        }
-
-        SymbolFlags clonedGenericSymbolFlags(const Symbol& root)
-        {
-            SymbolFlags flags = SymbolFlagsE::Zero;
-            if (root.isPublic())
-                flags.add(SymbolFlagsE::Public);
-            return flags;
         }
 
         SymbolStructFlags clonedGenericStructFlags(const SymbolStruct& root)

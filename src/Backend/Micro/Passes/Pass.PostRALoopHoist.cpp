@@ -882,14 +882,14 @@ namespace
         if (!hasCandidate)
             return false;
 
-        const auto        dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry);
-        const auto        loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
-        MicroPhysLiveness liveness;
-        MicroPassHelpers::computePhysicalLiveness(liveness, context);
-        if (!liveness.valid)
-            return false;
+        const auto dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        const auto loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
 
-        for (const auto& [header, loop] : loops)
+        // A persistent argument copy can move only through a clean preheader.
+        // Reject unusable loops before computing whole-function liveness.
+        std::vector<const NaturalLoop*> loops;
+        loops.reserve(loopsByHeader.size());
+        for (const auto& [header, loop] : loopsByHeader)
         {
             if (!header || loop.inBody[header - 1])
                 continue;
@@ -909,6 +909,20 @@ namespace
                 continue;
             if (flags.has(MicroInstrFlagsE::JumpInstruction) && !flags.has(MicroInstrFlagsE::ConditionalJump))
                 continue;
+            loops.push_back(&loop);
+        }
+        if (loops.empty())
+            return false;
+
+        MicroPhysLiveness liveness;
+        MicroPassHelpers::computePhysicalLiveness(liveness, context);
+        if (!liveness.valid)
+            return false;
+
+        for (const NaturalLoop* loopPtr : loops)
+        {
+            const NaturalLoop& loop   = *loopPtr;
+            const uint32_t     header = loop.header;
 
             std::vector<MicroInstrRef> copies;
             for (uint32_t i = 0; i < n; ++i)

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Debug/DebugInfo.h"
+#include "Backend/Debug/DebugPath.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/Archive.h"
@@ -1327,14 +1328,6 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
 
 namespace
 {
-    // Normalises a source path the way debuggers expect it in CodeView line tables.
-    Utf8 debugSourcePath(const fs::path& path)
-    {
-        fs::path normalized = path.lexically_normal();
-        normalized.make_preferred();
-        return {normalized.string()};
-    }
-
     bool shouldCollectLinkDebugInfo(const NativeBackendBuilder& builder)
     {
         return builder.compiler().buildCfg().backend.debugInfo && !builder.pdbPath.empty();
@@ -1430,7 +1423,7 @@ namespace
             fn.frameSize = record.frameSize;
             if (record.sourceFile)
             {
-                const Utf8 path     = debugSourcePath(record.sourceFile->path());
+                const Utf8 path     = DebugPath::normalizedString(record.sourceFile->path());
                 fn.primaryFileIndex = fileIndexFor(path, record.sourceFile);
             }
 
@@ -1460,7 +1453,7 @@ namespace
                 if (!resolved.source.sourceFile)
                     continue;
 
-                const Utf8     path = debugSourcePath(resolved.source.sourceFile->path());
+                const Utf8     path = DebugPath::normalizedString(resolved.source.sourceFile->path());
                 const uint32_t file = fileIndexFor(path, resolved.source.sourceFile);
 
                 if (currentBlock == std::numeric_limits<size_t>::max() || currentFile != file)

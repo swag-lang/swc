@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantShardPreference.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -132,19 +133,6 @@ namespace
         return result;
     }
 
-    bool mergeRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, uint32_t candidateShardIndex)
-    {
-        if (!hasRequiredShard)
-        {
-            outShardIndex    = candidateShardIndex;
-            hasRequiredShard = true;
-        }
-
-        // Payload materialization can now relocate across shards, so this is
-        // only a placement preference for the owning allocation.
-        return true;
-    }
-
     bool requirePointerShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, const void* ptr)
     {
         if (!ptr)
@@ -154,7 +142,7 @@ namespace
         if (!sema.cstMgr().resolveDataSegmentRef(ref, ptr))
             return false;
 
-        return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, ref.shardIndex);
+        return ConstantShardPreference::mergeRequiredShardIndex(outShardIndex, hasRequiredShard, ref.shardIndex);
     }
 
     bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, std::span<const std::byte> payload)

@@ -3862,11 +3862,16 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // falls back to the full flush.
     boundarySnapshots_.clear();
     fallThroughStateValid_ = true;
-    edgeRegisterHint_.assign(denseVirtualRegs_.regs().size(), MicroReg::invalid());
     keepAcrossBoundaries_ = hasControlFlow_ &&
                             controlFlowGraph_ != nullptr &&
                             !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
                             controlFlowGraph_->supportsDeadCodeLiveness();
+    // Only boundary snapshots produce these hints. Linear and unsupported
+    // functions need no per-virtual-register initialization.
+    if (keepAcrossBoundaries_)
+        edgeRegisterHint_.assign(denseVirtualRegs_.regs().size(), MicroReg::invalid());
+    else
+        edgeRegisterHint_.clear();
 
     // Loop residency needs the same CFG precision the write-back protocol
     // does: a kept register is only sound when every edge into the region is

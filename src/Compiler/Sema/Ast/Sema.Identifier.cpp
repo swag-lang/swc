@@ -169,17 +169,6 @@ namespace
         return true;
     }
 
-    bool functionOwnsVariable(const SymbolFunction& function, const SymbolVariable& symVar)
-    {
-        if (symVar.ownerSymMap() == &function)
-            return true;
-        if (function.containsLocalVariable(symVar))
-            return true;
-
-        const auto& params = function.parameters();
-        return std::ranges::find(params, &symVar) != params.end();
-    }
-
     bool inlinePayloadOwnsVariable(const SemaInlinePayload* inlinePayload, const SymbolFunction& function, const SymbolVariable& symVar)
     {
         while (inlinePayload)
@@ -254,13 +243,13 @@ namespace
         if (inlinePayloadUsesCallerScope(inlinePayload))
         {
             const SymbolFunction* callerFn = sema.currentFunction();
-            if (callerFn && functionOwnsVariable(*callerFn, symVar))
+            if (callerFn && callerFn->ownsVariable(symVar))
                 return nullptr;
         }
 
         while (fn)
         {
-            if (functionOwnsVariable(*fn, symVar))
+            if (fn->ownsVariable(symVar))
                 return nullptr;
             if (inlinePayloadOwnsVariable(inlinePayload, *fn, symVar))
                 return nullptr;

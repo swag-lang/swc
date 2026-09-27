@@ -169,17 +169,6 @@ namespace
         binding.typeRef = inlineContextualBindingTypeRef(sema, param, exprRef);
     }
 
-    bool functionOwnsVariable(const SymbolFunction& function, const SymbolVariable& symVar)
-    {
-        if (symVar.ownerSymMap() == &function)
-            return true;
-        if (function.containsLocalVariable(symVar))
-            return true;
-
-        const auto& params = function.parameters();
-        return std::ranges::find(params, &symVar) != params.end();
-    }
-
     const SymbolFunction* localFunctionBoundaryForOuterVariable(const SymbolFunction& currentFn, const SymbolVariable& symVar)
     {
         if (symVar.hasGlobalStorage())
@@ -195,7 +184,7 @@ namespace
         const SymbolFunction* fn = &currentFn;
         while (fn)
         {
-            if (functionOwnsVariable(*fn, symVar))
+            if (fn->ownsVariable(symVar))
                 return nullptr;
 
             const AstNode* decl = fn->decl();

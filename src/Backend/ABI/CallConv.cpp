@@ -95,7 +95,7 @@ namespace
         conv.name                                    = "swag";
         conv.displayName                             = "Swag";
         conv.intArgRegs                              = SmallVector{MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10), MicroReg::intReg(11)};
-        conv.floatArgRegs                            = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5)};
+        conv.floatArgRegs                            = SmallVector{MicroReg::floatReg(6), MicroReg::floatReg(7), MicroReg::floatReg(8), MicroReg::floatReg(9), MicroReg::floatReg(10), MicroReg::floatReg(11)};
         conv.stackAlignment                          = 16;
         conv.stackParamAlignment                     = 8;
         conv.stackParamSlotSize                      = 8;

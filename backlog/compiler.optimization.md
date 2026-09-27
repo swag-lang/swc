@@ -15,9 +15,32 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.090 — CSV aggregation regresses with the shadow-free Swag ABI
+
+- Recorded: 2026-09-27 10:24
+- Area: compiler/backend, native code layout and calling convention
+- Evidence: in eight alternating, pinned pairs, the six-integer/six-float Swag ABI with
+  no caller shadow space makes `bench/src/swagnat/csvagg.swg` about 14.6% slower than
+  the preceding ABI (median candidate/baseline). The application returns the same
+  checksum. Seven application benchmarks and sixteen no-inline call signatures were
+  also compared; CSV aggregation is the largest confirmed application regression.
+- The old ABI compiled with the new convention-independent backend passes is at
+  parity with the preceding compiler over six pairs (median about 0.99). A temporary
+  32-byte pad in the caller's body frame leaves CSV about 8% slower. Aligning native
+  functions to 64 bytes leaves it about 10% slower. A temporary independent-bank ABI
+  with 32 bytes of call shadow is near parity on CSV, but makes alternating six- and
+  eight-argument calls about 5% and 4% slower in the call matrix. None of these
+  experiments is part of the retained implementation.
+- The emitted Micro instructions in CSV's hot loop are essentially identical after
+  accounting for stack offsets. Investigate machine-code layout and call-frame
+  placement with hardware counters or disassembly before changing the ABI again.
+- Complete when the shadow-free ABI no longer regresses CSV in repeated paired runs,
+  the call matrix remains at least at parity, and the broader native/JIT/app tests pass.
+
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 
 - Recorded: 2026-09-27 08:13
+- Updated: 2026-09-27 10:24 — Narrowed the remaining mixed-call gap after backend fixes
 - Area: compiler/backend, Swag calling convention and register allocation
 - Evidence: with the independent six-integer/six-float Swag argument banks, a release
   executable making 20 million no-inline calls with alternating six `u64` and six `f64`
@@ -43,11 +66,16 @@ block, and the hot path keeps the register.
   37–42 ms on the mixed sum, close to the old 39–42 ms in the same run. It gives
   up independent floating lanes for mixed signatures, so it was not selected as
   the new Swag convention.
-- Next: compare the generated floating callee and call loop with cycle counters and a
-  representative mixed-call corpus, then fix the identified code-generation cost
-  without giving local Swag calls the platform C convention.
-- Complete when: the mixed-call reproducer no longer regresses against the preceding ABI,
-  the six-integer gain remains, and the native, JIT, and interop suites pass.
+- Current candidate uses the already persistent XMM6–XMM11 as floating argument
+  lanes. Pre-prologue dead-definition elimination avoids saving unused persistent
+  registers; a property-based loop pass hoists invariant persistent-argument copies.
+  In five alternating call-matrix pairs, six-integer calls are about 10% faster,
+  six-float calls about 16% faster, and alternating six/eight mixed calls remain
+  about 3% slower than the preceding ABI. These backend passes apply by convention
+  properties and remain useful even if the Swag ABI changes again.
+- Next: isolate the residual 3% mixed-call gap without slowing other signatures.
+- Complete when: repeated paired runs put the mixed calls at parity or better and
+  the six-integer and six-float gains remain.
 
 ### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 

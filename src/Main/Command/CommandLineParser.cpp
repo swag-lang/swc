@@ -167,15 +167,6 @@ namespace
         inlineValue = raw.substr(eq + 1);
     }
 
-    template<typename T>
-    bool parseIntegerValue(std::string_view value, T& result)
-    {
-        const char* first       = value.data();
-        const char* last        = first + value.size();
-        const auto [ptr, error] = std::from_chars(first, last, result);
-        return !value.empty() && error == std::errc{} && ptr == last;
-    }
-
     Result reportConflictingArgument(TaskContext& ctx, const std::string_view arg, const std::string_view otherArg)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
@@ -794,7 +785,7 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     if (auto* t = std::get_if<int*>(&info.target))
     {
         int parsedValue = 0;
-        if (!parseIntegerValue(value, parsedValue))
+        if (!Utf8Helper::parseIntegerValue(value, parsedValue))
             return reportIntError(ctx, info, arg, value);
         **t = parsedValue;
         return true;
@@ -802,7 +793,7 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     if (auto* t = std::get_if<uint32_t*>(&info.target))
     {
         uint32_t parsedValue = 0;
-        if (!parseIntegerValue(value, parsedValue))
+        if (!Utf8Helper::parseIntegerValue(value, parsedValue))
             return reportIntError(ctx, info, arg, value);
         **t = parsedValue;
         return true;

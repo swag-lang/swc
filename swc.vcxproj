@@ -578,6 +578,7 @@
         <ClInclude Include="src\Support\Math\Sha256.h"/>
         <ClInclude Include="src\Support\Report\ScopedTimedLog.h"/>
         <ClInclude Include="src\Backend\Micro\MicroInstrInfo.h"/>
+        <ClInclude Include="src\Backend\Micro\MicroLabelHelpers.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\Micro\MicroSsaState.h"/>
         <ClInclude Include="src\Backend\Micro\MicroStorage.h"/>

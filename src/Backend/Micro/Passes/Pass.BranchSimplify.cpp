@@ -3,6 +3,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroLabelHelpers.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -32,6 +33,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using MicroLabelHelpers::tryGetJumpTargetLabelId;
+    using MicroLabelHelpers::tryGetLabelId;
+
     // A register value known at compile time, and the WIDTH it is known at: a narrower
     // definition says nothing about the bits above it, which a wider reader would observe.
     // Every producer records the width it actually wrote and every consumer refuses to read
@@ -196,26 +200,6 @@ namespace
     {
         const KnownValueContext context{&ssaState, &storage, &operands};
         computeSsaValueFixedPoint<KnownValue, KnownValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionConstant);
-    }
-
-    bool tryGetLabelId(uint32_t& outLabelId, const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        outLabelId = 0;
-        if (inst.op != MicroInstrOpcode::Label || !ops || ops[0].valueU64 > std::numeric_limits<uint32_t>::max())
-            return false;
-
-        outLabelId = static_cast<uint32_t>(ops[0].valueU64);
-        return true;
-    }
-
-    bool tryGetJumpTargetLabelId(uint32_t& outLabelId, const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        outLabelId = 0;
-        if (inst.op != MicroInstrOpcode::JumpCond || !ops || ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
-            return false;
-
-        outLabelId = static_cast<uint32_t>(ops[2].valueU64);
-        return true;
     }
 
     void buildProgramLayout(ProgramLayout& outLayout, const MicroStorage& storage, const MicroOperandStorage& operands)

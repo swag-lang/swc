@@ -257,6 +257,105 @@ namespace
         }
     }
 
+    bool tryGetKnownReachingValue(KnownValue& outValue, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef);
+
+    struct UniformFloatBranchContext
+    {
+        ConstantMemoryContext&         memory;
+        const MicroSsaState&           ssa;
+        const std::vector<KnownValue>& values;
+        const std::vector<uint8_t>&    flags;
+        MicroStorage&                  storage;
+        MicroOperandStorage&           operands;
+    };
+
+    double decodeScalarFloatBits(const uint64_t value, const MicroOpBits bits)
+    {
+        return bits == MicroOpBits::B64 ? std::bit_cast<double>(value) : std::bit_cast<float>(static_cast<uint32_t>(value));
+    }
+
+    // Every valid index into an immutable allocation can give the same answer
+    // even when the loaded value itself is not constant. Resolve that branch
+    // without substituting a value for the load's other users.
+    bool tryFoldUniformIndexedFloatBranch(const UniformFloatBranchContext& context, const MicroInstrRef jumpRef, const MicroInstr& jump, bool& branchAlways)
+    {
+        ConstantMemoryContext& memoryContext = context.memory;
+        MicroStorage&          storage       = context.storage;
+        MicroOperandStorage&   operands      = context.operands;
+        if (!memoryContext.taskContext || jump.op != MicroInstrOpcode::JumpCond)
+            return false;
+        MicroInstrOperand* jumpOps = jump.ops(operands);
+        if (!jumpOps || (jumpOps[0].cpuCond != MicroCond::Above && jumpOps[0].cpuCond != MicroCond::BelowOrEqual))
+            return false;
+
+        const MicroInstrRef cmpRef = storage.findPreviousInstructionRef(jumpRef);
+        const MicroInstr*   cmp    = storage.ptr(cmpRef);
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegReg)
+            return false;
+        const MicroInstrOperand* cmpOps = cmp->ops(operands);
+        const MicroOpBits        bits   = cmpOps[2].opBits;
+        if (!isScalarFloatBits(bits) || !cmpOps[0].reg.isVirtualFloat() || !cmpOps[1].reg.isVirtualFloat())
+            return false;
+
+        KnownValue threshold;
+        if (!tryGetKnownReachingValue(threshold, context.ssa, context.values, context.flags, cmpOps[1].reg, cmpRef) || threshold.opBits != bits)
+            return false;
+        const MicroSsaState::ReachingDef valueDef = context.ssa.reachingDef(cmpOps[0].reg, cmpRef);
+        if (!valueDef.valid() || valueDef.isPhi || !valueDef.instRef.isValid())
+            return false;
+        const MicroInstr* load = storage.ptr(valueDef.instRef);
+        if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem)
+            return false;
+        const MicroInstrOperand* loadOps = load->ops(operands);
+        const uint32_t           width   = getNumBits(bits) / 8;
+        if (!loadOps || loadOps[0].reg != cmpOps[0].reg || loadOps[3].opBits != bits ||
+            loadOps[4].opBits != MicroOpBits::B64 || loadOps[5].valueU64 != width || loadOps[6].valueU64 != 0)
+            return false;
+
+        if (memoryContext.addressSource)
+        {
+            collectConstantAddresses(memoryContext, *memoryContext.addressSource);
+            memoryContext.addressSource = nullptr;
+        }
+        if (memoryContext.constantAddressByInstruction.empty())
+            return false;
+        uint64_t address = 0;
+        if (!resolveConstantAddress(address, memoryContext, loadOps[1].reg, valueDef.instRef, K_MAX_ADDRESS_CHAIN_DEPTH))
+            return false;
+        DataSegmentRef segmentRef;
+        if (!memoryContext.taskContext->cstMgr().resolveDataSegmentRef(segmentRef, reinterpret_cast<const void*>(address)))
+            return false;
+        const DataSegment& segment = memoryContext.taskContext->cstMgr().shardDataSegment(segmentRef.shardIndex);
+        DataSegmentAllocation allocation;
+        if (!segment.findAllocation(allocation, segmentRef.offset) || segmentRef.offset != allocation.offset ||
+            !allocation.size || allocation.size % width)
+            return false;
+        constexpr uint32_t K_MAX_UNIFORM_TABLE_ENTRIES = 256;
+        const uint32_t count = allocation.size / width;
+        if (count > K_MAX_UNIFORM_TABLE_ENTRIES)
+            return false;
+
+        const double limit = decodeScalarFloatBits(threshold.value, bits);
+
+        bool allAbove = true;
+        bool allNotAbove = true;
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            uint64_t elementBits = 0;
+            if (!readConstantBytes(elementBits, *memoryContext.taskContext, address + uint64_t(i) * width, width))
+                return false;
+            const double element = decodeScalarFloatBits(elementBits, bits);
+            const bool above = element > limit;
+            allAbove &= above;
+            allNotAbove &= !above;
+            if (!allAbove && !allNotAbove)
+                return false;
+        }
+
+        branchAlways = jumpOps[0].cpuCond == MicroCond::Above ? allAbove : allNotAbove;
+        return true;
+    }
+
     struct KnownValueTraits
     {
         [[maybe_unused]] static bool isValid(const KnownValue&)
@@ -882,6 +981,8 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
         memoryContext.addressSource = context.builder;
     }
 
+    UniformFloatBranchContext branchContext{memoryContext, *ssaState, knownValues, knownFlags, storage, operands};
+
     FloatFoldContext floatContext;
     floatContext.ssaState     = ssaState;
     floatContext.storage      = &storage;
@@ -927,6 +1028,19 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
             case MicroInstrOpcode::LoadZeroExtRegMem:
                 changed = tryFoldLoadFromConstant(memoryContext, instRef, inst, inst.ops(operands));
                 break;
+            case MicroInstrOpcode::JumpCond:
+            {
+                bool branchAlways = false;
+                changed = tryFoldUniformIndexedFloatBranch(branchContext, instRef, inst, branchAlways);
+                if (changed)
+                {
+                    if (branchAlways)
+                        inst.ops(operands)[0].cpuCond = MicroCond::Unconditional;
+                    else
+                        toErase.push_back(instRef);
+                }
+                break;
+            }
             default:
                 break;
         }

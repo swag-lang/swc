@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenArraySlice.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenPointerConstant.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -24,18 +26,6 @@ namespace
         TypeRef    typeRef  = TypeRef::invalid();
         uint32_t   offset   = 0;
     };
-
-    uint64_t sliceCountFromArrayCast(CodeGen& codeGen, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
-    {
-        const uint64_t dstElementSize = dstElementType.sizeOf(codeGen.ctx());
-        if (dstElementSize)
-            return srcArrayType.sizeOf(codeGen.ctx()) / dstElementSize;
-
-        uint64_t totalCount = 1;
-        for (const uint64_t dim : srcArrayType.payloadArrayDims())
-            totalCount *= dim;
-        return totalCount;
-    }
 
     uint64_t alignUpTo(uint64_t value, uint32_t alignment)
     {
@@ -501,21 +491,6 @@ namespace
         return CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span{storageBytes.data(), storageBytes.size()});
     }
 
-    void emitPointerConstant(CodeGen& codeGen, MicroReg reg, const uint64_t value, ConstantRef cstRef)
-    {
-        if (!value)
-        {
-            codeGen.builder().emitLoadRegImm(reg, ApInt(0, 64), MicroOpBits::B64);
-            return;
-        }
-
-        DataSegmentRef sourceRef;
-        if (codeGen.cstMgr().resolveConstantDataSegmentRef(sourceRef, cstRef, reinterpret_cast<const void*>(value)))
-            codeGen.builder().emitLoadRegPtrReloc(reg, value, cstRef);
-        else
-            codeGen.builder().emitLoadRegPtrImm(reg, value);
-    }
-
     Result emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef, AstNodeRef storageNodeRef = AstNodeRef::invalid())
     {
         MicroBuilder& builder = codeGen.builder();
@@ -592,14 +567,14 @@ namespace
 
             case ConstantKind::ValuePointer:
             {
-                emitPointerConstant(codeGen, payload.reg, cst.getValuePointer(), cstRef);
+                CodeGenPointerConstant::emitPointerConstant(codeGen, payload.reg, cst.getValuePointer(), cstRef);
                 payload.setIsValue();
                 return Result::Continue;
             }
 
             case ConstantKind::BlockPointer:
             {
-                emitPointerConstant(codeGen, payload.reg, cst.getBlockPointer(), cstRef);
+                CodeGenPointerConstant::emitPointerConstant(codeGen, payload.reg, cst.getBlockPointer(), cstRef);
                 payload.setIsValue();
                 return Result::Continue;
             }
@@ -710,7 +685,7 @@ namespace
                         if (safeArrayCstRef.isInvalid())
                             return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
-                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
+                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), CodeGenArraySlice::sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);

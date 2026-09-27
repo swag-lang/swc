@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -193,7 +194,7 @@ namespace PreRaPeephole
                 return false;
 
             const bool     isSigned = consumer.op == MicroInstrOpcode::LoadSignedExtRegReg;
-            const uint64_t extended = extendBits(producer.value, ops[3].opBits, ops[2].opBits, isSigned);
+            const uint64_t extended = MicroPassHelpers::extendImmediateBits(producer.value, ops[3].opBits, ops[2].opBits, isSigned);
             emitLoadRegConstant(out, ops[0].reg, ops[2].opBits, extended, false);
             return true;
         }

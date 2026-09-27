@@ -27,20 +27,6 @@ namespace PostRaPeephole
             return true;
         }
 
-        bool instructionMayReadMemory(const MicroInstr& inst)
-        {
-            const MicroInstrDef& info = MicroInstr::info(inst.op);
-            if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
-                !info.flags.has(MicroInstrFlagsE::WritesMemory) &&
-                inst.op != MicroInstrOpcode::LoadAddrRegMem)
-                return true;
-
-            return inst.op == MicroInstrOpcode::LoadAmcRegMem ||
-                   inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
-                   inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
-                   inst.op == MicroInstrOpcode::VecUnaryAmcRegMem;
-        }
-
         // A frame write the scan can prove lands somewhere else. Two accesses through the
         // same private frame base at disjoint byte ranges cannot alias, and the scans below
         // already stop at anything that moves that base, so stepping over such a write is
@@ -280,7 +266,7 @@ namespace PostRaPeephole
                 info.flags.has(MicroInstrFlagsE::WritesMemory) ||
                 scanInst->op == MicroInstrOpcode::Push ||
                 scanInst->op == MicroInstrOpcode::Pop ||
-                instructionMayReadMemory(*scanInst))
+                MicroPassHelpers::instructionReadsMemory(*scanInst))
                 return false;
 
             if (regTouch(ctx, *scanInst, baseReg).def)
@@ -346,7 +332,7 @@ namespace PostRaPeephole
                 (info.flags.has(MicroInstrFlagsE::WritesMemory) && !disjointFrameWrite) ||
                 scanInst->op == MicroInstrOpcode::Push ||
                 scanInst->op == MicroInstrOpcode::Pop ||
-                (instructionMayReadMemory(*scanInst) && !disjointFrameWrite))
+                (MicroPassHelpers::instructionReadsMemory(*scanInst) && !disjointFrameWrite))
                 return false;
 
             if (info.flags.has(MicroInstrFlagsE::JumpInstruction) && !conditionalJump)

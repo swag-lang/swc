@@ -255,7 +255,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
         // Program layout: ordinals, label positions, and plausible back-edge jumps.
         std::vector<MicroInstrRef>                 order;
         std::unordered_map<uint64_t, LabelInfo>    labels;
-        SmallVector<std::pair<uint32_t, uint64_t>, 4> jumps;
+        std::vector<std::pair<uint32_t, uint64_t>> jumps;
         order.reserve(storage.count());
 
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)

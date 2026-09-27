@@ -109,16 +109,6 @@ namespace
         return sema.cstMgr().addConstant(sema.ctx(), ptrCst);
     }
 
-    CastRequest makeNestedCastRequest(const CastRequest& parent)
-    {
-        CastRequest nested(parent.kind);
-        nested.flags        = parent.flags;
-        nested.errorNodeRef = parent.errorNodeRef;
-        nested.errorCodeRef = parent.errorCodeRef;
-        nested.probing      = parent.probing;
-        return nested;
-    }
-
     // The i-th value node of the array literal being cast, unwrapped from its
     // initializer, or invalid when the cast carries no literal node to rewrite.
     AstNodeRef aggregateElemValueNodeRef(const Sema& sema, AstNodeRef aggregateNodeRef, size_t elemIndex)
@@ -742,7 +732,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         for (size_t i = 0; i < srcElemTypes.size(); ++i)
         {
             const TypeRef srcElemTypeRef = srcElemTypes[i];
-            CastRequest   elemRequest    = makeNestedCastRequest(castRequest);
+            CastRequest   elemRequest    = castRequest.makeNested();
             const Result  res            = castAllowed(sema, elemRequest, srcElemTypeRef, dstElemTypeRef);
             if (res != Result::Continue)
             {
@@ -800,7 +790,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         castedValues.reserve(srcValues.size());
         for (size_t i = 0; i < srcValues.size(); ++i)
         {
-            CastRequest elemRequest = makeNestedCastRequest(castRequest);
+            CastRequest elemRequest = castRequest.makeNested();
             elemRequest.setConstantFoldingSrc(srcValues[i]);
             const Result res = castAllowed(sema, elemRequest, srcElemTypes[i], dstElemTypeRef);
             if (res != Result::Continue)

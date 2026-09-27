@@ -43,6 +43,14 @@ struct CoffObject
     std::vector<CoffInputSymbol>  definedSymbols;
 };
 
+inline uint32_t coffSectionAlignmentFromCharacteristics(uint32_t characteristics)
+{
+    const uint32_t field = (characteristics & 0x00F00000u) >> 20;
+    if (field == 0)
+        return 1;
+    return 1u << (field - 1);
+}
+
 // Decodes a COFF object image. Returns false and fills outDiag on a malformed/unsupported file.
 bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const ByteArray& bytes);
 bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, std::span<const std::byte> bytes);

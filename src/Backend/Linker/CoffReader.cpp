@@ -37,14 +37,6 @@ namespace
         return {begin, len};
     }
 
-    uint32_t alignmentFromCharacteristics(uint32_t characteristics)
-    {
-        const uint32_t field = (characteristics & 0x00F00000u) >> 20;
-        if (field == 0)
-            return 1;
-        return 1u << (field - 1);
-    }
-
     std::string_view symbolNameView(const IMAGE_SYMBOL& record, std::span<const std::byte> bytes, size_t symbolOffset, size_t stringTableOffset)
     {
         if (record.N.Name.Short != 0)
@@ -310,7 +302,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
             }
 
             LinkSection&   merged = outImage.sections[mergedIdx];
-            const uint32_t align  = alignmentFromCharacteristics(section.characteristics);
+            const uint32_t align  = coffSectionAlignmentFromCharacteristics(section.characteristics);
             merged.align          = std::max(merged.align, align);
             merged.flags.add(linkSectionFlagsFromCoffCharacteristics(section.characteristics));
 

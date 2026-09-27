@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Backend/Debug/CodeViewLeaf.h"
+#include "Backend/Debug/DebugPath.h"
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -134,18 +135,11 @@ namespace
         return nextTypeIndex++;
     }
 
-    Utf8 pdbPathString(const fs::path& path)
-    {
-        fs::path normalized = path.lexically_normal();
-        normalized.make_preferred();
-        return {normalized.string()};
-    }
-
     Utf8 buildInfoDirectory(const Utf8& sourcePath)
     {
         if (sourcePath.empty())
             return {};
-        return pdbPathString(fs::path(sourcePath.c_str()).parent_path());
+        return DebugPath::normalizedString(fs::path(sourcePath.c_str()).parent_path());
     }
 
     Utf8 buildInfoFileName(const Utf8& sourcePath)

@@ -467,24 +467,7 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
 {
     // Tag the callee expression so sema can allow overload sets without walking parent nodes.
     // Only a few node kinds need this context.
-    if (nodeExpr.isValid())
-    {
-        AstNode& calleeNode = ast_->node(nodeExpr);
-        switch (calleeNode.id())
-        {
-            case AstNodeId::Identifier:
-                calleeNode.cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::CallCallee);
-                break;
-            case AstNodeId::MemberAccessExpr:
-                calleeNode.cast<AstMemberAccessExpr>().addFlag(AstMemberAccessExprFlagsE::CallCallee);
-                break;
-            case AstNodeId::AutoMemberAccessExpr:
-                calleeNode.cast<AstAutoMemberAccessExpr>().addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
-                break;
-            default:
-                break;
-        }
-    }
+    markCallCalleeNode(nodeExpr);
 
     const TokenRef         tokCallRef = ref();
     const PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);

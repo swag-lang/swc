@@ -4105,15 +4105,14 @@ namespace
 
         // D is a byte the skipped part made for B alone: nothing else may read
         // it, or running that part on the other path would be observable.
-        std::unordered_map<uint32_t, uint32_t> rhsMentions;
-        std::unordered_map<uint32_t, uint32_t> skippedMentions;
+        std::unordered_map<uint32_t, uint32_t> mentions;
         for (const Candidate& candidate : candidates)
         {
-            rhsMentions[candidate.rhs.index()] = 0;
+            mentions[candidate.rhs.index()] = 0;
             if (candidate.skippedDecrement.isValid())
             {
-                skippedMentions[candidate.skippedDecrement.index()] = 0;
-                skippedMentions[candidate.skippedMask.index()]      = 0;
+                mentions[candidate.skippedDecrement.index()] = 0;
+                mentions[candidate.skippedMask.index()]      = 0;
             }
         }
         for (const MicroInstr& inst : storage.view())
@@ -4126,12 +4125,9 @@ namespace
             {
                 if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
                     continue;
-                const auto found = rhsMentions.find(ops[i].reg.index());
-                if (found != rhsMentions.end())
+                const auto found = mentions.find(ops[i].reg.index());
+                if (found != mentions.end())
                     ++found->second;
-                const auto skipped = skippedMentions.find(ops[i].reg.index());
-                if (skipped != skippedMentions.end())
-                    ++skipped->second;
             }
         }
 
@@ -4140,10 +4136,10 @@ namespace
         for (const Candidate& candidate : candidates)
         {
             // The setcc, the optional self-widening and the merge only.
-            if (rhsMentions[candidate.rhs.index()] != candidate.mentions)
+            if (mentions[candidate.rhs.index()] != candidate.mentions)
                 continue;
             if (candidate.skippedDecrement.isValid() &&
-                (skippedMentions[candidate.skippedDecrement.index()] != 3 || skippedMentions[candidate.skippedMask.index()] != 3))
+                (mentions[candidate.skippedDecrement.index()] != 3 || mentions[candidate.skippedMask.index()] != 3))
                 continue;
 
             const RangeMerge range{.leftCmpRef = candidate.leftCmpRef, .rightCmpRef = candidate.rightCmpRef, .rightSetRef = candidate.rightSetRef, .leftCond = candidate.leftCond};

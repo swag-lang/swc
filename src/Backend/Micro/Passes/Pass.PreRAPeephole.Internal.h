@@ -45,7 +45,6 @@ namespace PreRaPeephole
     bool     hasVirtualForbiddenPhysRegs(const Context& ctx, MicroReg reg);
     void     mergeVirtualForbiddenRegs(const Context& ctx, MicroReg fromReg, MicroReg toReg);
     bool     buildUseOnlyRegRewrite(Action& outAction, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg fromReg, MicroReg toReg);
-    uint64_t extendBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned);
     void     setMaskedImmediateValue(MicroInstrOperand& op, uint64_t value, MicroOpBits bits);
 
     // Folds an instruction and its immediate successor into one, when 'buildRewrite' recognizes the

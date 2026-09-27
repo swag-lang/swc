@@ -12,6 +12,20 @@ class MicroBuilder;
 
 namespace MicroPassHelpers
 {
+    inline uint64_t extendImmediateBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned)
+    {
+        const uint64_t srcMask = getBitsMask(srcBits);
+        uint64_t       masked  = value & srcMask;
+        if (isSigned)
+        {
+            const uint32_t srcBitsNum = getNumBits(srcBits);
+            const uint64_t signBit    = 1ULL << (srcBitsNum - 1);
+            if (masked & signBit)
+                masked |= ~srcMask;
+        }
+        return masked & getBitsMask(dstBits);
+    }
+
     inline bool instructionReadsMemory(const MicroInstr& inst)
     {
         const MicroInstrDef& info = MicroInstr::info(inst.op);

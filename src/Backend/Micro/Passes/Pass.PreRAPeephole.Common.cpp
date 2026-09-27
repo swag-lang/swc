@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -76,21 +77,6 @@ namespace PreRaPeephole
         }
 
         return changed;
-    }
-
-    uint64_t extendBits(const uint64_t value, const MicroOpBits srcBits, const MicroOpBits dstBits, const bool isSigned)
-    {
-        const uint64_t srcMask = getBitsMask(srcBits);
-        uint64_t       masked  = value & srcMask;
-        if (isSigned)
-        {
-            const uint32_t srcBitsNum = getNumBits(srcBits);
-            const uint64_t signBit    = 1ULL << (srcBitsNum - 1);
-            if (masked & signBit)
-                masked |= ~srcMask;
-        }
-
-        return masked & getBitsMask(dstBits);
     }
 
     void setMaskedImmediateValue(MicroInstrOperand& op, const uint64_t value, const MicroOpBits bits)

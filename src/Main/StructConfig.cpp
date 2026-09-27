@@ -16,15 +16,6 @@ namespace
         return FileSystem::formatFileLocation(&ctx, sourcePath, lineNo);
     }
 
-    template<typename T>
-    bool parseIntegerValue(std::string_view value, T& result)
-    {
-        const char* first       = value.data();
-        const char* last        = first + value.size();
-        const auto [ptr, error] = std::from_chars(first, last, result);
-        return !value.empty() && error == std::errc{} && ptr == last;
-    }
-
     bool reportInvalidScalarValue(TaskContext& ctx, const DiagnosticId diagId, const StructConfigEntry& entry, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& value)
     {
         Diagnostic diag = Diagnostic::get(diagId);
@@ -276,7 +267,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
     if (auto* target = std::get_if<int*>(&entry.target))
     {
         int parsedValue = 0;
-        if (!parseIntegerValue(value, parsedValue))
+        if (!Utf8Helper::parseIntegerValue(value, parsedValue))
             return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_int, entry, sourcePath, lineNo, value);
         **target = parsedValue;
         entry.afterSet.invoke();
@@ -286,7 +277,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
     if (auto* target = std::get_if<uint32_t*>(&entry.target))
     {
         uint32_t parsedValue = 0;
-        if (!parseIntegerValue(value, parsedValue))
+        if (!Utf8Helper::parseIntegerValue(value, parsedValue))
             return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_int, entry, sourcePath, lineNo, value);
         **target = parsedValue;
         entry.afterSet.invoke();

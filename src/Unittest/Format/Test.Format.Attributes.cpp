@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkAttributesRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatAttributes_OwnLine)
 {
     static constexpr std::string_view SOURCE =
@@ -36,7 +20,7 @@ SWC_TEST_BEGIN(FormatAttributes_OwnLine)
 
     FormatOptions options;
     options.attributePlacement = FormatAttributePlacement::OwnLine;
-    return checkAttributesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -51,7 +35,7 @@ SWC_TEST_BEGIN(FormatAttributes_Inline)
 
     FormatOptions options;
     options.attributePlacement = FormatAttributePlacement::Inline;
-    return checkAttributesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -66,7 +50,7 @@ SWC_TEST_BEGIN(FormatAttributes_BreakAfterAttribute)
 
     FormatOptions options;
     options.breakAfterAttribute = true;
-    return checkAttributesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -83,7 +67,7 @@ SWC_TEST_BEGIN(FormatAttributes_Grouped)
 
     FormatOptions options;
     options.attributePlacement = FormatAttributePlacement::Grouped;
-    return checkAttributesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -101,7 +85,7 @@ SWC_TEST_BEGIN(FormatAttributes_SortArguments)
 
     FormatOptions options;
     options.sortAttributeArguments = true;
-    return checkAttributesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -117,7 +101,7 @@ SWC_TEST_BEGIN(FormatAttributes_SortArgumentsWithDifferentPieceCounts)
 
     FormatOptions options;
     options.sortAttributeArguments = true;
-    return checkAttributesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -133,7 +117,7 @@ SWC_TEST_BEGIN(FormatAttributes_SpaceAfterAttributeComma)
 
     FormatOptions options;
     options.spaceAfterAttributeComma = true;
-    return checkAttributesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

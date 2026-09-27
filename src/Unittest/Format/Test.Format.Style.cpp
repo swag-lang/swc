@@ -6,25 +6,12 @@
 #include "Format/FormatOptionsLoader.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 namespace
 {
-    Result checkStyleRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-
     // Written the way nobody writes it: every dimension the canonical style has
     // an opinion about is wrong here.
     constexpr std::string_view MANGLED =
@@ -41,7 +28,7 @@ SWC_TEST_BEGIN(FormatStyle_PreserveNormalizesNothing)
 {
     FormatOptions options;
     applyFormatStyle(options, FormatNamedStyle::Preserve);
-    return checkStyleRewrite(ctx, MANGLED, MANGLED, options);
+    return FormatRewriteCheck::check(ctx, MANGLED, MANGLED, options);
 }
 SWC_TEST_END()
 
@@ -54,7 +41,7 @@ SWC_TEST_BEGIN(FormatStyle_DefaultOptionsArePreserve)
     applyFormatStyle(preserve, FormatNamedStyle::Preserve);
     if (FormatOptionsLoader::describe(defaults) != FormatOptionsLoader::describe(preserve))
         return Result::Error;
-    return checkStyleRewrite(ctx, MANGLED, MANGLED, defaults);
+    return FormatRewriteCheck::check(ctx, MANGLED, MANGLED, defaults);
 }
 SWC_TEST_END()
 
@@ -74,7 +61,7 @@ SWC_TEST_BEGIN(FormatStyle_SwagIsTheCanonicalLayout)
 
     FormatOptions options;
     applyFormatStyle(options, FormatNamedStyle::Swag);
-    return checkStyleRewrite(ctx, MANGLED, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, MANGLED, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -103,7 +90,7 @@ SWC_TEST_BEGIN(FormatStyle_SwagIntrinsicCallsStayStable)
 
     FormatOptions options;
     applyFormatStyle(options, FormatNamedStyle::Swag);
-    return checkStyleRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -143,7 +130,7 @@ SWC_TEST_BEGIN(FormatStyle_SwagKeepsAccessModifiersWithTheirDeclarations)
 
     FormatOptions options;
     applyFormatStyle(options, FormatNamedStyle::Swag);
-    return checkStyleRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -176,11 +163,11 @@ SWC_TEST_BEGIN(FormatStyle_SwagKeepsStorageAndAccessModifierOrders)
                 const std::string_view second    = storageFirst ? access : storage;
                 const std::string      modifiers = std::format("{} {}", first, second);
                 const std::string      source    = std::format(SOURCE, modifiers, modifiers);
-                SWC_RESULT(checkStyleRewrite(ctx, source, source, options));
+                SWC_RESULT(FormatRewriteCheck::check(ctx, source, source, options));
 
                 const std::string splitModifiers = std::format("{}\n{}", first, second);
                 const std::string splitSource    = std::format(SOURCE, splitModifiers, splitModifiers);
-                SWC_RESULT(checkStyleRewrite(ctx, splitSource, source, options));
+                SWC_RESULT(FormatRewriteCheck::check(ctx, splitSource, source, options));
             }
         }
     }
@@ -232,7 +219,7 @@ SWC_TEST_BEGIN(FormatStyle_SwagSeparatesAccessBlocks)
 
     FormatOptions options;
     applyFormatStyle(options, FormatNamedStyle::Swag);
-    return checkStyleRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -248,7 +235,7 @@ SWC_TEST_BEGIN(FormatStyle_SwagLeavesLineEndingsAndColumnsAlone)
 
     static constexpr std::string_view SOURCE   = "func foo()\r\n{\r\n    return\r\n}\r\n";
     static constexpr std::string_view EXPECTED = "func foo()\r\n{\r\n    return\r\n}\r\n";
-    return checkStyleRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

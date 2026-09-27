@@ -659,6 +659,8 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCString.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenExprView.h"/>
+        <ClInclude Include="src\Unittest\Format\FormatRewriteCheck.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenParameterReg.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerConstant.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>
@@ -871,6 +873,7 @@
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbols.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h"/>
+        <ClInclude Include="src\Compiler\Sema\Type\TypeGenGenericArg.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\IntrinsicInitType.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeManager.h"/>

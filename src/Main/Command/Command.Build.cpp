@@ -168,19 +168,6 @@ namespace Command
             return runJitScriptFunction(ctx, *setupFn, JITRuntimeSetupMode::None, &flags);
         }
 
-        std::vector<SymbolFunction*> collectPreparedFunctions(const NativeBackendBuilder& builder)
-        {
-            std::vector<SymbolFunction*> result;
-            result.reserve(builder.functionInfos.size());
-            for (const NativeFunctionInfo& info : builder.functionInfos)
-            {
-                if (info.symbol)
-                    result.push_back(info.symbol);
-            }
-
-            return result;
-        }
-
         Result finishScriptBackend(CompilerInstance& compiler)
         {
             TaskContext                   ctx(compiler);
@@ -201,7 +188,7 @@ namespace Command
             {
                 NativeBackendBuilder nativeBuilder(compiler, false);
                 SWC_RESULT(nativeBuilder.prepare());
-                allFunctions               = collectPreparedFunctions(nativeBuilder);
+                allFunctions               = nativeBuilder.collectPreparedFunctions();
                 initFunctions              = std::move(nativeBuilder.initFunctions);
                 preMainFunctions           = std::move(nativeBuilder.preMainFunctions);
                 mainFunctions              = std::move(nativeBuilder.mainFunctions);

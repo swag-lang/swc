@@ -666,12 +666,13 @@ void MicroRegisterAllocationPass::computeLoopDepth()
     // it forms spans [s, p]. Depth is the number of such ranges covering an
     // instruction. Used to rank pin candidates (deeper uses benefit most from
     // staying register-resident).
-    loopDepth_.assign(instructionCount_, 0);
+    loopDepth_.clear();
     functionHasLoop_ = false;
     // The CFG records the same backward edges the depth sweep counts.
     if (!hasControlFlow_ || instructionCount_ == 0 || !controlFlowGraph_->hasLoop())
         return;
 
+    loopDepth_.assign(instructionCount_, 0);
     auto& delta = loopDepthDelta_;
     delta.assign(static_cast<size_t>(instructionCount_) + 1, 0);
     for (uint32_t s = 0; s < instructionCount_; ++s)
@@ -901,11 +902,11 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
 {
     // Guarded calls sit either below a conditional jump to their join, or
     // below a jump over a labeled panic block. Both shapes are presumed cold.
-    if (callPositions_.empty())
+    // With linear control flow every call is hot. An empty table already means
+    // unguarded to the other readers, so avoid zeroing one byte per instruction.
+    if (callPositions_.empty() || !hasControlFlow_ || !instructionCount_)
         return;
     guardedCallPositions_.assign(instructionCount_, 0);
-    if (!hasControlFlow_ || !instructionCount_)
-        return;
 
     uint32_t idx = 0;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
@@ -2311,9 +2312,14 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     nextUsePositionCursor_.assign(virtualRegs.size(), 0);
     nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);
     liveStampByDenseIndex_.assign(virtualRegs.size(), 0);
-    vregsLiveAcrossCall_.assign(virtualRegs.size(), 0);
-    vregsLiveAcrossHotCall_.assign(virtualRegs.size(), 0);
-    callSpillFlags_.assign(virtualRegs.size(), 0);
+    // No call can mark a live-across value or require a call spill. Readers
+    // already interpret an empty array as no such value.
+    if (!callPositions_.empty())
+    {
+        vregsLiveAcrossCall_.assign(virtualRegs.size(), 0);
+        vregsLiveAcrossHotCall_.assign(virtualRegs.size(), 0);
+        callSpillFlags_.assign(virtualRegs.size(), 0);
+    }
     mappedVirtualIndices_.clear();
     mappedVirtualIndices_.reserve(virtualRegs.size());
     currentConcreteLiveOut_.clear();
@@ -3862,11 +3868,16 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // falls back to the full flush.
     boundarySnapshots_.clear();
     fallThroughStateValid_ = true;
-    edgeRegisterHint_.assign(denseVirtualRegs_.regs().size(), MicroReg::invalid());
     keepAcrossBoundaries_ = hasControlFlow_ &&
                             controlFlowGraph_ != nullptr &&
                             !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
                             controlFlowGraph_->supportsDeadCodeLiveness();
+    // Only boundary snapshots produce these hints. Linear and unsupported
+    // functions need no per-virtual-register initialization.
+    if (keepAcrossBoundaries_)
+        edgeRegisterHint_.assign(denseVirtualRegs_.regs().size(), MicroReg::invalid());
+    else
+        edgeRegisterHint_.clear();
 
     // Loop residency needs the same CFG precision the write-back protocol
     // does: a kept register is only sound when every edge into the region is
@@ -4504,7 +4515,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     computeGuardedCallPositions();
     for (const uint32_t idx : callPositions_)
     {
-        if (!guardedCallPositions_[idx])
+        if (guardedCallPositions_.empty() || !guardedCallPositions_[idx])
             hotCallPositions_.push_back(idx);
     }
     analyzeLiveness();

@@ -1457,7 +1457,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             // trampoline for both whenever the branch can be inverted, and
             // keep the plain spot when it cannot.
             bool useTrampoline = !plainOk;
-            if (plainOk && isConditional && !fallThroughPred && (loopDepth_[p] > loopDepth_[s] || edgeMoves.size() >= 2))
+            if (plainOk && isConditional && !fallThroughPred &&
+                ((!loopDepth_.empty() && loopDepth_[p] > loopDepth_[s]) || edgeMoves.size() >= 2))
                 useTrampoline = true;
 
             uint32_t trampJump = std::numeric_limits<uint32_t>::max();

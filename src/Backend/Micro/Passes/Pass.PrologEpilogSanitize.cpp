@@ -773,7 +773,12 @@ namespace
 
         const uint64_t             reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
         SmallVector<MicroInstrRef> order;
-        for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
+        const auto view  = context.instructions->view();
+        auto       it    = view.begin();
+        const auto endIt = view.end();
+        // The body shape below can only start in the first 32 instructions.
+        // Avoid collecting the rest of a function when that prefix cannot match.
+        for (; it != endIt && order.size() < 33; ++it)
             order.push_back(it.current);
         if (order.size() < 12)
             return false;
@@ -814,7 +819,11 @@ namespace
                 break;
             }
         }
-        if (bodyBase == order.size() || bodyBase + 1 >= order.size())
+        if (bodyBase == order.size())
+            return false;
+        for (; it != endIt; ++it)
+            order.push_back(it.current);
+        if (bodyBase + 1 >= order.size())
             return false;
 
         struct Access
@@ -1346,14 +1355,30 @@ namespace
         if (!context.builder)
             return false;
         std::vector<ReturnTail> tails;
+        MicroInstrRef            firstRet       = MicroInstrRef::invalid();
+        bool                     collectedFirst = false;
         for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
         {
             if (it->op != MicroInstrOpcode::Ret)
                 continue;
+            if (firstRet.isInvalid())
+            {
+                firstRet = it.current;
+                continue;
+            }
+            if (!collectedFirst)
+            {
+                ReturnTail firstTail;
+                if (collectReturnTail(context, conv.stackPointer, firstRet, firstTail))
+                    tails.push_back(std::move(firstTail));
+                collectedFirst = true;
+            }
             ReturnTail tail;
             if (collectReturnTail(context, conv.stackPointer, it.current, tail))
                 tails.push_back(std::move(tail));
         }
+        if (tails.size() < 2)
+            return false;
 
         bool                  changed = false;
         std::vector<uint32_t> targetLabels(tails.size(), UINT32_MAX);

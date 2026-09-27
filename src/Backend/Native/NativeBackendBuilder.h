@@ -124,6 +124,18 @@ public:
     Result run();
     Result runExistingArtifact();
     Result prepare();
+    std::vector<SymbolFunction*> collectPreparedFunctions() const
+    {
+        std::vector<SymbolFunction*> result;
+        result.reserve(functionInfos.size());
+        for (const NativeFunctionInfo& info : functionInfos)
+        {
+            if (info.symbol)
+                result.push_back(info.symbol);
+        }
+
+        return result;
+    }
     Result buildObject(uint32_t objIndex);
 
     // Serialises the current object partition into COFF bytes. buildObjects() calls it for a static

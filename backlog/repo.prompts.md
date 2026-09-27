@@ -4,11 +4,13 @@ Seven long-running campaigns, one prompt each, ready to copy into a fresh sessio
 tasks: each one is a target that takes many rounds to reach, and each prompt is written to keep an
 agent working through the rounds instead of stopping at the first thing that does not work.
 
-Each prompt is self-contained. It names the goal, the evidence to collect, the loop to run,
-the rules that must not be broken, and — most importantly — the condition under which the campaign
-is allowed to end. Every number quoted below was measured on this tree and is reproducible with the
-command next to it. Re-measure historical numbers when the campaign needs them; use a fresh
-source inventory for code-quality campaigns.
+Each prompt names the goal, the evidence to collect, the loop to run, the rules that must not be
+broken, and — most importantly — the condition under which the campaign is allowed to end.
+Prompts 2 through 7 use the shared working protocol below; copy-pasting one of them into a fresh
+session works because it explicitly points back to that protocol. Every number quoted below was
+measured on this tree and is reproducible with the command next to it.
+Re-measure historical numbers when the campaign needs them; use a fresh source inventory for
+code-quality campaigns.
 
 | Campaign | Target |
 | --- | --- |
@@ -21,18 +23,77 @@ source inventory for code-quality campaigns.
 | [7. Swag code and API quality](#7-swag-code-and-api-quality) | Make all of `bin/` an exemplary showcase of idiomatic Swag |
 
 Campaigns 4 and 5 constrain each other on purpose: speed must not cost memory, and memory must not
-cost speed. Run them one at a time, and let each one re-measure both numbers before claiming a win.
+cost speed. They may run concurrently in separate worktrees; campaign 5 and the dedicated benchmark
+campaign measure both numbers before claiming a quantitative win.
 Campaign 4 changes compiler work to reduce compilation time; campaign 6 improves the compiler's
 source without changing that work. Assign an idea by its intended result: a faster compiler belongs
 to 4, while a mechanically equivalent cleanup belongs to 6, even when both touch the same file.
 
-Campaign 1 runs directly on `master`. Campaigns 2 through 7 run in their own worktree, never in
-the main checkout; each prompt states its own rule. For the isolated campaigns,
-the worktree is not a formality. A campaign spans many rounds, keeps binaries and measurements
-around, and reverts whole rounds; a shared tree picks up foreign uncommitted edits from other
-sessions, and
-MSBuild's incremental build then links someone else's in-flight code into the binary being
-measured. The failures that produces look exactly like the bug the campaign was chasing.
+### Shared working protocol (prompts 2–7)
+
+Read and follow this entire protocol for any of prompts 2 through 7. Give each campaign its own
+branch and worktree outside the main checkout, from the current `master` commit. Use a unique branch
+name and path when another agent may already run the same campaign. Keep its compiler binary and
+build outputs in that worktree. Use its checkout-local compiler, not a binary from another tree.
+Prefix every campaign commit, including integration commits, with `[prompt N]` for its prompt
+number. Never edit another agent's uncommitted files or worktree.
+
+Start from the relevant existing evidence and make the first useful edit promptly. Do not open a
+campaign with a full baseline build, full test sequence, whole-tree sweep, or complete benchmark.
+Run a starting command only when it is needed to reproduce a specific failure or answer the next
+implementation question. Historical results guide selection; record a fresh baseline alongside a
+later comparison only when that comparison is needed.
+
+Work in coherent code batches. A batch may contain several related edits and local inspections;
+do not rebuild or retest after each edit or failed hypothesis. Inspect the diff and complete the
+batch, then build only the executable needed for that behavior, if one changed, and run the
+smallest focused check that can catch its regression. Rebuild sooner only when the next edit
+depends on current compiler output, generated code, a crash, or a diagnostic. Reverted trials need
+no validation. Follow validate-swag-changes and machine-load admission for every build or test.
+
+Commit each retained, focused-validated batch in its worktree. Integrate the first validated code
+batch into local `master` promptly, then integrate coherent groups at most every four to six
+retained batches and before ending a work session with a validated gain. Include required tests and
+documentation with the code. Bring the worktree up to date with concurrent `master` changes,
+resolve conflicts, and rerun only checks invalidated by the integration. Keep routine observations
+in the final report and update backlog at useful milestones; never merge a notes-only batch.
+
+Rotate an unrelated focused check every few retained batches when it exercises a meaningful path.
+Run broad suites, cross-configuration checks, whole-tree sweeps, and full measurements about every
+five retained batches, after a change whose risk specifically calls for them, and before a final
+claim that depends on them. They are not gates for every low-risk batch or intermediate merge. A
+focused failure must be reduced and fixed before retention; do not carry a known regression into
+`master`.
+When optional validation or measurement is delayed by machine load, continue source investigation
+or the next independent edit instead of waiting through repeated admission rounds.
+
+Keep `SWC_BUILD_NUM` unchanged for ordinary compiler changes. Isolate or clear affected caches
+when an older binary's artifacts would make validation unsafe. Keep temporary logs and probes
+outside the checkout, and use the checkout-local compiler with the repository worker cap.
+
+Several agents may run different campaigns at once.
+Before each integration, inspect current `master`, incorporate its committed changes into the
+campaign branch, and rerun the focused checks affected by the combined code. A new `master` commit
+may change the behavior being tested; checks run against the combined revision provide additional
+cross-campaign coverage. Do not treat a prior green test on an older revision as evidence for a
+later combined revision when its inputs changed. Admit concurrent builds and tests separately from
+measured machine load; isolated worktrees do not isolate CPU or memory.
+
+Fix every concrete defect, failing test, regression, broken consumer, or incorrect contract found
+during the campaign, regardless of which prompt or agent introduced it. Reduce it, repair its root
+cause in the discovering campaign's worktree, add focused regression coverage, and integrate the
+repair into `master` promptly. If another agent already integrated the same repair, incorporate it
+and verify the affected check instead of duplicating the change. Tell the other agent which
+cross-campaign failure was found and which commit fixes it when communication is available. Do not
+mark a defect as pre-existing, unrelated, outside campaign scope, or merely record it in backlog
+or the final report. A failed optimization idea with no defect can simply be reverted. A genuine
+external blocker must be described precisely; it does not make the campaign complete. Campaign
+specific restrictions on planned improvements do not prevent a focused defect repair, including
+the compiler executable and tests needed to validate that repair.
+
+Campaign 1 runs directly on `master`. Campaigns 2 through 7 follow the shared protocol in separate
+worktrees. A shared tree picks up foreign uncommitted edits, and MSBuild can then link another
+agent's in-flight code into the binary being validated.
 
 ---
 
@@ -329,58 +390,22 @@ when every end condition above is true.
 ## 2. Generated-code performance
 
 ```
-Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 2].
-
-Only integrate validated code or API gains into local master. Include tests and required docs with
-the gain; keep routine observations in the final report and update backlog at useful milestones.
-Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
-
-Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
-affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
+Read and follow the shared working protocol for prompts 2–7 in backlog/repo.prompts.md.
 
 You are running a long optimization campaign on the swc backend. Read AGENTS.md and the skills it
 points to first, then backlog/compiler.core.md, backlog/compiler.optimization.md, and bench/README.md.
 
-WORK IN A SEPARATE WORKTREE; INTEGRATE VERIFIED GAINS
-
-Do not run this campaign in the main checkout. Create an isolated worktree on a branch:
-
-  git worktree add -b generated-code-performance ../swc-perf HEAD
-
-The separate tree keeps each generated-code comparison tied to one known compiler revision. A
-shared tree picks up foreign uncommitted edits from other sessions, and MSBuild can link that
-in-flight code into the compiler being inspected. It also lets you abandon a whole
-round with one checkout instead of unpicking it, which you will do often here. Keep each successful
-optimization in a reviewable commit and integrate coherent groups of validated gains into local
-master. Integrate concurrent master changes before merging; resolve conflicts and rerun the affected
-checks. Do not leave completed gains permanently only in the worktree.
-
 START OPTIMIZING IN THE FIRST HALF HOUR
 
-Build the compiler in the worktree and go straight to THE LOOP. Nothing comes before your first
-change. The entry point of this campaign is one comparison: what the fastest other language for a
+Go straight to THE LOOP and make the first change before building the compiler in the worktree.
+The entry point of this campaign is one comparison: what the fastest other language for a
 task does in its hot loop against what we emit for the same loop. Use the latest accepted full
 campaign to identify that language and its exact runtime or toolchain; do not assume it is C++ or
 LLVM. Inspect its generated code when available, then ours. This needs a compiler and focused
 inspection, not a validated tree.
 
-Do NOT open with a baseline test ladder or a baseline bench campaign. Both are hours of machine
-time spent answering a question you do not have yet, and the emitted code answers the question you
-do have for free. Before your first change specifically:
-
-  - Do not run tests.swgs, in any configuration.
-  - Do not record a bench campaign.
-  - Do not build measurement harnesses, per-configuration sweeps, or sentinels for failures you
-    have not seen.
-
-Validation is triggered by having something to validate; RULES says what to run then. Timing is a
-later milestone: record its baseline in the same session as the campaign it is compared with, not
-before the work starts.
-
-If a validation rung fails, stop the optimization loop, reduce the failure, and fix its root cause
-before continuing. This includes failures that predate the current change: an earlier campaign may
-have missed them. Add appropriate regression coverage and rerun the affected checks. Do not leave
-a known test failure open or dismiss it as pre-existing.
+Timing is a later milestone: record its baseline in the same session as the campaign it is
+compared with. Inspect emitted code to choose the first change.
 
 GOAL
 
@@ -448,19 +473,14 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      data flow, aliasing, loop structure, and estimated work saved. Do not encode benchmark
      names, their exact constants, or thresholds chosen solely to fit one example. Check at
      least one unrelated input that has the same structure and one that must remain unchanged.
-  4. Re-dump and re-count the same loops. This is the inner loop of the campaign and it costs
-     seconds - one build, one count. Iterate here, not on the clock. Compare per loop and never on
-     a total: an outer loop's span contains its inner loops, so a saving inside one shows up as a
-     loss outside it.
-  5. Validate correctness once the counts say the change is real, not before. Run the focused test
-     that exercises the changed behavior, then draw one additional test at random from a different
-     area. Use a different additional test for each batch: draw without replacement until the pool
-     is exhausted, then reshuffle. Record the draw and both results. Select the smallest relevant
-     compiler configuration using validate-swag-changes. Run a broad regression campaign roughly
-     every five validated batches, and sooner when a shared boundary or a failure calls for it;
-     include the appropriate DevMode, configuration, Release, and script coverage there. Do not
-     run the full suite after every small optimization. A checksum mismatch in bench means you
-     measured nothing.
+  4. Group related edits into a coherent batch, then rebuild and re-dump the affected loops once
+     when the result is ready to inspect. Rebuild earlier only when that output determines the next
+     edit. Compare per loop and never on a total: an outer loop's span contains its inner loops,
+     so a saving inside one shows up as a loss outside it.
+  5. Validate correctness once the batch shows a real static gain. Use the focused test and
+     compiler configuration that exercise the changed mechanism. At broad milestones, include the
+     appropriate DevMode, configuration, Release, and script coverage for backend behavior. A
+     checksum mismatch in bench means the run measured nothing.
   6. Judge the change against the winning implementation's efficient mechanism using static code
      evidence. Record per-hot-loop instruction and memory-operation counts, branch structure,
      dependency chains, spills, and relevant opcodes before and after, beside the winner's loop
@@ -481,10 +501,6 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      swc tools\bench.swgs --label "what changed". When comparing elapsed time, record its baseline
      in the same session. A full benchmark is not a prerequisite for merging a statically proven
      improvement.
-  9. Commit each validated code gain in the worktree. Integrate a coherent group of those gains
-     into local master after its checks pass, then bring the worktree branch up to date. Preserve
-     unrelated changes on master; do not merge progress notes by themselves.
-
 Between some batches, audit an existing micro pass or backend decision, even if the current task
 does not use it. Inspect its guards and thresholds, identify the general property that justifies
 them, and compare an unrelated input with the same property against one that lacks it. Rework a
@@ -511,10 +527,8 @@ does not end it either.
 
 RULES
 
-  - Correctness first, always. Each batch needs its focused test and a rotating random test from
-    another area before merge. Run the broader regression campaign periodically, and before
-    trusting a full benchmark record. A pass that miscompiles under the JIT but passes unit tests
-    is a known failure mode; include swc tools/scripts.swgs dm when the change can affect it.
+  - A pass that miscompiles under the JIT but passes unit tests is a known failure mode; include
+    swc tools/scripts.swgs dm when the change can affect it.
   - Generated-code quality outranks compile time in this campaign. A backend optimization that
     works is never reverted because it costs compile time: generating better code legitimately
     takes longer, and campaign 4 is where compile time is bought back. Report compile cost when it
@@ -544,38 +558,21 @@ been run, naming the fastest non-Swag runtime for each task.
 ## 3. Safety without annotations
 
 ```
-Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 3].
-
-Only integrate validated code or API gains into local master. Include tests and required docs with
-the gain; keep routine observations in the final report and update backlog at useful milestones.
-Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
-
-Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
-affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
+Read and follow the shared working protocol for prompts 2–7 in backlog/repo.prompts.md.
 
 You are running a long campaign on Swag's safety guarantees. Read AGENTS.md and the skills it
 points to first, then backlog/compiler.safety.md, backlog/compiler.core.md, and the language
 reference page bin/reference/modules/language/src/013_004_borrowing.swg, which states what the
 language currently guarantees.
 
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
-
-  git worktree add --detach ../swc-safety HEAD
-
-A new check reshapes what the whole tree compiles to, and you will revert entire rounds. An
-isolated tree makes that one checkout, and it keeps foreign uncommitted edits from other sessions
-out of the binary you are sweeping with - otherwise a hit you are triaging may come from someone
-else's in-flight code rather than from your check.
-
-Know the trap that comes WITH a worktree, because it has already cost a session: a scratch module
+Know the test-resolution trap: a scratch module
 compiled with swc test -d <dir> resolves swag@std OUTSIDE the worktree, so it silently measures the
 main checkout's standard library rather than yours. Any probe of behavior that crosses a module
 boundary has to live in bin/unittests inside the worktree.
 
-Before the first change, build and run the full test sequence AT BASELINE in the new worktree and
-record the result. Any failure there is pre-existing, not yours.
+Use the latest accepted green campaign as the starting correctness reference. Begin with the
+smallest positive and negative tests for the first selected rule; do not run a full baseline suite
+before editing.
 
 GOAL
 
@@ -609,28 +606,30 @@ do not preserve this summary after an entry moves or is retired.
 
 THE LOOP
 
-For each check, in this order, and do not skip step 1:
+For each coherent batch of related checks, in this order, and do not skip step 1:
 
   1. Write the tests first, both halves. The positives that MUST fire, in bin/unittests/sanity,
      and - this is the half that decides whether the check is usable - the negatives that must
      stay SILENT: an interface or pointer to the value itself, a method that only reads or assigns
      fields, a view rebound after the container grew, a container of views whose owner outlives
      them. A check with no negative tests is a check that will be turned off.
-  2. Implement the smallest analysis that passes both halves.
-  3. Sweep the whole tree for false positives, and mean the whole tree: swc tools/build.swgs,
-     swc tools/std.swgs, swc tools/apps.swgs, swc tools/examples.swgs, swc tools/reference.swgs. The baseline is zero
-     hits. Every workspace being clean today proves nothing, because nothing fires - the sweep only
-     becomes evidence once the check works.
-     A 'build' sweep is HALF a sweep: it never compiles the '#test' bodies, and a quarter of the
-     standard library's interesting code lives there (Array's self-append test is where the first
-     false positive of the invalidation check turned up, long after build.swgs came back clean).
-     Sweep with 'test' as well, or just run swc tools/tests.swgs dm and read its first failure.
+  2. Implement the smallest analysis for the batch. Inspect related edits together, then build
+     once and run the focused positive and negative tests. Rebuild sooner only when the next edit
+     depends on the compiler's actual verdict.
+  3. Exercise one affected consumer early when the rule crosses a module boundary. At a milestone
+     after several retained batches, after a rule with unusually broad reach, and before claiming
+     the rule works across the repository, sweep the whole tree for false positives: swc
+     tools/build.swgs, swc tools/std.swgs, swc tools/apps.swgs, swc tools/examples.swgs, and swc
+     tools/reference.swgs. Include test bodies: a build-only sweep misses them, including the
+     standard-library cases that have exposed false positives. A clean sweep becomes evidence only
+     after the check is proved to fire.
   4. Triage every hit, one at a time, into exactly one of two buckets: a real defect in bin/ (fix
      it, it is a genuine find) or a false positive (fix the analysis). There is no third bucket.
   5. Never silence a false positive by narrowing the check until it stops firing. That is how a
      check ends up complete and useless, firing on nothing. If a shape genuinely cannot be judged,
      say so as a finding and leave the check firing on what it can prove.
-  6. swc tools/tests.swgs dm, then --all-cfg, then the Release sequence.
+  6. Before claiming a new always-on guarantee across the tree, run the relevant DevMode,
+     configuration, and Release sequences and confirm both firing cases and clean consumers.
 
 DO NOT STOP AT THE FIRST FAILURE
 
@@ -640,9 +639,11 @@ expect at least one shape that needs a piece of information sema does not curren
 that happens, the answer is usually to extend the summary that already crosses module boundaries
 (#[Swag.BorrowSummary]), not to give up on the shape.
 
-A round ends when its class is caught, the whole tree is clean, and what the language guarantees is
-written down in the reference. It does not end because a check was noisy, because one shape needed
-information that was not there, or because a sweep came back with hits.
+A campaign milestone ends when the retained classes are caught, the whole tree is clean, and what
+the language guarantees is written down in the reference. An individual batch needs focused
+evidence and can be integrated before that milestone. The campaign does not end because a check was
+noisy, because one shape needed information that was not there, or because a sweep came back with
+hits.
 
 RULES
 
@@ -679,42 +680,25 @@ could read.
 ## 4. Compilation speed
 
 ```
-Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 4].
+Read and follow the shared working protocol for prompts 2–7 in backlog/repo.prompts.md.
 
-Only integrate validated compiler gains into local master. Include tests and required docs with
-the gain; keep routine observations in the final report and update backlog at useful milestones.
-Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
-
-Keep `SWC_BUILD_NUM` at its current value throughout routine optimization iterations. Isolate or
-clear affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
+This is a code-iteration campaign for statically proven compiler savings. Its measurement rule
+overrides the shared protocol's optional measurement milestones for planned speed work: do not run
+an initial baseline, `bench/compile.py`, A/B timings, a profiler, or a four-workload check, including
+at milestones or before integration. The dedicated benchmark campaign owns elapsed-time, CPU and
+peak-memory measurements. If a change needs timing to establish that it saves work, discard it and
+try a change whose saving can be proved from the code.
 
 You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first,
 then compiler.core.004, compiler.core.030 and compiler.core.056 in backlog/compiler.core.md and
 compiler.optimization.029, compiler.optimization.039 and compiler.optimization.045 in
-backlog/compiler.optimization.md. The last two carry the 2026-09-23 measurements and, as important,
-the approaches that were tried there and measured as worth nothing.
-
-The hello-world target below predates the runtime's growth: bin/runtime went from 5 260 to 8 629
-lines between August and September and a hello world pays for all of it, which is compiler.core.030
-rather than a compiler regression. Re-measure the four workloads before trusting any number here.
-
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
-
-  git worktree add --detach ../swc-speed HEAD
-
-Keep experiments isolated so another session's files cannot enter the measured compiler. Make
-small code changes and finish or discard each one promptly. Do not spend a work session collecting
-logs, rewriting reports, or running broad tests while only one code hypothesis has been tried.
+backlog/compiler.optimization.md. Use their existing profiles to choose a costly internal path and
+their rejected experiments to avoid repeating work. Start editing compiler code after this review.
 
 RELEASE COMPILER ONLY
 
-Build, validate and measure only the Release compiler, `bin/swc.exe`. Do not build, invoke or run a
-campaign through `bin/swc.dm.exe`; DevMode compiler behavior and timing are outside this campaign.
-Before the first change, rebuild `swc.exe` from source and record a baseline for the four workloads.
-Use an existing recent green Release campaign as the correctness baseline. Run the complete Release
-suite only at a spaced milestone, after a high-risk change, or before the final integration.
+Build and validate planned speed work only with the Release compiler, `bin/swc.exe`.
+Use an existing recent green Release campaign as the correctness reference.
 
 GOAL
 
@@ -732,7 +716,7 @@ produce equivalent output. A cache or pipeline change belongs to another campaig
 improves one of the edit-loop numbers below.
 
 Targets, all on this machine. The readings below are from 2026-09-23 with Release 0.1.1056 and
-six workers; refresh the baseline once before the first edit:
+six workers; they are context for the dedicated benchmark campaign:
 
   - std/core rebuild (360 files): 2.63 s. Target under 1.0 s.
   - Warm no-op build of the same: 50 ms. Guardrail under 100 ms; not an optimization target here.
@@ -747,102 +731,79 @@ For context on where the bar already is, from campaign 20260806-174758: swc buil
 in 93-132 ms against clang-cl's 481-647 ms and rustc's 425-585 ms. This campaign is not about
 beating them. It is about the loop a person actually sits in.
 
-START BY VERIFYING THE INSTRUMENT
+STRUCTURAL EVIDENCE
 
-Check the instrument once before the first edit; this is compiler.core.004 in backlog/compiler.core.md.
-
-Verify that a full core rebuild, warm no-op, one-file-touched rebuild and hello-world linked build
-all run through `bin/swc.exe` and record wall, process CPU and peak working set. The dedicated full
-benchmark campaign owns durable `history.json`; do not update that history during experiments.
-
-Use `bench/compile.py --swc bin/swc.exe --swc-cores 6 --admit --only core_rebuild` when a
-performance question needs measurement. Add `core_touch` or hello when the changed path could
-affect them. Run all four workloads at spaced milestones, not after each small optimization.
-
-Use external profilers for per-stage investigation. Do not add optional counters, allocation
-tracking, or profiling-only branches to the compiler: the benchmark campaign owns stable wall-time
-and peak-working-set measurements, while focused external traces answer transient questions.
-
-For parallelism work, record one-worker and capped multi-worker wall/CPU measurements on the same
-clean workload. Name the serial fraction or contended primitive before changing it, and require
-better scaling rather than merely shifting work between threads. Never exceed the repository's
-per-process worker cap or the measured machine-load admission rules.
+Use existing profiles to choose a path, then establish each saving from code: fewer traversals,
+calls, allocations, lookups, or synchronization steps for equivalent inputs and output. Do not add
+profiling-only branches to the compiler. Leave uncertain timing, scaling, CPU, and peak-memory
+tradeoffs to the dedicated benchmark campaign. Keep its durable `history.json` untouched here.
 
 THE LOOP — PRIORITIZE CODE ITERATIONS
 
   1. Use a recent profile to select one costly internal stage. Give one concrete hypothesis and a
      predicted effect; spend minutes, not hours, on investigation before the first edit.
-  2. Make the smallest code change and rebuild Release. If code inspection proves equivalent
-     output with fewer calls, traversals, allocations or synchronization steps, retain that
-     structural saving after focused correctness validation. Do not time every such change or
-     demand a standalone measurable gain. For an uncertain tradeoff, screen with one or two
-     admitted runs of the affected workload; reject a clear loss and try the next hypothesis.
-  3. Measure accumulated changes at spaced milestones, about every four to six retained batches,
-     and promptly when a change may trade CPU, memory or generated-code quality. Use
-     order-alternated A/B rounds for percentage claims and judge wall, process CPU and peak memory
-     together. An effect below the measurement floor is compatible with a proven small saving;
-     do not turn noisy timings into a requirement for every edit.
-  4. Before retaining code, run the smallest focused Release-compiler test that exercises it.
-     Rotate one random test from another area every few retained batches, and run a broader Release
-     suite about every five retained batches, after a high-risk change, and at the final milestone.
-     Follow validate-swag-changes and machine-load admission. Do not run a full suite after each
-     small edit or after a reverted trial. Do not build the DevMode compiler.
-  5. Commit each retained code batch with `[prompt 4]` in its subject. Integrate a coherent group
-     of validated gains into local `master` after its checks pass. Keep failed experiments in the
-     worktree only; summarize their reason briefly so the same dead end is not retried.
+  2. Group related edits into a coherent code batch. Inspect the final diff for equivalent output
+     and a clear reduction in compiler work, then rebuild Release once for the batch. Rebuild
+     earlier only when compiler output determines the next edit. Discard an uncertain tradeoff
+     rather than timing it in this campaign.
+  3. Retain a structurally proven saving after its focused correctness check. Record the operation
+     removed without assigning a percentage or claiming a measured speedup. At a milestone,
+     review accumulated changes for hidden CPU, memory, and generated-code tradeoffs; send any
+     change that needs measurement to its owning campaign.
+  4. Before retaining a speed batch, use a focused Release-compiler check that exercises it.
+     Broader Release checks follow the shared milestone and risk rules.
+  5. Keep failed experiments out of retained batches; summarize their reason briefly so the same
+     dead end is not retried.
 
 Aim for several distinct code hypotheses per work session. If most elapsed time is going to tests,
-report writing or log collection, shorten the validation to the next decision boundary and return
-to code. Keep raw benchmark and test logs outside the repository; commit source changes and only a
-concise evidence summary for retained work.
+report writing or log collection, stop the optional work and return to code.
 
 OPTIMIZE THE COMPILER, IN THIS ORDER OF EVIDENCE
 
-Choose the next item from the hottest measured internal compiler cost, not from this list's order:
+Choose the next item from existing profiles and structural evidence, not from this list's order:
 
   1. Lexer and parser: byte/token scanning, source traversal, token storage, hashing, allocation,
      repeated decoding and syntax-tree construction.
   2. Semantic analysis: symbol and type lookup, overload/generic work, substitute chains, repeated
      AST walks, compile-time dependency discovery and JIT preparation.
   3. Scheduling and synchronization: job granularity, queues, wakeups, barriers, mutex/RW-lock
-     contention, false sharing and serial critical paths. Demonstrate scaling at several worker
-     counts and preserve deterministic compiler behavior.
+     contention, false sharing and serial critical paths. Preserve deterministic compiler behavior;
+     leave changes whose benefit requires scaling measurements to the benchmark campaign.
   4. Lowering and backend: `CodeGenJob`, Micro construction, SSA construction, pass-manager
      convergence, repeated analyses, optimizer data structures, register allocation, instruction
      selection, encoding and object construction.
   5. Allocation and locality inside those phases: reuse capacity, shrink hot records, release
-     phase-local storage and replace pointer-heavy structures only when a profile attributes the
-     cost. Reject memory wins that cost CPU and CPU wins that materially regress peak memory.
+     phase-local storage and replace pointer-heavy structures when existing evidence attributes
+     the cost. Defer uncertain memory/CPU trades to the benchmark campaign.
 
 Optimize algorithms and implementation, not generated program quality. If a backend change alters
-emitted code, prove the code is equivalent and benchmark generated-code quality separately before
-accepting the compile-time gain.
+emitted code, prove the code is equivalent and use static generated-code inspection; defer any
+uncertain quality tradeoff to campaign 2.
 
 DO NOT STOP AT THE FIRST FAILURE
 
 Compiler hot paths are mature, so many valid improvements will land below the noise floor. Retain
 a correctness-certified change when its mechanical proof shows less compiler work. Accumulate
-these small savings and check aggregate performance at milestones. Label an unmeasured saving as
-structural, without a percentage claim. Revert speculative rewrites, unjustified complexity, and
-clear regressions quickly, then try the next idea.
+these small savings and leave aggregate timing to the benchmark campaign. Label an unmeasured
+saving as structural, without a percentage claim. Revert speculative rewrites and unjustified
+complexity quickly, then try the next idea.
 
-The campaign ends when the compiler-speed targets are met and both guardrail workloads remain
-green. It does not end because one internal optimization avenue turned out to be harder than it
-looked.
+The campaign can claim its structural work complete when no concrete statically provable compiler
+saving remains. The speed targets and guardrail workloads are judged by the dedicated benchmark
+campaign; report them as unverified here. One difficult optimization avenue does not end this one.
 
 RULES
 
-  - Never trade correctness for speed. Every retained code batch passes its focused boundary;
-    rotating random tests and broad Release campaigns run at spaced milestones.
-  - Never trade generated-code quality for compile speed without measuring both. Run bench.
-  - Never trade memory for speed without measuring both - campaign 5 owns that number and a
-    regression there is a regression here.
-  - A single run may reject an idea but cannot establish a speedup. Use alternated medians for claims.
+  - Never trade correctness for speed.
+  - Preserve generated-code quality by static inspection; leave uncertain tradeoffs to campaign 2.
+  - Preserve memory behavior where code inspection can prove it; leave uncertain tradeoffs to the
+    dedicated benchmark campaign.
+  - Do not make quantitative speed or memory claims from structural evidence alone.
 
 REPORT
 
-After each retained batch, give the changed code and its measured or structural effect in a short
-summary. At a milestone, report the four targets versus current readings, memory and tests. Report
+After each retained batch, give the changed code and its structural effect in a short summary. At
+a milestone, report retained batches and tests; quote historical targets only as context. Report
 rejected ideas in a sentence each. Do not commit raw logs or long chronological notes.
 ```
 
@@ -851,33 +812,15 @@ rejected ideas in a sentence each. Do not commit raw logs or long chronological 
 ## 5. Compiler memory
 
 ```
-Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 5].
-
-Only integrate validated code or API gains into local master. Include tests and required docs with
-the gain; keep routine observations in the final report and update backlog at useful milestones.
-Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
-
-Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
-affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
+Read and follow the shared working protocol for prompts 2–7 in backlog/repo.prompts.md.
 
 You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
 backlog/compiler.core.md compiler.core.005.
 
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
-
-  git worktree add --detach ../swc-memory HEAD
-
-Peak working set is the number this campaign lives on, and it is contaminated by anything else
-happening in the tree or on the machine: foreign uncommitted edits linked in by MSBuild's
-incremental build change what the compiler allocates, and a second build running concurrently
-changes what the OS reports. You will also free things early and crash the compiler on purpose -
-that belongs in a tree nobody else is standing in.
-
-Before the first change, build and run the full test sequence AT BASELINE in the new worktree, and
-record baseline peak memory AND wall time for every workload there. Both, always, from the start:
-the constraint of this campaign is that one moves and the other does not.
+Use the last accepted memory and compile-time measurements as context. Start with the highest
+attributed memory cost and edit before launching a full test or benchmark campaign. When a retained
+batch needs a quantitative comparison, measure its affected workload against a fresh baseline in
+the same session, recording peak working set and wall time together.
 
 GOAL
 
@@ -904,12 +847,13 @@ Targets:
   - Bench task builds at or below clang-cl's 69 MB.
   - Compile time unchanged, measured, not assumed.
 
-START BY MAKING THE NUMBER ATTRIBUTABLE
+MAKE THE NUMBER ATTRIBUTABLE WHEN CHOOSING A LEVER
 
 There is no per-subsystem memory accounting today - only an OS peak. The split between AST, types,
-symbols, constants and Micro is currently UNKNOWN. Capture that split with an external heap
-profiler against the exact campaign workload; do not add per-allocation tracking or optional
-profiling branches to the compiler. Then attack what the trace shows, not what it seemed like.
+symbols, constants and Micro is currently UNKNOWN. Use existing traces first. Capture the split
+with an external heap profiler against one affected workload only when existing evidence cannot
+identify the next lever; do not add per-allocation tracking or optional profiling branches to the
+compiler.
 
 TWO SUSPECTS WORTH CHECKING EARLY
 
@@ -920,18 +864,23 @@ Both are already written down and neither is confirmed:
   - Per-function Micro state is retained for the whole module rather than freed as each function
     finishes.
 
-Confirm or kill each with the accounting before writing a fix.
+Inspect the relevant ownership and lifetime code before changing either. Use focused accounting
+when source inspection cannot establish which one matters.
 
 THE LOOP
 
-  1. Measure peak and the per-subsystem split on the target workload.
-  2. Name the largest attributable block and why it is alive at peak.
-  3. Free it earlier, store it smaller, or do not build it at all - in that order of preference.
+  1. Choose an attributable block from existing evidence; use one focused profile only if needed
+     to distinguish candidate blocks. Name why it remains alive at peak.
+  2. Group related lifetime or representation edits into one coherent batch. Free the block
+     earlier, store it smaller, or do not build it at all - in that order of preference.
      "Do not build it" is usually the real answer and usually the one that gets skipped.
-  4. Re-measure peak AND wall time. A memory win that costs speed is not a win here; the whole
-     constraint of this campaign is that both hold.
-  5. swc tools/tests.swgs dm, --all-cfg, Release sequence.
-  6. Record both numbers in the campaign history.
+  3. Build once when the batch is ready, then run its smallest focused correctness check. Fix any
+     failure before retaining it; do not run the full compiler sequence for each small edit.
+  4. Measure peak AND wall time on the affected workload when the batch's benefit or speed cost
+     cannot be established from source. Compare with a baseline from the same measurement session.
+     A memory win that costs speed is not a win here.
+  5. At a measurement milestone, compare DevMode, Release, and the affected workloads as needed
+     for a quantitative campaign claim; record peak memory and wall time together.
 
 DO NOT STOP AT THE FIRST FAILURE
 
@@ -950,11 +899,13 @@ smaller than expected.
 RULES
 
   - Peak working set is the number, not allocations or bytes requested.
-  - Compile time is a hard constraint. Measure it every round, medians over order-alternated runs.
+  - Compile time is a hard constraint. Measure it alongside memory when judging a retained memory
+    gain, using order-alternated medians for quantitative claims rather than timing every edit.
   - The runtime allocator's arenas are never returned to the OS by design. Understand that before
     reading any peak: a fix that only reduces allocation churn may not move the peak at all.
-  - Coordinate with campaign 4 lever 4: the parallel module scheduler multiplies peak memory by
-    the number of concurrent modules, so this campaign gates that one.
+  - Coordinate with campaign 4 on the parallel module scheduler: it multiplies peak memory by the
+    number of concurrent modules. Its structural changes may run concurrently with this campaign;
+    evaluate the combined revision at the next measurement milestone.
 
 REPORT
 
@@ -967,14 +918,7 @@ workload - always both, so a trade is visible the moment it happens.
 ## 6. Compiler code health
 
 ```
-Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 6].
-
-Only integrate validated code or API gains into local master. Include tests and required docs with
-the gain; keep routine observations in the final report and update backlog at useful milestones.
-Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
-
-Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
-affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
+Read and follow the shared working protocol for prompts 2–7 in backlog/repo.prompts.md.
 
 You are running a mechanical code-health campaign on the swc compiler itself. Read AGENTS.md and
 the skills it points to first, especially modify-swag-codebase,
@@ -982,17 +926,8 @@ modify-swag-codebase/references/cpp-coding-rules.md, and validate-swag-changes. 
 implementation campaign, not an audit, but its safety boundary is absolute: make only changes whose
 semantic equivalence can be established directly from the source. If a proposed improvement needs
 design judgment, changes a contract, or carries any plausible regression risk, leave it unchanged
-and report it as outside this campaign.
-
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Record the starting commit and status, then create
-an isolated branch and worktree from that exact commit:
-
-  git worktree add -b codex/compiler-code-health ../swc-compiler-code-health HEAD
-
-Never copy uncommitted changes from the main checkout into it. Keep temporary reports outside every
-checkout, as required by modify-swag-codebase, and keep generated output out of the final diff.
+and report it as an unattempted design idea. A concrete defect discovered while inspecting or
+validating the source still follows the shared repair rule.
 
 SCOPE
 
@@ -1006,7 +941,8 @@ examples, tests, reference pages, applications, and standard modules. The compil
 which sample happens to exercise it. Keep bin/ paths in test fixtures, repository tools, and
 documentation that actually operate on those workspaces; replace compiler-side special cases with
 the existing general contract only when source inspection proves equivalent behavior. If a path
-is part of a user-visible default or another contract, report it for separate work.
+is part of a user-visible default or another contract, leave that mechanical cleanup untouched;
+repair an actual broken contract under the shared defect rule.
 
 Remove references to the x64 encoder from compiler code outside the backend areas that own x64
 instruction selection, encoding, and their direct integration. Keep target-specific details at
@@ -1045,7 +981,7 @@ The campaign covers these mechanical improvements:
     copies are not textually identical, unify them on the strictest behavior any copy has: an
     assertion present in one and absent from another is kept. That is a deliberate behavioral
     change, so validate it and say so in the report; if the assertion then fires, it has found a
-    real defect and you reduce and report that separately.
+    real defect and you fix it in a separate focused repair batch.
   - Simplification: simplify control flow, expressions, local initialization, and helper structure
     only when evaluation order, conversions, overflow behavior, lifetime, ownership, allocation,
     synchronization, and generated code remain unchanged.
@@ -1066,8 +1002,9 @@ Preserve observable behavior exactly. In particular, do not change algorithms, p
 contracts, object layout, data-member order, virtual dispatch, ownership, allocation count or
 arena, locking, atomics, exception behavior, error propagation, evaluation order, integer or
 floating-point semantics, generated machine code intentionally selected by the implementation, or
-hot-path work. Do not fix a behavioral defect as part of this campaign: reduce and report it for a
-separate change with its own regression test.
+hot-path work. A behavioral defect discovered during the campaign is handled as a separate focused
+repair batch under the shared protocol, with its own regression test; it is not disguised as a
+mechanical cleanup.
 
 Introducing a shared helper, a new member on the owning type, or a new leaf header in order to
 delete a duplicate is expected work, not an abstraction to be avoided; only invent one that no call
@@ -1104,50 +1041,26 @@ THE LOOP — PRIORITIZE CODE ITERATIONS
   2. Make the smallest complete edit. Add direct includes to real users before removing a
      transitive include. Keep lightweight types by value; do not hide real layout dependencies.
      Search for all exact references and update them in the same batch.
-  3. Inspect the diff immediately. Reject unrelated formatting, line-ending churn, reordered code,
-     or an edit whose safety depends on an assumption not visible in the source. Admit and run a
-     small incremental DevMode recompile promptly after each executable source batch. For a
-     comment-only edit in a broadly included header or definition table, use static diff checks
-     instead of rebuilding most of the compiler. Fix or revert a failed edit before starting
-     another; do not accumulate uncompiled executable changes.
-  4. Run the smallest focused test when the batch changes code that a test can meaningfully
-     exercise. Include-only and project-entry batches can stop at the recompile or project-file
-     check; comment-only batches can stop at a static diff check. Rotate a targeted test from
-     another affected area every few retained batches; run a broader relevant suite at spaced
-     milestones, after a risky shared-header or
-     cross-subsystem change, and before final integration. Follow validate-swag-changes and load
-     admission before each build and test. Do not run a broad suite after every small edit or a
-     reverted trial.
-  5. Commit each retained, validated batch with `[prompt 6]` in its subject. Integrate a coherent
-     group into local master after its checks pass. Keep routine observations in the final report.
+  3. Inspect the completed batch's diff. Reject unrelated formatting, line-ending churn,
+     reordered code, or an edit whose safety depends on an assumption not visible in the source.
+  4. Choose the evidence for the changed surface: an incremental DevMode build for executable
+     compiler changes, a project-file parse for entry changes, or a static diff check for comments.
+     Use a focused test when moved or refactored behavior has a meaningful test seam. Broader
+     checks follow the shared milestone and risk rules.
+  5. Retain only changes whose equivalence argument remains clear after review.
 
 Aim for several distinct code hypotheses per work session. Keep batches small and reviewable and
 return to code promptly after the next decision boundary. The campaign may be broad in aggregate,
 but each transformation must remain locally obvious.
 
-VERSION AND VALIDATION
+EVIDENCE
 
-Keep SWC_BUILD_NUM unchanged for this campaign. Before every compiler build or project test,
-follow the machine-load admission and compiler worker limits in modify-swag-codebase. A separate
-worktree does not provide separate machine resources.
+Also build Release when a mechanical batch crosses compiler architecture, shared headers,
+conditional compilation, or source sets. Do not run performance measurements for a purely
+mechanical cleanup; if an edit needs benchmarking to establish equivalence, it is outside this
+campaign's mechanical work.
 
-Select validation from the final diff using validate-swag-changes:
-
-  - Parse the Visual Studio project files after changing their entries or filters.
-  - Rebuild DevMode incrementally after each executable source batch, and ensure the final
-    executable source batch has a green build. Recheck after integration when merged source
-    differs from the validated worktree.
-  - Also build Release when the campaign crosses compiler architecture, shared headers, conditional
-    compilation, or source sets; otherwise do not add Release by habit.
-  - Run the focused C++ or compiler suite boundaries that exercise code moved or mechanically
-    refactored. Add broader relevant tests at spaced milestones. Include-only and comment-only
-    batches do not justify unrelated behavioral suites.
-  - Do not run performance measurements for a purely mechanical cleanup. The campaign is invalid
-    if an edit needs benchmarking to establish that it is safe.
-
-After the last edit, run git diff --check, inspect git status including ignored test outputs, verify
-that every new header is present in the project and filters, and remove temporary material. Detect
-and restore files whose only change is line endings.
+Verify that every new header is present in the project and filters.
 
 THE CAMPAIGN MAY END ONLY WHEN
 
@@ -1163,11 +1076,11 @@ THE CAMPAIGN MAY END ONLY WHEN
   - No incomplete rename, stale reference, obsolete project entry, new suppression, generated file,
     vendored edit, line-ending-only change, or misplaced output remains.
   - The validation selected from the final diff is green after the last source edit.
-  - SWC_BUILD_NUM remains at its starting value and the worktree contains only the intended
-    code-health changes.
+  - Mechanical batches contain only the intended code-health changes; defect repairs are separate
+    focused batches.
 
-Do not claim completion for findings deliberately left outside the safety boundary. They are not
-failures of this campaign; list them separately without implementing them. Duplication is not one
+Do not claim completion for design ideas deliberately left outside the mechanical boundary. Those
+are unattempted ideas, not encountered defects. Duplication is not one
 of them: a surviving copy is a failure of this campaign unless a contract, a layout, or a
 behavioral difference genuinely blocks it, and the report must name which.
 
@@ -1184,14 +1097,7 @@ result. Report structural dependency counts when useful, but no timing or memory
 ## 7. Swag code and API quality
 
 ```
-Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 7].
-
-Only integrate validated code or API gains into local master. Include tests and required docs with
-the gain; keep routine observations in the final report and update backlog at useful milestones.
-Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
-
-Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
-affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
+Read and follow the shared working protocol for prompts 2–7 in backlog/repo.prompts.md.
 
 You are running a repository-wide Swag code and API quality campaign across bin/. Read AGENTS.md,
 then the skills modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code,
@@ -1210,17 +1116,6 @@ Quality is judged by correctness, clarity, consistency, useful API completeness,
 caller actually writes. Shorter code is valuable when it expresses the same intent more clearly;
 line count and use of the newest syntax are not goals of their own.
 
-WORK IN A SEPARATE WORKTREE
-
-Record the starting commit and status, then create an isolated branch and worktree:
-
-  git worktree add -b codex/bin-quality ../swc-bin-quality HEAD
-
-Do all campaign work there. Preserve unrelated local changes and do not copy uncommitted changes
-from the main checkout. Use the worktree's bin/swc.dm.exe or bin/swc.exe explicitly so its runtime
-and standard library are the ones being validated. Follow machine-load admission before every
-build and test, and cap both tool compilation and child compiler invocations at six workers.
-
 COVER ALL OF BIN/
 
 Inventory the actual tree, including every project-owned .swg and .swgs source, module descriptor,
@@ -1228,7 +1123,7 @@ and public API. Cover runtime, every standard module, every application, example
 scripts, executable language-reference pages, compiler suites, module tests, and test helpers.
 Discover additional directories from the tree instead of treating this list as exhaustive.
 
-Keep a coverage table under the ignored .tmp directory with each area, reviewed files and API
+Keep a coverage table outside the checkout with each area, reviewed files and API
 families, findings, retained changes, validation, and remaining work. Every project-owned source
 must receive a semantic review; a pattern search or formatter pass alone is not review. Inspect
 public declarations together with implementations, documentation, tests, and representative callers.
@@ -1297,14 +1192,11 @@ THE LOOP
 IMPROVE THE PLATFORM WHEN IT GETS IN THE WAY
 
 When idiomatic Swag is awkward because of a library defect, compiler defect, or missing language
-capability, investigate the cause. Fix understood, relevant platform defects with their focused
-regression coverage; do not spread local workarounds across bin/. Keep SWC_BUILD_NUM at its current
-value for ordinary compiler edits; surface syntax changes require reference and editor updates.
-
-For an unresolved design decision or a defect that needs separate investigation, search the whole
-backlog, then update or create the owning domain entry with concrete evidence and a next action.
-Keep the finding visible in the coverage table. Recording a defect does not make that area perfect
-or the campaign complete; report the exact remaining limitation.
+capability, investigate the cause. Fix discovered defects with focused regression coverage under
+the shared protocol; do not spread local workarounds across bin/. Surface syntax changes require
+reference and editor updates. If a missing capability requires a design decision, keep that
+separate from a concrete defect and do not claim the affected area is complete until the decision
+and implementation are resolved.
 
 THE CAMPAIGN MAY END ONLY WHEN
 

@@ -35,10 +35,10 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-27 18:45 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-27 18:13 |
 | [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-27 18:11 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-27 18:09 |
-| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-27 18:08 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:06 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-27 17:52 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-27 17:52 |

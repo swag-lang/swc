@@ -51,15 +51,17 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 ### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
 
 - Recorded: 2026-08-20 08:56
-- Updated: 2026-09-27 22:58 — recognize one fixed-bound XOR reduction; retain the general loop work.
+- Updated: 2026-09-27 23:45 — widen the exact XOR reduction to eight words when profitable.
 - Evidence: the registered pass is basic-block SLP (`Pass.SlpVectorize`), with no general
   loop-reduction vectorizer or runtime-versioned alias/tail pipeline. `Pass.LoopUnroll` now recognizes
   a straight-line, fixed-bound indexed 32-bit load plus index and XOR reduction when the bound is
-  divisible by four. It keeps four 32-bit lanes and reduces them once after the loop. The 4,194,304-word
-  ChaCha checksum loop changes from a scalar load/add/XOR per word to a packed load/add/XOR per four
-  words, and retains checksum 633277775 under `--validate-micro`. C++ regression covers a divisible
-  bound, a nondivisible bound, and a scalar temporary read after the loop; 1,148 C++, 3,483 native
-  Release, and 1,500 JIT Release tests pass.
+  divisible by four. For a bound of at least 128 divisible by eight, it uses two packed loads and
+  independent XOR accumulators. The 4,194,304-word ChaCha checksum loop changes from seven issued
+  instructions per four words to eleven per eight, with no loop spills; its checksum remains
+  633277775 under `--validate-micro`. C++ regression covers four- and eight-word groups, a
+  nondivisible bound, and a scalar temporary read after the loop. The 1,148 C++, 3,483 native
+  Release, and 1,500 JIT Release tests pass. The other six benchmark tasks retain their selected
+  optimized function counts under `--validate-micro`.
 - Intent: add loop vectorization that recognizes associative reductions, versions alias/alignment
   checks, and generate masked or peeled tails using the explicit SIMD operation set.
 - Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the

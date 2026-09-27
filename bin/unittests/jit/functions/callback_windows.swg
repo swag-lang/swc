@@ -4,6 +4,7 @@
 alias HANDLE     = const [*] void
 alias DWORD      = u32
 alias BOOL       = s32
+#[Swag.CallingConvention(.C)]
 alias ThreadProc = func(*void)->DWORD
 
 const WAIT_OBJECT_0 = 0'u32
@@ -22,6 +23,7 @@ struct CallbackData
     observed: u64
 }
 
+#[Swag.CallingConvention(.C)]
 func threadCallback(param: *void)->DWORD
 {
     let data = cast(*CallbackData) param

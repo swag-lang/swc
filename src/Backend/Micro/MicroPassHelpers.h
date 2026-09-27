@@ -96,6 +96,7 @@ namespace MicroPassHelpers
         WithUseDefs,
         LiveOutOnly,
         DeadDefs,
+        DeadDefsBeforePrologue,
     };
 
     struct MicroPhysLiveness

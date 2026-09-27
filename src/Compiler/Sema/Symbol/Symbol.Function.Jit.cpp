@@ -150,17 +150,18 @@ namespace
     void emitLoadIncomingArg(MicroBuilder& builder, const CallConv& callConv, std::span<const ABICall::ArgLayout> argLayouts, uint32_t slotIndex, MicroReg dstReg, const ABITypeNormalize::NormalizedType& normalizedType)
     {
         const MicroOpBits argBits = adapterArgBits(normalizedType);
-        if (callConv.canPassArgInRegister(slotIndex, normalizedType.isFloat))
+        const uint32_t regIndex = ABICall::argumentRegisterIndex(callConv, argLayouts, slotIndex);
+        if (regIndex != UINT32_MAX)
         {
             if (normalizedType.isFloat)
             {
-                SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
-                builder.emitLoadRegReg(dstReg, callConv.floatArgRegs[slotIndex], argBits);
+                SWC_ASSERT(regIndex < callConv.floatArgRegs.size());
+                builder.emitLoadRegReg(dstReg, callConv.floatArgRegs[regIndex], argBits);
             }
             else
             {
-                SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
-                builder.emitLoadRegReg(dstReg, callConv.intArgRegs[slotIndex], argBits);
+                SWC_ASSERT(regIndex < callConv.intArgRegs.size());
+                builder.emitLoadRegReg(dstReg, callConv.intArgRegs[regIndex], argBits);
             }
 
             return;

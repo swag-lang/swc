@@ -113,6 +113,7 @@ private:
 
     // Post-RA optimization passes
     std::unique_ptr<MicroPostRaPeepholePass>     postRaPeepholePass_;
+    std::unique_ptr<MicroPostRaDeadCodeElimPass> prePrologueDcePass_;
     std::unique_ptr<MicroPostRaDeadCodeElimPass> postRaDeadCodeElimPass_;
     std::unique_ptr<MicroPostRaLoopRotatePass>   postRaLoopRotatePass_;
     std::unique_ptr<MicroPostRaLoopHoistPass>    postRaLoopHoistPass_;

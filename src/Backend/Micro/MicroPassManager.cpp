@@ -515,6 +515,7 @@ MicroPassManager::MicroPassManager()
 
     // Post-RA optimization passes
     postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
+    prePrologueDcePass_     = std::make_unique<MicroPostRaDeadCodeElimPass>(true);
     postRaDeadCodeElimPass_ = std::make_unique<MicroPostRaDeadCodeElimPass>();
     postRaLoopRotatePass_   = std::make_unique<MicroPostRaLoopRotatePass>();
     postRaLoopHoistPass_    = std::make_unique<MicroPostRaLoopHoistPass>();
@@ -704,6 +705,15 @@ Result MicroPassManager::run(MicroPassContext& context) const
     const uint32_t         raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
     const LoopPassSettings raSettings{.maxIterations = raMaxIterations, .name = "ra-legalize-loop"};
     SWC_RESULT(runLoopPasses(context, raLoopPasses_, raSettings, verifyCache));
+
+    if (!postRaOptimPasses_.empty() && !postRaSetupPasses_.empty())
+    {
+        for (uint32_t iteration = 0; iteration < 2; ++iteration)
+        {
+            SWC_RESULT(runPass(context, *postRaPeepholePass_, verifyCache));
+            SWC_RESULT(runPass(context, *prePrologueDcePass_, verifyCache));
+        }
+    }
 
     SWC_RESULT(runLinearPasses(context, postRaSetupPasses_, verifyCache));
 

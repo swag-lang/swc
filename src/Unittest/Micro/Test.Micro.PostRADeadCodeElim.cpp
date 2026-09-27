@@ -13,15 +13,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRaDeadCodeElimPass(MicroBuilder& builder, bool returnsValue = true)
+    Result runPostRaDeadCodeElimPass(MicroBuilder& builder, bool returnsValue = true, bool beforePrologue = false,
+                                    CallConvKind callConvKind = CallConvKind::Swag)
     {
-        MicroPostRaDeadCodeElimPass pass;
+        MicroPostRaDeadCodeElimPass pass(beforePrologue);
         MicroPassManager            passManager;
         passManager.addStartPass(pass);
 
         builder.setRetUsesAbiRegs(returnsValue, returnsValue);
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
+        passContext.callConvKind = callConvKind;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 }
@@ -48,6 +49,27 @@ SWC_TEST_BEGIN(PostRADeadCodeElim_PreservesAbiLiveOut)
     }
     if (builder.instructions().ptr(deadDefinition))
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRADeadCodeElim_BeforePrologueRemovesUnusedPersistentDefinitions)
+{
+    for (const CallConvKind kind : {CallConvKind::Swag, CallConvKind::C})
+    {
+        const CallConv& conv = CallConv::get(kind);
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(conv.intPersistentRegs[0], ApInt(7, 64), MicroOpBits::B64);
+        const auto deadDefinition = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegImm(conv.intPersistentRegs[1], ApInt(9, 64), MicroOpBits::B64);
+        const auto liveDefinition = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegReg(conv.intReturn, conv.intPersistentRegs[1], MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaDeadCodeElimPass(builder, true, true, kind));
+        if (builder.instructions().ptr(deadDefinition) || !builder.instructions().ptr(liveDefinition))
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

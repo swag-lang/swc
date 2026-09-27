@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Sanitizer/Sanitizer.h"
 #include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -596,11 +597,23 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
     if (fn.hasInterfaceMethodSlot())
         ++abiIndex;
 
-    const ABITypeNormalize::NormalizedType paramType = ABITypeNormalize::normalize(ctx(), callConv, params[paramIndex]->typeRef(), ABITypeNormalize::Usage::Argument);
-    if (paramType.isFloat || abiIndex >= callConv.intArgRegs.size() || !callConv.canPassArgInRegister(static_cast<uint32_t>(abiIndex), false))
+    SmallVector<ABICall::ArgLayout> argLayouts;
+    argLayouts.resize(params.size() + abiIndex - paramIndex);
+    for (size_t i = 0; i < params.size(); ++i)
+    {
+        if (!params[i])
+            return false;
+        const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(ctx(), callConv, params[i]->typeRef(), ABITypeNormalize::Usage::Argument);
+        argLayouts[i + abiIndex - paramIndex] = {.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat};
+    }
+
+    if (argLayouts[abiIndex].isFloat)
         return false;
 
-    outReg = callConv.intArgRegs[abiIndex];
+    const uint32_t regIndex = ABICall::argumentRegisterIndex(callConv, argLayouts, static_cast<uint32_t>(abiIndex));
+    if (regIndex == UINT32_MAX)
+        return false;
+    outReg = callConv.intArgRegs[regIndex];
     return true;
 }
 

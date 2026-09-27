@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
+#include "Backend/ABI/ABICall.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -31,7 +32,7 @@
 //       allocator-owned spills above its unused prefix without moving ABI
 //       argument slots.
 //
-//   reserveBodyCallShadow
+//   reserveBodyCallFrame
 //       Keeps one ABI call area below a local frame's saved stack base, then
 //       restores the original stack address before the final argument frame.
 //
@@ -751,17 +752,16 @@ namespace
         return true;
     }
 
-    // A local frame based on a saved copy of rsp can keep the ABI shadow
+    // A local frame based on a saved copy of rsp can keep a call frame
     // permanently below that copy. Calls in the body then need no per-call
     // sub/add pair. A later argument frame gives the reserve back before its
     // own contents are addressed, so its rsp and the epilogue stay unchanged.
-    bool reserveBodyCallShadow(const MicroPassContext& context, const CallConv& conv)
+    bool reserveBodyCallFrame(const MicroPassContext& context, const CallConv& conv)
     {
-        if (!context.encoder || conv.stackShadowSpace != 32 || conv.stackAlignment != 16 ||
-            !conv.framePointer.isValid())
+        if (!context.encoder || conv.stackAlignment != 16 || !conv.framePointer.isValid())
             return false;
 
-        constexpr uint64_t K_RESERVE = 40;
+        const uint64_t reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
         SmallVector<MicroInstrRef> order;
         for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
             order.push_back(it.current);
@@ -794,7 +794,7 @@ namespace
             const MicroInstr* next = get(i + 1);
             const MicroInstrOperand* nextOps = opsAt(i + 1);
             if (sawFramePointer && inst && isStackAdjustWithOp(*inst, ops, conv.stackPointer, MicroOp::Subtract, adjust) &&
-                adjust >= K_RESERVE && adjust <= INT32_MAX - K_RESERVE && adjust % conv.stackAlignment == 0 &&
+                adjust >= reserve && adjust <= INT32_MAX - reserve && adjust % conv.stackAlignment == 0 &&
                 next && next->op == MicroInstrOpcode::LoadRegReg &&
                 nextOps && nextOps[1].reg == conv.stackPointer && nextOps[0].reg != conv.framePointer &&
                 nextOps[0].reg.isInt() && nextOps[2].opBits == MicroOpBits::B64)
@@ -847,9 +847,9 @@ namespace
                     tailSubtract += adjust;
                     continue;
                 }
-                if (adjust != K_RESERVE)
+                if (adjust != reserve)
                 {
-                    if (adjust <= K_RESERVE)
+                    if (adjust <= reserve)
                         return false;
                     tailStart = i;
                     tailSubtract = adjust;
@@ -867,7 +867,7 @@ namespace
                     uint64_t releaseAmount = 0;
                     if (step && isStackAdjustWithOp(*step, stepOps, conv.stackPointer, MicroOp::Add, releaseAmount))
                     {
-                        if (releaseAmount == K_RESERVE && sawCall)
+                        if (releaseAmount == reserve && sawCall)
                             break;
                         return false;
                     }
@@ -927,7 +927,7 @@ namespace
                     return false;
                 MicroInstrOperand candidate[4];
                 std::copy_n(ops, 4, candidate);
-                candidate[def.memOffsetOperandIndex].valueU64 += K_RESERVE;
+                candidate[def.memOffsetOperandIndex].valueU64 += reserve;
                 if (MicroPassHelpers::violatesEncoderConformance(context, *inst, candidate))
                     return false;
                 accesses.push_back({order[i], def.memOffsetOperandIndex, candidate[def.memOffsetOperandIndex].valueU64});
@@ -947,7 +947,7 @@ namespace
         const MicroInstrOperand* tailOps = opsAt(tailStart);
         MicroInstrOperand tailCandidate[4];
         std::copy_n(tailOps, 4, tailCandidate);
-        tailCandidate[3].setImmediateValue(ApInt(tailOps[3].valueU64 - K_RESERVE, 64));
+        tailCandidate[3].setImmediateValue(ApInt(tailOps[3].valueU64 - reserve, 64));
         if (MicroPassHelpers::violatesEncoderConformance(context, *tail, tailCandidate))
             return false;
 
@@ -961,7 +961,7 @@ namespace
         reserveOps[0].reg = conv.stackPointer;
         reserveOps[1].opBits = MicroOpBits::B64;
         reserveOps[2].microOp = MicroOp::Subtract;
-        reserveOps[3].setImmediateValue(ApInt(K_RESERVE, 64));
+        reserveOps[3].setImmediateValue(ApInt(reserve, 64));
         context.instructions->insertSyntheticBefore(*context.operands, order[bodyBase + 1], MicroInstrOpcode::OpBinaryRegImm, reserveOps);
         return true;
     }
@@ -1382,11 +1382,11 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedUnusedSaves        = eraseUnusedRegisterSaves(context, conv);
     const bool      changedUnusedFrame        = eraseUnusedStackFrame(context, conv);
     const bool      changedCompactFrame       = compactUnusedStackPrefix(context, conv);
-    const bool      changedReservedCallShadow = reserveBodyCallShadow(context, conv);
+    const bool      changedReservedCallFrame  = reserveBodyCallFrame(context, conv);
     const bool      changedLoopCallFrame       = hoistLoopCallFrame(context, conv);
     const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
     const bool      changedReturnTails        = shareIdenticalReturnTails(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallShadow || changedLoopCallFrame || changedReturnTails;
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallFrame || changedLoopCallFrame || changedReturnTails;
     context.passChanged                       = changed;
     return Result::Continue;
 }

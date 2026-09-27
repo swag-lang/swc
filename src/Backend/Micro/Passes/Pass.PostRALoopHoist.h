@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// Hoists a loop-invariant spill reload out of its loop.
+// Hoists loop-invariant spill reloads and persistent argument copies.
 //
 // The register allocator hands every value a whole-function register or none at
 // all, ranked by how much it earns per unit of the register-time it occupies. A
@@ -19,6 +19,9 @@ SWC_BEGIN_NAMESPACE();
 // on bench/: the same loops compiled inside a small function already come out
 // with no memory operations at all, so this closes a gap the code generator
 // only has in large functions.
+// Persistent floating-point argument registers can also carry values across
+// calls. Moving invariant copies into the loop preheader avoids repeating
+// their setup on every iteration.
 class MicroPostRaLoopHoistPass final : public MicroPass
 {
 public:

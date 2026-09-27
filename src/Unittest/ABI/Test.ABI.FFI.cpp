@@ -84,6 +84,40 @@ SWC_TEST_BEGIN(ABI_AddressedNarrowIntegerHomeUsesNarrowLoad)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ABI_SwagUsesIndependentArgumentBanksWithoutShadowSpace)
+{
+    const CallConv& swag = CallConv::swag();
+    const std::array<ABICall::ArgLayout, 9> args = {{{64, true}, {64, true}, {64, true}, {64, false}, {64, false}, {64, false}, {64, false}, {64, false}, {64, false}}};
+
+    if (swag.stackShadowSpace != 0 || swag.intArgRegs.size() != 6 || swag.floatArgRegs.size() != 6)
+        return Result::Error;
+    for (uint32_t i = 0; i < args.size(); ++i)
+    {
+        const uint32_t expected = i < 3 ? i : i - 3;
+        if (ABICall::argumentRegisterIndex(swag, args, i) != expected)
+            return Result::Error;
+    }
+    if (ABICall::computeCallStackAdjust(CallConvKind::Swag, args) != 8)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SwagStackArgumentsFollowRegisterExhaustion)
+{
+    const CallConv& swag = CallConv::swag();
+    const std::array<ABICall::ArgLayout, 16> args = {{{64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {128, true}, {64, false}, {64, true}}};
+
+    if (ABICall::argumentRegisterIndex(swag, args, 12) != UINT32_MAX || ABICall::argumentRegisterIndex(swag, args, 13) != UINT32_MAX)
+        return Result::Error;
+    if (ABICall::callArgStackOffset(swag, args, 12) != 0 || ABICall::callArgStackOffset(swag, args, 13) != 16 || ABICall::callArgStackOffset(swag, args, 14) != 32 || ABICall::callArgStackOffset(swag, args, 15) != 40)
+        return Result::Error;
+    if (ABICall::computeCallStackAdjust(CallConvKind::Swag, args) != 56)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 namespace
 {
     // The only instruction a builder holds, or nullptr.
@@ -221,9 +255,9 @@ SWC_TEST_BEGIN(ABI_SwagSimdArgsUseExtendedRegistersThenWideStackSlots)
     const CallConv&                         swag       = CallConv::swag();
     const std::array<ABICall::ArgLayout, 8> argLayouts = {{{128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}}};
 
-    if (!swag.canPassArgInRegister(4, true) || !swag.canPassArgInRegister(5, true))
+    if (ABICall::argumentRegisterIndex(swag, argLayouts, 4) != 4 || ABICall::argumentRegisterIndex(swag, argLayouts, 5) != 5)
         return Result::Error;
-    if (swag.canPassArgInRegister(6, true))
+    if (ABICall::argumentRegisterIndex(swag, argLayouts, 6) != UINT32_MAX)
         return Result::Error;
     if (ABICall::callArgStackOffset(swag, argLayouts, 6) != swag.stackShadowSpace)
         return Result::Error;
@@ -514,9 +548,7 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 }
 SWC_TEST_END()
 
-// A Swag function pointer stored into a native callback slot is called with the native
-// convention, so the Swag convention must classify every argument shape the same way the
-// native one does. Only the caller-side defensive copy of large aggregates may differ.
+// Value classification for the current small aggregate widths is shared by both conventions.
 SWC_TEST_BEGIN(ABI_SwagStructArgPassingMatchesNative)
 {
     const CallConv& swag = CallConv::swag();
@@ -553,8 +585,8 @@ namespace
         int32_t y;
     };
 
-    // Cover both interop directions through raw function pointers. The fifth float occupies
-    // a native stack slot, including when a Swag function value points at a native method.
+    // The native harness calls C-entry functions; their function-pointer parameters and
+    // table entries also use C so the test exercises both native interop directions.
     Result runSwagFunctionValueInterop(const TaskContext& ctx, std::string_view buildCfg)
     {
         static constexpr std::string_view SOURCE     = R"(#global private
@@ -584,16 +616,32 @@ struct Triple
     c: u64
 }
 
+#[Swag.CallingConvention(.C)]
+alias NativePairReg = func(u64, Pair, u64)->u64
+#[Swag.CallingConvention(.C)]
+alias NativePairStack = func(u64, u64, u64, u64, Pair)->u64
+#[Swag.CallingConvention(.C)]
+alias NativeTinyReg = func(u64, Tiny)->u64
+#[Swag.CallingConvention(.C)]
+alias NativeDragEnter = func(u64, u64, u32, PtL, *u32)->s32
+#[Swag.CallingConvention(.C)]
+alias NativeTripleCallback = func(Triple)->u64
+#[Swag.CallingConvention(.C)]
+alias NativeLargeOutbound = func(NativeTripleCallback)->u64
+
+#[Swag.CallingConvention(.C)]
 func probePairReg(a: u64, p: Pair, b: u64)->u64
 {
     return a * 1000000 + cast(u64) p.x * 1000 + cast(u64) p.y + b
 }
 
+#[Swag.CallingConvention(.C)]
 func probePairStack(a: u64, b: u64, c: u64, d: u64, p: Pair)->u64
 {
     return a + b + c + d + cast(u64) p.x * 3 + cast(u64) p.y
 }
 
+#[Swag.CallingConvention(.C)]
 func probeTinyReg(a: u64, t: Tiny)->u64
 {
     return a + cast(u64) t.a * 100 + cast(u64) t.b
@@ -601,13 +649,15 @@ func probeTinyReg(a: u64, t: Tiny)->u64
 
 // The exact shape of IDropTarget.DragEnter/Drop: the aggregate rides the fourth register
 // slot and a pointer argument follows on the stack.
+#[Swag.CallingConvention(.C)]
 func probeDragEnter(itf: u64, dataObj: u64, keyState: u32, pt: PtL, effect: *u32)->s32
 {
     effect[] = cast(u32) (pt.x + pt.y) + keyState
     return cast(s32) (itf + dataObj) + pt.x * 1000 + pt.y
 }
 
-func probeLargeOutbound(target: func(Triple)->u64)->u64
+#[Swag.CallingConvention(.C)]
+func probeLargeOutbound(target: NativeTripleCallback)->u64
 {
     var value: Triple = {a: 10, b: 20, c: 30}
     let original = &value
@@ -624,6 +674,7 @@ func probeFloatInbound(a: u64, b: u64, c: u64, d: u64, ratio: f32, tail: u64)->u
     return a == 11 and b == 22 and c == 33 and d == 44 and ratio == 2.0'f32 and tail == 55 ? 12345 : 0
 }
 
+#[Swag.CallingConvention(.C)]
 func probeFloatOutbound(target: NativeFloatCallback)->u64
 {
     return target(11, 22, 33, 44, 2.0'f32, 55)
@@ -632,22 +683,27 @@ func probeFloatOutbound(target: NativeFloatCallback)->u64
 #[Swag.CallingConvention(.C)]
 struct NativeFloatVtbl
 {
-    invoke: func(u64, u64, u64, u64, f32, u64)->u64
+    invoke: NativeFloatCallback
 }
 
+#[Swag.CallingConvention(.C)]
 func probeFloatVtbl(vtbl: *NativeFloatVtbl)->u64
 {
     return vtbl.invoke(11, 22, 33, 44, 2.0'f32, 55)
 }
 
-var GProbePairReg: func(u64, Pair, u64)->u64 = &probePairReg
-var GProbePairStack: func(u64, u64, u64, u64, Pair)->u64 = &probePairStack
-var GProbeTinyReg: func(u64, Tiny)->u64 = &probeTinyReg
-var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
-var GProbeLargeOutbound: func(func(Triple)->u64)->u64 = &probeLargeOutbound
+var GProbePairReg: NativePairReg = &probePairReg
+var GProbePairStack: NativePairStack = &probePairStack
+var GProbeTinyReg: NativeTinyReg = &probeTinyReg
+var GProbeDragEnter: NativeDragEnter = &probeDragEnter
+var GProbeLargeOutbound: NativeLargeOutbound = &probeLargeOutbound
 var GProbeFloatInbound: NativeFloatCallback = &probeFloatInbound
-var GProbeFloatOutbound: func(NativeFloatCallback)->u64 = &probeFloatOutbound
-var GProbeFloatVtbl: func(*NativeFloatVtbl)->u64 = &probeFloatVtbl
+#[Swag.CallingConvention(.C)]
+alias NativeFloatOutbound = func(NativeFloatCallback)->u64
+#[Swag.CallingConvention(.C)]
+alias NativeFloatVtblProbe = func(*NativeFloatVtbl)->u64
+var GProbeFloatOutbound: NativeFloatOutbound = &probeFloatOutbound
+var GProbeFloatVtbl: NativeFloatVtblProbe = &probeFloatVtbl
 )";
         const fs::path                    sourcePath = Unittest::makeTestSourcePath("ABI", std::format("CallSwagFunctionValueInterop_{}", buildCfg));
 

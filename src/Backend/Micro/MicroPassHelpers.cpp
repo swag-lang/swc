@@ -702,7 +702,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
 
     auto& scratch = graphWalkScratch();
     const bool retainUseDefs = mode == MicroPhysLivenessMode::WithUseDefs;
-    const bool recordDeadDefs = mode == MicroPhysLivenessMode::DeadDefs;
+    const bool recordDeadDefs = mode == MicroPhysLivenessMode::DeadDefs || mode == MicroPhysLivenessMode::DeadDefsBeforePrologue;
     if (retainUseDefs)
         out.useDefs.resize(instCount);
     else
@@ -783,10 +783,13 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         exitLiveOut |= maskOf(conv.floatReturn);
     exitLiveOut |= maskOf(conv.stackPointer);
     exitLiveOut |= maskOf(conv.framePointer);
-    for (const MicroReg reg : conv.intPersistentRegs)
-        exitLiveOut |= maskOf(reg);
-    for (const MicroReg reg : conv.floatPersistentRegs)
-        exitLiveOut |= maskOf(reg);
+    if (mode != MicroPhysLivenessMode::DeadDefsBeforePrologue)
+    {
+        for (const MicroReg reg : conv.intPersistentRegs)
+            exitLiveOut |= maskOf(reg);
+        for (const MicroReg reg : conv.floatPersistentRegs)
+            exitLiveOut |= maskOf(reg);
+    }
 
     out.liveIn.assign(instCount, 0);
     // Every node enters the worklist below. Its live-out is overwritten on

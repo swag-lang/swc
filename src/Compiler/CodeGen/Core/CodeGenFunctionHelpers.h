@@ -21,6 +21,7 @@ namespace CodeGenFunctionHelpers
     struct FunctionParameterInfo
     {
         uint32_t    slotIndex         = 0;
+        uint32_t    registerIndex     = UINT32_MAX;
         uint64_t    stackOffset       = 0;
         MicroOpBits opBits            = MicroOpBits::Zero;
         bool        isFloat           = false;

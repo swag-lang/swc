@@ -491,7 +491,9 @@ namespace
             table.clear();
             rewrites.clear();
             valueAliases.clear();
-            epochAt.assign(instructionCount, 0);
+            // The source-order walk writes each entry before a later label
+            // reads that instruction's epoch as its predecessor.
+            epochAt.resize(instructionCount);
         }
     };
 
@@ -578,7 +580,10 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         const MicroInstrRef instRef = instrRefs[i];
         const MicroInstr*   inst    = storage.ptr(instRef);
         if (!inst)
+        {
+            epochAt[i] = 0;
             continue;
+        }
 
         if (inst->op == MicroInstrOpcode::Label && cfg.predecessors(i).size() == 1 && cfg.predecessors(i)[0] < i)
             memoryEpoch = epochAt[cfg.predecessors(i)[0]];

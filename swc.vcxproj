@@ -828,6 +828,7 @@
         <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaAccess.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaCallArgument.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>

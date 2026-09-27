@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -402,21 +403,6 @@ namespace
         return ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
     }
 
-    bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)
-    {
-        const AstNode& argNode = sema.node(argRef);
-        if (!argNode.is(AstNodeId::CompilerCodeBlock))
-            return false;
-
-        const AstNodeRef bodyRef = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
-        if (bodyRef.isInvalid())
-            return false;
-        if (!sema.node(bodyRef).is(AstNodeId::EmbeddedBlock))
-            return false;
-
-        return sema.node(bodyRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
-    }
-
     bool allowsImplicitAddressBinding(const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef ufcsArg)
     {
         if (ufcsArg.isValid() && paramIndex == 0)
@@ -656,7 +642,7 @@ namespace
                 continue;
             }
 
-            if (isImplicitTrailingCodeBlockArg(sema, argRef) &&
+            if (SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argRef) &&
                 numParams > 0 &&
                 params.back()->type(sema.ctx()).isCodeBlock() &&
                 !outMapping.paramArgs.back().argRef.isValid())
@@ -1736,7 +1722,7 @@ namespace
             }
 
             // The concrete signature validates a trailing implicit code block, including aliases.
-            if (isImplicitTrailingCodeBlockArg(sema, argRef))
+            if (SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argRef))
                 continue;
             if (seenNamed)
             {

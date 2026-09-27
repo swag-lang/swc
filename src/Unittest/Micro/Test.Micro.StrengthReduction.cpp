@@ -54,22 +54,6 @@ namespace
         return 0;
     }
 
-    uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op)
-    {
-        const MicroOperandStorage& operands = builder.operands();
-        uint32_t                   count    = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
-                continue;
-            const MicroInstrOperand* ops = inst.ops(operands);
-            if (ops && ops[3].microOp == op)
-                ++count;
-        }
-
-        return count;
-    }
-
     uint32_t countBinaryRegImmOp(const MicroBuilder& builder, MicroOp op)
     {
         const MicroOperandStorage& operands = builder.operands();
@@ -234,7 +218,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedDivideMagicNoFixup)
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 0)
         return Result::Error;
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 1)
         return Result::Error;
     if (!hasLoadRegImmValue(builder, 0xCCCCCCCCCCCCCCCDull))
         return Result::Error;
@@ -259,7 +243,7 @@ SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideUsesWideProduct)
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 0)
         return Result::Error;
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1)
         return Result::Error;
     if (!hasLoadRegImmValue(builder, 0xCCCCCCCDull) || !hasBinaryRegImm(builder, MicroOp::ShiftRight, 35))
         return Result::Error;
@@ -280,8 +264,8 @@ SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideFixupUsesWideProduct)
 
     SWC_RESULT(runStrengthReductionPass(builder));
 
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1 ||
-        countBinaryRegRegOp(builder, MicroOp::Subtract) != 1 || !hasBinaryRegImm(builder, MicroOp::ShiftRight, 32))
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1 ||
+        Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Subtract) != 1 || !hasBinaryRegImm(builder, MicroOp::ShiftRight, 32))
         return Result::Error;
 
     return Result::Continue;
@@ -301,11 +285,11 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedDivideMagicFixup)
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 0)
         return Result::Error;
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 1)
         return Result::Error;
-    if (countBinaryRegRegOp(builder, MicroOp::Subtract) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Subtract) != 1)
         return Result::Error;
-    if (countBinaryRegRegOp(builder, MicroOp::Add) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 1)
         return Result::Error;
 
     return Result::Continue;
@@ -373,7 +357,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivideMagic)
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideSigned) != 0)
         return Result::Error;
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighSigned) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighSigned) != 1)
         return Result::Error;
 
     return Result::Continue;
@@ -391,7 +375,7 @@ SWC_TEST_BEGIN(StrengthReduction_DwordSignedDivideUsesWideProduct)
 
     SWC_RESULT(runStrengthReductionPass(builder));
 
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighSigned) != 0 || countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighSigned) != 0 || Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadSignedExtRegReg) != 1)
         return Result::Error;
@@ -417,7 +401,7 @@ SWC_TEST_BEGIN(StrengthReduction_DwordRemainderEqualityBecomesDivisibilityTest)
 
     SWC_RESULT(runStrengthReductionPass(builder));
 
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || !hasBinaryRegImm(builder, MicroOp::RotateRight, 2))
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || !hasBinaryRegImm(builder, MicroOp::RotateRight, 2))
         return Result::Error;
     for (const MicroInstr& inst : builder.instructions().view())
     {
@@ -471,7 +455,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedModuloMagic)
 
     if (countBinaryRegImmOp(builder, MicroOp::ModuloUnsigned) != 0)
         return Result::Error;
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 1)
+    if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 1)
         return Result::Error;
     if (!hasBinaryRegImm(builder, MicroOp::MultiplySigned, 10))
         return Result::Error;

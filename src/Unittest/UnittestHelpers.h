@@ -25,6 +25,7 @@ namespace Backend::Unittest
     Result assertNoVirtualRegs(MicroBuilder& builder);
     // How many times an opcode occurs in what the builder has emitted so far.
     uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode);
+    uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op);
 }
 
 #endif

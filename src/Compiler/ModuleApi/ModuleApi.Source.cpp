@@ -29,22 +29,7 @@ namespace
         if (srcView.token(openTokRef).id != TokenId::SymLeftParen)
             return TokenRef::invalid();
 
-        uint32_t parenBalance = 0;
-        for (uint32_t tokIndex = openTokRef.get(); tokIndex < srcView.tokens().size(); ++tokIndex)
-        {
-            const TokenId tokenId = srcView.token(TokenRef(tokIndex)).id;
-            if (tokenId == TokenId::SymLeftParen)
-                parenBalance++;
-            else if (tokenId == TokenId::SymRightParen)
-            {
-                SWC_ASSERT(parenBalance != 0);
-                parenBalance--;
-                if (!parenBalance)
-                    return TokenRef(tokIndex);
-            }
-        }
-
-        return TokenRef::invalid();
+        return ModuleApi::matchingModuleApiDelimiter(srcView, openTokRef, TokenId::SymLeftParen, TokenId::SymRightParen);
     }
 
     TokenRef moduleApiFunctionBodyEndTokRef(const Ast& ast, const AstFunctionDecl& functionDecl)
@@ -75,22 +60,8 @@ namespace
         if (srcView.token(bodyStartTokRef).id != TokenId::SymLeftCurly)
             return bodyEndTokRef;
 
-        uint32_t curlyBalance = 0;
-        for (uint32_t tokIndex = bodyStartTokRef.get(); tokIndex < srcView.tokens().size(); ++tokIndex)
-        {
-            const TokenId tokenId = srcView.token(TokenRef(tokIndex)).id;
-            if (tokenId == TokenId::SymLeftCurly)
-                curlyBalance++;
-            else if (tokenId == TokenId::SymRightCurly)
-            {
-                SWC_ASSERT(curlyBalance != 0);
-                curlyBalance--;
-                if (!curlyBalance)
-                    return TokenRef(tokIndex);
-            }
-        }
-
-        return bodyEndTokRef;
+        const TokenRef closeTokRef = ModuleApi::matchingModuleApiDelimiter(srcView, bodyStartTokRef, TokenId::SymLeftCurly, TokenId::SymRightCurly);
+        return closeTokRef.isValid() ? closeTokRef : bodyEndTokRef;
     }
 
     AstNodeRef moduleApiAggregateBodyRef(const AstNode& declNode)
@@ -134,22 +105,8 @@ namespace
         if (srcView.token(bodyNode.tokRef()).id != TokenId::SymLeftCurly)
             return bodyEndTokRef;
 
-        uint32_t curlyBalance = 0;
-        for (uint32_t tokIndex = bodyNode.tokRef().get(); tokIndex < srcView.tokens().size(); ++tokIndex)
-        {
-            const TokenId tokenId = srcView.token(TokenRef(tokIndex)).id;
-            if (tokenId == TokenId::SymLeftCurly)
-                curlyBalance++;
-            else if (tokenId == TokenId::SymRightCurly)
-            {
-                SWC_ASSERT(curlyBalance != 0);
-                curlyBalance--;
-                if (!curlyBalance)
-                    return TokenRef(tokIndex);
-            }
-        }
-
-        return bodyEndTokRef;
+        const TokenRef closeTokRef = ModuleApi::matchingModuleApiDelimiter(srcView, bodyNode.tokRef(), TokenId::SymLeftCurly, TokenId::SymRightCurly);
+        return closeTokRef.isValid() ? closeTokRef : bodyEndTokRef;
     }
 
     TokenRef moduleApiSnippetEndTokRef(const Ast& ast, const AstNode& node)

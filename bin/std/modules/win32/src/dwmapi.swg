@@ -24,6 +24,7 @@ struct DWM_BLURBEHIND
 
 #[Swag.Foreign("dwmapi", callconv: Swag.CallConv.C)]
 {
+    func DwmFlush()->HRESULT
     func DwmSetWindowAttribute(hwnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->HRESULT
     func DwmEnableBlurBehindWindow(hWnd: HWND, pBlurBehind: const *DWM_BLURBEHIND)->HRESULT
 }

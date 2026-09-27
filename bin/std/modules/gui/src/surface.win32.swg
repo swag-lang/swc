@@ -64,6 +64,8 @@ struct NativeSurface
     preparedFrame:       bool
     preparedWidth:       s32
     preparedHeight:      s32
+    placementOverlay:    HWND
+    placementWasActive:  bool
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -87,6 +89,111 @@ private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind
     let evt = Event.create'SysCommandEvent()
     evt.kind = kind
     surface.wnd.view.postEvent(evt)
+}
+
+// The transition image has its own window class: WS_EX_LAYERED is incompatible with
+// CS_OWNDC, which the OpenGL surface class needs for WGL.
+#[Swag.CallingConvention(.C)]
+private func placementOverlayProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
+{
+    if msg == WM_CREATE
+    {
+        let cs = cast(*CREATESTRUCTW) cast #bit (u64) lParam
+        SetWindowLongPtrW(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) cs.lpCreateParams)
+    }
+    elif msg == WM_TIMER
+    {
+        discard KillTimer(hWnd, 1)
+        catch DestroyWindow(hWnd)
+        return 0
+    }
+    elif msg == WM_NCDESTROY
+    {
+        let surface = cast(*Surface?) cast #bit (u64) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
+        if surface and surface.placementOverlay == hWnd do
+            surface.placementOverlay = null
+    }
+    return DefWindowProcW(hWnd, msg, wParam, lParam)
+}
+
+private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)->HWND
+{
+    global var registered: bool
+    let name16 = Utf16.toZeroTerminated("Swag.Gui.PlacementOverlay")
+    let name = name16.buffer
+    if not registered
+    {
+        var wc: WNDCLASSW
+        wc.hInstance = GetModuleHandleW(null)
+        wc.lpfnWndProc = cast() &placementOverlayProc
+        wc.lpszClassName = name
+        catch RegisterClassW(wc)
+        registered = true
+    }
+
+    let hWnd = CreateWindowExW(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT | WS_EX_TOPMOST,
+                                 name, name, WS_POPUP, x, y, width, height,
+                                 null, null, GetModuleHandleW(null), surface)
+    if not hWnd do
+        return null
+
+    var info: BITMAPINFO
+    info.bmiHeader.biSize = #sizeof(BITMAPINFOHEADER)
+    info.bmiHeader.biWidth = width
+    info.bmiHeader.biHeight = height  // OpenGL readback and this DIB are both bottom-up.
+    info.bmiHeader.biPlanes = 1
+    info.bmiHeader.biBitCount = 32
+    info.bmiHeader.biCompression = BI_RGB
+
+    var bits: *void?
+    let bitmap = catch CreateDIBSection(null, &info, DIB_RGB_COLORS, &bits, null, 0)
+    if not bitmap or not bits
+    {
+        catch DestroyWindow(hWnd)
+        return null
+    }
+    defer catch DeleteObject(cast(Gdi32.HGDIOBJ) bitmap)
+
+    let dc = catch CreateCompatibleDC(null)
+    if not dc
+    {
+        catch DestroyWindow(hWnd)
+        return null
+    }
+    defer catch DeleteDC(dc)
+    let previous = SelectObject(dc, cast(Gdi32.HGDIOBJ) bitmap)
+    defer discard SelectObject(dc, previous)
+
+    // UpdateLayeredWindow requires premultiplied BGRA. The render target readback is
+    // bottom-up BGRA, so the DIB can keep its row order without another image flip.
+    var frame = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
+    if not frame.isValid()
+    {
+        catch DestroyWindow(hWnd)
+        return null
+    }
+    let source = frame.pixels.buffer!
+    let dest = cast([*] u8) bits
+    for pixel in cast(u64) (width * height)
+    {
+        let at = pixel * 4
+        let alpha = cast(u32) source[at + 3]
+        dest[at + 0] = cast() (cast(u32) source[at + 0] * alpha / 255)
+        dest[at + 1] = cast() (cast(u32) source[at + 1] * alpha / 255)
+        dest[at + 2] = cast() (cast(u32) source[at + 2] * alpha / 255)
+        dest[at + 3] = cast() alpha
+    }
+
+    let origin = POINT{x, y}
+    let size = SIZE{width, height}
+    let zero = POINT{0, 0}
+    let blend = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
+    if not UpdateLayeredWindow(hWnd, null, &origin, &size, dc, &zero, 0, &blend, ULW_ALPHA)
+    {
+        catch DestroyWindow(hWnd)
+        return null
+    }
+    return hWnd
 }
 
 #[Swag.CallingConvention(.C)]
@@ -513,6 +620,8 @@ private impl Surface
         if not .hWnd do
             return
 
+        if .placementOverlay do
+            catch DestroyWindow(.placementOverlay)
         .revokeDropTarget()
         .removeTrayIcon()
         catch DestroyWindow(.hWnd)
@@ -522,6 +631,60 @@ private impl Surface
 
 impl Surface
 {
+    private mtd showDiscretePlacement(x, y, width, height: s32, maximized: bool)->bool
+    {
+        if width <= 0 or height <= 0 do
+            return false
+
+        if .placementOverlay do
+            catch DestroyWindow(.placementOverlay)
+
+        .preparingFrame = true
+        .sendResizeEvent(cast(f32) width, cast(f32) height)
+        let ready = .prepareResizeFrame(.wnd)
+        .preparingFrame = false
+        if not ready do
+            return false
+
+        .preparedFrame = true
+        .preparedWidth = width
+        .preparedHeight = height
+        let overlay = createPlacementOverlay(me, x, y, width, height)
+        if not overlay do
+            return false
+
+        // Display the prepared frame while removing the old WGL surface from DWM.
+        // The two visibility changes share one desktop refresh, so a restore does
+        // not leave the former maximized picture behind the smaller window.
+        .placementWasActive = GetForegroundWindow() == .hWnd
+        var batch = BeginDeferWindowPos(2)
+        if batch do
+            batch = DeferWindowPos(batch, overlay, HWND_TOPMOST, x, y, width, height, SWP_SHOWWINDOW | SWP_NOACTIVATE)
+        if batch do
+            batch = DeferWindowPos(batch, .hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_HIDEWINDOW)
+        if not batch or not EndDeferWindowPos(batch)
+        {
+            catch DestroyWindow(overlay)
+            return false
+        }
+
+        // Wait until DWM has consumed the replacement before changing the hidden
+        // WGL window's bounds. It can otherwise expose the old image at new bounds.
+        discard DwmFlush()
+        catch SetWindowPos(.hWnd, null, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS) as err
+        if err != null
+        {
+            catch DestroyWindow(overlay)
+            catch SetWindowPos(.hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+            return false
+        }
+        let style = cast(u32) GetWindowLongPtrW(.hWnd, GWL_STYLE)
+        let nextStyle = maximized ? style | WS_MAXIMIZE : style & ~WS_MAXIMIZE
+        SetWindowLongPtrW(.hWnd, GWL_STYLE, cast #bit (LONG_PTR) nextStyle)
+        .placementOverlay = overlay
+        return true
+    }
+
     private mtd finishDiscretePlacement()
     {
         .inDiscretePlacement = false
@@ -538,6 +701,20 @@ impl Surface
         }
         else do
             .invalidate()
+
+        // The overlay is a stable DWM surface while the WGL HWND's new frame enters
+        // the compositor. Retire it after several desktop refresh opportunities.
+        if .placementOverlay
+        {
+            catch SetWindowPos(.hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+            if .placementWasActive
+            {
+                discard SetActiveWindow(.hWnd)
+                discard SetForegroundWindow(.hWnd)
+            }
+            if not SetTimer(.placementOverlay, 1, 100, null) do
+                catch DestroyWindow(.placementOverlay)
+        }
 
     }
 
@@ -922,22 +1099,21 @@ impl Surface
         .inDiscretePlacement = true
         defer .finishDiscretePlacement()
 
-        // ShowWindow can expose the old drawable after moving it to the monitor origin,
-        // before the maximized size has arrived. Commit both coordinates in one placement.
         var pt: POINT
         pt.x = cast(s32) .position.x
         pt.y = cast(s32) .position.y
         let monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST)
-        var info: MONITORINFO
-        catch GetMonitorInfoA(monitor, &info)
-        let shadow = cast(s32) (.app.theme.metrics.surfaceWnd_ShadowSize * .dpiScale)
-        let style = cast(u32) GetWindowLongPtrW(.hWnd, GWL_STYLE)
-        SetWindowLongPtrW(.hWnd, GWL_STYLE, cast #bit (LONG_PTR) (style | WS_MAXIMIZE))
-        catch SetWindowPos(.hWnd, null,
-                           info.rcWork.left - shadow, info.rcWork.top - shadow,
-                           info.rcWork.right - info.rcWork.left + 2 * shadow,
-                           info.rcWork.bottom - info.rcWork.top + 2 * shadow,
-                           SWP_NOZORDER | SWP_NOCOPYBITS | SWP_FRAMECHANGED)
+        if monitor
+        {
+            var info: MONITORINFO
+            catch GetMonitorInfoA(monitor, &info)
+            let shadow = cast(s32) (.app.theme.metrics.surfaceWnd_ShadowSize * .dpiScale)
+            if .showDiscretePlacement(info.rcWork.left - shadow, info.rcWork.top - shadow,
+                                      info.rcWork.right - info.rcWork.left + 2 * shadow,
+                                      info.rcWork.bottom - info.rcWork.top + 2 * shadow, true) do
+                return
+        }
+        ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
     }
 
     // Leaves a maximized or minimized state and places the surface, in one native transaction.
@@ -982,6 +1158,7 @@ impl Surface
     {
         if not .isMaximized and not .isMinimized do
             return
+        let wasMaximized = .isMaximized
         .isMaximized = false
         .isMinimized = false
         if not .app.renderer.needsNativeWindow()
@@ -994,13 +1171,11 @@ impl Surface
         .applyNativeDwmStyle()
         .inDiscretePlacement = true
         defer .finishDiscretePlacement()
-        let style = cast(u32) GetWindowLongPtrW(.hWnd, GWL_STYLE)
-        SetWindowLongPtrW(.hWnd, GWL_STYLE, cast #bit (LONG_PTR) (style & ~WS_MAXIMIZE))
         let pos = .restoredPosition
-        catch SetWindowPos(.hWnd, null,
-                           cast(s32) pos.x, cast(s32) pos.y,
-                           cast(s32) pos.width, cast(s32) pos.height,
-                           SWP_NOZORDER | SWP_NOCOPYBITS | SWP_FRAMECHANGED)
+        if wasMaximized and .showDiscretePlacement(cast(s32) pos.x, cast(s32) pos.y,
+                                                   cast(s32) pos.width, cast(s32) pos.height, false) do
+            return
+        ShowWindow(.hWnd, SW_RESTORE)
     }
 
     // Shows the surface minimized.

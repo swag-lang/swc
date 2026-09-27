@@ -13,6 +13,7 @@ using Swag
     alias HBRUSH   = const *void?
     alias HDC      = const *void?
     alias HMONITOR = const *void?
+    alias HDWP     = const *void?
 }
 
 alias WPARAM   = u64
@@ -839,8 +840,33 @@ const GWLP_HWNDPARENT = -8
 const GWLP_USERDATA   = -21
 const GWLP_ID         = -12
 
-const GWL_STYLE   = -16
 const GWL_EXSTYLE = -20
+const GWL_STYLE   = -16
+
+// Per-pixel alpha bitmap source for UpdateLayeredWindow.
+struct BLENDFUNCTION
+{
+    public
+    {
+        BlendOp:             BYTE
+        BlendFlags:          BYTE
+        SourceConstantAlpha: BYTE
+        AlphaFormat:         BYTE
+    }
+}
+
+struct SIZE
+{
+    public
+    {
+        cx: LONG
+        cy: LONG
+    }
+}
+
+const AC_SRC_OVER  = 0'u8
+const AC_SRC_ALPHA = 1'u8
+const ULW_ALPHA    = 2'u32
 
 const HWND_BROADCAST   = cast(HWND) 0xFFFF'u64
 const SMTO_ABORTIFHUNG = 0x0002
@@ -1138,6 +1164,12 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
 
 #[Foreign("user32", callconv: Swag.CallConv.C)]
 {
+    // Queues window placements for a single screen refresh.
+    func BeginDeferWindowPos(nNumWindows: s32)->HDWP
+    func DeferWindowPos(hWinPosInfo: HDWP, hWnd, hWndInsertAfter: HWND, x, y, cx, cy: s32, uFlags: UINT)->HDWP
+    func EndDeferWindowPos(hWinPosInfo: HDWP)->BOOL
+    // Publishes a layered window's bounds and premultiplied bitmap together.
+    func UpdateLayeredWindow(hwnd: HWND, hdcDst: HDC, pptDst: const *POINT, psize: const *SIZE, hdcSrc: HDC, pptSrc: const *POINT, crKey: COLORREF, pblend: const *BLENDFUNCTION, dwFlags: DWORD)->BOOL
     func SetTimer(hWnd: HWND, nIDEvent: UINT_PTR, uElapse: UINT, lpTimerFunc: TIMERPROC?)->UINT_PTR
     func KillTimer(hWnd: HWND, uIDEvent: UINT_PTR)->BOOL
     func ValidateRect(hWnd: HWND, lpRect: const *RECT?)->BOOL
@@ -1175,6 +1207,8 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func GetTopWindow(hWnd: HWND)->HWND
     func GetActiveWindow()->HWND
     func GetForegroundWindow()->HWND
+    // Activates a window when the calling process is allowed to own the foreground.
+    func SetForegroundWindow(hWnd: HWND)->BOOL
     func GetWindow(hWnd: HWND, uCmd: UINT)->HWND
     func GetNextWindow(hWnd: HWND, wCmd: UINT)
     func IsWindowVisible(hWnd: HWND)->BOOL

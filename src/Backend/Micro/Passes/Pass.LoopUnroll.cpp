@@ -297,8 +297,27 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // Backward jump with room for add/cmp plus at least one body instruction.
             if (h + 4 > jccOrdinal)
                 continue;
-            // No candidate can use the tables before this point. The layout
-            // and relocations are unchanged until a successful unroll ends the sweep.
+            const MicroInstr*        jcc    = storage.ptr(order[jccOrdinal]);
+            const MicroInstrOperand* jccOps = jcc ? jcc->ops(operands) : nullptr;
+            if (!jccOps)
+                continue;
+            const MicroCond cond = jccOps[0].cpuCond;
+            if (cond != MicroCond::Less && cond != MicroCond::Below)
+                continue;
+
+            // The back-edge must be the header's only way in besides fall-through.
+            if (label.firstJump != label.lastJump)
+                continue;
+
+            // The latch: add %i, step / cmp %i, N / jcc H.
+            const MicroInstr* cmp = storage.ptr(order[jccOrdinal - 1]);
+            const MicroInstr* add = storage.ptr(order[jccOrdinal - 2]);
+            if (!cmp || !add || add->op != MicroInstrOpcode::OpBinaryRegImm ||
+                (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
+                continue;
+
+            // Only a plausible latch can use the relocation tables. The layout
+            // and relocations are unchanged until an unroll ends this sweep.
             if (!relocationsIndexed)
             {
                 for (const MicroRelocation& reloc : builder.codeRelocations())
@@ -319,28 +338,13 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (relocLabels.contains(headerId))
                 continue;
 
-            const MicroInstr*        jcc    = storage.ptr(order[jccOrdinal]);
-            const MicroInstrOperand* jccOps = jcc ? jcc->ops(operands) : nullptr;
-            if (!jccOps)
-                continue;
-            const MicroCond cond = jccOps[0].cpuCond;
-            if (cond != MicroCond::Less && cond != MicroCond::Below)
-                continue;
-
-            // The back-edge must be the header's only way in besides fall-through.
-            if (label.firstJump != label.lastJump)
-                continue;
-
-            // The latch: add %i, step / cmp %i, N / jcc H.
-            const MicroInstr* cmp = storage.ptr(order[jccOrdinal - 1]);
-            const MicroInstr* add = storage.ptr(order[jccOrdinal - 2]);
-            if (cmp && add && cmp->op == MicroInstrOpcode::CmpRegReg && add->op == MicroInstrOpcode::OpBinaryRegImm &&
+            if (cmp->op == MicroInstrOpcode::CmpRegReg &&
                 partiallyUnrollIndexedReadLoop(context, storage, operands, builder, order, relocsBySlot, h, jccOrdinal, headerId))
             {
                 unrolledOne = true;
                 break;
             }
-            if (!cmp || !add || cmp->op != MicroInstrOpcode::CmpRegImm || add->op != MicroInstrOpcode::OpBinaryRegImm)
+            if (cmp->op != MicroInstrOpcode::CmpRegImm)
                 continue;
             const MicroInstrOperand* cmpOps = cmp->ops(operands);
             const MicroInstrOperand* addOps = add->ops(operands);

@@ -1975,8 +1975,12 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     // Single-definition map for address rooting, and global positions.
     std::vector<BlockInstr> blockInstrs;
     uint32_t                position = 0;
+    uint32_t                scalarStores = 0;
     for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
     {
+        if (it->op == MicroInstrOpcode::LoadMemReg || it->op == MicroInstrOpcode::LoadMemImm)
+            scalarStores++;
+
         if (fn.firstCallPos == K_INVALID_ID && MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
             fn.firstCallPos = position;
 
@@ -2005,6 +2009,11 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
             }
         }
     }
+
+    // Every vectorized group needs four scalar memory writes. Other memory
+    // operations can only disqualify a group, so skip the block scan here.
+    if (scalarStores < K_LANE_COUNT)
+        return Result::Continue;
 
     MicroSsaState localSsa;
 

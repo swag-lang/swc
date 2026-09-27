@@ -2359,8 +2359,6 @@ namespace
         auto&                labelReferences = scanPtr->labelReferences;
         auto&                mentions        = scanPtr->mentions;
 
-        const auto& relocated = relocationCache.get(context);
-
         struct Link
         {
             uint32_t cmp   = 0;
@@ -2459,7 +2457,7 @@ namespace
             if (!closed || links.size() < K_MIN_CHAIN || labelReferences[endId] != links.size() - 1)
                 continue;
 
-            if (relocated.contains(layout.order[body.back() + 1].get()))
+            if (relocationCache.get(context).contains(layout.order[body.back() + 1].get()))
                 continue;
 
             uint64_t lo = UINT64_MAX;
@@ -2833,8 +2831,6 @@ namespace
         auto&                labelReferences = scanPtr->labelReferences;
         auto&                mentions        = scanPtr->mentions;
 
-        const auto& relocated = relocationCache.get(context);
-
         constexpr size_t K_MAX_SHAPE = 11;
         const size_t     count       = layout.order.size();
         const auto       instAt      = [&](size_t index) -> const MicroInstr* {
@@ -2954,6 +2950,7 @@ namespace
                 continue;
 
             bool hasRelocation = false;
+            const auto& relocated = relocationCache.get(context);
             for (size_t index = at + 1; index < at + shapeSize; ++index)
                 hasRelocation |= relocated.contains(layout.order[index].get());
             if (hasRelocation || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, layout.order[at + shapeSize - 2]))
@@ -3032,8 +3029,6 @@ namespace
             return false;
         const ProgramLayout& layout          = scanPtr->layout;
         auto&                labelReferences = scanPtr->labelReferences;
-
-        const auto& relocated = relocationCache.get(context);
 
         const size_t count  = layout.order.size();
         const auto   instAt = [&](size_t index) -> const MicroInstr* {
@@ -3172,6 +3167,7 @@ namespace
                 }
                 else if (loadOps[0].reg != result || loadOps[1].opBits != resultBits)
                     return false;
+                const auto& relocated = relocationCache.get(context);
                 if (relocated.contains(layout.order[labelAt + 1].get()) || relocated.contains(layout.order[labelAt + 2].get()))
                     return false;
 
@@ -3824,11 +3820,9 @@ namespace
     // or call may separate it from the repeated comparison.
     bool forwardRepeatedMemoryCompareInShortCircuit(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, RelocationRefCache& relocationCache)
     {
-        const auto& relocated = relocationCache.get(context);
-
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
-            if (it->op != MicroInstrOpcode::JumpCond || relocated.contains(it.current.get()))
+            if (it->op != MicroInstrOpcode::JumpCond)
                 continue;
 
             const MicroInstrRef copyRef = storage.findPreviousInstructionRef(it.current);
@@ -3841,13 +3835,16 @@ namespace
                 continue;
             const MicroInstrRef leftCmpRef = storage.findPreviousInstructionRef(setRef);
             const MicroInstr*   leftCmp    = storage.ptr(leftCmpRef);
-            if (!leftCmp || (leftCmp->op != MicroInstrOpcode::CmpAmcReg && leftCmp->op != MicroInstrOpcode::CmpAmcImm) ||
-                relocated.contains(leftCmpRef.get()))
+            if (!leftCmp || (leftCmp->op != MicroInstrOpcode::CmpAmcReg && leftCmp->op != MicroInstrOpcode::CmpAmcImm))
                 continue;
 
             const MicroInstrRef rightCmpRef = storage.findNextInstructionRef(it.current);
             const MicroInstr*   rightCmp    = storage.ptr(rightCmpRef);
-            if (!rightCmp || rightCmp->op != MicroInstrOpcode::CmpAmcImm || relocated.contains(rightCmpRef.get()))
+            if (!rightCmp || rightCmp->op != MicroInstrOpcode::CmpAmcImm)
+                continue;
+
+            const auto& relocated = relocationCache.get(context);
+            if (relocated.contains(it.current.get()) || relocated.contains(leftCmpRef.get()) || relocated.contains(rightCmpRef.get()))
                 continue;
 
             const MicroInstrOperand* leftOps  = leftCmp->ops(operands);

@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -885,18 +886,6 @@ SWC_TEST_END()
 
 namespace
 {
-    uint32_t countInstructionsWithOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-
-        return count;
-    }
-
     uint32_t countConditionalMoves(const MicroBuilder& builder, const MicroCond cond)
     {
         uint32_t count = 0;
@@ -963,9 +952,9 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsDiamondSelectToCmov)
 
     if (countConditionalMoves(builder, MicroCond::GreaterOrEqual) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Label) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Label) != 1)
         return Result::Error;
 
     // The jump arm's copy writes a fresh register, and the move reads it.
@@ -1043,7 +1032,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsDiamondConstantsToCmov)
 
     if (countConditionalMoves(builder, MicroCond::NotEqual) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
     if (countLoadImmValue(builder, 7) != 1 || countLoadImmValue(builder, 9) != 1)
         return Result::Error;
@@ -1074,9 +1063,9 @@ SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingArm)
 
     if (countConditionalMoves(builder, MicroCond::Less) != 1 || countConditionalMoves(builder, MicroCond::Greater) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::CmpRegReg) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 2)
         return Result::Error;
 
     // The outer compare now sits right before the outer move.
@@ -1182,7 +1171,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWithGuardedLoad)
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -1211,7 +1200,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWithSharedArmLabel)
 
     if (countConditionalJumps(builder) != 2)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -1236,7 +1225,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWhenArmReadsResultFirst)
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -1262,7 +1251,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWhenArmClobbersCompareInput)
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -1324,11 +1313,11 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsEarlyReturnToCmov)
 
     if (countConditionalMoves(builder, MicroCond::Less) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Ret) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Ret) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Label) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Label) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -1353,9 +1342,9 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsEarlyReturnChainToCmovs)
 
     if (countConditionalMoves(builder, MicroCond::Less) != 2)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Ret) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Ret) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -1382,9 +1371,9 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsEarlyReturnWithGuardedLoad)
 
     SWC_RESULT(runBranchSimplifyPass(builder));
 
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Ret) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Ret) != 2)
         return Result::Error;
     return Result::Continue;
 }
@@ -1414,7 +1403,7 @@ SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingEarlyReturn)
 
     if (countConditionalMoves(builder, MicroCond::Less) != 1)
         return Result::Error;
-    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
 
     // The compare now sits right before the move, after the negation.
@@ -1461,7 +1450,7 @@ SWC_TEST_BEGIN(BranchSimplify_EarlyReturnChecksBothCompareInputs)
         const bool canConvert = tailDef == scratch;
         if (countConditionalMoves(builder, MicroCond::Less) != (canConvert ? 1 : 0))
             return Result::Error;
-        if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != (canConvert ? 0 : 1))
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != (canConvert ? 0 : 1))
             return Result::Error;
     }
     return Result::Continue;
@@ -1767,7 +1756,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsConditionalUpdateWithGuardedLoad)
 
     SWC_RESULT(runBranchSimplifyPass(builder));
 
-    if (countConditionalJumps(builder) != 1 || countInstructionsWithOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
+    if (countConditionalJumps(builder) != 1 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;

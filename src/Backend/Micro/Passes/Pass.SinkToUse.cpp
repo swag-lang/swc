@@ -178,22 +178,29 @@ namespace
         }
 
         scratch.relocationRefs.clear();
-        for (const MicroRelocation& reloc : context.builder->codeRelocations())
-        {
-            if (reloc.instructionRef.isValid())
-                scratch.relocationRefs.insert(reloc.instructionRef.get());
-        }
-
         scratch.moves.clear();
+        bool relocationsReady = false;
 
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
-            if (!inst || scratch.relocationRefs.contains(instrRefs[i].get()))
+            if (!inst)
                 continue;
 
             const MicroInstrUseDef* useDef = &scratch.useDefs[i];
             if (!isSinkableDefinition(*inst, *useDef))
+                continue;
+
+            if (!relocationsReady)
+            {
+                for (const MicroRelocation& reloc : context.builder->codeRelocations())
+                {
+                    if (reloc.instructionRef.isValid())
+                        scratch.relocationRefs.insert(reloc.instructionRef.get());
+                }
+                relocationsReady = true;
+            }
+            if (scratch.relocationRefs.contains(instrRefs[i].get()))
                 continue;
 
             const MicroReg value           = useDef->defs[0];

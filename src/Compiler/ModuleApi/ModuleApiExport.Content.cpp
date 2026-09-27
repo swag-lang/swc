@@ -22,8 +22,6 @@ namespace
     using ModuleApiExport::findEnclosingImplRef;
     using ModuleApiExport::ModuleApiGeneratedRoot;
     using ModuleApiExport::sameNamespacePath;
-    using ModuleApiExport::sourceTokenByteEnd;
-    using ModuleApiExport::sourceTokenByteStart;
     using ModuleApiExport::tryBuildImplPrefix;
     using ModuleApiExport::tryFindSemanticImplRef;
     using ModuleApiExport::tryGetModuleApiSnippet;
@@ -279,7 +277,7 @@ namespace
             return;
 
         outEntries.push_back({
-            .start = sourceTokenByteStart(srcView, tokens[firstTokenIndex]),
+            .start = srcView.tokenByteStart(tokens[firstTokenIndex]),
             .end   = separatorStart,
             .name  = moduleApiAttributeEntryName(srcView, tokens, firstTokenIndex, endTokenIndex),
         });
@@ -297,7 +295,7 @@ namespace
             if (tokens[tokenIndex].id != TokenId::SymAttrStart)
                 continue;
 
-            const size_t                             listStart       = sourceTokenByteStart(srcView, tokens[tokenIndex]);
+            const size_t                             listStart       = srcView.tokenByteStart(tokens[tokenIndex]);
             size_t                                   entryTokenIndex = tokenIndex + 1;
             uint32_t                                 parenDepth      = 0;
             uint32_t                                 bracketDepth    = 1;
@@ -336,7 +334,7 @@ namespace
                 if (!isSeparator && !isListEnd)
                     continue;
 
-                const size_t separatorStart = sourceTokenByteStart(srcView, token);
+                const size_t separatorStart = srcView.tokenByteStart(token);
                 appendModuleApiAttributeEntry(entries, srcView, tokens, entryTokenIndex, listTokenIndex, separatorStart);
                 if (isSeparator)
                 {
@@ -368,7 +366,7 @@ namespace
 
                 if (hasRemovedEntry)
                 {
-                    size_t editEnd = sourceTokenByteEnd(srcView, token);
+                    size_t editEnd = srcView.tokenByteEnd(token);
                     if (hasKeptEntry)
                         replacement += "]";
                     else
@@ -416,7 +414,7 @@ namespace
             if (tokens[tokenIndex].id != TokenId::SymAttrStart)
                 continue;
 
-            const size_t listStart = sourceTokenByteStart(srcView, tokens[tokenIndex]);
+            const size_t listStart = srcView.tokenByteStart(tokens[tokenIndex]);
             uint32_t     depth     = 1;
             for (size_t listTokenIndex = tokenIndex + 1; listTokenIndex < tokens.size(); ++listTokenIndex)
             {
@@ -429,15 +427,15 @@ namespace
                 if (token.id == TokenId::Identifier && token.string(srcView) == "Swag" && listTokenIndex + 1 < tokens.size() && tokens[listTokenIndex + 1].id == TokenId::SymDot)
                 {
                     edits.push_back({
-                        .start = sourceTokenByteStart(srcView, token),
-                        .end   = sourceTokenByteEnd(srcView, tokens[listTokenIndex + 1]),
+                        .start = srcView.tokenByteStart(token),
+                        .end   = srcView.tokenByteEnd(tokens[listTokenIndex + 1]),
                     });
                 }
 
                 if (depth)
                     continue;
 
-                lists.push_back({listStart, sourceTokenByteEnd(srcView, token)});
+                lists.push_back({listStart, srcView.tokenByteEnd(token)});
                 tokenIndex = listTokenIndex;
                 break;
             }

@@ -9,16 +9,7 @@ std::string_view Token::string(const SourceView& srcView) const
 {
     const auto* start = srcView.stringView().data();
 
-    // In the case of an identifier, 'byteStart' is the index in the file identifier table.
-    // And the real 'byteStart' is stored in that table
-    if (id == TokenId::Identifier)
-    {
-        const auto& ids    = srcView.identifiers();
-        const auto  offset = ids[byteStart].byteStart;
-        return {start + offset, static_cast<size_t>(byteLength)};
-    }
-
-    return {start + byteStart, static_cast<size_t>(byteLength)};
+    return {start + srcView.tokenByteStart(*this), static_cast<size_t>(byteLength)};
 }
 
 uint32_t Token::crc(const SourceView& srcView) const
@@ -30,12 +21,7 @@ uint32_t Token::crc(const SourceView& srcView) const
 SourceCodeRange Token::codeRange(const TaskContext& ctx, const SourceView& srcView) const
 {
     SourceCodeRange codeRange;
-    uint32_t        offset;
-    if (id == TokenId::Identifier)
-        offset = srcView.identifiers()[byteStart].byteStart;
-    else
-        offset = byteStart;
-    codeRange.fromOffset(ctx, srcView, offset, byteLength);
+    codeRange.fromOffset(ctx, srcView, srcView.tokenByteStart(*this), byteLength);
     return codeRange;
 }
 

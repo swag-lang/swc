@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaCloneTypes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
@@ -18,7 +19,6 @@
 SWC_BEGIN_NAMESPACE();
 
 class GenericInstanceStorage;
-class SymbolVariable;
 class SymbolStruct;
 class SymbolImpl;
 class SymbolInterface;
@@ -211,6 +211,16 @@ public:
     }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     bool                                containsLocalVariable(const SymbolVariable& var) const noexcept { return localVariableSet_.contains(&var); }
+    bool ownsVariable(const SymbolVariable& var) const
+    {
+        if (var.ownerSymMap() == this)
+            return true;
+        if (containsLocalVariable(var))
+            return true;
+
+        const auto& params = parameters();
+        return std::ranges::find(params, &var) != params.end();
+    }
     void                                addParameter(SymbolVariable* sym);
     bool                                tryGetParameterIndexByName(size_t& outIndex, IdentifierRef name, size_t startIndex = 0) const noexcept;
     void                                setVariadicParamFlag(TaskContext& ctx);

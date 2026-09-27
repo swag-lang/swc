@@ -36,18 +36,6 @@ namespace
         return false;
     }
 
-    void addUsingSymMapToScope(SemaScope& scope, SymbolMap* usingSymMap)
-    {
-        SWC_ASSERT(usingSymMap != nullptr);
-        for (const SymbolMap* existing : scope.usingSymMaps())
-        {
-            if (existing == usingSymMap)
-                return;
-        }
-
-        scope.addUsingSymMap(usingSymMap);
-    }
-
     bool isSwagUsingAttribute(const Sema& sema, const AttributeInstance& attribute)
     {
         if (!attribute.symbol)
@@ -92,7 +80,7 @@ namespace
         for (const AttributeParamInstance& param : attribute.params)
         {
             if (SymbolMap* usingSymMap = usingAttributeSymMap(sema, param))
-                addUsingSymMapToScope(scope, usingSymMap);
+                SemaScope::addUsingSymMapIfMissing(scope, usingSymMap);
         }
     }
 

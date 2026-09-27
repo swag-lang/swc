@@ -1444,13 +1444,6 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 
 namespace
 {
-    uint32_t tokenByteStart(const SourceView& srcView, const Token& token)
-    {
-        if (token.id == TokenId::Identifier)
-            return srcView.identifiers()[token.byteStart].byteStart;
-        return token.byteStart;
-    }
-
     std::string_view extractAssertConditionTextFromText(const SourceCodeRange& range)
     {
         if (!range.srcView || !range.len)
@@ -1496,7 +1489,7 @@ namespace
         for (uint32_t i = 0; i < tokens.size(); ++i)
         {
             const Token& token      = tokens[i];
-            const auto   tokenStart = tokenByteStart(srcView, token);
+            const auto   tokenStart = srcView.tokenByteStart(token);
             const auto   tokenEnd   = tokenStart + token.byteLength;
             if (tokenEnd <= range.offset)
                 continue;
@@ -1520,7 +1513,7 @@ namespace
         for (uint32_t i = assertIndex + 1; i < tokens.size(); ++i)
         {
             const Token& token      = tokens[i];
-            const auto   tokenStart = tokenByteStart(srcView, token);
+            const auto   tokenStart = srcView.tokenByteStart(token);
             if (tokenStart >= rangeEnd)
                 break;
 
@@ -1531,7 +1524,7 @@ namespace
                 for (uint32_t j = i + 1; j < tokens.size(); ++j)
                 {
                     const Token& nestedToken = tokens[j];
-                    const auto   nestedStart = tokenByteStart(srcView, nestedToken);
+                    const auto   nestedStart = srcView.tokenByteStart(nestedToken);
                     if (nestedStart >= rangeEnd)
                         break;
 
@@ -1556,7 +1549,7 @@ namespace
             return extractAssertConditionTextFromText(range);
 
         const Token& openParen  = srcView.token(openParenRef);
-        const auto   openOffset = tokenByteStart(srcView, openParen) + openParen.byteLength;
+        const auto   openOffset = srcView.tokenByteStart(openParen) + openParen.byteLength;
         const auto   condEnd    = closeOffset ? closeOffset : rangeEnd;
         if (condEnd <= openOffset)
             return {};

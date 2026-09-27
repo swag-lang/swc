@@ -26,6 +26,8 @@ namespace Backend::Unittest
     // How many times an opcode occurs in what the builder has emitted so far.
     uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode);
     uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op);
+    // First linear position of an opcode, or UINT32_MAX.
+    uint32_t firstOpcodePosition(const MicroBuilder& builder, MicroInstrOpcode opcode);
 }
 
 #endif

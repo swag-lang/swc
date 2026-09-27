@@ -62,6 +62,66 @@ SWC_TEST_BEGIN(PostRALoopRotate_IndependentHeadersRotate)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopRotate_RotatesLatchConnectors)
+{
+    constexpr MicroReg counter = MicroReg::intReg(10);
+    constexpr MicroReg value   = MicroReg::intReg(8);
+    constexpr MicroReg source  = MicroReg::intReg(9);
+    for (const uint32_t kind : {0u, 1u, 2u, 3u, 4u})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef top  = builder.createLabel();
+        const MicroLabelRef done = builder.createLabel();
+        builder.placeLabel(top);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+        const MicroInstrRef exitRef = builder.instructions().lastInstructionRef();
+        if (kind == 3)
+            builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        else if (kind == 4)
+            builder.emitLoadRegMem(value, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        else if (kind == 2)
+            builder.emitLoadRegMem(value, source, 0, MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(value, source, MicroOpBits::B64);
+        const MicroInstrRef connectorRef = builder.instructions().lastInstructionRef();
+        if (kind == 4)
+        {
+            MicroRelocation relocation;
+            relocation.kind           = MicroRelocation::Kind::GlobalInitAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = connectorRef;
+            relocation.targetAddress  = 0x1000;
+            builder.addRelocation(relocation);
+        }
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        const MicroInstrRef backRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(done);
+        if (kind == 1)
+            builder.emitLoadRegReg(MicroReg::intReg(0), value, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        const bool backErased = builder.instructions().ptr(backRef) == nullptr;
+        if (backErased != (kind != 3))
+            return Result::Error;
+        const MicroInstr* exit = builder.instructions().ptr(exitRef);
+        if (!exit || exit->ops(builder.operands())[0].cpuCond !=
+                         (kind == 3 ? MicroCond::GreaterOrEqual : MicroCond::Less))
+            return Result::Error;
+        const bool stillTargetsExit = exit->ops(builder.operands())[2].valueU64 == done.get();
+        if (stillTargetsExit != (kind == 3))
+            return Result::Error;
+        if (kind == 4 && (builder.codeRelocations().size() != 1 ||
+                          builder.codeRelocations()[0].instructionRef == connectorRef ||
+                          !builder.instructions().ptr(builder.codeRelocations()[0].instructionRef)))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRALoopRotate_FlagOnlyTestsRotateWithUniqueBackEdge)
 {
     constexpr MicroReg counter = MicroReg::intReg(0);

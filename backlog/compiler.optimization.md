@@ -15,6 +15,15 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.091 — Keep raytrace row values in registers across trace calls
+
+- Recorded: 2026-09-27 20:19
+- Area: compiler/backend, floating register allocation across calls
+- Evidence: Odin's raytrace main keeps the row value and its square in callee-saved `xmm13` and `xmm14` through each `trace` call. Swag stores them at `[rsp+0x68]` and `[rsp+0x70]` before the pixel loop and reloads both for every pixel. Its six floating argument lanes occupy `xmm6`–`xmm11`, leaving fewer persistent registers for these row values and the loop constants. An attempted latch rewrite that executed the four next-iteration loads on the exit path did not remove the inner jump: `xmm12` still carries the value used by the following outer iteration, so replacing it on exit is unsound. Moving those loads to a backedge-only preparation block removes the inner unconditional jump but leaves the two stack reloads.
+- Next: compare allocation and call lowering with a transient floating argument bank in an isolated experiment. Keep a change only if the full inner-loop instruction and memory traffic improves without a compensating cost in the callee or other benchmark loops.
+- Complete when: the two per-pixel row reloads disappear with a validated general allocation or call rule, or a static comparison establishes that retaining them is the better tradeoff.
+- Related: compiler.optimization.089
+
 ### compiler.optimization.085 — Measure short-key comparison cost against LDC
 
 - Recorded: 2026-09-26 13:10

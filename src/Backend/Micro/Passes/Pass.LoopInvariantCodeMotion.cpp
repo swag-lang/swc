@@ -198,7 +198,13 @@ namespace
         }
     };
 
-    FramePrivacy analyzeFramePrivacy(MicroStorage& storage, MicroOperandStorage& operands, std::span<const MicroInstrRef> instrRefs, std::span<const MicroInstrUseDef> useDefs, MicroReg stackPointer, const std::unordered_map<MicroReg, uint32_t>& defCount, const Encoder* encoder)
+    struct RegDefinitionSummary
+    {
+        uint32_t count    = 0;
+        uint32_t lastSlot = 0;
+    };
+
+    FramePrivacy analyzeFramePrivacy(MicroStorage& storage, MicroOperandStorage& operands, std::span<const MicroInstrRef> instrRefs, std::span<const MicroInstrUseDef> useDefs, MicroReg stackPointer, const std::unordered_map<MicroReg, RegDefinitionSummary>& definitions, const Encoder* encoder)
     {
         FramePrivacy   fp;
         const uint32_t n = static_cast<uint32_t>(instrRefs.size());
@@ -211,8 +217,8 @@ namespace
         auto singleDefVirtual = [&](MicroReg reg) {
             if (!reg.isVirtualInt())
                 return false;
-            const auto it = defCount.find(reg);
-            return it != defCount.end() && it->second == 1;
+            const auto it = definitions.find(reg);
+            return it != definitions.end() && it->second.count == 1;
         };
 
         // Closure: propagate frame-derivedness through single-def mov/lea chains.
@@ -378,9 +384,8 @@ namespace
 
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
-        std::vector<MicroInstrUseDef>          useDefs(n);
-        std::unordered_map<MicroReg, uint32_t> defCount;
-        std::unordered_map<MicroReg, uint32_t> defSlot;
+        std::vector<MicroInstrUseDef> useDefs(n);
+        std::unordered_map<MicroReg, RegDefinitionSummary> definitions;
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
@@ -390,8 +395,9 @@ namespace
             const MicroInstrUseDef* useDef = &useDefs[i];
             for (const MicroReg def : useDef->defs)
             {
-                ++defCount[def];
-                defSlot[def] = i;
+                RegDefinitionSummary& summary = definitions[def];
+                ++summary.count;
+                summary.lastSlot = i;
             }
         }
 
@@ -426,7 +432,7 @@ namespace
         };
 
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
-        const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, defCount, context.encoder);
+        const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, definitions, context.encoder);
 
         std::unordered_set<uint32_t> claimed; // instruction slot ids planned this round
         std::vector<HoistPlan>       plans;
@@ -539,18 +545,18 @@ namespace
                 if (!nestedReg.isVirtualInt() || !outerBase.isVirtualInt() || defsInLoop.contains(outerBase))
                     continue;
 
-                const auto countIt = defCount.find(nestedReg);
-                const auto slotIt  = defSlot.find(nestedReg);
-                if (countIt == defCount.end() || slotIt == defSlot.end() || slotIt->second >= i)
+                const auto definition = definitions.find(nestedReg);
+                if (definition == definitions.end() || definition->second.lastSlot >= i)
                     continue;
-                const MicroInstr* nested = storage.ptr(instrRefs[slotIt->second]);
+                const uint32_t    lastSlot = definition->second.lastSlot;
+                const MicroInstr* nested   = storage.ptr(instrRefs[lastSlot]);
                 if (!nested)
                     continue;
                 const MicroInstrOperand* nestedOps  = nested->ops(operands);
                 MicroReg                 innerBase  = MicroReg::invalid();
                 MicroReg                 innerIndex = MicroReg::invalid();
                 int64_t                  innerAdd   = 0;
-                if (nested->op == MicroInstrOpcode::LoadAddrAmcRegMem && countIt->second == 1)
+                if (nested->op == MicroInstrOpcode::LoadAddrAmcRegMem && definition->second.count == 1)
                 {
                     if (!nestedOps || nestedOps[0].reg != nestedReg || nestedOps[3].opBits != MicroOpBits::B64 ||
                         nestedOps[4].opBits != MicroOpBits::B64 || nestedOps[5].valueU64 != 1)
@@ -559,14 +565,14 @@ namespace
                     innerIndex = nestedOps[2].reg;
                     innerAdd   = static_cast<int64_t>(nestedOps[6].valueU64);
                 }
-                else if (nested->op == MicroInstrOpcode::OpBinaryRegReg && countIt->second == 2 && slotIt->second > 0 &&
-                         slotIt->second + 1 == i &&
-                         inBody[slotIt->second - 1] && nestedOps && nestedOps[0].reg == nestedReg &&
+                else if (nested->op == MicroInstrOpcode::OpBinaryRegReg && definition->second.count == 2 && lastSlot > 0 &&
+                         lastSlot + 1 == i &&
+                         inBody[lastSlot - 1] && nestedOps && nestedOps[0].reg == nestedReg &&
                          nestedOps[1].reg != nestedReg && nestedOps[2].opBits == MicroOpBits::B64 &&
                          nestedOps[3].microOp == MicroOp::Add &&
-                         MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instrRefs[slotIt->second], context.builder))
+                         MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instrRefs[lastSlot], context.builder))
                 {
-                    const MicroInstr*        copy    = storage.ptr(instrRefs[slotIt->second - 1]);
+                    const MicroInstr*        copy    = storage.ptr(instrRefs[lastSlot - 1]);
                     const MicroInstrOperand* copyOps = copy ? copy->ops(operands) : nullptr;
                     if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
                         copyOps[0].reg != nestedReg || copyOps[1].reg == nestedReg || copyOps[2].opBits != MicroOpBits::B64)
@@ -695,8 +701,8 @@ namespace
                     return false;
                 if (it->second.defSlots.size() > K_MAX_WEB_DEFS)
                     return false;
-                const auto dc = defCount.find(reg);
-                return dc != defCount.end() && dc->second == it->second.defSlots.size();
+                const auto dc = definitions.find(reg);
+                return dc != definitions.end() && dc->second.count == it->second.defSlots.size();
             };
 
             std::unordered_set<uint32_t> hoistSet;
@@ -867,8 +873,8 @@ namespace
                                 const bool baseIsConstantAddress = !base.isValid() || base.isInstructionPointer();
                                 if (loopHasFrameStore && !baseIsConstantAddress)
                                 {
-                                    const auto bc            = base.isValid() ? defCount.find(base) : defCount.end();
-                                    const bool baseSingleDef = bc != defCount.end() && bc->second == 1;
+                                    const auto bc            = base.isValid() ? definitions.find(base) : definitions.end();
+                                    const bool baseSingleDef = bc != definitions.end() && bc->second.count == 1;
                                     if (!frame.framePrivate || !baseSingleDef)
                                         continue;
                                 }

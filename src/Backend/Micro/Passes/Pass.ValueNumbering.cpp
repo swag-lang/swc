@@ -530,11 +530,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
 
-    MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
-    if (!ssaState || !ssaState->isValid())
+    if (!context.builder)
         return Result::Continue;
-
     const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
     if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
         return Result::Continue;
@@ -545,6 +542,12 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
     const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
     if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
+        return Result::Continue;
+
+    // These CFG checks can reject a function without constructing its SSA.
+    MicroSsaState        localSsaState;
+    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 
     MicroPassHelpers::MicroDomTree dom;

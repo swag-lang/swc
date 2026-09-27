@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/Sema/Type/TypeGenGenericArg.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
@@ -106,20 +107,11 @@ namespace
         }
     }
 
-    TypeRef genericArgValueTypeRef(const TaskContext& ctx, const GenericInstanceKey& arg)
-    {
-        if (arg.typeRef.isValid())
-            return arg.typeRef;
-        if (arg.cstRef.isValid())
-            return ctx.cstMgr().get(arg.cstRef).typeRef();
-        return TypeRef::invalid();
-    }
-
     void appendGenericArgDeps(SmallVector<TypeRef>& deps, const TaskContext& ctx, std::span<const GenericInstanceKey> genericArgs)
     {
         for (const GenericInstanceKey& arg : genericArgs)
         {
-            const TypeRef valueTypeRef = genericArgValueTypeRef(ctx, arg);
+            const TypeRef valueTypeRef = TypeGenGenericArg::genericArgValueTypeRef(ctx, arg);
             if (!valueTypeRef.isValid())
                 continue;
             deps.push_back(valueTypeRef);

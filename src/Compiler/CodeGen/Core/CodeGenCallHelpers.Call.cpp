@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
@@ -44,14 +45,6 @@ namespace
         diag.addArgument(Diagnostic::ARG_BECAUSE, because);
         diag.report(codeGen.ctx());
         return Result::Error;
-    }
-
-    SymbolFunction* singleFunctionFromView(const SemaNodeView& view)
-    {
-        Symbol* symbol = view.singleSymbol();
-        if (!symbol || !symbol->isFunction())
-            return nullptr;
-        return &symbol->cast<SymbolFunction>();
     }
 
     void appendUniqueCandidateRef(SmallVector<AstNodeRef>& outCandidateRefs, const AstNodeRef candidateRef)
@@ -122,14 +115,14 @@ namespace
         // Prefer the active view, but keep stored/resolved fallbacks. Inlining,
         // auto-members and substitutions can move the selected symbol away from the
         // surface callee node while preserving it in NodePayload.
-        if (SymbolFunction* calledFunction = singleFunctionFromView(codeGen.curViewSymbol()))
+        if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(codeGen.curViewSymbol()))
         {
             outCalledFunction = calledFunction;
             return Result::Continue;
         }
 
         const SemaNodeView storedCallView = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Symbol);
-        if (SymbolFunction* calledFunction = singleFunctionFromView(storedCallView))
+        if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(storedCallView))
         {
             outCalledFunction = calledFunction;
             return Result::Continue;
@@ -138,14 +131,14 @@ namespace
         if (calleeRef.isValid())
         {
             const SemaNodeView calleeView = codeGen.viewNodeSymbolList(calleeRef);
-            if (SymbolFunction* calledFunction = singleFunctionFromView(calleeView))
+            if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(calleeView))
             {
                 outCalledFunction = calledFunction;
                 return Result::Continue;
             }
 
             const SemaNodeView storedCalleeView = codeGen.sema().viewStored(calleeRef, SemaNodeViewPartE::Symbol);
-            if (SymbolFunction* calledFunction = singleFunctionFromView(storedCalleeView))
+            if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(storedCalleeView))
             {
                 outCalledFunction = calledFunction;
                 return Result::Continue;
@@ -155,7 +148,7 @@ namespace
             if (resolvedCalleeRef.isValid() && resolvedCalleeRef != calleeRef)
             {
                 const SemaNodeView resolvedCalleeView = codeGen.sema().viewStored(resolvedCalleeRef, SemaNodeViewPartE::Symbol);
-                if (SymbolFunction* calledFunction = singleFunctionFromView(resolvedCalleeView))
+                if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(resolvedCalleeView))
                 {
                     outCalledFunction = calledFunction;
                     return Result::Continue;

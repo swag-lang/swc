@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeGenGenericArg.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
@@ -61,15 +62,6 @@ namespace
 
         const auto** ptrField = storage.ptr<const Runtime::TypeInfo*>(baseOffset + fieldOffset);
         *ptrField             = storage.ptr<Runtime::TypeInfo>(targetOffset);
-    }
-
-    TypeRef genericArgValueTypeRef(TaskContext& ctx, const GenericInstanceKey& arg)
-    {
-        if (arg.typeRef.isValid())
-            return arg.typeRef;
-        if (arg.cstRef.isValid())
-            return ctx.cstMgr().get(arg.cstRef).typeRef();
-        return TypeRef::invalid();
     }
 
     void materializeGenericArgRuntimeValue(Sema& sema, DataSegment& storage, uint32_t elemOffset, const GenericInstanceKey& arg, TypeRef valueTypeRef, Runtime::TypeValue& tv)
@@ -136,7 +128,7 @@ namespace
                 tv.crc         = Math::crc32(id.name);
             }
 
-            const TypeRef valueTypeRef = genericArgValueTypeRef(ctx, arg);
+            const TypeRef valueTypeRef = TypeGenGenericArg::genericArgValueTypeRef(ctx, arg);
             materializeGenericArgRuntimeValue(sema, storage, elemOffset, arg, valueTypeRef, tv);
             entryGenericTypes.push_back(valueTypeRef);
         }

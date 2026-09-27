@@ -2021,11 +2021,14 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     bool changed = false;
     position     = 0;
     blockInstrs.clear();
+    uint32_t scalarStoresInBlock = 0;
 
     const auto flushBlock = [&]() {
-        if (!blockInstrs.empty() && vectorizeBlock(fn, localSsa, blockInstrs))
+        // Four scalar writes must occur in the same straight-line block.
+        if (scalarStoresInBlock >= K_LANE_COUNT && vectorizeBlock(fn, localSsa, blockInstrs))
             changed = true;
         blockInstrs.clear();
+        scalarStoresInBlock = 0;
     };
 
     for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
@@ -2044,6 +2047,8 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
             continue;
         }
 
+        if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm)
+            ++scalarStoresInBlock;
         blockInstrs.push_back(BlockInstr{.instRef = it.current, .inst = &inst, .pos = position});
     }
     flushBlock();

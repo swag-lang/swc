@@ -472,6 +472,38 @@ SWC_TEST_BEGIN(PostRALoopHoist_SecondDefinitionOfDestinationBlocks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopHoist_PersistentFloatArgumentCopy)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
+    for (const bool changesSource : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        const MicroReg source = conv.floatPersistentRegs[6];
+        const MicroReg arg = conv.floatArgRegs[0];
+        const MicroReg counter = conv.intPersistentRegs[2];
+        const auto top = builder.createLabel();
+        builder.emitLoadRegMem(source, conv.stackPointer, 0x40, MicroOpBits::B64);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(top);
+        builder.emitLoadRegReg(arg, source, MicroOpBits::B64);
+        const auto copy = builder.instructions().lastInstructionRef();
+        builder.emitCallReg(conv.intReturn, CallConvKind::Swag, 0, 1);
+        if (changesSource)
+            builder.emitLoadRegMem(source, conv.stackPointer, 0x48, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+        builder.emitLoadRegMem(arg, conv.stackPointer, 0x50, MicroOpBits::B128);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopHoistPass(builder));
+        if ((builder.instructions().ptr(copy) != nullptr) != changesSource)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

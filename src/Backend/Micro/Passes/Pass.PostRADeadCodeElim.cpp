@@ -95,7 +95,7 @@ Result MicroPostRaDeadCodeElimPass::run(MicroPassContext& context)
     // The shared physical-register analysis computes the same backward fixed point,
     // using one machine word per set instead of repeatedly scanning register vectors.
     MicroPhysLiveness liveness;
-    MicroPassHelpers::computePhysicalLiveness(liveness, context, MicroPassHelpers::MicroPhysLivenessMode::DeadDefs);
+    MicroPassHelpers::computePhysicalLiveness(liveness, context, beforePrologue_ ? MicroPassHelpers::MicroPhysLivenessMode::DeadDefsBeforePrologue : MicroPassHelpers::MicroPhysLivenessMode::DeadDefs);
     if (!liveness.valid)
         return Result::Continue;
 

@@ -121,16 +121,6 @@ namespace
         return st.isGenericRoot() ? &st : nullptr;
     }
 
-    Result deduceLambdaTypeParameterFromDefault(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef)
-    {
-        return SemaHelpers::deduceDefaultValueType(sema, defaultValueRef, outTypeRef);
-    }
-
-    Result finalizeLambdaTypeParameterDefault(Sema& sema, const AstLambdaParam& param, SymbolVariable& symVar)
-    {
-        return SemaHelpers::finalizeDefaultValue(sema, param.nodeDefaultValueRef, symVar);
-    }
-
     TypeRef ensureForwardNamedTypeRef(Sema& sema, Symbol& sym)
     {
         if (sym.typeRef().isValid())
@@ -704,7 +694,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
         if (param.nodeTypeRef.isValid())
             paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();
         else if (param.nodeDefaultValueRef.isValid())
-            SWC_RESULT(deduceLambdaTypeParameterFromDefault(sema, param.nodeDefaultValueRef, paramTypeRef));
+            SWC_RESULT(SemaHelpers::deduceDefaultValueType(sema, param.nodeDefaultValueRef, paramTypeRef));
 
         SWC_ASSERT(paramTypeRef.isValid());
 
@@ -714,7 +704,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
         auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
         symVar->setTypeRef(paramTypeRef);
-        SWC_RESULT(finalizeLambdaTypeParameterDefault(sema, param, *symVar));
+        SWC_RESULT(SemaHelpers::finalizeDefaultValue(sema, param.nodeDefaultValueRef, *symVar));
 
         symFunc->addParameter(symVar);
         if (idRef.isValid())

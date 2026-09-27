@@ -28,6 +28,7 @@ namespace Backend::Unittest
     uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op);
     // First linear position of an opcode, or UINT32_MAX.
     uint32_t firstOpcodePosition(const MicroBuilder& builder, MicroInstrOpcode opcode);
+    bool     isStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroOp expectedOp, uint64_t expectedImmediate);
 }
 
 #endif

@@ -696,16 +696,6 @@ namespace
 
     using SemaHelpers::resolveLambdaBindingFunction;
 
-    Result deduceLambdaParameterTypeFromDefault(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef)
-    {
-        return SemaHelpers::deduceDefaultValueType(sema, defaultValueRef, outTypeRef);
-    }
-
-    Result finalizeLambdaParameterDefault(Sema& sema, const AstLambdaParam& param, SymbolVariable& symVar)
-    {
-        return SemaHelpers::finalizeDefaultValue(sema, param.nodeDefaultValueRef, symVar);
-    }
-
     Result findCompatibleReturnBindingType(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
     {
         outTypeRef = TypeRef::invalid();
@@ -1162,7 +1152,7 @@ namespace
                     paramType = bindingParams[bindingIndex]->typeRef();
             }
             else if (param.nodeDefaultValueRef.isValid())
-                SWC_RESULT(deduceLambdaParameterTypeFromDefault(sema, param.nodeDefaultValueRef, paramType));
+                SWC_RESULT(SemaHelpers::deduceDefaultValueType(sema, param.nodeDefaultValueRef, paramType));
             if (!paramType.isValid())
                 paramType = resolveGroupedFunctionExprParameterType(sema, params, paramIndex);
 
@@ -1179,7 +1169,7 @@ namespace
             auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
             symVar->setTypeRef(paramType);
             symVar->addExtraFlag(SymbolVariableFlagsE::Parameter);
-            SWC_RESULT(finalizeLambdaParameterDefault(sema, param, *symVar));
+            SWC_RESULT(SemaHelpers::finalizeDefaultValue(sema, param.nodeDefaultValueRef, *symVar));
 
             sym.addParameter(symVar);
             if (idRef.isValid())

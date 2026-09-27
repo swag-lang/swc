@@ -96,6 +96,7 @@ struct Cast
     static TokenRef   userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRef);
     static Result     resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, AstNodeRef srcNodeRef = AstNodeRef::invalid());
     static Result     resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef = AstNodeRef::invalid());
+    static bool       isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType);
 
 private:
     static Result castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

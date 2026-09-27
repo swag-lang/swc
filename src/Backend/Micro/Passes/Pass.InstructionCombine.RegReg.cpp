@@ -884,15 +884,8 @@ namespace InstructionCombine
                 return false;
             auto          def = ctx.ssa->reachingDef(ops[1].reg, ref);
             MicroInstrRef copyRef;
-            if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
-            {
-                const auto* copy = def.inst->ops(*ctx.operands);
-                if (!copy || !copy[1].reg.isVirtualInt() || copy[2].opBits != bits ||
-                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
-                    return false;
-                copyRef = def.instRef;
-                def     = ctx.ssa->reachingDef(copy[1].reg, copyRef);
-            }
+            if (!skipSingleUseIntCopy(ctx, def, copyRef, bits))
+                return false;
             if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpUnaryReg ||
                 ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                 return false;
@@ -922,15 +915,8 @@ namespace InstructionCombine
                 return false;
             auto          def = ctx.ssa->reachingDef(ops[0].reg, ref);
             MicroInstrRef copyRef;
-            if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
-            {
-                const auto* copy = def.inst->ops(*ctx.operands);
-                if (!copy || !copy[1].reg.isVirtualInt() || copy[2].opBits != bits ||
-                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
-                    return false;
-                copyRef = def.instRef;
-                def     = ctx.ssa->reachingDef(copy[1].reg, copyRef);
-            }
+            if (!skipSingleUseIntCopy(ctx, def, copyRef, bits))
+                return false;
             if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpUnaryReg ||
                 ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                 return false;

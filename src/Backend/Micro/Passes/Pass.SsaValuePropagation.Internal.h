@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroSsaState.h"
 #include "Support/Core/RefTypes.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -8,6 +9,26 @@ struct MicroSsaKnownValue
 {
     uint64_t    value  = 0;
     MicroOpBits opBits = MicroOpBits::B64;
+};
+
+struct MicroSsaKnownValueTraits
+{
+    [[maybe_unused]] static bool isValid(const MicroSsaKnownValue&)
+    {
+        return true;
+    }
+
+    [[maybe_unused]] static bool same(const MicroSsaKnownValue& lhs, const MicroSsaKnownValue& rhs)
+    {
+        return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
+    }
+};
+
+struct MicroSsaKnownValueContext
+{
+    const MicroSsaState*       ssaState = nullptr;
+    const MicroStorage*        storage  = nullptr;
+    const MicroOperandStorage* operands = nullptr;
 };
 
 struct MicroSsaCanonicalValue
@@ -52,6 +73,17 @@ bool tryGetSsaReachingValue(T_VALUE& outValue, const MicroSsaState& ssaState, co
         return false;
 
     return tryGetSsaValue<T_VALUE, T_TRAITS>(outValue, values, flags, reachingDef.valueId);
+}
+
+inline bool tryGetKnownReachingValue(MicroSsaKnownValue& outValue, const MicroSsaKnownValueContext& context, const std::vector<MicroSsaKnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
+{
+    SWC_ASSERT(context.ssaState != nullptr);
+    return tryGetSsaReachingValue<MicroSsaKnownValue, MicroSsaKnownValueTraits>(outValue, *context.ssaState, knownValues, knownFlags, reg, instRef);
+}
+
+inline bool tryGetKnownReachingValue(MicroSsaKnownValue& outValue, const MicroSsaState& ssaState, const std::vector<MicroSsaKnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
+{
+    return tryGetSsaReachingValue<MicroSsaKnownValue, MicroSsaKnownValueTraits>(outValue, ssaState, knownValues, knownFlags, reg, instRef);
 }
 
 template<typename T_VALUE, typename T_TRAITS>

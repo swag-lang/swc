@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Symbol/SymbolOrder.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
@@ -68,13 +69,6 @@ namespace
     uint32_t checkedStructLayoutAlignment(const SymbolStruct& symbolStruct, const uint32_t alignment)
     {
         return static_cast<uint32_t>(checkedStructLayoutValue(symbolStruct, alignment, "alignment != 0"));
-    }
-
-    bool compareFunctionOrder(const SymbolFunction* left, const SymbolFunction* right)
-    {
-        SWC_ASSERT(left);
-        SWC_ASSERT(right);
-        return left->tokRef().get() < right->tokRef().get();
     }
 
     bool isRuntimeReflectedMethod(const SymbolFunction& symFunc)
@@ -740,7 +734,7 @@ std::vector<SymbolFunction*> SymbolStruct::declaredMethods() const
     std::vector<SymbolFunction*> result;
     appendImplFunctions(result, impls());
     appendImplFunctions(result, interfaces());
-    std::ranges::sort(result, compareFunctionOrder);
+    std::ranges::sort(result, SymbolOrder::beforeToken);
     return result;
 }
 
@@ -779,7 +773,7 @@ std::vector<SymbolFunction*> SymbolStruct::methods() const
         result.push_back(symFunc);
     }
 
-    std::ranges::sort(result, compareFunctionOrder);
+    std::ranges::sort(result, SymbolOrder::beforeToken);
     return result;
 }
 

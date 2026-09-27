@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Generic/GenericCloneFlags.h"
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -331,14 +332,6 @@ namespace SemaGeneric
                 return;
 
             appendGenericInstanceCloneBindings(sema, ownerParams.span(), ownerArgs.span(), outBindings);
-        }
-
-        SymbolFlags clonedGenericSymbolFlags(const Symbol& root)
-        {
-            SymbolFlags flags = SymbolFlagsE::Zero;
-            if (root.isPublic())
-                flags.add(SymbolFlagsE::Public);
-            return flags;
         }
 
         void prepareGenericDeclSemaContext(Sema& child, Sema& sema, const Symbol& root)
@@ -939,7 +932,7 @@ namespace SemaGeneric
                 return Result::Error;
 
             outBlockRef      = cloneGenericImplBlock(sema, *implDecl, bindings);
-            outClone         = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), clonedGenericSymbolFlags(sourceImpl));
+            outClone         = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), Internal::clonedGenericSymbolFlags(sourceImpl));
             auto ownerSymMap = const_cast<SymbolMap*>(sourceImpl.ownerSymMap());
             if (!ownerSymMap)
             {

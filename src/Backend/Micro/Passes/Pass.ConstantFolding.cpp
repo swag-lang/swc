@@ -257,8 +257,6 @@ namespace
         }
     }
 
-    bool tryGetKnownReachingValue(KnownValue& outValue, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef);
-
     struct UniformFloatBranchContext
     {
         ConstantMemoryContext&         memory;
@@ -308,7 +306,7 @@ namespace
             return false;
         const MicroInstrOperand* loadOps = load->ops(operands);
         const uint32_t           width   = getNumBits(bits) / 8;
-        if (!loadOps || loadOps[0].reg != cmpOps[0].reg || loadOps[3].opBits != bits ||
+        if (!loadOps || loadOps[0].reg != cmpOps[0].reg || !loadOps[1].reg.isVirtualInt() || loadOps[3].opBits != bits ||
             loadOps[4].opBits != MicroOpBits::B64 || loadOps[5].valueU64 != width || loadOps[6].valueU64 != 0)
             return false;
 
@@ -356,36 +354,8 @@ namespace
         return true;
     }
 
-    struct KnownValueTraits
-    {
-        [[maybe_unused]] static bool isValid(const KnownValue&)
-        {
-            return true;
-        }
-
-        [[maybe_unused]] static bool same(const KnownValue& lhs, const KnownValue& rhs)
-        {
-            return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
-        }
-    };
-
-    struct KnownValueContext
-    {
-        const MicroSsaState*       ssaState = nullptr;
-        const MicroStorage*        storage  = nullptr;
-        const MicroOperandStorage* operands = nullptr;
-    };
-
-    bool tryGetKnownReachingValue(KnownValue& outValue, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
-    {
-        SWC_ASSERT(context.ssaState != nullptr);
-        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, *context.ssaState, knownValues, knownFlags, reg, instRef);
-    }
-
-    bool tryGetKnownReachingValue(KnownValue& outValue, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
-    {
-        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, ssaState, knownValues, knownFlags, reg, instRef);
-    }
+    using KnownValueTraits  = MicroSsaKnownValueTraits;
+    using KnownValueContext = MicroSsaKnownValueContext;
 
     // Convert an IEEE-754 bit pattern between f32/f64. On success fills the
     // destination bit pattern and its width; returns false for unsupported
@@ -789,7 +759,7 @@ namespace
                 return false;
         }
 
-        if (!ops[0].reg.isVirtual() || loadBits == MicroOpBits::Zero || loadBits == MicroOpBits::B128 || dstBits == MicroOpBits::B128)
+        if (!ops[0].reg.isVirtual() || !ops[1].reg.isVirtualInt() || loadBits == MicroOpBits::Zero || loadBits == MicroOpBits::B128 || dstBits == MicroOpBits::B128)
             return false;
 
         // Rewrites leave relocations unchanged. Collect their original order

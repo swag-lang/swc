@@ -48,6 +48,7 @@ public:
     void             setSymStruct(SymbolStruct* sym);
     SymbolEnum*      symEnum() const;
     void             setSymEnum(SymbolEnum* sym);
+    TypeRef          ownerTypeRef() const;
     SymbolInterface* symInterface() const noexcept { return interfaceSym_; }
     void             setSymInterface(SymbolInterface* sym) noexcept { interfaceSym_ = sym; }
 

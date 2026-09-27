@@ -10,6 +10,7 @@
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -41,21 +42,6 @@ namespace
         }
 
         return nullptr;
-    }
-
-    bool isStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroOp expectedOp, uint64_t expectedImmediate)
-    {
-        if (!ops)
-            return false;
-        if (inst.op != MicroInstrOpcode::OpBinaryRegImm || inst.numOperands < 4)
-            return false;
-        if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B64)
-            return false;
-        if (ops[2].microOp != expectedOp)
-            return false;
-        if (ops[3].valueU64 != expectedImmediate)
-            return false;
-        return true;
     }
 
     bool isFramePointerSetup(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg framePointer, MicroReg stackPointer)
@@ -271,7 +257,7 @@ SWC_TEST_BEGIN(MicroPrologEpilog_RestoresEveryReturnFromOriginalAnchors)
         return Result::Error;
     const auto  subtractRef = builder.instructions().findNextInstructionRef(first.current);
     const auto* subtract    = builder.instructions().ptr(subtractRef);
-    if (!subtract || !isStackAdjust(*subtract, subtract->ops(operands), conv.stackPointer, MicroOp::Subtract, 8) ||
+    if (!subtract || !Backend::Unittest::isStackAdjust(*subtract, subtract->ops(operands), conv.stackPointer, MicroOp::Subtract, 8) ||
         builder.instructions().findNextInstructionRef(subtractRef) != originalFirst)
         return Result::Error;
 
@@ -287,7 +273,7 @@ SWC_TEST_BEGIN(MicroPrologEpilog_RestoresEveryReturnFromOriginalAnchors)
         if (!pop || pop->op != MicroInstrOpcode::Pop || pop->ops(operands)[0].reg != saved)
             return Result::Error;
         const auto* add = builder.instructions().ptr(builder.instructions().findPreviousInstructionRef(popRef));
-        if (!add || !isStackAdjust(*add, add->ops(operands), conv.stackPointer, MicroOp::Add, 8))
+        if (!add || !Backend::Unittest::isStackAdjust(*add, add->ops(operands), conv.stackPointer, MicroOp::Add, 8))
             return Result::Error;
         ++returns;
     }
@@ -324,11 +310,11 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
     if (!subInst || !fpInst || !addInst)
         return Result::Error;
 
-    if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 48))
+    if (!Backend::Unittest::isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 48))
         return Result::Error;
     if (!isFramePointerMovAfterStackShape(*fpInst, fpInst->ops(operands), rbp, rsp))
         return Result::Error;
-    if (!isStackAdjust(*addInst, addInst->ops(operands), rsp, MicroOp::Add, 32))
+    if (!Backend::Unittest::isStackAdjust(*addInst, addInst->ops(operands), rsp, MicroOp::Add, 32))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -362,13 +348,13 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
     if (!firstSubInst || !fpInst || !secondSubInst || !epilogueAddIns)
         return Result::Error;
 
-    if (!isStackAdjust(*firstSubInst, firstSubInst->ops(operands), rsp, MicroOp::Subtract, 16))
+    if (!Backend::Unittest::isStackAdjust(*firstSubInst, firstSubInst->ops(operands), rsp, MicroOp::Subtract, 16))
         return Result::Error;
     if (!isFramePointerMovAfterStackShape(*fpInst, fpInst->ops(operands), rbp, rsp))
         return Result::Error;
-    if (!isStackAdjust(*secondSubInst, secondSubInst->ops(operands), rsp, MicroOp::Subtract, 32))
+    if (!Backend::Unittest::isStackAdjust(*secondSubInst, secondSubInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
-    if (!isStackAdjust(*epilogueAddIns, epilogueAddIns->ops(operands), rsp, MicroOp::Add, 32))
+    if (!Backend::Unittest::isStackAdjust(*epilogueAddIns, epilogueAddIns->ops(operands), rsp, MicroOp::Add, 32))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -396,7 +382,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ExpandsLargeWindowsStackAdjustIntoPageP
     if (!subInst || !probe0 || !probe1 || !probe2 || !retInst)
         return Result::Error;
 
-    if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 12 * 1024ull))
+    if (!Backend::Unittest::isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 12 * 1024ull))
         return Result::Error;
     if (!isStackProbeLoad(*probe0, probe0->ops(operands), rax, rsp, 8 * 1024ull))
         return Result::Error;
@@ -437,7 +423,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryPr
 
     if (firstInst->op != MicroInstrOpcode::Push)
         return Result::Error;
-    if (!isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
+    if (!Backend::Unittest::isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
     if (!isFramePointerMovAfterStackShape(*thirdInst, thirdInst->ops(operands), rbp, rsp))
         return Result::Error;
@@ -473,7 +459,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReinsertsForcedFramePointerSetupWhenMis
 
     if (firstInst->op != MicroInstrOpcode::Push)
         return Result::Error;
-    if (!isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
+    if (!Backend::Unittest::isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
     if (!isFramePointerMovAfterStackShape(*thirdInst, thirdInst->ops(operands), rbp, rsp))
         return Result::Error;
@@ -555,7 +541,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesMultipleReturnSuffixesAfterReject
     for (uint32_t i = 0; i < survivors.size(); ++i)
     {
         const auto* inst = builder.instructions().ptr(survivors[i]);
-        if (!inst || !isStackAdjust(*inst, inst->ops(builder.operands()), rsp, MicroOp::Add, amounts[i]))
+        if (!inst || !Backend::Unittest::isStackAdjust(*inst, inst->ops(builder.operands()), rsp, MicroOp::Add, amounts[i]))
             return Result::Error;
     }
     const std::array<MicroInstrRef, 3> returns     = {firstRet, secondRet, emptyRet};
@@ -618,8 +604,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsFrameWhenBodyAddressesOrCalls)
         if (builder.instructions().count() != 4 || !sub || !add)
             return Result::Error;
         const uint64_t expectedFrame = 56;
-        if (!isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, expectedFrame) ||
-            !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, expectedFrame))
+        if (!Backend::Unittest::isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, expectedFrame) ||
+            !Backend::Unittest::isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, expectedFrame))
             return Result::Error;
     }
 }
@@ -656,8 +642,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsUnusedStackPrefix)
         const auto*    last           = instructionAt(builder, 4);
         const auto*    add            = instructionAt(builder, 5);
         if (builder.instructions().count() != 7 || !sub || !first || !store || !last || !add ||
-            !isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, expectedFrame) ||
-            !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, expectedFrame) ||
+            !Backend::Unittest::isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, expectedFrame) ||
+            !Backend::Unittest::isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, expectedFrame) ||
             first->ops(builder.operands())[3].valueU64 != expectedOffset ||
             store->ops(builder.operands())[3].valueU64 != 176 ||
             last->ops(builder.operands())[3].valueU64 != 184)
@@ -678,7 +664,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsUnusedStackPrefix)
     const auto* outgoingSub   = instructionAt(outgoing, 0);
     const auto* outgoingStore = instructionAt(outgoing, 1);
     if (!outgoingSub || !outgoingStore ||
-        !isStackAdjust(*outgoingSub, outgoingSub->ops(outgoing.operands()), rsp, MicroOp::Subtract, 200) ||
+        !Backend::Unittest::isStackAdjust(*outgoingSub, outgoingSub->ops(outgoing.operands()), rsp, MicroOp::Subtract, 200) ||
         outgoingStore->ops(outgoing.operands())[3].valueU64 != 48)
         return Result::Error;
     return Result::Continue;
@@ -699,8 +685,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsEmptyCallFrame)
     const auto* sub = instructionAt(builder, 0);
     const auto* add = instructionAt(builder, 2);
     if (builder.instructions().count() != 4 || !sub || !add ||
-        !isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, 136) ||
-        !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, 136))
+        !Backend::Unittest::isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, 136) ||
+        !Backend::Unittest::isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, 136))
         return Result::Error;
     return Result::Continue;
 }
@@ -756,8 +742,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReservesBodyCallFrame)
         for (const MicroInstr& inst : builder.instructions().view())
         {
             const MicroInstrOperand* ops = inst.ops(builder.operands());
-            callAdds += isStackAdjust(inst, ops, rsp, MicroOp::Add, reserve);
-            tailSubs += isStackAdjust(inst, ops, rsp, MicroOp::Subtract, mode == 0 ? 144 - reserve : 144);
+            callAdds += Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Add, reserve);
+            tailSubs += Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Subtract, mode == 0 ? 144 - reserve : 144);
             if (ops && (inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadMemReg) &&
                 ops[inst.op == MicroInstrOpcode::LoadRegMem ? 1 : 0].reg == rsp &&
                 ops[3].valueU64 == (mode == 0 ? 248 + reserve : 248))
@@ -820,9 +806,9 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_HoistsSingleLoopCallFrame)
             if (it.current == outerJumpRef)
                 jumpIndex = index;
             const auto* ops = it->ops(builder.operands());
-            if (isStackAdjust(*it, ops, rsp, MicroOp::Subtract, 56))
+            if (Backend::Unittest::isStackAdjust(*it, ops, rsp, MicroOp::Subtract, 56))
                 subIndex = index;
-            if (isStackAdjust(*it, ops, rsp, MicroOp::Add, 56))
+            if (Backend::Unittest::isStackAdjust(*it, ops, rsp, MicroOp::Add, 56))
                 addIndex = index;
         }
         if (outerIndex == UINT32_MAX || jumpIndex == UINT32_MAX || subIndex == UINT32_MAX || addIndex == UINT32_MAX ||
@@ -867,8 +853,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DropsSaveOfRegisterTheBodyNoLongerNames
         return Result::Error;
     if (pop->op != MicroInstrOpcode::Pop || pop->ops(operands)[0].reg != rbx)
         return Result::Error;
-    if (!isStackAdjust(*sub, sub->ops(operands), rsp, MicroOp::Subtract, 40) ||
-        !isStackAdjust(*add, add->ops(operands), rsp, MicroOp::Add, 40))
+    if (!Backend::Unittest::isStackAdjust(*sub, sub->ops(operands), rsp, MicroOp::Subtract, 40) ||
+        !Backend::Unittest::isStackAdjust(*add, add->ops(operands), rsp, MicroOp::Add, 40))
         return Result::Error;
 }
 SWC_TEST_END()

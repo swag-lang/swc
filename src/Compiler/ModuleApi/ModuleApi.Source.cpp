@@ -15,8 +15,6 @@ namespace
     using ModuleApi::isDeclarationWrapper;
     using ModuleApi::moduleApiNodeSourceView;
     using ModuleApi::moduleApiSnippetStartTokRef;
-    using ModuleApi::sourceTokenByteEnd;
-    using ModuleApi::sourceTokenByteStart;
 
     TokenRef moduleApiCallExprEndTokRef(const Ast& ast, const AstNode& node)
     {
@@ -274,7 +272,7 @@ namespace
             if (!extend)
                 return;
 
-            ioEndOffset = sourceTokenByteEnd(srcView, token);
+            ioEndOffset = srcView.tokenByteEnd(token);
             if (balance.empty())
                 return;
         }
@@ -310,8 +308,8 @@ namespace
                 const TokenRef childStartTokRef = moduleApiSnippetStartTokRef(ast, childNode);
                 if (childStartTokRef.isValid())
                 {
-                    const uint32_t startOffset = sourceTokenByteStart(srcView, srcView.token(node.tokRef()));
-                    const uint32_t endOffset   = sourceTokenByteStart(srcView, srcView.token(childStartTokRef));
+                    const uint32_t startOffset = srcView.tokenByteStart(srcView.token(node.tokRef()));
+                    const uint32_t endOffset   = srcView.tokenByteStart(srcView.token(childStartTokRef));
                     if (startOffset < endOffset)
                         outRanges.push_back({startOffset, endOffset});
                 }
@@ -507,19 +505,6 @@ namespace
 
 namespace ModuleApi
 {
-    uint32_t sourceTokenByteStart(const SourceView& srcView, const Token& token)
-    {
-        if (token.id == TokenId::Identifier)
-            return srcView.identifiers()[token.byteStart].byteStart;
-
-        return token.byteStart;
-    }
-
-    uint32_t sourceTokenByteEnd(const SourceView& srcView, const Token& token)
-    {
-        return sourceTokenByteStart(srcView, token) + token.byteLength;
-    }
-
     TokenRef moduleApiFunctionBodyStartTokRef(const Ast& ast, const AstFunctionDecl& functionDecl)
     {
         if (!ast.hasSourceView() || !functionDecl.nodeBodyRef.isValid() || ast.isAdditionalNode(functionDecl.nodeBodyRef))
@@ -648,8 +633,8 @@ namespace ModuleApi
             return false;
 
         const SourceView& srcView = moduleApiNodeSourceView(ctx, ast, nodeRef);
-        outStartOffset            = sourceTokenByteStart(srcView, srcView.token(startTokRef));
-        outEndOffset              = sourceTokenByteEnd(srcView, srcView.token(endTokRef));
+        outStartOffset            = srcView.tokenByteStart(srcView.token(startTokRef));
+        outEndOffset              = srcView.tokenByteEnd(srcView.token(endTokRef));
         extendModuleApiSnippetEndOffset(srcView, startTokRef, endTokRef, outEndOffset);
         return true;
     }

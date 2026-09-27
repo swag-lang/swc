@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantFoldStorage.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -18,19 +19,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef constantFoldStorageTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        if (!typeInfo.isAlias() && !typeInfo.isEnum())
-            return typeRef;
-
-        const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(sema.ctx(), typeRef);
-        return storageTypeRef.isValid() ? storageTypeRef : typeRef;
-    }
-
     void setDataOfPointerConstant(Sema& sema, TypeRef resultTypeRef, uint64_t ptrValue)
     {
         TaskContext&    ctx        = sema.ctx();
@@ -59,7 +47,7 @@ namespace
         if (!argView.type())
             return false;
 
-        const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, argView.typeRef());
+        const TypeRef   storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, argView.typeRef());
         const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
         if (!storageType.isFloat())
             return false;
@@ -74,7 +62,7 @@ namespace
 
         const TypeRef  resultTypeRef  = sema.viewType(callRef).typeRef();
         const TypeInfo resultTy       = sema.typeMgr().get(resultTypeRef);
-        const TypeRef  storageTypeRef = constantFoldStorageTypeRef(sema, resultTypeRef);
+        const TypeRef  storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, resultTypeRef);
         const TypeInfo storageTy      = sema.typeMgr().get(storageTypeRef);
         if (!storageTy.isFloat())
             return Result::Continue;
@@ -173,7 +161,7 @@ namespace
         if (!argView.type())
             return false;
 
-        const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, argView.typeRef());
+        const TypeRef   storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, argView.typeRef());
         const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
         if (!storageType.isIntLike())
             return false;
@@ -191,7 +179,7 @@ namespace
     Result makeIntResult(Sema& sema, AstNodeRef callRef, uint64_t value, uint32_t bitWidth, bool isUnsigned)
     {
         const TypeRef   resultTypeRef  = sema.viewType(callRef).typeRef();
-        const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, resultTypeRef);
+        const TypeRef   storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, resultTypeRef);
         const TypeInfo& storageTy      = sema.typeMgr().get(storageTypeRef);
         if (!storageTy.isIntLike())
             return Result::Continue;
@@ -534,7 +522,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 const SemaNodeView argView(sema, args[0], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                 if (argView.cstRef().isValid() && argView.type())
                 {
-                    const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, argView.typeRef());
+                    const TypeRef   storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, argView.typeRef());
                     const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
                     const uint32_t  bits           = storageType.isIntLike() ? storageType.payloadIntLikeBits() : 0;
                     if (bits > 0)

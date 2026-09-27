@@ -31,18 +31,6 @@ namespace
         return sema.token(parentNode.codeRef()).id == TokenId::KwdExpect;
     }
 
-    void addUsingSymMapToScope(SemaScope& scope, SymbolMap* usingSymMap)
-    {
-        SWC_ASSERT(usingSymMap != nullptr);
-        for (const SymbolMap* existing : scope.usingSymMaps())
-        {
-            if (existing == usingSymMap)
-                return;
-        }
-
-        scope.addUsingSymMap(usingSymMap);
-    }
-
     // Reports whether this file states a module setup *and* is compiled as ordinary source.
     //
     // Two files answer yes. A script is its own module file, and every file a setup '#load'
@@ -239,7 +227,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     for (const auto& nodeRef : nodeRefs)
     {
         SymbolMap* usingSymMap = usingDeclChildSymMap(sema, nodeRef);
-        addUsingSymMapToScope(sema.curScope(), usingSymMap);
+        SemaScope::addUsingSymMapIfMissing(sema.curScope(), usingSymMap);
 
         // Qualified lookups (for example `Enum.Value`) do not walk transient lexical scopes,
         // so persist `using` imports on the owning symbol map as well.
@@ -266,7 +254,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
 
 Result AstUsingDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
-    addUsingSymMapToScope(sema.curScope(), usingDeclChildSymMap(sema, childRef));
+    SemaScope::addUsingSymMapIfMissing(sema.curScope(), usingDeclChildSymMap(sema, childRef));
     return Result::Continue;
 }
 

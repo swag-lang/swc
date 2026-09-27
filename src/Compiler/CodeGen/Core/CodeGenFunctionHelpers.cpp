@@ -388,7 +388,6 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     result.needsIndirectCopy = normalizedParam.needsIndirectCopy;
     result.numBits           = normalizedParam.numBits;
     result.opBits            = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
-    result.isRegisterArg     = callConv.canPassArgInRegister(result.slotIndex, result.isFloat);
 
     SmallVector<ABICall::ArgLayout> argLayouts;
     argLayouts.reserve(symbolFunc.parameters().size() + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
@@ -402,6 +401,8 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
         const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
         argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
     }
+    result.registerIndex = ABICall::argumentRegisterIndex(callConv, argLayouts, result.slotIndex);
+    result.isRegisterArg = result.registerIndex != UINT32_MAX;
     result.stackOffset = ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
     return result;
 }
@@ -522,13 +523,13 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
     {
         if (paramInfo.isFloat)
         {
-            SWC_ASSERT(paramInfo.slotIndex < callConv.floatArgRegs.size());
-            builder.emitLoadRegReg(dstReg, callConv.floatArgRegs[paramInfo.slotIndex], paramInfo.opBits);
+            SWC_ASSERT(paramInfo.registerIndex < callConv.floatArgRegs.size());
+            builder.emitLoadRegReg(dstReg, callConv.floatArgRegs[paramInfo.registerIndex], paramInfo.opBits);
         }
         else
         {
-            SWC_ASSERT(paramInfo.slotIndex < callConv.intArgRegs.size());
-            ABICall::loadCanonicalIntToReg(builder, dstReg, callConv.intArgRegs[paramInfo.slotIndex], paramInfo.numBits, paramInfo.isSigned);
+            SWC_ASSERT(paramInfo.registerIndex < callConv.intArgRegs.size());
+            ABICall::loadCanonicalIntToReg(builder, dstReg, callConv.intArgRegs[paramInfo.registerIndex], paramInfo.numBits, paramInfo.isSigned);
         }
     }
     else

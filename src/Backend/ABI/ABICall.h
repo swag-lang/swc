@@ -16,8 +16,10 @@ namespace ABICall
     {
         uint8_t numBits = 64;
         bool    isFloat = false;
+        bool    needsHome = false;
     };
 
+    uint32_t argumentRegisterIndex(const CallConv& conv, std::span<const ArgLayout> argLayouts, uint32_t argIndex);
     uint32_t argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKind callConvKind, TypeRef returnTypeRef, uint32_t parameterIndex);
     uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex);
     uint64_t callArgStackOffset(const CallConv& conv, std::span<const ArgLayout> argLayouts, uint32_t argIndex);

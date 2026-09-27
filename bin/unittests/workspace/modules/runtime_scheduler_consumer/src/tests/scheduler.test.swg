@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
 
-#[Swag.Foreign("kernel32", "Sleep")]
+#[Swag.Foreign("kernel32", "Sleep", callconv: Swag.CallConv.C)]
 private func sleep(milliseconds: u32)
 
 // Registration in the executable and completion in the DLL must use the same condition and

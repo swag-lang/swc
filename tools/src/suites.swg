@@ -174,9 +174,9 @@ private func verifyNativeTestRecovery(context: *Context, options: *Options, buil
 
         let source     = Format.toString(#raw """
             #global private
-            #[Swag.Foreign("kernel32", "Sleep")]
+            #[Swag.Foreign("kernel32", "Sleep", callconv: Swag.CallConv.C)]
             func sleep(milliseconds: u32)
-            #[Swag.Foreign("kernel32", "RaiseException")]
+            #[Swag.Foreign("kernel32", "RaiseException", callconv: Swag.CallConv.C)]
             func raiseFault(code, flags, count: u32, arguments: *void?)
             var entered: Swag.AtomicFlag
             var gate: Swag.AtomicFlag
@@ -752,11 +752,11 @@ private func verifyWorkspaceDependencyStackTrace(context: *Context, options: *Op
 private func workspaceSourceRewrite(path, replacement: string)->String
 {
     return Format.toString(#raw """
-        #[Swag.Foreign("kernel32", "CreateFileA")]
+        #[Swag.Foreign("kernel32", "CreateFileA", callconv: Swag.CallConv.C)]
         func createFile(path: const [*] u8, access, share: u32, security: *void?, creation, flags: u32, template: *void?)->*void?
-        #[Swag.Foreign("kernel32", "WriteFile")]
+        #[Swag.Foreign("kernel32", "WriteFile", callconv: Swag.CallConv.C)]
         func writeFile(file: *void?, bytes: const [*] u8, count: u32, written: *u32, overlapped: *void?)->bool
-        #[Swag.Foreign("kernel32", "CloseHandle")]
+        #[Swag.Foreign("kernel32", "CloseHandle", callconv: Swag.CallConv.C)]
         func closeHandle(file: *void?)->bool
 
         func rewriteSource()

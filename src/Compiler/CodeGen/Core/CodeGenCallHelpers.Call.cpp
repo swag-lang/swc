@@ -780,10 +780,16 @@ namespace
 
     void doIsolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
     {
-        MicroBuilder&  builder    = codeGen.builder();
-        const uint32_t numRegArgs = std::min(static_cast<uint32_t>(args.size()), callConv.numArgRegisterSlots());
-        for (uint32_t i = 0; i < numRegArgs; ++i)
+        MicroBuilder& builder = codeGen.builder();
+        SmallVector<ABICall::ArgLayout> argLayouts;
+        argLayouts.reserve(args.size());
+        for (const ABICall::PreparedArg& arg : args)
+            argLayouts.push_back({.numBits = static_cast<uint8_t>(arg.numBits ? arg.numBits : 64), .isFloat = arg.isFloat});
+
+        for (uint32_t i = 0; i < args.size(); ++i)
         {
+            if (ABICall::argumentRegisterIndex(callConv, argLayouts, i) == UINT32_MAX)
+                continue;
             ABICall::PreparedArg& arg = args[i];
             if (arg.kind == ABICall::PreparedArgKind::InterfaceObject)
             {

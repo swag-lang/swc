@@ -188,12 +188,12 @@ namespace
     {
         if (paramInfo.isFloat)
         {
-            SWC_ASSERT(paramInfo.slotIndex < callConv.floatArgRegs.size());
-            return callConv.floatArgRegs[paramInfo.slotIndex];
+            SWC_ASSERT(paramInfo.registerIndex < callConv.floatArgRegs.size());
+            return callConv.floatArgRegs[paramInfo.registerIndex];
         }
 
-        SWC_ASSERT(paramInfo.slotIndex < callConv.intArgRegs.size());
-        return callConv.intArgRegs[paramInfo.slotIndex];
+        SWC_ASSERT(paramInfo.registerIndex < callConv.intArgRegs.size());
+        return callConv.intArgRegs[paramInfo.registerIndex];
     }
 
     void collectCompilerFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)

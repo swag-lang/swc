@@ -74,6 +74,7 @@ struct CallConv
     uint32_t                stackParamSlotSize   = 0;
     uint32_t                stackShadowSpace     = 0;
     uint32_t                argRegisterSlotCount = 0;
+    bool                    independentArgBanks  = false;
     StructArgPassingInfo    structArgPassing;
     StructReturnPassingInfo structReturnPassing;
 

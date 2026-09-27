@@ -42,11 +42,8 @@ namespace
         return MicroReg::invalid();
     }
 
-    void setupCallConvWindowsX64(CallConv& conv)
+    void setupX64RegisterFile(CallConv& conv)
     {
-        // Windows x64 ABI model used by both compiled calls and JIT bridge calls.
-        conv.name         = "win64";
-        conv.displayName  = "Windows x64";
         conv.stackPointer = MicroReg::intReg(4);
         conv.framePointer = MicroReg::intReg(5);
         conv.intReturn    = MicroReg::intReg(0);
@@ -56,36 +53,33 @@ namespace
 
         conv.floatRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5), MicroReg::floatReg(6), MicroReg::floatReg(7), MicroReg::floatReg(8), MicroReg::floatReg(9), MicroReg::floatReg(10), MicroReg::floatReg(11), MicroReg::floatReg(12), MicroReg::floatReg(13), MicroReg::floatReg(14), MicroReg::floatReg(15)};
 
-        conv.intArgRegs = SmallVector{MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9)};
-
-        conv.floatArgRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3)};
-
         conv.intTransientRegs = SmallVector{MicroReg::intReg(0), MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10), MicroReg::intReg(11)};
 
         conv.intPersistentRegs = SmallVector{MicroReg::intReg(1), MicroReg::intReg(5), MicroReg::intReg(6), MicroReg::intReg(7), MicroReg::intReg(12), MicroReg::intReg(13), MicroReg::intReg(14), MicroReg::intReg(15)};
 
-        // xmm4/xmm5 are volatile in the Win64 ABI too, so widening the scratch
-        // pool costs no prologue saves and stays interop-safe in both
-        // directions; the argument registers remain xmm0-xmm3.
         conv.floatTransientRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5)};
 
-        // xmm6-xmm15 follow the Win64 nonvolatile contract: the prologue saves
-        // the ones a function defines to 16-aligned slots described by
-        // UWOP_SAVE_XMM128, the frame pointer is anchored right after them so
-        // the unwinder recovers the stack pointer independently of the body's
-        // own allocations, and the epilogue restores them before the pops. So
-        // float values finally survive calls in registers.
-        conv.floatPersistentRegs                       = SmallVector{MicroReg::floatReg(6), MicroReg::floatReg(7), MicroReg::floatReg(8), MicroReg::floatReg(9), MicroReg::floatReg(10), MicroReg::floatReg(11), MicroReg::floatReg(12), MicroReg::floatReg(13), MicroReg::floatReg(14), MicroReg::floatReg(15)};
-        conv.stackAlignment                            = 16;
-        conv.stackParamAlignment                       = 8;
-        conv.stackParamSlotSize                        = 8;
-        conv.stackShadowSpace                          = 32;
-        conv.argRegisterSlotCount                      = 4;
-        conv.structArgPassing.passByValueSizeMask      = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
-        conv.structArgPassing.passByValueInIntSlots    = true;
-        conv.structArgPassing.passByReferenceNeedsCopy = true;
-        conv.structReturnPassing.passByValueSizeMask   = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
-        conv.stackRedZone                              = false;
+        // Both conventions keep Windows nonvolatile registers so native stack unwinding works.
+        conv.floatPersistentRegs = SmallVector{MicroReg::floatReg(6), MicroReg::floatReg(7), MicroReg::floatReg(8), MicroReg::floatReg(9), MicroReg::floatReg(10), MicroReg::floatReg(11), MicroReg::floatReg(12), MicroReg::floatReg(13), MicroReg::floatReg(14), MicroReg::floatReg(15)};
+    }
+
+    void setupCallConvWindowsX64(CallConv& conv)
+    {
+        setupX64RegisterFile(conv);
+        conv.name                                       = "win64";
+        conv.displayName                                = "Windows x64";
+        conv.intArgRegs                                 = SmallVector{MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9)};
+        conv.floatArgRegs                               = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3)};
+        conv.stackAlignment                             = 16;
+        conv.stackParamAlignment                        = 8;
+        conv.stackParamSlotSize                         = 8;
+        conv.stackShadowSpace                           = 32;
+        conv.argRegisterSlotCount                       = 4;
+        conv.structArgPassing.passByValueSizeMask       = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
+        conv.structArgPassing.passByValueInIntSlots     = true;
+        conv.structArgPassing.passByReferenceNeedsCopy  = true;
+        conv.structReturnPassing.passByValueSizeMask    = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
+        conv.stackRedZone                               = false;
     }
 
     void setupCallConvC(CallConv& conv, const CallConv& native)
@@ -95,13 +89,22 @@ namespace
         conv.displayName = "C";
     }
 
-    void setupCallConvSwag(CallConv& conv, const CallConv& native)
+    void setupCallConvSwag(CallConv& conv)
     {
-        conv             = native;
-        conv.name        = "swag";
-        conv.displayName = "Swag";
-        conv.floatArgRegs.push_back(MicroReg::floatReg(4));
-        conv.floatArgRegs.push_back(MicroReg::floatReg(5));
+        setupX64RegisterFile(conv);
+        conv.name                                    = "swag";
+        conv.displayName                             = "Swag";
+        conv.intArgRegs                              = SmallVector{MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10), MicroReg::intReg(11)};
+        conv.floatArgRegs                            = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5)};
+        conv.stackAlignment                          = 16;
+        conv.stackParamAlignment                     = 8;
+        conv.stackParamSlotSize                      = 8;
+        conv.stackShadowSpace                        = 0;
+        conv.independentArgBanks                     = true;
+        conv.structArgPassing.passByValueSizeMask    = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
+        conv.structArgPassing.passByValueInIntSlots  = true;
+        conv.structReturnPassing.passByValueSizeMask = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
+        conv.stackRedZone                            = false;
         // Direct Swag calls may borrow a large value-semantic aggregate because the callee cannot
         // mutate the parameter; calls through runtime function values add a defensive copy because
         // their target may instead be native.
@@ -122,13 +125,11 @@ uint32_t CallConv::numArgRegisterSlots() const
 
 bool CallConv::canPassArgInRegister(uint32_t argIndex, bool isFloat) const
 {
+    // Positional argument lanes are only meaningful for platform conventions.
+    SWC_ASSERT(!independentArgBanks);
     if (argIndex < numArgRegisterSlots())
         return true;
 
-    // Swag extends its float argument lanes through the remaining volatile xmm
-    // registers, packed and scalar alike: nothing outside a Swag call sees them,
-    // and a function of six doubles then takes every one in a register instead
-    // of writing the last two to the outgoing area for the callee to read back.
     return isFloat && argIndex < floatArgRegs.size();
 }
 
@@ -248,7 +249,7 @@ void CallConv::setup()
 
     const auto& native = g_CallConvs[static_cast<size_t>(resolveNativeTargetCallConvKind())];
     setupCallConvC(g_CallConvs[static_cast<size_t>(CallConvKind::C)], native);
-    setupCallConvSwag(g_CallConvs[static_cast<size_t>(CallConvKind::Swag)], native);
+    setupCallConvSwag(g_CallConvs[static_cast<size_t>(CallConvKind::Swag)]);
 }
 
 const CallConv& CallConv::get(CallConvKind kind)

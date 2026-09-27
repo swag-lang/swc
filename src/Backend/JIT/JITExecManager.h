@@ -108,11 +108,11 @@ private:
         TaskContext* ownerCtx = nullptr;
         // The semantic job can park while its JIT request executes. Its context is
         // therefore not safe to mutate from the execution lane.
-        TaskContext  executionCtx;
-        Request      request;
-        TaskState    waitState;
-        Status       status = Status::Pending;
-        Result       result = Result::Continue;
+        TaskContext executionCtx;
+        Request     request;
+        TaskState   waitState;
+        Status      status = Status::Pending;
+        Result      result = Result::Continue;
     };
 
     static Result executeItem(Item& item);
@@ -123,7 +123,7 @@ private:
     mutable std::mutex                                              mutex_;
     std::mutex                                                      executionMutex_;
     std::unordered_map<ItemKey, std::unique_ptr<Item>, ItemKeyHash> items_;
-    Strategy                                                        strategy_ = Strategy::MainThreadQueued;
+    Strategy                                                        strategy_        = Strategy::MainThreadQueued;
     bool                                                            workerScheduled_ = false;
 };
 

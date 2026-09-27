@@ -136,11 +136,11 @@ namespace
             {
                 case SlpValueKind::Const:
                     return a.imm == b.imm;
-            case SlpValueKind::Load:
-                return a.loadRootKey == b.loadRootKey && a.loadOffset == b.loadOffset && a.loadEpoch == b.loadEpoch;
-            case SlpValueKind::Unary:
-                return a.op == b.op && a.lhs == b.lhs;
-            case SlpValueKind::BinaryRegReg:
+                case SlpValueKind::Load:
+                    return a.loadRootKey == b.loadRootKey && a.loadOffset == b.loadOffset && a.loadEpoch == b.loadEpoch;
+                case SlpValueKind::Unary:
+                    return a.op == b.op && a.lhs == b.lhs;
+                case SlpValueKind::BinaryRegReg:
                     return a.op == b.op && a.lhs == b.lhs && a.rhs == b.rhs;
                 case SlpValueKind::BinaryRegImm:
                     return a.op == b.op && a.lhs == b.lhs && a.imm == b.imm;
@@ -879,7 +879,7 @@ namespace
                                 case LaneOp::Add: vecOp = MicroOp::VecAdd32; break;
                                 case LaneOp::Sub: vecOp = MicroOp::VecSub32; break;
                                 case LaneOp::And: vecOp = MicroOp::VecAnd; break;
-                                case LaneOp::Or:  vecOp = MicroOp::VecOr; break;
+                                case LaneOp::Or: vecOp = MicroOp::VecOr; break;
                                 case LaneOp::Xor: vecOp = MicroOp::VecXor; break;
                                 default: return K_INVALID_ID;
                             }

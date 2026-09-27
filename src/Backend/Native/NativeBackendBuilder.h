@@ -208,20 +208,20 @@ private:
     Result      runGeneratedArtifact();
     Result      runAfterLink();
 
-    TaskContext             ctx_;
-    CompilerInstance*       compiler_       = nullptr;
-    bool                    runArtifact_    = false;
-    bool                    artifactLinked_ = false;
-    DiagnosticId            lastErrorId_    = DiagnosticId::None;
-    std::unique_ptr<Linker> deferredLinker_;
-    LinkJob                 deferredToolRun_;
-    std::unique_ptr<Archive> existingFunctionCacheArchive_;
-    std::unordered_map<Utf8, std::pair<Utf8, Utf8>> existingFunctionCacheEntries_;
+    TaskContext                                                          ctx_;
+    CompilerInstance*                                                    compiler_       = nullptr;
+    bool                                                                 runArtifact_    = false;
+    bool                                                                 artifactLinked_ = false;
+    DiagnosticId                                                         lastErrorId_    = DiagnosticId::None;
+    std::unique_ptr<Linker>                                              deferredLinker_;
+    LinkJob                                                              deferredToolRun_;
+    std::unique_ptr<Archive>                                             existingFunctionCacheArchive_;
+    std::unordered_map<Utf8, std::pair<Utf8, Utf8>>                      existingFunctionCacheEntries_;
     std::unordered_map<const SymbolFunction*, NativeFunctionCacheRecord> functionCacheRecords_;
-    mutable std::mutex                               functionCacheMutex_;
-    fs::path                                         functionCacheArchivePath_;
-    fs::path                                         functionCacheIndexPath_;
-    bool                                             functionCacheEnabled_ = false;
+    mutable std::mutex                                                   functionCacheMutex_;
+    fs::path                                                             functionCacheArchivePath_;
+    fs::path                                                             functionCacheIndexPath_;
+    bool                                                                 functionCacheEnabled_ = false;
 };
 
 SWC_END_NAMESPACE();

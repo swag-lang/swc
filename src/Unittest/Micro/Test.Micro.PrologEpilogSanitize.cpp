@@ -22,11 +22,11 @@ namespace
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind      = callConvKind;
-        passContext.forceFramePointer = forceFramePointer;
+        passContext.callConvKind          = callConvKind;
+        passContext.forceFramePointer     = forceFramePointer;
         passContext.debugStackBasePhysReg = debugStackBasePhysReg;
-        passContext.spillAreaLo = spillAreaLo;
-        passContext.spillAreaHi = spillAreaHi;
+        passContext.spillAreaLo           = spillAreaLo;
+        passContext.spillAreaHi           = spillAreaHi;
         return builder.runPasses(passManager, encoder, passContext);
     }
 
@@ -648,13 +648,13 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsUnusedStackPrefix)
         builder.emitRet();
 
         SWC_RESULT(runPrologEpilogSanitizePass(builder, false, variant == 3 ? MicroReg::intReg(3) : MicroReg::invalid(), 168, 192));
-        const uint64_t expectedFrame = 200;
+        const uint64_t expectedFrame  = 200;
         const uint64_t expectedOffset = variant == 1 ? 40 : 168;
-        const auto* sub = instructionAt(builder, 0);
-        const auto* first = instructionAt(builder, 1);
-        const auto* store = instructionAt(builder, 2);
-        const auto* last = instructionAt(builder, 4);
-        const auto* add = instructionAt(builder, 5);
+        const auto*    sub            = instructionAt(builder, 0);
+        const auto*    first          = instructionAt(builder, 1);
+        const auto*    store          = instructionAt(builder, 2);
+        const auto*    last           = instructionAt(builder, 4);
+        const auto*    add            = instructionAt(builder, 5);
         if (builder.instructions().count() != 7 || !sub || !first || !store || !last || !add ||
             !isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, expectedFrame) ||
             !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, expectedFrame) ||
@@ -675,7 +675,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsUnusedStackPrefix)
     outgoing.emitOpBinaryRegImm(rsp, ApInt(200, 64), MicroOp::Add, MicroOpBits::B64);
     outgoing.emitRet();
     SWC_RESULT(runPrologEpilogSanitizePass(outgoing, false, MicroReg::invalid(), 168, 176));
-    const auto* outgoingSub = instructionAt(outgoing, 0);
+    const auto* outgoingSub   = instructionAt(outgoing, 0);
     const auto* outgoingStore = instructionAt(outgoing, 1);
     if (!outgoingSub || !outgoingStore ||
         !isStackAdjust(*outgoingSub, outgoingSub->ops(outgoing.operands()), rsp, MicroOp::Subtract, 200) ||
@@ -689,7 +689,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsEmptyCallFrame)
 {
     constexpr MicroReg rsp = MicroReg::intReg(4);
     constexpr MicroReg rax = MicroReg::intReg(0);
-    MicroBuilder builder(ctx);
+    MicroBuilder       builder(ctx);
     builder.emitOpBinaryRegImm(rsp, ApInt(136, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitCallReg(rax, CallConvKind::Swag);
     builder.emitOpBinaryRegImm(rsp, ApInt(136, 64), MicroOp::Add, MicroOpBits::B64);
@@ -708,19 +708,19 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReservesBodyCallFrame)
 {
-    constexpr MicroReg rsp = MicroReg::intReg(4);
-    constexpr MicroReg rbp = MicroReg::intReg(5);
-    constexpr MicroReg rbx = MicroReg::intReg(3);
-    constexpr MicroReg rax = MicroReg::intReg(0);
-    constexpr MicroReg rcx = MicroReg::intReg(2);
+    constexpr MicroReg rsp  = MicroReg::intReg(4);
+    constexpr MicroReg rbp  = MicroReg::intReg(5);
+    constexpr MicroReg rbx  = MicroReg::intReg(3);
+    constexpr MicroReg rax  = MicroReg::intReg(0);
+    constexpr MicroReg rcx  = MicroReg::intReg(2);
     constexpr MicroReg xmm6 = MicroReg::floatReg(6);
 
     for (uint32_t variant = 0; variant < 6; ++variant)
     {
-        const auto kind = variant < 3 ? CallConvKind::WindowsX64 : CallConvKind::Swag;
-        const auto mode = variant % 3;
+        const auto     kind    = variant < 3 ? CallConvKind::WindowsX64 : CallConvKind::Swag;
+        const auto     mode    = variant % 3;
         const uint64_t reserve = CallConv::get(kind).stackShadowSpace + 8;
-        MicroBuilder builder(ctx);
+        MicroBuilder   builder(ctx);
         builder.emitPush(rbp);
         builder.emitPush(rbx);
         builder.emitOpBinaryRegImm(rsp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
@@ -750,8 +750,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReservesBodyCallFrame)
 
         X64Encoder encoder(ctx);
         SWC_RESULT(runPrologEpilogSanitizePass(builder, false, rbx, UINT64_MAX, 0, &encoder, kind));
-        uint32_t callAdds = 0;
-        uint32_t tailSubs = 0;
+        uint32_t callAdds        = 0;
+        uint32_t tailSubs        = 0;
         uint32_t rebasedAccesses = 0;
         for (const MicroInstr& inst : builder.instructions().view())
         {
@@ -779,8 +779,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_HoistsSingleLoopCallFrame)
     for (uint32_t mode = 0; mode < 3; ++mode)
     {
         MicroBuilder builder(ctx);
-        const auto   outer = builder.createLabel();
-        const auto   inner = builder.createLabel();
+        const auto   outer     = builder.createLabel();
+        const auto   inner     = builder.createLabel();
         const auto   earlyExit = builder.createLabel();
         builder.emitLoadRegImm(rcx, ApInt(0, 64), MicroOpBits::B64);
         builder.placeLabel(outer);
@@ -907,8 +907,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_SharesIdenticalFloatRestoreTails)
 {
-    const MicroReg rsp = CallConv::get(CallConvKind::Swag).stackPointer;
-    constexpr MicroReg rax = MicroReg::intReg(0);
+    const MicroReg     rsp  = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg rax  = MicroReg::intReg(0);
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);
     constexpr MicroReg xmm1 = MicroReg::floatReg(1);
     constexpr MicroReg xmm6 = MicroReg::floatReg(6);
@@ -916,7 +916,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_SharesIdenticalFloatRestoreTails)
 
     for (uint32_t variant = 0; variant < 2; ++variant)
     {
-        MicroBuilder builder(ctx);
+        MicroBuilder        builder(ctx);
         const MicroLabelRef second = builder.createLabel();
         builder.emitOpBinaryRegImm(rsp, ApInt(80, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitLoadMemReg(rsp, 32, xmm6, MicroOpBits::B128);
@@ -936,9 +936,9 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_SharesIdenticalFloatRestoreTails)
         builder.emitRet();
 
         SWC_RESULT(runPrologEpilogSanitizePass(builder));
-        uint32_t returns = 0;
+        uint32_t returns  = 0;
         uint32_t restores = 0;
-        uint32_t jumps = 0;
+        uint32_t jumps    = 0;
         for (const MicroInstr& inst : builder.instructions().view())
         {
             returns += inst.op == MicroInstrOpcode::Ret;

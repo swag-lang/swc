@@ -3,9 +3,9 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/JIT/JITExecManager.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Debug/SymbolTable.h"
+#include "Backend/JIT/JITExecManager.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/LinkDebugMerge.h"
 #include "Backend/Micro/MachineCode.h"
@@ -289,8 +289,8 @@ namespace
 SWC_TEST_BEGIN(NativeArtifact_RuntimeDependencyOrderPreservesPriorityAndCycleFallback)
 {
     const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
-    auto& imports = const_cast<std::vector<CompilerInstance::NativeRuntimeImport>&>(fixture.compiler->nativeRuntimeImports());
-    imports = {
+    auto&                           imports = const_cast<std::vector<CompilerInstance::NativeRuntimeImport>&>(fixture.compiler->nativeRuntimeImports());
+    imports                                 = {
         {.moduleName = "a", .linkModuleName = "a", .transitiveImports = {"c", "c", "a", "absent"}},
         {.moduleName = "b", .linkModuleName = "b"},
         {.moduleName = "c", .linkModuleName = "c"},
@@ -736,15 +736,15 @@ SWC_TEST_END()
 // read leaves nothing behind.
 SWC_TEST_BEGIN(NativeArtifact_LinkMergesArchiveMemberDebugInfo)
 {
-    static constexpr auto     K_TEST_NAME      = "NativeArtifact_LinkMergesArchiveMemberDebugInfo";
-    static constexpr auto     K_COMPILAND      = "C:\\lib\\member.lib";
-    static constexpr uint16_t K_LF_POINTER     = 0x1002;
-    static constexpr uint16_t K_LF_PROCEDURE   = 0x1008;
-    static constexpr uint16_t K_LF_CLASS       = 0x1504;
-    static constexpr uint16_t K_LF_STRUCTURE   = 0x1505;
-    static constexpr uint32_t K_T_CHAR         = 0x0070;
-    static constexpr uint32_t K_PTR_NEAR64     = 0x000C;
-    static constexpr uint32_t K_FIRST_TYPE     = 0x1000;
+    static constexpr auto     K_TEST_NAME    = "NativeArtifact_LinkMergesArchiveMemberDebugInfo";
+    static constexpr auto     K_COMPILAND    = "C:\\lib\\member.lib";
+    static constexpr uint16_t K_LF_POINTER   = 0x1002;
+    static constexpr uint16_t K_LF_PROCEDURE = 0x1008;
+    static constexpr uint16_t K_LF_CLASS     = 0x1504;
+    static constexpr uint16_t K_LF_STRUCTURE = 0x1505;
+    static constexpr uint32_t K_T_CHAR       = 0x0070;
+    static constexpr uint32_t K_PTR_NEAR64   = 0x000C;
+    static constexpr uint32_t K_FIRST_TYPE   = 0x1000;
 
     CommandLine cmdLine = makeNativeArtifactCmdLine();
     cmdLine.debugInfo   = true;
@@ -787,7 +787,7 @@ SWC_TEST_BEGIN(NativeArtifact_LinkMergesArchiveMemberDebugInfo)
     debugInfo.tpiRecords.appendLe16(K_LF_POINTER);
     debugInfo.tpiRecords.appendLe32(K_T_CHAR);
     debugInfo.tpiRecords.appendLe32(K_PTR_NEAR64);
-    debugInfo.tpiIndexEnd = K_FIRST_TYPE + 1;
+    debugInfo.tpiIndexEnd        = K_FIRST_TYPE + 1;
     const ByteArray imagePointer = debugInfo.tpiRecords;
 
     LinkDebugMerger merger(debugInfo);
@@ -887,9 +887,9 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(NativeArtifact_CoffSectionRelocationsPreserveAddendsAndSource)
 {
     const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
-    auto& source           = fixture.nativeBuilder->mergedData;
-    source.name            = ".data";
-    source.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+    auto&                           source = fixture.nativeBuilder->mergedData;
+    source.name                            = ".data";
+    source.characteristics                 = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
     source.bytes.resize(40, std::byte{0xAA});
     source.relocations = {
         {.offset = 0, .symbolName = "long_external_address64", .addend = 0x123456789ABCDEF0, .type = IMAGE_REL_AMD64_ADDR64},
@@ -939,7 +939,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(NativeArtifact_CoffStringTablePreservesNamesAndSharedOffsets)
 {
     const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
-    std::vector<Utf8> names = {"tiny", "eight888", "nine99999", Utf8(15, 'a'), Utf8(16, 'b')};
+    std::vector<Utf8>               names = {"tiny", "eight888", "nine99999", Utf8(15, 'a'), Utf8(16, 'b')};
     for (size_t index = 0; index < 40; ++index)
         names.push_back(std::format("long_symbol_name_with_shared_prefix_{}", index));
 
@@ -974,7 +974,7 @@ SWC_TEST_BEGIN(NativeArtifact_CoffStringTablePreservesNamesAndSharedOffsets)
     if (!readBinaryRecord(header, bytes, 0) || header.NumberOfSymbols != names.size())
         return Result::Error;
     const size_t stringTableOffset = header.PointerToSymbolTable + names.size() * sizeof(IMAGE_SYMBOL);
-    uint32_t     stringBytes = 0;
+    uint32_t     stringBytes       = 0;
     if (!readBinaryRecord(stringBytes, bytes, stringTableOffset) || stringBytes != expectedStringBytes)
         return Result::Error;
     if (stringTableOffset + stringBytes != bytes.size())
@@ -1644,7 +1644,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_ExecutableClosesAlternatingDependencies)
 {
-    static constexpr std::string_view SOURCE = R"(#global public
+    static constexpr std::string_view SOURCE     = R"(#global public
 
 #[Swag.NoInline]
 func leaf()->s32 => 23
@@ -1666,8 +1666,8 @@ func neverCalled()->s32 => 99
 
 #main {}
 )";
-    static constexpr const char* TEST_NAME   = "NativeArtifact_ExecutableClosesAlternatingDependencies";
-    const fs::path                sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "ExecutableClosesAlternatingDependencies");
+    static constexpr const char*      TEST_NAME  = "NativeArtifact_ExecutableClosesAlternatingDependencies";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "ExecutableClosesAlternatingDependencies");
 
     CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("executable_closes_alternating_dependencies", Runtime::BuildCfgBackendKind::Executable);
     cmdLine.directories.clear();
@@ -1681,10 +1681,10 @@ func neverCalled()->s32 => 99
     if (Stats::getNumErrors() != errorsBefore)
         return failNativeArtifactTest(TEST_NAME, "errors after sema");
 
-    TaskContext                             compilerCtx(compiler);
-    constexpr std::array                     names     = {"firstCaller", "firstTarget", "secondCaller", "secondTarget", "leaf", "neverCalled"};
-    std::array<SymbolFunction*, names.size()> functions = {};
-    const SymbolNamespace* moduleNamespace = nullptr;
+    TaskContext                               compilerCtx(compiler);
+    constexpr std::array                      names           = {"firstCaller", "firstTarget", "secondCaller", "secondTarget", "leaf", "neverCalled"};
+    std::array<SymbolFunction*, names.size()> functions       = {};
+    const SymbolNamespace*                    moduleNamespace = nullptr;
     for (const SourceFile* file : compiler.files())
     {
         if (file && file->path() == sourcePath)
@@ -1721,20 +1721,20 @@ func neverCalled()->s32 => 99
     for (const size_t ownerIdx : {0u, 2u})
     {
         const auto [tableOffset, tableStorage] = constantSegment.reserve<std::array<uint64_t, 2>>();
-        *tableStorage                         = {};
+        *tableStorage                          = {};
         constantSegment.addFunctionRelocation(tableOffset, functions[ownerIdx + 1]);
         constantSegment.addFunctionRelocation(tableOffset + sizeof(uint64_t), functions[ownerIdx + 1]);
 
         ConstantValue value = ConstantValue::makeValuePointer(compilerCtx, compiler.typeMgr().typeVoid(), reinterpret_cast<uint64_t>(tableStorage), TypeInfoFlagsE::Const);
         value.setDataSegmentRef({.shardIndex = 0, .offset = tableOffset});
-        const ConstantRef constantRef                             = compiler.cstMgr().addConstant(compilerCtx, value);
+        const ConstantRef constantRef                                = compiler.cstMgr().addConstant(compilerCtx, value);
         const_cast<MachineCode&>(functions[ownerIdx]->loweredCode()) = makeConstantAddressCode(constantRef, tableStorage);
     }
 
     // Both writable-data relocations remain independent roots before the final deduplication.
-    DataSegment& globalSegment            = compiler.globalInitSegment();
+    DataSegment& globalSegment             = compiler.globalInitSegment();
     const auto [rootsOffset, rootsStorage] = globalSegment.reserve<std::array<uint64_t, 2>>();
-    *rootsStorage                         = {};
+    *rootsStorage                          = {};
     globalSegment.addFunctionRelocation(rootsOffset, functions[0]);
     globalSegment.addFunctionRelocation(rootsOffset + sizeof(uint64_t), functions[0]);
 
@@ -1941,17 +1941,21 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime)
 {
-    static constexpr std::string_view GOLDEN_SOURCE = R"(#[Swag.TestTag("golden")]
+    static constexpr std::string_view GOLDEN_SOURCE      = R"(#[Swag.TestTag("golden")]
 #test { Swag.assert(true) }
 )";
-    static constexpr std::string_view SLOW_SOURCE   = R"(#[Swag.TestTag("slow")]
+    static constexpr std::string_view SLOW_SOURCE        = R"(#[Swag.TestTag("slow")]
 #test { Swag.assert(true) }
 )";
-    static constexpr std::string_view PLAIN_SOURCE  = R"(#test { Swag.assert(true) }
+    static constexpr std::string_view PLAIN_SOURCE       = R"(#test { Swag.assert(true) }
 )";
-    const fs::path                    goldenPath    = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterGolden");
-    const fs::path                    slowPath      = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterSlow");
-    const fs::path                    plainPath     = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterPlain");
+    static constexpr std::string_view INTEGRATION_SOURCE = R"(#[Swag.TestTag("integration.renderer.opengl")]
+#test { Swag.assert(true) }
+)";
+    const fs::path                    goldenPath         = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterGolden");
+    const fs::path                    slowPath           = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterSlow");
+    const fs::path                    plainPath          = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterPlain");
+    const fs::path                    integrationPath    = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterIntegration");
 
     CommandLine cmdLine;
     cmdLine.command          = CommandKind::Test;
@@ -1962,6 +1966,7 @@ SWC_TEST_BEGIN(NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunT
     cmdLine.files.insert(goldenPath);
     cmdLine.files.insert(slowPath);
     cmdLine.files.insert(plainPath);
+    cmdLine.files.insert(integrationPath);
     cmdLine.testTagFilter.insert("golden");
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -1970,10 +1975,11 @@ SWC_TEST_BEGIN(NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunT
     Unittest::registerTestSource(compiler, goldenPath, GOLDEN_SOURCE);
     Unittest::registerTestSource(compiler, slowPath, SLOW_SOURCE);
     Unittest::registerTestSource(compiler, plainPath, PLAIN_SOURCE);
+    Unittest::registerTestSource(compiler, integrationPath, INTEGRATION_SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
         return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "errors after sema");
-    if (compiler.nativeTestFunctions().size() != 3)
+    if (compiler.nativeTestFunctions().size() != 4)
         return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "the reusable artifact does not keep all tests");
     if (artifactModeSuffix(cmdLine) != ".test")
         return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "the tag filter changes the artifact name");
@@ -2005,11 +2011,26 @@ SWC_TEST_BEGIN(NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunT
     if (selectedCount != 1)
         return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "file and tag filters do not form an intersection");
 
+    cmdLine.testFileFilter.clear();
+    cmdLine.testTagFilter.clear();
+    selectedCount = std::ranges::count_if(compiler.nativeTestFunctions(), [&compiler](const SymbolFunction* function) {
+        return function && compiler.matchesTestFilter(*function);
+    });
+    if (selectedCount != 3)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "the default campaign selected an integration test");
+
+    cmdLine.testTagFilter.insert("integration.renderer.opengl");
+    selectedCount = std::ranges::count_if(compiler.nativeTestFunctions(), [&compiler](const SymbolFunction* function) {
+        return function && compiler.matchesTestFilter(*function);
+    });
+    if (selectedCount != 1)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "the explicit integration tag did not select its test");
+
     const std::vector<Utf8> runArgs        = effectiveGeneratedArtifactRunArgs(cmdLine);
     const size_t            filterArgCount = std::ranges::count_if(runArgs, [](const Utf8& arg) {
         return arg.view().starts_with("swag.test-tag=");
     });
-    if (filterArgCount != 2)
+    if (filterArgCount != 1)
         return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "runtime tag filters are missing from the artifact arguments");
 }
 SWC_TEST_END()

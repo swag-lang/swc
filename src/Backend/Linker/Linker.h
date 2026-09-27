@@ -31,7 +31,7 @@ public:
     // Synchronous one-shot link on the calling thread.
     Result link();
 
-    virtual Result prepareLink(LinkJob& outJob) = 0;
+    virtual Result prepareLink(LinkJob& outJob)                                                                                                             = 0;
     virtual Result tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames) = 0;
     static void    executeLink(LinkJob& job);
     Result         finishLink(const LinkJob& job) const;

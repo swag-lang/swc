@@ -472,12 +472,12 @@ public:
 
     const VariableEscapeInfoMap&   variableEscapeInfos() const { return *variableEscapeInfos_; }
     const ProjectionEscapeInfoMap& projectionEscapeInfos() const { return *projectionEscapeInfos_; }
-    void                                                                                      setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
-    void                                                                                      clearVariableEscapeInfo(const SymbolVariable& symVar);
-    void                                                                                      detachVariableOwnedPayload(const SymbolVariable& symVar);
-    void                                                                                      detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field);
-    SemaEscapeInfo                                                                            variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
-    SemaEscapeInfo                                                                            projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
+    void                           setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
+    void                           clearVariableEscapeInfo(const SymbolVariable& symVar);
+    void                           detachVariableOwnedPayload(const SymbolVariable& symVar);
+    void                           detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field);
+    SemaEscapeInfo                 variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
+    SemaEscapeInfo                 projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
     // What ONE named field of a variable carries, ignoring its other fields. A structure
     // that transports several borrows at once - an allocator request carries the block to
     // release and the hint the report names - needs the borrow of the field the operation
@@ -687,16 +687,16 @@ private:
         ProjectionEscapeInfoMap                  mergedProjectionState;
     };
 
-    SmallVector4<SemaBorrowInvalidation>                                               borrowInvalidations_;
+    SmallVector4<SemaBorrowInvalidation> borrowInvalidations_;
     // Borrow facts are snapshotted at every branch, and a function of any size has many. The
     // snapshot shares the map and a writer copies it only when it has something to change.
-    VariableEscapeInfoMap&                   mutableVariableEscapeInfos();
-    ProjectionEscapeInfoMap&                 mutableProjectionEscapeInfos();
-    std::shared_ptr<VariableEscapeInfoMap>   variableEscapeInfos_   = std::make_shared<VariableEscapeInfoMap>();
-    std::shared_ptr<ProjectionEscapeInfoMap> projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>();
-    std::unordered_map<const SymbolVariable*, uint32_t>                                variableScopeDepths_;
-    std::vector<EscapeBranchState>                                                     escapeBranchStack_;
-    AstVisit                                                                           visit_;
+    VariableEscapeInfoMap&                              mutableVariableEscapeInfos();
+    ProjectionEscapeInfoMap&                            mutableProjectionEscapeInfos();
+    std::shared_ptr<VariableEscapeInfoMap>              variableEscapeInfos_   = std::make_shared<VariableEscapeInfoMap>();
+    std::shared_ptr<ProjectionEscapeInfoMap>            projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>();
+    std::unordered_map<const SymbolVariable*, uint32_t> variableScopeDepths_;
+    std::vector<EscapeBranchState>                      escapeBranchStack_;
+    AstVisit                                            visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_           = nullptr;

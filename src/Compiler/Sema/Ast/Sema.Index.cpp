@@ -446,7 +446,7 @@ Result AstIndexListExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     const auto indexedView = sema.viewType(nodeExprRef);
     if (indexedView.typeRef().isInvalid())
         return Result::Continue;
-    TypeRef                currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
+    TypeRef                 currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
     SmallVector<AstNodeRef> arguments;
     sema.ast().appendNodes(arguments, spanChildrenRef);
     for (const AstNodeRef argumentRef : arguments)

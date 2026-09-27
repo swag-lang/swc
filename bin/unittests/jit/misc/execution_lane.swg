@@ -11,7 +11,7 @@ func incrementExecutionCount()->s32
     while remaining != 0
     {
         executionDelay += 1
-        remaining -= 1
+        remaining      -= 1
     }
     executionCount = previous + 1
     return executionCount

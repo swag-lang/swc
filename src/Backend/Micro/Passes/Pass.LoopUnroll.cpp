@@ -39,12 +39,12 @@ namespace
     // Ordinary loops stop at sixteen trips. Four or fewer trips over constant
     // tables admit a larger body: fixed indices expose constant loads to later
     // passes, even when branches make the original body fairly large.
-    constexpr uint64_t K_MAX_TRIPS                 = 16;
-    constexpr uint64_t K_MAX_WIDE_TABLE_TRIPS      = 4;
-    constexpr uint32_t K_MAX_BODY_INSTR            = 144;
-    constexpr uint32_t K_MAX_TOTAL_INSTR           = 576;
-    constexpr uint32_t K_MAX_ORDINARY_BODY_INSTR   = 96;
-    constexpr uint32_t K_MAX_ORDINARY_TOTAL_INSTR  = 384;
+    constexpr uint64_t K_MAX_TRIPS                = 16;
+    constexpr uint64_t K_MAX_WIDE_TABLE_TRIPS     = 4;
+    constexpr uint32_t K_MAX_BODY_INSTR           = 144;
+    constexpr uint32_t K_MAX_TOTAL_INSTR          = 576;
+    constexpr uint32_t K_MAX_ORDINARY_BODY_INSTR  = 96;
+    constexpr uint32_t K_MAX_ORDINARY_TOTAL_INSTR = 384;
     // A body with branches usually keeps its tests and jumps after unrolling.
     // The exception below is a short loop over constant tables: each fixed
     // index lets later passes fold a table lookup despite those branches.
@@ -66,10 +66,7 @@ namespace
     // A short, straight-line indexed read loop can pay one bound test for four
     // reads. Keep the original loop as the scalar tail, and use displacements
     // for the other three reads so its induction value advances only once.
-    bool partiallyUnrollIndexedReadLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands,
-                                        MicroBuilder& builder, const std::vector<MicroInstrRef>& order,
-                                        const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot,
-                                        const uint32_t headerOrdinal, const uint32_t jumpOrdinal, const uint64_t headerId)
+    bool partiallyUnrollIndexedReadLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal, const uint64_t headerId)
     {
         if (headerOrdinal + 4 > jumpOrdinal || jumpOrdinal + 1 >= order.size())
             return false;
@@ -88,9 +85,9 @@ namespace
             cmpOps[2].opBits != MicroOpBits::B64 || stepOps[1].opBits != MicroOpBits::B64)
             return false;
 
-        const MicroReg counter = cmpOps[0].reg;
-        const MicroReg bound   = cmpOps[1].reg;
-        bool haveZeroInit = false;
+        const MicroReg counter      = cmpOps[0].reg;
+        const MicroReg bound        = cmpOps[1].reg;
+        bool           haveZeroInit = false;
         for (uint32_t back = 1; back <= 8 && back <= headerOrdinal; ++back)
         {
             const MicroInstr* inst = storage.ptr(order[headerOrdinal - back]);
@@ -99,7 +96,7 @@ namespace
             if (!defsRegister(*inst, operands, context.encoder, counter))
                 continue;
             const MicroInstrOperand* ops = inst->ops(operands);
-            haveZeroInit = inst->op == MicroInstrOpcode::ClearReg ||
+            haveZeroInit                 = inst->op == MicroInstrOpcode::ClearReg ||
                            (inst->op == MicroInstrOpcode::LoadRegImm && ops && ops[1].opBits == MicroOpBits::B64 &&
                             !ops[2].hasWideImmediateValue() && ops[2].valueU64 == 0);
             break;
@@ -112,7 +109,7 @@ namespace
         const uint32_t bodyCount = bodyEnd - bodyBegin;
         if (!bodyCount || bodyCount > 12)
             return false;
-        bool indexedRead = false;
+        bool                         indexedRead = false;
         std::unordered_set<MicroReg> indexedBases;
         std::unordered_set<MicroReg> bodyDefs;
         for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
@@ -156,46 +153,46 @@ namespace
         const uint32_t nextVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
         if (nextVirtual >= MicroReg::K_MAX_INDEX)
             return false;
-        const MicroReg limit = MicroReg::virtualIntReg(nextVirtual);
-        const uint64_t groupId = builder.createLabel().get();
-        const uint64_t exitId  = builder.createLabel().get();
-        const MicroInstrRef headerRef = order[headerOrdinal];
-        const MicroInstrRef afterRef  = order[jumpOrdinal + 1];
-        const MicroInstrOperand jumpBits = jumpOps[1];
-        const MicroInstrOperand originalCmp[3] = {cmpOps[0], cmpOps[1], cmpOps[2]};
+        const MicroReg          limit           = MicroReg::virtualIntReg(nextVirtual);
+        const uint64_t          groupId         = builder.createLabel().get();
+        const uint64_t          exitId          = builder.createLabel().get();
+        const MicroInstrRef     headerRef       = order[headerOrdinal];
+        const MicroInstrRef     afterRef        = order[jumpOrdinal + 1];
+        const MicroInstrOperand jumpBits        = jumpOps[1];
+        const MicroInstrOperand originalCmp[3]  = {cmpOps[0], cmpOps[1], cmpOps[2]};
         const MicroInstrOperand originalStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
 
         MicroInstrOperand boundCheck[3] = {};
-        boundCheck[0].reg = bound;
-        boundCheck[1].opBits = MicroOpBits::B64;
+        boundCheck[0].reg               = bound;
+        boundCheck[1].opBits            = MicroOpBits::B64;
         boundCheck[2].setImmediateValue(ApInt(4, 64));
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::CmpRegImm, boundCheck);
         MicroInstrOperand shortJump[3] = {};
-        shortJump[0].cpuCond  = MicroCond::Below;
-        shortJump[1]          = jumpBits;
-        shortJump[2].valueU64 = headerId;
+        shortJump[0].cpuCond           = MicroCond::Below;
+        shortJump[1]                   = jumpBits;
+        shortJump[2].valueU64          = headerId;
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::JumpCond, shortJump);
         MicroInstrOperand limitCopy[3] = {};
-        limitCopy[0].reg = limit;
-        limitCopy[1].reg = bound;
-        limitCopy[2].opBits = MicroOpBits::B64;
+        limitCopy[0].reg               = limit;
+        limitCopy[1].reg               = bound;
+        limitCopy[2].opBits            = MicroOpBits::B64;
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::LoadRegReg, limitCopy);
         MicroInstrOperand limitSub[4] = {};
-        limitSub[0].reg = limit;
-        limitSub[1].opBits = MicroOpBits::B64;
-        limitSub[2].microOp = MicroOp::Subtract;
+        limitSub[0].reg               = limit;
+        limitSub[1].opBits            = MicroOpBits::B64;
+        limitSub[2].microOp           = MicroOp::Subtract;
         limitSub[3].setImmediateValue(ApInt(3, 64));
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::OpBinaryRegImm, limitSub);
         MicroInstrOperand groupLabel[1] = {};
-        groupLabel[0].valueU64 = groupId;
+        groupLabel[0].valueU64          = groupId;
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::Label, groupLabel);
 
         for (uint64_t copy = 0; copy < 4; ++copy)
         {
             for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
             {
-                const MicroInstr* src = storage.ptr(order[ordinal]);
-                const MicroInstrOperand* srcOps = src->ops(operands);
+                const MicroInstr*                 src    = storage.ptr(order[ordinal]);
+                const MicroInstrOperand*          srcOps = src->ops(operands);
                 SmallVector<MicroInstrOperand, 8> cloned;
                 for (uint32_t index = 0; index < src->numOperands; ++index)
                     cloned.push_back(srcOps[index]);
@@ -209,23 +206,23 @@ namespace
         groupStep[3].setImmediateValue(ApInt(4, 64));
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::OpBinaryRegImm, groupStep);
         MicroInstrOperand groupCmp[3] = {};
-        groupCmp[0].reg = counter;
-        groupCmp[1].reg = limit;
-        groupCmp[2].opBits = MicroOpBits::B64;
+        groupCmp[0].reg               = counter;
+        groupCmp[1].reg               = limit;
+        groupCmp[2].opBits            = MicroOpBits::B64;
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::CmpRegReg, groupCmp);
         MicroInstrOperand groupJump[3] = {};
-        groupJump[0].cpuCond  = MicroCond::Below;
-        groupJump[1]          = jumpBits;
-        groupJump[2].valueU64 = groupId;
+        groupJump[0].cpuCond           = MicroCond::Below;
+        groupJump[1]                   = jumpBits;
+        groupJump[2].valueU64          = groupId;
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::JumpCond, groupJump);
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::CmpRegReg, originalCmp);
         MicroInstrOperand exitJump[3] = {};
-        exitJump[0].cpuCond  = MicroCond::AboveOrEqual;
-        exitJump[1]          = jumpBits;
-        exitJump[2].valueU64 = exitId;
+        exitJump[0].cpuCond           = MicroCond::AboveOrEqual;
+        exitJump[1]                   = jumpBits;
+        exitJump[2].valueU64          = exitId;
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::JumpCond, exitJump);
         MicroInstrOperand exitLabel[1] = {};
-        exitLabel[0].valueU64 = exitId;
+        exitLabel[0].valueU64          = exitId;
         storage.insertDerivedBefore(operands, afterRef, MicroInstrOpcode::Label, exitLabel);
 
         builder.invalidateControlFlowGraph();
@@ -416,7 +413,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             SmallVector<MicroReg, 4>     constantTableBases;
             SmallVector<MicroReg, 4>     indexValues;
             indexValues.push_back(counter);
-            uint32_t                    indexedConstantLoads = 0;
+            uint32_t indexedConstantLoads = 0;
             for (uint32_t o = bodyBegin; o < bodyEnd && ok; ++o)
             {
                 const MicroInstr*        inst = storage.ptr(order[o]);
@@ -434,8 +431,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         }))
                         constantTableBases.push_back(ops[0].reg);
                 }
-                if (ops && (inst->op == MicroInstrOpcode::LoadSignedExtRegReg ||
-                            inst->op == MicroInstrOpcode::LoadZeroExtRegReg || inst->op == MicroInstrOpcode::LoadRegReg) &&
+                if (ops && (inst->op == MicroInstrOpcode::LoadSignedExtRegReg || inst->op == MicroInstrOpcode::LoadZeroExtRegReg || inst->op == MicroInstrOpcode::LoadRegReg) &&
                     std::ranges::find(indexValues, ops[1].reg) != indexValues.end())
                     indexValues.push_back(ops[0].reg);
                 if (ops && inst->op == MicroInstrOpcode::LoadAmcRegMem &&
@@ -541,7 +537,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // every name.
             std::unordered_set<MicroReg> renamable;
             bool                         hasRenamableFloat = false;
-            MicroInstrRegOperandRefs regOps;
+            MicroInstrRegOperandRefs     regOps;
             if (internalLabels.empty())
             {
                 std::unordered_set<MicroReg> seenInBody;
@@ -550,8 +546,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     MicroInstr* inst = storage.ptr(order[o]);
                     if (!inst || !inst->numOperands)
                         continue;
-                    const MicroInstrOperand* ops = inst->ops(operands);
-                    const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
+                    const MicroInstrOperand* ops   = inst->ops(operands);
+                    const auto               modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                     // The reads of an instruction come before its writes: a
                     // register first met as a read, or as an in-place update,
                     // is carried; one first met as an outright write is a
@@ -576,8 +572,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         const MicroInstr* inst = storage.ptr(order[o]);
                         if (!inst || !inst->numOperands)
                             continue;
-                        const MicroInstrOperand* ops = inst->ops(operands);
-                        const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
+                        const MicroInstrOperand* ops   = inst->ops(operands);
+                        const auto               modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                         for (size_t i = 0; i < modes.size(); ++i)
                             if ((modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtual())
                                 renamable.erase(ops[i].reg);

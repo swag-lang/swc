@@ -21,10 +21,8 @@ using Swag, Core
 func assertPngPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
     let color = img.pixelColor(x, img.height - yFromBottom - 1)
-    Swag.assert(color.r == r)
-    Swag.assert(color.g == g)
-    Swag.assert(color.b == b)
-    Swag.assert(color.a == a)
+    Swag.assert(color.r == r and color.g == g and color.b == b and color.a == a,
+                Format.toString("PNG pixel (%, %) is (%, %, %, %), expected (%, %, %, %)", x, yFromBottom, color.r, color.g, color.b, color.a, r, g, b, a).toString())
 }
 
 func assertLoadedPng(fileName: string, width, height: s32, pf: PixelFormat, r, g, b, a: u8)

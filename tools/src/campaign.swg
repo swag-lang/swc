@@ -5,7 +5,7 @@ using Core
 /*
 The complete repository test set.
 
-The set is a ladder of five rungs, ordered by what each one costs against what it can see, and
+The headless set is a ladder of four rungs, ordered by what each one costs against what it can see, and
 every rung runs in every requested configuration before the next one starts. A defect that only
 release can produce then reports in the first minute instead of after two complete passes: the
 configuration is the inner loop, not the outer one.
@@ -165,30 +165,72 @@ private func runWholeSet(context: *Context, options: *Options)->s32 fail
             return referenced
     }
 
-    // Rung 5. Programs that only prove they start. Most of the campaign's time lives here, and
-    // none of it can report anything an assertion above has not already had the chance to catch.
-    for cfg in configurations
+    return 0
+}
+
+// Runs opt-in GPU, host-window, and real-program checks outside the headless test campaign.
+public func runIntegrations(context: *Context, options: *Options)->s32 fail
+{
+    if not options.module.isEmpty()
     {
-        var scripts = forConfiguration(options, cfg.toString())
-        scripts.command = String.from("smoke")
-        scripts.module.clear()
-        let scripted = try runScripts(context, &scripts)
-        if scripted != 0 do
-            return scripted
+        Console.println("integrations.swgs takes a campaign name: opengl, windows, or smoke.")
+        return 1
+    }
 
-        var examples = forConfiguration(options, cfg.toString())
-        examples.command = String.from("smoke")
-        examples.module.clear()
-        let exampled = try runExamples(context, &examples)
-        if exampled != 0 do
-            return exampled
+    let configurations = options.configurations()
+    if options.command.isEmpty() or options.command == "opengl"
+    {
+        for cfg in configurations
+        {
+            var opengl = forConfiguration(options, cfg.toString())
+            opengl.command = String.from("test")
+            opengl.module  = String.from("pixel")
+            opengl.test.add(["--test-tag", "integration.renderer.opengl"])
+            let checked = try runStd(context, &opengl)
+            if checked != 0 do
+                return checked
+        }
+    }
 
-        var apps = forConfiguration(options, cfg.toString())
-        apps.command = String.from("smoke")
-        apps.module.clear()
-        let smoked = try runApps(context, &apps)
-        if smoked != 0 do
-            return smoked
+    if options.command.isEmpty() or options.command == "windows"
+    {
+        for cfg in configurations
+        {
+            var windows = forConfiguration(options, cfg.toString())
+            windows.command = String.from("test")
+            windows.module  = String.from("gui")
+            windows.test.add(["--test-tag", "integration.host.windows"])
+            let checked = try runStd(context, &windows)
+            if checked != 0 do
+                return checked
+        }
+    }
+
+    if options.command.isEmpty() or options.command == "smoke"
+    {
+        for cfg in configurations
+        {
+            var scripts = forConfiguration(options, cfg.toString())
+            scripts.command = String.from("smoke")
+            scripts.module.clear()
+            let scripted = try runScripts(context, &scripts)
+            if scripted != 0 do
+                return scripted
+
+            var examples = forConfiguration(options, cfg.toString())
+            examples.command = String.from("smoke")
+            examples.module.clear()
+            let exampled = try runExamples(context, &examples)
+            if exampled != 0 do
+                return exampled
+
+            var apps = forConfiguration(options, cfg.toString())
+            apps.command = String.from("smoke")
+            apps.module.clear()
+            let smoked = try runApps(context, &apps)
+            if smoked != 0 do
+                return smoked
+        }
     }
 
     return 0

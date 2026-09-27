@@ -122,7 +122,7 @@ void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint
             outValues[valueId] = inferredValue;
             outFlags[valueId]  = 1;
             --unresolved;
-            changed            = true;
+            changed = true;
         }
 
         // SSA creates instruction values in dominator order, with each read

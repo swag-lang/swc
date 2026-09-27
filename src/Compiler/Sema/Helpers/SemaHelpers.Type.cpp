@@ -438,8 +438,8 @@ namespace
                 fieldValues.push_back(elemCst.getAggregateStruct()[fieldIndex]);
             }
 
-            const std::span<const ConstantRef> fieldConstants = hasFieldValues && fieldValues.size() == elemTypes.size() ? fieldValues.span() : std::span<const ConstantRef>{};
-            const TypeRef mergedFieldTypeRef = deduceConcretizedAggregateArrayElementType(sema, fieldTypes.span(), fieldConstants);
+            const std::span<const ConstantRef> fieldConstants     = hasFieldValues && fieldValues.size() == elemTypes.size() ? fieldValues.span() : std::span<const ConstantRef>{};
+            const TypeRef                      mergedFieldTypeRef = deduceConcretizedAggregateArrayElementType(sema, fieldTypes.span(), fieldConstants);
             if (!mergedFieldTypeRef.isValid())
                 return TypeRef::invalid();
 
@@ -1214,7 +1214,7 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     if (targetType.isStruct())
         SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
 
-    AggregateChildSlot slot;
+    AggregateChildSlot  slot;
     const IdentifierRef namedIdRef = namedArgumentIdentifier(sema, childRef);
     if (namedIdRef.isValid())
     {

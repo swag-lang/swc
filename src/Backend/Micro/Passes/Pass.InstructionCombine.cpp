@@ -174,9 +174,9 @@ namespace
         // the consumer. Skipping other anchors here handles rules rewriting their own anchor;
         // claimAll's relocated check handles rules that consume neighboring
         // instructions (a fused load-op-store must not swallow a RIP access).
-        const PatternRegistry& reg   = registry();
-        const auto             view  = ctx.storage->view();
-        const auto             endIt = view.end();
+        const PatternRegistry& reg                  = registry();
+        const auto             view                 = ctx.storage->view();
+        const auto             endIt                = view.end();
         bool                   hasForwardableMemory = false;
         for (auto it = view.begin(); it != endIt; ++it)
         {

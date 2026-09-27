@@ -17,9 +17,9 @@ public:
     std::span<const EdgeList>      predecessors() const { return predecessors_; }
     const EdgeList&                predecessors(uint32_t instructionIndex) const { return predecessors_[instructionIndex]; }
     // Targets whose address is materialized anywhere in the instruction stream.
-    std::span<const uint32_t>      addressTakenLabelIndices() const { return addressTakenLabelIndices_.span(); }
-    bool                           hasUnsupportedControlFlowForCfgLiveness() const { return hasUnsupportedControlFlowForCfgLiveness_; }
-    bool                           supportsDeadCodeLiveness() const { return supportsDeadCodeLiveness_; }
+    std::span<const uint32_t> addressTakenLabelIndices() const { return addressTakenLabelIndices_.span(); }
+    bool                      hasUnsupportedControlFlowForCfgLiveness() const { return hasUnsupportedControlFlowForCfgLiveness_; }
+    bool                      supportsDeadCodeLiveness() const { return supportsDeadCodeLiveness_; }
 
     // True iff the CFG contains a back-edge (a successor pointing to an
     // earlier-or-equal instruction index). A cycle, in any linear layout of
@@ -45,17 +45,17 @@ private:
     void addEdge(uint32_t source, uint32_t target);
     void build(const MicroStorage& storage, const MicroOperandStorage& operands);
 
-    std::vector<MicroInstrRef> instructionRefs_;
+    std::vector<MicroInstrRef>    instructionRefs_;
     mutable std::vector<uint32_t> indexBySlot_;
     uint32_t                      maxSlot_ = 0;
     uint64_t                      buildId_ = 0;
-    std::vector<uint32_t>      labelToInstructionIndex_;
-    SmallVector<uint32_t, 2>    addressTakenLabelIndices_;
-    std::vector<EdgeList>      successors_;
-    std::vector<EdgeList>      predecessors_;
-    bool                       hasUnsupportedControlFlowForCfgLiveness_ = false;
-    bool                       supportsDeadCodeLiveness_                = true;
-    bool                       hasLoop_                                 = false;
+    std::vector<uint32_t>         labelToInstructionIndex_;
+    SmallVector<uint32_t, 2>      addressTakenLabelIndices_;
+    std::vector<EdgeList>         successors_;
+    std::vector<EdgeList>         predecessors_;
+    bool                          hasUnsupportedControlFlowForCfgLiveness_ = false;
+    bool                          supportsDeadCodeLiveness_                = true;
+    bool                          hasLoop_                                 = false;
 
     friend class MicroBuilder;
 };

@@ -981,7 +981,6 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
     }
 }
 
-
 void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 {
     if (!sym || sym == this)

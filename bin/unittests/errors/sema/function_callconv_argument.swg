@@ -9,5 +9,5 @@ func takesCCallback(callback: CCallback) {}
 
 #test
 {
-    takesCCallback(cast() &swagCallback) // swc-expected-error {{sema_err_cannot_cast}}
+    takesCCallback(cast() &swagCallback)     // swc-expected-error {{sema_err_cannot_cast}}
 }

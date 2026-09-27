@@ -447,6 +447,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
         switch msg
         {
         case WM_CLOSE:
+
             // Let the owner release resources borrowed from this window before it closes.
             PostQuitMessage(0)
             return 0

@@ -28,23 +28,23 @@ class TaskContext;
 
 enum class SymbolFunctionFlagsE : uint16_t
 {
-    Zero                   = 0,
-    Closure                = 1 << 0,
-    Method                 = 1 << 1,
-    Fallible               = 1 << 2,
-    Const                  = 1 << 3,
-    Empty                  = 1 << 4,
-    Attribute              = 1 << 5,
-    Pure                   = 1 << 6,
-    Variadic               = 1 << 7,
-    UsesGvtd               = 1 << 8,
-    GenericRoot            = 1 << 9,
-    GenericInstance        = 1 << 10,
-    LazyBody               = 1 << 11,
-    LazyBodyRunning        = 1 << 12,
-    WhereConstraintFailed  = 1 << 13,
-    InlineLocalFunction    = 1 << 14,
-    BoundToClosure         = 1 << 15, // A function literal typed by a closure binding.
+    Zero                  = 0,
+    Closure               = 1 << 0,
+    Method                = 1 << 1,
+    Fallible              = 1 << 2,
+    Const                 = 1 << 3,
+    Empty                 = 1 << 4,
+    Attribute             = 1 << 5,
+    Pure                  = 1 << 6,
+    Variadic              = 1 << 7,
+    UsesGvtd              = 1 << 8,
+    GenericRoot           = 1 << 9,
+    GenericInstance       = 1 << 10,
+    LazyBody              = 1 << 11,
+    LazyBodyRunning       = 1 << 12,
+    WhereConstraintFailed = 1 << 13,
+    InlineLocalFunction   = 1 << 14,
+    BoundToClosure        = 1 << 15, // A function literal typed by a closure binding.
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
@@ -258,25 +258,25 @@ public:
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
     void     setInterfaceMethodSlot(uint32_t slot) noexcept { interfaceMethodSlot_ = slot; }
 
-    SpecOpKind              specOpKind() const noexcept { return specOpKind_; }
-    void                    setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
-    CallConvKind            callConvKind() const noexcept { return callConvKind_; }
-    void                    setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
-    MicroBuilder&           microInstrBuilder(TaskContext& ctx) noexcept;
-    const MicroBuilder&     microInstrBuilder() const noexcept { return microInstrBuilder_; }
-    AstNodeRef              declNodeRef() const noexcept { return declNodeRef_; }
-    const NodePayload*      declNodePayloadContext() const noexcept { return declNodePayloadCtx_; }
-    void                    setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
-    void                    setDeclNodePayloadContext(const NodePayload* payloadContext) noexcept { declNodePayloadCtx_ = payloadContext; }
-    uint32_t                debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
-    void                    setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
-    MicroReg                debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
-    void                    setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
-    bool                    tryMarkCodeGenJobScheduled() noexcept;
-    void                    addCallDependency(const SymbolFunction* sym);
-    void                    appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    void                    addLifecycleDependency(const SymbolFunction* sym);
-    void                    appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
+    SpecOpKind          specOpKind() const noexcept { return specOpKind_; }
+    void                setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    CallConvKind        callConvKind() const noexcept { return callConvKind_; }
+    void                setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
+    MicroBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
+    const MicroBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    AstNodeRef          declNodeRef() const noexcept { return declNodeRef_; }
+    const NodePayload*  declNodePayloadContext() const noexcept { return declNodePayloadCtx_; }
+    void                setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    void                setDeclNodePayloadContext(const NodePayload* payloadContext) noexcept { declNodePayloadCtx_ = payloadContext; }
+    uint32_t            debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
+    void                setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
+    MicroReg            debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
+    void                setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
+    bool                tryMarkCodeGenJobScheduled() noexcept;
+    void                addCallDependency(const SymbolFunction* sym);
+    void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    void                addLifecycleDependency(const SymbolFunction* sym);
+    void                appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
 
     // Runs `visit` over the order in place. A caller that only reads it - to judge whether a
     // metadata pointer may be pulled in, or to collect what a run refers to - would otherwise copy
@@ -336,8 +336,8 @@ public:
         SmallVector<std::pair<uint32_t, uint64_t>, 2> shardVersions;
     };
 
-    ConstantJitTargets& constantJitTargets() const noexcept { return constantJitTargets_; }
-    std::mutex&         constantJitTargetsMutex() const noexcept { return constantJitTargetsMutex_; }
+    ConstantJitTargets&     constantJitTargets() const noexcept { return constantJitTargets_; }
+    std::mutex&             constantJitTargetsMutex() const noexcept { return constantJitTargetsMutex_; }
     void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     void*                   jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
@@ -352,9 +352,9 @@ public:
     AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
     void                    cacheGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     std::recursive_mutex&   genericEvalRunMutex(const TaskContext& ctx) const noexcept;
-    std::mutex&            lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
-    std::shared_ptr<void>* lazyBodyRunState() const noexcept;
-    std::shared_ptr<void>& ensureLazyBodyRunState(const TaskContext& ctx) const noexcept;
+    std::mutex&             lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
+    std::shared_ptr<void>*  lazyBodyRunState() const noexcept;
+    std::shared_ptr<void>&  ensureLazyBodyRunState(const TaskContext& ctx) const noexcept;
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions, const Symbol* waiterSymbol = nullptr);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
@@ -415,10 +415,10 @@ private:
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT  = 0xFFFFFFFFu;
     static constexpr uint8_t  K_INVALID_RT_ATTRIBUTE_BIT_INDEX = 0xFFu;
 
-    std::vector<SymbolVariable*>                  parameters_;
-    std::vector<SymbolVariable*>                  localVariables_;
-    PointerSet<const SymbolVariable>              localVariableSet_;
-    void refreshJitOrderCache() const;
+    std::vector<SymbolVariable*>     parameters_;
+    std::vector<SymbolVariable*>     localVariables_;
+    PointerSet<const SymbolVariable> localVariableSet_;
+    void                             refreshJitOrderCache() const;
 
     static inline std::atomic<uint64_t>           s_freesMaskVersion{0};
     static inline std::atomic<uint64_t>           s_callGraphVersion{0};

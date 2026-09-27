@@ -156,13 +156,19 @@ table so both a full restart and a narrow resume have explicit evidence:
   2. `bin\swc.exe tools\build.swgs dm --all-cfg` - build every workspace in release and devmode,
      including modules that have no tests.
   3. `bin\swc.exe tools\tests.swgs dm` - the full DevMode default campaign.
-  4. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the same five-rung campaign in both target
+  4. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the same four-rung headless campaign in both target
      configurations.
+     Then run `bin\swc.exe tools\integrations.swgs dm --all-cfg`: the named OpenGL renderer,
+     Windows host-window, and real-program smoke campaigns in both target configurations. These
+     integrations require an interactive desktop and remain outside the headless test set. Later
+     renderer and host campaigns belong here under their own tags and names.
   5. Rebuild `swc.exe` with the Release solution configuration using MSBuild `/t:Rebuild`
      to establish the initial baseline from freshly compiled C++ objects.
   6. `bin\swc.exe tools\tests.swgs` - the full Release validation campaign. Do not add a Release
      `--all-cfg` pass; the repository workflow deliberately reserves all-config coverage for
      DevMode.
+     Then run `bin\swc.exe tools\integrations.swgs` with the Release compiler for the OpenGL,
+     current-host window, and smoke campaigns in the default target configuration.
   7. `bin\swc.exe tools\vsix.swgs` - refresh and package the VSCode extension with its documented
      Node.js/vsce prerequisites, then inspect the package result.
   8. LAST: run `bin\swc.exe tools\vault.swgs dm` with the bundled signed WinFsp runtime and the

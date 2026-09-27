@@ -89,7 +89,8 @@ func __isTestFileSelected(path: string)->bool
     return not hasFilter
 }
 
-// Repeated tag filters form a union. An untagged test is selected only when no tag filter exists.
+// Repeated tag filters form a union. Integration tags require an explicit filter so an ordinary
+// test run never creates native windows or depends on hardware or an interactive desktop.
 func __isTestTagSelected(tag: string)->bool
 {
     let prefix    = "swag.test-tag="
@@ -106,7 +107,11 @@ func __isTestTagSelected(tag: string)->bool
             return true
     }
 
-    return not hasFilter
+    if hasFilter do
+        return false
+
+    let integration = "integration."
+    return tag.count < integration.count or Swag.memcmp(tag.buffer, integration.buffer, integration.count) != 0
 }
 
 // Optimizations stay off: recovery re-enters this function with the registers captured before the

@@ -296,11 +296,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ConstantManager_OwnsAggregateElementsAfterInputsAreDestroyed)
 {
-    ConstantManager manager;
+    ConstantManager  manager;
     const std::array elements = {ctx.cstMgr().addInt(ctx, 31001), ctx.cstMgr().addInt(ctx, 31002), ctx.cstMgr().addInt(ctx, 31003)};
     const std::array names    = {IdentifierRef::invalid(), IdentifierRef::invalid(), IdentifierRef::invalid()};
-    ConstantRef     arrayRef;
-    ConstantRef     structRef;
+    ConstantRef      arrayRef;
+    ConstantRef      structRef;
     {
         const ConstantValue arrayValue  = ConstantValue::makeAggregateArray(ctx, elements);
         const ConstantValue structValue = ConstantValue::makeAggregateStruct(ctx, names, elements);
@@ -362,7 +362,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(ConstantManager_PreservesStringNormalizationOnRepeatedInputs)
 {
     ConstantManager manager;
-    auto* aliasSymbol = Symbol::make<SymbolAlias>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), {});
+    auto*           aliasSymbol = Symbol::make<SymbolAlias>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), {});
     aliasSymbol->setUnderlyingTypeRef(ctx.typeMgr().typeString());
     const TypeRef aliasType = ctx.typeMgr().addType(TypeInfo::makeAlias(aliasSymbol));
     aliasSymbol->setTypeRef(aliasType);
@@ -395,21 +395,21 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ConstantManager_PublishesCanonicalReferencesAcrossGrowth)
 {
-    ConstantManager manager;
-    const std::array bytes = {std::byte{0x31}, std::byte{0x52}, std::byte{0x73}};
-    const std::array<uint64_t, 1> dims = {bytes.size()};
-    const TypeRef arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeU8()));
-    const std::array elements = {ctx.cstMgr().addInt(ctx, 34001), ctx.cstMgr().addInt(ctx, 34002)};
-    const std::array values = {
+    ConstantManager               manager;
+    const std::array              bytes     = {std::byte{0x31}, std::byte{0x52}, std::byte{0x73}};
+    const std::array<uint64_t, 1> dims      = {bytes.size()};
+    const TypeRef                 arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeU8()));
+    const std::array              elements  = {ctx.cstMgr().addInt(ctx, 34001), ctx.cstMgr().addInt(ctx, 34002)};
+    const std::array              values    = {
         ConstantValue::makeString(ctx, "canonical-reference"),
         ConstantValue::makeArrayBorrowed(ctx, arrayType, bytes),
         ConstantValue::makeAggregateArray(ctx, elements),
     };
-    std::array<ConstantRef, values.size()> refs;
+    std::array<ConstantRef, values.size()>          refs;
     std::array<const ConstantValue*, values.size()> pointers;
     for (size_t index = 0; index < values.size(); ++index)
     {
-        refs[index] = manager.addConstant(ctx, values[index]);
+        refs[index]     = manager.addConstant(ctx, values[index]);
         pointers[index] = &manager.get(refs[index]);
 #if SWC_HAS_REF_DEBUG_INFO
         if (refs[index].dbgPtr != pointers[index])
@@ -425,7 +425,7 @@ SWC_TEST_BEGIN(ConstantManager_PublishesCanonicalReferencesAcrossGrowth)
 
     for (size_t index = 0; index < values.size(); ++index)
     {
-        const ConstantRef inputHit = manager.addConstant(ctx, values[index]);
+        const ConstantRef inputHit  = manager.addConstant(ctx, values[index]);
         const ConstantRef storedHit = manager.addConstant(ctx, *pointers[index]);
         if (inputHit != refs[index] || storedHit != refs[index] || &manager.get(refs[index]) != pointers[index])
             return Result::Error;
@@ -442,10 +442,10 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(ConstantManager_EnrichesStorageReferencesWithoutMutatingInputs)
 {
     ConstantManager    manager;
-    constexpr uint32_t shardIndex = 3;
-    const std::array    bytes      = {std::byte{0x37}, std::byte{0x61}, std::byte{0x94}, std::byte{0xA2}};
-    DataSegment&       segment    = manager.shardDataSegment(shardIndex);
-    const auto [payload, offset] = segment.addSpan(std::span<const std::byte>(bytes));
+    constexpr uint32_t shardIndex           = 3;
+    const std::array   bytes                = {std::byte{0x37}, std::byte{0x61}, std::byte{0x94}, std::byte{0xA2}};
+    DataSegment&       segment              = manager.shardDataSegment(shardIndex);
+    const auto [payload, offset]            = segment.addSpan(std::span<const std::byte>(bytes));
     const std::array<uint64_t, 1> dims      = {bytes.size()};
     const TypeRef                 arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeU8()));
     const uint64_t                address   = reinterpret_cast<uint64_t>(payload.data());
@@ -466,7 +466,7 @@ SWC_TEST_BEGIN(ConstantManager_EnrichesStorageReferencesWithoutMutatingInputs)
         const DataSegmentRef storedRef = stored.dataSegmentRef();
         if (storedRef.shardIndex != shardIndex || storedRef.offset != offset)
             return Result::Error;
-        const ConstantRef inputHit = manager.addConstant(ctx, value);
+        const ConstantRef inputHit  = manager.addConstant(ctx, value);
         const ConstantRef storedHit = manager.addConstant(ctx, stored);
         if (!(stored == value) || inputHit != ref || storedHit != ref)
             return Result::Error;
@@ -488,22 +488,22 @@ SWC_TEST_BEGIN(ConstantManager_ConcurrentInterningKeepsCanonicalStorage)
     constexpr size_t NUM_VALUES  = 128;
     constexpr size_t NUM_FIELDS  = 32;
 
-    ConstantManager                                                     manager;
-    std::barrier                                                        rendezvous(NUM_WORKERS);
-    std::array<std::array<ConstantRef, NUM_VALUES>, NUM_WORKERS>           commonRefs;
-    std::array<std::array<ConstantRef, NUM_VALUES>, NUM_WORKERS>           uniqueRefs;
+    ConstantManager                                                       manager;
+    std::barrier                                                          rendezvous(NUM_WORKERS);
+    std::array<std::array<ConstantRef, NUM_VALUES>, NUM_WORKERS>          commonRefs;
+    std::array<std::array<ConstantRef, NUM_VALUES>, NUM_WORKERS>          uniqueRefs;
     std::array<std::array<const ConstantValue*, NUM_VALUES>, NUM_WORKERS> addresses;
-    std::array<ConstantRef, NUM_VALUES * (NUM_WORKERS + 1)>                elements;
-    std::array<bool, NUM_WORKERS>                                        valid = {true, true};
+    std::array<ConstantRef, NUM_VALUES*(NUM_WORKERS + 1)>                 elements;
+    std::array<bool, NUM_WORKERS>                                         valid = {true, true};
     for (size_t index = 0; index < elements.size(); ++index)
         elements[index] = ctx.cstMgr().addInt(ctx, 35000 + index);
 
     {
         // Prepare types and owned inputs before the workers start. Each worker then
         // copies its input locally; all source vectors die before the final checks.
-        std::vector<ConstantValue>                         commonInputs;
+        std::vector<ConstantValue>                          commonInputs;
         std::array<std::vector<ConstantValue>, NUM_WORKERS> uniqueInputs;
-        std::array<ConstantRef, NUM_FIELDS>                fields;
+        std::array<ConstantRef, NUM_FIELDS>                 fields;
         fields.fill(elements[0]);
         commonInputs.reserve(NUM_VALUES);
         for (auto& inputs : uniqueInputs)
@@ -529,11 +529,11 @@ SWC_TEST_BEGIN(ConstantManager_ConcurrentInterningKeepsCanonicalStorage)
                     const ConstantValue common = commonInputs[index];
                     const ConstantValue unique = uniqueInputs[worker][index];
                     rendezvous.arrive_and_wait();
-                    const ConstantRef ref    = manager.addConstant(workerCtx, common);
+                    const ConstantRef ref     = manager.addConstant(workerCtx, common);
                     commonRefs[worker][index] = ref;
                     addresses[worker][index]  = &manager.get(ref);
                     uniqueRefs[worker][index] = manager.addConstant(workerCtx, unique);
-                    const ConstantRef hit = manager.addConstant(workerCtx, common);
+                    const ConstantRef hit     = manager.addConstant(workerCtx, common);
                     if (hit != ref || addresses[worker][index]->getAggregateArray().data() == common.getAggregateArray().data())
                         valid[worker] = false;
 #if SWC_HAS_REF_DEBUG_INFO

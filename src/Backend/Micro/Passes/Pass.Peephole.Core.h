@@ -50,10 +50,10 @@ namespace MicroPeephole
     template<typename ACTION>
     struct RewriteQueue
     {
-        MicroStorage*                storage  = nullptr;
-        MicroOperandStorage*         operands = nullptr;
-        LazyU32Set                  claimed;
-        SmallVector<ACTION>          actions;
+        MicroStorage*        storage  = nullptr;
+        MicroOperandStorage* operands = nullptr;
+        LazyU32Set           claimed;
+        SmallVector<ACTION>  actions;
 
         bool isClaimed(MicroInstrRef ref) const { return claimed.contains(ref.get()); }
 

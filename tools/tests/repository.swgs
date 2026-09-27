@@ -584,7 +584,7 @@ func checkSetupPath() fail
     Swag.assert(Utf8.contains(Errors.message(relaunchError), "a-different-compiler.exe"))
     let process = expect Env.runProcess(executable.toString(), commandLine.toString())
     Swag.assert(process.exitCode() != 0)
-    Swag.assert(Utf8.contains(process.standardOutput(), "'--all-cfg' is supported only by build, tests, and goldens"))
+    Swag.assert(Utf8.contains(process.standardOutput(), "'--all-cfg' is supported only by build, tests, integrations, and goldens"))
 
     var captureArguments: Tool.Arguments
     captureArguments.add(["--num-cores", "6", #curlocation.fileName!, "--check-capture"])

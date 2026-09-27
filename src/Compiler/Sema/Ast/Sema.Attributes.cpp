@@ -512,13 +512,13 @@ namespace
         if (!attrSym.inSwagNamespace(sema.ctx()))
             return Result::Continue;
 
-        const IdentifierManager& idMgr              = sema.idMgr();
-        const IdentifierRef      idRef              = attrSym.idRef();
-        const IdentifierRef      safetyIdRef        = sema.idMgr().addIdentifier("Safety");
-        const IdentifierRef      sanityIdRef        = sema.idMgr().addIdentifier("Sanity");
-        const IdentifierRef      borrowSummaryIdRef = sema.idMgr().addIdentifier("BorrowSummary");
+        const IdentifierManager& idMgr                  = sema.idMgr();
+        const IdentifierRef      idRef                  = attrSym.idRef();
+        const IdentifierRef      safetyIdRef            = sema.idMgr().addIdentifier("Safety");
+        const IdentifierRef      sanityIdRef            = sema.idMgr().addIdentifier("Sanity");
+        const IdentifierRef      borrowSummaryIdRef     = sema.idMgr().addIdentifier("BorrowSummary");
         const IdentifierRef      callingConventionIdRef = sema.idMgr().addIdentifier("CallingConvention");
-        const IdentifierRef      warningIdRef       = sema.idMgr().addIdentifier("Warning");
+        const IdentifierRef      warningIdRef           = sema.idMgr().addIdentifier("Warning");
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))

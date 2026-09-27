@@ -632,7 +632,7 @@ SWC_TEST_BEGIN(JIT_ConstantRelocationResolvesSegmentSource)
     ctx.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&expectedValue), sizeof(expectedValue)}, &expectedRef);
     const std::string_view decoyStorage = ctx.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&decoyValue), sizeof(decoyValue)});
 
-    MicroBuilder builder(ctx);
+    MicroBuilder    builder(ctx);
     const CallConv& callConv = CallConv::swag();
     builder.emitLoadRegMem(callConv.intReturn, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
     const MicroInstrRef loadRef = builder.instructions().lastInstructionRef();
@@ -651,7 +651,7 @@ SWC_TEST_BEGIN(JIT_ConstantRelocationResolvesSegmentSource)
     if (loweredCode.codeRelocations.size() != 1)
         return Result::Error;
 
-    auto invalidRelocations = loweredCode.codeRelocations;
+    auto invalidRelocations                  = loweredCode.codeRelocations;
     invalidRelocations.front().constantShard = ConstantManager::SHARD_COUNT;
     JITMemory invalidMemory;
     JIT::prepare(ctx, invalidMemory, loweredCode.bytes, loweredCode.unwindInfo, invalidRelocations);
@@ -673,13 +673,13 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JIT_RipRelativeFloatXorConstant)
 {
     static constexpr std::array<char, 16> signMask = {0, 0, 0, static_cast<char>(0x80)};
-    static constexpr uint32_t              input    = 0x3F800000u;
+    static constexpr uint32_t             input    = 0x3F800000u;
 
-    DataSegmentRef maskRef;
+    DataSegmentRef         maskRef;
     const std::string_view maskStorage = ctx.cstMgr().addPayloadBuffer(std::string_view{signMask.data(), signMask.size()}, &maskRef, 16);
 
-    MicroBuilder builder(ctx);
-    const CallConv& callConv = CallConv::swag();
+    MicroBuilder       builder(ctx);
+    const CallConv&    callConv     = CallConv::swag();
     constexpr MicroReg inputAddress = MicroReg::intReg(8);
     constexpr MicroReg value        = MicroReg::floatReg(0);
     builder.emitLoadRegPtrImm(inputAddress, reinterpret_cast<uint64_t>(&input));
@@ -687,12 +687,12 @@ SWC_TEST_BEGIN(JIT_RipRelativeFloatXorConstant)
     builder.emitOpBinaryRegMem(value, MicroReg::instructionPointer(), 0, MicroOp::FloatXor, MicroOpBits::B32);
     const MicroInstrRef xorRef = builder.instructions().lastInstructionRef();
     builder.addRelocation({
-        .kind           = MicroRelocation::Kind::ConstantAddress,
-        .form           = MicroRelocation::Form::Relative32,
-        .instructionRef = xorRef,
-        .targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data()),
-        .constantShard  = maskRef.shardIndex,
-        .constantOffset = maskRef.offset,
+        .kind             = MicroRelocation::Kind::ConstantAddress,
+        .form             = MicroRelocation::Form::Relative32,
+        .instructionRef   = xorRef,
+        .targetAddress    = reinterpret_cast<uint64_t>(maskStorage.data()),
+        .constantShard    = maskRef.shardIndex,
+        .constantOffset   = maskRef.offset,
         .constantCopySize = static_cast<uint32_t>(signMask.size()),
     });
     builder.emitLoadRegReg(callConv.intReturn, value, MicroOpBits::B32);

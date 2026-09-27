@@ -372,9 +372,9 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RebasesAdjacentCopiesWithRecycledRefs)
 
     // Original order differs from slot order, and each copy needs exactly one
     // compensation before its original successor, including the adjacent copy.
-    const auto firstAdd = builder.instructions().findNextInstructionRef(firstCopy);
-    const auto secondAdd = builder.instructions().findNextInstructionRef(secondCopy);
-    const auto& operands = builder.operands();
+    const auto  firstAdd  = builder.instructions().findNextInstructionRef(firstCopy);
+    const auto  secondAdd = builder.instructions().findNextInstructionRef(secondCopy);
+    const auto& operands  = builder.operands();
     if (!isStackAdjust(*builder.instructions().ptr(firstAdd), builder.instructions().ptr(firstAdd)->ops(operands), r10, MicroOp::Add, 32) ||
         !isStackAdjust(*builder.instructions().ptr(secondAdd), builder.instructions().ptr(secondAdd)->ops(operands), r11, MicroOp::Add, 32))
         return Result::Error;

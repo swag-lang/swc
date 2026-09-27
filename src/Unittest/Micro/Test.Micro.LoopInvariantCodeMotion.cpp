@@ -146,7 +146,7 @@ SWC_TEST_BEGIN(LICM_HoistsVectorConstantAcrossCallAndPointerStore)
 {
     for (const uint32_t mode : {0u, 1u, 2u})
     {
-        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         constexpr MicroReg base     = MicroReg::virtualIntReg(1);
         constexpr MicroReg count    = MicroReg::virtualIntReg(2);
         constexpr MicroReg constant = MicroReg::virtualFloatReg(1);

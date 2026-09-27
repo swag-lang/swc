@@ -1168,6 +1168,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func BeginDeferWindowPos(nNumWindows: s32)->HDWP
     func DeferWindowPos(hWinPosInfo: HDWP, hWnd, hWndInsertAfter: HWND, x, y, cx, cy: s32, uFlags: UINT)->HDWP
     func EndDeferWindowPos(hWinPosInfo: HDWP)->BOOL
+
     // Publishes a layered window's bounds and premultiplied bitmap together.
     func UpdateLayeredWindow(hwnd: HWND, hdcDst: HDC, pptDst: const *POINT, psize: const *SIZE, hdcSrc: HDC, pptSrc: const *POINT, crKey: COLORREF, pblend: const *BLENDFUNCTION, dwFlags: DWORD)->BOOL
     func SetTimer(hWnd: HWND, nIDEvent: UINT_PTR, uElapse: UINT, lpTimerFunc: TIMERPROC?)->UINT_PTR
@@ -1207,6 +1208,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func GetTopWindow(hWnd: HWND)->HWND
     func GetActiveWindow()->HWND
     func GetForegroundWindow()->HWND
+
     // Activates a window when the calling process is allowed to own the foreground.
     func SetForegroundWindow(hWnd: HWND)->BOOL
     func GetWindow(hWnd: HWND, uCmd: UINT)->HWND

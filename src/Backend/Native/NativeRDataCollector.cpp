@@ -176,7 +176,7 @@ Result NativeRDataCollector::emitReachableAllocations()
     }
 
     std::vector<DataSegmentRelocation> allocationRelocations;
-    Utf8                              rdataBaseName;
+    Utf8                               rdataBaseName;
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
         const DataSegment& segment     = builder_->compiler().cstMgr().shardDataSegment(shardIndex);

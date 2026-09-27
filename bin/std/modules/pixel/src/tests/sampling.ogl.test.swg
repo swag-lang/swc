@@ -52,7 +52,7 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
     return renderer.readRenderTarget(&target, 0, 0, 192, 160)
 }
 
-#[Swag.TestTag("gpu")]
+#[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
     var window         = expect Env.createWindow({identifier: "pixel-sampling-test", title: "Pixel sampling test", width: 192, height: 160})

@@ -2254,7 +2254,7 @@ namespace
         const bool countMemory     = op == MicroOp::PopCount || op == MicroOp::LeadingZeroCount || op == MicroOp::TrailingZeroCount;
         const bool floatArithmetic = reg.isFloat() && (op == MicroOp::FloatAdd || op == MicroOp::FloatSubtract || op == MicroOp::FloatMultiply ||
                                                        op == MicroOp::FloatDivide || op == MicroOp::FloatMin || op == MicroOp::FloatMax);
-        const bool floatCompare = reg.isFloat() && op == MicroOp::Compare;
+        const bool floatCompare    = reg.isFloat() && op == MicroOp::Compare;
         if (countMemory)
             store.pushU8(0xF3);
         if (opBitsBaseMul == MicroOpBits::B32)
@@ -3119,13 +3119,13 @@ void X64Encoder::encodeOpUnaryAmcMem(MicroReg regBase, MicroReg regMul, uint64_t
     else
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
 
-    const bool forcedDisplacement = baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp;
-    const auto mod                 = forcedDisplacement || addValue != 0
-                                         ? (canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32)
-                                         : ModRmMode::Memory;
-    const uint8_t group = op == MicroOp::Add ? MODRM_REG_0 :
-                          op == MicroOp::Subtract ? MODRM_REG_1 :
-                          op == MicroOp::BitwiseNot ? MODRM_REG_2 : MODRM_REG_3;
+    const bool    forcedDisplacement = baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp;
+    const auto    mod                = forcedDisplacement || addValue != 0
+                                           ? (canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32)
+                                           : ModRmMode::Memory;
+    const uint8_t group              = op == MicroOp::Add ? MODRM_REG_0 : op == MicroOp::Subtract ? MODRM_REG_1
+                                                                      : op == MicroOp::BitwiseNot ? MODRM_REG_2
+                                                                                                  : MODRM_REG_3;
     emitModRm(store_, mod, group, MODRM_RM_SIB);
 
     SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);

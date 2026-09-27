@@ -161,7 +161,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_LoopStore_UnsafeSourcesStayInLoop)
 
         SWC_RESULT(runPostRaLoopHoistPass(builder));
 
-        uint32_t labelCount = 0;
+        uint32_t labelCount   = 0;
         uint32_t storesInLoop = 0;
         for (const MicroInstr& inst : builder.instructions().view())
         {
@@ -477,11 +477,11 @@ SWC_TEST_BEGIN(PostRALoopHoist_PersistentFloatArgumentCopy)
     const CallConv& conv = CallConv::get(CallConvKind::Swag);
     for (const bool changesSource : {false, true})
     {
-        MicroBuilder builder(ctx);
-        const MicroReg source = conv.floatPersistentRegs[6];
-        const MicroReg arg = conv.floatArgRegs[0];
+        MicroBuilder   builder(ctx);
+        const MicroReg source  = conv.floatPersistentRegs[6];
+        const MicroReg arg     = conv.floatArgRegs[0];
         const MicroReg counter = conv.intPersistentRegs[2];
-        const auto top = builder.createLabel();
+        const auto     top     = builder.createLabel();
         builder.emitLoadRegMem(source, conv.stackPointer, 0x40, MicroOpBits::B64);
         builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
         builder.placeLabel(top);

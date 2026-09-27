@@ -395,12 +395,12 @@ namespace
             SmallVector<MicroInstrRef> popRefs;
         };
 
-        SmallVector<Save>                    saves;
-        MicroInstrRef                        frameRef   = MicroInstrRef::invalid();
-        uint64_t                             frameSize  = 0;
-        bool                                 inEntryRun = true;
-        SmallVector<MicroInstrRef>           rets;
-        const auto                           markUsed = [&saves](const MicroReg reg) {
+        SmallVector<Save>          saves;
+        MicroInstrRef              frameRef   = MicroInstrRef::invalid();
+        uint64_t                   frameSize  = 0;
+        bool                       inEntryRun = true;
+        SmallVector<MicroInstrRef> rets;
+        const auto                 markUsed = [&saves](const MicroReg reg) {
             for (Save& save : saves)
             {
                 if (save.reg == reg)
@@ -562,12 +562,12 @@ namespace
         if (context.forceFramePointer)
             return false;
 
-        const MicroReg                       stackPointer = conv.stackPointer;
-        MicroInstrRef                        frameRef     = MicroInstrRef::invalid();
-        uint64_t                             frameSize    = 0;
-        uint32_t                             numRets      = 0;
-        bool                                 inEntryRun   = true;
-        SmallVector<MicroInstrRef>           releaseRefs;
+        const MicroReg             stackPointer = conv.stackPointer;
+        MicroInstrRef              frameRef     = MicroInstrRef::invalid();
+        uint64_t                   frameSize    = 0;
+        uint32_t                   numRets      = 0;
+        bool                       inEntryRun   = true;
+        SmallVector<MicroInstrRef> releaseRefs;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             const MicroInstr& inst = *it;
@@ -645,14 +645,24 @@ namespace
             !conv.stackShadowSpace || !conv.stackAlignment)
             return false;
 
-        enum class Phase : uint8_t { Entry, Body, Exit, Done };
-        Phase phase = Phase::Entry;
-        MicroInstrRef frameRef = MicroInstrRef::invalid();
-        MicroInstrRef releaseRef = MicroInstrRef::invalid();
-        uint64_t frameSize = 0;
-        uint64_t firstOffset = UINT64_MAX;
-        bool hasCall = false;
-        struct StackAccess { MicroInstrRef ref; uint8_t offsetIndex; };
+        enum class Phase : uint8_t
+        {
+            Entry,
+            Body,
+            Exit,
+            Done
+        };
+        Phase         phase       = Phase::Entry;
+        MicroInstrRef frameRef    = MicroInstrRef::invalid();
+        MicroInstrRef releaseRef  = MicroInstrRef::invalid();
+        uint64_t      frameSize   = 0;
+        uint64_t      firstOffset = UINT64_MAX;
+        bool          hasCall     = false;
+        struct StackAccess
+        {
+            MicroInstrRef ref;
+            uint8_t       offsetIndex;
+        };
         SmallVector<StackAccess> accesses;
         MicroInstrRegOperandRefs regOperands;
 
@@ -661,8 +671,8 @@ namespace
             const MicroInstr& inst = *it;
             if (inst.op == MicroInstrOpcode::Nop || inst.op == MicroInstrOpcode::Label)
                 continue;
-            MicroInstrOperand* ops = inst.ops(*context.operands);
-            uint64_t adjust = 0;
+            MicroInstrOperand* ops    = inst.ops(*context.operands);
+            uint64_t           adjust = 0;
 
             if (phase == Phase::Entry)
             {
@@ -671,9 +681,9 @@ namespace
                 if (!isStackAdjustWithOp(inst, ops, conv.stackPointer, MicroOp::Subtract, adjust) ||
                     adjust < conv.stackShadowSpace + conv.stackAlignment)
                     return false;
-                frameRef = it.current;
+                frameRef  = it.current;
                 frameSize = adjust;
-                phase = Phase::Body;
+                phase     = Phase::Body;
                 continue;
             }
             if (phase == Phase::Body && isStackAdjustWithOp(inst, ops, conv.stackPointer, MicroOp::Add, adjust))
@@ -681,7 +691,7 @@ namespace
                 if (adjust != frameSize)
                     return false;
                 releaseRef = it.current;
-                phase = Phase::Exit;
+                phase      = Phase::Exit;
                 continue;
             }
             if (phase == Phase::Exit)
@@ -761,7 +771,7 @@ namespace
         if (!context.encoder || conv.stackAlignment != 16 || !conv.framePointer.isValid())
             return false;
 
-        const uint64_t reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
+        const uint64_t             reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
         SmallVector<MicroInstrRef> order;
         for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
             order.push_back(it.current);
@@ -778,20 +788,20 @@ namespace
 
         // The frame-pointer setup must precede the body allocation. The local
         // base copy keeps pointing at the old local frame when rsp moves down.
-        size_t bodyBase = order.size();
-        uint64_t frameSize = 0;
-        bool sawFramePointer = false;
+        size_t   bodyBase        = order.size();
+        uint64_t frameSize       = 0;
+        bool     sawFramePointer = false;
         for (size_t i = 0; i + 1 < order.size() && i < 32; ++i)
         {
-            const MicroInstr* inst = get(i);
-            const MicroInstrOperand* ops = opsAt(i);
+            const MicroInstr*        inst = get(i);
+            const MicroInstrOperand* ops  = opsAt(i);
             if (inst && isFramePointerSetupInstruction(conv, *inst, ops, conv.stackPointer))
             {
                 sawFramePointer = true;
                 continue;
             }
-            uint64_t adjust = 0;
-            const MicroInstr* next = get(i + 1);
+            uint64_t                 adjust  = 0;
+            const MicroInstr*        next    = get(i + 1);
             const MicroInstrOperand* nextOps = opsAt(i + 1);
             if (sawFramePointer && inst && isStackAdjustWithOp(*inst, ops, conv.stackPointer, MicroOp::Subtract, adjust) &&
                 adjust >= reserve && adjust <= INT32_MAX - reserve && adjust % conv.stackAlignment == 0 &&
@@ -799,7 +809,7 @@ namespace
                 nextOps && nextOps[1].reg == conv.stackPointer && nextOps[0].reg != conv.framePointer &&
                 nextOps[0].reg.isInt() && nextOps[2].opBits == MicroOpBits::B64)
             {
-                bodyBase = i + 1;
+                bodyBase  = i + 1;
                 frameSize = adjust;
                 break;
             }
@@ -807,19 +817,24 @@ namespace
         if (bodyBase == order.size() || bodyBase + 1 >= order.size())
             return false;
 
-        struct Access { MicroInstrRef ref; uint8_t offsetIndex; uint64_t newOffset; };
-        SmallVector<Access> accesses;
+        struct Access
+        {
+            MicroInstrRef ref;
+            uint8_t       offsetIndex;
+            uint64_t      newOffset;
+        };
+        SmallVector<Access>        accesses;
         SmallVector<MicroInstrRef> callAdjusts;
-        MicroInstrRegOperandRefs regs;
-        size_t tailStart = order.size();
-        size_t finalAdd = order.size();
-        uint64_t tailSubtract = 0;
-        uint32_t retCount = 0;
-        uint32_t foldedCalls = 0;
+        MicroInstrRegOperandRefs   regs;
+        size_t                     tailStart    = order.size();
+        size_t                     finalAdd     = order.size();
+        uint64_t                   tailSubtract = 0;
+        uint32_t                   retCount     = 0;
+        uint32_t                   foldedCalls  = 0;
         for (size_t i = bodyBase + 1; i < order.size(); ++i)
         {
-            const MicroInstr* inst = get(i);
-            const MicroInstrOperand* ops = opsAt(i);
+            const MicroInstr*        inst = get(i);
+            const MicroInstrOperand* ops  = opsAt(i);
             if (!inst)
                 return false;
             if (inst->op == MicroInstrOpcode::Ret)
@@ -851,20 +866,20 @@ namespace
                 {
                     if (adjust <= reserve)
                         return false;
-                    tailStart = i;
+                    tailStart    = i;
                     tailSubtract = adjust;
                     continue;
                 }
 
                 // The simple call frame may contain register argument setup,
                 // but no stack access, label or second call before its release.
-                bool sawCall = false;
+                bool   sawCall = false;
                 size_t release = i + 1;
                 for (; release < order.size(); ++release)
                 {
-                    const MicroInstr* step = get(release);
-                    const MicroInstrOperand* stepOps = opsAt(release);
-                    uint64_t releaseAmount = 0;
+                    const MicroInstr*        step          = get(release);
+                    const MicroInstrOperand* stepOps       = opsAt(release);
+                    uint64_t                 releaseAmount = 0;
                     if (step && isStackAdjustWithOp(*step, stepOps, conv.stackPointer, MicroOp::Add, releaseAmount))
                     {
                         if (releaseAmount == reserve && sawCall)
@@ -916,8 +931,8 @@ namespace
             if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop)
                 return false;
-            const MicroInstrDef& def = MicroInstr::info(inst->op);
-            const bool direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+            const MicroInstrDef& def    = MicroInstr::info(inst->op);
+            const bool           direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                                 ops[def.memBaseOperandIndex].reg == conv.stackPointer;
             if (direct)
             {
@@ -943,9 +958,9 @@ namespace
         if (!foldedCalls || tailStart == order.size() || finalAdd == order.size() || retCount != 1 ||
             finalAdd <= tailStart || finalAdd + 1 >= order.size())
             return false;
-        const MicroInstr* tail = get(tailStart);
+        const MicroInstr*        tail    = get(tailStart);
         const MicroInstrOperand* tailOps = opsAt(tailStart);
-        MicroInstrOperand tailCandidate[4];
+        MicroInstrOperand        tailCandidate[4];
         std::copy_n(tailOps, 4, tailCandidate);
         tailCandidate[3].setImmediateValue(ApInt(tailOps[3].valueU64 - reserve, 64));
         if (MicroPassHelpers::violatesEncoderConformance(context, *tail, tailCandidate))
@@ -958,8 +973,8 @@ namespace
             context.instructions->erase(ref);
 
         MicroInstrOperand reserveOps[4];
-        reserveOps[0].reg = conv.stackPointer;
-        reserveOps[1].opBits = MicroOpBits::B64;
+        reserveOps[0].reg     = conv.stackPointer;
+        reserveOps[1].opBits  = MicroOpBits::B64;
         reserveOps[2].microOp = MicroOp::Subtract;
         reserveOps[3].setImmediateValue(ApInt(reserve, 64));
         context.instructions->insertSyntheticBefore(*context.operands, order[bodyBase + 1], MicroInstrOpcode::OpBinaryRegImm, reserveOps);
@@ -981,8 +996,8 @@ namespace
         if (loops.empty())
             return false;
 
-        const auto refs = cfg.instructionRefs();
-        const auto n    = cfg.instructionCount();
+        const auto                                        refs = cfg.instructionRefs();
+        const auto                                        n    = cfg.instructionCount();
         std::vector<const MicroPassHelpers::NaturalLoop*> candidates;
         for (const auto& loop : loops | std::views::values)
             candidates.push_back(&loop);
@@ -1044,16 +1059,16 @@ namespace
             if (!enclosed)
                 continue;
 
-            uint32_t subIndex  = n;
-            uint32_t addIndex  = n;
-            uint32_t callCount = 0;
-            uint64_t amount    = 0;
-            bool inside        = false;
+            uint32_t                 subIndex  = n;
+            uint32_t                 addIndex  = n;
+            uint32_t                 callCount = 0;
+            uint64_t                 amount    = 0;
+            bool                     inside    = false;
             MicroInstrRegOperandRefs regOperands;
             for (uint32_t i = header; i <= tail && enclosed; ++i)
             {
                 const MicroInstr* inst = context.instructions->ptr(refs[i]);
-                const auto* ops = inst ? inst->ops(*context.operands) : nullptr;
+                const auto*       ops  = inst ? inst->ops(*context.operands) : nullptr;
                 if (!inst)
                 {
                     enclosed = false;
@@ -1100,8 +1115,8 @@ namespace
                 {
                     if (!operand.reg || *operand.reg != conv.stackPointer)
                         continue;
-                    const MicroInstrDef& def = MicroInstr::info(inst->op);
-                    const bool direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                    const MicroInstrDef& def    = MicroInstr::info(inst->op);
+                    const bool           direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                                         operand.reg == &ops[def.memBaseOperandIndex].reg;
                     if (!inside || !direct)
                         enclosed = false;
@@ -1252,7 +1267,7 @@ namespace
 
     bool collectReturnTail(const MicroPassContext& context, const MicroReg stackPointer, const MicroInstrRef retRef, ReturnTail& tail)
     {
-        MicroInstrRef ref = context.instructions->findPreviousInstructionRef(retRef);
+        MicroInstrRef              ref = context.instructions->findPreviousInstructionRef(retRef);
         std::vector<MicroInstrRef> reversed;
         reversed.push_back(retRef);
         while (const MicroInstr* inst = context.instructions->ptr(ref))
@@ -1263,9 +1278,9 @@ namespace
             ref = context.instructions->findPreviousInstructionRef(ref);
         }
 
-        const MicroInstr* release = context.instructions->ptr(ref);
-        const MicroInstrOperand* releaseOps = release ? release->ops(*context.operands) : nullptr;
-        uint64_t releaseAmount = 0;
+        const MicroInstr*        release       = context.instructions->ptr(ref);
+        const MicroInstrOperand* releaseOps    = release ? release->ops(*context.operands) : nullptr;
+        uint64_t                 releaseAmount = 0;
         if (!release || !isStackAdjustWithOp(*release, releaseOps, stackPointer, MicroOp::Add, releaseAmount) || !releaseAmount)
             return false;
         reversed.push_back(ref);
@@ -1340,7 +1355,7 @@ namespace
                 tails.push_back(std::move(tail));
         }
 
-        bool changed = false;
+        bool                  changed = false;
         std::vector<uint32_t> targetLabels(tails.size(), UINT32_MAX);
         for (size_t i = 0; i < tails.size(); ++i)
         {
@@ -1350,15 +1365,15 @@ namespace
                     continue;
                 if (targetLabels[j] == UINT32_MAX)
                 {
-                    targetLabels[j] = context.builder->createLabel().get();
+                    targetLabels[j]               = context.builder->createLabel().get();
                     MicroInstrOperand labelOps[1] = {};
-                    labelOps[0].valueU64 = targetLabels[j];
+                    labelOps[0].valueU64          = targetLabels[j];
                     context.instructions->insertDerivedBefore(*context.operands, tails[j].refs.front(), MicroInstrOpcode::Label, labelOps);
                 }
                 MicroInstrOperand jumpOps[3] = {};
-                jumpOps[0].cpuCond = MicroCond::Unconditional;
-                jumpOps[1].opBits = MicroOpBits::B32;
-                jumpOps[2].valueU64 = targetLabels[j];
+                jumpOps[0].cpuCond           = MicroCond::Unconditional;
+                jumpOps[1].opBits            = MicroOpBits::B32;
+                jumpOps[2].valueU64          = targetLabels[j];
                 context.instructions->insertDerivedBefore(*context.operands, tails[i].refs.front(), MicroInstrOpcode::JumpCond, jumpOps);
                 for (const MicroInstrRef ref : tails[i].refs)
                     context.instructions->erase(ref);
@@ -1383,7 +1398,7 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedUnusedFrame        = eraseUnusedStackFrame(context, conv);
     const bool      changedCompactFrame       = compactUnusedStackPrefix(context, conv);
     const bool      changedReservedCallFrame  = reserveBodyCallFrame(context, conv);
-    const bool      changedLoopCallFrame       = hoistLoopCallFrame(context, conv);
+    const bool      changedLoopCallFrame      = hoistLoopCallFrame(context, conv);
     const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
     const bool      changedReturnTails        = shareIdenticalReturnTails(context, conv);
     const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallFrame || changedLoopCallFrame || changedReturnTails;

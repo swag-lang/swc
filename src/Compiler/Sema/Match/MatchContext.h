@@ -91,7 +91,7 @@ private:
         Priority      priority;
     };
 
-    SmallVector<const Symbol*>   symbols_;
+    SmallVector<const Symbol*> symbols_;
     // Unique symbols in first-discovery order, including candidates below the best priority.
     SmallVector<CandidateSymbol> allSymbols_;
 

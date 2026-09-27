@@ -584,7 +584,7 @@ namespace InstructionCombine
         // of an immediate fill whatever later stores left.
         bool collectScalarStores(const Context& ctx, const MicroInstrRef loadRef, const MicroReg base, const uint64_t slotOffset, const uint32_t slotBytes, SmallVector<ScalarPiece, 8>& outPieces, SmallVector<MicroInstrRef, 16>& outStoreRefs)
         {
-            uint32_t covered = 0;
+            uint32_t       covered = 0;
             const uint32_t full    = (1u << slotBytes) - 1;
 
             // Once every byte is known, the walk goes on only to pick up the

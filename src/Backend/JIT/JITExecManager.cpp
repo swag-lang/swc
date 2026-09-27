@@ -317,7 +317,7 @@ bool JITExecManager::completeWaitingOnIgnoredDependency()
 
 bool JITExecManager::wakeWaiting()
 {
-    bool woken = false;
+    bool woken         = false;
     bool enqueueWorker = false;
 
     {

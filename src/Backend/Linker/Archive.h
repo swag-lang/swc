@@ -24,7 +24,7 @@ struct ArchiveImport
 class Archive
 {
 public:
-    Archive()                             = default;
+    Archive()                              = default;
     Archive(const Archive&)                = delete;
     Archive& operator=(const Archive&)     = delete;
     Archive(Archive&&) noexcept            = default;
@@ -49,7 +49,7 @@ public:
 
 private:
     // Symbol names borrow the immutable byte buffer, which moves together with the index.
-    ByteArray                                     bytes_;
+    ByteArray                                      bytes_;
     std::unordered_map<std::string_view, uint32_t> symbolToMember_;
     fs::path                                       sourcePath_;
 };

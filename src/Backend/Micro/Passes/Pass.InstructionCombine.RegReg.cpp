@@ -96,8 +96,8 @@ namespace InstructionCombine
             {
                 ZeroComparisonBoolean nonZero;
                 ZeroComparisonBoolean zero;
-                const MicroReg         nonZeroReg = nonZeroSide ? ops[1].reg : ops[0].reg;
-                const MicroReg         zeroReg    = nonZeroSide ? ops[0].reg : ops[1].reg;
+                const MicroReg        nonZeroReg = nonZeroSide ? ops[1].reg : ops[0].reg;
+                const MicroReg        zeroReg    = nonZeroSide ? ops[0].reg : ops[1].reg;
                 if (!matchZeroComparisonBoolean(ctx, nonZeroReg, ref, nonZero) ||
                     !matchZeroComparisonBoolean(ctx, zeroReg, ref, zero) ||
                     (nonZero.cond != MicroCond::NotEqual && nonZero.cond != MicroCond::NotZero) ||
@@ -148,7 +148,7 @@ namespace InstructionCombine
                                    maskDef.instRef, sourceCopy.instRef, decrement.instRef}))
                     continue;
 
-                const MicroReg temporary = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+                const MicroReg    temporary = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
                 MicroInstrOperand count[4];
                 count[0].reg     = temporary;
                 count[1].reg     = source;
@@ -270,10 +270,11 @@ namespace InstructionCombine
                 const uint64_t leftFactor  = addresses[0][5].valueU64 + 1;
                 const uint64_t rightFactor = addresses[1][5].valueU64 + 1;
                 const uint64_t factor      = ops[3].microOp == MicroOp::Add ? leftFactor + rightFactor
-                                                                           : leftFactor > rightFactor ? leftFactor - rightFactor : 0;
-                const bool encodable = factor == 1 || factor == 2 || factor == 3 || factor == 5 || factor == 9;
-                const MicroReg source = addresses[0][1].reg;
-                const auto sourceValue = ctx.ssa->reachingDef(source, defs[0].instRef);
+                                             : leftFactor > rightFactor     ? leftFactor - rightFactor
+                                                                            : 0;
+                const bool     encodable   = factor == 1 || factor == 2 || factor == 3 || factor == 5 || factor == 9;
+                const MicroReg source      = addresses[0][1].reg;
+                const auto     sourceValue = ctx.ssa->reachingDef(source, defs[0].instRef);
                 if (!encodable || !sourceValue.valid() || ctx.ssa->reachingDef(source, defs[1].instRef).valueId != sourceValue.valueId ||
                     ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId ||
                     !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef,
@@ -391,18 +392,18 @@ namespace InstructionCombine
                         return false;
                 }
 
-                const MicroReg source = initialCopies[0][1].reg;
+                const MicroReg source      = initialCopies[0][1].reg;
                 const auto     sourceValue = ctx.ssa->reachingDef(source, initial[0].instRef);
                 if (source != initialCopies[1][1].reg || !sourceValue.valid() ||
                     ctx.ssa->reachingDef(source, initial[1].instRef).valueId != sourceValue.valueId ||
                     ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId)
                     return false;
 
-                const uint64_t shift0 = shifts[0][3].valueU64;
-                const uint64_t shift1 = shifts[1][3].valueU64;
+                const uint64_t shift0  = shifts[0][3].valueU64;
+                const uint64_t shift1  = shifts[1][3].valueU64;
                 const uint32_t lowSide = shift0 < shift1 ? 0 : 1;
-                const uint64_t delta = shift0 > shift1 ? shift0 - shift1 : shift1 - shift0;
-                uint64_t       factor = 0;
+                const uint64_t delta   = shift0 > shift1 ? shift0 - shift1 : shift1 - shift0;
+                uint64_t       factor  = 0;
                 if (delta <= 3)
                 {
                     if (outer == MicroOp::Add)
@@ -771,8 +772,8 @@ namespace InstructionCombine
             else
                 return false;
 
-            out.source    = out.rawSource;
-            out.sourceRef = out.defRef;
+            out.source       = out.rawSource;
+            out.sourceRef    = out.defRef;
             const auto input = ctx.ssa->reachingDef(out.source, out.sourceRef);
             if (out.reg == out.rawSource && input.valid() && !input.isPhi && input.inst && input.inst->op == MicroInstrOpcode::LoadRegReg)
             {
@@ -806,7 +807,7 @@ namespace InstructionCombine
             if (!source.valid() || ctx.ssa->reachingDef(rhs.source, rhs.sourceRef).valueId != source.valueId)
                 return false;
             if (!ctx.claimAll({ref, lhs.defRef, rhs.defRef, lhs.copyRef.isValid() ? lhs.copyRef : ref, rhs.copyRef.isValid() ? rhs.copyRef : ref,
-                              lhs.sourceCopyRef.isValid() ? lhs.sourceCopyRef : ref, rhs.sourceCopyRef.isValid() ? rhs.sourceCopyRef : ref}))
+                               lhs.sourceCopyRef.isValid() ? lhs.sourceCopyRef : ref, rhs.sourceCopyRef.isValid() ? rhs.sourceCopyRef : ref}))
                 return false;
 
             // Keep the left input snapshot where the original mask read it.
@@ -827,7 +828,8 @@ namespace InstructionCombine
             combined[0].reg      = ops[0].reg;
             combined[1].opBits   = bits;
             combined[2].microOp  = MicroOp::And;
-            combined[3].valueU64 = op == MicroOp::And ? lhs.mask & rhs.mask : op == MicroOp::Or ? lhs.mask | rhs.mask : lhs.mask ^ rhs.mask;
+            combined[3].valueU64 = op == MicroOp::And ? lhs.mask & rhs.mask : op == MicroOp::Or ? lhs.mask | rhs.mask
+                                                                                                : lhs.mask ^ rhs.mask;
             ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, combined);
             return true;
         }
@@ -853,7 +855,7 @@ namespace InstructionCombine
                         ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
                         return false;
                     copies[i] = defs[i].instRef;
-                    defs[i] = ctx.ssa->reachingDef(copy[1].reg, copies[i]);
+                    defs[i]   = ctx.ssa->reachingDef(copy[1].reg, copies[i]);
                 }
                 if (!defs[i].valid() || defs[i].isPhi || !defs[i].inst || defs[i].inst->op != MicroInstrOpcode::OpUnaryReg ||
                     ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
@@ -1386,7 +1388,7 @@ namespace InstructionCombine
                 if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
                     ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                     continue;
-                const auto* binary   = def.inst->ops(*ctx.operands);
+                const auto* binary    = def.inst->ops(*ctx.operands);
                 const bool  foldOrXor = binary && outer == MicroOp::Or && binary[3].microOp == MicroOp::Xor;
                 if (!binary || binary[2].opBits != bits || (binary[3].microOp != inner && !foldOrXor) || !binary[1].reg.isVirtualInt())
                     continue;
@@ -1470,8 +1472,8 @@ namespace InstructionCombine
 
             for (uint32_t quotientSide = 0; quotientSide < 2; ++quotientSide)
             {
-                MicroReg      quotient    = ops[quotientSide].reg;
-                auto          quotientDef = ctx.ssa->reachingDef(quotient, ref);
+                MicroReg      quotient     = ops[quotientSide].reg;
+                auto          quotientDef  = ctx.ssa->reachingDef(quotient, ref);
                 MicroInstrRef quotientCopy = MicroInstrRef::invalid();
                 if (quotientDef.valid() && !quotientDef.isPhi && quotientDef.inst && quotientDef.inst->op == MicroInstrOpcode::LoadRegReg)
                 {
@@ -1509,12 +1511,12 @@ namespace InstructionCombine
                     ctx.ssa->reachingDef(quotient, ref).valueId != quotientDef.valueId)
                     continue;
 
-                bool                       foldLogicalHalf = false;
-                const MicroInstrOperand*   shift           = nullptr;
-                const MicroSsaState::ValueInfo* quotientInfo = ctx.ssa->valueInfo(quotientDef.valueId);
+                bool                            foldLogicalHalf = false;
+                const MicroInstrOperand*        shift           = nullptr;
+                const MicroSsaState::ValueInfo* quotientInfo    = ctx.ssa->valueInfo(quotientDef.valueId);
                 if (!quotientDef.isPhi && quotientDef.inst && quotientDef.inst->op == MicroInstrOpcode::OpBinaryRegImm && quotientInfo)
                 {
-                    shift = quotientDef.inst->ops(*ctx.operands);
+                    shift           = quotientDef.inst->ops(*ctx.operands);
                     foldLogicalHalf = shift && shift[0].reg == quotient && shift[1].opBits == MicroOpBits::B64 &&
                                       shift[2].microOp == MicroOp::ShiftRight && !shift[3].hasWideImmediateValue() && shift[3].valueU64 == 1;
                     for (const auto& use : quotientInfo->uses)
@@ -2070,24 +2072,24 @@ namespace InstructionCombine
         const MicroReg    result = subOps[0].reg;
         const MicroReg    mask   = subOps[1].reg;
 
-        const MicroInstrRef xorRef = ctx.storage->findPreviousInstructionRef(subRef);
-        const MicroInstr*   xorInst = xorRef.isValid() ? ctx.storage->ptr(xorRef) : nullptr;
-        const MicroInstrOperand* xorOps = xorInst && xorInst->op == MicroInstrOpcode::OpBinaryRegReg ? xorInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef      xorRef  = ctx.storage->findPreviousInstructionRef(subRef);
+        const MicroInstr*        xorInst = xorRef.isValid() ? ctx.storage->ptr(xorRef) : nullptr;
+        const MicroInstrOperand* xorOps  = xorInst && xorInst->op == MicroInstrOpcode::OpBinaryRegReg ? xorInst->ops(*ctx.operands) : nullptr;
         if (!xorOps || xorOps[0].reg != result || xorOps[1].reg != mask || xorOps[2].opBits != bits || xorOps[3].microOp != MicroOp::Xor)
             return false;
 
-        const MicroInstrRef shiftRef = ctx.storage->findPreviousInstructionRef(xorRef);
-        const MicroInstr*   shift    = shiftRef.isValid() ? ctx.storage->ptr(shiftRef) : nullptr;
+        const MicroInstrRef      shiftRef = ctx.storage->findPreviousInstructionRef(xorRef);
+        const MicroInstr*        shift    = shiftRef.isValid() ? ctx.storage->ptr(shiftRef) : nullptr;
         const MicroInstrOperand* shiftOps = shift && shift->op == MicroInstrOpcode::OpBinaryRegImm ? shift->ops(*ctx.operands) : nullptr;
         if (!shiftOps || shiftOps[0].reg != mask || shiftOps[1].opBits != bits || shiftOps[2].microOp != MicroOp::ShiftArithmeticRight ||
             shiftOps[3].hasWideImmediateValue() || shiftOps[3].valueU64 != getNumBits(bits) - 1)
             return false;
 
-        const MicroInstrRef maskCopyRef = ctx.storage->findPreviousInstructionRef(shiftRef);
-        const MicroInstr*   maskCopy    = maskCopyRef.isValid() ? ctx.storage->ptr(maskCopyRef) : nullptr;
-        const MicroInstrOperand* maskCopyOps = maskCopy && maskCopy->op == MicroInstrOpcode::LoadRegReg ? maskCopy->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef resultCopyRef = ctx.storage->findPreviousInstructionRef(maskCopyRef);
-        const MicroInstr*   resultCopy    = resultCopyRef.isValid() ? ctx.storage->ptr(resultCopyRef) : nullptr;
+        const MicroInstrRef      maskCopyRef   = ctx.storage->findPreviousInstructionRef(shiftRef);
+        const MicroInstr*        maskCopy      = maskCopyRef.isValid() ? ctx.storage->ptr(maskCopyRef) : nullptr;
+        const MicroInstrOperand* maskCopyOps   = maskCopy && maskCopy->op == MicroInstrOpcode::LoadRegReg ? maskCopy->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef      resultCopyRef = ctx.storage->findPreviousInstructionRef(maskCopyRef);
+        const MicroInstr*        resultCopy    = resultCopyRef.isValid() ? ctx.storage->ptr(resultCopyRef) : nullptr;
         const MicroInstrOperand* resultCopyOps = resultCopy && resultCopy->op == MicroInstrOpcode::LoadRegReg ? resultCopy->ops(*ctx.operands) : nullptr;
         if (!maskCopyOps || !resultCopyOps || maskCopyOps[0].reg != mask || resultCopyOps[0].reg != result ||
             maskCopyOps[1].reg != resultCopyOps[1].reg || !maskCopyOps[1].reg.isVirtualInt() ||
@@ -2228,11 +2230,11 @@ namespace InstructionCombine
             return false;
 
         MicroInstrOperand newOps[5] = {};
-        newOps[0].reg    = dst;
-        newOps[1].reg    = src;
-        newOps[2].reg    = count;
-        newOps[3].opBits = ops[2].opBits;
-        newOps[4].microOp = op;
+        newOps[0].reg               = dst;
+        newOps[1].reg               = src;
+        newOps[2].reg               = count;
+        newOps[3].opBits            = ops[2].opBits;
+        newOps[4].microOp           = op;
         ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegRegReg, std::span<const MicroInstrOperand>(newOps, 5), true);
         ctx.emitErase(reaching.instRef);
         return true;
@@ -2401,14 +2403,14 @@ namespace InstructionCombine
         if (!left.hasLeaf || !right.hasLeaf || left.leafValue != right.leafValue)
             return false;
 
-        const uint32_t width = getNumBits(ops[2].opBits);
-        const uint32_t bytes = width / 8;
+        const uint32_t width   = getNumBits(ops[2].opBits);
+        const uint32_t bytes   = width / 8;
         BitSources     sources = left;
         for (uint32_t i = 0; i < width; ++i)
         {
             if (left.bits[i] != K_BIT_ZERO && right.bits[i] != K_BIT_ZERO)
                 return false;
-            sources.bits[i] = left.bits[i] != K_BIT_ZERO ? left.bits[i] : right.bits[i];
+            sources.bits[i]         = left.bits[i] != K_BIT_ZERO ? left.bits[i] : right.bits[i];
             const uint32_t expected = (bytes - 1 - i / 8) * 8 + i % 8;
             if (sources.bits[i] != static_cast<int8_t>(expected))
                 return false;
@@ -2440,40 +2442,39 @@ namespace InstructionCombine
     {
         struct PackedByteLoad
         {
-            MicroInstrRef ref = MicroInstrRef::invalid();
-            MicroReg      base = MicroReg::invalid();
-            MicroReg      index = MicroReg::invalid();
-            uint32_t      baseValue = 0;
+            MicroInstrRef ref        = MicroInstrRef::invalid();
+            MicroReg      base       = MicroReg::invalid();
+            MicroReg      index      = MicroReg::invalid();
+            uint32_t      baseValue  = 0;
             uint32_t      indexValue = 0;
-            uint64_t      scale = 0;
-            uint64_t      offset = 0;
+            uint64_t      scale      = 0;
+            uint64_t      offset     = 0;
         };
 
         // Strip address copies and constant additions, retaining a register
         // whose SSA value can still address the fused load at the OR.
-        bool normalizeByteIndex(const Context& ctx, MicroReg reg, MicroInstrRef at, MicroInstrRef root,
-                                uint64_t& offset, MicroReg& outReg, uint32_t& outValue)
+        bool normalizeByteIndex(const Context& ctx, MicroReg reg, MicroInstrRef at, MicroInstrRef root, uint64_t& offset, MicroReg& outReg, uint32_t& outValue)
         {
             for (uint32_t depth = 0; depth < 5; ++depth)
             {
                 const auto def = ctx.ssa->reachingDef(reg, at);
                 if (!def.valid() || (def.inst && (ctx.isClaimed(def.instRef) || ctx.isRelocated(def.instRef))))
                     return false;
-                const auto atRoot = ctx.ssa->reachingDef(reg, root);
-                const auto* ops = def.inst ? def.inst->ops(*ctx.operands) : nullptr;
+                const auto  atRoot = ctx.ssa->reachingDef(reg, root);
+                const auto* ops    = def.inst ? def.inst->ops(*ctx.operands) : nullptr;
                 if (!def.isPhi && ops && ops[0].reg == reg &&
                     def.inst->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
                     ops[1].reg.isVirtualInt())
                 {
                     reg = ops[1].reg;
-                    at = def.instRef;
+                    at  = def.instRef;
                 }
                 else if (!def.isPhi && ops && ops[0].reg == reg &&
                          def.inst->op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64)
                 {
                     offset += ops[3].valueU64;
                     reg = ops[1].reg;
-                    at = def.instRef;
+                    at  = def.instRef;
                 }
                 else if (!def.isPhi && ops && ops[0].reg == reg &&
                          def.inst->op == MicroInstrOpcode::OpBinaryRegImm && ops[1].opBits == MicroOpBits::B64 &&
@@ -2486,7 +2487,7 @@ namespace InstructionCombine
                 {
                     if (!atRoot.valid() || atRoot.valueId != def.valueId)
                         return false;
-                    outReg = reg;
+                    outReg   = reg;
                     outValue = def.valueId;
                     return true;
                 }
@@ -2494,8 +2495,7 @@ namespace InstructionCombine
             return false;
         }
 
-        bool tracePackedByte(const Context& ctx, MicroReg reg, MicroInstrRef at, uint32_t shift, uint32_t depth,
-                             std::array<PackedByteLoad, 4>& loads, uint32_t& found)
+        bool tracePackedByte(const Context& ctx, MicroReg reg, MicroInstrRef at, uint32_t shift, uint32_t depth, std::array<PackedByteLoad, 4>& loads, uint32_t& found)
         {
             if (depth >= 12 || shift > 24)
                 return false;
@@ -2533,16 +2533,16 @@ namespace InstructionCombine
             const uint32_t lane = shift / 8;
             if ((found & (1u << lane)) || ops[5].valueU64 != 1)
                 return false;
-            const auto baseDef = ctx.ssa->reachingDef(ops[1].reg, def.instRef);
+            const auto baseDef     = ctx.ssa->reachingDef(ops[1].reg, def.instRef);
             const auto rootBaseDef = ctx.ssa->reachingDef(ops[1].reg, at);
             if (!baseDef.valid() || !rootBaseDef.valid() || baseDef.valueId != rootBaseDef.valueId)
                 return false;
-            auto& load = loads[lane];
-            load.ref = def.instRef;
-            load.base = ops[1].reg;
+            auto& load     = loads[lane];
+            load.ref       = def.instRef;
+            load.base      = ops[1].reg;
             load.baseValue = baseDef.valueId;
-            load.scale = ops[5].valueU64;
-            load.offset = ops[6].valueU64;
+            load.scale     = ops[5].valueU64;
+            load.offset    = ops[6].valueU64;
             // The caller makes the final availability check at its root.
             load.index = ops[2].reg;
             found |= 1u << lane;
@@ -2564,7 +2564,7 @@ namespace InstructionCombine
             return false;
 
         std::array<PackedByteLoad, 4> loads;
-        uint32_t found = 0;
+        uint32_t                      found = 0;
         if (!tracePackedByte(ctx, ops[0].reg, ref, 0, 0, loads, found) ||
             !tracePackedByte(ctx, ops[1].reg, ref, 0, 0, loads, found) || found != 0xF)
             return false;
@@ -2588,7 +2588,7 @@ namespace InstructionCombine
         }
         // Four references must occur on one straight line. Moving the read to
         // the root then preserves every byte observed by the original loads.
-        uint32_t seen = 0;
+        uint32_t      seen = 0;
         MicroInstrRef scan = ctx.storage->findPreviousInstructionRef(ref);
         for (uint32_t step = 0; scan.isValid() && step < 64 && seen != 0xF;
              ++step, scan = ctx.storage->findPreviousInstructionRef(scan))
@@ -2606,18 +2606,18 @@ namespace InstructionCombine
             return false;
 
         MicroInstrOperand wideLoad[7] = {};
-        wideLoad[0].reg = ops[0].reg;
-        wideLoad[1].reg = first.base;
-        wideLoad[2].reg = first.index;
-        wideLoad[3].opBits = MicroOpBits::B32;
-        wideLoad[4].opBits = MicroOpBits::B64;
-        wideLoad[5].valueU64 = first.scale;
-        wideLoad[6].valueU64 = first.offset;
+        wideLoad[0].reg               = ops[0].reg;
+        wideLoad[1].reg               = first.base;
+        wideLoad[2].reg               = first.index;
+        wideLoad[3].opBits            = MicroOpBits::B32;
+        wideLoad[4].opBits            = MicroOpBits::B64;
+        wideLoad[5].valueU64          = first.scale;
+        wideLoad[6].valueU64          = first.offset;
         ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadAmcRegMem, wideLoad);
         MicroInstrOperand swap[3] = {};
-        swap[0].reg = ops[0].reg;
-        swap[1].opBits = MicroOpBits::B32;
-        swap[2].microOp = MicroOp::ByteSwap;
+        swap[0].reg               = ops[0].reg;
+        swap[1].opBits            = MicroOpBits::B32;
+        swap[2].microOp           = MicroOp::ByteSwap;
         ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, swap);
         return true;
     }

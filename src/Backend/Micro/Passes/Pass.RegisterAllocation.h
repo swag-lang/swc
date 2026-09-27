@@ -361,12 +361,12 @@ private:
     // Whether this walk holds one callee-saved integer register back for the
     // legalization that runs on its output. Only a function whose first walk
     // left nothing free pays it.
-    bool                                  intervalHoldsLegalizeReserve_ = false;
-    std::vector<SmallVector<uint32_t, 4>> useVirtualIndices_;
-    std::vector<SmallVector<uint32_t, 4>> defVirtualIndices_;
-    std::vector<SmallVector<uint32_t, 4>> useConcreteIndices_;
-    std::vector<SmallVector<uint32_t, 4>> defConcreteIndices_;
-    std::vector<std::vector<uint32_t>>    usePositionsByDenseVirtual_;
+    bool                                             intervalHoldsLegalizeReserve_ = false;
+    std::vector<SmallVector<uint32_t, 4>>            useVirtualIndices_;
+    std::vector<SmallVector<uint32_t, 4>>            defVirtualIndices_;
+    std::vector<SmallVector<uint32_t, 4>>            useConcreteIndices_;
+    std::vector<SmallVector<uint32_t, 4>>            defConcreteIndices_;
+    std::vector<std::vector<uint32_t>>               usePositionsByDenseVirtual_;
     std::vector<std::vector<uint32_t>>               concreteTouchPositionsByDenseIndex_;
     std::vector<uint32_t>                            nextUsePositionCursor_;
     std::vector<uint32_t>                            nextConcreteTouchCursor_;

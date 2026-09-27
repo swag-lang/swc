@@ -51,9 +51,9 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
     if options.wantHelp do
         return printUsage(name)
 
-    if options.allConfigs and name != "build" and name != "tests" and name != "goldens"
+    if options.allConfigs and name != "build" and name != "tests" and name != "integrations" and name != "goldens"
     {
-        Console.println("error: '--all-cfg' is supported only by build, tests, and goldens")
+        Console.println("error: '--all-cfg' is supported only by build, tests, integrations, and goldens")
         Console.println("Use '-bc release' and '-bc devmode' for separate focused runs.")
         return 1
     }
@@ -107,6 +107,9 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
 
     case "tests":
         return try runTests(&context, &options)
+
+    case "integrations":
+        return try runIntegrations(&context, &options)
 
     case "portability":
         return try runPortability(&context, &options)
@@ -162,6 +165,11 @@ private func acceptedCommands(name: string)->Array'(string)
 
     case "scripts":
         result.add("run")
+        result.add("smoke")
+
+    case "integrations":
+        result.add("opengl")
+        result.add("windows")
         result.add("smoke")
 
     case "goldens":

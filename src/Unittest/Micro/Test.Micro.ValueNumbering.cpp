@@ -636,7 +636,7 @@ SWC_TEST_BEGIN(ValueNumbering_ConstantPoolReadCrossesCallAndStore)
 {
     for (const uint32_t mode : {0u, 1u, 2u})
     {
-        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         constexpr MicroReg pointer = MicroReg::virtualIntReg(1);
         constexpr MicroReg first   = MicroReg::virtualFloatReg(1);
         constexpr MicroReg second  = MicroReg::virtualFloatReg(2);

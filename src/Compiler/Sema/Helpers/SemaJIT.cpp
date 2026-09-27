@@ -429,8 +429,8 @@ namespace
     // node per lookup costs more than the answer it returns.
     struct WalkedAllocations
     {
-        std::vector<uint64_t>        keys;
-        std::vector<uint32_t>        entryIndices;
+        std::vector<uint64_t> keys;
+        std::vector<uint32_t> entryIndices;
         // A deque, so an entry handed out stays put when the next one is recorded.
         std::deque<WalkedAllocation> entries;
         size_t                       used = 0;
@@ -786,7 +786,6 @@ namespace
         return changed;
     }
 
-
     void buildJitOrderWithNativeRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& out, std::span<SymbolFunction* const> extraRoots = {})
     {
         // One root's order is already a set: its walk visits every function once. Concatenating
@@ -874,7 +873,6 @@ namespace
         if (symFn.jitEntryAddress() &&
             symFn.jitReadyVersion() == initTargetsVersion)
             return Result::Continue;
-
 
         // A codegen job emits its function before reporting completion. Publish the
         // release summaries before scheduling that job, while its sanity pass can

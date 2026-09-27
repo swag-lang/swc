@@ -155,7 +155,7 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
     {
         let leftVector  = (cast(const *MemoryVector) (leftBytes + offset))[]
         let rightVector = (cast(const *MemoryVector) (rightBytes + offset))[]
-        let equalMask = Swag.vecmask(leftVector == rightVector)
+        let equalMask   = Swag.vecmask(leftVector == rightVector)
         if equalMask != 0xFFFF
         {
             // The lowest clear mask bit is the first byte that differs.
@@ -168,8 +168,8 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
 
     while size - offset >= MemoryWordSize
     {
-        let leftWord  = (cast(const *u64) (leftBytes + offset))[]
-        let rightWord = (cast(const *u64) (rightBytes + offset))[]
+        let leftWord   = (cast(const *u64) (leftBytes + offset))[]
+        let rightWord  = (cast(const *u64) (rightBytes + offset))[]
         let difference = leftWord ^ rightWord
         if difference
         {
@@ -191,6 +191,7 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
             let index = cast(u64) Swag.bitCountTz(difference) / 8
             return cast(s32) leftBytes[offset + index] - cast(s32) rightBytes[offset + index]
         }
+
         offset += 4
     }
 
@@ -204,6 +205,7 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
             let index = cast(u64) Swag.bitCountTz(difference) / 8
             return cast(s32) leftBytes[offset + index] - cast(s32) rightBytes[offset + index]
         }
+
         offset += 2
     }
 

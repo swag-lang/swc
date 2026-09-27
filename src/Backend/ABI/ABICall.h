@@ -14,8 +14,8 @@ namespace ABICall
 {
     struct ArgLayout
     {
-        uint8_t numBits = 64;
-        bool    isFloat = false;
+        uint8_t numBits   = 64;
+        bool    isFloat   = false;
         bool    needsHome = false;
     };
 

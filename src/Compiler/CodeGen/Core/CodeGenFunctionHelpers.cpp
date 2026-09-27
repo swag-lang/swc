@@ -403,7 +403,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     }
     result.registerIndex = ABICall::argumentRegisterIndex(callConv, argLayouts, result.slotIndex);
     result.isRegisterArg = result.registerIndex != UINT32_MAX;
-    result.stackOffset = ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
+    result.stackOffset   = ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
     return result;
 }
 

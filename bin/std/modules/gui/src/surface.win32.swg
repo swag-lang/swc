@@ -113,6 +113,7 @@ private func placementOverlayProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam:
         if surface and surface.placementOverlay == hWnd do
             surface.placementOverlay = null
     }
+
     return DefWindowProcW(hWnd, msg, wParam, lParam)
 }
 
@@ -120,29 +121,38 @@ private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)
 {
     global var registered: bool
     let name16 = Utf16.toZeroTerminated("Swag.Gui.PlacementOverlay")
-    let name = name16.buffer
+    let name   = name16.buffer
     if not registered
     {
         var wc: WNDCLASSW
-        wc.hInstance = GetModuleHandleW(null)
-        wc.lpfnWndProc = cast() &placementOverlayProc
+        wc.hInstance     = GetModuleHandleW(null)
+        wc.lpfnWndProc   = cast() &placementOverlayProc
         wc.lpszClassName = name
         catch RegisterClassW(wc)
         registered = true
     }
 
     let hWnd = CreateWindowExW(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT | WS_EX_TOPMOST,
-                                 name, name, WS_POPUP, x, y, width, height,
-                                 null, null, GetModuleHandleW(null), surface)
+                               name,
+                               name,
+                               WS_POPUP,
+                               x,
+                               y,
+                               width,
+                               height,
+                               null,
+                               null,
+                               GetModuleHandleW(null),
+                               surface)
     if not hWnd do
         return null
 
     var info: BITMAPINFO
-    info.bmiHeader.biSize = #sizeof(BITMAPINFOHEADER)
-    info.bmiHeader.biWidth = width
-    info.bmiHeader.biHeight = height  // OpenGL readback and this DIB are both bottom-up.
-    info.bmiHeader.biPlanes = 1
-    info.bmiHeader.biBitCount = 32
+    info.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
+    info.bmiHeader.biWidth       = width
+    info.bmiHeader.biHeight      = height     // OpenGL readback and this DIB are both bottom-up.
+    info.bmiHeader.biPlanes      = 1
+    info.bmiHeader.biBitCount    = 32
     info.bmiHeader.biCompression = BI_RGB
 
     var bits: *void?
@@ -152,6 +162,7 @@ private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)
         catch DestroyWindow(hWnd)
         return null
     }
+
     defer catch DeleteObject(cast(Gdi32.HGDIOBJ) bitmap)
 
     let dc = catch CreateCompatibleDC(null)
@@ -160,6 +171,7 @@ private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)
         catch DestroyWindow(hWnd)
         return null
     }
+
     defer catch DeleteDC(dc)
     let previous = SelectObject(dc, cast(Gdi32.HGDIOBJ) bitmap)
     defer discard SelectObject(dc, previous)
@@ -172,11 +184,12 @@ private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)
         catch DestroyWindow(hWnd)
         return null
     }
+
     let source = frame.pixels.buffer!
-    let dest = cast([*] u8) bits
+    let dest   = cast([*] u8) bits
     for pixel in cast(u64) (width * height)
     {
-        let at = pixel * 4
+        let at    = pixel * 4
         let alpha = cast(u32) source[at + 3]
         dest[at + 0] = cast() (cast(u32) source[at + 0] * alpha / 255)
         dest[at + 1] = cast() (cast(u32) source[at + 1] * alpha / 255)
@@ -185,14 +198,15 @@ private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)
     }
 
     let origin = POINT{x, y}
-    let size = SIZE{width, height}
-    let zero = POINT{0, 0}
-    let blend = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
+    let size   = SIZE{width, height}
+    let zero   = POINT{0, 0}
+    let blend  = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
     if not UpdateLayeredWindow(hWnd, null, &origin, &size, dc, &zero, 0, &blend, ULW_ALPHA)
     {
         catch DestroyWindow(hWnd)
         return null
     }
+
     return hWnd
 }
 
@@ -399,10 +413,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                     if surface.preparedFrame and surface.preparedWidth == next.cx and surface.preparedHeight == next.cy and not surface.isDirty do
                         return 0
 
-                    surface.preparedFrame = false
+                    surface.preparedFrame  = false
                     surface.preparingFrame = true
                     surface.sendResizeEvent(cast(f32) next.cx, cast(f32) next.cy)
-                    surface.preparedFrame = surface.prepareResizeFrame(surface.wnd)
+                    surface.preparedFrame  = surface.prepareResizeFrame(surface.wnd)
                     surface.preparingFrame = false
                     if surface.preparedFrame
                     {
@@ -413,6 +427,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                     }
                 }
             }
+
             return 0
 
         case WM_GETMINMAXINFO:
@@ -651,8 +666,8 @@ impl Surface
         if not ready do
             return false
 
-        .preparedFrame = true
-        .preparedWidth = width
+        .preparedFrame  = true
+        .preparedWidth  = width
         .preparedHeight = height
         let overlay = createPlacementOverlay(me, x, y, width, height)
         if not overlay do
@@ -683,7 +698,8 @@ impl Surface
             catch SetWindowPos(.hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
             return false
         }
-        let style = cast(u32) GetWindowLongPtrW(.hWnd, GWL_STYLE)
+
+        let style     = cast(u32) GetWindowLongPtrW(.hWnd, GWL_STYLE)
         let nextStyle = maximized ? style | WS_MAXIMIZE : style & ~WS_MAXIMIZE
         SetWindowLongPtrW(.hWnd, GWL_STYLE, cast #bit (LONG_PTR) nextStyle)
         .placementOverlay = overlay
@@ -693,7 +709,7 @@ impl Surface
     private mtd finishDiscretePlacement()
     {
         .inDiscretePlacement = false
-        .preparedFrame = false
+        .preparedFrame       = false
         if .canPresentNow()
         {
             // WM_SIZE can submit before USER32 has finished changing the drawable. Some WGL
@@ -717,10 +733,10 @@ impl Surface
                 discard SetActiveWindow(.hWnd)
                 discard SetForegroundWindow(.hWnd)
             }
+
             if not SetTimer(.placementOverlay, 1, 100, null) do
                 catch DestroyWindow(.placementOverlay)
         }
-
     }
 
     internal mtd const nativeRenderHandle()->const *void? => cast(const *void?) .hWnd
@@ -1127,11 +1143,10 @@ impl Surface
             var info: MONITORINFO
             catch GetMonitorInfoA(monitor, &info)
             let shadow = cast(s32) (.app.theme.metrics.surfaceWnd_ShadowSize * .dpiScale)
-            if .showDiscretePlacement(info.rcWork.left - shadow, info.rcWork.top - shadow,
-                                      info.rcWork.right - info.rcWork.left + 2 * shadow,
-                                      info.rcWork.bottom - info.rcWork.top + 2 * shadow, true) do
+            if .showDiscretePlacement(info.rcWork.left - shadow, info.rcWork.top - shadow, info.rcWork.right - info.rcWork.left + 2 * shadow, info.rcWork.bottom - info.rcWork.top + 2 * shadow, true) do
                 return
         }
+
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
     }
 
@@ -1200,8 +1215,7 @@ impl Surface
         .inDiscretePlacement = true
         defer .finishDiscretePlacement()
         let pos = .restoredPosition
-        if wasMaximized and .showDiscretePlacement(cast(s32) pos.x, cast(s32) pos.y,
-                                                   cast(s32) pos.width, cast(s32) pos.height, false) do
+        if wasMaximized and .showDiscretePlacement(cast(s32) pos.x, cast(s32) pos.y, cast(s32) pos.width, cast(s32) pos.height, false) do
             return
         ShowWindow(.hWnd, SW_RESTORE)
     }

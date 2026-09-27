@@ -71,6 +71,8 @@ should not be used for program logic.
 Use '--test-tag NAME' to run only tests with the exact matching tag. Repeating
 the option selects a union of tags. A test can have one 'TestTag'; omit it when
 the test does not belong to a named campaign.
+Tags beginning with 'integration.' are excluded from ordinary test runs. Select
+them explicitly for tests that need a GPU, a native window, or another host resource.
 
 ```swag
 #[Swag.TestTag("golden")]

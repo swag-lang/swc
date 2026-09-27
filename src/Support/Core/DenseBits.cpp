@@ -14,7 +14,7 @@ bool DenseBits::copyIfChanged(const std::span<uint64_t> outDst, const std::span<
             continue;
 
         outDst[i] = src[i];
-        changed = true;
+        changed   = true;
     }
     return changed;
 }

@@ -262,8 +262,7 @@ namespace PostRaPeephole
             const MicroInstr* scanInst = ctx.instruction(scanRef);
             if (!scanInst)
                 return false;
-            const MicroInstrOperand* scanOps = scanInst->op == MicroInstrOpcode::LoadMemReg ?
-                scanInst->ops(*ctx.operands) : nullptr;
+            const MicroInstrOperand* scanOps = scanInst->op == MicroInstrOpcode::LoadMemReg ? scanInst->ops(*ctx.operands) : nullptr;
 
             if (scanInst->op == MicroInstrOpcode::LoadMemReg && isSameStoreLocation(storeOps, scanOps))
             {
@@ -375,14 +374,14 @@ namespace PostRaPeephole
             return false;
 
         const MicroInstrRef overwriteRef = ctx.nextRef(storeRef);
-        const MicroInstr* overwrite = ctx.instruction(overwriteRef);
-        const auto* copy = overwrite && overwrite->op == MicroInstrOpcode::LoadRegReg ? overwrite->ops(*ctx.operands) : nullptr;
+        const MicroInstr*   overwrite    = ctx.instruction(overwriteRef);
+        const auto*         copy         = overwrite && overwrite->op == MicroInstrOpcode::LoadRegReg ? overwrite->ops(*ctx.operands) : nullptr;
         if (!copy || copy[0].reg != source || copy[2].opBits != MicroOpBits::B64)
             return false;
 
         const MicroInstrRef reloadRef = ctx.nextRef(overwriteRef);
-        const MicroInstr* reload = ctx.instruction(reloadRef);
-        const auto* load = reload && reload->op == MicroInstrOpcode::LoadRegMem ? reload->ops(*ctx.operands) : nullptr;
+        const MicroInstr*   reload    = ctx.instruction(reloadRef);
+        const auto*         load      = reload && reload->op == MicroInstrOpcode::LoadRegMem ? reload->ops(*ctx.operands) : nullptr;
         if (!load || load[1].reg != store[0].reg || load[2].opBits != MicroOpBits::B64 ||
             load[3].valueU64 != store[3].valueU64)
             return false;
@@ -396,14 +395,14 @@ namespace PostRaPeephole
         if (!ctx.claimAll({storeRef, overwriteRef, reloadRef}))
             return false;
 
-        MicroInstrOperand save[3] = {};
-        save[0].reg = destination;
-        save[1].reg = source;
-        save[2].opBits = MicroOpBits::B64;
+        MicroInstrOperand save[3]    = {};
+        save[0].reg                  = destination;
+        save[1].reg                  = source;
+        save[2].opBits               = MicroOpBits::B64;
         MicroInstrOperand replace[3] = {};
-        replace[0].reg = source;
-        replace[1].reg = replacement;
-        replace[2].opBits = MicroOpBits::B64;
+        replace[0].reg               = source;
+        replace[1].reg               = replacement;
+        replace[2].opBits            = MicroOpBits::B64;
         ctx.emitRewrite(overwriteRef, MicroInstrOpcode::LoadRegReg, save);
         ctx.emitRewrite(reloadRef, MicroInstrOpcode::LoadRegReg, replace);
         return true;

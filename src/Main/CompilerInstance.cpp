@@ -860,7 +860,7 @@ bool CompilerInstance::matchesTestFilter(const SymbolFunction& symbol) const
 
     const auto& tagFilters = cmdLine().testTagFilter;
     if (tagFilters.empty())
-        return true;
+        return !testTag(symbol).starts_with("integration.");
     return tagFilters.contains(testTag(symbol));
 }
 
@@ -1373,7 +1373,7 @@ void CompilerInstance::noteFreesPropagationDone(const uint64_t signature)
         return;
 
     freesPropagationSignatures_[freesPropagationSignatureCursor_] = signature;
-    freesPropagationSignatureCursor_                             = (freesPropagationSignatureCursor_ + 1) % freesPropagationSignatures_.size();
+    freesPropagationSignatureCursor_                              = (freesPropagationSignatureCursor_ + 1) % freesPropagationSignatures_.size();
 }
 
 std::vector<SemaEscapeSummaryEdge> CompilerInstance::copyEscapeSummaryEdges() const

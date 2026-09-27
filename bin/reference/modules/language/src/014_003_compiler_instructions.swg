@@ -90,7 +90,7 @@ case .Release: const StaticExhaustiveSelection = 2
 
 - 'Swag.CompilerCommand.Test' for 'swc test';
 - 'Swag.CompilerCommand.Format' for 'swc format';
-- 'Swag.CompilerCommand.Build' for 'build', 'run', 'syntax', 'sema', 'doc', and the
+- 'Swag.CompilerCommand.Build' for 'build', 'run', 'smoke', 'syntax', 'sema', 'doc', and the
   compiler-internal 'unittest' path.
 
 '#cfg' is the selected build-configuration name, such as '"devmode"' or

@@ -468,12 +468,12 @@ SWC_TEST_BEGIN(ConstantFolding_LazyAddressesKeepFilteredRelocationOrder)
         // Duplicate and absent relocations deliberately exercise the collector;
         // they do not satisfy the full pipeline's one-relocation invariant.
         MicroSsaValueScratch scratch;
-        MicroPassContext    passContext;
-        passContext.taskContext    = &ctx;
-        passContext.builder        = &builder;
-        passContext.instructions   = &builder.instructions();
-        passContext.operands       = &builder.operands();
-        passContext.callConvKind   = CallConvKind::Swag;
+        MicroPassContext     passContext;
+        passContext.taskContext     = &ctx;
+        passContext.builder         = &builder;
+        passContext.instructions    = &builder.instructions();
+        passContext.operands        = &builder.operands();
+        passContext.callConvKind    = CallConvKind::Swag;
         passContext.ssaValueScratch = &scratch;
         MicroConstantFoldingPass pass;
         SWC_RESULT(pass.run(passContext));
@@ -545,6 +545,6 @@ SWC_TEST_BEGIN(ConstantFolding_AddressChainFromConstantFolds)
 }
 SWC_TEST_END()
 
-SWC_END_NAMESPACE();
-
+SWC_END_NAMESPACE();
+
 #endif

@@ -18,7 +18,10 @@ SWC_BEGIN_NAMESPACE();
 class MicroPostRaDeadCodeElimPass final : public MicroPass
 {
 public:
-    explicit MicroPostRaDeadCodeElimPass(bool beforePrologue = false) : beforePrologue_(beforePrologue) {}
+    explicit MicroPostRaDeadCodeElimPass(bool beforePrologue = false) :
+        beforePrologue_(beforePrologue)
+    {
+    }
     std::string_view name() const override { return beforePrologue_ ? "pre-prologue-dce" : "post-ra-dce"; }
     Result           run(MicroPassContext& context) override;
 

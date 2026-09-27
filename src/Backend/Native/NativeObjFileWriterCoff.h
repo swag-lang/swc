@@ -63,7 +63,7 @@ private:
 
         // buildCoffFile owns this table inside the lifetime of its immutable symbol vector.
         // Names remain stable until both their offsets and bytes have been emitted.
-        uint32_t                                      size = 4;
+        uint32_t                                       size = 4;
         std::unordered_map<std::string_view, uint32_t> offsets;
         std::vector<std::string_view>                  entries;
     };

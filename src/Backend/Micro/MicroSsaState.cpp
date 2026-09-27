@@ -48,7 +48,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
     const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
     const auto                   instructionRefs  = controlFlowGraph.instructionRefs();
-    const bool reuseBlocks = blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() &&
+    const bool                   reuseBlocks      = blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() &&
                              instructionRefs_.size() == instructionRefs.size();
     if (!reuseBlocks)
         instructionRefs_.assign(instructionRefs.begin(), instructionRefs.end());
@@ -230,7 +230,7 @@ void MicroSsaState::clear()
     trackedDefCount_ = 0;
     valueInfoCount_  = 0;
     phiInfoCount_    = 0;
-    valid_ = false;
+    valid_           = false;
 }
 
 void MicroSsaState::invalidate()
@@ -437,7 +437,7 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     // Seed roots: entry block plus any predecessor-less block (covers unreachable
     // sub-graphs). Fall back to scanning unvisited blocks for cycles unreachable
     // from any seed.
-    auto&                     visited = blockMarks_;
+    auto& visited = blockMarks_;
     visited.assign(blocks_.size(), 0);
     SmallVector<uint32_t, 8> roots;
     roots.push_back(0);
@@ -447,11 +447,11 @@ bool MicroSsaState::computeDominators(const bool acyclic)
             roots.push_back(blockIndex);
     }
 
-    auto&                 dfsStack = domDfsStack_;
-    auto&                 dfsIter = domDfsIter_;
-    auto&                 postOrder = domPostOrder_;
-    auto&                 rpoPosition = domRpoPosition_;
-    auto&                 rpoStamp = domRpoStamp_;
+    auto& dfsStack    = domDfsStack_;
+    auto& dfsIter     = domDfsIter_;
+    auto& postOrder   = domPostOrder_;
+    auto& rpoPosition = domRpoPosition_;
+    auto& rpoStamp    = domRpoStamp_;
     dfsStack.clear();
     dfsIter.clear();
     postOrder.clear();
@@ -712,8 +712,8 @@ void MicroSsaState::renameIntoSsa()
     valueInfoCount_ = 0;
     valueInfos_.reserve(static_cast<size_t>(trackedDefCount_) + phiInfoCount_);
 
-    RenameState& state = renameState_;
-    state.position     = 0;
+    RenameState& state           = renameState_;
+    state.position               = 0;
     const size_t trackedRegCount = trackedRegs_.regs().size();
     state.currentValues.assign(trackedRegCount, K_INVALID_VALUE);
     if (reachingValuesByReg_.size() < trackedRegCount)

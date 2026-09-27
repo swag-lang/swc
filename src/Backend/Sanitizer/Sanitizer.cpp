@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Sanitizer/Sanitizer.h"
-#include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -604,7 +604,7 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
         if (!params[i])
             return false;
         const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(ctx(), callConv, params[i]->typeRef(), ABITypeNormalize::Usage::Argument);
-        argLayouts[i + abiIndex - paramIndex] = {.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat};
+        argLayouts[i + abiIndex - paramIndex]       = {.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat};
     }
 
     if (argLayouts[abiIndex].isFloat)
@@ -1537,8 +1537,8 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
         if (provenZero || provenNonZero)
         {
             // successors = [taken (cond true), fallthrough (cond false)].
-            const bool     condIsTrue = condTrueIfSubjectZero == provenZero;
-            state.flagsSubject = MicroReg::invalid();
+            const bool condIsTrue = condTrueIfSubjectZero == provenZero;
+            state.flagsSubject    = MicroReg::invalid();
             propagate(std::move(state), succs[condIsTrue ? 0 : 1], worklist);
             return;
         }

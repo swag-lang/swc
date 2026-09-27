@@ -290,10 +290,10 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
         if (!scanInst)
             return false;
 
-        const MicroInstrDef& info = MicroInstr::info(scanInst->op);
-        const bool mayUseFlags = info.flags.has(MicroInstrFlagsE::UsesCpuFlags);
-        const bool mayDefineFlags = info.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
-        const MicroInstrOperand* scanOps = mayUseFlags || mayDefineFlags ? scanInst->ops(operands) : nullptr;
+        const MicroInstrDef&     info           = MicroInstr::info(scanInst->op);
+        const bool               mayUseFlags    = info.flags.has(MicroInstrFlagsE::UsesCpuFlags);
+        const bool               mayDefineFlags = info.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
+        const MicroInstrOperand* scanOps        = mayUseFlags || mayDefineFlags ? scanInst->ops(operands) : nullptr;
         if (mayUseFlags && instructionActuallyUsesCpuFlags(*scanInst, scanOps))
             return false;
 
@@ -320,10 +320,10 @@ bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& st
         if (!scanInst)
             return false;
 
-        const MicroInstrDef& scanInfo = MicroInstr::info(scanInst->op);
-        const bool mayUseFlags = scanInfo.flags.has(MicroInstrFlagsE::UsesCpuFlags);
-        const bool mayDefineFlags = scanInfo.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
-        const MicroInstrOperand* scanOps = mayUseFlags || mayDefineFlags ? scanInst->ops(operands) : nullptr;
+        const MicroInstrDef&     scanInfo       = MicroInstr::info(scanInst->op);
+        const bool               mayUseFlags    = scanInfo.flags.has(MicroInstrFlagsE::UsesCpuFlags);
+        const bool               mayDefineFlags = scanInfo.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
+        const MicroInstrOperand* scanOps        = mayUseFlags || mayDefineFlags ? scanInst->ops(operands) : nullptr;
         if (mayUseFlags && instructionActuallyUsesCpuFlags(*scanInst, scanOps))
             return false;
 
@@ -384,10 +384,10 @@ bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cf
         const MicroInstr* inst = storage.ptr(cfg.instructionRefs()[i]);
         if (!inst)
             return false;
-        const MicroInstrFlags flags = MicroInstr::info(inst->op).flags;
-        const bool mayUseFlags = flags.has(MicroInstrFlagsE::UsesCpuFlags);
-        const bool mayDefineFlags = flags.has(MicroInstrFlagsE::DefinesCpuFlags);
-        const MicroInstrOperand* ops = mayUseFlags || mayDefineFlags ? inst->ops(operands) : nullptr;
+        const MicroInstrFlags    flags          = MicroInstr::info(inst->op).flags;
+        const bool               mayUseFlags    = flags.has(MicroInstrFlagsE::UsesCpuFlags);
+        const bool               mayDefineFlags = flags.has(MicroInstrFlagsE::DefinesCpuFlags);
+        const MicroInstrOperand* ops            = mayUseFlags || mayDefineFlags ? inst->ops(operands) : nullptr;
         if (mayUseFlags && instructionActuallyUsesCpuFlags(*inst, ops))
             return false;
         if ((mayDefineFlags && instructionOverwritesCpuFlags(*inst, ops)) || flags.has(MicroInstrFlagsE::IsCallInstruction))
@@ -700,8 +700,8 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         return bit < MicroPhysLiveness::K_INVALID_BIT ? 1ull << bit : 0ull;
     };
 
-    auto& scratch = graphWalkScratch();
-    const bool retainUseDefs = mode == MicroPhysLivenessMode::WithUseDefs;
+    auto&      scratch        = graphWalkScratch();
+    const bool retainUseDefs  = mode == MicroPhysLivenessMode::WithUseDefs;
     const bool recordDeadDefs = mode == MicroPhysLivenessMode::DeadDefs || mode == MicroPhysLivenessMode::DeadDefsBeforePrologue;
     if (retainUseDefs)
         out.useDefs.resize(instCount);
@@ -723,9 +723,9 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
             !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
             (!context.encoder || !info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
         {
-            uint64_t useMask = 0;
-            uint64_t defMask = 0;
-            bool     hasDef = false;
+            uint64_t useMask       = 0;
+            uint64_t defMask       = 0;
+            bool     hasDef        = false;
             bool     hasUnknownDef = false;
             if (const MicroInstrOperand* ops = inst->ops(*context.operands))
             {
@@ -742,7 +742,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
                         defMask |= bit;
                         if (recordDeadDefs && ops[operand].reg.isValid() && !ops[operand].reg.isNoBase())
                         {
-                            hasDef        = true;
+                            hasDef = true;
                             hasUnknownDef |= bit == 0;
                         }
                     }
@@ -755,9 +755,9 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
             continue;
         }
 
-        MicroInstrUseDef useDef = inst->collectUseDef(*context.operands, context.encoder);
-        uint64_t useMask = 0;
-        uint64_t defMask = 0;
+        MicroInstrUseDef useDef  = inst->collectUseDef(*context.operands, context.encoder);
+        uint64_t         useMask = 0;
+        uint64_t         defMask = 0;
         for (const MicroReg reg : useDef.uses)
             useMask |= maskOf(reg);
         for (const MicroReg reg : useDef.defs)
@@ -922,15 +922,15 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     std::vector<uint32_t> idom(n, MicroDomTree::K_INVALID_NODE);
     std::vector<uint32_t> rpoPosition(n, MicroDomTree::K_INVALID_NODE);
 
-    auto&                 scratch = graphWalkScratch();
-    auto&                 postorder = scratch.postorder;
+    auto& scratch   = graphWalkScratch();
+    auto& postorder = scratch.postorder;
     postorder.clear();
     postorder.reserve(n);
-    auto&                 visited = scratch.marks;
+    auto& visited = scratch.marks;
     visited.assign(n, 0);
-    auto&                 childCursor = scratch.childCursor;
+    auto& childCursor = scratch.childCursor;
     childCursor.assign(n, 0);
-    auto&                 stack = scratch.stack;
+    auto& stack = scratch.stack;
     stack.clear();
     stack.push_back(entry);
     visited[entry] = 1;
@@ -954,8 +954,8 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
         }
     }
 
-    const uint32_t        count = static_cast<uint32_t>(postorder.size());
-    auto&                 rpo = stack;
+    const uint32_t count = static_cast<uint32_t>(postorder.size());
+    auto&          rpo   = stack;
     rpo.clear();
     rpo.reserve(count);
     for (uint32_t i = count; i-- > 0;)

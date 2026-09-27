@@ -1801,7 +1801,7 @@ namespace
 
 SWC_TEST_BEGIN(BranchSimplify_EqualityChainBecomesBitTest)
 {
-    MicroBuilder             builder(ctx);
+    MicroBuilder                  builder(ctx);
     const std::array<uint64_t, 4> constants = {32, 9, 10, 13};
     emitEqualityChain(builder, constants);
 
@@ -1860,7 +1860,7 @@ namespace
 // compares still folds into one byte OR.
 SWC_TEST_BEGIN(BranchSimplify_WideEqualityChainBecomesOr)
 {
-    MicroBuilder             builder(ctx);
+    MicroBuilder                  builder(ctx);
     const std::array<uint64_t, 3> constants = {1, 40, 200};
     emitEqualityChain(builder, constants);
 
@@ -2013,9 +2013,9 @@ namespace
     // `returns` makes every arm return; otherwise they join after loading.
     void emitConstantSwitch(MicroBuilder& builder, std::span<const uint64_t> keys, std::span<const uint64_t> values, uint64_t fallback, bool returns, bool readArm, MicroOpBits keyBits = MicroOpBits::B32)
     {
-        const MicroReg base   = MicroReg::virtualIntReg(9);
-        const MicroReg key    = MicroReg::virtualIntReg(10);
-        const MicroReg result = returns ? CallConv::get(CallConvKind::Swag).intReturn : MicroReg::virtualIntReg(11);
+        const MicroReg             base   = MicroReg::virtualIntReg(9);
+        const MicroReg             key    = MicroReg::virtualIntReg(10);
+        const MicroReg             result = returns ? CallConv::get(CallConvKind::Swag).intReturn : MicroReg::virtualIntReg(11);
         SmallVector<MicroLabelRef> arms;
         for (size_t i = 0; i < keys.size(); ++i)
             arms.push_back(builder.createLabel());
@@ -2329,8 +2329,8 @@ namespace
     // a last `cmp ; setl T ; D = T`, and `.J: rax = D ; ret`.
     void emitAndChainReturn(MicroBuilder& builder, uint32_t links)
     {
-        constexpr MicroReg result = MicroReg::virtualIntReg(1);
-        const MicroLabelRef join  = builder.createLabel();
+        constexpr MicroReg  result = MicroReg::virtualIntReg(1);
+        const MicroLabelRef join   = builder.createLabel();
         for (uint32_t link = 0; link < links; ++link)
         {
             const MicroReg left  = MicroReg::virtualIntReg(10 + link * 3);
@@ -2393,10 +2393,10 @@ namespace
     // cmp ; jae .E ; D = [base] (or D += [base]) ; jmp .J ; .E: D = 0 (or clear D) ; .J: store D ; ret
     void emitLoadOrZeroDiamond(MicroBuilder& builder, bool thenReadsResult, bool clearElse = false)
     {
-        constexpr MicroReg result = MicroReg::virtualIntReg(1);
-        constexpr MicroReg base   = MicroReg::virtualIntReg(2);
-        const MicroLabelRef other = builder.createLabel();
-        const MicroLabelRef join  = builder.createLabel();
+        constexpr MicroReg  result = MicroReg::virtualIntReg(1);
+        constexpr MicroReg  base   = MicroReg::virtualIntReg(2);
+        const MicroLabelRef other  = builder.createLabel();
+        const MicroLabelRef join   = builder.createLabel();
         builder.emitLoadRegMem(base, MicroReg::intReg(1), 0, MicroOpBits::B64);
         builder.emitLoadRegMem(result, MicroReg::intReg(1), 8, MicroOpBits::B64);
         builder.emitCmpRegReg(MicroReg::intReg(2), MicroReg::intReg(8), MicroOpBits::B64);
@@ -2471,13 +2471,13 @@ namespace
     // cmp C, D ; seta ; R = T ; jbe .J ; cmp D, N ; seta ; R = T' ; .J: rax = R ; ret
     void emitFloatRangeAnd(MicroBuilder& builder, uint64_t negatedBits)
     {
-        constexpr MicroReg value    = MicroReg::virtualFloatReg(1);
-        constexpr MicroReg limit    = MicroReg::virtualFloatReg(2);
-        constexpr MicroReg negLimit = MicroReg::virtualFloatReg(3);
-        constexpr MicroReg result   = MicroReg::virtualIntReg(1);
-        constexpr MicroReg first    = MicroReg::virtualIntReg(2);
-        constexpr MicroReg second   = MicroReg::virtualIntReg(3);
-        const MicroLabelRef join    = builder.createLabel();
+        constexpr MicroReg  value    = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg  limit    = MicroReg::virtualFloatReg(2);
+        constexpr MicroReg  negLimit = MicroReg::virtualFloatReg(3);
+        constexpr MicroReg  result   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg  first    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg  second   = MicroReg::virtualIntReg(3);
+        const MicroLabelRef join     = builder.createLabel();
         builder.emitLoadRegMem(value, MicroReg::intReg(1), 0, MicroOpBits::B32);
         builder.emitLoadRegImm(limit, ApInt(0x3A83126F, 64), MicroOpBits::B32);
         builder.emitCmpRegReg(limit, value, MicroOpBits::B32);

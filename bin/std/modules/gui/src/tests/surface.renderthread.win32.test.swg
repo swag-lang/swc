@@ -7,7 +7,7 @@ using Core, Win32, Ogl
 // The window's rendering context must stay on its owner thread. Delegating synchronous WGL
 // calls to another thread lets drawable reallocation overlap USER32's geometry transaction;
 // the driver can then stall for seconds even when the surface contains no controls.
-#[Swag.TestTag("gpu")]
+#[Swag.TestTag("integration.host.windows")]
 #test
 {
     var app: Application
@@ -31,7 +31,7 @@ using Core, Win32, Ogl
 // Discrete placements finish with a target and client rectangle of the same size. In particular,
 // preparing the large maximized frame before USER32 changes the window must not leave the surface
 // dirty or publish the normal-sized target through the maximized drawable.
-#[Swag.TestTag("gpu")]
+#[Swag.TestTag("integration.host.windows")]
 #test
 {
     var app: Application
@@ -58,7 +58,7 @@ using Core, Win32, Ogl
 
 // A taskbar restore must return a minimized maximized window to its maximized bounds.
 // Restoring a minimized normal window must still return it to its normal bounds.
-#[Swag.TestTag("gpu")]
+#[Swag.TestTag("integration.host.windows")]
 #test
 {
     var app: Application

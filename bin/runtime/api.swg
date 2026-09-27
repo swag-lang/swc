@@ -39,6 +39,7 @@ namespace Swag
     attr AttrMulti()
 
     // Assigns one category to a '#test' function for selection with '--test-tag'.
+    // Categories beginning with `integration.` run only when explicitly selected.
     #[AttrUsage(AttributeUsage.Function)]
     attr TestTag(name: string)
 

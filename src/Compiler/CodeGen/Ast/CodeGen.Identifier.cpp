@@ -936,7 +936,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     // exactly as for a single declaration: a named source keeps its value and the field is a copy,
     // while any other source is a temporary whose field moves out, whether or not the temporary
     // carries a drop of its own. A binding that only aliases the source storage needs neither.
-    const bool copiesFromLValue = destructuringSourceIsLValue(codeGen, nodeInitRef);
+    const bool copiesFromLValue  = destructuringSourceIsLValue(codeGen, nodeInitRef);
     const auto emitFieldPostMove = [&codeGen, copiesFromLValue](const SymbolVariable& symVar) -> Result {
         if (!variableHasOwnStorage(codeGen, symVar))
             return Result::Continue;

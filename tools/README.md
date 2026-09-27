@@ -1,7 +1,7 @@
 # Repository tools
 
-All project-owned entry points of this repository live in this directory. Each one is a Swag
-script: hand it to the compiler, or double-click it once `setup.swgs` has claimed the extension.
+The project-owned tool entry points are Swag scripts in this directory: hand one to the compiler,
+or double-click it once `setup.swgs` has claimed the extension.
 Every tool takes the same shape:
 
 ```
@@ -15,13 +15,14 @@ swc tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
 - `-h` prints the tool's own usage.
 
 Common options: `-bc <config>` selects `release` or `devmode` (default `devmode`),
-`--all-cfg` repeats the `build`, `tests`, and `goldens` campaigns in both configurations;
+`--all-cfg` repeats the `build`, `tests`, `integrations`, and `goldens` campaigns in both configurations;
 focused tools select one configuration with `-bc`. `--debug` emits native debug information for
 the program and every dependency it takes in, under `<config>-debug` output directories,
 `--run-arg <value>` passes
 an argument to what gets launched, and repeated `--test-file <substring>` values select a union
 of `#test` source files without removing the implementation sources they exercise. Repeated
-`--test-tag <value>` values select a union of `#[Swag.TestTag(...)]` categories. Anything else is
+`--test-tag <value>` values select a union of `#[Swag.TestTag(...)]` categories. Tags beginning
+with `integration.` are excluded from ordinary test runs and require explicit selection. Anything else is
 forwarded to the compiler.
 
 ## Build the compiler manually
@@ -67,7 +68,8 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 
 | Tool | Purpose |
 | --- | --- |
-| `tests.swgs` | The complete test set: backlog contract, compiler, scripts, library, examples, applications, reference |
+| `tests.swgs` | The headless test set: backlog contract, compiler, library, applications, reference |
+| `integrations.swgs` | Explicit OpenGL, host-window, and program-smoke campaigns; these can create real windows |
 | `portability.swgs` | The source-only dependency check between portable bin code and native host code |
 | `unittests.swgs` | The compiler suites: `cpp`, `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, `native`, `workspace` |
 | `build.swgs` | Build every workspace |
@@ -103,8 +105,11 @@ their old paths to preserve earlier reservations. A source archive can run the o
 
 `test` runs a module's `#test` functions and never its `#main`. It enables `Swag.assert`
 by default even in release; explicit local `Swag.Safety` overrides still apply. Other
-runtime guards retain their configured defaults. `smoke` runs the real program
-for a bounded number of frames, isolated from the machine, to prove it starts and keeps going.
+runtime guards retain their configured defaults. Ordinary tests are headless; a `#test` tagged
+`integration.renderer.opengl` or `integration.host.windows` runs only through its named integration
+campaign or an explicit `--test-tag`. `smoke` runs the real program
+for a bounded number of frames under process and filesystem isolation to prove it starts and keeps going.
+GUI smokes use the desktop and can create real windows.
 A program without `#test` is smoked: testing it would report zero tests and prove nothing.
 `--test-file` filters only the `#test` functions that execute; the whole owning module still
 compiles. Repeat it to select several files. `--file-filter` is different: it filters compiler
@@ -114,6 +119,11 @@ path. Filename substrings avoid platform separator differences; a path substring
 host's directory separators. Check the reported counts to confirm that the intended inputs ran.
 `--test-tag` also filters only execution and leaves the reusable test artifact unchanged. Repeated
 tags form a union; combined file and tag filters form an intersection.
+
+Run `tools\tests.swgs` first, then `tools\integrations.swgs opengl`,
+`tools\integrations.swgs windows`, and `tools\integrations.swgs smoke` when an interactive desktop
+is available. Running `tools\integrations.swgs` without a campaign name executes those three in
+order. Each accepts `dm`, `-bc`, and `--all-cfg` like the aggregate test tool.
 
 ## Maintenance
 
@@ -133,5 +143,4 @@ Typing a tool's bare name in `cmd` still does not work: that resolution reads th
 association, which only an elevated `assoc`/`ftype` writes, so a shell invocation names the
 compiler.
 
-The only other batch file in the repository is `src/Support/Memory/mimalloc/bin/bundle.bat`; it
-belongs to the vendored mimalloc distribution and retains its upstream layout.
+The vendored mimalloc distribution also contains `src/Support/Memory/mimalloc/bin/bundle.bat`.

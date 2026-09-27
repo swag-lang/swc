@@ -53,7 +53,7 @@ public:
         SWC_ASSERT(wordIndex < bits.size());
         return (bits[wordIndex] & (1ull << (bitIndex & 63u))) != 0;
     }
-    static bool                      copyIfChanged(std::span<uint64_t> outDst, std::span<const uint64_t> src);
+    static bool copyIfChanged(std::span<uint64_t> outDst, std::span<const uint64_t> src);
 };
 
 SWC_END_NAMESPACE();

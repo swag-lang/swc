@@ -13,11 +13,11 @@ SWC_TEST_BEGIN(PagedStore_MoveConstructionPreservesProximityAllocation)
 {
     PagedStore source(32);
     source.enableProximityPages();
-    const Ref first = source.reserveRange(32, 1, true);
+    const Ref first            = source.reserveRange(32, 1, true);
     source.at<uint32_t>(first) = 42;
 
     PagedStore moved(std::move(source));
-    const Ref next = moved.reserveRange(32, 1, true);
+    const Ref  next = moved.reserveRange(32, 1, true);
     if (moved.at<uint32_t>(first) != 42 || !Os::isProximityMemory(moved.ptr<std::byte>(next)))
         return Result::Error;
 
@@ -31,13 +31,13 @@ SWC_TEST_BEGIN(PagedStore_MoveAssignmentPreservesAllocationPolicies)
 {
     PagedStore source(32);
     source.enableProximityPages();
-    const Ref first = source.reserveRange(32, 1, true);
+    const Ref first            = source.reserveRange(32, 1, true);
     source.at<uint32_t>(first) = 42;
     PagedStore target(32);
-    const Ref previous = target.reserveRange(32, 1, true);
+    const Ref  previous           = target.reserveRange(32, 1, true);
     target.at<uint32_t>(previous) = 7;
 
-    target = std::move(source);
+    target         = std::move(source);
     const Ref next = target.reserveRange(32, 1, true);
     if (target.at<uint32_t>(first) != 42 || !Os::isProximityMemory(target.ptr<std::byte>(next)))
         return Result::Error;
@@ -219,8 +219,8 @@ SWC_TEST_BEGIN(DataSegment_LargeBlockPointersPreservePagedPrefixAndAlignedAlloca
 {
     DataSegment segment;
     const auto [prefixOffset, prefix] = segment.reserveBytes(32, 8, false);
-    prefix[0] = std::byte{0x71};
-    prefix[31] = std::byte{0x72};
+    prefix[0]                         = std::byte{0x71};
+    prefix[31]                        = std::byte{0x72};
 
     struct Allocation
     {
@@ -231,10 +231,10 @@ SWC_TEST_BEGIN(DataSegment_LargeBlockPointersPreservePagedPrefixAndAlignedAlloca
     std::vector<Allocation> allocations;
     for (uint32_t i = 0; i < 128; ++i)
     {
-        const uint32_t size = i ? 17 + i % 23 : PagedStore::K_DEFAULT_PAGE_SIZE + 1;
+        const uint32_t size        = i ? 17 + i % 23 : PagedStore::K_DEFAULT_PAGE_SIZE + 1;
         const auto [offset, bytes] = segment.reserveBytes(size, 64, false);
-        bytes[0] = std::byte{0x31};
-        bytes[size - 1] = std::byte{0x32};
+        bytes[0]                   = std::byte{0x31};
+        bytes[size - 1]            = std::byte{0x32};
         allocations.push_back({offset, size, bytes});
     }
 
@@ -352,10 +352,10 @@ SWC_TEST_BEGIN(DataSegment_StringPoolOwnsInputsAndPreservesViewsAcrossGrowth)
     std::string_view stored;
     Ref              storedRef = INVALID_REF;
     {
-        std::array input      = {'x', 'A', '\0', 'B', 'z'};
+        std::array input       = {'x', 'A', '\0', 'B', 'z'};
         const auto [view, ref] = segment.addString(std::string_view(input.data() + 1, 3));
-        stored                = view;
-        storedRef             = ref;
+        stored                 = view;
+        storedRef              = ref;
         if (stored.data() == input.data() + 1)
             return Result::Error;
         input.fill('!');
@@ -389,7 +389,7 @@ SWC_TEST_BEGIN(DataSegment_StringPoolOwnsInputsAndPreservesViewsAcrossGrowth)
     if (largeView != large || largeView.data()[largeView.size()] != '\0' || largeRef == INVALID_REF)
         return Result::Error;
 
-    const uint32_t extent   = segment.extentSize();
+    const uint32_t extent    = segment.extentSize();
     const auto [hit, hitRef] = segment.addString(expected);
     if (hitRef != storedRef || hit.data() != stored.data() || hit != expected || segment.extentSize() != extent)
         return Result::Error;
@@ -409,7 +409,7 @@ SWC_TEST_BEGIN(DataSegment_StringPoolRelocationsRetainIndependentKeysAcrossResto
     const std::string_view value{"field\0value", 11};
     constexpr uint32_t     fieldOffset = sizeof(const char*);
     const uint32_t         length      = segment.addString(baseOffset, fieldOffset, value);
-    const auto [stored, storedRef] = segment.addString(value);
+    const auto [stored, storedRef]     = segment.addString(value);
     if (length != value.size() || slots[0] != nullptr || slots[1] != stored.data() || stored != value)
         return Result::Error;
     if (stored.data()[stored.size()] != '\0')
@@ -424,7 +424,7 @@ SWC_TEST_BEGIN(DataSegment_StringPoolRelocationsRetainIndependentKeysAcrossResto
     segment.copyToPreserveOffsets(snapshot);
     snapshot[storedRef] = std::byte{0x58};
     segment.restoreFromPreserveOffsets(snapshot);
-    const uint32_t extent   = segment.extentSize();
+    const uint32_t extent    = segment.extentSize();
     const auto [hit, hitRef] = segment.addString(value);
     // Restoring mutable payload bytes does not rewrite the pool's owned lookup key.
     if (hitRef != storedRef || hit.data() != stored.data() || hit.front() != 'X' || segment.extentSize() != extent)

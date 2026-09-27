@@ -131,7 +131,7 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_AnalyzesImportedFunctionBodiesOnDemand)
 {
     ApiPublicationTestDirectory directory("LazyBodies");
-    constexpr std::string_view apiSource = R"(#global public
+    constexpr std::string_view  apiSource       = R"(#global public
 struct ImportedValue
 {
     public value: s32
@@ -143,7 +143,7 @@ impl ImportedValue
 func importedValue()->s32 => 42
 func importedFailure()->s32 => MissingImportedBodySymbol
 )";
-    constexpr std::string_view validConsumer = R"(#main
+    constexpr std::string_view  validConsumer   = R"(#main
 {
     const value = importedValue()
     Swag.assert(value == 42)
@@ -152,7 +152,7 @@ func importedFailure()->s32 => MissingImportedBodySymbol
     Swag.assert(imported.read() == 42)
 }
 )";
-    constexpr std::string_view invalidConsumer = R"(#main
+    constexpr std::string_view  invalidConsumer = R"(#main
 {
     discard importedFailure()
 }

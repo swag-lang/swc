@@ -186,7 +186,7 @@ impl IRenderer for PresentProbe
     Swag.assert(worker.isReady() and not worker.isStarted())
 }
 
-#[Swag.TestTag("gpu")]
+#[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
     var window = expect Env.createWindow({identifier: "render-worker-test", title: "Render worker test", width: 64, height: 64})

@@ -207,7 +207,7 @@ void PEWriter::buildImports()
             if (text.bytes.size() % 16 != 0)
                 text.bytes.resize(Math::alignUpU32(static_cast<uint32_t>(text.bytes.size()), 16), std::byte{0});
             ImportThunk thunk;
-            thunk.textOffset    = static_cast<uint32_t>(text.bytes.size());
+            thunk.textOffset     = static_cast<uint32_t>(text.bytes.size());
             thunk.iatSlotInIdata = static_cast<uint32_t>(idata.size());
             text.bytes.insert(text.bytes.end(), 6, std::byte{0}); // FF 25 <disp32>, filled after layout
             thunks_.push_back(thunk);

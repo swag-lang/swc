@@ -27,7 +27,7 @@ SWC_TEST_BEGIN(SymbolMap_ConcurrentShardsPreserveCountAndTraversal)
     for (uint32_t index = 0; index < NUM_SEEDS; ++index)
         symbols.addSymbol(ctx, storage[index].get(), false);
 
-    std::barrier                        rendezvous(NUM_WORKERS + 1);
+    std::barrier                         rendezvous(NUM_WORKERS + 1);
     std::array<std::thread, NUM_WORKERS> writers;
     for (uint32_t worker = 0; worker < NUM_WORKERS; ++worker)
     {

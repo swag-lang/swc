@@ -907,9 +907,9 @@ namespace
         normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
         normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
-        const TypeRef   compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
-        const TypeInfo& compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits       = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
+        const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
+        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits         = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;

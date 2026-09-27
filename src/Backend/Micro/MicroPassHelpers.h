@@ -121,8 +121,8 @@ namespace MicroPassHelpers
         std::vector<uint64_t>         liveIn;
         std::vector<uint64_t>         liveOut;
         // Set only in DeadDefs mode, after the liveness fixed point.
-        std::vector<uint8_t>          deadDefs;
-        bool                          valid = false;
+        std::vector<uint8_t> deadDefs;
+        bool                 valid = false;
 
         bool isLiveOut(uint32_t index, MicroReg reg) const
         {

@@ -780,7 +780,7 @@ namespace
 
     void doIsolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
     {
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&                   builder = codeGen.builder();
         SmallVector<ABICall::ArgLayout> argLayouts;
         argLayouts.reserve(args.size());
         for (const ABICall::PreparedArg& arg : args)

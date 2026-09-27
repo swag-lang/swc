@@ -6,8 +6,8 @@
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -21,19 +21,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRaPeepholePass(MicroBuilder& builder, Encoder* encoder = nullptr, MicroReg localStackBase = MicroReg::invalid(),
-                                const SymbolFunction* function = nullptr, uint64_t spillLo = 0, uint64_t spillHi = 0)
+    Result runPostRaPeepholePass(MicroBuilder& builder, Encoder* encoder = nullptr, MicroReg localStackBase = MicroReg::invalid(), const SymbolFunction* function = nullptr, uint64_t spillLo = 0, uint64_t spillHi = 0)
     {
         MicroPostRaPeepholePass pass;
         MicroPassManager        passManager;
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
+        passContext.callConvKind          = CallConvKind::Swag;
         passContext.debugStackBasePhysReg = localStackBase;
-        passContext.sanitizerFunction = function;
-        passContext.spillAreaLo = spillLo;
-        passContext.spillAreaHi = spillHi;
+        passContext.sanitizerFunction     = function;
+        passContext.spillAreaLo           = spillLo;
+        passContext.spillAreaHi           = spillHi;
         return builder.runPasses(passManager, encoder, passContext);
     }
 
@@ -95,7 +94,7 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
     for (const bool reusableProducer : {false, true})
     {
         MicroBuilder builder(ctx);
-        const auto target = builder.createLabel();
+        const auto   target = builder.createLabel();
         builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
         if (reusableProducer)
             builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
@@ -118,7 +117,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PostRAPeephole_FoldsDeadScalarIncrement)
 {
     constexpr MicroReg value = MicroReg::intReg(0);
-    constexpr MicroReg base = MicroReg::intReg(1);
+    constexpr MicroReg base  = MicroReg::intReg(1);
     for (uint32_t variant = 0; variant < 4; ++variant)
     {
         MicroBuilder builder(ctx);
@@ -146,23 +145,23 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_ErasesPrivateFrameReloadAfterBranch)
 {
-    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg value     = MicroReg::intReg(0);
     constexpr MicroReg localBase = MicroReg::intReg(3);
     constexpr MicroReg otherBase = MicroReg::intReg(7);
-    constexpr MicroReg index = MicroReg::intReg(6);
+    constexpr MicroReg index     = MicroReg::intReg(6);
     for (uint32_t variant = 0; variant < 3; ++variant)
     {
-        MicroBuilder builder(ctx);
+        MicroBuilder   builder(ctx);
         const MicroReg base = variant == 1 ? otherBase : localBase;
-        const auto skip = builder.createLabel();
+        const auto     skip = builder.createLabel();
         builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
         builder.emitCmpRegImm(value, ApInt(0, 8), MicroOpBits::B8);
         const MicroInstrRef oldCompare = builder.instructions().lastInstructionRef();
-        MicroInstrOperand indexedCompare[7];
-        indexedCompare[0].reg = value;
-        indexedCompare[1].reg = index;
-        indexedCompare[2].opBits = MicroOpBits::B8;
-        indexedCompare[3].opBits = MicroOpBits::B64;
+        MicroInstrOperand   indexedCompare[7];
+        indexedCompare[0].reg      = value;
+        indexedCompare[1].reg      = index;
+        indexedCompare[2].opBits   = MicroOpBits::B8;
+        indexedCompare[3].opBits   = MicroOpBits::B64;
         indexedCompare[4].valueU64 = 1;
         indexedCompare[5].valueU64 = 0;
         indexedCompare[6].setImmediateValue(ApInt(0, 8));
@@ -186,15 +185,15 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PostRAPeephole_ForwardsPrivateFrameReloadAcrossBranches)
 {
     constexpr MicroReg localBase = MicroReg::intReg(3);
-    constexpr MicroReg saved = MicroReg::intReg(12);
-    constexpr MicroReg result = MicroReg::intReg(0);
-    constexpr MicroReg index = MicroReg::intReg(6);
-    constexpr MicroReg other = MicroReg::intReg(7);
+    constexpr MicroReg saved     = MicroReg::intReg(12);
+    constexpr MicroReg result    = MicroReg::intReg(0);
+    constexpr MicroReg index     = MicroReg::intReg(6);
+    constexpr MicroReg other     = MicroReg::intReg(7);
     for (uint32_t variant = 0; variant < 4; ++variant)
     {
         MicroBuilder builder(ctx);
-        const auto join = builder.createLabel();
-        const auto done = builder.createLabel();
+        const auto   join = builder.createLabel();
+        const auto   done = builder.createLabel();
         if (variant == 3)
         {
             builder.emitCmpRegImm(index, ApInt(0, 64), MicroOpBits::B64);
@@ -210,14 +209,14 @@ SWC_TEST_BEGIN(PostRAPeephole_ForwardsPrivateFrameReloadAcrossBranches)
         builder.placeLabel(join);
         builder.emitLoadRegMem(result, localBase, 8, MicroOpBits::B64);
         builder.emitCmpRegImm(result, ApInt(0, 8), MicroOpBits::B8);
-        const MicroInstrRef oldCompare = builder.instructions().lastInstructionRef();
-        MicroInstrOperand indexedCompare[7] = {};
-        indexedCompare[0].reg = result;
-        indexedCompare[1].reg = index;
-        indexedCompare[2].opBits = MicroOpBits::B8;
-        indexedCompare[3].opBits = MicroOpBits::B64;
-        indexedCompare[4].valueU64 = 1;
-        indexedCompare[5].valueU64 = 0;
+        const MicroInstrRef oldCompare        = builder.instructions().lastInstructionRef();
+        MicroInstrOperand   indexedCompare[7] = {};
+        indexedCompare[0].reg                 = result;
+        indexedCompare[1].reg                 = index;
+        indexedCompare[2].opBits              = MicroOpBits::B8;
+        indexedCompare[3].opBits              = MicroOpBits::B64;
+        indexedCompare[4].valueU64            = 1;
+        indexedCompare[5].valueU64            = 0;
         indexedCompare[6].setImmediateValue(ApInt(0, 8));
         builder.instructions().insertDerivedBefore(builder.operands(), oldCompare, MicroInstrOpcode::CmpAmcImm, indexedCompare);
         builder.instructions().erase(oldCompare);
@@ -259,28 +258,28 @@ SWC_TEST_BEGIN(PostRAPeephole_ForwardsLocalPointerAcrossDisjointSpill)
     local.setCodeGenLocalSize(16);
     function.addLocalVariable(ctx, &local);
 
-    constexpr MicroReg localBase = MicroReg::intReg(3);
-    constexpr MicroReg saved = MicroReg::intReg(12);
-    constexpr MicroReg result = MicroReg::intReg(2);
-    constexpr MicroReg index = MicroReg::intReg(6);
-    constexpr MicroReg other = MicroReg::intReg(7);
-    const MicroReg stackPointer = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg localBase    = MicroReg::intReg(3);
+    constexpr MicroReg saved        = MicroReg::intReg(12);
+    constexpr MicroReg result       = MicroReg::intReg(2);
+    constexpr MicroReg index        = MicroReg::intReg(6);
+    constexpr MicroReg other        = MicroReg::intReg(7);
+    const MicroReg     stackPointer = CallConv::get(CallConvKind::Swag).stackPointer;
     for (uint32_t variant = 0; variant < 3; ++variant)
     {
         MicroBuilder builder(ctx);
-        const auto done = builder.createLabel();
+        const auto   done = builder.createLabel();
         builder.emitLoadRegMem(saved, localBase, 8, MicroOpBits::B64);
         builder.emitLoadMemReg(stackPointer, variant == 2 ? 0x88 : 0x80, other, MicroOpBits::B64);
         builder.emitLoadRegMem(result, localBase, 8, MicroOpBits::B64);
         builder.emitCmpRegImm(result, ApInt(0, 8), MicroOpBits::B8);
-        const MicroInstrRef oldCompare = builder.instructions().lastInstructionRef();
-        MicroInstrOperand indexedCompare[7] = {};
-        indexedCompare[0].reg = result;
-        indexedCompare[1].reg = index;
-        indexedCompare[2].opBits = MicroOpBits::B8;
-        indexedCompare[3].opBits = MicroOpBits::B64;
-        indexedCompare[4].valueU64 = 1;
-        indexedCompare[5].valueU64 = 0;
+        const MicroInstrRef oldCompare        = builder.instructions().lastInstructionRef();
+        MicroInstrOperand   indexedCompare[7] = {};
+        indexedCompare[0].reg                 = result;
+        indexedCompare[1].reg                 = index;
+        indexedCompare[2].opBits              = MicroOpBits::B8;
+        indexedCompare[3].opBits              = MicroOpBits::B64;
+        indexedCompare[4].valueU64            = 1;
+        indexedCompare[5].valueU64            = 0;
         indexedCompare[6].setImmediateValue(ApInt(0, 8));
         builder.instructions().insertDerivedBefore(builder.operands(), oldCompare, MicroInstrOpcode::CmpAmcImm, indexedCompare);
         builder.instructions().erase(oldCompare);
@@ -395,7 +394,7 @@ SWC_TEST_BEGIN(PostRAPeephole_CommutesCopiedSumWithLaterCompare)
 
         X64Encoder encoder(ctx);
         SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
-        bool binaryUsesResult = false;
+        bool binaryUsesResult  = false;
         bool compareUsesResult = false;
         for (const MicroInstr& inst : builder.instructions().view())
         {
@@ -500,7 +499,7 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsDoubledAddressIntoAdd)
     constexpr MicroReg result = MicroReg::intReg(0);
     constexpr MicroReg source = MicroReg::intReg(8);
     constexpr MicroReg staged = MicroReg::intReg(10);
-    const MicroReg stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    const MicroReg     stack  = CallConv::get(CallConvKind::Swag).stackPointer;
 
     for (uint32_t variant = 0; variant < 4; ++variant)
     {
@@ -572,25 +571,25 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PostRAPeephole_ByteSubtractKeepsKnownZeroExtension)
 {
     constexpr MicroReg value = MicroReg::intReg(10);
-    constexpr MicroReg base = MicroReg::intReg(7);
+    constexpr MicroReg base  = MicroReg::intReg(7);
     for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u})
     {
         MicroBuilder builder(ctx);
-        const auto exit = builder.createLabel();
+        const auto   exit = builder.createLabel();
         if (mode == 1)
             builder.emitLoadRegMem(value, base, 0, MicroOpBits::B8);
         else
             builder.emitLoadZeroExtendRegMem(value, base, 0, MicroOpBits::B64, MicroOpBits::B8);
         if (mode == 5)
         {
-            const MicroInstrRef oldLoad = builder.instructions().lastInstructionRef();
-            MicroInstrOperand indexed[7] = {};
-            indexed[0].reg = value;
-            indexed[1].reg = base;
-            indexed[2].reg = MicroReg::intReg(8);
-            indexed[3].opBits = MicroOpBits::B32;
-            indexed[4].opBits = MicroOpBits::B8;
-            indexed[5].valueU64 = 1;
+            const MicroInstrRef oldLoad    = builder.instructions().lastInstructionRef();
+            MicroInstrOperand   indexed[7] = {};
+            indexed[0].reg                 = value;
+            indexed[1].reg                 = base;
+            indexed[2].reg                 = MicroReg::intReg(8);
+            indexed[3].opBits              = MicroOpBits::B32;
+            indexed[4].opBits              = MicroOpBits::B8;
+            indexed[5].valueU64            = 1;
             builder.instructions().insertDerivedBefore(builder.operands(), oldLoad,
                                                        MicroInstrOpcode::LoadZeroExtAmcRegMem, indexed);
             builder.instructions().erase(oldLoad);
@@ -619,7 +618,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PostRAPeephole_ByteLoadSubtractExtendsAtTheLoad)
 {
     constexpr MicroReg value = MicroReg::intReg(10);
-    constexpr MicroReg base = MicroReg::intReg(7);
+    constexpr MicroReg base  = MicroReg::intReg(7);
     for (const uint32_t mode : {0u, 1u, 2u})
     {
         MicroBuilder builder(ctx);
@@ -637,7 +636,7 @@ SWC_TEST_BEGIN(PostRAPeephole_ByteLoadSubtractExtendsAtTheLoad)
 
         X64Encoder encoder(ctx);
         SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
-        const uint32_t extensions = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg);
+        const uint32_t extensions        = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg);
         const uint32_t indexedExtensions = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtAmcRegMem);
         if (extensions != (mode == 0 ? 0u : 1u) || indexedExtensions != (mode == 0 ? 1u : 0u))
             return Result::Error;
@@ -971,7 +970,7 @@ SWC_TEST_BEGIN(MicroPassHelpers_CombinedFreshIndicesMatchSingleClassBounds)
     MicroPassContext passCtx;
     passCtx.instructions = &builder.instructions();
     passCtx.operands     = &builder.operands();
-    const auto matches = [&](uint32_t expectedInt, uint32_t expectedFloat) {
+    const auto matches   = [&](uint32_t expectedInt, uint32_t expectedFloat) {
         uint32_t nextInt   = 42;
         uint32_t nextFloat = 43;
         MicroPassHelpers::computeNextVirtualRegIndices(passCtx, nextInt, nextFloat);
@@ -1494,12 +1493,12 @@ SWC_TEST_BEGIN(PostRAPeephole_SharesIdenticalReturnEpilogue)
 {
     constexpr MicroReg value = MicroReg::intReg(13);
     constexpr MicroReg other = MicroReg::intReg(14);
-    const MicroReg ret = CallConv::get(CallConvKind::Swag).intReturn;
-    const MicroReg stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    const MicroReg     ret   = CallConv::get(CallConvKind::Swag).intReturn;
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
 
-    MicroBuilder builder(ctx);
+    MicroBuilder        builder(ctx);
     const MicroLabelRef collision = builder.createLabel();
-    const MicroLabelRef exit = builder.createLabel();
+    const MicroLabelRef exit      = builder.createLabel();
     builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, collision);
     builder.emitLoadRegReg(ret, value, MicroOpBits::B64);
@@ -1531,9 +1530,9 @@ SWC_TEST_BEGIN(PostRAPeephole_SharesIdenticalReturnEpilogue)
     if (!redirected)
         return Result::Error;
 
-    MicroBuilder differentValue(ctx);
+    MicroBuilder        differentValue(ctx);
     const MicroLabelRef otherCollision = differentValue.createLabel();
-    const MicroLabelRef otherExit = differentValue.createLabel();
+    const MicroLabelRef otherExit      = differentValue.createLabel();
     differentValue.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
     differentValue.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, otherCollision);
     differentValue.emitLoadRegReg(ret, value, MicroOpBits::B64);
@@ -2462,7 +2461,7 @@ SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatCompareUsesMemoryOperand)
                     if (inst.op != MicroInstrOpcode::CmpRegAmc)
                         continue;
                     const auto* ops = inst.ops(builder.operands());
-                    found = ops && ops[0].reg == lhs && ops[1].reg == base && ops[2].reg == index &&
+                    found           = ops && ops[0].reg == lhs && ops[1].reg == base && ops[2].reg == index &&
                             ops[3].opBits == bits && ops[5].valueU64 == 8 && ops[6].valueU64 == 16;
                 }
                 if (!found)
@@ -3216,10 +3215,10 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_MovesSpillReloadBeforeRegisterOverwrite)
 {
-    const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;
+    const MicroReg     base     = CallConv::get(CallConvKind::Swag).stackPointer;
     constexpr MicroReg oldValue = MicroReg::floatReg(2);
     constexpr MicroReg newValue = MicroReg::floatReg(9);
-    constexpr MicroReg saved = MicroReg::floatReg(12);
+    constexpr MicroReg saved    = MicroReg::floatReg(12);
 
     for (uint32_t variant = 0; variant < 3; ++variant)
     {

@@ -248,8 +248,8 @@ SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
     ByteArray  bytes;
     buildCoffImportLibrary(bytes, "archive-test.dll", {symbol, symbol, "other"});
     const uint32_t firstOffset = bytes.readBe32(72);
-    Diagnostic diag;
-    Archive    archive;
+    Diagnostic     diag;
+    Archive        archive;
     if (!archive.load(diag, std::move(bytes)))
         return Result::Error;
 

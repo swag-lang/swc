@@ -992,7 +992,7 @@ namespace
     // executable that imports it dynamically. Keep only the native generations whose code was
     // incorporated into the artifact. Compile-time execution remains stricter: its result may
     // depend on any imported native implementation, whether linked statically or loaded dynamically.
-    const std::map<fs::path, fs::file_time_type>& workspaceNativeReadTimes(const CompilerInstance& compiler,
+    const std::map<fs::path, fs::file_time_type>& workspaceNativeReadTimes(const CompilerInstance&                       compiler,
                                                                            const std::map<fs::path, fs::file_time_type>& allReadTimes,
                                                                            const std::map<fs::path, fs::file_time_type>& staticReadTimes)
     {
@@ -3813,7 +3813,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
         std::error_code           unexpectedPdbError;
         const bool                hasUnexpectedPdb = !unexpectedPdbPath.empty() && fs::exists(unexpectedPdbPath, unexpectedPdbError);
-        WorkspaceArtifactState    artifactState = WorkspaceArtifactState::Stale;
+        WorkspaceArtifactState    artifactState    = WorkspaceArtifactState::Stale;
         if (!hasUnexpectedPdb && !unexpectedPdbError && readWorkspaceArtifactManifest(manifest, manifestPath))
             artifactState = workspaceArtifactState(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, workspaceArtifactConfiguration(probeCompiler), moduleCmdLine.tags);
 
@@ -3890,10 +3890,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
 
                 manifest.dependenciesReadTime = dependenciesReadTime;
                 manifest.apiReadTimes         = probeCompiler.moduleApiReadTimes_;
-                manifest.nativeReadTimes = workspaceNativeReadTimes(probeCompiler,
-                                                                    probeCompiler.moduleNativeReadTimes_,
-                                                                    probeCompiler.moduleStaticLinkReadTimes_);
-                manifest.apiInputs = probeCompiler.moduleApiInputs_;
+                manifest.nativeReadTimes      = workspaceNativeReadTimes(probeCompiler,
+                                                                         probeCompiler.moduleNativeReadTimes_,
+                                                                         probeCompiler.moduleStaticLinkReadTimes_);
+                manifest.apiInputs            = probeCompiler.moduleApiInputs_;
                 normalizeWorkspacePathsLexically(manifest.apiInputs);
                 collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
                 if (writeWorkspaceArtifactManifest(probeCtx, manifest, manifestPath) != Result::Continue)
@@ -3943,9 +3943,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
                 manifest.dependenciesReadTime = dependenciesReadTime;
                 manifest.apiReadTimes         = moduleCompiler->moduleApiReadTimes_;
-                manifest.nativeReadTimes = workspaceNativeReadTimes(*moduleCompiler,
-                                                                    moduleCompiler->moduleNativeReadTimes_,
-                                                                    moduleCompiler->moduleStaticLinkReadTimes_);
+                manifest.nativeReadTimes      = workspaceNativeReadTimes(*moduleCompiler,
+                                                                         moduleCompiler->moduleNativeReadTimes_,
+                                                                         moduleCompiler->moduleStaticLinkReadTimes_);
                 manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
                 normalizeWorkspacePathsLexically(manifest.apiInputs);
                 manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);
@@ -3976,9 +3976,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             link->manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
             link->manifest.dependenciesReadTime = dependenciesReadTime;
             link->manifest.apiReadTimes         = moduleCompiler->moduleApiReadTimes_;
-            link->manifest.nativeReadTimes = workspaceNativeReadTimes(*moduleCompiler,
-                                                                      moduleCompiler->moduleNativeReadTimes_,
-                                                                      moduleCompiler->moduleStaticLinkReadTimes_);
+            link->manifest.nativeReadTimes      = workspaceNativeReadTimes(*moduleCompiler,
+                                                                           moduleCompiler->moduleNativeReadTimes_,
+                                                                           moduleCompiler->moduleStaticLinkReadTimes_);
             link->manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
             normalizeWorkspacePathsLexically(link->manifest.apiInputs);
             link->manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);

@@ -237,7 +237,7 @@ namespace
         uint64_t total        = 0;
         outFirst              = MicroInstrRef::invalid();
         for (MicroInstrRef cur = instructions.findPreviousInstructionRef(retRef); cur.isValid();
-             cur              = instructions.findPreviousInstructionRef(cur))
+             cur               = instructions.findPreviousInstructionRef(cur))
         {
             const MicroInstr* inst = instructions.ptr(cur);
             if (!inst)
@@ -472,14 +472,14 @@ namespace
         if (!conv.framePointer.isValid() || !conv.stackPointer.isValid() || containsCall)
             return false;
 
-        const uint64_t firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
+        const uint64_t             firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
         SmallVector<MicroInstrRef> accesses;
         auto&                      operands = *context.operands;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
-            MicroInstr*              inst = context.instructions->ptr(it.current);
-            MicroInstrOperand*       ops  = inst ? inst->ops(operands) : nullptr;
-            const MicroInstrDef&     info = MicroInstr::info(inst->op);
+            MicroInstr*          inst = context.instructions->ptr(it.current);
+            MicroInstrOperand*   ops  = inst ? inst->ops(operands) : nullptr;
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
             if (inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop)
                 return false;
 
@@ -515,9 +515,9 @@ namespace
 
         for (const MicroInstrRef ref : accesses)
         {
-            MicroInstr*          inst = context.instructions->ptr(ref);
-            MicroInstrOperand*   ops  = inst->ops(operands);
-            const MicroInstrDef& info = MicroInstr::info(inst->op);
+            MicroInstr*          inst         = context.instructions->ptr(ref);
+            MicroInstrOperand*   ops          = inst->ops(operands);
+            const MicroInstrDef& info         = MicroInstr::info(inst->op);
             ops[info.memBaseOperandIndex].reg = conv.stackPointer;
             ops[info.memOffsetOperandIndex].valueU64 -= sizeof(void*);
         }
@@ -772,7 +772,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
 
         MicroInstrRef lastSub = insertBeforeRef;
         for (MicroInstrRef cur = instructions.findNextInstructionRef(insertBeforeRef); cur.isValid();
-             cur              = instructions.findNextInstructionRef(cur))
+             cur               = instructions.findNextInstructionRef(cur))
         {
             const MicroInstr* inst = instructions.ptr(cur);
             if (!inst)

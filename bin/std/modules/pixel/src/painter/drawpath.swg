@@ -855,8 +855,8 @@ impl Painter
                         let ratio         = remainingDist / segmentLen
                         info.adjustedPoint.x = lastPoint.x + segmentVec.x * ratio
                         info.adjustedPoint.y = lastPoint.y + segmentVec.y * ratio
-                        info.pointIndex    = i
-                        info.hasAdjustment = true
+                        info.pointIndex      = i
+                        info.hasAdjustment   = true
                         return info
                     }
 

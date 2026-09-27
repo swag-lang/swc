@@ -189,22 +189,22 @@ private:
 
     const LocalSlotExtent* findLocalSlot(int64_t offset) const;
 
-    MicroPassContext&            context_;
-    MicroReg                     stackBaseReg_;
+    MicroPassContext&                     context_;
+    MicroReg                              stackBaseReg_;
     std::unordered_map<uint32_t, uint8_t> definitionCounts_;
-    std::vector<LocalSlotExtent>           localSlots_;
-    bool                                   stackBaseStable_ = true;
+    std::vector<LocalSlotExtent>          localSlots_;
+    bool                                  stackBaseStable_ = true;
     // Call target of the instruction currently going through the transfer function
     // (set by the fixpoint loop): lets the call effect apply the callee's summaries.
-    const Symbol*                transferCallTarget_ = nullptr;
-    const MicroControlFlowGraph* cfg_                = nullptr;
-    const Symbol*                currentCallTarget_  = nullptr;
-    bool                         reported_           = false;
-    bool                         converged_          = true;
-    std::vector<SanitizerState>  inState_; // populated only at chain heads
-    std::vector<uint32_t>        headStateIndex_;
-    std::vector<char>            reached_;
-    std::vector<char>            inWorklist_;
+    const Symbol*                               transferCallTarget_ = nullptr;
+    const MicroControlFlowGraph*                cfg_                = nullptr;
+    const Symbol*                               currentCallTarget_  = nullptr;
+    bool                                        reported_           = false;
+    bool                                        converged_          = true;
+    std::vector<SanitizerState>                 inState_; // populated only at chain heads
+    std::vector<uint32_t>                       headStateIndex_;
+    std::vector<char>                           reached_;
+    std::vector<char>                           inWorklist_;
     std::optional<std::unordered_set<uint64_t>> reportedLocations_;
 
     std::optional<std::unordered_map<uint32_t, const Symbol*>> callTargets_;

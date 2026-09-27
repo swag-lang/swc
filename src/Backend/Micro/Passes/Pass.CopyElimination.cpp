@@ -199,8 +199,8 @@ namespace
         // copy stayed and cost the allocator one live value per trip. The fixed
         // point above has resolved what it could first, so a phi whose incoming
         // values agree keeps their common form.
-        const auto values  = ssaState.values();
-        bool       changed = false;
+        const auto values                 = ssaState.values();
+        bool       changed                = false;
         size_t     unresolvedInstructions = 0;
         for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
         {
@@ -230,7 +230,7 @@ namespace
                 outValues[valueId] = inferred;
                 outFlags[valueId]  = 1;
                 --unresolvedInstructions;
-                changed            = true;
+                changed = true;
             }
         }
     }

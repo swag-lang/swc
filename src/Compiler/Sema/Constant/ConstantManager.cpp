@@ -781,7 +781,7 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, Dat
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    Shard&     shard       = shards_[shardIndex];
+    Shard& shard           = shards_[shardIndex];
     const auto [span, ref] = shard.dataSegment.addSpan(std::span{reinterpret_cast<const std::byte*>(payload.data()), payload.size()}, align);
     if (outRef)
         *outRef = DataSegmentRef{.shardIndex = shardIndex, .offset = ref};

@@ -48,7 +48,7 @@ public:
 
     // The view remains valid only until traversal advances or the current node restarts.
     std::span<const AstNodeRef> currentChildren() const { return children_.span().subspan(stack_.back().firstChildIx, stack_.back().numChildren); }
-    uint32_t preChildIndex() const
+    uint32_t                    preChildIndex() const
     {
         const Frame& frame = stack_.back();
         SWC_ASSERT(frame.stage == Frame::Stage::Children && !frame.pendingPostChild && frame.nextChildIx < frame.numChildren);

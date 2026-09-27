@@ -77,7 +77,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     {
         const uint32_t instructionIndex = static_cast<uint32_t>(instructionRefs_.size());
         instructionRefs_.push_back(it.current);
-        maxSlot_ = std::max(maxSlot_, it.current.get());
+        maxSlot_               = std::max(maxSlot_, it.current.get());
         const MicroInstr& inst = *it;
         if ((inst.op == MicroInstrOpcode::JumpReg && inst.numOperands < 2) || inst.op == MicroInstrOpcode::JumpCondImm)
             hasUnsupportedControlFlowForCfgLiveness_ = true;

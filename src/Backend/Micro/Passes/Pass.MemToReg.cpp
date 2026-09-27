@@ -133,8 +133,8 @@ namespace
             const MicroInstrOperand* ops = inst->ops(operands);
             if (!ops)
                 continue;
-            const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
-            bool defines = false;
+            const auto modes   = MicroInstr::info(inst->op).resolvedRegModes(ops);
+            bool       defines = false;
             for (size_t i = 0; i < modes.size(); ++i)
                 defines |= (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == reg;
             if (!defines)
@@ -1009,8 +1009,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 if (!isZeroedVectorRegister(storage, operands, acc.ref, fill->ops(operands)[1].reg))
                     continue;
 
-                const uint64_t lo = offset;
-                const uint64_t hi = offset + getNumBytes(MicroOpBits::B128);
+                const uint64_t lo           = offset;
+                const uint64_t hi           = offset + getNumBytes(MicroOpBits::B128);
                 uint64_t       elementBytes = 0;
                 bool           uniform      = true;
                 for (const auto& [other, otherSlot] : slots)
@@ -1059,9 +1059,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 for (uint64_t i = 0; i < count; ++i)
                 {
                     MicroInstrOperand storeOps[4] = {};
-                    storeOps[0].reg      = base;
-                    storeOps[1].opBits   = bits;
-                    storeOps[2].valueU64 = offset + i * elementBytes;
+                    storeOps[0].reg               = base;
+                    storeOps[1].opBits            = bits;
+                    storeOps[2].valueU64          = offset + i * elementBytes;
                     storeOps[3].setImmediateValue(ApInt(uint64_t{0}, getNumBits(bits)));
                     storage.insertSyntheticBefore(operands, fillRef, MicroInstrOpcode::LoadMemImm, storeOps);
                 }
@@ -1444,8 +1444,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
             }
 
-            const uint64_t floatKey  = shift * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0);
-            auto           floatIt   = floatFields.find(floatKey);
+            const uint64_t floatKey = shift * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0);
+            auto           floatIt  = floatFields.find(floatKey);
             if (floatIt == floatFields.end())
             {
                 const MicroReg    floatField = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);

@@ -173,7 +173,7 @@ namespace InstructionCombine
             return false;
 
         MicroInstrRef candidateRef = ctx.storage->findPreviousInstructionRef(ref);
-        for (uint32_t steps = 0; candidateRef.isValid() && steps < 24; ++steps,
+        for (uint32_t steps        = 0; candidateRef.isValid() && steps < 24; ++steps,
                       candidateRef = ctx.storage->findPreviousInstructionRef(candidateRef))
         {
             const MicroInstr* candidate = ctx.storage->ptr(candidateRef);
@@ -591,7 +591,7 @@ namespace InstructionCombine
 
         // Rewrites are queued, so every candidate of this width asks the same
         // question. Cache separately by width to retain each scan's early exit.
-        cached          = FloatReadFit::DoesNotFit;
+        cached           = FloatReadFit::DoesNotFit;
         const auto view  = storage->view();
         const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
@@ -935,8 +935,8 @@ namespace InstructionCombine
         if (!useOps || useOps[0].reg != loadOps[0].reg)
             return false;
 
-        const MicroOp regOp = useInst->op == MicroInstrOpcode::OpBinaryMemReg ? useOps[3].microOp : MicroOp::Compare;
-        const bool regUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemReg &&
+        const MicroOp regOp     = useInst->op == MicroInstrOpcode::OpBinaryMemReg ? useOps[3].microOp : MicroOp::Compare;
+        const bool    regUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemReg &&
                                useOps[4].valueU64 == 0 && useOps[1].reg.isAnyInt() &&
                                (regOp == MicroOp::Add || regOp == MicroOp::Subtract ||
                                 regOp == MicroOp::And || regOp == MicroOp::Or || regOp == MicroOp::Xor);
@@ -964,8 +964,8 @@ namespace InstructionCombine
                     return false;
             }
         };
-        const MicroOp updateOp = useInst->op == MicroInstrOpcode::OpBinaryMemImm ? useOps[2].microOp : MicroOp::Compare;
-        const bool isShiftOrRotate = updateOp == MicroOp::ShiftLeft || updateOp == MicroOp::ShiftRight ||
+        const MicroOp updateOp        = useInst->op == MicroInstrOpcode::OpBinaryMemImm ? useOps[2].microOp : MicroOp::Compare;
+        const bool    isShiftOrRotate = updateOp == MicroOp::ShiftLeft || updateOp == MicroOp::ShiftRight ||
                                      updateOp == MicroOp::ShiftArithmeticLeft || updateOp == MicroOp::ShiftArithmeticRight ||
                                      updateOp == MicroOp::RotateLeft || updateOp == MicroOp::RotateRight;
         const bool isArithmeticOrBitwise = updateOp == MicroOp::Add || updateOp == MicroOp::Subtract ||
@@ -988,10 +988,10 @@ namespace InstructionCombine
             return false;
 
         MicroInstrOperand newOps[5] = {};
-        const uint8_t numOps = regUpdate || immediateUpdate ? 5 : 4;
+        const uint8_t     numOps    = regUpdate || immediateUpdate ? 5 : 4;
         for (uint8_t i = 0; i < numOps; ++i)
             newOps[i] = useOps[i];
-        newOps[0].reg = MicroReg::instructionPointer();
+        newOps[0].reg              = MicroReg::instructionPointer();
         relocation->instructionRef = useRef;
         relocation->form           = MicroRelocation::Form::Relative32;
         ctx.emitRewrite(useRef, useInst->op, std::span{newOps, numOps});
@@ -1060,8 +1060,8 @@ namespace InstructionCombine
         newOps[1].opBits            = midOps[1].opBits;
         newOps[2].microOp           = midOps[2].microOp;
         newOps[3].valueU64          = 0;
-        storeReloc->instructionRef = midIt.current;
-        loadReloc->instructionRef  = MicroInstrRef::invalid();
+        storeReloc->instructionRef  = midIt.current;
+        loadReloc->instructionRef   = MicroInstrRef::invalid();
         ctx.emitRewrite(midIt.current, MicroInstrOpcode::OpUnaryMem, newOps, /*allocNewBlock=*/true);
         ctx.emitErase(loadRef);
         ctx.emitErase(storeIt.current);

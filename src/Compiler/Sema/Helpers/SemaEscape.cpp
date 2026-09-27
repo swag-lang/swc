@@ -4554,7 +4554,6 @@ namespace SemaEscape
         return Result::Error;
     }
 
-
     void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions)
     {
         // What this pass concludes is a function of three things: the summary edges recorded so far,

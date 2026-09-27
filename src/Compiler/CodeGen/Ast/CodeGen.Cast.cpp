@@ -579,11 +579,11 @@ namespace
         {
             // Build exact low and high 32-bit contributions as packed doubles.
             // Each subtraction is exact; only their final sum rounds to f64.
-            const TypeRef vecTypeRef = codeGen.typeMgr().addType(TypeInfo::makeSimd(codeGen.typeMgr().typeU64(), 2));
-            const std::array<uint64_t, 2> seedBits = {0x4530000043300000ULL, 0};
-            const std::array<uint64_t, 2> biasBits = {0x4330000000000000ULL, 0x4530000000000000ULL};
-            const MicroReg seedReg = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{seedBits}));
-            const MicroReg biasReg = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{biasBits}));
+            const TypeRef                 vecTypeRef = codeGen.typeMgr().addType(TypeInfo::makeSimd(codeGen.typeMgr().typeU64(), 2));
+            const std::array<uint64_t, 2> seedBits   = {0x4530000043300000ULL, 0};
+            const std::array<uint64_t, 2> biasBits   = {0x4330000000000000ULL, 0x4530000000000000ULL};
+            const MicroReg                seedReg    = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{seedBits}));
+            const MicroReg                biasReg    = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{biasBits}));
 
             const MicroReg sourceVecReg = codeGen.nextVirtualFloatRegister();
             builder.emitLoadRegReg(sourceVecReg, srcReg, MicroOpBits::B64);

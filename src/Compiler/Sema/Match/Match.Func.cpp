@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/ABI/CallConv.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -757,10 +757,10 @@ namespace
         const Utf8 dstTypeName = ctx.typeMgr().get(fail.castFailure.dstTypeRef).toName(ctx);
         if (hasFunctionCallConvMismatch(fail, ctx))
         {
-            const SymbolFunction& srcFunc = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.srcTypeRef)).payloadSymFunction();
-            const SymbolFunction& dstFunc = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.dstTypeRef)).payloadSymFunction();
-            const Utf8 actual   = std::format("has type '{}' with the {} calling convention", srcTypeName, CallConv::get(srcFunc.callConvKind()).displayName);
-            const Utf8 required = std::format("'{}' with the {} calling convention", dstTypeName, CallConv::get(dstFunc.callConvKind()).displayName);
+            const SymbolFunction& srcFunc  = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.srcTypeRef)).payloadSymFunction();
+            const SymbolFunction& dstFunc  = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.dstTypeRef)).payloadSymFunction();
+            const Utf8            actual   = std::format("has type '{}' with the {} calling convention", srcTypeName, CallConv::get(srcFunc.callConvKind()).displayName);
+            const Utf8            required = std::format("'{}' with the {} calling convention", dstTypeName, CallConv::get(dstFunc.callConvKind()).displayName);
             if (const SymbolVariable* param = failedParameter(fn, fail))
                 return std::format("{}, but parameter '{}' needs {}", actual, param->name(ctx), required);
             return std::format("{}, but needs {}", actual, required);

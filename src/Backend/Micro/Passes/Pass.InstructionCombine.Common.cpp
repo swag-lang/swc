@@ -167,7 +167,9 @@ namespace InstructionCombine
                     useOps[3].valueU64 < getNumBits(useOps[1].opBits))
                 {
                     const uint64_t kept = getNumBits(useOps[1].opBits) - useOps[3].valueU64;
-                    return kept <= 8 ? MicroOpBits::B8 : kept <= 16 ? MicroOpBits::B16 : kept <= 32 ? MicroOpBits::B32 : MicroOpBits::B64;
+                    return kept <= 8 ? MicroOpBits::B8 : kept <= 16 ? MicroOpBits::B16
+                                                     : kept <= 32   ? MicroOpBits::B32
+                                                                    : MicroOpBits::B64;
                 }
                 return partialDestination(useOps[1].opBits);
 

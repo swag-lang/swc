@@ -723,7 +723,7 @@ namespace
 
         for (size_t index = 0; index < functions.size(); ++index)
         {
-            SymbolFunction* symbol = functions[index];
+            SymbolFunction*                  symbol      = functions[index];
             const NativeFunctionCacheRecord* cacheRecord = builder.functionCacheRecord(*symbol);
             if (symbol->loweredCode().bytes.empty() && (!cacheRecord || !cacheRecord->hit))
             {
@@ -796,7 +796,7 @@ void NativeBackendBuilder::prepareFunctionCache()
         return;
 
     std::unordered_map<Utf8, std::pair<Utf8, Utf8>> entries;
-    size_t                                           cursor = expectedHeader.size();
+    size_t                                          cursor = expectedHeader.size();
     while (cursor < indexContent.size())
     {
         size_t end = indexContent.find('\n', cursor);
@@ -867,7 +867,7 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
         }
     }
 
-    const bool hit = record.hit;
+    const bool             hit = record.hit;
     const std::scoped_lock lock(functionCacheMutex_);
     functionCacheRecords_.insert_or_assign(&function, std::move(record));
     return hit;

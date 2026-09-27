@@ -102,8 +102,8 @@ namespace
 
         for (MicroInstrRef ref = context.instructions->findNextInstructionRef(instRef); ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
         {
-            const MicroInstr&      scanInst = *context.instructions->ptr(ref);
-            const MicroInstrDef&   info     = MicroInstr::info(scanInst.op);
+            const MicroInstr&    scanInst = *context.instructions->ptr(ref);
+            const MicroInstrDef& info     = MicroInstr::info(scanInst.op);
             if (scanInst.op == MicroInstrOpcode::Label ||
                 info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction))
@@ -132,7 +132,7 @@ namespace
             return true;
 
         SmallVector<uint8_t, 128> visited(instructionRefs.size(), 0);
-        SmallVector<uint32_t> pending;
+        SmallVector<uint32_t>     pending;
         for (const uint32_t successor : cfg.successors(instructionIndex))
             pending.push_back(successor);
 
@@ -220,8 +220,8 @@ namespace
         uint64_t liveRegs = 0;
         for (MicroInstrRef ref = context.instructions->findNextInstructionRef(instRef); pendingRegs && ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
         {
-            const MicroInstr&      scanInst = *context.instructions->ptr(ref);
-            const MicroInstrDef&   info     = MicroInstr::info(scanInst.op);
+            const MicroInstr&    scanInst = *context.instructions->ptr(ref);
+            const MicroInstrDef& info     = MicroInstr::info(scanInst.op);
             if (scanInst.op == MicroInstrOpcode::Label ||
                 info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction))
@@ -250,7 +250,7 @@ namespace
 
             if (const MicroInstrOperand* ops = scanInst.ops(*context.operands))
             {
-                const auto modes = info.resolvedRegModes(ops);
+                const auto modes   = info.resolvedRegModes(ops);
                 uint64_t   defined = 0;
                 for (size_t i = 0; i < modes.size(); ++i)
                 {
@@ -1002,7 +1002,7 @@ namespace
 
         // The moves inserted below can grow the operand storage under `ops`:
         // every operand is copied first.
-        MicroInstrOperand rewritten[8] = {ops[0], ops[1], ops[2], ops[3], ops[4], ops[5], ops[6], ops[7]};
+        MicroInstrOperand rewritten[8]   = {ops[0], ops[1], ops[2], ops[3], ops[4], ops[5], ops[6], ops[7]};
         MicroReg          rewrittenBase  = rewritten[0].reg;
         MicroReg          rewrittenIndex = rewritten[1].reg;
         const MicroReg    source         = rewritten[2].reg;
@@ -1040,9 +1040,9 @@ namespace
         }
 
         insertMoveRegReg(context, instRef, requiredReg, source, MicroOpBits::B64);
-        rewritten[0].reg                = rewrittenBase;
-        rewritten[1].reg                = rewrittenIndex;
-        rewritten[2].reg                = requiredReg;
+        rewritten[0].reg = rewrittenBase;
+        rewritten[1].reg = rewrittenIndex;
+        rewritten[2].reg = requiredReg;
         context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryAmcMemReg, rewritten);
 
         if (savedRequiredReg.isValid())
@@ -1305,7 +1305,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         if (!virtualRegIndicesReady)
         {
             MicroPassHelpers::computeNextVirtualRegIndices(context, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
-            virtualRegIndicesReady   = true;
+            virtualRegIndicesReady = true;
         }
 
         for (;;)

@@ -701,9 +701,9 @@ namespace
                 {
                     if (!inBody[k] || k == use.storeIndex)
                         continue;
-                    const MicroInstr* other = storage.ptr(instrRefs[k]);
+                    const MicroInstr*        other    = storage.ptr(instrRefs[k]);
                     const MicroInstrOperand* otherOps = other ? other->ops(operands) : nullptr;
-                    FrameRef otherRef;
+                    FrameRef                 otherRef;
                     if (other && (isFrameLoad(otherRef, *other, otherOps, conv, reach.localBaseReg) ||
                                   frameWriteRange(otherRef, *other, otherOps, conv, reach.localBaseReg)))
                         blocked = overlaps(slotRef, otherRef);
@@ -714,7 +714,7 @@ namespace
                 // The update and the store are adjacent. The source register has no
                 // other definition in the body, so an early exit still sees its
                 // previous value and an exit after the update sees the new one.
-                const MicroInstr* update = storage.ptr(instrRefs[use.storeIndex - 1]);
+                const MicroInstr*        update    = storage.ptr(instrRefs[use.storeIndex - 1]);
                 const MicroInstrOperand* updateOps = update ? update->ops(operands) : nullptr;
                 if (!inBody[use.storeIndex - 1] || !update || update->op != MicroInstrOpcode::OpBinaryRegImm ||
                     !updateOps || updateOps[0].reg != source || updateOps[1].opBits != bits ||
@@ -733,8 +733,8 @@ namespace
 
                 // The loop may exit before its first update. Its preheader must
                 // initialize both the frame home and the source to one value.
-                const MicroInstr* initialStore = storage.ptr(instrRefs[preheaderIndex]);
-                const MicroInstrOperand* initialOps = initialStore ? initialStore->ops(operands) : nullptr;
+                const MicroInstr*        initialStore = storage.ptr(instrRefs[preheaderIndex]);
+                const MicroInstrOperand* initialOps   = initialStore ? initialStore->ops(operands) : nullptr;
                 if (!initialStore || initialStore->op != MicroInstrOpcode::LoadMemReg || !initialOps ||
                     initialOps[0].reg != use.base || initialOps[3].valueU64 != offset || initialOps[2].opBits != bits)
                     continue;
@@ -742,7 +742,7 @@ namespace
                 {
                     if (!preheaderIndex)
                         continue;
-                    const MicroInstr* copy = storage.ptr(instrRefs[preheaderIndex - 1]);
+                    const MicroInstr*        copy    = storage.ptr(instrRefs[preheaderIndex - 1]);
                     const MicroInstrOperand* copyOps = copy ? copy->ops(operands) : nullptr;
                     if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
                         copyOps[0].reg != source || copyOps[1].reg != initialOps[1].reg || copyOps[2].opBits != bits)
@@ -854,19 +854,19 @@ namespace
     // of the float argument shuffles in the hot loop.
     bool hoistInvariantCallArguments(MicroPassContext& context, const CallConv& conv)
     {
-        MicroStorage& storage = *context.instructions;
+        MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
-        const auto& cfg = context.builder->controlFlowGraph();
+        const auto&          cfg      = context.builder->controlFlowGraph();
         if (!cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
             return false;
 
-        const uint32_t n = cfg.instructionCount();
+        const uint32_t n     = cfg.instructionCount();
         const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
         if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return false;
 
-        const auto refs = cfg.instructionRefs();
-        bool hasCandidate = false;
+        const auto refs         = cfg.instructionRefs();
+        bool       hasCandidate = false;
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(refs[i]);
@@ -883,8 +883,8 @@ namespace
         if (!hasCandidate)
             return false;
 
-        const auto dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
-        const auto loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
+        const auto        dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        const auto        loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
         MicroPhysLiveness liveness;
         MicroPassHelpers::computePhysicalLiveness(liveness, context);
         if (!liveness.valid)
@@ -924,11 +924,11 @@ namespace
                     !conv.isFloatPersistentReg(ops[1].reg) || ops[0].reg == ops[1].reg)
                     continue;
 
-                const MicroReg dst = ops[0].reg;
-                const MicroReg src = ops[1].reg;
-                const uint32_t bit = MicroPhysLiveness::bitOf(dst);
-                bool safe = bit < MicroPhysLiveness::K_INVALID_BIT;
-                bool used = false;
+                const MicroReg dst  = ops[0].reg;
+                const MicroReg src  = ops[1].reg;
+                const uint32_t bit  = MicroPhysLiveness::bitOf(dst);
+                bool           safe = bit < MicroPhysLiveness::K_INVALID_BIT;
+                bool           used = false;
                 for (uint32_t k = 0; k < n && safe; ++k)
                 {
                     if (!loop.inBody[k])
@@ -965,8 +965,8 @@ namespace
 
             for (const auto ref : copies)
             {
-                const MicroInstr* inst = storage.ptr(ref);
-                const auto* ops = inst->ops(operands);
+                const MicroInstr* inst      = storage.ptr(ref);
+                const auto*       ops       = inst->ops(operands);
                 MicroInstrOperand copied[3] = {ops[0], ops[1], ops[2]};
                 storage.insertDerivedBefore(operands, refs[header], MicroInstrOpcode::LoadRegReg, std::span(copied, 3));
                 storage.erase(ref);

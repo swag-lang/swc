@@ -883,10 +883,10 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(RegAlloc_LeafRemapPreservesFramePriorityAndDistinctReplacements)
 {
     const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
-    constexpr auto rbx  = MicroReg::intReg(1);
-    constexpr auto rsi  = MicroReg::intReg(6);
-    constexpr auto r10  = MicroReg::intReg(10);
-    constexpr auto r11  = MicroReg::intReg(11);
+    constexpr auto  rbx  = MicroReg::intReg(1);
+    constexpr auto  rsi  = MicroReg::intReg(6);
+    constexpr auto  r10  = MicroReg::intReg(10);
+    constexpr auto  r11  = MicroReg::intReg(11);
 
     for (const bool readFrameBeforeInit : {false, true})
     {
@@ -906,7 +906,7 @@ SWC_TEST_BEGIN(RegAlloc_LeafRemapPreservesFramePriorityAndDistinctReplacements)
         builder.emitRet();
 
         MicroPrologEpilogPass pass;
-        MicroPassManager     passes;
+        MicroPassManager      passes;
         passes.addStartPass(pass);
         MicroPassContext passCtx;
         passCtx.callConvKind           = CallConvKind::WindowsX64;
@@ -938,14 +938,14 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(RegAlloc_LeafIncomingStackArgUsesEntryStackPointer)
 {
     const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
-    MicroBuilder   builder(ctx);
-    const uint64_t frameOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
+    MicroBuilder    builder(ctx);
+    const uint64_t  frameOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
     builder.emitLoadRegMem(conv.intReturn, conv.framePointer, frameOffset, MicroOpBits::B64);
     const MicroInstrRef loadRef = builder.instructions().lastInstructionRef();
     builder.emitRet();
 
     MicroPrologEpilogPass pass;
-    MicroPassManager     passes;
+    MicroPassManager      passes;
     passes.addStartPass(pass);
     MicroPassContext passCtx;
     passCtx.callConvKind           = CallConvKind::WindowsX64;
@@ -968,8 +968,8 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(RegAlloc_StackMotionKeepsIncomingArgFramePointer)
 {
     const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
-    MicroBuilder   builder(ctx);
-    const uint64_t frameOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
+    MicroBuilder    builder(ctx);
+    const uint64_t  frameOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
     builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadRegMem(conv.intReturn, conv.framePointer, frameOffset, MicroOpBits::B64);
     const MicroInstrRef loadRef = builder.instructions().lastInstructionRef();
@@ -977,7 +977,7 @@ SWC_TEST_BEGIN(RegAlloc_StackMotionKeepsIncomingArgFramePointer)
     builder.emitRet();
 
     MicroPrologEpilogPass pass;
-    MicroPassManager     passes;
+    MicroPassManager      passes;
     passes.addStartPass(pass);
     MicroPassContext passCtx;
     passCtx.callConvKind           = CallConvKind::WindowsX64;
@@ -1017,7 +1017,7 @@ SWC_TEST_BEGIN(RegAlloc_LeafRemapUsesFirstInstructionReadBeforeWrite)
     builder.emitRet();
 
     MicroPrologEpilogPass pass;
-    MicroPassManager     passes;
+    MicroPassManager      passes;
     passes.addStartPass(pass);
     MicroPassContext passCtx;
     passCtx.callConvKind           = CallConvKind::WindowsX64;
@@ -1061,12 +1061,12 @@ SWC_TEST_BEGIN(RegAlloc_PrologRetainsEntryBoundaryAfterLongStackRelease)
         }
 
         MicroPrologEpilogPass pass;
-        MicroPassManager     passes;
+        MicroPassManager      passes;
         passes.addStartPass(pass);
         MicroPassContext passCtx;
         passCtx.callConvKind           = CallConvKind::WindowsX64;
         passCtx.preservePersistentRegs = true;
-        passCtx.forceFramePointer     = true;
+        passCtx.forceFramePointer      = true;
         SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
         // The add/Nop suffix is harmless, but its Ret must still close the
         // entry run before any later instruction in storage order is examined.

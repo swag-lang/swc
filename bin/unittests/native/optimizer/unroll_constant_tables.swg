@@ -13,10 +13,10 @@ func weightedScore(seed: u64)->u64
     var total = seed
     for i in 5'u64
     {
-        let a      = A[i] + seed
-        let b      = B[i] + 2
-        let c      = C[i] + 1
-        let mixed  = a * a + b * b + c * c + a * b
+        let a     = A[i] + seed
+        let b     = B[i] + 2
+        let c     = C[i] + 1
+        let mixed = a * a + b * b + c * c + a * b
         if (mixed & 1) == 0
         {
             total += mixed

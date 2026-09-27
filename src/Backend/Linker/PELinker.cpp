@@ -1621,7 +1621,7 @@ Result PELinker::prepareIncrementalFunctionCache(LinkJob& outJob) const
     }
 
     std::vector<LinkArchiveMember> members;
-    Utf8 index = std::format("version={}\ncompiler={}.{}.{}\n", NativeBackendBuilder::K_FUNCTION_CACHE_VERSION, SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM);
+    Utf8                           index = std::format("version={}\ncompiler={}.{}.{}\n", NativeBackendBuilder::K_FUNCTION_CACHE_VERSION, SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM);
     for (const NativeFunctionInfo& info : builder_->functionInfos)
     {
         if (!info.symbol)
@@ -1717,8 +1717,8 @@ Result PELinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, c
         builder_->compiler().buildCfg().backend.debugInfo)
         return Result::Continue;
 
-    std::vector<CoffObject>             objects;
-    std::vector<SymbolTable::Entry>     symbols;
+    std::vector<CoffObject>         objects;
+    std::vector<SymbolTable::Entry> symbols;
     objects.reserve(objectPaths.size());
     for (const fs::path& objectPath : objectPaths)
     {

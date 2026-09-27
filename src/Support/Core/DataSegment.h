@@ -104,12 +104,12 @@ public:
     // Identity of this segment, and how many relocations it has taken. Together they let a reader
     // remember what a given offset resolved to and know, in one comparison, whether that answer
     // can still be trusted.
-    uint64_t                                   id() const noexcept { return id_; }
-    uint64_t                                   relocationVersion() const noexcept { return relocationVersion_.load(std::memory_order_acquire); }
-    void                                       copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
-    bool                                       findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
-    bool                                       hasRelocations(uint32_t offset, uint32_t size) const;
-    std::mutex&                                allocationMutex(uint32_t allocationOffset) const;
+    uint64_t    id() const noexcept { return id_; }
+    uint64_t    relocationVersion() const noexcept { return relocationVersion_.load(std::memory_order_acquire); }
+    void        copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
+    bool        findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
+    bool        hasRelocations(uint32_t offset, uint32_t size) const;
+    std::mutex& allocationMutex(uint32_t allocationOffset) const;
     template<typename T>
     std::pair<uint32_t, T*> reserve()
     {
@@ -177,25 +177,25 @@ private:
         size_t operator()(std::string_view value) const noexcept { return std::hash<std::string_view>{}(value); }
     };
 
-    uint32_t                                                               currentExtentLocked() const noexcept;
-    std::pair<uint32_t, std::byte*>                                        allocateStorageLocked(uint32_t size, uint32_t align, bool zeroInit);
-    std::byte*                                                             findPtrLocked(Ref ref, uint32_t size) noexcept;
-    const std::byte*                                                       findPtrLocked(Ref ref, uint32_t size) const noexcept;
-    Ref                                                                    findLargeBlockRefLocked(const void* ptr) const noexcept;
-    void                                                                   copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
-    bool                                                                   findRelocationLocked(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
-    bool                                                                   hasRelocationsLocked(uint32_t offset, uint32_t size) const;
-    void                                                                   rebuildRelocationsByOffsetLocked() const;
-    void                                                                   recordRelocationIndexLocked(uint32_t index);
-    void                                                                   recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
-    PagedStore                                                             store_;
-    std::vector<LargeBlock>                                                largeBlocks_;
-    std::map<uintptr_t, LargeBlockRange>                                   largeBlockRanges_;
+    uint32_t                                                                                            currentExtentLocked() const noexcept;
+    std::pair<uint32_t, std::byte*>                                                                     allocateStorageLocked(uint32_t size, uint32_t align, bool zeroInit);
+    std::byte*                                                                                          findPtrLocked(Ref ref, uint32_t size) noexcept;
+    const std::byte*                                                                                    findPtrLocked(Ref ref, uint32_t size) const noexcept;
+    Ref                                                                                                 findLargeBlockRefLocked(const void* ptr) const noexcept;
+    void                                                                                                copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
+    bool                                                                                                findRelocationLocked(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
+    bool                                                                                                hasRelocationsLocked(uint32_t offset, uint32_t size) const;
+    void                                                                                                rebuildRelocationsByOffsetLocked() const;
+    void                                                                                                recordRelocationIndexLocked(uint32_t index);
+    void                                                                                                recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
+    PagedStore                                                                                          store_;
+    std::vector<LargeBlock>                                                                             largeBlocks_;
+    std::map<uintptr_t, LargeBlockRange>                                                                largeBlockRanges_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>, StringHash, std::equal_to<>> stringMap_;
-    static inline std::atomic<uint64_t>                                    s_nextId{1};
-    const uint64_t                                                         id_ = s_nextId.fetch_add(1, std::memory_order_relaxed);
-    std::atomic<uint64_t>                                                  relocationVersion_{0};
-    std::vector<DataSegmentRelocation>                                     relocations_;
+    static inline std::atomic<uint64_t>                                                                 s_nextId{1};
+    const uint64_t                                                                                      id_ = s_nextId.fetch_add(1, std::memory_order_relaxed);
+    std::atomic<uint64_t>                                                                               relocationVersion_{0};
+    std::vector<DataSegmentRelocation>                                                                  relocations_;
     // Sorted-by-offset index over the first `relocationsIndexedCount_` relocations. Relocations beyond
     // that count form the tail, which carries its own index sorted the same way. Readers binary-search
     // both under a shared lock, so they never scan a growing tail and never escalate to an exclusive

@@ -307,7 +307,7 @@ namespace
 
 bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers)
 {
-    ByteArray aliasedMemberBytes;
+    ByteArray                       aliasedMemberBytes;
     std::vector<ArchiveMemberBuild> members;
     members.reserve(inputMembers.size());
 

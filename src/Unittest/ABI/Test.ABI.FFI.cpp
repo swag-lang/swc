@@ -86,7 +86,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ABI_SwagUsesIndependentArgumentBanksWithoutShadowSpace)
 {
-    const CallConv& swag = CallConv::swag();
+    const CallConv&                         swag = CallConv::swag();
     const std::array<ABICall::ArgLayout, 9> args = {{{64, true}, {64, true}, {64, true}, {64, false}, {64, false}, {64, false}, {64, false}, {64, false}, {64, false}}};
 
     if (swag.stackShadowSpace != 0 || swag.intArgRegs.size() != 6 || swag.floatArgRegs.size() != 6)
@@ -105,7 +105,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ABI_SwagStackArgumentsFollowRegisterExhaustion)
 {
-    const CallConv& swag = CallConv::swag();
+    const CallConv&                          swag = CallConv::swag();
     const std::array<ABICall::ArgLayout, 16> args = {{{64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {64, true}, {64, false}, {128, true}, {64, false}, {64, true}}};
 
     if (ABICall::argumentRegisterIndex(swag, args, 12) != UINT32_MAX || ABICall::argumentRegisterIndex(swag, args, 13) != UINT32_MAX)
@@ -851,7 +851,7 @@ var GProbeFloatVtbl: NativeFloatVtblProbe = &probeFloatVtbl
             return Result::Error;
         }
 
-        const auto floatVtbl = reinterpret_cast<uint64_t (*)(const FFIFloatVTable*)>(probes[7]->jitEntryAddress());
+        const auto           floatVtbl = reinterpret_cast<uint64_t (*)(const FFIFloatVTable*)>(probes[7]->jitEntryAddress());
         const FFIFloatVTable nativeVtbl{&ffiNativeFifthFloat};
         if (!floatVtbl || floatVtbl(&nativeVtbl) != 12345)
         {

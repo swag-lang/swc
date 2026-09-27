@@ -18,12 +18,13 @@ The current commands are:
 | 'clean' | Remove what a build produced, and the caches kept between runs |
 | 'build' | Compile and emit native artifacts without running them |
 | 'run' | Build, then run emitted executables |
+| 'smoke' | Build and run emitted executables for a bounded number of frames |
 | 'test' | Run source-driven tests and '#test' functions |
 | 'format' | Rewrite source using canonical formatting |
 | 'syntax' | Parse source without semantic analysis or code generation |
 | 'sema' | Parse and type-check source without backend code generation |
 | 'doc' | Parse and type-check source, then generate configured documentation |
-| 'unittest' | Run the compiler's internal C++ unit tests |
+| 'unittest' | Run the DevMode compiler's internal C++ unit tests |
 
 # Creating a Starter
 
@@ -66,9 +67,9 @@ Use one input model per invocation:
 | '--directory PATH', '-d PATH' | Add a directory of source files |
 | '--file PATH', '-f PATH' | Add an individual source file |
 
-'--workspace' is available to 'new', 'clean', 'build', 'run', 'test', 'sema',
-and 'doc'. '--workspace-module' is available to the five compilation commands
-and to 'clean'. The
+'--workspace' is available to 'new', 'clean', 'build', 'run', 'smoke', 'test', 'sema',
+and 'doc'. '--workspace-module' is available to 'clean', 'sema', 'doc', 'test',
+'build', 'run', and 'smoke'. The
 'format', 'syntax', and compiler-internal 'unittest' commands use the direct
 module, module-file, directory, or file modes instead.
 
@@ -262,7 +263,9 @@ backend and emits native output. Narrow that behavior when diagnosing a layer:
 
 Repeated file filters form one union and repeated tag filters form another. When
 both kinds are present, a test must match both dimensions. With no tag filter,
-tagged and untagged tests run normally.
+tagged and untagged tests run normally except tags beginning with 'integration.'.
+Those require an explicit '--test-tag' selection and may use a real renderer or
+host window. The repository runs them through 'tools/integrations.swgs'.
 
 The three '*-only' modes are mutually exclusive. For this reference, keep the
 default JIT and native paths enabled so examples verify both execution engines.

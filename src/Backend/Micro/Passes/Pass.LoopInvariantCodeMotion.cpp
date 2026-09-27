@@ -268,7 +268,7 @@ namespace
                 explainedBase = firstUseReg(*ud);
             }
 
-            const MicroInstr*                    mutInst = storage.ptr(instrRefs[i]);
+            const MicroInstr*        mutInst = storage.ptr(instrRefs[i]);
             MicroInstrRegOperandRefs regRefs;
             mutInst->collectRegOperands(operands, regRefs, encoder);
             for (const auto& rref : regRefs)
@@ -549,10 +549,10 @@ namespace
                 const MicroInstr* nested = storage.ptr(instrRefs[slotIt->second]);
                 if (!nested)
                     continue;
-                const MicroInstrOperand* nestedOps = nested->ops(operands);
-                MicroReg innerBase  = MicroReg::invalid();
-                MicroReg innerIndex = MicroReg::invalid();
-                int64_t  innerAdd   = 0;
+                const MicroInstrOperand* nestedOps  = nested->ops(operands);
+                MicroReg                 innerBase  = MicroReg::invalid();
+                MicroReg                 innerIndex = MicroReg::invalid();
+                int64_t                  innerAdd   = 0;
                 if (nested->op == MicroInstrOpcode::LoadAddrAmcRegMem && countIt->second == 1)
                 {
                     if (!nestedOps || nestedOps[0].reg != nestedReg || nestedOps[3].opBits != MicroOpBits::B64 ||
@@ -569,7 +569,7 @@ namespace
                          nestedOps[3].microOp == MicroOp::Add &&
                          MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instrRefs[slotIt->second], context.builder))
                 {
-                    const MicroInstr* copy = storage.ptr(instrRefs[slotIt->second - 1]);
+                    const MicroInstr*        copy    = storage.ptr(instrRefs[slotIt->second - 1]);
                     const MicroInstrOperand* copyOps = copy ? copy->ops(operands) : nullptr;
                     if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
                         copyOps[0].reg != nestedReg || copyOps[1].reg == nestedReg || copyOps[2].opBits != MicroOpBits::B64)
@@ -580,8 +580,8 @@ namespace
                 else
                     continue;
 
-                const bool     baseVaries  = defsInLoop.contains(innerBase);
-                const bool     indexVaries = defsInLoop.contains(innerIndex);
+                const bool baseVaries  = defsInLoop.contains(innerBase);
+                const bool indexVaries = defsInLoop.contains(innerIndex);
                 if (baseVaries == indexVaries)
                     continue;
 
@@ -594,9 +594,9 @@ namespace
                 if (add != static_cast<int64_t>(static_cast<int32_t>(add)))
                     continue;
 
-                const uint32_t nextReg = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-                const MicroReg rooted  = MicroReg::virtualIntReg(nextReg);
-                const MicroInstrOpcode rewrittenOp = inst->op;
+                const uint32_t                    nextReg     = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+                const MicroReg                    rooted      = MicroReg::virtualIntReg(nextReg);
+                const MicroInstrOpcode            rewrittenOp = inst->op;
                 SmallVector<MicroInstrOperand, 8> rewritten;
                 for (uint32_t opIdx = 0; opIdx < inst->numOperands; ++opIdx)
                     rewritten.push_back(instOps[opIdx]);
@@ -815,7 +815,7 @@ namespace
                             const MicroInstrOperand* loadOps = inst->ops(operands);
                             if (!loadOps)
                                 continue;
-                            const auto relocationIt = firstRelocation.find(ref.get());
+                            const auto relocationIt       = firstRelocation.find(ref.get());
                             const bool constantPoolVector = inst->op == MicroInstrOpcode::LoadRegMem &&
                                                             loadOps[1].reg.isInstructionPointer() &&
                                                             loadOps[2].opBits == MicroOpBits::B128 &&
@@ -838,7 +838,7 @@ namespace
                                     if (relocationIt != firstRelocation.end())
                                     {
                                         const auto kind = relocations[relocationIt->second].kind;
-                                        directGlobal = kind == MicroRelocation::Kind::GlobalInitAddress ||
+                                        directGlobal    = kind == MicroRelocation::Kind::GlobalInitAddress ||
                                                        kind == MicroRelocation::Kind::GlobalZeroAddress;
                                     }
                                 }
@@ -946,9 +946,9 @@ namespace
                         const MicroInstrUseDef* ud   = &useDefs[i];
                         if (!inst || ud->defs.size() != 1)
                             continue;
-                        const auto uc           = inLoopUse.find(ud->defs[0]);
-                        const bool multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
-                        const MicroInstrOperand* instOps = inst->ops(operands);
+                        const auto               uc           = inLoopUse.find(ud->defs[0]);
+                        const bool               multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
+                        const MicroInstrOperand* instOps      = inst->ops(operands);
 
                         if (opcodeReadsMemory(inst->op) || multiplyUsed || isCostlyMaterialization(*inst, instOps))
                         {

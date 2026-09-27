@@ -851,7 +851,7 @@ SWC_TEST_END()
 // Folding a unary read/modify/write must retain the unary opcode's four-operand shape.
 SWC_TEST_BEGIN(InstCombine_MemFold_Unary_UsesFourOperands)
 {
-    constexpr MicroReg base = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base  = MicroReg::virtualIntReg(2);
     constexpr MicroReg value = MicroReg::virtualIntReg(3);
 
     for (const MicroOp op : {MicroOp::Negate, MicroOp::BitwiseNot})
@@ -2883,10 +2883,10 @@ namespace
 {
     void emitNetworkOrderBytes(MicroBuilder& builder, bool interveningStore, bool nonAdjacent)
     {
-        constexpr MicroReg base = MicroReg::virtualIntReg(1);
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
         constexpr MicroReg index = MicroReg::virtualIntReg(2);
-        constexpr MicroReg word = MicroReg::virtualIntReg(3);
-        constexpr MicroReg next = MicroReg::virtualIntReg(4);
+        constexpr MicroReg word  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg next  = MicroReg::virtualIntReg(4);
 
         builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
         builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
@@ -2961,15 +2961,15 @@ namespace
         builder.emitLoadRegReg(fallback, MicroReg::intReg(3), bits);
         builder.emitLoadRegReg(result, fallback, bits);
         builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, done);
-        const MicroInstrRef jumpRef = builder.instructions().lastInstructionRef();
+        const MicroInstrRef jumpRef       = builder.instructions().lastInstructionRef();
         MicroInstrOperand   compareOps[7] = {};
-        compareOps[0].reg          = base;
-        compareOps[1].reg          = index;
-        compareOps[2].reg          = fallback;
-        compareOps[3].opBits       = MicroOpBits::B64;
-        compareOps[4].opBits       = bits;
-        compareOps[5].valueU64     = 8;
-        compareOps[6].valueU64     = 0;
+        compareOps[0].reg                 = base;
+        compareOps[1].reg                 = index;
+        compareOps[2].reg                 = fallback;
+        compareOps[3].opBits              = MicroOpBits::B64;
+        compareOps[4].opBits              = bits;
+        compareOps[5].valueU64            = 8;
+        compareOps[6].valueU64            = 0;
         builder.instructions().insertDerivedBefore(builder.operands(), jumpRef, MicroInstrOpcode::CmpAmcReg, compareOps);
         builder.emitLoadAmcRegMem(temp, bits, base, index, 8, differentCell ? 8 : 0, MicroOpBits::B64);
         builder.emitLoadRegReg(result, temp, bits);
@@ -3016,21 +3016,21 @@ namespace
         constexpr MicroReg index = MicroReg::virtualIntReg(2);
         constexpr MicroReg other = MicroReg::virtualIntReg(3);
         constexpr MicroReg value = MicroReg::virtualIntReg(4);
-        const auto done = builder.createLabel();
+        const auto         done  = builder.createLabel();
 
         builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
         builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
         builder.emitLoadRegReg(other, MicroReg::intReg(3), bits);
         builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, done);
-        const MicroInstrRef jumpRef = builder.instructions().lastInstructionRef();
-        MicroInstrOperand compareOps[7] = {};
-        compareOps[0].reg      = base;
-        compareOps[1].reg      = index;
-        compareOps[2].reg      = other;
-        compareOps[3].opBits   = MicroOpBits::B64;
-        compareOps[4].opBits   = bits;
-        compareOps[5].valueU64 = 8;
-        compareOps[6].valueU64 = 0;
+        const MicroInstrRef jumpRef       = builder.instructions().lastInstructionRef();
+        MicroInstrOperand   compareOps[7] = {};
+        compareOps[0].reg                 = base;
+        compareOps[1].reg                 = index;
+        compareOps[2].reg                 = other;
+        compareOps[3].opBits              = MicroOpBits::B64;
+        compareOps[4].opBits              = bits;
+        compareOps[5].valueU64            = 8;
+        compareOps[6].valueU64            = 0;
         builder.instructions().insertDerivedBefore(builder.operands(), jumpRef, MicroInstrOpcode::CmpAmcReg, compareOps);
         builder.emitLoadAmcRegMem(value, bits, base, index, 8, differentCell ? 8 : 0, MicroOpBits::B64);
         builder.emitLoadMemReg(base, 16, value, bits);
@@ -3075,7 +3075,7 @@ namespace
         constexpr MicroReg index = MicroReg::virtualIntReg(1);
         constexpr MicroReg limit = MicroReg::virtualIntReg(2);
         constexpr MicroReg next  = MicroReg::virtualIntReg(3);
-        const auto done = builder.createLabel();
+        const auto         done  = builder.createLabel();
 
         builder.emitLoadRegReg(index, MicroReg::intReg(1), MicroOpBits::B64);
         builder.emitLoadRegReg(limit, MicroReg::intReg(2), MicroOpBits::B64);
@@ -3148,11 +3148,11 @@ namespace
 {
     void emitIndexedRightCompare(MicroBuilder& builder, MicroCond cond, bool interveningStore)
     {
-        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
-        constexpr MicroReg index = MicroReg::virtualIntReg(2);
-        constexpr MicroReg left  = MicroReg::virtualIntReg(3);
-        constexpr MicroReg right = MicroReg::virtualIntReg(4);
-        constexpr MicroReg flag  = MicroReg::virtualIntReg(5);
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg index  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg left   = MicroReg::virtualIntReg(3);
+        constexpr MicroReg right  = MicroReg::virtualIntReg(4);
+        constexpr MicroReg flag   = MicroReg::virtualIntReg(5);
         constexpr MicroReg source = MicroReg::virtualIntReg(6);
 
         builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
@@ -3221,14 +3221,14 @@ namespace
             builder.emitLoadRegReg(source, MicroReg::intReg(4), MicroOpBits::B64);
         builder.emitSetCondReg(flag, MicroCond::Equal);
         const MicroInstrRef setRef = builder.instructions().lastInstructionRef();
-        MicroInstrOperand ops[7] = {};
-        ops[0].reg = copyIsBase ? copied : base;
-        ops[1].reg = index;
-        ops[2].reg = copied;
-        ops[3].opBits = MicroOpBits::B64;
-        ops[4].opBits = MicroOpBits::B8;
-        ops[5].valueU64 = 1;
-        ops[6].valueU64 = 0;
+        MicroInstrOperand   ops[7] = {};
+        ops[0].reg                 = copyIsBase ? copied : base;
+        ops[1].reg                 = index;
+        ops[2].reg                 = copied;
+        ops[3].opBits              = MicroOpBits::B64;
+        ops[4].opBits              = MicroOpBits::B8;
+        ops[5].valueU64            = 1;
+        ops[6].valueU64            = 0;
         builder.instructions().insertDerivedBefore(builder.operands(), setRef, MicroInstrOpcode::CmpAmcReg, ops);
         builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
         builder.emitRet();

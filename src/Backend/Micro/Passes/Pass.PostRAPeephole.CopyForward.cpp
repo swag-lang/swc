@@ -344,8 +344,8 @@ namespace PostRaPeephole
             const auto* ops = current->ops(*ctx.operands);
             if (!ops)
                 return false;
-            const RegTouch destinationTouch = regTouch(ctx, *current, dst);
-            const RegTouch sourceTouch      = regTouch(ctx, *current, src);
+            const RegTouch destinationTouch  = regTouch(ctx, *current, dst);
+            const RegTouch sourceTouch       = regTouch(ctx, *current, src);
             const bool     readsDestination  = destinationTouch.use;
             const bool     writesDestination = destinationTouch.def;
             if (sourceTouch.def || (sourceChanged && sourceTouch.use))
@@ -420,31 +420,31 @@ namespace PostRaPeephole
             !ctx.isRegDeadAfterCurrent(copy[1].reg))
             return false;
 
-        const MicroInstrRef andRef = ctx.previousRef(copyRef);
-        const MicroInstr*   andInst = ctx.instruction(andRef);
-        const MicroInstrOperand* andOps = andInst ? andInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef      andRef  = ctx.previousRef(copyRef);
+        const MicroInstr*        andInst = ctx.instruction(andRef);
+        const MicroInstrOperand* andOps  = andInst ? andInst->ops(*ctx.operands) : nullptr;
         if (!andInst || andInst->op != MicroInstrOpcode::OpBinaryRegMem || !andOps ||
             andOps[0].reg != copy[1].reg || andOps[1].reg == copy[0].reg || andOps[1].reg == copy[1].reg ||
             andOps[2].opBits != MicroOpBits::B64 || andOps[3].microOp != MicroOp::And)
             return false;
 
-        const MicroInstrRef addressRef = ctx.previousRef(andRef);
-        const MicroInstr*   address = ctx.instruction(addressRef);
-        const MicroInstrOperand* lea = address ? address->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef      addressRef = ctx.previousRef(andRef);
+        const MicroInstr*        address    = ctx.instruction(addressRef);
+        const MicroInstrOperand* lea        = address ? address->ops(*ctx.operands) : nullptr;
         if (!address || address->op != MicroInstrOpcode::LoadAddrRegMem || !lea ||
             lea[0].reg != copy[1].reg || lea[1].reg != copy[0].reg ||
             lea[2].opBits != MicroOpBits::B64 || lea[3].hasWideImmediateValue() || lea[3].valueU64 != 1)
             return false;
 
         MicroInstrOperand increment[3] = {};
-        increment[0].reg = copy[0].reg;
-        increment[1].opBits = MicroOpBits::B64;
-        increment[2].microOp = MicroOp::Add;
+        increment[0].reg               = copy[0].reg;
+        increment[1].opBits            = MicroOpBits::B64;
+        increment[2].microOp           = MicroOp::Add;
         MicroInstrOperand masked[5];
         std::copy_n(andOps, 5, masked);
         masked[0].reg = copy[0].reg;
         MicroInstr incrementProbe;
-        incrementProbe.op = MicroInstrOpcode::OpUnaryReg;
+        incrementProbe.op          = MicroInstrOpcode::OpUnaryReg;
         incrementProbe.numOperands = 3;
         MicroConformanceIssue issue;
         if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, incrementProbe, increment) ||
@@ -557,13 +557,13 @@ namespace PostRaPeephole
         // overwritten. Redirect that read to the copy destination as well.
         // Claim through the overwrite so another rule cannot add a read of
         // the old register after the comparison in this sweep.
-        constexpr uint32_t               maxWindow = 12;
+        constexpr uint32_t                       maxWindow = 12;
         std::array<MicroInstrRef, maxWindow + 2> window;
         window[0] = binaryRef;
         window[1] = ref;
-        MicroInstrRef       compareRef;
-        MicroInstrOperand   compareOps[Action::K_MAX_OPS] = {};
-        MicroInstrRef       cursor = ctx.nextRef(ref);
+        MicroInstrRef     compareRef;
+        MicroInstrOperand compareOps[Action::K_MAX_OPS] = {};
+        MicroInstrRef     cursor                        = ctx.nextRef(ref);
         for (uint32_t step = 0; step < maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
         {
             const MicroInstr* current = ctx.instruction(cursor);
@@ -573,10 +573,10 @@ namespace PostRaPeephole
             if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 return false;
-            window[step + 2] = cursor;
-            const RegTouch oldTouch = regTouch(ctx, *current, copy[1].reg);
-            const bool readsOld = oldTouch.use;
-            const bool writesOld = oldTouch.def;
+            window[step + 2]         = cursor;
+            const RegTouch oldTouch  = regTouch(ctx, *current, copy[1].reg);
+            const bool     readsOld  = oldTouch.use;
+            const bool     writesOld = oldTouch.def;
             if (readsOld)
             {
                 if (compareRef.isValid() || (current->op != MicroInstrOpcode::CmpRegReg && current->op != MicroInstrOpcode::CmpRegImm) ||
@@ -631,10 +631,10 @@ namespace PostRaPeephole
             ctx.isClaimed(producerRef))
             return false;
 
-        constexpr uint32_t maxWindow = 16;
+        constexpr uint32_t                       maxWindow = 16;
         std::array<MicroInstrRef, maxWindow + 2> window;
-        window[0] = producerRef;
-        window[1] = copyRef;
+        window[0]            = producerRef;
+        window[1]            = copyRef;
         MicroInstrRef cursor = ctx.nextRef(copyRef);
         for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
         {
@@ -659,9 +659,9 @@ namespace PostRaPeephole
                 return false;
 
             MicroInstrOperand newProducer[4] = {produced[0], produced[1], produced[2], produced[3]};
-            newProducer[0].reg = copy[0].reg;
-            MicroInstrOperand newCompare[3] = {compared[0], compared[1], compared[2]};
-            newCompare[0].reg = copy[0].reg;
+            newProducer[0].reg               = copy[0].reg;
+            MicroInstrOperand newCompare[3]  = {compared[0], compared[1], compared[2]};
+            newCompare[0].reg                = copy[0].reg;
             MicroConformanceIssue issue;
             if (ctx.encoder->queryConformanceIssue(issue, *producer, newProducer) ||
                 ctx.encoder->queryConformanceIssue(issue, *current, newCompare) ||
@@ -740,12 +740,12 @@ namespace PostRaPeephole
             if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 return false;
-            window[step]                  = cursor;
+            window[step]         = cursor;
             const RegTouch touch = regTouch(ctx, *current, copy[0].reg);
             if (!touch.use && !touch.def)
                 continue;
             const MicroInstrUseDef useDef = current->collectUseDef(*ctx.operands, ctx.encoder);
-            const auto* ops = current->ops(*ctx.operands);
+            const auto*            ops    = current->ops(*ctx.operands);
             if (useDef.defs.empty())
             {
                 MicroOpBits readBits = MicroOpBits::Zero;
@@ -913,19 +913,19 @@ namespace PostRaPeephole
         MicroInstr        probe;
         if (load->op == MicroInstrOpcode::LoadRegMem && loadOps[2].opBits == bits)
         {
-            widened[0] = loadOps[0];
-            widened[1] = loadOps[1];
-            widened[2] = extend[2];
-            widened[3] = extend[3];
-            widened[4] = loadOps[3];
+            widened[0]        = loadOps[0];
+            widened[1]        = loadOps[1];
+            widened[2]        = extend[2];
+            widened[3]        = extend[3];
+            widened[4]        = loadOps[3];
             probe.op          = MicroInstrOpcode::LoadZeroExtRegMem;
             probe.numOperands = 5;
         }
         else if (load->op == MicroInstrOpcode::LoadAmcRegMem && loadOps[3].opBits == bits && loadOps[4].opBits == MicroOpBits::B64)
         {
             std::copy_n(loadOps, 8, widened);
-            widened[3] = extend[2];
-            widened[4] = extend[3];
+            widened[3]        = extend[2];
+            widened[4]        = extend[3];
             probe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
             probe.numOperands = 8;
         }
@@ -1040,9 +1040,9 @@ namespace PostRaPeephole
         if (!ctx.isRegDeadAfterCurrent(temporary))
             return false;
 
-        const MicroInstrRef selectRef = ctx.previousRef(extendRef);
-        const MicroInstr*   select    = ctx.instruction(selectRef);
-        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef selectRef    = ctx.previousRef(extendRef);
+        const MicroInstr*   select       = ctx.instruction(selectRef);
+        const auto*         selected     = select ? select->ops(*ctx.operands) : nullptr;
         const MicroInstrRef resultSubRef = ctx.previousRef(selectRef);
         const MicroInstr*   resultSub    = ctx.instruction(resultSubRef);
         const auto*         resultSubOps = resultSub ? resultSub->ops(*ctx.operands) : nullptr;
@@ -1090,8 +1090,8 @@ namespace PostRaPeephole
         loadProbe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
         loadProbe.numOperands = 7;
 
-        MicroInstrOperand narrowedCopy[3] = {copyOps[0], copyOps[1], copyOps[2]};
-        narrowedCopy[2].opBits            = MicroOpBits::B32;
+        MicroInstrOperand narrowedCopy[3]    = {copyOps[0], copyOps[1], copyOps[2]};
+        narrowedCopy[2].opBits               = MicroOpBits::B32;
         MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
         rewrittenSelect[0].reg               = result;
         rewrittenSelect[1].reg               = temporary;
@@ -1135,7 +1135,7 @@ namespace PostRaPeephole
         const auto*         secondSelected  = secondSelect ? secondSelect->ops(*ctx.operands) : nullptr;
         const MicroInstrRef secondCmpRef    = ctx.previousRef(secondSelectRef);
         const MicroInstr*   secondCmp       = ctx.instruction(secondCmpRef);
-        const auto*         secondCompared = secondCmp ? secondCmp->ops(*ctx.operands) : nullptr;
+        const auto*         secondCompared  = secondCmp ? secondCmp->ops(*ctx.operands) : nullptr;
         const MicroInstrRef finalCopyRef    = ctx.previousRef(secondCmpRef);
         const MicroInstr*   finalCopy       = ctx.instruction(finalCopyRef);
         const auto*         finalCopied     = finalCopy ? finalCopy->ops(*ctx.operands) : nullptr;
@@ -1147,7 +1147,7 @@ namespace PostRaPeephole
         const auto*         firstSelected   = firstSelect ? firstSelect->ops(*ctx.operands) : nullptr;
         const MicroInstrRef firstCmpRef     = ctx.previousRef(firstSelectRef);
         const MicroInstr*   firstCmp        = ctx.instruction(firstCmpRef);
-        const auto*         firstCompared  = firstCmp ? firstCmp->ops(*ctx.operands) : nullptr;
+        const auto*         firstCompared   = firstCmp ? firstCmp->ops(*ctx.operands) : nullptr;
         const MicroInstrRef firstCopyRef    = ctx.previousRef(firstCmpRef);
         const MicroInstr*   firstCopy       = ctx.instruction(firstCopyRef);
         const auto*         firstCopied     = firstCopy ? firstCopy->ops(*ctx.operands) : nullptr;
@@ -1201,12 +1201,12 @@ namespace PostRaPeephole
         loadProbe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
         loadProbe.numOperands = 7;
 
-        MicroInstrOperand rewrittenFirstSelect[4] = {firstSelected[0], firstSelected[1], firstSelected[2], firstSelected[3]};
-        rewrittenFirstSelect[0].reg               = result;
-        rewrittenFirstSelect[1].reg               = other;
-        MicroInstrOperand rewrittenSecondCmp[3] = {secondCompared[0], secondCompared[1], secondCompared[2]};
-        rewrittenSecondCmp[0].reg               = final;
-        rewrittenSecondCmp[1].reg               = result;
+        MicroInstrOperand rewrittenFirstSelect[4]  = {firstSelected[0], firstSelected[1], firstSelected[2], firstSelected[3]};
+        rewrittenFirstSelect[0].reg                = result;
+        rewrittenFirstSelect[1].reg                = other;
+        MicroInstrOperand rewrittenSecondCmp[3]    = {secondCompared[0], secondCompared[1], secondCompared[2]};
+        rewrittenSecondCmp[0].reg                  = final;
+        rewrittenSecondCmp[1].reg                  = result;
         MicroInstrOperand rewrittenSecondSelect[4] = {secondSelected[0], secondSelected[1], secondSelected[2], secondSelected[3]};
         rewrittenSecondSelect[0].reg               = result;
         rewrittenSecondSelect[1].reg               = final;
@@ -1274,7 +1274,7 @@ namespace PostRaPeephole
             MicroInstrOpcode::LoadCondRegReg,
         };
         std::array<MicroInstrRef, expected.size()> refs;
-        MicroInstrRef cursor = ctx.previousRef(extendRef);
+        MicroInstrRef                              cursor = ctx.previousRef(extendRef);
         for (size_t i = expected.size(); i > 0; --i)
         {
             if (!cursor.isValid())
@@ -1283,9 +1283,9 @@ namespace PostRaPeephole
             cursor      = ctx.previousRef(cursor);
         }
 
-        std::array<MicroReg, 16> known = {};
+        std::array<MicroReg, 16> known    = {};
         size_t                   numKnown = 0;
-        const auto isKnown = [&](const MicroReg reg) {
+        const auto               isKnown  = [&](const MicroReg reg) {
             return std::find(known.begin(), known.begin() + numKnown, reg) != known.begin() + numKnown;
         };
         auto markKnown = [&](const MicroReg reg) {
@@ -1311,11 +1311,11 @@ namespace PostRaPeephole
             {
                 if (ops[3].opBits != bits || ops[4].opBits != MicroOpBits::B64 || !ops[0].reg.isInt())
                     return false;
-                opcodes[i]                = MicroInstrOpcode::LoadZeroExtAmcRegMem;
-                counts[i]                 = 7;
-                allocate[i]               = true;
-                rewritten[i][3].opBits    = MicroOpBits::B32;
-                rewritten[i][4].opBits    = bits;
+                opcodes[i]             = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+                counts[i]              = 7;
+                allocate[i]            = true;
+                rewritten[i][3].opBits = MicroOpBits::B32;
+                rewritten[i][4].opBits = bits;
                 markKnown(ops[0].reg);
             }
             else if (inst->op == MicroInstrOpcode::LoadRegReg)
@@ -1353,7 +1353,7 @@ namespace PostRaPeephole
         const MicroReg bounded      = rewritten[9][0].reg;
         const MicroReg final        = rewritten[12][0].reg;
         MicroCond      invertedLast = MicroCond::Unconditional;
-        const bool isMedianGraph =
+        const bool     isMedianGraph =
             rewritten[3][1].reg == second &&
             rewritten[4][1].reg == first &&
             rewritten[5][0].reg == first &&
@@ -1378,10 +1378,10 @@ namespace PostRaPeephole
         if (isMedianGraph)
         {
             std::array<bool, expected.size()> erase = {};
-            erase[3] = true;
-            erase[7] = true;
-            erase[9] = true;
-            erase[12] = true;
+            erase[3]                                = true;
+            erase[7]                                = true;
+            erase[9]                                = true;
+            erase[12]                               = true;
 
             rewritten[5][1].reg      = second;
             rewritten[6][1].reg      = second;
@@ -1398,7 +1398,7 @@ namespace PostRaPeephole
             {
                 if (erase[i])
                     continue;
-                MicroInstr probe = *ctx.instruction(refs[i]);
+                MicroInstr probe  = *ctx.instruction(refs[i]);
                 probe.op          = opcodes[i];
                 probe.numOperands = counts[i];
                 if (ctx.encoder->queryConformanceIssue(issue, probe, rewritten[i].data()))
@@ -1424,7 +1424,7 @@ namespace PostRaPeephole
         MicroConformanceIssue issue;
         for (size_t i = 0; i < expected.size(); ++i)
         {
-            MicroInstr probe = *ctx.instruction(refs[i]);
+            MicroInstr probe  = *ctx.instruction(refs[i]);
             probe.op          = opcodes[i];
             probe.numOperands = counts[i];
             if (ctx.encoder->queryConformanceIssue(issue, probe, rewritten[i].data()))
@@ -1571,10 +1571,10 @@ namespace PostRaPeephole
         const MicroReg merged = copy[0].reg;
         const MicroReg result = copy[1].reg;
 
-        const MicroInstrRef orRef = ctx.nextRef(copyRef);
-        const MicroInstr*   orInst = ctx.instruction(orRef);
-        const auto*         orOps  = orInst ? orInst->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef xorRef = ctx.nextRef(orRef);
+        const MicroInstrRef orRef   = ctx.nextRef(copyRef);
+        const MicroInstr*   orInst  = ctx.instruction(orRef);
+        const auto*         orOps   = orInst ? orInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef xorRef  = ctx.nextRef(orRef);
         const MicroInstr*   xorInst = ctx.instruction(xorRef);
         const auto*         xorOps  = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
         if (!orInst || orInst->op != MicroInstrOpcode::OpBinaryRegReg || !orOps ||
@@ -1587,9 +1587,9 @@ namespace PostRaPeephole
         if (!other.isInt() || other == merged || other == result)
             return false;
 
-        const MicroInstrRef shiftRef = ctx.nextRef(xorRef);
-        const MicroInstr*   shift    = ctx.instruction(shiftRef);
-        const auto*         shifted  = shift ? shift->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef shiftRef    = ctx.nextRef(xorRef);
+        const MicroInstr*   shift       = ctx.instruction(shiftRef);
+        const auto*         shifted     = shift ? shift->ops(*ctx.operands) : nullptr;
         const MicroInstrRef subtractRef = ctx.nextRef(shiftRef);
         const MicroInstr*   subtract    = ctx.instruction(subtractRef);
         const auto*         sub         = subtract ? subtract->ops(*ctx.operands) : nullptr;
@@ -1624,17 +1624,17 @@ namespace PostRaPeephole
         MicroInstrOperand signedOtherLoad[7];
         std::copy_n(resultLoadOps, 7, signedResultLoad);
         std::copy_n(otherLoadOps, 7, signedOtherLoad);
-        signedResultLoad[3].opBits = MicroOpBits::B64;
-        signedResultLoad[4].opBits = MicroOpBits::B32;
-        signedOtherLoad[3].opBits  = MicroOpBits::B64;
-        signedOtherLoad[4].opBits  = MicroOpBits::B32;
+        signedResultLoad[3].opBits      = MicroOpBits::B64;
+        signedResultLoad[4].opBits      = MicroOpBits::B32;
+        signedOtherLoad[3].opBits       = MicroOpBits::B64;
+        signedOtherLoad[4].opBits       = MicroOpBits::B32;
         MicroInstrOperand widenedAdd[4] = {xorOps[0], xorOps[1], xorOps[2], {}};
         widenedAdd[2].opBits            = MicroOpBits::B64;
         widenedAdd[3].microOp           = MicroOp::Add;
         MicroInstrOperand increment[3];
-        increment[0].reg     = result;
-        increment[1].opBits  = MicroOpBits::B64;
-        increment[2].microOp = MicroOp::Add;
+        increment[0].reg                  = result;
+        increment[1].opBits               = MicroOpBits::B64;
+        increment[2].microOp              = MicroOp::Add;
         MicroInstrOperand widenedShift[4] = {shifted[0], shifted[1], shifted[2], shifted[3]};
         widenedShift[1].opBits            = MicroOpBits::B64;
 
@@ -1684,7 +1684,7 @@ namespace PostRaPeephole
         const MicroReg mask   = copy[0].reg;
         const MicroReg result = copy[1].reg;
 
-        const MicroInstrRef andRef = ctx.nextRef(copyRef);
+        const MicroInstrRef andRef  = ctx.nextRef(copyRef);
         const MicroInstr*   andInst = ctx.instruction(andRef);
         const auto*         andOps  = andInst ? andInst->ops(*ctx.operands) : nullptr;
         const MicroInstrRef xorRef  = ctx.nextRef(andRef);
@@ -1700,12 +1700,12 @@ namespace PostRaPeephole
         if (!other.isInt() || other == mask || other == result)
             return false;
 
-        const MicroInstrRef shiftRef = ctx.nextRef(xorRef);
-        const MicroInstr*   shift    = ctx.instruction(shiftRef);
-        const auto*         shifted  = shift ? shift->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef addRef   = ctx.nextRef(shiftRef);
-        const MicroInstr*   add      = ctx.instruction(addRef);
-        const auto*         addOps   = add ? add->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef shiftRef  = ctx.nextRef(xorRef);
+        const MicroInstr*   shift     = ctx.instruction(shiftRef);
+        const auto*         shifted   = shift ? shift->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef addRef    = ctx.nextRef(shiftRef);
+        const MicroInstr*   add       = ctx.instruction(addRef);
+        const auto*         addOps    = add ? add->ops(*ctx.operands) : nullptr;
         const MicroInstrRef extendRef = ctx.nextRef(addRef);
         const MicroInstr*   extend    = ctx.instruction(extendRef);
         const auto*         extended  = extend ? extend->ops(*ctx.operands) : nullptr;
@@ -1737,13 +1737,13 @@ namespace PostRaPeephole
         MicroInstrOperand signedOtherLoad[7];
         std::copy_n(resultLoadOps, 7, signedResultLoad);
         std::copy_n(otherLoadOps, 7, signedOtherLoad);
-        signedResultLoad[3].opBits = MicroOpBits::B64;
-        signedResultLoad[4].opBits = MicroOpBits::B32;
-        signedOtherLoad[3].opBits  = MicroOpBits::B64;
-        signedOtherLoad[4].opBits  = MicroOpBits::B32;
-        MicroInstrOperand widenedAdd[4] = {xorOps[0], xorOps[1], xorOps[2], xorOps[3]};
-        widenedAdd[2].opBits            = MicroOpBits::B64;
-        widenedAdd[3].microOp           = MicroOp::Add;
+        signedResultLoad[3].opBits        = MicroOpBits::B64;
+        signedResultLoad[4].opBits        = MicroOpBits::B32;
+        signedOtherLoad[3].opBits         = MicroOpBits::B64;
+        signedOtherLoad[4].opBits         = MicroOpBits::B32;
+        MicroInstrOperand widenedAdd[4]   = {xorOps[0], xorOps[1], xorOps[2], xorOps[3]};
+        widenedAdd[2].opBits              = MicroOpBits::B64;
+        widenedAdd[3].microOp             = MicroOp::Add;
         MicroInstrOperand widenedShift[4] = {shifted[0], shifted[1], shifted[2], shifted[3]};
         widenedShift[1].opBits            = MicroOpBits::B64;
 
@@ -1786,18 +1786,18 @@ namespace PostRaPeephole
         const MicroReg result = resultCopy[0].reg;
         const MicroReg merged = resultCopy[1].reg;
 
-        const MicroInstrRef subtractRef = ctx.previousRef(resultCopyRef);
-        const MicroInstr*   subtract    = ctx.instruction(subtractRef);
-        const auto*         sub         = subtract ? subtract->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef shiftRef    = ctx.previousRef(subtractRef);
-        const MicroInstr*   shift       = ctx.instruction(shiftRef);
-        const auto*         shifted     = shift ? shift->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef xorRef      = ctx.previousRef(shiftRef);
-        const MicroInstr*   xorInst     = ctx.instruction(xorRef);
-        const auto*         xorOps      = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef orRef       = ctx.previousRef(xorRef);
-        const MicroInstr*   orInst      = ctx.instruction(orRef);
-        const auto*         orOps       = orInst ? orInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef subtractRef     = ctx.previousRef(resultCopyRef);
+        const MicroInstr*   subtract        = ctx.instruction(subtractRef);
+        const auto*         sub             = subtract ? subtract->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef shiftRef        = ctx.previousRef(subtractRef);
+        const MicroInstr*   shift           = ctx.instruction(shiftRef);
+        const auto*         shifted         = shift ? shift->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef xorRef          = ctx.previousRef(shiftRef);
+        const MicroInstr*   xorInst         = ctx.instruction(xorRef);
+        const auto*         xorOps          = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef orRef           = ctx.previousRef(xorRef);
+        const MicroInstr*   orInst          = ctx.instruction(orRef);
+        const auto*         orOps           = orInst ? orInst->ops(*ctx.operands) : nullptr;
         const MicroInstrRef initialCopyRef  = ctx.previousRef(orRef);
         const MicroInstr*   initialCopyInst = ctx.instruction(initialCopyRef);
         const auto*         initialCopy     = initialCopyInst ? initialCopyInst->ops(*ctx.operands) : nullptr;
@@ -1816,12 +1816,12 @@ namespace PostRaPeephole
             !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, subtractRef, ctx.builder))
             return false;
 
-        MicroInstrOperand rewrittenXor[4] = {orOps[0], orOps[1], orOps[2], orOps[3]};
-        rewrittenXor[3].microOp           = MicroOp::Xor;
-        MicroInstrOperand rewrittenOr[4]  = {xorOps[0], xorOps[1], xorOps[2], xorOps[3]};
-        rewrittenOr[3].microOp            = MicroOp::Or;
-        MicroInstrOperand rewrittenShift[4] = {shifted[0], shifted[1], shifted[2], shifted[3]};
-        rewrittenShift[0].reg               = merged;
+        MicroInstrOperand rewrittenXor[4]      = {orOps[0], orOps[1], orOps[2], orOps[3]};
+        rewrittenXor[3].microOp                = MicroOp::Xor;
+        MicroInstrOperand rewrittenOr[4]       = {xorOps[0], xorOps[1], xorOps[2], xorOps[3]};
+        rewrittenOr[3].microOp                 = MicroOp::Or;
+        MicroInstrOperand rewrittenShift[4]    = {shifted[0], shifted[1], shifted[2], shifted[3]};
+        rewrittenShift[0].reg                  = merged;
         MicroInstrOperand rewrittenSubtract[4] = {sub[0], sub[1], sub[2], sub[3]};
         rewrittenSubtract[0].reg               = result;
         rewrittenSubtract[1].reg               = merged;
@@ -1875,7 +1875,7 @@ namespace PostRaPeephole
             shifted[3].hasWideImmediateValue() || shifted[3].valueU64 != 1)
             return false;
 
-        const MicroInstrRef xorRef = ctx.previousRef(shiftRef);
+        const MicroInstrRef xorRef  = ctx.previousRef(shiftRef);
         const MicroInstr*   xorInst = ctx.instruction(xorRef);
         const auto*         xorOps  = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
         if (!xorInst || xorInst->op != MicroInstrOpcode::OpBinaryRegReg || !xorOps || xorOps[0].reg != result ||
@@ -1884,12 +1884,12 @@ namespace PostRaPeephole
             return false;
         const MicroReg other = xorOps[1].reg;
 
-        const MicroInstrRef orRef = ctx.previousRef(xorRef);
-        const MicroInstr*   orInst = ctx.instruction(orRef);
-        const auto*         orOps  = orInst ? orInst->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef initialCopyRef = ctx.previousRef(orRef);
+        const MicroInstrRef orRef           = ctx.previousRef(xorRef);
+        const MicroInstr*   orInst          = ctx.instruction(orRef);
+        const auto*         orOps           = orInst ? orInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef initialCopyRef  = ctx.previousRef(orRef);
         const MicroInstr*   initialCopyInst = ctx.instruction(initialCopyRef);
-        const auto*         initialCopy = initialCopyInst ? initialCopyInst->ops(*ctx.operands) : nullptr;
+        const auto*         initialCopy     = initialCopyInst ? initialCopyInst->ops(*ctx.operands) : nullptr;
         if (!orInst || orInst->op != MicroInstrOpcode::OpBinaryRegReg || !orOps ||
             orOps[0].reg != merged || orOps[1].reg != other || orOps[2].opBits != MicroOpBits::B32 || orOps[3].microOp != MicroOp::Or ||
             !initialCopyInst || initialCopyInst->op != MicroInstrOpcode::LoadRegReg || !initialCopy ||
@@ -1901,9 +1901,9 @@ namespace PostRaPeephole
         widenedAdd[2].opBits            = MicroOpBits::B64;
         widenedAdd[3].microOp           = MicroOp::Add;
         MicroInstrOperand increment[3];
-        increment[0].reg     = result;
-        increment[1].opBits  = MicroOpBits::B64;
-        increment[2].microOp = MicroOp::Add;
+        increment[0].reg                  = result;
+        increment[1].opBits               = MicroOpBits::B64;
+        increment[2].microOp              = MicroOp::Add;
         MicroInstrOperand widenedShift[4] = {shifted[0], shifted[1], shifted[2], shifted[3]};
         widenedShift[1].opBits            = MicroOpBits::B64;
 
@@ -1943,15 +1943,15 @@ namespace PostRaPeephole
         const MicroReg result   = copy[0].reg;
         const MicroReg selected = copy[1].reg;
 
-        const MicroInstrRef firstSelectRef = ctx.previousRef(copyRef);
-        const MicroInstr*   firstSelect    = ctx.instruction(firstSelectRef);
-        const auto*         first          = firstSelect ? firstSelect->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef firstCmpRef    = ctx.previousRef(firstSelectRef);
-        const MicroInstr*   firstCmp       = ctx.instruction(firstCmpRef);
-        const auto*         firstCompared = firstCmp ? firstCmp->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef secondCmpRef   = ctx.nextRef(copyRef);
-        const MicroInstr*   secondCmp      = ctx.instruction(secondCmpRef);
-        const auto*         secondCompared = secondCmp ? secondCmp->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef firstSelectRef  = ctx.previousRef(copyRef);
+        const MicroInstr*   firstSelect     = ctx.instruction(firstSelectRef);
+        const auto*         first           = firstSelect ? firstSelect->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef firstCmpRef     = ctx.previousRef(firstSelectRef);
+        const MicroInstr*   firstCmp        = ctx.instruction(firstCmpRef);
+        const auto*         firstCompared   = firstCmp ? firstCmp->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef secondCmpRef    = ctx.nextRef(copyRef);
+        const MicroInstr*   secondCmp       = ctx.instruction(secondCmpRef);
+        const auto*         secondCompared  = secondCmp ? secondCmp->ops(*ctx.operands) : nullptr;
         const MicroInstrRef secondSelectRef = ctx.nextRef(secondCmpRef);
         const MicroInstr*   secondSelect    = ctx.instruction(secondSelectRef);
         const auto*         second          = secondSelect ? secondSelect->ops(*ctx.operands) : nullptr;
@@ -2048,15 +2048,15 @@ namespace PostRaPeephole
             !ctx.isRegDeadAfter(temporary, ctx.instructionIndex + 3))
             return false;
 
-        MicroInstrOperand rewrittenFirst[4] = {first[0], first[1], first[2], first[3]};
-        rewrittenFirst[0].reg               = result;
+        MicroInstrOperand rewrittenFirst[4]   = {first[0], first[1], first[2], first[3]};
+        rewrittenFirst[0].reg                 = result;
         MicroInstrOperand rewrittenCompare[3] = {cmp[0], cmp[1], cmp[2]};
         if (rewrittenCompare[0].reg == temporary)
             rewrittenCompare[0].reg = result;
         else
             rewrittenCompare[1].reg = result;
         MicroInstrOperand rewrittenSecond[4] = {second[0], second[1], second[2], second[3]};
-        rewrittenSecond[1].reg              = result;
+        rewrittenSecond[1].reg               = result;
 
         MicroConformanceIssue issue;
         if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, *firstSelect, rewrittenFirst) ||
@@ -2083,7 +2083,7 @@ namespace PostRaPeephole
     {
         if (ctx.isClaimed(copyRef))
             return false;
-        const auto* copy = copyInst.ops(*ctx.operands);
+        const auto* copy       = copyInst.ops(*ctx.operands);
         const bool  signExtend = copyInst.op == MicroInstrOpcode::LoadSignedExtRegReg;
         if (!copy || (!signExtend && copyInst.op != MicroInstrOpcode::LoadRegReg) ||
             (signExtend ? copy[2].opBits != MicroOpBits::B64 || copy[3].opBits != MicroOpBits::B32
@@ -2093,8 +2093,8 @@ namespace PostRaPeephole
             !ctx.isRegDeadAfterCurrent(copy[1].reg))
             return false;
 
-        const MicroReg      result       = copy[0].reg;
-        const MicroReg      secondResult = copy[1].reg;
+        const MicroReg      result          = copy[0].reg;
+        const MicroReg      secondResult    = copy[1].reg;
         const MicroInstrRef secondSelectRef = ctx.previousRef(copyRef);
         const MicroInstr*   secondSelect    = ctx.instruction(secondSelectRef);
         const auto*         second          = secondSelect ? secondSelect->ops(*ctx.operands) : nullptr;
@@ -2102,8 +2102,8 @@ namespace PostRaPeephole
             second[0].reg != secondResult || !second[1].reg.isInt() || second[1].reg == result ||
             second[1].reg == secondResult || (second[3].opBits != MicroOpBits::B32 && second[3].opBits != MicroOpBits::B64))
             return false;
-        const MicroReg firstResult = second[1].reg;
-        const MicroOpBits bits = second[3].opBits;
+        const MicroReg    firstResult = second[1].reg;
+        const MicroOpBits bits        = second[3].opBits;
         if ((!signExtend && copy[2].opBits != bits &&
              !(copy[2].opBits == MicroOpBits::B64 && bits == MicroOpBits::B32 && ctx.isUpperHalfZeroBefore(copyRef, secondResult))) ||
             (signExtend && bits != MicroOpBits::B32) ||
@@ -2148,24 +2148,24 @@ namespace PostRaPeephole
             !MicroPassHelpers::invertCondition(invertedSecond, second[2].cpuCond))
             return false;
 
-        MicroInstrOperand rewrittenFirst[4] = {first[0], first[1], first[2], first[3]};
-        rewrittenFirst[0].reg               = result;
-        rewrittenFirst[1].reg               = initialAlternative;
-        rewrittenFirst[2].cpuCond           = invertedFirst;
+        MicroInstrOperand rewrittenFirst[4]   = {first[0], first[1], first[2], first[3]};
+        rewrittenFirst[0].reg                 = result;
+        rewrittenFirst[1].reg                 = initialAlternative;
+        rewrittenFirst[2].cpuCond             = invertedFirst;
         MicroInstrOperand rewrittenCompare[3] = {secondCmp[0], secondCmp[1], secondCmp[2]};
         if (rewrittenCompare[0].reg == firstResult)
             rewrittenCompare[0].reg = result;
         else
             rewrittenCompare[1].reg = result;
         MicroInstrOperand rewrittenSecond[4] = {second[0], second[1], second[2], second[3]};
-        rewrittenSecond[0].reg              = result;
-        rewrittenSecond[1].reg              = secondResult;
-        rewrittenSecond[2].cpuCond          = invertedSecond;
-        MicroInstrOperand rewrittenCopy[4] = {copy[0], copy[1], copy[2], {}};
+        rewrittenSecond[0].reg               = result;
+        rewrittenSecond[1].reg               = secondResult;
+        rewrittenSecond[2].cpuCond           = invertedSecond;
+        MicroInstrOperand rewrittenCopy[4]   = {copy[0], copy[1], copy[2], {}};
         if (signExtend)
         {
-            rewrittenCopy[1].reg   = result;
-            rewrittenCopy[3]       = copy[3];
+            rewrittenCopy[1].reg = result;
+            rewrittenCopy[3]     = copy[3];
         }
 
         MicroConformanceIssue issue;
@@ -2204,8 +2204,8 @@ namespace PostRaPeephole
             !ctx.isRegDeadAfterCurrent(copy[1].reg))
             return false;
 
-        const MicroReg      result    = copy[0].reg;
-        const MicroReg      temporary = copy[1].reg;
+        const MicroReg      result          = copy[0].reg;
+        const MicroReg      temporary       = copy[1].reg;
         const MicroInstrRef secondSelectRef = ctx.previousRef(copyRef);
         const MicroInstr*   secondSelect    = ctx.instruction(secondSelectRef);
         const auto*         second          = secondSelect ? secondSelect->ops(*ctx.operands) : nullptr;
@@ -2237,17 +2237,17 @@ namespace PostRaPeephole
         if (!MicroPassHelpers::invertCondition(inverted, first[2].cpuCond))
             return false;
 
-        MicroInstrOperand rewrittenFirst[4] = {first[0], first[1], first[2], first[3]};
-        rewrittenFirst[0].reg               = result;
-        rewrittenFirst[1].reg               = temporary;
-        rewrittenFirst[2].cpuCond           = inverted;
+        MicroInstrOperand rewrittenFirst[4]   = {first[0], first[1], first[2], first[3]};
+        rewrittenFirst[0].reg                 = result;
+        rewrittenFirst[1].reg                 = temporary;
+        rewrittenFirst[2].cpuCond             = inverted;
         MicroInstrOperand rewrittenCompare[3] = {cmp[0], cmp[1], cmp[2]};
         if (rewrittenCompare[0].reg == temporary)
             rewrittenCompare[0].reg = result;
         else
             rewrittenCompare[1].reg = result;
         MicroInstrOperand rewrittenSecond[4] = {second[0], second[1], second[2], second[3]};
-        rewrittenSecond[0].reg              = result;
+        rewrittenSecond[0].reg               = result;
 
         MicroConformanceIssue issue;
         if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, *firstSelect, rewrittenFirst) ||
@@ -2425,8 +2425,8 @@ namespace PostRaPeephole
             default:
                 return false;
         }
-        const MicroReg firstCount = first[2].reg;
-        const MicroOpBits bits    = first[3].opBits;
+        const MicroReg    firstCount = first[2].reg;
+        const MicroOpBits bits       = first[3].opBits;
 
         const MicroInstrRef secondShiftRef = ctx.nextRef(firstShiftRef);
         const MicroInstr*   secondShift    = ctx.instruction(secondShiftRef);
@@ -2461,23 +2461,23 @@ namespace PostRaPeephole
         choose[2].cpuCond           = inverted;
         choose[3].opBits            = bits;
         MicroInstr chooseProbe;
-        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
-        chooseProbe.numOperands = 4;
+        chooseProbe.op            = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands   = 4;
         MicroInstrOperand move[3] = {};
-        move[0].reg                 = common;
-        move[1].reg                 = firstCount;
-        move[2].opBits              = MicroOpBits::B32;
+        move[0].reg               = common;
+        move[1].reg               = firstCount;
+        move[2].opBits            = MicroOpBits::B32;
         MicroInstr moveProbe;
-        moveProbe.op          = MicroInstrOpcode::LoadRegReg;
-        moveProbe.numOperands = 3;
+        moveProbe.op               = MicroInstrOpcode::LoadRegReg;
+        moveProbe.numOperands      = 3;
         MicroInstrOperand shift[4] = {};
-        shift[0].reg                = result;
-        shift[1].reg                = common;
-        shift[2].opBits             = bits;
-        shift[3].microOp            = first[4].microOp;
+        shift[0].reg               = result;
+        shift[1].reg               = common;
+        shift[2].opBits            = bits;
+        shift[3].microOp           = first[4].microOp;
         MicroInstr shiftProbe;
-        shiftProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
-        shiftProbe.numOperands = 4;
+        shiftProbe.op                     = MicroInstrOpcode::OpBinaryRegReg;
+        shiftProbe.numOperands            = 4;
         MicroInstrOperand narrowedCopy[3] = {copy[0], copy[1], copy[2]};
         narrowedCopy[2].opBits            = bits;
         MicroConformanceIssue issue;
@@ -2568,32 +2568,32 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrOperand copyValue[3] = {};
-        copyValue[0].reg                = result;
-        copyValue[1].reg                = common;
-        copyValue[2].opBits             = bits;
+        copyValue[0].reg               = result;
+        copyValue[1].reg               = common;
+        copyValue[2].opBits            = bits;
         MicroInstr copyValueProbe;
-        copyValueProbe.op          = MicroInstrOpcode::LoadRegReg;
-        copyValueProbe.numOperands = 3;
+        copyValueProbe.op           = MicroInstrOpcode::LoadRegReg;
+        copyValueProbe.numOperands  = 3;
         MicroInstrOperand choose[4] = {};
         choose[0].reg               = firstCount;
         choose[1].reg               = secondCount;
         choose[2].cpuCond           = selected[2].cpuCond;
         choose[3].opBits            = MicroOpBits::B32;
         MicroInstr chooseProbe;
-        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
-        chooseProbe.numOperands = 4;
+        chooseProbe.op                 = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands        = 4;
         MicroInstrOperand moveCount[3] = {};
-        moveCount[0].reg                = common;
-        moveCount[1].reg                = firstCount;
-        moveCount[2].opBits             = MicroOpBits::B32;
+        moveCount[0].reg               = common;
+        moveCount[1].reg               = firstCount;
+        moveCount[2].opBits            = MicroOpBits::B32;
         MicroInstr moveCountProbe;
         moveCountProbe.op          = MicroInstrOpcode::LoadRegReg;
         moveCountProbe.numOperands = 3;
         MicroInstrOperand shift[4] = {};
-        shift[0].reg                = result;
-        shift[1].reg                = common;
-        shift[2].opBits             = bits;
-        shift[3].microOp            = first[4].microOp;
+        shift[0].reg               = result;
+        shift[1].reg               = common;
+        shift[2].opBits            = bits;
+        shift[3].microOp           = first[4].microOp;
         MicroInstr shiftProbe;
         shiftProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
         shiftProbe.numOperands = 4;
@@ -2668,26 +2668,26 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrOperand copyValue[3] = {};
-        copyValue[0].reg                = result;
-        copyValue[1].reg                = common;
-        copyValue[2].opBits             = bits;
+        copyValue[0].reg               = result;
+        copyValue[1].reg               = common;
+        copyValue[2].opBits            = bits;
         MicroInstr copyValueProbe;
-        copyValueProbe.op          = MicroInstrOpcode::LoadRegReg;
-        copyValueProbe.numOperands = 3;
+        copyValueProbe.op           = MicroInstrOpcode::LoadRegReg;
+        copyValueProbe.numOperands  = 3;
         MicroInstrOperand choose[4] = {};
         choose[0].reg               = firstCount;
         choose[1].reg               = secondCount;
         choose[2].cpuCond           = selected[2].cpuCond;
         choose[3].opBits            = MicroOpBits::B32;
         MicroInstr chooseProbe;
-        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
-        chooseProbe.numOperands = 4;
+        chooseProbe.op             = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands    = 4;
         MicroInstrOperand shift[5] = {};
-        shift[0].reg                = result;
-        shift[1].reg                = result;
-        shift[2].reg                = firstCount;
-        shift[3].opBits             = bits;
-        shift[4].microOp            = first[4].microOp;
+        shift[0].reg               = result;
+        shift[1].reg               = result;
+        shift[2].reg               = firstCount;
+        shift[3].opBits            = bits;
+        shift[4].microOp           = first[4].microOp;
         MicroInstr shiftProbe;
         shiftProbe.op          = MicroInstrOpcode::OpBinaryRegRegReg;
         shiftProbe.numOperands = 5;
@@ -2721,7 +2721,7 @@ namespace PostRaPeephole
 
         const MicroInstrRef alternateCopyRef = ctx.nextRef(copyRef);
         const MicroInstr*   alternateCopy    = ctx.instruction(alternateCopyRef);
-        const auto* alternateCopyOps = alternateCopy ? alternateCopy->ops(*ctx.operands) : nullptr;
+        const auto*         alternateCopyOps = alternateCopy ? alternateCopy->ops(*ctx.operands) : nullptr;
         if (!alternateCopy || alternateCopy->op != MicroInstrOpcode::LoadRegReg || !alternateCopyOps ||
             alternateCopyOps[1].reg != common || alternateCopyOps[0].reg == result || alternateCopyOps[0].reg == common)
             return false;
@@ -2729,7 +2729,7 @@ namespace PostRaPeephole
 
         const MicroInstrRef firstCountMoveRef = ctx.nextRef(alternateCopyRef);
         const MicroInstr*   firstCountMove    = ctx.instruction(firstCountMoveRef);
-        const auto* firstCountMoveOps = firstCountMove ? firstCountMove->ops(*ctx.operands) : nullptr;
+        const auto*         firstCountMoveOps = firstCountMove ? firstCountMove->ops(*ctx.operands) : nullptr;
         if (!firstCountMove || firstCountMove->op != MicroInstrOpcode::LoadRegReg || !firstCountMoveOps ||
             !firstCountMoveOps[0].reg.isInt() || !firstCountMoveOps[1].reg.isInt())
             return false;
@@ -2759,7 +2759,7 @@ namespace PostRaPeephole
 
         const MicroInstrRef secondCountMoveRef = ctx.nextRef(firstShiftRef);
         const MicroInstr*   secondCountMove    = ctx.instruction(secondCountMoveRef);
-        const auto* secondCountMoveOps = secondCountMove ? secondCountMove->ops(*ctx.operands) : nullptr;
+        const auto*         secondCountMoveOps = secondCountMove ? secondCountMove->ops(*ctx.operands) : nullptr;
         if (!secondCountMove || secondCountMove->op != MicroInstrOpcode::LoadRegReg || !secondCountMoveOps ||
             secondCountMoveOps[0].reg != countReg || !secondCountMoveOps[1].reg.isInt())
             return false;
@@ -2797,37 +2797,35 @@ namespace PostRaPeephole
         if (!MicroPassHelpers::invertCondition(inverted, selected[2].cpuCond))
             return false;
 
-        const auto* compareOps = compare->ops(*ctx.operands);
-        MicroInstrOperand extend[4] = {};
+        const auto*       compareOps = compare->ops(*ctx.operands);
+        MicroInstrOperand extend[4]  = {};
         extend[0].reg                = result;
         extend[1].reg                = common;
         extend[2].opBits             = MicroOpBits::B32;
         extend[3].opBits             = narrowBits;
         MicroInstr extendProbe;
-        extendProbe.op          = first[3].microOp == MicroOp::ShiftArithmeticRight ?
-                                      MicroInstrOpcode::LoadSignedExtRegReg :
-                                      MicroInstrOpcode::LoadZeroExtRegReg;
-        extendProbe.numOperands = 4;
+        extendProbe.op              = first[3].microOp == MicroOp::ShiftArithmeticRight ? MicroInstrOpcode::LoadSignedExtRegReg : MicroInstrOpcode::LoadZeroExtRegReg;
+        extendProbe.numOperands     = 4;
         MicroInstrOperand choose[4] = {};
         choose[0].reg               = firstCount;
         choose[1].reg               = secondCount;
         choose[2].cpuCond           = inverted;
         choose[3].opBits            = MicroOpBits::B32;
         MicroInstr chooseProbe;
-        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
-        chooseProbe.numOperands = 4;
+        chooseProbe.op                 = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands        = 4;
         MicroInstrOperand moveCount[3] = {};
-        moveCount[0].reg                = countReg;
-        moveCount[1].reg                = firstCount;
-        moveCount[2].opBits             = MicroOpBits::B32;
+        moveCount[0].reg               = countReg;
+        moveCount[1].reg               = firstCount;
+        moveCount[2].opBits            = MicroOpBits::B32;
         MicroInstr moveCountProbe;
         moveCountProbe.op          = MicroInstrOpcode::LoadRegReg;
         moveCountProbe.numOperands = 3;
         MicroInstrOperand shift[4] = {};
-        shift[0].reg                = result;
-        shift[1].reg                = countReg;
-        shift[2].opBits             = MicroOpBits::B32;
-        shift[3].microOp            = first[3].microOp;
+        shift[0].reg               = result;
+        shift[1].reg               = countReg;
+        shift[2].opBits            = MicroOpBits::B32;
+        shift[3].microOp           = first[3].microOp;
         MicroInstr shiftProbe;
         shiftProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
         shiftProbe.numOperands = 4;
@@ -2866,7 +2864,7 @@ namespace PostRaPeephole
 
         const MicroInstrRef temporaryCopyRef = ctx.nextRef(copyRef);
         const MicroInstr*   temporaryCopy    = ctx.instruction(temporaryCopyRef);
-        const auto* temporaryCopyOps = temporaryCopy ? temporaryCopy->ops(*ctx.operands) : nullptr;
+        const auto*         temporaryCopyOps = temporaryCopy ? temporaryCopy->ops(*ctx.operands) : nullptr;
         if (!temporaryCopy || temporaryCopy->op != MicroInstrOpcode::LoadRegReg || !temporaryCopyOps ||
             temporaryCopyOps[2].opBits != MicroOpBits::B8 || temporaryCopyOps[0].reg == temporaryCopyOps[1].reg)
             return false;
@@ -2881,7 +2879,7 @@ namespace PostRaPeephole
 
         const MicroInstrRef accumulatorCopyRef = ctx.nextRef(selectRef);
         const MicroInstr*   accumulatorCopy    = ctx.instruction(accumulatorCopyRef);
-        const auto* accumulatorCopyOps = accumulatorCopy ? accumulatorCopy->ops(*ctx.operands) : nullptr;
+        const auto*         accumulatorCopyOps = accumulatorCopy ? accumulatorCopy->ops(*ctx.operands) : nullptr;
         if (!accumulatorCopy || accumulatorCopy->op != MicroInstrOpcode::LoadRegReg || !accumulatorCopyOps ||
             accumulatorCopyOps[2].opBits != MicroOpBits::B64)
             return false;
@@ -2936,9 +2934,9 @@ namespace PostRaPeephole
             return false;
         const MicroReg first = firstLoad[0].reg;
 
-        const MicroInstrRef secondLoadRef = ctx.nextRef(firstLoadRef);
+        const MicroInstrRef secondLoadRef  = ctx.nextRef(firstLoadRef);
         const MicroInstr*   secondLoadInst = ctx.instruction(secondLoadRef);
-        const auto* secondLoad = secondLoadInst ? secondLoadInst->ops(*ctx.operands) : nullptr;
+        const auto*         secondLoad     = secondLoadInst ? secondLoadInst->ops(*ctx.operands) : nullptr;
         if (!secondLoadInst || secondLoadInst->op != MicroInstrOpcode::LoadAmcRegMem || !secondLoad ||
             secondLoad[3].opBits != MicroOpBits::B8 || secondLoad[4].opBits != MicroOpBits::B64 ||
             secondLoad[0].reg == first)
@@ -2953,18 +2951,18 @@ namespace PostRaPeephole
             return false;
         const MicroReg work = copyOps[0].reg;
 
-        const MicroInstrRef andRef = ctx.nextRef(copyRef);
-        const MicroInstr*   andInst = ctx.instruction(andRef);
-        const auto*         andOps = andInst ? andInst->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef xorRef = ctx.nextRef(andRef);
-        const MicroInstr*   xorInst = ctx.instruction(xorRef);
-        const auto*         xorOps = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef shiftRef = ctx.nextRef(xorRef);
+        const MicroInstrRef andRef    = ctx.nextRef(copyRef);
+        const MicroInstr*   andInst   = ctx.instruction(andRef);
+        const auto*         andOps    = andInst ? andInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef xorRef    = ctx.nextRef(andRef);
+        const MicroInstr*   xorInst   = ctx.instruction(xorRef);
+        const auto*         xorOps    = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef shiftRef  = ctx.nextRef(xorRef);
         const MicroInstr*   shiftInst = ctx.instruction(shiftRef);
-        const auto*         shiftOps = shiftInst ? shiftInst->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef addRef = ctx.nextRef(shiftRef);
-        const MicroInstr*   addInst = ctx.instruction(addRef);
-        const auto*         addOps = addInst ? addInst->ops(*ctx.operands) : nullptr;
+        const auto*         shiftOps  = shiftInst ? shiftInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef addRef    = ctx.nextRef(shiftRef);
+        const MicroInstr*   addInst   = ctx.instruction(addRef);
+        const auto*         addOps    = addInst ? addInst->ops(*ctx.operands) : nullptr;
         if (!andInst || andInst->op != MicroInstrOpcode::OpBinaryRegReg || !andOps ||
             andOps[0].reg != work || andOps[1].reg != second || andOps[2].opBits != MicroOpBits::B8 ||
             (andOps[3].microOp != MicroOp::And && andOps[3].microOp != MicroOp::Or) ||
@@ -2982,9 +2980,9 @@ namespace PostRaPeephole
 
         const MicroInstrRef resultCopyRef = ctx.nextRef(addRef);
         const MicroInstr*   resultCopy    = ctx.instruction(resultCopyRef);
-        const auto* resultCopyOps = resultCopy ? resultCopy->ops(*ctx.operands) : nullptr;
-        MicroInstrRef returnRef = ctx.nextRef(resultCopyRef);
-        const MicroInstr* returnInst = ctx.instruction(returnRef);
+        const auto*         resultCopyOps = resultCopy ? resultCopy->ops(*ctx.operands) : nullptr;
+        MicroInstrRef       returnRef     = ctx.nextRef(resultCopyRef);
+        const MicroInstr*   returnInst    = ctx.instruction(returnRef);
         if (returnInst && returnInst->op == MicroInstrOpcode::OpBinaryRegImm)
         {
             const auto* epilogOps = returnInst->ops(*ctx.operands);
@@ -3007,29 +3005,29 @@ namespace PostRaPeephole
         widenedSecond[3].opBits = MicroOpBits::B32;
         widenedSecond[4].opBits = MicroOpBits::B8;
         MicroInstr loadProbe;
-        loadProbe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
-        loadProbe.numOperands = 8;
+        loadProbe.op             = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        loadProbe.numOperands    = 8;
         MicroInstrOperand sum[4] = {};
-        sum[0].reg                = first;
-        sum[1].reg                = second;
-        sum[2].opBits             = MicroOpBits::B32;
-        sum[3].microOp            = MicroOp::Add;
+        sum[0].reg               = first;
+        sum[1].reg               = second;
+        sum[2].opBits            = MicroOpBits::B32;
+        sum[3].microOp           = MicroOp::Add;
         MicroInstr sumProbe;
-        sumProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
-        sumProbe.numOperands = 4;
+        sumProbe.op                = MicroInstrOpcode::OpBinaryRegReg;
+        sumProbe.numOperands       = 4;
         MicroInstrOperand shift[4] = {};
-        shift[0].reg                = first;
-        shift[1].opBits             = MicroOpBits::B32;
-        shift[2].microOp            = MicroOp::ShiftRight;
-        shift[3].valueU64           = 1;
+        shift[0].reg               = first;
+        shift[1].opBits            = MicroOpBits::B32;
+        shift[2].microOp           = MicroOp::ShiftRight;
+        shift[3].valueU64          = 1;
         MicroInstr shiftProbe;
-        shiftProbe.op          = MicroInstrOpcode::OpBinaryRegImm;
-        shiftProbe.numOperands = 4;
+        shiftProbe.op                  = MicroInstrOpcode::OpBinaryRegImm;
+        shiftProbe.numOperands         = 4;
         MicroInstrOperand increment[4] = {};
-        increment[0].reg                = first;
-        increment[1].opBits             = MicroOpBits::B32;
-        increment[2].microOp            = MicroOp::Add;
-        increment[3].valueU64           = 1;
+        increment[0].reg               = first;
+        increment[1].opBits            = MicroOpBits::B32;
+        increment[2].microOp           = MicroOp::Add;
+        increment[3].valueU64          = 1;
         MicroInstr incrementProbe;
         incrementProbe.op          = MicroInstrOpcode::OpBinaryRegImm;
         incrementProbe.numOperands = 4;
@@ -3066,11 +3064,11 @@ namespace PostRaPeephole
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || copy[2].opBits != MicroOpBits::B64 || copy[0].reg == copy[1].reg)
             return false;
-        const MicroReg sum      = copy[0].reg;
-        const MicroReg original = copy[1].reg;
-        const MicroInstrRef loadRef = ctx.previousRef(copyRef);
-        const MicroInstr*   load    = ctx.instruction(loadRef);
-        const auto*         loadOps = load ? load->ops(*ctx.operands) : nullptr;
+        const MicroReg      sum      = copy[0].reg;
+        const MicroReg      original = copy[1].reg;
+        const MicroInstrRef loadRef  = ctx.previousRef(copyRef);
+        const MicroInstr*   load     = ctx.instruction(loadRef);
+        const auto*         loadOps  = load ? load->ops(*ctx.operands) : nullptr;
         if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || !loadOps ||
             loadOps[0].reg != original || loadOps[3].opBits != MicroOpBits::B8)
             return false;
@@ -3111,15 +3109,15 @@ namespace PostRaPeephole
 
         MicroInstrOperand rewrittenAdd[8];
         std::copy_n(addOps, 8, rewrittenAdd);
-        rewrittenAdd[0].reg = original;
+        rewrittenAdd[0].reg         = original;
         MicroInstrOperand extend[4] = {};
-        extend[0].reg                = widened;
-        extend[1].reg                = original;
-        extend[2].opBits             = MicroOpBits::B32;
-        extend[3].opBits             = MicroOpBits::B8;
+        extend[0].reg               = widened;
+        extend[1].reg               = original;
+        extend[2].opBits            = MicroOpBits::B32;
+        extend[3].opBits            = MicroOpBits::B8;
         MicroInstr extendProbe;
-        extendProbe.op          = MicroInstrOpcode::LoadZeroExtRegReg;
-        extendProbe.numOperands = 4;
+        extendProbe.op                       = MicroInstrOpcode::LoadZeroExtRegReg;
+        extendProbe.numOperands              = 4;
         MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
         rewrittenSelect[1].reg               = widened;
         MicroConformanceIssue issue;
@@ -3162,9 +3160,9 @@ namespace PostRaPeephole
              first[3].microOp != MicroOp::MultiplySigned && first[3].microOp != MicroOp::MultiplyUnsigned) ||
             getNumBits(copy[2].opBits) < getNumBits(first[2].opBits))
             return false;
-        const MicroReg firstVarying = first[1].reg;
-        const MicroOp  operation    = first[3].microOp;
-        const MicroOpBits bits      = first[2].opBits;
+        const MicroReg    firstVarying = first[1].reg;
+        const MicroOp     operation    = first[3].microOp;
+        const MicroOpBits bits         = first[2].opBits;
 
         const MicroInstrRef secondOpRef = ctx.nextRef(firstOpRef);
         const MicroInstr*   secondOp    = ctx.instruction(secondOpRef);
@@ -3199,17 +3197,17 @@ namespace PostRaPeephole
         MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
         rewrittenSelect[0].reg               = firstVarying;
         rewrittenSelect[1].reg               = secondVarying;
-        const MicroOpBits resultBits          = bits == MicroOpBits::B16 ? MicroOpBits::B32 : bits;
+        const MicroOpBits resultBits         = bits == MicroOpBits::B16 ? MicroOpBits::B32 : bits;
         MicroInstrOperand finalOps[8]        = {};
         MicroInstr        finalProbe;
         if (operation == MicroOp::Add)
         {
-            finalOps[0].reg       = result;
-            finalOps[1].reg       = common;
-            finalOps[2].reg       = firstVarying;
-            finalOps[3].opBits    = resultBits;
-            finalOps[4].opBits    = MicroOpBits::B64;
-            finalOps[5].valueU64  = 1;
+            finalOps[0].reg        = result;
+            finalOps[1].reg        = common;
+            finalOps[2].reg        = firstVarying;
+            finalOps[3].opBits     = resultBits;
+            finalOps[4].opBits     = MicroOpBits::B64;
+            finalOps[5].valueU64   = 1;
             finalProbe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
             finalProbe.numOperands = 8;
         }
@@ -3405,7 +3403,7 @@ namespace PostRaPeephole
             const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg && next->ops(*ctx.operands)[3].microOp != MicroOp::Exchange;
             const bool three  = next->op == MicroInstrOpcode::OpBinaryRegRegReg;
             // A store or a memory update reads its value operand; the base stays.
-            const bool memory = next->op == MicroInstrOpcode::LoadMemReg || next->op == MicroInstrOpcode::OpBinaryMemReg;
+            const bool memory    = next->op == MicroInstrOpcode::LoadMemReg || next->op == MicroInstrOpcode::OpBinaryMemReg;
             const bool candidate = floatCopy ? compareRegs || next->op == MicroInstrOpcode::LoadRegReg || binary || three || memory
                                              : extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary || three || memory;
             if (candidate)
@@ -3733,10 +3731,10 @@ namespace PostRaPeephole
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return 0;
 
-            const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-            UpperHalfState killed = 0;
-            UpperHalfState generated = 0;
-            const auto recordDef = [&](MicroReg def) {
+            const MicroInstrOperand* ops       = inst.ops(*ctx.operands);
+            UpperHalfState           killed    = 0;
+            UpperHalfState           generated = 0;
+            const auto               recordDef = [&](MicroReg def) {
                 const UpperHalfState bit = regBit(def);
                 killed |= bit;
                 if (bit && definesUpperHalfZero(inst, ops, def, before))

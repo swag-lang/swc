@@ -457,6 +457,7 @@ namespace
         MicroPassContext context;
         context.instructions  = &builder.instructions();
         context.operands      = &builder.operands();
+        context.builder       = &builder;
         context.validateMicro = true;
         // Expected rejections must not print diagnostics into the hosting test run.
         return virtualOnly ? MicroVerify::verifyAllRegistersVirtual(context, "register-fixture") : MicroVerify::verify(context, "register-fixture");
@@ -575,6 +576,49 @@ SWC_TEST_BEGIN(MicroVerify_AmcRegistersFollowTheirOperandRoles)
                     return Result::Error;
             }
         }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroVerify_RipRelativeGlobalMemoryOperations)
+{
+    const MicroReg base  = MicroReg::instructionPointer();
+    const MicroReg value = MicroReg::virtualIntReg(1);
+    for (const MicroInstrOpcode op : {MicroInstrOpcode::CmpMemReg, MicroInstrOpcode::CmpMemImm,
+                                      MicroInstrOpcode::TestMemReg, MicroInstrOpcode::TestMemImm,
+                                      MicroInstrOpcode::OpUnaryMem, MicroInstrOpcode::OpBinaryMemReg})
+    {
+        MicroBuilder builder(ctx);
+        switch (op)
+        {
+            case MicroInstrOpcode::CmpMemReg:
+            case MicroInstrOpcode::TestMemReg:
+                builder.emitCmpMemReg(base, 0, value, MicroOpBits::B64);
+                break;
+            case MicroInstrOpcode::CmpMemImm:
+            case MicroInstrOpcode::TestMemImm:
+                builder.emitCmpMemImm(base, 0, ApInt(1, 64), MicroOpBits::B64);
+                break;
+            case MicroInstrOpcode::OpUnaryMem:
+                builder.emitOpUnaryMem(base, 0, MicroOp::BitwiseNot, MicroOpBits::B64);
+                break;
+            case MicroInstrOpcode::OpBinaryMemReg:
+                builder.emitOpBinaryMemReg(base, 0, value, MicroOp::Add, MicroOpBits::B64);
+                break;
+            default:
+                return Result::Error;
+        }
+        builder.instructions().ptr(builder.instructions().lastInstructionRef())->op = op;
+        MicroRelocation relocation;
+        relocation.kind           = MicroRelocation::Kind::GlobalZeroAddress;
+        relocation.form           = MicroRelocation::Form::Relative32;
+        relocation.instructionRef = builder.instructions().lastInstructionRef();
+        builder.codeRelocations().push_back(relocation);
+        SWC_RESULT(verifyMicroFixture(builder));
+        builder.codeRelocations()[0].form = MicroRelocation::Form::Absolute64;
+        if (verifyMicroFixture(builder) != Result::Error)
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

@@ -242,7 +242,7 @@ namespace ModuleApiExport
         const uintmax_t existingSize = fs::file_size(dstPath, ec);
         if (!ec && existingSize == content.size())
         {
-            std::vector<char>        existingContent;
+            std::vector<char>       existingContent;
             FileSystem::IoErrorInfo readError;
             if (FileSystem::readBinaryFile(dstPath, existingContent, readError) == Result::Continue &&
                 std::ranges::equal(existingContent, content))

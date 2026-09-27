@@ -283,7 +283,7 @@ public:
             visit(escapeSummaryEdges_[index]);
     }
 
-    size_t                               freeForwardingEdgeCount() const;
+    size_t freeForwardingEdgeCount() const;
 
     // Runs `fn(edgesOf)` under one shared lock, where `edgesOf(caller, visit)` hands `visit` the
     // return edges recorded for that caller. The return fixpoint only judges the functions it was
@@ -326,31 +326,31 @@ public:
 
         fn(freesForwardings_);
     }
-    uint64_t                             escapeSummaryEdgesVersion() const noexcept { return escapeSummaryEdgesVersion_.load(std::memory_order_acquire); }
-    bool                                 freesPropagationNeedsReturnSummaries() const noexcept { return guardedFreeForwardingEdgeCount_.load(std::memory_order_acquire) != 0; }
-    uint64_t                             semaCompletedSymbolCount() const noexcept { return semaCompletedSymbolCount_.load(std::memory_order_acquire); }
-    void                                 noteSymbolSemaCompleted() noexcept { semaCompletedSymbolCount_.fetch_add(1, std::memory_order_release); }
-    bool                                 freesPropagationAlreadyDone(uint64_t signature) const;
-    void                                 noteFreesPropagationDone(uint64_t signature);
-    std::vector<SemaEscapeSummaryEdge>   takeEscapeSummaryEdges();
-    void                                 registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
-    void                                 onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
-    Result                               ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
-    Result                               executePendingCompilerMessages(TaskContext& ctx);
-    bool                                 hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
-    Result                               appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, std::string_view sectionText, uint32_t codeOffsetInSection);
+    uint64_t                           escapeSummaryEdgesVersion() const noexcept { return escapeSummaryEdgesVersion_.load(std::memory_order_acquire); }
+    bool                               freesPropagationNeedsReturnSummaries() const noexcept { return guardedFreeForwardingEdgeCount_.load(std::memory_order_acquire) != 0; }
+    uint64_t                           semaCompletedSymbolCount() const noexcept { return semaCompletedSymbolCount_.load(std::memory_order_acquire); }
+    void                               noteSymbolSemaCompleted() noexcept { semaCompletedSymbolCount_.fetch_add(1, std::memory_order_release); }
+    bool                               freesPropagationAlreadyDone(uint64_t signature) const;
+    void                               noteFreesPropagationDone(uint64_t signature);
+    std::vector<SemaEscapeSummaryEdge> takeEscapeSummaryEdges();
+    void                               registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
+    void                               onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
+    Result                             ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
+    Result                             executePendingCompilerMessages(TaskContext& ctx);
+    bool                               hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
+    Result                             appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, std::string_view sectionText, uint32_t codeOffsetInSection);
     // Full in-memory content of the per-thread generated-source dump at the given path (the bytes that are
     // flushed to the .gen.<thread>.swgsrc file). Used to checksum generated sources without racing the on-disk flush.
-    bool               tryGetGeneratedSourceContent(const fs::path& path, std::string_view& outContent) const;
+    bool tryGetGeneratedSourceContent(const fs::path& path, std::string_view& outContent) const;
 
     // SHA-256 of a source file's content for the PDB/CodeView checksum: the bytes Visual Studio re-hashes
     // from disk. For a generated source (CustomSrc) that is the whole per-thread .gen.<thread>.swgsrc dump,
     // taken from memory at link time to avoid racing the on-disk flush, not a single section view. It is
     // computed once per path: an archive writes one object per function, and each names its files.
     std::array<uint8_t, 32> sourceFileChecksum(const SourceFile& file) const;
-    void               registerInMemoryFile(fs::path path, std::string_view content);
-    static Sema*       tryGetJobSema(Job* job);
-    static const Sema* tryGetJobSema(const Job* job);
+    void                    registerInMemoryFile(fs::path path, std::string_view content);
+    static Sema*            tryGetJobSema(Job* job);
+    static const Sema*      tryGetJobSema(const Job* job);
 
     SourceFile&              addFile(fs::path path, FileFlags flags);
     SourceFile&              addLoadedFile(fs::path path, FileFlags flags, std::string_view content);
@@ -615,8 +615,8 @@ private:
     std::unique_ptr<NativeBackendBuilder>                            deferredBuilder_;
     NativeBackendBuilder*                                            activeNativeBuilder_ = nullptr;
     Utf8                                                             lastArtifactLabel_;
-    bool                                                             nativeArtifactBuilt_ = false;
-    std::atomic_bool                                                  importedNativeExecuted_ = false;
+    bool                                                             nativeArtifactBuilt_    = false;
+    std::atomic_bool                                                 importedNativeExecuted_ = false;
     WorkspaceBuildLogState                                           workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>                           workspaceModuleLogState_;
     bool                                                             suppressBuildConfigurationLog_ = false;
@@ -663,55 +663,55 @@ private:
     // Positions in `escapeSummaryEdges_` of the only two kinds the frees propagation reads, kept
     // as the edges arrive: that pass runs once per compile-time call and must not rescan the
     // module's whole edge list to find the handful it cares about.
-    std::vector<uint32_t>                                                                                        freeForwardingEdgeIndices_;
-    std::vector<uint32_t>                                                                                        returnEdgeIndices_;
-    std::unordered_map<const SymbolFunction*, std::vector<uint32_t>>                                             returnEdgesByCaller_;
-    std::atomic<uint32_t>                                                                                        guardedFreeForwardingEdgeCount_{0};
-    std::atomic<uint64_t>                                                                                        escapeSummaryEdgesVersion_{0};
-    std::atomic<uint64_t>                                                                                        semaCompletedSymbolCount_{0};
+    std::vector<uint32_t>                                            freeForwardingEdgeIndices_;
+    std::vector<uint32_t>                                            returnEdgeIndices_;
+    std::unordered_map<const SymbolFunction*, std::vector<uint32_t>> returnEdgesByCaller_;
+    std::atomic<uint32_t>                                            guardedFreeForwardingEdgeCount_{0};
+    std::atomic<uint64_t>                                            escapeSummaryEdgesVersion_{0};
+    std::atomic<uint64_t>                                            semaCompletedSymbolCount_{0};
     // The last few input signatures the frees propagation was run for. Its result is a function of
     // the edges, the release masks and the call graph it was given, so the same signature twice is
     // the same fixpoint twice.
-    std::vector<SemaEscapeFreesForwarding>                                                                       freesForwardings_;
-    uint64_t                                                                                                     freesForwardingsVersion_ = 0;
-    std::mutex                                                                                                   freesForwardingsMutex_;
-    mutable std::mutex                                                                                           freesPropagationMutex_;
-    std::array<uint64_t, 8>                                                                                      freesPropagationSignatures_{};
-    uint32_t                                                                                                     freesPropagationSignatureCursor_ = 0;
-    mutable std::mutex                                                                                           compilerMessageDispatchMutex_;
-    std::deque<CompilerMessageListener>                                                                          compilerMessageListeners_;
-    std::vector<CompilerMessageEvent>                                                                            compilerMessageLog_;
-    mutable std::shared_mutex                                                                                    compilerMessageTypeInfoMutex_;
-    std::unordered_map<TypeRef, const Runtime::TypeInfo*>                                                        compilerMessageTypeInfoCache_;
-    std::unordered_set<TypeRef>                                                                                  compilerMessageTypeInfoPrepScheduled_;
-    std::deque<CompilerMessageTypeInfoPrepRequest>                                                               compilerMessageTypeInfoPrepQueue_;
-    std::atomic<uint64_t>                                                                                        compilerMessageActiveMask_         = 0;
-    std::atomic<uint64_t>                                                                                        compilerMessageExecutedPassMask_   = 0;
-    std::atomic<bool>                                                                                            compilerMessageTypeInfoPrepFailed_ = false;
-    std::once_flag                                                                                               nativeRuntimeContextTlsIdOffsetOnce_;
-    std::once_flag                                                                                               nativeProcessInfosOffsetOnce_;
-    uint32_t                                                                                                     nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
-    uint32_t                                                                                                     nativeProcessInfosOffset_        = UINT32_MAX;
-    bool                                                                                                         processInfosRunArgsReady_        = false;
-    std::vector<SymbolFunction*>                                                                                 nativeCodeSegment_;
-    std::unordered_set<SymbolFunction*>                                                                          nativeCodeSegmentSet_;
-    std::vector<SymbolFunction*>                                                                                 nativeTestFunctions_;
-    std::unordered_set<SymbolFunction*>                                                                          nativeTestFunctionsSet_;
-    std::vector<SymbolFunction*>                                                                                 nativeInitFunctions_;
-    std::unordered_set<SymbolFunction*>                                                                          nativeInitFunctionsSet_;
-    std::vector<SymbolFunction*>                                                                                 nativePreMainFunctions_;
-    std::unordered_set<SymbolFunction*>                                                                          nativePreMainFunctionsSet_;
-    std::vector<SymbolFunction*>                                                                                 nativeDropFunctions_;
-    std::unordered_set<SymbolFunction*>                                                                          nativeDropFunctionsSet_;
-    std::vector<SymbolFunction*>                                                                                 nativeMainFunctions_;
-    std::unordered_set<SymbolFunction*>                                                                          nativeMainFunctionsSet_;
-    std::vector<SymbolFunction*>                                                                                 nativeGlobalFunctionInitTargets_;
-    std::unordered_set<SymbolFunction*>                                                                          nativeGlobalFunctionInitTargetsSet_;
-    std::vector<SymbolVariable*>                                                                                 nativeGlobalVariables_;
-    std::unordered_set<SymbolVariable*>                                                                          nativeGlobalVariablesSet_;
-    std::vector<SymbolFunction*>                                                                                 jitPreparedFunctions_;
-    std::unordered_set<SymbolFunction*>                                                                          jitPreparedFunctionsSet_;
-    std::unordered_set<Utf8>                                                                                     resolvedFilePaths_;
+    std::vector<SemaEscapeFreesForwarding>                freesForwardings_;
+    uint64_t                                              freesForwardingsVersion_ = 0;
+    std::mutex                                            freesForwardingsMutex_;
+    mutable std::mutex                                    freesPropagationMutex_;
+    std::array<uint64_t, 8>                               freesPropagationSignatures_{};
+    uint32_t                                              freesPropagationSignatureCursor_ = 0;
+    mutable std::mutex                                    compilerMessageDispatchMutex_;
+    std::deque<CompilerMessageListener>                   compilerMessageListeners_;
+    std::vector<CompilerMessageEvent>                     compilerMessageLog_;
+    mutable std::shared_mutex                             compilerMessageTypeInfoMutex_;
+    std::unordered_map<TypeRef, const Runtime::TypeInfo*> compilerMessageTypeInfoCache_;
+    std::unordered_set<TypeRef>                           compilerMessageTypeInfoPrepScheduled_;
+    std::deque<CompilerMessageTypeInfoPrepRequest>        compilerMessageTypeInfoPrepQueue_;
+    std::atomic<uint64_t>                                 compilerMessageActiveMask_         = 0;
+    std::atomic<uint64_t>                                 compilerMessageExecutedPassMask_   = 0;
+    std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_ = false;
+    std::once_flag                                        nativeRuntimeContextTlsIdOffsetOnce_;
+    std::once_flag                                        nativeProcessInfosOffsetOnce_;
+    uint32_t                                              nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
+    uint32_t                                              nativeProcessInfosOffset_        = UINT32_MAX;
+    bool                                                  processInfosRunArgsReady_        = false;
+    std::vector<SymbolFunction*>                          nativeCodeSegment_;
+    std::unordered_set<SymbolFunction*>                   nativeCodeSegmentSet_;
+    std::vector<SymbolFunction*>                          nativeTestFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativeTestFunctionsSet_;
+    std::vector<SymbolFunction*>                          nativeInitFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativeInitFunctionsSet_;
+    std::vector<SymbolFunction*>                          nativePreMainFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativePreMainFunctionsSet_;
+    std::vector<SymbolFunction*>                          nativeDropFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativeDropFunctionsSet_;
+    std::vector<SymbolFunction*>                          nativeMainFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativeMainFunctionsSet_;
+    std::vector<SymbolFunction*>                          nativeGlobalFunctionInitTargets_;
+    std::unordered_set<SymbolFunction*>                   nativeGlobalFunctionInitTargetsSet_;
+    std::vector<SymbolVariable*>                          nativeGlobalVariables_;
+    std::unordered_set<SymbolVariable*>                   nativeGlobalVariablesSet_;
+    std::vector<SymbolFunction*>                          jitPreparedFunctions_;
+    std::unordered_set<SymbolFunction*>                   jitPreparedFunctionsSet_;
+    std::unordered_set<Utf8>                              resolvedFilePaths_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

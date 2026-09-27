@@ -45,9 +45,9 @@ namespace InstructionCombine
             if (!setOps || !setOps[0].reg.isVirtualInt())
                 return;
 
-            MicroInstrRef       extRef = ctx.storage->findNextInstructionRef(setRef);
-            const MicroInstr*   ext    = ctx.storage->ptr(extRef);
-            const auto*         extOps = ext && ext->op == MicroInstrOpcode::LoadZeroExtRegReg ? ext->ops(*ctx.operands) : nullptr;
+            MicroInstrRef     extRef = ctx.storage->findNextInstructionRef(setRef);
+            const MicroInstr* ext    = ctx.storage->ptr(extRef);
+            const auto*       extOps = ext && ext->op == MicroInstrOpcode::LoadZeroExtRegReg ? ext->ops(*ctx.operands) : nullptr;
             if (extOps && extOps[0].reg == setOps[0].reg && extOps[1].reg == setOps[0].reg &&
                 extOps[2].opBits == MicroOpBits::B32 && extOps[3].opBits == MicroOpBits::B8)
             {
@@ -355,8 +355,8 @@ namespace InstructionCombine
         if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
             return false;
 
-        const MicroReg base  = addressOps[1].reg;
-        const MicroReg index = addressOps[2].reg;
+        const MicroReg base           = addressOps[1].reg;
+        const MicroReg index          = addressOps[2].reg;
         const auto     baseAtAddress  = ctx.ssa->reachingDef(base, reaching.instRef);
         const auto     baseAtLoad     = ctx.ssa->reachingDef(base, loadRef);
         const auto     indexAtAddress = ctx.ssa->reachingDef(index, reaching.instRef);
@@ -1160,8 +1160,8 @@ namespace InstructionCombine
                     if (needsUnsignedConds || !rhs.isVirtualInt() || rhs == vt || rhs == base || rhs == index)
                         return false;
 
-                    const MicroSsaState::ReachingDef rhsDef = ctx.ssa->reachingDef(rhs, walker.current);
-                    const bool rhsIsSingleUseMemoryLoad = rhsDef.valid() && !rhsDef.isPhi && rhsDef.inst &&
+                    const MicroSsaState::ReachingDef rhsDef                   = ctx.ssa->reachingDef(rhs, walker.current);
+                    const bool                       rhsIsSingleUseMemoryLoad = rhsDef.valid() && !rhsDef.isPhi && rhsDef.inst &&
                                                           (rhsDef.inst->op == MicroInstrOpcode::LoadRegMem ||
                                                            rhsDef.inst->op == MicroInstrOpcode::LoadAmcRegMem) &&
                                                           valueHasSingleUse(*ctx.ssa, rhs, rhsDef.instRef);
@@ -1404,10 +1404,10 @@ namespace InstructionCombine
         if (!loadOps || loadOps[4].opBits != MicroOpBits::B64)
             return false;
 
-        const MicroReg vt = loadOps[0].reg;
-        const MicroReg base = loadOps[1].reg;
-        const MicroReg index = loadOps[2].reg;
-        const MicroOpBits bits = loadOps[3].opBits;
+        const MicroReg    vt    = loadOps[0].reg;
+        const MicroReg    base  = loadOps[1].reg;
+        const MicroReg    index = loadOps[2].reg;
+        const MicroOpBits bits  = loadOps[3].opBits;
         if (!vt.isVirtualInt() || !base.isAnyInt() || !index.isAnyInt() ||
             vt == base || vt == index || !valueHasSingleUse(*ctx.ssa, vt, loadRef))
             return false;
@@ -1442,13 +1442,13 @@ namespace InstructionCombine
                 return false;
 
             MicroInstrOperand cmp[7] = {};
-            cmp[0].reg = base;
-            cmp[1].reg = index;
-            cmp[2].reg = cmpOps[0].reg;
-            cmp[3].opBits = MicroOpBits::B64;
-            cmp[4].opBits = bits;
-            cmp[5].valueU64 = loadOps[5].valueU64;
-            cmp[6].valueU64 = loadOps[6].valueU64;
+            cmp[0].reg               = base;
+            cmp[1].reg               = index;
+            cmp[2].reg               = cmpOps[0].reg;
+            cmp[3].opBits            = MicroOpBits::B64;
+            cmp[4].opBits            = bits;
+            cmp[5].valueU64          = loadOps[5].valueU64;
+            cmp[6].valueU64          = loadOps[6].valueU64;
             ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpAmcReg, cmp, /*allocNewBlock=*/true);
             ctx.emitErase(loadRef);
             return true;

@@ -4,8 +4,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroVerify.h"
-#include "Main/TaskContext.h"
-#include "Support/Report/Diagnostic.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
@@ -37,6 +35,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
+#include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
 
@@ -53,8 +52,8 @@ namespace
     // sweep changes nothing, so a function that already converged pays nothing.
     // A genuinely oscillating rule is caught by --validate-micro, which reports
     // a re-entered state rather than waiting for this cap.
-    constexpr uint32_t K_OPT_ITERATION_ON  = 24;
-    constexpr uint32_t K_RA_ITERATION_ON   = 16;
+    constexpr uint32_t K_OPT_ITERATION_ON = 24;
+    constexpr uint32_t K_RA_ITERATION_ON  = 16;
 
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {

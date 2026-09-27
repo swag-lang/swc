@@ -902,7 +902,7 @@ struct AstAsCastExpr : AstNodeT<AstNodeId::AsCastExpr>
 // -----------------------------------------------------------------------------
 enum class AstIsTypeExprFlagsE : uint8_t
 {
-    Zero = 0,
+    Zero    = 0,
     Binding = 1 << 0,
 };
 

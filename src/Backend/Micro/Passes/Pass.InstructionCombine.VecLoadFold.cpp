@@ -371,8 +371,8 @@ namespace InstructionCombine
                 // ops: [0] dst, [1] src, [2] opBits, [3] microOp
                 if (useOps[1].reg != vt || useOps[2].opBits != MicroOpBits::B128 || !isLowWiden(useOps[3].microOp))
                     return false;
-                fold.dst   = useOps[0].reg;
-                fold.op    = useOps[3].microOp;
+                fold.dst = useOps[0].reg;
+                fold.op  = useOps[3].microOp;
             }
             else if (useInst->op == MicroInstrOpcode::OpBinaryRegRegReg)
             {
@@ -418,7 +418,7 @@ namespace InstructionCombine
             return false;
 
         const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
-        LoadAddress             address;
+        LoadAddress              address;
         if (!loadOps || !readLoadAddress(address, loadInst, loadOps))
             return false;
 

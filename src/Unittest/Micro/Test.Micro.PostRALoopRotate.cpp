@@ -67,7 +67,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_FlagOnlyTestsRotateWithUniqueBackEdge)
     constexpr MicroReg counter = MicroReg::intReg(0);
     constexpr MicroReg other   = MicroReg::intReg(1);
     for (const MicroInstrOpcode testOp : {MicroInstrOpcode::TestRegReg, MicroInstrOpcode::TestRegImm,
-                                           MicroInstrOpcode::TestMemReg, MicroInstrOpcode::TestMemImm})
+                                          MicroInstrOpcode::TestMemReg, MicroInstrOpcode::TestMemImm})
     {
         for (const bool secondEntry : {false, true})
         {
@@ -78,9 +78,9 @@ SWC_TEST_BEGIN(PostRALoopRotate_FlagOnlyTestsRotateWithUniqueBackEdge)
                 builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
             builder.placeLabel(top);
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, done);
-            const MicroInstrRef jumpRef = builder.instructions().lastInstructionRef();
+            const MicroInstrRef jumpRef    = builder.instructions().lastInstructionRef();
             MicroInstrOperand   testOps[4] = {};
-            testOps[0].reg = counter;
+            testOps[0].reg                 = counter;
             switch (testOp)
             {
                 case MicroInstrOpcode::TestRegReg:
@@ -182,13 +182,13 @@ SWC_TEST_BEGIN(PostRALoopRotate_PlacesShortComparisonStepOnFallthrough)
 {
     for (const bool unitStep : {true, false})
     {
-        MicroBuilder builder(ctx);
-        const auto header = builder.createLabel();
-        const auto tie = builder.createLabel();
-        const auto step = builder.createLabel();
-        const auto stop = builder.createLabel();
+        MicroBuilder       builder(ctx);
+        const auto         header  = builder.createLabel();
+        const auto         tie     = builder.createLabel();
+        const auto         step    = builder.createLabel();
+        const auto         stop    = builder.createLabel();
         constexpr MicroReg counter = MicroReg::intReg(0);
-        constexpr MicroReg value = MicroReg::intReg(1);
+        constexpr MicroReg value   = MicroReg::intReg(1);
 
         builder.placeLabel(header);
         builder.emitCmpRegReg(counter, value, MicroOpBits::B64);
@@ -214,8 +214,8 @@ SWC_TEST_BEGIN(PostRALoopRotate_PlacesShortComparisonStepOnFallthrough)
             secondOps[2].valueU64 != (unitStep ? stop.get() : step.get()))
             return Result::Error;
 
-        const auto nextRef = builder.instructions().findNextInstructionRef(secondRef);
-        const auto* next = builder.instructions().ptr(nextRef);
+        const auto  nextRef = builder.instructions().findNextInstructionRef(secondRef);
+        const auto* next    = builder.instructions().ptr(nextRef);
         if (!next || next->op != (unitStep ? MicroInstrOpcode::Label : MicroInstrOpcode::JumpCond))
             return Result::Error;
         if (unitStep && next->ops(builder.operands())[0].valueU64 != step.get())
@@ -227,17 +227,17 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRALoopRotate_CountMismatchFallsThroughToNextIteration)
 {
-    constexpr MicroReg base = MicroReg::intReg(8);
+    constexpr MicroReg base    = MicroReg::intReg(8);
     constexpr MicroReg counter = MicroReg::intReg(9);
-    constexpr MicroReg value = MicroReg::intReg(10);
-    constexpr MicroReg pivot = MicroReg::intReg(11);
+    constexpr MicroReg value   = MicroReg::intReg(10);
+    constexpr MicroReg pivot   = MicroReg::intReg(11);
     for (const uint32_t loads : {1u, 2u})
     {
-        MicroBuilder builder(ctx);
+        MicroBuilder        builder(ctx);
         const MicroLabelRef header = builder.createLabel();
-        const MicroLabelRef tie = builder.createLabel();
-        const MicroLabelRef step = builder.createLabel();
-        const MicroLabelRef stop = builder.createLabel();
+        const MicroLabelRef tie    = builder.createLabel();
+        const MicroLabelRef step   = builder.createLabel();
+        const MicroLabelRef stop   = builder.createLabel();
         builder.placeLabel(header);
         builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, counter, 8, 0, MicroOpBits::B64);
         if (loads == 2)
@@ -256,15 +256,15 @@ SWC_TEST_BEGIN(PostRALoopRotate_CountMismatchFallsThroughToNextIteration)
         builder.emitRet();
 
         SWC_RESULT(runPostRaLoopRotatePass(builder));
-        const MicroInstr* equal = builder.instructions().ptr(equalRef);
+        const MicroInstr*        equal    = builder.instructions().ptr(equalRef);
         const MicroInstrOperand* equalOps = equal ? equal->ops(builder.operands()) : nullptr;
         if (!equal || !equalOps || equalOps[0].cpuCond != MicroCond::NotEqual ||
             equalOps[2].valueU64 == tie.get() || builder.instructions().ptr(backRef))
             return Result::Error;
 
         uint64_t mismatchId = 0;
-        bool foundEntry = false;
-        bool foundStep = false;
+        bool     foundEntry = false;
+        bool     foundStep  = false;
         for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
         {
             const MicroInstrOperand* ops = it->ops(builder.operands());
@@ -280,11 +280,11 @@ SWC_TEST_BEGIN(PostRALoopRotate_CountMismatchFallsThroughToNextIteration)
             return Result::Error;
     }
 
-    MicroBuilder nonUnit(ctx);
+    MicroBuilder        nonUnit(ctx);
     const MicroLabelRef header = nonUnit.createLabel();
-    const MicroLabelRef tie = nonUnit.createLabel();
-    const MicroLabelRef step = nonUnit.createLabel();
-    const MicroLabelRef stop = nonUnit.createLabel();
+    const MicroLabelRef tie    = nonUnit.createLabel();
+    const MicroLabelRef step   = nonUnit.createLabel();
+    const MicroLabelRef stop   = nonUnit.createLabel();
     nonUnit.placeLabel(header);
     nonUnit.emitLoadAmcRegMem(value, MicroOpBits::B64, base, counter, 8, 0, MicroOpBits::B64);
     nonUnit.emitCmpRegReg(value, pivot, MicroOpBits::B64);

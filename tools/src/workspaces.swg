@@ -6,7 +6,7 @@ using Core
 The five source workspaces, and the commands that reach into them.
 
 `test` runs a module's `#test` functions and never its `#main`; `smoke` runs the real program for
-a bounded number of frames, isolated from the machine, to prove it starts and keeps going. A
+a bounded number of frames with process and filesystem isolation. GUI smokes use the desktop. A
 program without `#test` is smoked: testing it would report zero tests and prove nothing.
 */
 public func runStd(context: *Context, options: *Options)->s32 fail

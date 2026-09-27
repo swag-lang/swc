@@ -13,8 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRaDeadCodeElimPass(MicroBuilder& builder, bool returnsValue = true, bool beforePrologue = false,
-                                    CallConvKind callConvKind = CallConvKind::Swag)
+    Result runPostRaDeadCodeElimPass(MicroBuilder& builder, bool returnsValue = true, bool beforePrologue = false, CallConvKind callConvKind = CallConvKind::Swag)
     {
         MicroPostRaDeadCodeElimPass pass(beforePrologue);
         MicroPassManager            passManager;
@@ -58,7 +57,7 @@ SWC_TEST_BEGIN(PostRADeadCodeElim_BeforePrologueRemovesUnusedPersistentDefinitio
     for (const CallConvKind kind : {CallConvKind::Swag, CallConvKind::C})
     {
         const CallConv& conv = CallConv::get(kind);
-        MicroBuilder builder(ctx);
+        MicroBuilder    builder(ctx);
         builder.emitLoadRegImm(conv.intPersistentRegs[0], ApInt(7, 64), MicroOpBits::B64);
         const auto deadDefinition = builder.instructions().lastInstructionRef();
         builder.emitLoadRegImm(conv.intPersistentRegs[1], ApInt(9, 64), MicroOpBits::B64);

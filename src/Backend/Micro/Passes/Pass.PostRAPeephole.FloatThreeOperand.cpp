@@ -126,7 +126,7 @@ namespace PostRaPeephole
         if (!test || (test->op != MicroInstrOpcode::TestRegImm && test->op != MicroInstrOpcode::TestRegReg))
             return false;
         const auto* testOps = test->ops(*ctx.operands);
-        const bool regTest = test->op == MicroInstrOpcode::TestRegReg;
+        const bool  regTest = test->op == MicroInstrOpcode::TestRegReg;
         if (!testOps)
             return false;
         const MicroOpBits testBits = regTest ? testOps[2].opBits : testOps[1].opBits;
@@ -151,9 +151,9 @@ namespace PostRaPeephole
             rewritten[2] = load[3];
             rewritten[3] = testOps[2];
         }
-        MicroInstr        probe        = *test;
-        probe.op                       = regTest ? MicroInstrOpcode::TestMemReg : MicroInstrOpcode::TestMemImm;
-        probe.numOperands              = 4;
+        MicroInstr probe  = *test;
+        probe.op          = regTest ? MicroInstrOpcode::TestMemReg : MicroInstrOpcode::TestMemImm;
+        probe.numOperands = 4;
         MicroConformanceIssue issue;
         if (ctx.encoder->queryConformanceIssue(issue, probe, rewritten) || !ctx.claimAll({ref, testRef}))
             return false;
@@ -278,9 +278,9 @@ namespace PostRaPeephole
             (loadOps[3].opBits != MicroOpBits::B32 && loadOps[3].opBits != MicroOpBits::B64))
             return false;
 
-        const MicroInstrRef cmpRef = ctx.nextRef(loadRef);
-        const MicroInstr* cmpInst = ctx.instruction(cmpRef);
-        const MicroInstrOperand* cmpOps = ctx.operandsFor(cmpRef);
+        const MicroInstrRef      cmpRef  = ctx.nextRef(loadRef);
+        const MicroInstr*        cmpInst = ctx.instruction(cmpRef);
+        const MicroInstrOperand* cmpOps  = ctx.operandsFor(cmpRef);
         if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegReg || cmpInst->numOperands < 3 || !cmpOps ||
             !cmpOps[0].reg.isFloat() || cmpOps[1].reg != loadOps[0].reg ||
             cmpOps[0].reg == loadOps[0].reg || cmpOps[2].opBits != loadOps[3].opBits ||
@@ -289,13 +289,13 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrOperand rewritten[7] = {};
-        rewritten[0] = cmpOps[0];
-        rewritten[1] = loadOps[1];
-        rewritten[2] = loadOps[2];
-        rewritten[3] = cmpOps[2];
-        rewritten[4] = loadOps[4];
-        rewritten[5] = loadOps[5];
-        rewritten[6] = loadOps[6];
+        rewritten[0]                   = cmpOps[0];
+        rewritten[1]                   = loadOps[1];
+        rewritten[2]                   = loadOps[2];
+        rewritten[3]                   = cmpOps[2];
+        rewritten[4]                   = loadOps[4];
+        rewritten[5]                   = loadOps[5];
+        rewritten[6]                   = loadOps[6];
         if (!ctx.claimAll({loadRef, cmpRef}))
             return false;
         ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegAmc, std::span{rewritten, 7}, true);
@@ -316,18 +316,18 @@ namespace PostRaPeephole
             (loadOps[3].opBits != MicroOpBits::B32 && loadOps[3].opBits != MicroOpBits::B64))
             return false;
 
-        const MicroInstrRef addRef = ctx.nextRef(loadRef);
-        const MicroInstr* addInst = ctx.instruction(addRef);
-        const MicroInstrOperand* addOps = ctx.operandsFor(addRef);
+        const MicroInstrRef      addRef  = ctx.nextRef(loadRef);
+        const MicroInstr*        addInst = ctx.instruction(addRef);
+        const MicroInstrOperand* addOps  = ctx.operandsFor(addRef);
         if (!addInst || addInst->op != MicroInstrOpcode::OpBinaryRegReg || addInst->numOperands < 4 || !addOps ||
             addOps[0].reg != loadOps[0].reg || !addOps[1].reg.isFloat() ||
             addOps[1].reg == loadOps[0].reg || addOps[2].opBits != loadOps[3].opBits ||
             addOps[3].microOp != MicroOp::FloatAdd)
             return false;
 
-        const MicroInstrRef storeRef = ctx.nextRef(addRef);
-        const MicroInstr* storeInst = ctx.instruction(storeRef);
-        const MicroInstrOperand* storeOps = ctx.operandsFor(storeRef);
+        const MicroInstrRef      storeRef  = ctx.nextRef(addRef);
+        const MicroInstr*        storeInst = ctx.instruction(storeRef);
+        const MicroInstrOperand* storeOps  = ctx.operandsFor(storeRef);
         if (!storeInst || storeInst->op != MicroInstrOpcode::LoadAmcMemReg || storeInst->numOperands < 8 || !storeOps ||
             storeOps[0].reg != loadOps[1].reg || storeOps[1].reg != loadOps[2].reg ||
             storeOps[2].reg != loadOps[0].reg || storeOps[3].opBits != MicroOpBits::B64 ||
@@ -336,8 +336,8 @@ namespace PostRaPeephole
             storeOps[6].valueU64 != loadOps[6].valueU64)
             return false;
 
-        const MicroReg addend = addOps[1].reg;
-        const MicroReg loaded = loadOps[0].reg;
+        const MicroReg addend     = addOps[1].reg;
+        const MicroReg loaded     = loadOps[0].reg;
         const uint32_t storeIndex = ctx.instructionIndex + 2;
         if ((!regIsDeadAfter(ctx, storeRef, addend) && !ctx.isRegDeadAfter(addend, storeIndex)) ||
             (!regIsDeadAfter(ctx, storeRef, loaded) && !ctx.isRegDeadAfter(loaded, storeIndex)) ||
@@ -345,14 +345,14 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrOperand newAddOps[8] = {};
-        newAddOps[0].reg = addend;
-        newAddOps[1].reg = loadOps[1].reg;
-        newAddOps[2].reg = loadOps[2].reg;
-        newAddOps[3].opBits = loadOps[3].opBits;
-        newAddOps[4].opBits = storeOps[3].opBits;
-        newAddOps[5] = loadOps[5];
-        newAddOps[6] = loadOps[6];
-        newAddOps[7].microOp = MicroOp::FloatAdd;
+        newAddOps[0].reg               = addend;
+        newAddOps[1].reg               = loadOps[1].reg;
+        newAddOps[2].reg               = loadOps[2].reg;
+        newAddOps[3].opBits            = loadOps[3].opBits;
+        newAddOps[4].opBits            = storeOps[3].opBits;
+        newAddOps[5]                   = loadOps[5];
+        newAddOps[6]                   = loadOps[6];
+        newAddOps[7].microOp           = MicroOp::FloatAdd;
 
         MicroInstrOperand newStoreOps[8] = {};
         for (uint32_t i = 0; i < 8; ++i)
@@ -545,19 +545,19 @@ namespace PostRaPeephole
 
         MicroInstrOpcode  rewrittenOp = MicroInstrOpcode::OpBinaryRegMem;
         MicroInstrOperand newOps[8]   = {};
-        uint32_t          numOps       = 5;
-        newOps[0].reg                  = consumerOps[0].reg;
-        newOps[1].reg                  = base;
+        uint32_t          numOps      = 5;
+        newOps[0].reg                 = consumerOps[0].reg;
+        newOps[1].reg                 = base;
         if (indexed)
         {
-            rewrittenOp        = MicroInstrOpcode::OpBinaryRegAmcMem;
-            numOps             = 8;
-            newOps[2].reg      = index;
-            newOps[3].opBits   = opBits;
-            newOps[4]          = loadOps[4];
-            newOps[5]          = loadOps[5];
-            newOps[6]          = loadOps[6];
-            newOps[7].microOp  = op;
+            rewrittenOp       = MicroInstrOpcode::OpBinaryRegAmcMem;
+            numOps            = 8;
+            newOps[2].reg     = index;
+            newOps[3].opBits  = opBits;
+            newOps[4]         = loadOps[4];
+            newOps[5]         = loadOps[5];
+            newOps[6]         = loadOps[6];
+            newOps[7].microOp = op;
         }
         else
         {
@@ -573,7 +573,7 @@ namespace PostRaPeephole
         {
             const MicroInstrRef      previousRef = ctx.previousRef(loadRef);
             const MicroInstr*        previous    = ctx.instruction(previousRef);
-            const MicroInstrOperand* clearOps   = previous ? previous->ops(*ctx.operands) : nullptr;
+            const MicroInstrOperand* clearOps    = previous ? previous->ops(*ctx.operands) : nullptr;
             if (previous && previous->op == MicroInstrOpcode::ClearReg && clearOps &&
                 clearOps[0].reg == loaded && clearOps[1].opBits == opBits)
                 clearRef = previousRef;
@@ -759,7 +759,7 @@ namespace PostRaPeephole
             return false;
 
         // The three-operand form takes a signed dword immediate.
-        const uint64_t value = mulOps[3].valueU64;
+        const uint64_t value       = mulOps[3].valueU64;
         const auto     signedValue = static_cast<int64_t>(copyBits == MicroOpBits::B32 ? static_cast<int64_t>(static_cast<int32_t>(value)) : static_cast<int64_t>(value));
         if (signedValue < INT32_MIN || signedValue > INT32_MAX)
             return false;

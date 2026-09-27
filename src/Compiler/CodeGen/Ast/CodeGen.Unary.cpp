@@ -9,8 +9,8 @@
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -92,12 +92,12 @@ namespace
             const std::byte* maskStorage = codeGen.cstMgr().floatSignMask(info.opBits == MicroOpBits::B64, maskRef);
             builder.emitOpBinaryRegMem(resultPayload.reg, MicroReg::instructionPointer(), 0, MicroOp::FloatXor, info.opBits);
             builder.addRelocation({
-                .kind           = MicroRelocation::Kind::ConstantAddress,
-                .form           = MicroRelocation::Form::Relative32,
-                .instructionRef = builder.instructions().lastInstructionRef(),
-                .targetAddress  = reinterpret_cast<uint64_t>(maskStorage),
-                .constantShard  = maskRef.shardIndex,
-                .constantOffset = maskRef.offset,
+                .kind             = MicroRelocation::Kind::ConstantAddress,
+                .form             = MicroRelocation::Form::Relative32,
+                .instructionRef   = builder.instructions().lastInstructionRef(),
+                .targetAddress    = reinterpret_cast<uint64_t>(maskStorage),
+                .constantShard    = maskRef.shardIndex,
+                .constantOffset   = maskRef.offset,
                 .constantCopySize = 16,
             });
             return Result::Continue;

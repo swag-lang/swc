@@ -892,8 +892,8 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
 
     auto& toErase = scratch.toErase;
     toErase.clear();
-    const auto                 view  = storage.view();
-    const auto                 endIt = view.end();
+    const auto view  = storage.view();
+    const auto endIt = view.end();
     for (auto it = view.begin(); it != endIt; ++it)
     {
         const MicroInstrRef instRef = it.current;
@@ -914,7 +914,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
             case MicroInstrOpcode::OpBinaryRegReg:
             {
                 MicroInstrOperand* ops = inst.ops(operands);
-                changed = tryFoldBinaryRegReg(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
+                changed                = tryFoldBinaryRegReg(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
                           tryFoldFloatBinaryRegReg(floatContext, toErase, instRef, inst, ops);
                 break;
             }

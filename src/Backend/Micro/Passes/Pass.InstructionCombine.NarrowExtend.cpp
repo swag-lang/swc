@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Zero/sign extend whose upper bits are never read. Collapses to a plain
 // LoadRegReg at srcBits, or an erase when dst == src.
@@ -241,7 +241,7 @@ namespace InstructionCombine
             if (leaOps[0].reg != cmpOps[0].reg || leaOps[2].opBits != MicroOpBits::B32 || !leaOps[1].reg.isVirtualInt() || leaOps[1].reg == leaOps[0].reg)
                 return false;
 
-            const MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(leaOps[1].reg, leaRef);
+            const MicroSsaState::ReachingDef source     = ctx.ssa->reachingDef(leaOps[1].reg, leaRef);
             uint32_t                         leaValueId = 0;
             if (!source.valid() || !ctx.ssa->defValue(leaOps[0].reg, leaRef, leaValueId) || singleDirectInstructionUse(*ctx.ssa, leaValueId) != cmpRef)
                 return false;
@@ -322,8 +322,8 @@ namespace InstructionCombine
         if (!ctx.claimAll({ref, first.leaRef, first.cmpRef, first.setRef, merged.instRef}))
             return false;
 
-        const uint64_t    low     = std::min(first.low, second.low);
-        const MicroReg    index   = ctx.storage->ptr(first.leaRef)->ops(*ctx.operands)[0].reg;
+        const uint64_t    low   = std::min(first.low, second.low);
+        const MicroReg    index = ctx.storage->ptr(first.leaRef)->ops(*ctx.operands)[0].reg;
         MicroInstrOperand copyOps[3];
         copyOps[0].reg    = index;
         copyOps[1].reg    = first.value;
@@ -440,9 +440,9 @@ namespace InstructionCombine
             return false;
 
         // The byte still holds C where the offset reads it.
-        const MicroReg                   byteReg     = extOps[1].reg;
-        const MicroSsaState::ReachingDef atExtend    = ctx.ssa->reachingDef(byteReg, widened.instRef);
-        const MicroSsaState::ReachingDef atOffset    = ctx.ssa->reachingDef(byteReg, offset.instRef);
+        const MicroReg                   byteReg  = extOps[1].reg;
+        const MicroSsaState::ReachingDef atExtend = ctx.ssa->reachingDef(byteReg, widened.instRef);
+        const MicroSsaState::ReachingDef atOffset = ctx.ssa->reachingDef(byteReg, offset.instRef);
         if (!byteReg.isVirtualInt() || !atExtend.valid() || !atOffset.valid() || atExtend.valueId != atOffset.valueId)
             return false;
 
@@ -863,8 +863,8 @@ namespace InstructionCombine
         }
 
         MicroInstrOperand moveOps[3];
-        moveOps[0].reg    = dst;
-        moveOps[1].reg    = src;
+        moveOps[0].reg = dst;
+        moveOps[1].reg = src;
         // A byte or word copy read on at most 32 bits moves the whole register at
         // once: both widths write all of it, and the full move is the one copy
         // elimination merges, a sweep earlier.
@@ -881,8 +881,7 @@ namespace InstructionCombine
         // claim `outClaims`, the extension and the source's definition: a fold
         // of the same sweep could otherwise absorb that definition into the
         // extension and leave the rewrite reading nothing.
-        MicroReg extendedSource(const Context& ctx, MicroReg reg, MicroInstrRef atRef, bool zeroOnly, MicroOpBits& outSourceBits,
-                                std::array<MicroInstrRef, 2>& outClaims)
+        MicroReg extendedSource(const Context& ctx, MicroReg reg, MicroInstrRef atRef, bool zeroOnly, MicroOpBits& outSourceBits, std::array<MicroInstrRef, 2>& outClaims)
         {
             MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
             if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)

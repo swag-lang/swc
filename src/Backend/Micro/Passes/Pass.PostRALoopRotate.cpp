@@ -139,9 +139,9 @@ namespace
     // This is post-RA so block layout cannot change register assignment.
     bool placeShortLoopStep(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
     {
-        MicroStorage& storage = *context.instructions;
-        MicroOperandStorage& operands = *context.operands;
-        const auto findLabel = [&](const uint64_t id) {
+        MicroStorage&        storage   = *context.instructions;
+        MicroOperandStorage& operands  = *context.operands;
+        const auto           findLabel = [&](const uint64_t id) {
             for (uint32_t index = 0; index < order.size(); ++index)
             {
                 const MicroInstr* inst = storage.ptr(order[index]);
@@ -153,23 +153,23 @@ namespace
 
         for (uint32_t ordinal = 0; ordinal + 4 < order.size(); ++ordinal)
         {
-            const MicroInstrRef firstRef = order[ordinal];
+            const MicroInstrRef firstRef  = order[ordinal];
             const MicroInstrRef secondRef = order[ordinal + 1];
-            const MicroInstrRef skipRef = order[ordinal + 2];
-            const MicroInstrRef tieRef = order[ordinal + 3];
-            const MicroInstr* first = storage.ptr(firstRef);
-            const MicroInstr* second = storage.ptr(secondRef);
-            const MicroInstr* skip = storage.ptr(skipRef);
-            const MicroInstr* tie = storage.ptr(tieRef);
+            const MicroInstrRef skipRef   = order[ordinal + 2];
+            const MicroInstrRef tieRef    = order[ordinal + 3];
+            const MicroInstr*   first     = storage.ptr(firstRef);
+            const MicroInstr*   second    = storage.ptr(secondRef);
+            const MicroInstr*   skip      = storage.ptr(skipRef);
+            const MicroInstr*   tie       = storage.ptr(tieRef);
             if (!first || !second || !skip || !tie ||
                 first->op != MicroInstrOpcode::JumpCond || second->op != MicroInstrOpcode::JumpCond ||
                 skip->op != MicroInstrOpcode::JumpCond || tie->op != MicroInstrOpcode::Label ||
                 first->numOperands < 3 || second->numOperands < 3 || skip->numOperands < 3)
                 continue;
-            const auto* firstOps = first->ops(operands);
+            const auto* firstOps  = first->ops(operands);
             const auto* secondOps = second->ops(operands);
-            const auto* skipOps = skip->ops(operands);
-            const auto* tieOps = tie->ops(operands);
+            const auto* skipOps   = skip->ops(operands);
+            const auto* tieOps    = tie->ops(operands);
             if (!firstOps || !secondOps || !skipOps || !tieOps ||
                 firstOps[0].cpuCond == MicroCond::Unconditional ||
                 secondOps[0].cpuCond == MicroCond::Unconditional ||
@@ -185,18 +185,18 @@ namespace
                 stepOrdinal - ordinal > 80 || stepOrdinal + 3 >= order.size())
                 continue;
             const MicroInstrRef stepLabelRef = order[stepOrdinal];
-            const MicroInstrRef updateRef = order[stepOrdinal + 1];
-            const MicroInstrRef backRef = order[stepOrdinal + 2];
-            const MicroInstr* update = storage.ptr(updateRef);
-            const MicroInstr* back = storage.ptr(backRef);
-            const MicroInstr* stop = storage.ptr(order[stepOrdinal + 3]);
+            const MicroInstrRef updateRef    = order[stepOrdinal + 1];
+            const MicroInstrRef backRef      = order[stepOrdinal + 2];
+            const MicroInstr*   update       = storage.ptr(updateRef);
+            const MicroInstr*   back         = storage.ptr(backRef);
+            const MicroInstr*   stop         = storage.ptr(order[stepOrdinal + 3]);
             if (!update || !back || !stop ||
                 update->op != MicroInstrOpcode::OpBinaryRegImm || back->op != MicroInstrOpcode::JumpCond ||
                 stop->op != MicroInstrOpcode::Label || update->numOperands < 4 || back->numOperands < 3)
                 continue;
-            const auto* updateOps = update->ops(operands);
-            const auto* backOps = back->ops(operands);
-            const auto* stopOps = stop->ops(operands);
+            const auto*       updateOps  = update->ops(operands);
+            const auto*       backOps    = back->ops(operands);
+            const auto*       stopOps    = stop->ops(operands);
             const MicroInstr* beforeStep = storage.ptr(order[stepOrdinal - 1]);
             if (!updateOps || !backOps || !stopOps || !beforeStep ||
                 (updateOps[2].microOp != MicroOp::Add && updateOps[2].microOp != MicroOp::Subtract) ||
@@ -211,23 +211,23 @@ namespace
                 continue;
 
             // Capture operands before insertions can grow their storage.
-            std::array<MicroInstrOperand, 3> rewritten = {secondOps[0], secondOps[1], secondOps[2]};
-            rewritten[0].cpuCond = inverted;
-            rewritten[2].valueU64 = skipOps[2].valueU64;
-            std::array<MicroInstrOperand, 3> jumpToStep = {backOps[0], backOps[1], backOps[2]};
-            jumpToStep[2].valueU64 = secondOps[2].valueU64;
-            std::array<MicroInstrOperand, 4> updateCopy = {updateOps[0], updateOps[1], updateOps[2], updateOps[3]};
-            const MicroInstrOperand stepLabelCopy = storage.ptr(stepLabelRef)->ops(operands)[0];
-            std::array<MicroInstrOperand, 3> backCopy = {backOps[0], backOps[1], backOps[2]};
-            const MicroInstrOpcode updateOpcode = update->op;
-            const MicroInstrOpcode backOpcode = back->op;
+            std::array<MicroInstrOperand, 3> rewritten     = {secondOps[0], secondOps[1], secondOps[2]};
+            rewritten[0].cpuCond                           = inverted;
+            rewritten[2].valueU64                          = skipOps[2].valueU64;
+            std::array<MicroInstrOperand, 3> jumpToStep    = {backOps[0], backOps[1], backOps[2]};
+            jumpToStep[2].valueU64                         = secondOps[2].valueU64;
+            std::array<MicroInstrOperand, 4> updateCopy    = {updateOps[0], updateOps[1], updateOps[2], updateOps[3]};
+            const MicroInstrOperand          stepLabelCopy = storage.ptr(stepLabelRef)->ops(operands)[0];
+            std::array<MicroInstrOperand, 3> backCopy      = {backOps[0], backOps[1], backOps[2]};
+            const MicroInstrOpcode           updateOpcode  = update->op;
+            const MicroInstrOpcode           backOpcode    = back->op;
 
             storage.insertDerivedBefore(operands, tieRef, MicroInstrOpcode::Label, std::span(&stepLabelCopy, 1));
             storage.insertDerivedBefore(operands, tieRef, updateOpcode, updateCopy);
             storage.insertDerivedBefore(operands, tieRef, backOpcode, backCopy);
             storage.insertDerivedBefore(operands, order[stepOrdinal + 3], MicroInstrOpcode::JumpCond, jumpToStep);
-            MicroInstr* rewrittenSecond = storage.ptr(secondRef);
-            MicroInstrOperand* rewrittenOps = rewrittenSecond->ops(operands);
+            MicroInstr*        rewrittenSecond = storage.ptr(secondRef);
+            MicroInstrOperand* rewrittenOps    = rewrittenSecond->ops(operands);
             for (uint32_t i = 0; i < 3; ++i)
                 rewrittenOps[i] = rewritten[i];
             storage.erase(skipRef);
@@ -247,12 +247,12 @@ namespace
     // every advance. The one-time entry jumps over that step.
     bool placeMismatchStepBeforeHeader(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
     {
-        MicroStorage& storage = *context.instructions;
+        MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
         for (uint32_t header = 0; header + 9 < order.size(); ++header)
         {
-            const MicroInstr* headerInst = storage.ptr(order[header]);
-            const MicroInstrOperand* headerOps = headerInst ? headerInst->ops(operands) : nullptr;
+            const MicroInstr*        headerInst = storage.ptr(order[header]);
+            const MicroInstrOperand* headerOps  = headerInst ? headerInst->ops(operands) : nullptr;
             if (!headerInst || headerInst->op != MicroInstrOpcode::Label || !headerOps)
                 continue;
 
@@ -267,13 +267,13 @@ namespace
                 if (!indexedLoads)
                     continue;
 
-                const MicroInstr* cmp = storage.ptr(order[compare]);
-                const MicroInstr* equal = storage.ptr(order[compare + 1]);
+                const MicroInstr* cmp         = storage.ptr(order[compare]);
+                const MicroInstr* equal       = storage.ptr(order[compare + 1]);
                 const MicroInstr* lessOrEqual = storage.ptr(order[compare + 2]);
-                const MicroInstr* stepLabel = storage.ptr(order[compare + 3]);
-                const MicroInstr* update = storage.ptr(order[compare + 4]);
-                const MicroInstr* back = storage.ptr(order[compare + 5]);
-                const MicroInstr* tieLabel = storage.ptr(order[compare + 6]);
+                const MicroInstr* stepLabel   = storage.ptr(order[compare + 3]);
+                const MicroInstr* update      = storage.ptr(order[compare + 4]);
+                const MicroInstr* back        = storage.ptr(order[compare + 5]);
+                const MicroInstr* tieLabel    = storage.ptr(order[compare + 6]);
                 if (!cmp || !equal || !lessOrEqual || !stepLabel || !update || !back || !tieLabel ||
                     (cmp->op != MicroInstrOpcode::CmpAmcReg && cmp->op != MicroInstrOpcode::CmpRegReg) ||
                     equal->op != MicroInstrOpcode::JumpCond || lessOrEqual->op != MicroInstrOpcode::JumpCond ||
@@ -283,12 +283,12 @@ namespace
                     update->numOperands < 4 || back->numOperands < 3)
                     continue;
 
-                const MicroInstrOperand* equalOps = equal->ops(operands);
-                const MicroInstrOperand* lessOps = lessOrEqual->ops(operands);
-                const MicroInstrOperand* stepOps = stepLabel->ops(operands);
+                const MicroInstrOperand* equalOps  = equal->ops(operands);
+                const MicroInstrOperand* lessOps   = lessOrEqual->ops(operands);
+                const MicroInstrOperand* stepOps   = stepLabel->ops(operands);
                 const MicroInstrOperand* updateOps = update->ops(operands);
-                const MicroInstrOperand* backOps = back->ops(operands);
-                const MicroInstrOperand* tieOps = tieLabel->ops(operands);
+                const MicroInstrOperand* backOps   = back->ops(operands);
+                const MicroInstrOperand* tieOps    = tieLabel->ops(operands);
                 if (!equalOps || !lessOps || !stepOps || !updateOps || !backOps || !tieOps ||
                     equalOps[0].cpuCond != MicroCond::Equal || lessOps[0].cpuCond != MicroCond::BelowOrEqual ||
                     equalOps[2].valueU64 != tieOps[0].valueU64 ||
@@ -297,13 +297,13 @@ namespace
                     updateOps[1].opBits != MicroOpBits::B64 || updateOps[3].valueU64 != 1)
                     continue;
 
-                const uint64_t mismatchLabelId = context.builder->createLabel().get();
-                MicroInstrOperand entryJump[3] = {backOps[0], backOps[1], backOps[2]};
+                const uint64_t    mismatchLabelId = context.builder->createLabel().get();
+                MicroInstrOperand entryJump[3]    = {backOps[0], backOps[1], backOps[2]};
                 MicroInstrOperand mismatchLabelOps[1];
-                mismatchLabelOps[0].valueU64 = mismatchLabelId;
-                MicroInstrOperand exitJump[3] = {lessOps[0], lessOps[1], lessOps[2]};
+                mismatchLabelOps[0].valueU64      = mismatchLabelId;
+                MicroInstrOperand exitJump[3]     = {lessOps[0], lessOps[1], lessOps[2]};
                 MicroInstrOperand stepLabelOps[1] = {stepOps[0]};
-                MicroInstrOperand updateCopy[4] = {updateOps[0], updateOps[1], updateOps[2], updateOps[3]};
+                MicroInstrOperand updateCopy[4]   = {updateOps[0], updateOps[1], updateOps[2], updateOps[3]};
 
                 storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::JumpCond, entryJump);
                 storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::Label, mismatchLabelOps);
@@ -311,10 +311,10 @@ namespace
                 storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::Label, stepLabelOps);
                 storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::OpBinaryRegImm, updateCopy);
 
-                MicroInstr* rewrittenEqual = storage.ptr(order[compare + 1]);
-                MicroInstrOperand* rewrittenOps = rewrittenEqual->ops(operands);
-                rewrittenOps[0].cpuCond = MicroCond::NotEqual;
-                rewrittenOps[2].valueU64 = mismatchLabelId;
+                MicroInstr*        rewrittenEqual = storage.ptr(order[compare + 1]);
+                MicroInstrOperand* rewrittenOps   = rewrittenEqual->ops(operands);
+                rewrittenOps[0].cpuCond           = MicroCond::NotEqual;
+                rewrittenOps[2].valueU64          = mismatchLabelId;
                 storage.erase(order[compare + 2]);
                 storage.erase(order[compare + 3]);
                 storage.erase(order[compare + 4]);

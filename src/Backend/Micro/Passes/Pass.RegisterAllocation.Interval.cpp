@@ -647,8 +647,13 @@ namespace
                 ok = false; // an access immediately at the takeover point: the register was not takeable
             else
             {
-                const uint32_t reloadPos = chooseSplitPos(walk, std::max(nodes[spilledIndex].start() + 1, splitPos), firstAccess);
-                ok                       = splitNodeAt(walk, spilledIndex, reloadPos) != K_IV_INVALID;
+                // A request born at an instruction's output slot may spill its
+                // owner at that instruction's input. Requeueing the reload at
+                // that earlier input would move the walk backward and could
+                // assign a still-live input value's register to the reload.
+                const uint32_t earliestReload = (pos & 1u) ? pos + 1 : splitPos;
+                const uint32_t reloadPos      = chooseSplitPos(walk, std::max(nodes[spilledIndex].start() + 1, earliestReload), firstAccess);
+                ok                            = splitNodeAt(walk, spilledIndex, reloadPos) != K_IV_INVALID;
             }
         }
         // A whole-node spill gives the register up only now, so the reload
@@ -856,9 +861,9 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         if (freeSplittable && !freeServesWhole && !fixed[bestFree].ranges.empty() &&
             fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == freeUntilPos[bestFree])
         {
-            const uint32_t blockIndex = freeUntilPos[bestFree] / 2;
-            const MicroInstr* blockInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
-            freeEndsAtCall = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction);
+            const uint32_t    blockIndex = freeUntilPos[bestFree] / 2;
+            const MicroInstr* blockInst  = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
+            freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction);
         }
         const auto allocateFree = [&] {
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];
@@ -1307,7 +1312,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         const LiveInterval* to         = nullptr;
     };
     SmallVector<EdgeMove, 8> edgeMoves;
-    const uint32_t wordCount = denseVirtualRegs_.wordCount();
+    const uint32_t           wordCount = denseVirtualRegs_.wordCount();
     for (uint32_t s = 0; s < instructionCount_; ++s)
     {
         const MicroInstr* labelInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[s]);
@@ -1338,8 +1343,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             // label, on that side alone. Placed before the jump, or in the
             // taken edge's trampoline, they would run where the jump goes
             // instead. Only a jump to that very label reaches it both ways.
-            const MicroInstrOperand* labelOps       = labelInst->ops(*operands_);
-            const bool               jumpsToLabel   = isJump && predOpsEarly && labelOps && predOpsEarly[2].valueU64 == labelOps[0].valueU64;
+            const MicroInstrOperand* labelOps        = labelInst->ops(*operands_);
+            const bool               jumpsToLabel    = isJump && predOpsEarly && labelOps && predOpsEarly[2].valueU64 == labelOps[0].valueU64;
             const bool               fallThroughPred = p + 1 == s && (!MicroInstrInfo::isTerminatorInstruction(*predInst) || (isConditional && !jumpsToLabel));
 
             // The insertion point: before the label for the fall-through
@@ -1775,7 +1780,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         std::vector<bool> emitted;
         for (auto& [point, list] : byPoint)
         {
-            uint32_t          order = 0;
+            uint32_t order = 0;
             emitted.assign(list.size(), false);
             for (;;)
             {
@@ -1906,9 +1911,9 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         return it != trampolines.end() && it->jumpIndex == jumpIndex ? &*it : nullptr;
     };
 
-    size_t   nextConnector = 0;
+    size_t   nextConnector  = 0;
     size_t   nextTrampoline = 0;
-    uint32_t idx           = 0;
+    uint32_t idx            = 0;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         const MicroInstrRef instructionRef = it.current;
@@ -1917,8 +1922,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         // fresh label closing the trampoline block just below it.
         if (nextTrampoline < trampolines.size() && trampolines[nextTrampoline].jumpIndex == idx)
         {
-            const Trampoline* trampoline = &trampolines[nextTrampoline++];
-            MicroInstrOperand* jccOps = it->ops(*operands_);
+            const Trampoline*  trampoline = &trampolines[nextTrampoline++];
+            MicroInstrOperand* jccOps     = it->ops(*operands_);
             SWC_ASSERT(jccOps);
             jccOps[0].cpuCond  = trampoline->inverted;
             jccOps[2].valueU64 = trampoline->newLabel.get();

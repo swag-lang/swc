@@ -300,7 +300,9 @@ void Sema::setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeI
 
 void Sema::clearProjectionsOfRoot(const SymbolVariable& symVar)
 {
-    const auto ofRoot = [&symVar](const auto& it) { return it.first.root == &symVar; };
+    const auto ofRoot = [&symVar](const auto& it) {
+        return it.first.root == &symVar;
+    };
     if (std::ranges::none_of(*projectionEscapeInfos_, ofRoot))
         return;
     std::erase_if(mutableProjectionEscapeInfos(), ofRoot);
@@ -321,7 +323,7 @@ void Sema::detachVariableOwnedPayload(const SymbolVariable& symVar)
     if (!current || !current->viaOwnedPayload)
         return;
 
-    SemaEscapeInfo& info     = mutableVariableEscapeInfos().find(&symVar)->second;
+    SemaEscapeInfo& info      = mutableVariableEscapeInfos().find(&symVar)->second;
     info.detachedOwnedPayload = true;
     info.viaOwnedPayload      = false;
 }
@@ -1895,8 +1897,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     auto&             jobMgr   = ctx.global().jobMgr();
     CompilerInstance& compiler = ctx.compiler();
     SWC_DEV_LOOP_GUARD(loopGuard, 100000, "Sema::waitDone");
-    constexpr uint32_t maxPausedLazyBodyWakes = 1024;
-    uint32_t           pausedLazyBodyWakes    = 0;
+    constexpr uint32_t maxPausedLazyBodyWakes    = 1024;
+    uint32_t           pausedLazyBodyWakes       = 0;
     constexpr uint32_t maxPausedTypeInfoGenWakes = 1024;
     uint32_t           pausedTypeInfoGenWakes    = 0;
 
@@ -1912,7 +1914,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (compilerMessageResult == Result::Pause)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
-            pausedLazyBodyWakes = 0;
+            pausedLazyBodyWakes    = 0;
             pausedTypeInfoGenWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
@@ -1925,7 +1927,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (afterSemanticResult == Result::Pause)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
-            pausedLazyBodyWakes = 0;
+            pausedLazyBodyWakes    = 0;
             pausedTypeInfoGenWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
@@ -1937,7 +1939,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (compiler.consumeChanged())
         {
             SWC_DEV_LOOP_RESET(loopGuard);
-            pausedLazyBodyWakes = 0;
+            pausedLazyBodyWakes    = 0;
             pausedTypeInfoGenWakes = 0;
             compiler.jitExecMgr().wakeWaiting();
             jobMgr.wakeAll(clientId);
@@ -1947,7 +1949,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (resolveCompilerDefined(ctx, clientId))
         {
             SWC_DEV_LOOP_RESET(loopGuard);
-            pausedLazyBodyWakes = 0;
+            pausedLazyBodyWakes    = 0;
             pausedTypeInfoGenWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;

@@ -477,12 +477,12 @@ namespace
 
     struct NumberingScratch
     {
-        std::unordered_map<MicroInstrRef, const MicroRelocation*>     relocationByInstruction;
-        std::unordered_set<MicroReg>                                   frameDerivedRegs;
+        std::unordered_map<MicroInstrRef, const MicroRelocation*>    relocationByInstruction;
+        std::unordered_set<MicroReg>                                 frameDerivedRegs;
         std::unordered_map<uint64_t, SmallVector<NumberingEntry, 2>> table;
-        std::vector<PlannedRewrite>                                   rewrites;
-        ValueAliases                                                  valueAliases;
-        std::vector<uint32_t>                                         epochAt;
+        std::vector<PlannedRewrite>                                  rewrites;
+        ValueAliases                                                 valueAliases;
+        std::vector<uint32_t>                                        epochAt;
 
         void reset(const uint32_t instructionCount)
         {
@@ -556,16 +556,16 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     // functions. Resetting the contents keeps all keys local to this run.
     thread_local NumberingScratch scratch;
     scratch.reset(n);
-    auto& relocationByInstruction = scratch.relocationByInstruction;
-    auto& frameDerivedRegs        = scratch.frameDerivedRegs;
-    auto& table                   = scratch.table;
-    auto& rewrites                = scratch.rewrites;
-    auto& valueAliases            = scratch.valueAliases;
-    auto& epochAt                 = scratch.epochAt;
-    bool  relocationsReady        = false;
-    bool  frameDerivedRegsReady   = false;
-    uint32_t memoryEpoch          = 0;
-    uint32_t lastEpoch            = 0;
+    auto&    relocationByInstruction = scratch.relocationByInstruction;
+    auto&    frameDerivedRegs        = scratch.frameDerivedRegs;
+    auto&    table                   = scratch.table;
+    auto&    rewrites                = scratch.rewrites;
+    auto&    valueAliases            = scratch.valueAliases;
+    auto&    epochAt                 = scratch.epochAt;
+    bool     relocationsReady        = false;
+    bool     frameDerivedRegsReady   = false;
+    uint32_t memoryEpoch             = 0;
+    uint32_t lastEpoch               = 0;
 
     // The epoch in force at each instruction. Epochs are never reused: a label
     // that resumes its single predecessor's epoch shares it only with the

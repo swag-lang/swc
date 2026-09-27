@@ -48,7 +48,7 @@ struct MicroRelocation
     // it reads a fixed payload rather than materializing its address. This is
     // needed when the shared proximity arena is exhausted and the canonical
     // constant no longer fits a rel32 displacement from JIT code.
-    uint32_t      constantCopySize  = 0;
+    uint32_t constantCopySize = 0;
 
     bool hasSameTarget(const MicroRelocation& other) const noexcept
     {

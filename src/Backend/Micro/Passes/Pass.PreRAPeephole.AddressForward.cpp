@@ -48,7 +48,7 @@ namespace PreRaPeephole
                 if (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
                 {
                     const MicroInstrUseDef useDef = w->collectUseDef(*ctx.operands, ctx.encoder);
-                    readsAddr = std::ranges::find(useDef.uses, addrReg) != useDef.uses.end();
+                    readsAddr                     = std::ranges::find(useDef.uses, addrReg) != useDef.uses.end();
                     for (const MicroReg def : useDef.defs)
                         changesInput |= def == addrReg || def == inputA || (inputB.isValid() && def == inputB);
                 }

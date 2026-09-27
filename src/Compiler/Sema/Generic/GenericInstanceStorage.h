@@ -75,7 +75,7 @@ public:
         GenericInstanceEntry entry;
         entry.symbol = instance;
         entry.args.assign(args.begin(), args.end());
-        const size_t index = genericInstances_.size();
+        const size_t index                = genericInstances_.size();
         genericInstanceIndices_[instance] = index;
         genericInstances_.push_back(std::move(entry));
 
@@ -111,7 +111,7 @@ private:
     }
 
     static constexpr size_t LINEAR_LOOKUP_LIMIT = 8;
-    using ArgumentIndices = std::unordered_multimap<uint32_t, size_t>;
+    using ArgumentIndices                       = std::unordered_multimap<uint32_t, size_t>;
 
     mutable std::shared_mutex                 genericMutex_;
     std::vector<GenericInstanceEntry>         genericInstances_;

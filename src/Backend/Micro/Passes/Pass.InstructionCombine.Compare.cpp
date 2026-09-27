@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Compares: flags an earlier instruction already produced reused instead of
 // computed again, and known values folded into the compared operand.
@@ -39,7 +39,7 @@ namespace InstructionCombine
             cmp[2].reg == cmp[0].reg || cmp[2].reg == cmp[1].reg)
             return false;
         const MicroReg copied = cmp[2].reg;
-        const auto def = ctx.ssa->reachingDef(copied, cmpRef);
+        const auto     def    = ctx.ssa->reachingDef(copied, cmpRef);
         if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegReg ||
             ctx.isClaimed(def.instRef) || ctx.isRelocated(def.instRef))
             return false;
@@ -49,7 +49,7 @@ namespace InstructionCombine
             !valueHasSingleUse(*ctx.ssa, copied, def.instRef))
             return false;
         const auto sourceAtCopy = ctx.ssa->reachingDef(copy[1].reg, def.instRef);
-        const auto sourceAtCmp = ctx.ssa->reachingDef(copy[1].reg, cmpRef);
+        const auto sourceAtCmp  = ctx.ssa->reachingDef(copy[1].reg, cmpRef);
         if (!sourceAtCopy.valid() || !sourceAtCmp.valid() || sourceAtCopy.valueId != sourceAtCmp.valueId ||
             !ctx.claimAll({cmpRef, def.instRef}))
             return false;
@@ -89,11 +89,11 @@ namespace InstructionCombine
         const MicroInstrRef loadRef  = ctx.storage->findNextInstructionRef(jumpRef);
         const MicroInstrRef copyRef  = ctx.storage->findNextInstructionRef(loadRef);
         const MicroInstrRef labelRef = ctx.storage->findNextInstructionRef(copyRef);
-        const MicroInstr* init  = ctx.storage->ptr(initRef);
-        const MicroInstr* jump  = ctx.storage->ptr(jumpRef);
-        const MicroInstr* load  = ctx.storage->ptr(loadRef);
-        const MicroInstr* copy  = ctx.storage->ptr(copyRef);
-        const MicroInstr* label = ctx.storage->ptr(labelRef);
+        const MicroInstr*   init     = ctx.storage->ptr(initRef);
+        const MicroInstr*   jump     = ctx.storage->ptr(jumpRef);
+        const MicroInstr*   load     = ctx.storage->ptr(loadRef);
+        const MicroInstr*   copy     = ctx.storage->ptr(copyRef);
+        const MicroInstr*   label    = ctx.storage->ptr(labelRef);
         if (!init || init->op != MicroInstrOpcode::LoadRegReg ||
             !jump || jump->op != MicroInstrOpcode::JumpCond ||
             !load || load->op != MicroInstrOpcode::LoadAmcRegMem ||
@@ -131,16 +131,16 @@ namespace InstructionCombine
 
         MicroInstrOperand selectedLoad[7] = {};
         std::copy_n(loadOps, 7, selectedLoad);
-        selectedLoad[0].reg = result;
+        selectedLoad[0].reg                  = result;
         MicroInstrOperand selectedCompare[3] = {};
-        selectedCompare[0].reg    = result;
-        selectedCompare[1].reg    = fallback;
-        selectedCompare[2].opBits = cmp[4].opBits;
-        MicroInstrOperand selectedMove[4] = {};
-        selectedMove[0].reg     = result;
-        selectedMove[1].reg     = fallback;
-        selectedMove[2].cpuCond = jumpOps[0].cpuCond;
-        selectedMove[3].opBits  = cmp[4].opBits;
+        selectedCompare[0].reg               = result;
+        selectedCompare[1].reg               = fallback;
+        selectedCompare[2].opBits            = cmp[4].opBits;
+        MicroInstrOperand selectedMove[4]    = {};
+        selectedMove[0].reg                  = result;
+        selectedMove[1].reg                  = fallback;
+        selectedMove[2].cpuCond              = jumpOps[0].cpuCond;
+        selectedMove[3].opBits               = cmp[4].opBits;
         ctx.emitRewrite(initRef, MicroInstrOpcode::LoadAmcRegMem, selectedLoad, true);
         ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegReg, selectedCompare);
         ctx.emitRewrite(jumpRef, MicroInstrOpcode::LoadCondRegReg, selectedMove, true);
@@ -163,8 +163,8 @@ namespace InstructionCombine
 
         const MicroInstrRef jumpRef = ctx.storage->findNextInstructionRef(cmpRef);
         const MicroInstrRef loadRef = ctx.storage->findNextInstructionRef(jumpRef);
-        const MicroInstr* jump = ctx.storage->ptr(jumpRef);
-        const MicroInstr* load = ctx.storage->ptr(loadRef);
+        const MicroInstr*   jump    = ctx.storage->ptr(jumpRef);
+        const MicroInstr*   load    = ctx.storage->ptr(loadRef);
         if (!jump || jump->op != MicroInstrOpcode::JumpCond ||
             !load || load->op != MicroInstrOpcode::LoadAmcRegMem)
             return false;
@@ -179,18 +179,18 @@ namespace InstructionCombine
             return false;
 
         ctx.ensureVirtualIndices();
-        const MicroReg saved = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+        const MicroReg    saved        = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
         MicroInstrOperand earlyLoad[7] = {};
         std::copy_n(loadOps, 7, earlyLoad);
-        earlyLoad[0].reg = saved;
+        earlyLoad[0].reg             = saved;
         MicroInstrOperand compare[3] = {};
-        compare[0].reg = saved;
-        compare[1].reg = cmp[2].reg;
-        compare[2].opBits = cmp[4].opBits;
-        MicroInstrOperand copy[3] = {};
-        copy[0].reg = loadOps[0].reg;
-        copy[1].reg = saved;
-        copy[2].opBits = cmp[4].opBits;
+        compare[0].reg               = saved;
+        compare[1].reg               = cmp[2].reg;
+        compare[2].opBits            = cmp[4].opBits;
+        MicroInstrOperand copy[3]    = {};
+        copy[0].reg                  = loadOps[0].reg;
+        copy[1].reg                  = saved;
+        copy[2].opBits               = cmp[4].opBits;
         ctx.emitInsertBefore(cmpRef, MicroInstrOpcode::LoadAmcRegMem, earlyLoad);
         ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegReg, compare);
         ctx.emitRewrite(loadRef, MicroInstrOpcode::LoadRegReg, copy);
@@ -208,10 +208,10 @@ namespace InstructionCombine
         if (!copy || copy[2].opBits != MicroOpBits::B64 ||
             !copy[0].reg.isVirtualInt() || !copy[1].reg.isVirtualInt() || copy[0].reg == copy[1].reg)
             return false;
-        const MicroInstrRef cmpRef = ctx.storage->findNextInstructionRef(copyRef);
-        const MicroInstrRef jumpRef = ctx.storage->findNextInstructionRef(cmpRef);
-        const MicroInstr* cmpInst = ctx.storage->ptr(cmpRef);
-        const MicroInstr* jumpInst = ctx.storage->ptr(jumpRef);
+        const MicroInstrRef cmpRef   = ctx.storage->findNextInstructionRef(copyRef);
+        const MicroInstrRef jumpRef  = ctx.storage->findNextInstructionRef(cmpRef);
+        const MicroInstr*   cmpInst  = ctx.storage->ptr(cmpRef);
+        const MicroInstr*   jumpInst = ctx.storage->ptr(jumpRef);
         if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegReg ||
             !jumpInst || jumpInst->op != MicroInstrOpcode::JumpCond)
             return false;
@@ -234,13 +234,13 @@ namespace InstructionCombine
             static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(lea[3].valueU64))) != lea[3].valueU64)
             return false;
         const auto beforeAddress = ctx.ssa->reachingDef(copy[0].reg, address.instRef);
-        const auto beforeCopy = ctx.ssa->reachingDef(copy[0].reg, copyRef);
+        const auto beforeCopy    = ctx.ssa->reachingDef(copy[0].reg, copyRef);
         if (!beforeAddress.valid() || !beforeCopy.valid() || beforeAddress.valueId != beforeCopy.valueId)
             return false;
         const auto* value = ctx.ssa->valueInfo(address.valueId);
         if (!value || ctx.ssa->transitiveInstructionUseCount(address.valueId, 3) != 2)
             return false;
-        bool usedByCopy = false;
+        bool usedByCopy    = false;
         bool usedByCompare = false;
         for (const auto& use : value->uses)
         {
@@ -255,11 +255,11 @@ namespace InstructionCombine
             return false;
 
         MicroInstrOperand increment[4] = {};
-        increment[0].reg      = copy[0].reg;
-        increment[1].opBits   = MicroOpBits::B64;
-        increment[2].microOp  = MicroOp::Add;
-        increment[3].valueU64 = lea[3].valueU64;
-        MicroInstrOperand compare[3] = {};
+        increment[0].reg               = copy[0].reg;
+        increment[1].opBits            = MicroOpBits::B64;
+        increment[2].microOp           = MicroOp::Add;
+        increment[3].valueU64          = lea[3].valueU64;
+        MicroInstrOperand compare[3]   = {};
         std::copy_n(cmp, 3, compare);
         if (compare[0].reg == copy[1].reg)
             compare[0].reg = copy[0].reg;
@@ -432,8 +432,8 @@ namespace InstructionCombine
         if (result == right)
             return false;
 
-        const MicroInstrRef cmpRef = ctx.storage->findPreviousInstructionRef(selectRef);
-        const MicroInstr*   cmp    = cmpRef.isValid() ? ctx.storage->ptr(cmpRef) : nullptr;
+        const MicroInstrRef      cmpRef = ctx.storage->findPreviousInstructionRef(selectRef);
+        const MicroInstr*        cmp    = cmpRef.isValid() ? ctx.storage->ptr(cmpRef) : nullptr;
         const MicroInstrOperand* cmpOps = cmp && cmp->op == MicroInstrOpcode::CmpRegReg ? cmp->ops(*ctx.operands) : nullptr;
         if (!cmpOps || cmpOps[1].reg != right || cmpOps[2].opBits != bits || !cmpOps[0].reg.isVirtualInt())
             return false;
@@ -441,8 +441,8 @@ namespace InstructionCombine
         if (left == right || left == result)
             return false;
 
-        const MicroInstrRef copyRef = ctx.storage->findPreviousInstructionRef(cmpRef);
-        const MicroInstr*   copy    = copyRef.isValid() ? ctx.storage->ptr(copyRef) : nullptr;
+        const MicroInstrRef      copyRef = ctx.storage->findPreviousInstructionRef(cmpRef);
+        const MicroInstr*        copy    = copyRef.isValid() ? ctx.storage->ptr(copyRef) : nullptr;
         const MicroInstrOperand* copyOps = copy && copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
         if (!copyOps || copyOps[0].reg != result || copyOps[1].reg != left || getNumBits(copyOps[2].opBits) < getNumBits(bits) ||
             !valueHasSingleUse(*ctx.ssa, result, copyRef))
@@ -498,7 +498,7 @@ namespace InstructionCombine
                 return false;
         }
 
-        const MicroInstrRef nextRef = ctx.storage->findNextInstructionRef(selectRef);
+        const MicroInstrRef nextRef  = ctx.storage->findNextInstructionRef(selectRef);
         MicroCond           inverted = MicroCond::Unconditional;
         if (!nextRef.isValid() || !MicroPassHelpers::invertCondition(inverted, selectOps[2].cpuCond) ||
             !ctx.claimAll({copyRef, cmpRef, selectRef, nextRef}))
@@ -603,9 +603,9 @@ namespace InstructionCombine
             return false;
         // Copies of T move along with it; nothing else in between may mention
         // T or those copies.
-        SmallVector<MicroInstrRef, 4>        followers;
-        SmallVector<MicroReg, 4>             followerRegs;
-        MicroInstrRegOperandRefs regOperands;
+        SmallVector<MicroInstrRef, 4> followers;
+        SmallVector<MicroReg, 4>      followerRegs;
+        MicroInstrRegOperandRefs      regOperands;
         for (const MicroInstrRef betweenRef : between)
         {
             const MicroInstr*        betweenInst = ctx.storage->ptr(betweenRef);

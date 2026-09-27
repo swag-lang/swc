@@ -19,7 +19,7 @@ namespace
         if (ref < blocks.front().offset)
             return nullptr;
 
-        const auto it = std::ranges::upper_bound(blocks, ref, {}, &DataSegment::LargeBlock::offset);
+        const auto it    = std::ranges::upper_bound(blocks, ref, {}, &DataSegment::LargeBlock::offset);
         auto&      block = *std::prev(it);
         return containsLargeBlockRange(block, ref, size) ? block.storage.get() + (ref - block.offset) : nullptr;
     }
@@ -29,7 +29,7 @@ namespace
         if (ref < blocks.front().offset)
             return nullptr;
 
-        const auto  it = std::ranges::upper_bound(blocks, ref, {}, &DataSegment::LargeBlock::offset);
+        const auto  it    = std::ranges::upper_bound(blocks, ref, {}, &DataSegment::LargeBlock::offset);
         const auto& block = *std::prev(it);
         return containsLargeBlockRange(block, ref, size) ? block.storage.get() + (ref - block.offset) : nullptr;
     }
@@ -82,7 +82,7 @@ std::pair<std::string_view, Ref> DataSegment::addString(const std::string_view v
         return it->second;
 
     SWC_ASSERT(value.size() < std::numeric_limits<uint32_t>::max());
-    const uint32_t size = static_cast<uint32_t>(value.size()) + 1;
+    const uint32_t size      = static_cast<uint32_t>(value.size()) + 1;
     const auto [offset, ptr] = allocateStorageLocked(size, alignof(std::byte), false);
     if (!value.empty())
         std::memcpy(ptr, value.data(), value.size());
@@ -284,7 +284,6 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
     // merge is stable: relocations sharing an offset keep the order they were recorded in.
     if (outRelocations.size() != indexedCount)
         std::ranges::inplace_merge(outRelocations, outRelocations.begin() + indexedCount, {}, &DataSegmentRelocation::offset);
-
 }
 
 bool DataSegment::findRelocationLocked(DataSegmentRelocation& outRelocation, const uint32_t offset, const DataSegmentRelocationKind kind) const

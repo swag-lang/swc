@@ -202,7 +202,9 @@ namespace PreRaPeephole
     {
         if (!ops)
             return false;
-        const auto fits = [bits](const MicroOpBits readBits) { return getNumBits(readBits) <= getNumBits(bits); };
+        const auto fits = [bits](const MicroOpBits readBits) {
+            return getNumBits(readBits) <= getNumBits(bits);
+        };
         switch (consumer.op)
         {
             case MicroInstrOpcode::LoadRegReg:

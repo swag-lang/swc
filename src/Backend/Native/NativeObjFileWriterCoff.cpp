@@ -188,10 +188,10 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
 
     // The collector emits allocations in offset order and sorts each allocation's relocations.
     // Visit only this allocation's range instead of scanning the entire module for every object.
-    const auto& relocations = builder_->mergedRData.relocations;
-    const auto  first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
+    const auto&                      relocations = builder_->mergedRData.relocations;
+    const auto                       first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
     const std::span<const std::byte> allocationBytes{builder_->mergedRData.bytes.data() + allocation.emittedOffset, allocation.size};
-    const bool hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
+    const bool                       hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
     if (!hasRelocations && allocation.zeroFilled)
     {
         // Keep all-zero allocations as uninitialized data without copying bytes
@@ -206,7 +206,7 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
     section.data.name            = ".rdata";
     section.data.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
     section.data.bytes.append(allocationBytes);
-    Utf8        rdataBaseName;
+    Utf8 rdataBaseName;
     for (auto it = first; it != relocations.end(); ++it)
     {
         const NativeSectionRelocation& sourceRelocation = *it;

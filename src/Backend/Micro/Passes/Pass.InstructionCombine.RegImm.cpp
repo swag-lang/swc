@@ -251,7 +251,7 @@ namespace InstructionCombine
             if (!copy || copy[0].reg != dst || !copy[1].reg.isVirtualInt() || copy[1].reg == dst ||
                 getNumBits(copy[2].opBits) < getNumBits(opBits))
                 return false;
-            const MicroReg source     = copy[1].reg;
+            const MicroReg source       = copy[1].reg;
             const auto     sourceAtCopy = ctx.ssa->reachingDef(source, def.instRef);
             if (!sourceAtCopy.valid() || ctx.ssa->reachingDef(source, ref).valueId != sourceAtCopy.valueId)
                 return false;

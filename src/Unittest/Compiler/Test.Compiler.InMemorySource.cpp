@@ -330,7 +330,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_AutoInlineExpandsSameModuleCrossFileBody)
 {
-    static constexpr std::string_view PROVIDER = R"(#global public
+    static constexpr std::string_view PROVIDER     = R"(#global public
 func mix(value: u64)->u64
 {
     var result = value
@@ -346,11 +346,11 @@ func mix(value: u64)->u64
     return result
 }
 )";
-    static constexpr std::string_view CALLER = R"(#global public
+    static constexpr std::string_view CALLER       = R"(#global public
 func useMix(value: u64)->u64 => mix(value) + mix(value + 1)
 )";
-    const fs::path providerPath = Unittest::makeTestSourcePath("Compiler", "AutoInlineProvider");
-    const fs::path callerPath   = Unittest::makeTestSourcePath("Compiler", "AutoInlineCaller");
+    const fs::path                    providerPath = Unittest::makeTestSourcePath("Compiler", "AutoInlineProvider");
+    const fs::path                    callerPath   = Unittest::makeTestSourcePath("Compiler", "AutoInlineCaller");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Sema;
@@ -419,18 +419,18 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_CrossFileInlineTypePatternKeepsSourceToken)
 {
-    static constexpr std::string_view PROVIDER = R"(#[Swag.Inline]
+    static constexpr std::string_view PROVIDER     = R"(#[Swag.Inline]
 func matchesInteger(target: typeinfo)->bool => target is s32
 )";
-    static constexpr std::string_view CALLER = R"(func checkPattern(target: typeinfo)->bool
+    static constexpr std::string_view CALLER       = R"(func checkPattern(target: typeinfo)->bool
 {
     if matchesInteger(target) do
         return true
     return false
 }
 )";
-    const fs::path providerPath = Unittest::makeTestSourcePath("Compiler", "InlineTypePatternProvider");
-    const fs::path callerPath   = Unittest::makeTestSourcePath("Compiler", "InlineTypePatternCaller");
+    const fs::path                    providerPath = Unittest::makeTestSourcePath("Compiler", "InlineTypePatternProvider");
+    const fs::path                    callerPath   = Unittest::makeTestSourcePath("Compiler", "InlineTypePatternCaller");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Sema;
@@ -719,32 +719,32 @@ SWC_TEST_BEGIN(Compiler_AstVisitPreservesSiblingsAcrossPauseSkipAndRestart)
     CompilerInstance compiler(ctx.global(), cmdLine);
     TaskContext      compilerCtx(compiler);
     SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitPauseSkipRestart", "");
-    Ast&             ast = source.ast();
+    Ast&             ast    = source.ast();
 
     std::array<AstNodeRef, 8> refs;
     for (AstNodeRef& ref : refs)
         ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
     const auto [root, skipped, original, oldLeaf, replacement, nested, last, unvisited] = refs;
-    const std::array rootChildren = {skipped, original, last};
-    ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(rootChildren));
-    const std::array skippedChildren = {unvisited};
-    ast.node<AstNodeId::ArrayLiteral>(skipped)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(skippedChildren));
-    const std::array originalChildren = {oldLeaf};
-    ast.node<AstNodeId::ArrayLiteral>(original)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(originalChildren));
-    const std::array replacementChildren = {nested};
-    ast.node<AstNodeId::ArrayLiteral>(replacement)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(replacementChildren));
+    const std::array rootChildren                                                       = {skipped, original, last};
+    ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef                            = ast.pushSpan(std::span<const AstNodeRef>(rootChildren));
+    const std::array skippedChildren                                                    = {unvisited};
+    ast.node<AstNodeId::ArrayLiteral>(skipped)->spanChildrenRef                         = ast.pushSpan(std::span<const AstNodeRef>(skippedChildren));
+    const std::array originalChildren                                                   = {oldLeaf};
+    ast.node<AstNodeId::ArrayLiteral>(original)->spanChildrenRef                        = ast.pushSpan(std::span<const AstNodeRef>(originalChildren));
+    const std::array replacementChildren                                                = {nested};
+    ast.node<AstNodeId::ArrayLiteral>(replacement)->spanChildrenRef                     = ast.pushSpan(std::span<const AstNodeRef>(replacementChildren));
 
     std::array<AstNodeRef, 32> leaves;
     for (AstNodeRef& ref : leaves)
         ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
     ast.node<AstNodeId::ArrayLiteral>(nested)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(leaves));
 
-    AstVisit visit;
+    AstVisit                visit;
     std::vector<AstNodeRef> entered;
-    bool pausedPreChild = false;
-    bool pausedPreNode = false;
-    bool pausedPostNode = false;
-    bool pausedPostChild = false;
+    bool                    pausedPreChild  = false;
+    bool                    pausedPreNode   = false;
+    bool                    pausedPostNode  = false;
+    bool                    pausedPostChild = false;
     visit.setPreNodeVisitor([&](AstNode&) {
         const AstNodeRef ref = visit.currentNodeRef();
         if (visit.enteringState())
@@ -759,8 +759,8 @@ SWC_TEST_BEGIN(Compiler_AstVisitPreservesSiblingsAcrossPauseSkipAndRestart)
         return Result::Continue;
     });
     visit.setPreChildVisitor([&](AstNode&, AstNodeRef& childRef) {
-        const auto children = visit.currentChildren();
-        const uint32_t index = visit.preChildIndex();
+        const auto     children = visit.currentChildren();
+        const uint32_t index    = visit.preChildIndex();
         if (index >= children.size() || children[index] != childRef)
             return Result::Error;
         if (visit.currentNodeRef() == root && !std::ranges::equal(children, rootChildren))
@@ -814,17 +814,17 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_AstVisitResolvesChildrenWithoutFollowingActiveAncestors)
 {
-    CommandLine      cmdLine;
-    CompilerInstance compiler(ctx.global(), cmdLine);
-    TaskContext      compilerCtx(compiler);
-    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitResolvedChildren", "");
-    Ast&             ast = source.ast();
+    CommandLine               cmdLine;
+    CompilerInstance          compiler(ctx.global(), cmdLine);
+    TaskContext               compilerCtx(compiler);
+    SourceFile&               source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitResolvedChildren", "");
+    Ast&                      ast    = source.ast();
     std::array<AstNodeRef, 6> refs;
     for (AstNodeRef& ref : refs)
         ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
     const auto [root, identity, substituted, replacement, cyclic, unresolved] = refs;
-    const std::array children = {identity, substituted, cyclic, unresolved};
-    ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(children));
+    const std::array children                                                 = {identity, substituted, cyclic, unresolved};
+    ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef                  = ast.pushSpan(std::span<const AstNodeRef>(children));
 
     AstVisit visit;
     visit.setMode(AstVisitMode::ResolveBeforeCallbacks);
@@ -869,7 +869,7 @@ SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsStableTokenOrderWithinOneFile)
     CompilerInstance compiler(ctx.global(), cmdLine);
     TaskContext      compilerCtx(compiler);
     SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "SymbolLocationSort", "");
-    const std::array views = {
+    const std::array views  = {
         std::array{source.ast().srcView().ref(), compiler.addSourceView(source.ref()).ref()},
         std::array{compiler.addSourceView().ref(), compiler.addSourceView().ref()},
     };
@@ -884,8 +884,8 @@ SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsStableTokenOrderWithinOneFile)
             LocationSortTestSymbol{pair[0], TokenRef::invalid()},
             LocationSortTestSymbol{pair[1], TokenRef{1000000000}},
         };
-        std::vector<LocationSortTestSymbol*> values = {nullptr, &symbols[2], &symbols[0], &symbols[0], &symbols[1], &symbols[0], &symbols[3], &symbols[4], &symbols[2], &symbols[5], nullptr};
-        auto reference = values;
+        std::vector<LocationSortTestSymbol*> values    = {nullptr, &symbols[2], &symbols[0], &symbols[0], &symbols[1], &symbols[0], &symbols[3], &symbols[4], &symbols[2], &symbols[5], nullptr};
+        auto                                 reference = values;
         SymbolSort::sortAndUnique(reference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
         SymbolSort::sortAndUniqueByLocation(values, compiler);
         const std::array expected = {&symbols[3], &symbols[0], &symbols[1], &symbols[0], &symbols[2], &symbols[5], &symbols[4]};
@@ -919,14 +919,14 @@ SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsCompositeKeysAcrossFiles)
     SourceFile&      first     = Unittest::addTestSource(compilerCtx, path, "");
     SourceFile&      longer    = Unittest::addTestSource(compilerCtx, fs::path(path.string() + "a"), "");
     SourceFile&      equalPath = Unittest::addTestSource(compilerCtx, path, "");
-    std::array symbols = {
+    std::array       symbols   = {
         LocationSortTestSymbol{first.ast().srcView().ref(), TokenRef{9}},
         LocationSortTestSymbol{equalPath.ast().srcView().ref(), TokenRef{9}},
         LocationSortTestSymbol{longer.ast().srcView().ref(), TokenRef::invalid()},
         LocationSortTestSymbol{compiler.addSourceView().ref(), TokenRef{0}},
     };
-    std::vector<LocationSortTestSymbol*> values = {nullptr, &symbols[0], &symbols[0], &symbols[1], &symbols[0], &symbols[2], &symbols[3], nullptr};
-    auto reference = values;
+    std::vector<LocationSortTestSymbol*> values    = {nullptr, &symbols[0], &symbols[0], &symbols[1], &symbols[0], &symbols[2], &symbols[3], nullptr};
+    auto                                 reference = values;
     SymbolSort::sortAndUnique(reference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
     SymbolSort::sortAndUniqueByLocation(values, compiler);
     if (values != reference)
@@ -939,11 +939,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_AstVisitKeepsDepthFirstOrderWithPendingSiblings)
 {
-    CommandLine      cmdLine;
-    CompilerInstance compiler(ctx.global(), cmdLine);
-    TaskContext      compilerCtx(compiler);
-    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitPendingSiblings", "");
-    Ast&             ast    = source.ast();
+    CommandLine               cmdLine;
+    CompilerInstance          compiler(ctx.global(), cmdLine);
+    TaskContext               compilerCtx(compiler);
+    SourceFile&               source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitPendingSiblings", "");
+    Ast&                      ast    = source.ast();
     std::array<AstNodeRef, 5> refs;
     for (AstNodeRef& ref : refs)
         ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
@@ -952,11 +952,11 @@ SWC_TEST_BEGIN(Compiler_AstVisitKeepsDepthFirstOrderWithPendingSiblings)
     std::vector<AstNodeRef> leaves;
     for (size_t index = 0; index < 48; ++index)
         leaves.push_back(ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first);
-    ast.node<AstNodeId::ArrayLiteral>(branch)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(leaves));
-    const std::array skippedChildren = {skippedLeaf};
+    ast.node<AstNodeId::ArrayLiteral>(branch)->spanChildrenRef  = ast.pushSpan(std::span<const AstNodeRef>(leaves));
+    const std::array skippedChildren                            = {skippedLeaf};
     ast.node<AstNodeId::ArrayLiteral>(skipped)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(skippedChildren));
     // A repeated child is visited again; an invalid span entry is ignored when popped.
-    const std::array rootChildren = {branch, AstNodeRef::invalid(), skipped, last, branch};
+    const std::array rootChildren                            = {branch, AstNodeRef::invalid(), skipped, last, branch};
     ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(rootChildren));
 
     std::vector<AstNodeRef> visited;
@@ -1000,7 +1000,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_AutoInlineBlockedCallsUseDirectEdgesAndOriginalNameScopes)
 {
-    static constexpr std::string_view SOURCE = R"(#global private
+    static constexpr std::string_view SOURCE      = R"(#global private
 func directExternal() { foreignMeta() }
 func transitive() { directExternal() }
 func absentTarget() { unresolvedCall() }
@@ -1019,7 +1019,7 @@ func useCandidates()
     localOnly()
 }
 )";
-    std::string otherSource = R"(#global private
+    std::string                       otherSource = R"(#global private
 #[Swag.Macro]
 func foreignMeta() {}
 func foreignUnsupported()->func||()->s32

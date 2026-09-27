@@ -227,7 +227,7 @@ struct ViewerWindow
     stillView:           *Wnd?
     folderReadingMode:   Viewer.PlayMode
     folderReadingFolder: String
-    folderReadingFiles: Array'String
+    folderReadingFiles:  Array'String
 
     // Guards the one nested dispatch [[ViewerWindow.forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
@@ -686,7 +686,7 @@ impl ViewerWindow
             .fullScreenRestorePosition = srfn.isMaximized ? srfn.restoredPosition : srfn.position
             .fullScreenRestoreFlags    = srfn.flags
             .fullScreenWasMaximized    = srfn.isMaximized
-            .fullScreen                = true
+            .fullScreen = true
             srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
             .documentHost.padding = {}
             .documentPanel.backgroundStyle = .View

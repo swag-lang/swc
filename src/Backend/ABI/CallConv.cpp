@@ -66,20 +66,20 @@ namespace
     void setupCallConvWindowsX64(CallConv& conv)
     {
         setupX64RegisterFile(conv);
-        conv.name                                       = "win64";
-        conv.displayName                                = "Windows x64";
-        conv.intArgRegs                                 = SmallVector{MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9)};
-        conv.floatArgRegs                               = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3)};
-        conv.stackAlignment                             = 16;
-        conv.stackParamAlignment                        = 8;
-        conv.stackParamSlotSize                         = 8;
-        conv.stackShadowSpace                           = 32;
-        conv.argRegisterSlotCount                       = 4;
-        conv.structArgPassing.passByValueSizeMask       = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
-        conv.structArgPassing.passByValueInIntSlots     = true;
-        conv.structArgPassing.passByReferenceNeedsCopy  = true;
-        conv.structReturnPassing.passByValueSizeMask    = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
-        conv.stackRedZone                               = false;
+        conv.name                                      = "win64";
+        conv.displayName                               = "Windows x64";
+        conv.intArgRegs                                = SmallVector{MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9)};
+        conv.floatArgRegs                              = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3)};
+        conv.stackAlignment                            = 16;
+        conv.stackParamAlignment                       = 8;
+        conv.stackParamSlotSize                        = 8;
+        conv.stackShadowSpace                          = 32;
+        conv.argRegisterSlotCount                      = 4;
+        conv.structArgPassing.passByValueSizeMask      = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
+        conv.structArgPassing.passByValueInIntSlots    = true;
+        conv.structArgPassing.passByReferenceNeedsCopy = true;
+        conv.structReturnPassing.passByValueSizeMask   = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
+        conv.stackRedZone                              = false;
     }
 
     void setupCallConvC(CallConv& conv, const CallConv& native)

@@ -76,11 +76,11 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(LoopUnroll_LargeBranchedConstantTable_Flattens)
 {
     std::array<std::byte, 4> source{};
-    std::array                dims{source.size()};
-    const TypeRef             arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
-    const ConstantRef         cstRef    = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, std::span{source.data(), source.size()}));
-    const ConstantValue&      constant  = ctx.cstMgr().get(cstRef);
-    const uint64_t            address   = reinterpret_cast<uint64_t>(constant.getArray().data());
+    std::array               dims{source.size()};
+    const TypeRef            arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantRef        cstRef    = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, std::span{source.data(), source.size()}));
+    const ConstantValue&     constant  = ctx.cstMgr().get(cstRef);
+    const uint64_t           address   = reinterpret_cast<uint64_t>(constant.getArray().data());
 
     constexpr MicroReg counter = MicroReg::virtualIntReg(1);
     constexpr MicroReg base    = MicroReg::virtualIntReg(2);

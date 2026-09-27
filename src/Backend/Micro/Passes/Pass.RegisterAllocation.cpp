@@ -84,15 +84,24 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr std::array<uint64_t, 10> K_LOOP_DEPTH_WEIGHTS = {
-        1ull, 10ull, 100ull, 1'000ull, 10'000ull, 100'000ull, 1'000'000ull, 10'000'000ull, 100'000'000ull, 1'000'000'000ull,
+        1ull,
+        10ull,
+        100ull,
+        1'000ull,
+        10'000ull,
+        100'000ull,
+        1'000'000ull,
+        10'000'000ull,
+        100'000'000ull,
+        1'000'000'000ull,
     };
 
     bool hasVirtualRegisters(const MicroStorage& instructions, const MicroOperandStorage& operands, const Encoder* encoder)
     {
         for (const MicroInstr& inst : instructions.view())
         {
-            const MicroInstrDef& info = MicroInstr::info(inst.op);
-            const MicroInstrOperand* ops = inst.ops(operands);
+            const MicroInstrDef&     info = MicroInstr::info(inst.op);
+            const MicroInstrOperand* ops  = inst.ops(operands);
             if (ops)
             {
                 const auto modes = info.resolvedRegModes(ops);
@@ -277,19 +286,19 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         bool replacedUses = false;
         for (auto scanIt = it; scanIt != endIt; ++scanIt)
         {
-            const MicroInstrDef& info = MicroInstr::info(scanIt->op);
-            MicroInstrOperand* scanOps = scanIt->ops(*operands_);
-            const auto modes = scanOps ? info.resolvedRegModes(scanOps) : info.regModes;
-            bool definesSource = false;
-            bool definesDestination = false;
-            bool usesDestination = false;
+            const MicroInstrDef& info               = MicroInstr::info(scanIt->op);
+            MicroInstrOperand*   scanOps            = scanIt->ops(*operands_);
+            const auto           modes              = scanOps ? info.resolvedRegModes(scanOps) : info.regModes;
+            bool                 definesSource      = false;
+            bool                 definesDestination = false;
+            bool                 usesDestination    = false;
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
             {
                 const MicroInstrUseDef useDef = scanIt->collectUseDef(*operands_, context_->encoder);
-                definesSource = containsKey(useDef.defs, srcReg);
-                definesDestination = containsKey(useDef.defs, dstReg);
-                usesDestination = containsKey(useDef.uses, dstReg);
+                definesSource                 = containsKey(useDef.defs, srcReg);
+                definesDestination            = containsKey(useDef.defs, dstReg);
+                usesDestination               = containsKey(useDef.uses, dstReg);
             }
             else if (scanOps)
             {
@@ -1068,7 +1077,7 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
     if (!hasControlFlow_ || !instructionCount_)
         return;
 
-    auto& isLabelAt = loopRegionIsLabelAt_;
+    auto& isLabelAt           = loopRegionIsLabelAt_;
     auto& jumpsToOwnNextLabel = loopRegionJumpsToOwnNextLabel_;
     isLabelAt.assign(instructionCount_, 0);
     jumpsToOwnNextLabel.assign(instructionCount_, 0);
@@ -1587,8 +1596,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         uint64_t accessBenefit = 0;
     };
     SmallVector<GlobalCandidate> candidates;
-    bool hasIntCandidate   = false;
-    bool hasFloatCandidate = false;
+    bool                         hasIntCandidate   = false;
+    bool                         hasFloatCandidate = false;
 
     const uint32_t lastIndex = instructionCount_ ? instructionCount_ - 1 : 0;
     const auto&    vregs     = denseVirtualRegs_.regs();
@@ -1669,11 +1678,11 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     constexpr uint32_t K_MIN_FREE_PERSISTENT_INT   = 2;
     constexpr uint32_t K_MIN_FREE_PERSISTENT_FLOAT = 1;
 
-    const bool            hasCalls = functionHasCalls();
-    auto& reservedInt = reservedInt_;
-    auto& reservedFloat = reservedFloat_;
-    auto& reservedIntPersistent = reservedIntPersistent_;
-    auto& reservedFloatPersistent = reservedFloatPersistent_;
+    const bool hasCalls                = functionHasCalls();
+    auto&      reservedInt             = reservedInt_;
+    auto&      reservedFloat           = reservedFloat_;
+    auto&      reservedIntPersistent   = reservedIntPersistent_;
+    auto&      reservedFloatPersistent = reservedFloatPersistent_;
     if (hasIntCandidate)
     {
         reservedInt.assign(instructionCount_, 0);
@@ -2102,16 +2111,16 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
 
     for (MicroInstrRef ref = instructions_->findNextInstructionRef(copyRef); ref.isValid(); ref = instructions_->findNextInstructionRef(ref))
     {
-        const MicroInstr&    inst  = *instructions_->ptr(ref);
-        const MicroInstrDef& info  = MicroInstr::info(inst.op);
+        const MicroInstr&    inst    = *instructions_->ptr(ref);
+        const MicroInstrDef& info    = MicroInstr::info(inst.op);
         bool                 used    = false;
         bool                 defined = false;
         if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
             (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
         {
             const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context_->encoder);
-            used    = containsKey(useDef.uses, dstReg);
-            defined = containsKey(useDef.defs, dstReg);
+            used                          = containsKey(useDef.uses, dstReg);
+            defined                       = containsKey(useDef.defs, dstReg);
         }
         else if (const MicroInstrOperand* ops = inst.ops(*operands_))
         {
@@ -2120,7 +2129,7 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
             {
                 if (modes[i] == MicroInstrRegMode::None || ops[i].reg != dstReg)
                     continue;
-                used    |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
+                used |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
                 defined |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
             }
         }
@@ -2253,8 +2262,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             }
         }
 
-        const MicroInstr* inst = instructions_->ptr(instructionRefs[idx]);
-        const MicroInstrOperand* ops = inst ? inst->ops(*operands_) : nullptr;
+        const MicroInstr*        inst = instructions_->ptr(instructionRefs[idx]);
+        const MicroInstrOperand* ops  = inst ? inst->ops(*operands_) : nullptr;
         for (uint8_t opIndex = 0; inst && opIndex < inst->numOperands; ++opIndex)
         {
             if (ops[opIndex].opBits != MicroOpBits::B128)
@@ -2394,9 +2403,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // Only calls contribute to these summaries; their concrete live-out set is unused.
     for (const uint32_t idx : callPositions_)
     {
-        const bool     hotCall = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
-        const uint8_t  weight  = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
-        const auto& successors = controlFlowGraph.successors(idx);
+        const bool    hotCall    = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
+        const uint8_t weight     = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
+        const auto&   successors = controlFlowGraph.successors(idx);
         if (successors.size() == 1 && successors[0] < instructionCount_)
         {
             const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount);
@@ -4000,8 +4009,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
-        MicroInstrOperand* instOps = it->ops(*operands_);
-        SmallVector<MicroReg> protectedKeys;
+        MicroInstrOperand*        instOps = it->ops(*operands_);
+        SmallVector<MicroReg>     protectedKeys;
         SmallVector<AllocRequest> allocRequests;
         if (instOps)
         {

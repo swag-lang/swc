@@ -148,6 +148,12 @@ namespace
             case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::OpBinaryRegMem:
             case MicroInstrOpcode::OpBinaryMemImm:
+            case MicroInstrOpcode::OpBinaryMemReg:
+            case MicroInstrOpcode::OpUnaryMem:
+            case MicroInstrOpcode::CmpMemReg:
+            case MicroInstrOpcode::CmpMemImm:
+            case MicroInstrOpcode::TestMemReg:
+            case MicroInstrOpcode::TestMemImm:
                 return reg.isAnyInt() || reg.isInstructionPointer();
 
             default:
@@ -415,7 +421,7 @@ namespace
 
         if (!isValidMemoryBaseRegister(inst.op, ops[info.memBaseOperandIndex].reg))
         {
-            return reportError(context, phase, std::format("instruction #{} references unknown memory base register {} at operand {}", instructionIndex, ops[info.memBaseOperandIndex].reg.packed, info.memBaseOperandIndex));
+            return reportError(context, phase, std::format("instruction #{} (opcode {}) references unknown memory base register {} at operand {}", instructionIndex, static_cast<uint32_t>(inst.op), ops[info.memBaseOperandIndex].reg.packed, info.memBaseOperandIndex));
         }
 
         return Result::Continue;
@@ -508,12 +514,17 @@ namespace
             case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::OpBinaryRegMem:
             case MicroInstrOpcode::OpBinaryMemImm:
+            case MicroInstrOpcode::OpBinaryMemReg:
+            case MicroInstrOpcode::OpUnaryMem:
+            case MicroInstrOpcode::CmpMemReg:
+            case MicroInstrOpcode::CmpMemImm:
+            case MicroInstrOpcode::TestMemReg:
+            case MicroInstrOpcode::TestMemImm:
             {
                 if (relocation.form != MicroRelocation::Form::Relative32)
                     return reportError(context, phase, std::format("relocation #{} on a memory access is not instruction-pointer relative", relocationIndex));
 
-                const uint8_t            baseIdx = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm ||
-                                                  inst.op == MicroInstrOpcode::OpBinaryMemImm ? 0 : 1;
+                const uint8_t            baseIdx = inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::OpBinaryRegMem ? 1 : 0;
                 const MicroInstrOperand* memOps  = context.operands->ptr(inst.opsRef);
                 if (!memOps || inst.numOperands < 2 || !memOps[baseIdx].reg.isInstructionPointer())
                     return reportError(context, phase, std::format("relocation #{} names a memory access whose base is not the instruction pointer", relocationIndex));

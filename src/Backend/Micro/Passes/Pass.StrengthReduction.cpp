@@ -240,8 +240,8 @@ namespace
             storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::OpBinaryRegImm, rotateOps);
         }
 
-        cmp                = storage.ptr(cmpRef);
-        cmpOps             = cmp->ops(operands);
+        cmp    = storage.ptr(cmpRef);
+        cmpOps = cmp->ops(operands);
         cmpOps[2].setImmediateValue(ApInt(limit, bits));
         MicroInstrRef ignored;
         findEqualityReader(storage, operands, cmpRef, ignored, cond);
@@ -451,8 +451,8 @@ namespace
         // dst = (sext(dst) * sext(multiplier)) >> shift, arithmetic, in 64 bits.
         void emitWideSignedHigh32(MicroReg dst, uint64_t multiplier, uint32_t shift) const
         {
-            const MicroReg wideReg  = allocVirtualReg();
-            const MicroReg magicReg = allocVirtualReg();
+            const MicroReg    wideReg  = allocVirtualReg();
+            const MicroReg    magicReg = allocVirtualReg();
             MicroInstrOperand extendOps[4];
             extendOps[0].reg    = wideReg;
             extendOps[1].reg    = dst;

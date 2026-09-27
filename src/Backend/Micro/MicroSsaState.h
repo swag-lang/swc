@@ -59,12 +59,12 @@ public:
 
     struct PhiInfo
     {
-        MicroReg                 reg           = MicroReg::invalid();
-        uint32_t                 regIndex      = K_INVALID_VALUE;
-        uint32_t                 blockIndex    = 0;
-        uint32_t                 resultValueId = K_INVALID_VALUE;
+        MicroReg                  reg           = MicroReg::invalid();
+        uint32_t                  regIndex      = K_INVALID_VALUE;
+        uint32_t                  blockIndex    = 0;
+        uint32_t                  resultValueId = K_INVALID_VALUE;
         std::span<const uint32_t> predecessorBlocks;
-        SmallVector<uint32_t, 2> incomingValueIds;
+        SmallVector<uint32_t, 2>  incomingValueIds;
     };
 
     void build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
@@ -195,14 +195,14 @@ private:
     std::vector<BlockInfo> blocks_;
     // Block discovery and dominator construction are sequential. Keep their
     // temporary capacities across SSA rebuilds and functions on this worker.
-    std::vector<uint8_t>  blockMarks_;
-    std::vector<uint32_t> domIdomValues_;
-    std::vector<uint32_t> domRpoPosition_;
-    std::vector<uint32_t> domRpoStamp_;
-    uint32_t              domRpoNextStamp_ = 1;
-    std::vector<uint32_t> domDfsStack_;
-    std::vector<uint32_t> domDfsIter_;
-    std::vector<uint32_t> domPostOrder_;
+    std::vector<uint8_t>   blockMarks_;
+    std::vector<uint32_t>  domIdomValues_;
+    std::vector<uint32_t>  domRpoPosition_;
+    std::vector<uint32_t>  domRpoStamp_;
+    uint32_t               domRpoNextStamp_ = 1;
+    std::vector<uint32_t>  domDfsStack_;
+    std::vector<uint32_t>  domDfsIter_;
+    std::vector<uint32_t>  domPostOrder_;
     std::vector<ValueInfo> valueInfos_;
     std::vector<PhiInfo>   phiInfos_;
     // Changes to each register's value along the dominator-tree rename walk.

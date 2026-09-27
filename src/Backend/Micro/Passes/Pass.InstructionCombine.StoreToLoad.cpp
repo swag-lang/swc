@@ -109,8 +109,8 @@ namespace InstructionCombine
         // same target can forward to each other: their (base, off) pair is
         // always ([ip], 0) and only the relocation tells two targets apart.
         std::unordered_map<uint32_t, const MicroRelocation*> relocationByRef;
-        bool                                                 relocationsReady = false;
-        const auto ensureRelocationsReady = [&]() {
+        bool                                                 relocationsReady       = false;
+        const auto                                           ensureRelocationsReady = [&]() {
             if (relocationsReady)
                 return;
             if (ctx.builder)

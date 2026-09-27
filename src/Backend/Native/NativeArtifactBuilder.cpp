@@ -827,11 +827,11 @@ Result NativeArtifactBuilder::partitionObjects() const
     size_t functionIndex = 0;
     for (size_t i = 0; i < builder_->functionInfos.size(); ++i)
     {
-        NativeFunctionInfo& info     = builder_->functionInfos[i];
+        NativeFunctionInfo& info = builder_->functionInfos[i];
         if (info.cacheHit)
             continue;
         const uint32_t objIndex = static_cast<uint32_t>(functionIndex++ % numJobs);
-        info.jobIndex                = objIndex;
+        info.jobIndex           = objIndex;
         builder_->objectDescriptions[objIndex].functions.push_back(&info);
     }
     return Result::Continue;
@@ -928,8 +928,8 @@ Result NativeArtifactBuilder::partitionIncrementalFunctionObjects() const
     queryPaths(paths, static_cast<uint32_t>(builder_->objectDescriptions.size()));
     for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
     {
-        builder_->objectDescriptions[i].index   = i;
-        builder_->objectDescriptions[i].objPath = paths.objectPaths[i];
+        builder_->objectDescriptions[i].index                       = i;
+        builder_->objectDescriptions[i].objPath                     = paths.objectPaths[i];
         builder_->objectDescriptions[i].functions.front()->jobIndex = i;
     }
 

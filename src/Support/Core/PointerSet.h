@@ -52,7 +52,11 @@ public:
         return false;
     }
 
-    void   clear() noexcept { std::ranges::fill(slots_, nullptr); count_ = 0; }
+    void clear() noexcept
+    {
+        std::ranges::fill(slots_, nullptr);
+        count_ = 0;
+    }
     size_t size() const noexcept { return count_; }
     bool   empty() const noexcept { return count_ == 0; }
 

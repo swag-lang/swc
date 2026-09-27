@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_CALL_PUSH_SIZE = sizeof(void*);
+    constexpr uint32_t K_CALL_PUSH_SIZE  = sizeof(void*);
     constexpr uint32_t K_NO_ARG_REGISTER = UINT32_MAX;
 
     bool requiresRegisterArgHomeSlot(const ABICall::PreparedArg& arg);
@@ -101,8 +101,8 @@ namespace
 
         for (uint32_t i = 0; i < numArgs; ++i)
         {
-            const ABICall::Arg& arg = args[i];
-            const uint32_t regIndex = ABICall::argumentRegisterIndex(conv, argLayouts, i);
+            const ABICall::Arg& arg      = args[i];
+            const uint32_t      regIndex = ABICall::argumentRegisterIndex(conv, argLayouts, i);
             if (regIndex == K_NO_ARG_REGISTER)
                 continue;
 
@@ -345,7 +345,7 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
     SWC_ASSERT(argIndex < argLayouts.size());
     if (conv.independentArgBanks)
     {
-        uint64_t stackBytes = 0;
+        uint64_t stackBytes  = 0;
         uint64_t stackOffset = 0;
         for (uint32_t i = 0; i < argLayouts.size(); ++i)
         {
@@ -417,15 +417,15 @@ uint64_t ABICall::incomingArgFrameOffset(const CallConv& conv, std::span<const A
 uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
 {
     // Reserve shadow space + stack args, then restore call-site alignment before CALL pushes RIP.
-    const CallConv& conv          = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     SWC_ASSERT(!conv.independentArgBanks || numArgs == 0);
-    const uint32_t  numRegArgs    = conv.numArgRegisterSlots();
-    const uint32_t  stackSlotSize = conv.stackSlotSize();
-    const uint32_t  numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
-    const uint32_t  stackArgsSize = numStackArgs * stackSlotSize;
-    const uint32_t  frameBaseSize = conv.stackShadowSpace + stackArgsSize;
-    const uint32_t  stackAlign    = conv.stackAlignment ? conv.stackAlignment : 16;
-    const uint32_t  alignPad      = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
+    const uint32_t numRegArgs    = conv.numArgRegisterSlots();
+    const uint32_t stackSlotSize = conv.stackSlotSize();
+    const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
+    const uint32_t stackArgsSize = numStackArgs * stackSlotSize;
+    const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
+    const uint32_t stackAlign    = conv.stackAlignment ? conv.stackAlignment : 16;
+    const uint32_t alignPad      = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
     return frameBaseSize + alignPad;
 }
 
@@ -450,7 +450,7 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
                 frameBaseSize += conv.stackSlotSize();
         }
         const uint32_t stackAlign = conv.stackAlignment;
-        const uint32_t alignPad = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
+        const uint32_t alignPad   = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
         SWC_ASSERT(frameBaseSize + alignPad <= UINT32_MAX);
         return static_cast<uint32_t>(frameBaseSize + alignPad);
     }
@@ -600,8 +600,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
-            const PreparedArg& arg = args[i];
-            const uint32_t regIndex = argumentRegisterIndex(conv, argLayouts, i);
+            const PreparedArg& arg      = args[i];
+            const uint32_t     regIndex = argumentRegisterIndex(conv, argLayouts, i);
             if (regIndex == K_NO_ARG_REGISTER)
                 continue;
 
@@ -659,8 +659,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
-        const PreparedArg& arg = args[i];
-        const uint32_t regIndex = argumentRegisterIndex(conv, argLayouts, i);
+        const PreparedArg& arg      = args[i];
+        const uint32_t     regIndex = argumentRegisterIndex(conv, argLayouts, i);
         SWC_ASSERT(regIndex != K_NO_ARG_REGISTER);
         forbidFloatBitCarrierIntArgRegs(builder, conv, arg);
 

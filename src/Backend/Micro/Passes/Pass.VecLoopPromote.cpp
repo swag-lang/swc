@@ -202,8 +202,8 @@ namespace
                     default:
                         break;
                 }
-                offset  = ops[3].valueU64;
-                isRead  = true;
+                offset = ops[3].valueU64;
+                isRead = true;
                 break;
             case MicroInstrOpcode::LoadMemReg:
                 baseReg = ops[0].reg;

@@ -9,7 +9,7 @@ public func printUsage(name: string)->s32
     {
     case "tests":
         Console.print("""
-Runs the complete repository test set.
+Runs the complete headless repository test set.
 
   swc tools/tests.swgs [dm] [options...]
 
@@ -17,11 +17,26 @@ Runs the complete repository test set.
   -bc <config>       release or devmode (default devmode)
   --all-cfg          repeat the complete set in both configurations
 
-Five rungs, cheapest and most specific first: the frontend suites, the code
-generation suites, the standard library, the applications and the reference,
-then the programs that only prove they start. Each rung runs in every requested
+Four rungs, cheapest and most specific first: the frontend suites, the code
+generation suites, the standard library, then the applications and the reference.
+Each rung runs in every requested
 configuration before the next one begins, so a fault only one configuration can
 produce reports without waiting for the others to finish.
+""")
+
+    case "integrations":
+        Console.print("""
+Runs desktop integrations separately from the headless test set.
+
+  swc tools/integrations.swgs [dm] [opengl|windows|smoke] [options...]
+
+  dm                 use the DevMode compiler
+  -bc <config>       release or devmode (default devmode)
+  --all-cfg          repeat the integrations in both configurations
+
+OpenGL selects renderer integration tests; windows selects host-window tests;
+smoke launches scripts, examples, and applications. With no name, all three run
+in that order. These checks may create real windows and require a desktop.
 """)
 
     case "unittests":

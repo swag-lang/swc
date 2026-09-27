@@ -191,7 +191,8 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     var vertices = 0'u64
     for cmd in painter.commandBuffer
     {
-        if cmd.id != .DrawTriangles do continue
+        if cmd.id != .DrawTriangles do
+            continue
         for i in cmd.drawTriangles.count
         {
             let pos = painter.vertexBuffer[cmd.drawTriangles.start + i].pos
@@ -200,6 +201,7 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
             vertices += 1
         }
     }
+
     Swag.assert(vertices > 0)
 }
 

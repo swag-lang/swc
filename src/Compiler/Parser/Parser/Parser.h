@@ -136,6 +136,7 @@ private:
 
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
     AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
+    void             markCallCalleeNode(AstNodeRef nodeRef);
     TokenId          swagIntrinsicId(AstNodeRef nodeExpr) const;
     AstNodeRef       lowerSwagIntrinsicCall(AstNodeRef nodeExpr, SpanRef spanArgsRef, TokenRef tokCallRef);
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);

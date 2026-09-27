@@ -191,18 +191,6 @@ namespace
             if (!isSinkableDefinition(*inst, *useDef))
                 continue;
 
-            if (!relocationsReady)
-            {
-                for (const MicroRelocation& reloc : context.builder->codeRelocations())
-                {
-                    if (reloc.instructionRef.isValid())
-                        scratch.relocationRefs.insert(reloc.instructionRef.get());
-                }
-                relocationsReady = true;
-            }
-            if (scratch.relocationRefs.contains(instrRefs[i].get()))
-                continue;
-
             const MicroReg value           = useDef->defs[0];
             const uint32_t valueDenseIndex = scratch.virtualRegs.find(value);
             if (valueDenseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
@@ -215,6 +203,18 @@ namespace
             if (useIdx <= i + 1 || useIdx - i > K_MAX_SINK_DISTANCE)
                 continue;
             if (scratch.blockIds[useIdx] != scratch.blockIds[i])
+                continue;
+
+            if (!relocationsReady)
+            {
+                for (const MicroRelocation& reloc : context.builder->codeRelocations())
+                {
+                    if (reloc.instructionRef.isValid())
+                        scratch.relocationRefs.insert(reloc.instructionRef.get());
+                }
+                relocationsReady = true;
+            }
+            if (scratch.relocationRefs.contains(instrRefs[i].get()))
                 continue;
 
             // Nothing between the definition and its consumer may redefine

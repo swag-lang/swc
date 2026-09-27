@@ -232,8 +232,40 @@ namespace
             return false;
 
         const auto instrRefs = cfg.instructionRefs();
+        const size_t loopCount = loopsByHeader.size();
         // Candidate discovery precedes every mutation, and a changed loop
         // ends the round. Physical neighbors therefore keep their CFG indices.
+
+        // Only loops with a clean preheader and dead incoming flags can use
+        // the whole-function register effects collected below.
+        std::erase_if(loopsByHeader, [&](const auto& item) {
+            const NaturalLoop&  loop      = item.second;
+            const uint32_t      header    = loop.header;
+            const MicroInstrRef headerRef = instrRefs[header];
+            if (std::ranges::find(processedHeaders, headerRef) != processedHeaders.end())
+                return true;
+
+            uint32_t externalPredCount = 0;
+            for (const uint32_t p : cfg.predecessors(header))
+                if (p < n && !loop.inBody[p])
+                    ++externalPredCount;
+            if (externalPredCount != 1)
+                return true;
+
+            const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
+            if (!prevRef.isValid() || header == 0 || instrRefs[header - 1] != prevRef || loop.inBody[header - 1])
+                return true;
+            const MicroInstr* prevInst = storage.ptr(prevRef);
+            if (!prevInst)
+                return true;
+            const MicroInstrFlags prevFlags = MicroInstr::info(prevInst->op).flags;
+            if ((prevFlags.has(MicroInstrFlagsE::JumpInstruction) || prevFlags.has(MicroInstrFlagsE::TerminatorInstruction)) &&
+                !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
+                return true;
+            return !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, prevRef, context.builder);
+        });
+        if (loopsByHeader.empty())
+            return false;
 
         // Every loop reads the same unmodified instruction stream. Collect its
         // register effects and whole-function uses once, without constructing SSA.
@@ -261,34 +293,6 @@ namespace
             const uint32_t      header    = loop.header;
             const auto&         inBody    = loop.inBody;
             const MicroInstrRef headerRef = instrRefs[header];
-            if (std::ranges::find(processedHeaders, headerRef) != processedHeaders.end())
-                continue;
-
-            // A clean preheader: one predecessor outside the loop, which is the
-            // linear predecessor and falls through into the header. A carrier's
-            // first value is computed there with a multiply or an add, so the
-            // flags must be dead at that point.
-            uint32_t externalPredCount = 0;
-            for (const uint32_t p : cfg.predecessors(header))
-                if (p < n && !inBody[p])
-                    ++externalPredCount;
-            if (externalPredCount != 1)
-                continue;
-
-            const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
-            if (!prevRef.isValid())
-                continue;
-            if (header == 0 || instrRefs[header - 1] != prevRef || inBody[header - 1])
-                continue;
-            const MicroInstr* prevInst = storage.ptr(prevRef);
-            if (!prevInst)
-                continue;
-            const MicroInstrFlags prevFlags = MicroInstr::info(prevInst->op).flags;
-            if ((prevFlags.has(MicroInstrFlagsE::JumpInstruction) || prevFlags.has(MicroInstrFlagsE::TerminatorInstruction)) &&
-                !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
-                continue;
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, prevRef, context.builder))
-                continue;
 
             LoopScan scan;
             for (uint32_t i = 0; i < n; ++i)
@@ -746,7 +750,7 @@ namespace
             {
                 processedHeaders.push_back(headerRef);
                 // Carrier arithmetic does not add or remove control-flow edges.
-                hasOtherLoop = processedHeaders.size() < loopsByHeader.size();
+                hasOtherLoop = processedHeaders.size() < loopCount;
                 break;
             }
         }

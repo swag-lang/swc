@@ -15,6 +15,17 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.083 — Retain the probe mask without increasing spills
+
+- Recorded: 2026-09-26 12:46
+- Updated: 2026-09-28 00:56 — Compare the retained LDC mask against the threaded Swag probe.
+- Area: compiler/backend, LICM and register allocation
+- Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
+- Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
+- With the subsequent caller-test threading, wordfreq `main` is 443 instructions. Its first inlined probe still reads `[rbx+0xC8]` for the initial hash mask and again for each collision step; LDC holds that mask in `r10` across `memcmp`, saving and restoring it around the call. The Swag collision step retains the extra memory operand, while the checksum remains 130489. This is a current code comparison, not a new LICM trial.
+- Next: rebaseline `mapProbe` after the calling-convention change, then find a register-pressure-aware way to retain the mask and compare the complete hash and collision loops and call frame against LDC.
+- Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
+
 ### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
 
 - Recorded: 2026-09-25 23:43
@@ -36,16 +47,6 @@ block, and the hot path keeps the register.
 - A value-numbering trial preserved mutable global loads across a direct `ReadOnly` call. It removed four instructions from `qsort` as a whole (132 to 128), including a repeated global pointer load after `memcmp`, and kept checksum 130489. The extra live value changed allocation in the first comparator loop: each increment path acquired a stack reload of the count pointer and an unconditional back-edge jump. That hot-path regression outweighed the colder tie-path saving, so the trial was reverted without timing it. A direct-call regression test for this trial was reverted with the rule.
 - Next: compare the full tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to determine whether remaining reloads warrant a focused allocation change.
 - Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
-
-### compiler.optimization.083 — Retain the probe mask without increasing spills
-
-- Recorded: 2026-09-26 12:46
-- Updated: 2026-09-27 22:58 — Recheck LICM ordering after loop-guided probe inlining.
-- Area: compiler/backend, LICM and register allocation
-- Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
-- Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
-- Next: rebaseline `mapProbe` after the calling-convention change, then find a register-pressure-aware way to retain the mask and compare the complete hash and collision loops and call frame against LDC.
-- Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 

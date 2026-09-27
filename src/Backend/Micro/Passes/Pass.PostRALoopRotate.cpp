@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
@@ -61,26 +62,6 @@ namespace
         }
     }
 
-    bool invertCondition(const MicroCond cond, MicroCond& outInverted)
-    {
-        switch (cond)
-        {
-            case MicroCond::Equal: outInverted = MicroCond::NotEqual; return true;
-            case MicroCond::NotEqual: outInverted = MicroCond::Equal; return true;
-            case MicroCond::Zero: outInverted = MicroCond::NotZero; return true;
-            case MicroCond::NotZero: outInverted = MicroCond::Zero; return true;
-            case MicroCond::Below: outInverted = MicroCond::AboveOrEqual; return true;
-            case MicroCond::AboveOrEqual: outInverted = MicroCond::Below; return true;
-            case MicroCond::BelowOrEqual: outInverted = MicroCond::Above; return true;
-            case MicroCond::Above: outInverted = MicroCond::BelowOrEqual; return true;
-            case MicroCond::Less: outInverted = MicroCond::GreaterOrEqual; return true;
-            case MicroCond::GreaterOrEqual: outInverted = MicroCond::Less; return true;
-            case MicroCond::LessOrEqual: outInverted = MicroCond::Greater; return true;
-            case MicroCond::Greater: outInverted = MicroCond::LessOrEqual; return true;
-            default: return false;
-        }
-    }
-
     // A connector the allocator places around the test: a register move or
     // frame traffic, flag-neutral, so the compare still feeds the jump.
     bool isDuplicableConnector(const MicroInstr& inst)
@@ -122,7 +103,7 @@ namespace
             if (!jccOps || jcc->numOperands < 3 || jccOps[0].cpuCond == MicroCond::Unconditional)
                 continue;
             MicroCond inverted = MicroCond::Unconditional;
-            if (!invertCondition(jccOps[0].cpuCond, inverted))
+            if (!MicroPassHelpers::invertLayoutBranchCondition(inverted, jccOps[0].cpuCond))
                 continue;
 
             uint32_t exitId = 0;
@@ -263,7 +244,7 @@ namespace
                 firstOps[2].valueU64 != tieOps[0].valueU64)
                 continue;
             MicroCond inverted = MicroCond::Unconditional;
-            if (!invertCondition(secondOps[0].cpuCond, inverted))
+            if (!MicroPassHelpers::invertLayoutBranchCondition(inverted, secondOps[0].cpuCond))
                 continue;
 
             const uint32_t stepSearchEnd = static_cast<uint32_t>(std::min<size_t>(order.size(), static_cast<size_t>(ordinal) + 81));
@@ -555,7 +536,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
             continue;
 
         MicroCond inverted = MicroCond::Unconditional;
-        if (!invertCondition(cond, inverted))
+        if (!MicroPassHelpers::invertLayoutBranchCondition(inverted, cond))
             continue;
 
         // The whole shape is known before a relocation snapshot is needed.

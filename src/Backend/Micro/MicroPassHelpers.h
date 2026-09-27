@@ -12,6 +12,27 @@ class MicroBuilder;
 
 namespace MicroPassHelpers
 {
+    // The integer comparison conditions accepted by branch layout rewrites.
+    inline bool invertLayoutBranchCondition(MicroCond& outInverted, MicroCond cond)
+    {
+        switch (cond)
+        {
+            case MicroCond::Equal: outInverted = MicroCond::NotEqual; return true;
+            case MicroCond::NotEqual: outInverted = MicroCond::Equal; return true;
+            case MicroCond::Zero: outInverted = MicroCond::NotZero; return true;
+            case MicroCond::NotZero: outInverted = MicroCond::Zero; return true;
+            case MicroCond::Below: outInverted = MicroCond::AboveOrEqual; return true;
+            case MicroCond::AboveOrEqual: outInverted = MicroCond::Below; return true;
+            case MicroCond::BelowOrEqual: outInverted = MicroCond::Above; return true;
+            case MicroCond::Above: outInverted = MicroCond::BelowOrEqual; return true;
+            case MicroCond::Less: outInverted = MicroCond::GreaterOrEqual; return true;
+            case MicroCond::GreaterOrEqual: outInverted = MicroCond::Less; return true;
+            case MicroCond::LessOrEqual: outInverted = MicroCond::Greater; return true;
+            case MicroCond::Greater: outInverted = MicroCond::LessOrEqual; return true;
+            default: return false;
+        }
+    }
+
     // Condition code after swapping the operands of an integer compare.
     // Conditions without a direct swapped form return false.
     inline bool swapCompareCondition(MicroCond& out, MicroCond in)

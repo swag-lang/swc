@@ -48,6 +48,24 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
+### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-27 22:58 — recognize one fixed-bound XOR reduction; retain the general loop work.
+- Evidence: the registered pass is basic-block SLP (`Pass.SlpVectorize`), with no general
+  loop-reduction vectorizer or runtime-versioned alias/tail pipeline. `Pass.LoopUnroll` now recognizes
+  a straight-line, fixed-bound indexed 32-bit load plus index and XOR reduction when the bound is
+  divisible by four. It keeps four 32-bit lanes and reduces them once after the loop. The 4,194,304-word
+  ChaCha checksum loop changes from a scalar load/add/XOR per word to a packed load/add/XOR per four
+  words, and retains checksum 633277775 under `--validate-micro`. C++ regression covers a divisible
+  bound, a nondivisible bound, and a scalar temporary read after the loop; 1,148 C++, 3,483 native
+  Release, and 1,500 JIT Release tests pass.
+- Intent: add loop vectorization that recognizes associative reductions, versions alias/alignment
+  checks, and generate masked or peeled tails using the explicit SIMD operation set.
+- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
+  supported target policy with scalar-equivalent results and profitable cost decisions.
+- Related: cpu.simd.006, cpu.simd.015.
+
 ### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
 
 - Recorded: 2026-09-12 18:05
@@ -138,18 +156,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   have a measured decision, with a retained packed kernel improving the staged reconstruction
   profile.
 - Related: cpu.simd.006, std.video.001.
-
-### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-09-10 20:49 — distinguished the existing SLP pass from the proposed loop vectorizer
-- Evidence: the registered pass is basic-block SLP (`Pass.SlpVectorize`), with no general
-  loop-reduction vectorizer or runtime-versioned alias/tail pipeline.
-- Intent: add loop vectorization that recognizes associative reductions, versions alias/alignment
-  checks, and generate masked or peeled tails using the explicit SIMD operation set.
-- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
-  supported target policy with scalar-equivalent results and profitable cost decisions.
-- Related: cpu.simd.006, cpu.simd.015.
 
 ### cpu.simd.013 — Unrolling does not expose constant-index SIMD packs
 

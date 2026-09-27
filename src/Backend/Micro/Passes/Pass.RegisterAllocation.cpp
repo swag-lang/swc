@@ -2311,9 +2311,14 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     nextUsePositionCursor_.assign(virtualRegs.size(), 0);
     nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);
     liveStampByDenseIndex_.assign(virtualRegs.size(), 0);
-    vregsLiveAcrossCall_.assign(virtualRegs.size(), 0);
-    vregsLiveAcrossHotCall_.assign(virtualRegs.size(), 0);
-    callSpillFlags_.assign(virtualRegs.size(), 0);
+    // No call can mark a live-across value or require a call spill. Readers
+    // already interpret an empty array as no such value.
+    if (!callPositions_.empty())
+    {
+        vregsLiveAcrossCall_.assign(virtualRegs.size(), 0);
+        vregsLiveAcrossHotCall_.assign(virtualRegs.size(), 0);
+        callSpillFlags_.assign(virtualRegs.size(), 0);
+    }
     mappedVirtualIndices_.clear();
     mappedVirtualIndices_.reserve(virtualRegs.size());
     currentConcreteLiveOut_.clear();

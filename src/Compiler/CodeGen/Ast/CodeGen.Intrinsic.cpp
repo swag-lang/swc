@@ -16,6 +16,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/IntrinsicInitType.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -31,19 +32,6 @@ namespace
         if (rawTypeRef.isValid())
             return rawTypeRef;
         return typeRef;
-    }
-
-    bool intrinsicInitPreservesAliasType(const TypeInfo& rawType)
-    {
-        return rawType.isEnum() ||
-               rawType.isBool() ||
-               rawType.isIntLike() ||
-               rawType.isFloat() ||
-               rawType.isAnyPointer() ||
-               rawType.isReference() ||
-               rawType.isCString() ||
-               rawType.isTypeInfo() ||
-               (rawType.isFunction() && !rawType.isLambdaClosure());
     }
 
     bool intrinsicInitTypeUsesFloatPayload(CodeGen& codeGen, TypeRef typeRef)
@@ -66,7 +54,7 @@ namespace
             return typeRef;
 
         const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid() && !intrinsicInitPreservesAliasType(codeGen.typeMgr().get(rawTypeRef)))
+        if (rawTypeRef.isValid() && !IntrinsicInitType::preservesAliasType(codeGen.typeMgr().get(rawTypeRef)))
             return rawTypeRef;
         return typeRef;
     }

@@ -489,16 +489,6 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         if (incoming == jumpsByTarget.end() || incoming->second.count != 1)
             continue;
 
-        if (!relocatedInstructions)
-        {
-            relocatedInstructions.emplace();
-            for (const MicroRelocation& reloc : context.builder->codeRelocations())
-            {
-                if (reloc.instructionRef.isValid())
-                    relocatedInstructions->insert(reloc.instructionRef.get());
-            }
-        }
-
         // The test run: one duplicable compare, possibly surrounded by
         // connectors, closed by the conditional jump.
         const uint32_t testBegin = ordinal + 1;
@@ -515,8 +505,6 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
                 closed = haveTest;
                 break;
             }
-            if (relocatedInstructions->contains(order[testEnd].get()))
-                break;
             if (isDuplicableTest(*testInst))
             {
                 if (haveTest)
@@ -567,6 +555,29 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
 
         MicroCond inverted = MicroCond::Unconditional;
         if (!invertCondition(cond, inverted))
+            continue;
+
+        // The whole shape is known before a relocation snapshot is needed.
+        // A relocated test or connector cannot be duplicated at the back edge.
+        if (!relocatedInstructions)
+        {
+            relocatedInstructions.emplace();
+            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    relocatedInstructions->insert(reloc.instructionRef.get());
+            }
+        }
+        bool hasRelocatedTest = false;
+        for (uint32_t testOrdinal = testBegin; testOrdinal < testEnd; ++testOrdinal)
+        {
+            if (relocatedInstructions->contains(order[testOrdinal].get()))
+            {
+                hasRelocatedTest = true;
+                break;
+            }
+        }
+        if (hasRelocatedTest)
             continue;
 
         rotations.push_back({.testBegin = testBegin, .testEnd = testEnd, .jccRef = jccRef, .bodyFirstRef = order[testEnd + 1], .backRef = backRef, .inverted = inverted});

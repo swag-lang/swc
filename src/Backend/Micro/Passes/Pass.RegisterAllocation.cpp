@@ -473,6 +473,9 @@ void MicroRegisterAllocationPass::computeConcreteLoopCarried()
 {
     // A concrete register whose value is live-in at a loop header crosses that
     // loop's back-edge, so its uses can precede the point that wants it.
+    concreteLoopCarried_.clear();
+    if (!functionHasLoop_)
+        return;
     concreteLoopCarried_.assign(denseConcreteRegs_.regs().size(), 0);
 
     const uint32_t wordCount = denseConcreteRegs_.wordCount();
@@ -2332,7 +2335,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // storage mutations do not rebuild the CFG during this pass.
     predecessors_ = controlFlowGraph.predecessors();
 
-    computeReachability();
+    // The only reader treats every instruction in a linear function as reachable.
+    if (hasControlFlow_)
+        computeReachability();
     computeLoopDepth();
 
     worklist_.clear();

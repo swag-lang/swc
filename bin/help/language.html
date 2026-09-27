@@ -408,12 +408,13 @@ swc help test</span></div>
 <tr><td><span class="code-inline">clean</span></td><td>Remove what a build produced, and the caches kept between runs</td></tr>
 <tr><td><span class="code-inline">build</span></td><td>Compile and emit native artifacts without running them</td></tr>
 <tr><td><span class="code-inline">run</span></td><td>Build, then run emitted executables</td></tr>
+<tr><td><span class="code-inline">smoke</span></td><td>Build and run emitted executables for a bounded number of frames</td></tr>
 <tr><td><span class="code-inline">test</span></td><td>Run source-driven tests and <span class="code-inline">#test</span> functions</td></tr>
 <tr><td><span class="code-inline">format</span></td><td>Rewrite source using canonical formatting</td></tr>
 <tr><td><span class="code-inline">syntax</span></td><td>Parse source without semantic analysis or code generation</td></tr>
 <tr><td><span class="code-inline">sema</span></td><td>Parse and type-check source without backend code generation</td></tr>
 <tr><td><span class="code-inline">doc</span></td><td>Parse and type-check source, then generate configured documentation</td></tr>
-<tr><td><span class="code-inline">unittest</span></td><td>Run the compiler's internal C++ unit tests</td></tr>
+<tr><td><span class="code-inline">unittest</span></td><td>Run the DevMode compiler's internal C++ unit tests</td></tr>
 </tbody>
 </table>
 <h3 id="_001_004_swc_command_line_swg_Creating_a_Starter">Creating a Starter</h3>
@@ -442,7 +443,7 @@ swc new module app --workspace my-project</span></div>
 <tr><td>'--file PATH', '-f PATH'</td><td>Add an individual source file</td></tr>
 </tbody>
 </table>
-<p><span class="code-inline">--workspace</span> is available to <span class="code-inline">new</span>, <span class="code-inline">clean</span>, <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">test</span>, <span class="code-inline">sema</span>, and <span class="code-inline">doc</span>. <span class="code-inline">--workspace-module</span> is available to the five compilation commands and to <span class="code-inline">clean</span>. The <span class="code-inline">format</span>, <span class="code-inline">syntax</span>, and compiler-internal <span class="code-inline">unittest</span> commands use the direct module, module-file, directory, or file modes instead.</p>
+<p><span class="code-inline">--workspace</span> is available to <span class="code-inline">new</span>, <span class="code-inline">clean</span>, <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">smoke</span>, <span class="code-inline">test</span>, <span class="code-inline">sema</span>, and <span class="code-inline">doc</span>. <span class="code-inline">--workspace-module</span> is available to <span class="code-inline">clean</span>, <span class="code-inline">sema</span>, <span class="code-inline">doc</span>, <span class="code-inline">test</span>, <span class="code-inline">build</span>, <span class="code-inline">run</span>, and <span class="code-inline">smoke</span>. The <span class="code-inline">format</span>, <span class="code-inline">syntax</span>, and compiler-internal <span class="code-inline">unittest</span> commands use the direct module, module-file, directory, or file modes instead.</p>
 <p>Where workspace mode is accepted, it excludes the direct module, directory, and file input modes. <span class="code-inline">--workspace-module</span> is meaningful only with <span class="code-inline">--workspace</span>. For 'new module', <span class="code-inline">--workspace</span> names the workspace to create or extend.</p>
 <h3 id="_001_004_swc_command_line_swg_Build_Configurations">Build Configurations</h3>
 <p><span class="code-inline">--build-cfg</span> (or <span class="code-inline">-bc</span>) accepts:</p>
@@ -544,7 +545,7 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">--verbose-verify</span>, <span class="code-inline">-vv</span></td><td>Show diagnostics normally consumed by expected-error tests</td></tr>
 </tbody>
 </table>
-<p>Repeated file filters form one union and repeated tag filters form another. When both kinds are present, a test must match both dimensions. With no tag filter, tagged and untagged tests run normally.</p>
+<p>Repeated file filters form one union and repeated tag filters form another. When both kinds are present, a test must match both dimensions. With no tag filter, tagged and untagged tests run normally except tags beginning with <span class="code-inline">integration.</span>. Those require an explicit <span class="code-inline">--test-tag</span> selection and may use a real renderer or host window. The repository runs them through <span class="code-inline">tools/integrations.swgs</span>.</p>
 <p>The three <span class="code-inline">*-only</span> modes are mutually exclusive. For this reference, keep the default JIT and native paths enabled so examples verify both execution engines.</p>
 <h2 id="_002_000_modules_and_source_code_swg">Modules and Source Code</h2>
 <p>A Swag program is organized as source files inside modules, and modules inside a workspace. This chapter covers setup files, dependencies, declaration order, comments, statement termination, identifiers, sigils, visibility, and module lifecycle hooks. The native documentation section explains how comments and guides become a generated reference alongside the executable examples.</p>
@@ -7786,7 +7787,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <tr><td>'TestTag(name: string)'</td><td>Assign one runtime-selection category to a <span class="code-inline">#test</span> function</td></tr>
 </tbody>
 </table>
-<p>Use '--test-tag NAME' to run only tests with the exact matching tag. Repeating the option selects a union of tags. A test can have one <span class="code-inline">TestTag</span>; omit it when the test does not belong to a named campaign.</p>
+<p>Use '--test-tag NAME' to run only tests with the exact matching tag. Repeating the option selects a union of tags. A test can have one <span class="code-inline">TestTag</span>; omit it when the test does not belong to a named campaign. Tags beginning with <span class="code-inline">integration.</span> are excluded from ordinary test runs. Select them explicitly for tests that need a GPU, a native window, or another host resource.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">TestTag("golden")]</span>
 <span class="SFct">#test</span>
 {
@@ -7860,6 +7861,7 @@ swc test -w path/to/workspace -m messages</span></div>
     callconv: .C)]</span>
 <span class="SKwd">func</span> <span class="SFct">localName</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 <p><span class="code-inline">function</span> defaults to the local declaration name, <span class="code-inline">link</span> defaults to the module name, and <span class="code-inline">callconv</span> defaults to the Swag ABI, so a native library names <span class="code-inline">Swag.CallConv.C</span> itself.</p>
+<p>'Swag.CallingConvention(value: CallConv)' sets the ABI of a function declaration or function type. Apply it to a callback function, function type alias, native vtable struct, or enclosing scope when the target uses the C ABI. A foreign declaration inherits it unless 'Foreign(callconv: ...)' states another ABI.</p>
 <h3 id="_010_002_predefined_attributes_swg_Documentation">Documentation</h3>
 <table class="table-markdown">
 <thead>
@@ -9487,7 +9489,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <ul>
 <li><span class="code-inline">Swag.CompilerCommand.Test</span> for 'swc test';</li>
 <li><span class="code-inline">Swag.CompilerCommand.Format</span> for 'swc format';</li>
-<li><span class="code-inline">Swag.CompilerCommand.Build</span> for <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">syntax</span>, <span class="code-inline">sema</span>, <span class="code-inline">doc</span>, and the compiler-internal <span class="code-inline">unittest</span> path.</li>
+<li><span class="code-inline">Swag.CompilerCommand.Build</span> for <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">smoke</span>, <span class="code-inline">syntax</span>, <span class="code-inline">sema</span>, <span class="code-inline">doc</span>, and the compiler-internal <span class="code-inline">unittest</span> path.</li>
 </ul>
 <p><span class="code-inline">#cfg</span> is the selected build-configuration name, such as <span class="code-inline">"devmode"</span> or <span class="code-inline">"release"</span>. Use these values for genuine source differences, not as a replacement for safety and optimization attributes.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#command</span> == <span class="SNsp">Swag</span>.<span class="SCst">CompilerCommand</span>.<span class="SCst">Test</span>
@@ -10131,7 +10133,16 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <tr><td><span class="code-inline">callconv</span></td><td>ABI: <span class="code-inline">.Swag</span> by default, <span class="code-inline">.C</span>, or <span class="code-inline">.WindowsX64</span></td></tr>
 </tbody>
 </table>
-<p>A Swag declaration is Swag-convention unless it says otherwise, and <span class="code-inline">#[Swag.Foreign]</span> only states where a function comes from. A function of a native library therefore names <span class="code-inline">Swag.CallConv.C</span> itself.</p>
+<p>A Swag declaration uses the Swag ABI unless it says otherwise. A function of a native library names <span class="code-inline">Swag.CallConv.C</span> in <span class="code-inline">Foreign</span>, or inherits it from an enclosing <span class="code-inline">Swag.CallingConvention(.C)</span> scope. Function values and callbacks crossing the native boundary also need that convention:</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">CallingConvention(.C)]</span>
+<span class="SKwd">alias</span> <span class="SCst">NativeCallback</span> = <span class="SKwd">func</span>(<span class="STpe">u64</span>, <span class="STpe">u64</span>, <span class="STpe">u64</span>, <span class="STpe">u64</span>, <span class="STpe">f32</span>)-&gt;<span class="STpe">u32</span>
+
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">CallingConvention(.C)]</span>
+<span class="SKwd">func</span> <span class="SFct">onNativeEvent</span>(a: <span class="STpe">u64</span>, b: <span class="STpe">u64</span>, c: <span class="STpe">u64</span>, d: <span class="STpe">u64</span>, value: <span class="STpe">f32</span>)-&gt;<span class="STpe">u32</span>
+{
+    <span class="SLgc">return</span> value &gt; <span class="SNum">0</span> ? <span class="SNum">1</span> : <span class="SNum">0</span>
+}</span></div>
+<p>The attribute may also decorate a struct of native vtable entries or a scope containing native callbacks. Ordinary Swag function values retain the Swag ABI.</p>
 <p>A generated module API is the one place where <span class="code-inline">module</span> is left out: it names the module the API file describes, and <span class="code-inline">function</span> then defaults to the flattened public API name instead of the declaration name.</p>
 <p><span class="code-inline">#foreignlib</span> registers the corresponding import library with the native linker. It does not declare functions by itself.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#foreignlib</span>(<span class="SStr">"kernel32"</span>)
@@ -10156,6 +10167,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     callconv: .C)]</span>
 <span class="SKwd">func</span> <span class="SFct">openVendorHandle</span>(flags: <span class="STpe">u32</span>)-&gt;*<span class="STpe">void</span>?</span></div>
 <p>The declaration is an ABI contract, not a conversion layer. A mismatched parameter type, struct layout, calling convention, or nullability annotation can corrupt memory even when the code compiles.</p>
+<p><span class="code-inline">.C</span> selects the target platform's C ABI, which is also the callback ABI of the Windows APIs shown here. It is not a promise that every external API uses the C ABI on every architecture; use the ABI specified by that API.</p>
 <h3 id="_016_002_c_abi_data_swg">C Abi Data</h3>
 <h3 id="_016_002_c_abi_data_swg_Data_at_a_C_ABI_Boundary">Data at a C ABI Boundary</h3>
 <p><span class="code-inline">cstring</span> represents a zero-terminated byte string. Swag's ordinary <span class="code-inline">string</span> stores an explicit byte count and may contain embedded zeroes, so crossing the ABI boundary should be an intentional conversion. String-literal storage has a trailing zero; take its data pointer before casting that pointer to <span class="code-inline">cstring</span>.</p>
@@ -10177,7 +10189,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1028</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1172</div>
 </footer>
 </section>
 </main>

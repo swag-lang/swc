@@ -2605,7 +2605,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowCallbacks">Env.WindowCallbacks</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Groups the optional callbacks dispatched by a <a href="#Core_Env_Window">Core.Env.Window</a>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_WindowLoop">Env.WindowLoop</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Pumps window events until the window closes or a smoke run's frame budget is spent.</p>
+<tr><td class="code-type"><a href="#Core_Env_WindowLoop">Env.WindowLoop</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Pumps window events until closing is requested or a smoke run's frame budget is spent.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowOptions">Env.WindowOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures top-level window creation.</p>
 </td></tr>
@@ -7082,7 +7082,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowCallbacks">Env.WindowCallbacks</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Groups the optional callbacks dispatched by a <a href="#Core_Env_Window">Core.Env.Window</a>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_WindowLoop">Env.WindowLoop</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Pumps window events until the window closes or a smoke run's frame budget is spent.</p>
+<tr><td class="code-type"><a href="#Core_Env_WindowLoop">Env.WindowLoop</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Pumps window events until closing is requested or a smoke run's frame budget is spent.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowOptions">Env.WindowOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures top-level window creation.</p>
 </td></tr>
@@ -11035,8 +11035,9 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_WindowLoop" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowLoop</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L65">src</a></div>
-<p>Pumps window events until the window closes or a smoke run's frame budget is spent.</p>
+<div class="api-item api-item-struct"><span id="Core_Env_WindowLoop" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowLoop</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L68">src</a></div>
+<p>Pumps window events until closing is requested or a smoke run's frame budget is spent.</p>
+<p>A close request stops the loop while the window is still open. Release resources that use its native handle before closing the window or leaving its scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowLoop">WindowLoop</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -11051,7 +11052,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <div class="api-member-details">
 <section class="api-member-detail"><h4 id="Core_Env_WindowLoop_smokeFrames"><span class="api-member-name">smokeFrames</span><a class="api-member-permalink" href="#Core_Env_WindowLoop_smokeFrames" aria-label="Permalink">#</a></h4>
 <p>Frames a smoke run should render for this program, or zero to take the launcher's budget.</p>
-<p>A program that cycles through pages knows how many frames it takes to show them all, and that count is a property of its content rather than of whoever launched it. It has no effect on a normal run, which ends only when the window closes.</p>
+<p>A program that cycles through pages knows how many frames it takes to show them all, and that count is a property of its content rather than of whoever launched it. It has no effect on a normal run, which ends when the window is asked to close.</p>
 </section>
 </div>
 <h3 id="Core_Env_WindowLoop_methods">Methods</h3>
@@ -17387,7 +17388,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Array_removeAtOrdered" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.removeAtOrdered</span> <a class="api-item-permalink" href="#Core_Array_removeAtOrdered" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L705">src</a></div>
 <p>Removes <span class="code-inline">numValues</span> elements starting at <span class="code-inline">index</span>, shifting the following elements to the left.</p>
-<p>This is slower than [[removeAt]], but preserves the order of the remaining elements.</p>
+<p>This is slower than <a href="#Core_Array_removeAt">Core.Array.removeAt</a>, but preserves the order of the remaining elements.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeAtOrdered</span>(index: <span class="STpe">u64</span>, numValues: <span class="STpe">u64</span> = <span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -19262,14 +19263,14 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">arguments</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_associateFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.associateFileExtension</span> <a class="api-item-permalink" href="#Core_Env_associateFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L270">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_associateFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.associateFileExtension</span> <a class="api-item-permalink" href="#Core_Env_associateFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L271">src</a></div>
 <p>Offers <span class="code-inline">appName</span> in the shell's <i>Open with</i> list for <span class="code-inline">extension</span>, for the current user, and returns whether every registry write succeeded.</p>
 <p>The registered command runs <span class="code-inline">appPath</span> with the opened file, and the default application of the extension is left alone; <a href="#Core_Env_claimFileExtension">Core.Env.claimFileExtension</a> takes the extension over instead. Refused under a sandbox, which reports it as not associated: claiming a file extension changes what the shell does on the whole machine.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">associateFileExtension</span>(extension, appName, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_claimFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.claimFileExtension</span> <a class="api-item-permalink" href="#Core_Env_claimFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L338">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_claimFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.claimFileExtension</span> <a class="api-item-permalink" href="#Core_Env_claimFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L339">src</a></div>
 <p>Makes <span class="code-inline">appPath</span> the program the shell runs for <span class="code-inline">extension</span>, for the current user.</p>
 <p>This is the strong form of <a href="#Core_Env_associateFileExtension">Core.Env.associateFileExtension</a>: that one offers the application in the <i>Open with</i> list and leaves the default alone, which is what an application wants for a format it merely reads. This one takes the extension over, so opening one of those files — from a double-click, from <span class="code-inline">cmd</span>, from anywhere the shell resolves a document — runs <span class="code-inline">appPath</span>. Reserve it for an extension the application defines.</p>
 <p><span class="code-inline">progId</span> is the class name the extension points at, conventionally <span class="code-inline">Vendor.Kind</span>. It is what distinguishes this claim from another program's, so keep it stable: registering the same <span class="code-inline">progId</span> again updates the claim instead of adding a second one. <span class="code-inline">description</span> is the file type as the shell shows it in a folder listing.</p>
@@ -19284,7 +19285,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">corpusRoot</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L189">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L192">src</a></div>
 <p>Creates and owns a top-level application window.</p>
 <p>The returned <a href="#Core_Env_Window">Core.Env.Window</a> keeps its platform-specific state opaque and closes the window when it leaves scope. The logical <span class="code-inline">options</span> size is realized in the physical pixels of the monitor where the platform creates it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWindow</span>(options: <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Window">Window</a></span> <span class="SKwd">fail</span></span></div>
@@ -19302,7 +19303,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">deniedSystemMutations</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_enableDpiAwareness" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enableDpiAwareness</span> <a class="api-item-permalink" href="#Core_Env_enableDpiAwareness" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L420">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_enableDpiAwareness" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enableDpiAwareness</span> <a class="api-item-permalink" href="#Core_Env_enableDpiAwareness" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L421">src</a></div>
 <p>Declares this process per-monitor DPI aware, so windows receive physical pixels.</p>
 <p>Every window-creation path calls this before its first native window exists; an application only needs it directly when it creates native windows on its own. Once enabled, monitor and cursor coordinates are physical desktop pixels and the system no longer stretches window content on scaled displays. Repeated calls do nothing, and a failure (for example when the awareness was already set by other means) is ignored.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enableDpiAwareness</span>()</span></div>
@@ -19326,7 +19327,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exit</span>(exitCode: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_getDpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getDpiScale</span> <a class="api-item-permalink" href="#Core_Env_getDpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L401">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_getDpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getDpiScale</span> <a class="api-item-permalink" href="#Core_Env_getDpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L402">src</a></div>
 <p>Returns the current logical-to-physical desktop scale factor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getDpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
@@ -19343,7 +19344,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getSpecialDirectory</span>(what: <span class="SCst"><a href="#Core_Env_SpecialDirectory">SpecialDirectory</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_getSystemMetric" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getSystemMetric</span> <a class="api-item-permalink" href="#Core_Env_getSystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L194">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_getSystemMetric" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getSystemMetric</span> <a class="api-item-permalink" href="#Core_Env_getSystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L195">src</a></div>
 <p>Returns one virtual-desktop metric in physical pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getSystemMetric</span>(what: <span class="SCst"><a href="#Core_Env_SystemMetric">SystemMetric</a></span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
@@ -19405,26 +19406,26 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">monitorForRectangle</span>(rectangle: <span class="SCst"><a href="#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="#Core_Math_Rectangle">Rectangle</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="#Core_Env_Monitor">Monitor</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_openFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFile</span> <a class="api-item-permalink" href="#Core_Env_openFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L175">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_openFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFile</span> <a class="api-item-permalink" href="#Core_Env_openFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L176">src</a></div>
 <p>Opens <span class="code-inline">path</span> with its system-default application.</p>
 <p>The request is handed to the Windows shell and returns before the application finishes. The result reports whether the shell accepted the request; it does not report what the application subsequently did with the file.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">openFile</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_openFileWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFileWith</span> <a class="api-item-permalink" href="#Core_Env_openFileWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L153">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_openFileWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFileWith</span> <a class="api-item-permalink" href="#Core_Env_openFileWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L154">src</a></div>
 <p>Asks the platform to let the user pick which application opens <span class="code-inline">path</span>.</p>
 <p>The chooser is the shell's own, so it offers the same applications, the same default-handler checkbox and the same store lookup the file explorer offers. It runs in its own process: the call returns as soon as the request is handed over, long before the user has chosen anything, and reports only whether the chooser could be started.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">openFileWith</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_openUrl" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openUrl</span> <a class="api-item-permalink" href="#Core_Env_openUrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L186">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_openUrl" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openUrl</span> <a class="api-item-permalink" href="#Core_Env_openUrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L187">src</a></div>
 <p>Opens <span class="code-inline">url</span> with the system's default handler.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openUrl</span>(url: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L531">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L539">src</a></div>
 <p>Processes all pending window messages and returns false when the application should exit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processWindowMessages</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -19442,7 +19443,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">realSpecialDirectory</span>(what: <span class="SCst"><a href="#Core_Env_SpecialDirectory">SpecialDirectory</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_registerApplication" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.registerApplication</span> <a class="api-item-permalink" href="#Core_Env_registerApplication" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L229">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_registerApplication" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.registerApplication</span> <a class="api-item-permalink" href="#Core_Env_registerApplication" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L230">src</a></div>
 <p>Registers <span class="code-inline">appName</span> with the shell for the current user, under the display name <span class="code-inline">appFriendly</span>.</p>
 <p>Registry writes that fail are ignored. Refused under a sandbox: this writes to the user's registry, which a test or a smoke run has no business touching.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerApplication</span>(appName, appFriendly: <span class="STpe">string</span>)</span></div>
@@ -19466,7 +19467,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sandboxRoot</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_showInFileExplorer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.showInFileExplorer</span> <a class="api-item-permalink" href="#Core_Env_showInFileExplorer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L134">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_showInFileExplorer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.showInFileExplorer</span> <a class="api-item-permalink" href="#Core_Env_showInFileExplorer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L135">src</a></div>
 <p>Opens the platform file explorer with <span class="code-inline">path</span> selected and returns whether the shell accepted the request.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">showInFileExplorer</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -19487,7 +19488,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startProcess</span>(info: <span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_userLocaleName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.userLocaleName</span> <a class="api-item-permalink" href="#Core_Env_userLocaleName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L208">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_userLocaleName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.userLocaleName</span> <a class="api-item-permalink" href="#Core_Env_userLocaleName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L209">src</a></div>
 <p>Returns the user's preferred locale name, such as <span class="code-inline">"fr-FR"</span>, or an empty string when the system cannot provide one.</p>
 <p>The part before <span class="code-inline">-</span> is the language tag an application can hand to its localization layer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">userLocaleName</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
@@ -24715,7 +24716,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_StaticArray_removeAtOrdered" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StaticArray.removeAtOrdered</span> <a class="api-item-permalink" href="#Core_StaticArray_removeAtOrdered" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/staticarray.swg#L497">src</a></div>
 <p>Removes <span class="code-inline">numValues</span> elements starting at <span class="code-inline">index</span>, shifting the following elements to the left.</p>
-<p>This is slower than [[removeAt]], but preserves the order of the remaining elements.</p>
+<p>This is slower than <a href="#Core_StaticArray_removeAt">Core.StaticArray.removeAt</a>, but preserves the order of the remaining elements.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeAtOrdered</span>(index: <span class="STpe">u64</span>, numValues: <span class="STpe">u64</span> = <span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -25743,7 +25744,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">yield</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Threading.wait</span> <a class="api-item-permalink" href="#Core_Threading_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L161">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Threading.wait</span> <a class="api-item-permalink" href="#Core_Threading_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L162">src</a></div>
 <p>Waits for every thread and releases all their native handles.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wait</span>(threads: *<span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span>...)</span></div>
 </section>
@@ -27269,73 +27270,73 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_acquireWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L552">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_acquireWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L560">src</a></div>
 <p>Acquires the Windows device context used by an explicit Windows rendering adapter.</p>
 <p>Every successful call must be paired with <a href="#Core_Env_Window_releaseWin32DeviceContext">Core.Env.Window.releaseWin32DeviceContext</a> on the same window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquireWin32DeviceContext</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.close</span> <a class="api-item-permalink" href="#Core_Env_Window_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L113">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.close</span> <a class="api-item-permalink" href="#Core_Env_Window_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L116">src</a></div>
 <p>Closes the window if it is still open.</p>
 <p>Calling <span class="code-inline">close</span> repeatedly is safe. Failure leaves the platform resource owned by this value, so a later call or scope cleanup can retry the release.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L571">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L579">src</a></div>
 <p>Returns the physical device pixels per logical unit on the window's monitor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.isOpen</span> <a class="api-item-permalink" href="#Core_Env_Window_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L97">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.isOpen</span> <a class="api-item-permalink" href="#Core_Env_Window_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L100">src</a></div>
 <p>Returns whether the window still owns a platform resource.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_nativeRenderHandle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.nativeRenderHandle</span> <a class="api-item-permalink" href="#Core_Env_Window_nativeRenderHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L102">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_nativeRenderHandle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.nativeRenderHandle</span> <a class="api-item-permalink" href="#Core_Env_Window_nativeRenderHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L105">src</a></div>
 <p>Returns the borrowed opaque drawable used to create a rendering context.</p>
 <p>Only a platform rendering adapter should interpret this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nativeRenderHandle</span>()-&gt;<span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.opDrop</span> <a class="api-item-permalink" href="#Core_Env_Window_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L91">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.opDrop</span> <a class="api-item-permalink" href="#Core_Env_Window_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L94">src</a></div>
 <p>Closes any remaining window when this value leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_opPostMove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.opPostMove</span> <a class="api-item-permalink" href="#Core_Env_Window_opPostMove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L84">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_opPostMove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.opPostMove</span> <a class="api-item-permalink" href="#Core_Env_Window_opPostMove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L87">src</a></div>
 <p>Rebinds the platform callback state when an owning window value moves.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostMove</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_releaseWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L555">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_releaseWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L563">src</a></div>
 <p>Releases a device context returned by <a href="#Core_Env_Window_acquireWin32DeviceContext">Core.Env.Window.acquireWin32DeviceContext</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseWin32DeviceContext</span>(deviceContext: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_requestPaint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.requestPaint</span> <a class="api-item-permalink" href="#Core_Env_Window_requestPaint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L126">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_requestPaint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.requestPaint</span> <a class="api-item-permalink" href="#Core_Env_Window_requestPaint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L129">src</a></div>
 <p>Queues a paint request for this window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">requestPaint</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_setClientSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.setClientSize</span> <a class="api-item-permalink" href="#Core_Env_Window_setClientSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L137">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_setClientSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.setClientSize</span> <a class="api-item-permalink" href="#Core_Env_Window_setClientSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L140">src</a></div>
 <p>Resizes the client area to <span class="code-inline">width</span> by <span class="code-inline">height</span> logical units, keeping the window position.</p>
 <p>The realized client area is proportionally larger, in physical pixels, on a scaled display; <a href="#Core_Env_WindowResizeCallback">Core.Env.WindowResizeCallback</a> reports that physical size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setClientSize</span>(width, height: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.show</span> <a class="api-item-permalink" href="#Core_Env_Window_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L151">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.show</span> <a class="api-item-permalink" href="#Core_Env_Window_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L154">src</a></div>
 <p>Shows the window and updates its client area.</p>
 <p>The resize callback receives the initial physical client size before the window becomes visible, so a renderer never draws a frame at a stale size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">show</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_showOffScreen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.showOffScreen</span> <a class="api-item-permalink" href="#Core_Env_Window_showOffScreen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L170">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_showOffScreen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.showOffScreen</span> <a class="api-item-permalink" href="#Core_Env_Window_showOffScreen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L173">src</a></div>
 <p>Realizes the window without putting it in front of the user.</p>
 <p>The window is placed outside the visible desktop and shown without taking activation, so its drawable is complete — which is what a graphics context needs before it can render and read back — while nothing appears on screen and nothing steals the focus. A headless check that needs a real drawable asks for this instead of <a href="#Core_Env_Window_show">Core.Env.Window.show</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showOffScreen</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L201">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L204">src</a></div>
 <p>Processes pending events and returns whether the application should continue.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">next</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -27473,7 +27474,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1028</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1172</div>
 </footer>
 </section>
 </main>
@@ -28212,7 +28213,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "s|Core.Env.WindowCallbacks|Core_Env_WindowCallbacks|Groups the optional callbacks dispatched by a Core.Env.Window.",
 "v|Core.Env.WindowCallbacks.onPaint|Core_Env_WindowCallbacks_onPaint|Invoked for a paint request.",
 "v|Core.Env.WindowCallbacks.onResize|Core_Env_WindowCallbacks_onResize|Invoked with the new client size in physical pixels.",
-"s|Core.Env.WindowLoop|Core_Env_WindowLoop|Pumps window events until the window closes or a smoke run's frame budget is spent.",
+"s|Core.Env.WindowLoop|Core_Env_WindowLoop|Pumps window events until closing is requested or a smoke run's frame budget is spent.",
 "v|Core.Env.WindowLoop.smokeFrames|Core_Env_WindowLoop_smokeFrames|Frames a smoke run should render for this program, or zero to take the launcher's budget.",
 "s|Core.Env.WindowOptions|Core_Env_WindowOptions|Configures top-level window creation.",
 "v|Core.Env.WindowOptions.flags|Core_Env_WindowOptions_flags|Window-manager capabilities.",

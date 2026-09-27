@@ -306,7 +306,7 @@ namespace
             return false;
         const MicroInstrOperand* loadOps = load->ops(operands);
         const uint32_t           width   = getNumBits(bits) / 8;
-        if (!loadOps || loadOps[0].reg != cmpOps[0].reg || loadOps[3].opBits != bits ||
+        if (!loadOps || loadOps[0].reg != cmpOps[0].reg || !loadOps[1].reg.isVirtualInt() || loadOps[3].opBits != bits ||
             loadOps[4].opBits != MicroOpBits::B64 || loadOps[5].valueU64 != width || loadOps[6].valueU64 != 0)
             return false;
 
@@ -759,7 +759,7 @@ namespace
                 return false;
         }
 
-        if (!ops[0].reg.isVirtual() || loadBits == MicroOpBits::Zero || loadBits == MicroOpBits::B128 || dstBits == MicroOpBits::B128)
+        if (!ops[0].reg.isVirtual() || !ops[1].reg.isVirtualInt() || loadBits == MicroOpBits::Zero || loadBits == MicroOpBits::B128 || dstBits == MicroOpBits::B128)
             return false;
 
         // Rewrites leave relocations unchanged. Collect their original order

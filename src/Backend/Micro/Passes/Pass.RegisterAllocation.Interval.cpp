@@ -1746,47 +1746,54 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         const auto isParkStore = [&](const Connector& connector) {
             return !connector.dst.isValid() && isGuardedCall(connector.beforeIndex);
         };
-        std::vector<uint64_t> resolutionStoreCost(virtualCount, 0);
+        std::vector<uint64_t> resolutionStoreCost;
         for (const Connector& connector : connectors)
         {
             if (!connector.dst.isValid() && !isParkStore(connector))
-                resolutionStoreCost[connector.denseIndex] += weightAt(connector.beforeIndex);
-        }
-        bool rewritten = false;
-        for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
-        {
-            if (!resolutionStoreCost[denseIndex])
-                continue;
-            SmallVector<Connector, 4> defStores;
-            uint64_t                  defStoreCost = 0;
-            bool                      placeable    = true;
-            for (uint32_t n = result.valueNodesBegin[denseIndex]; placeable && n < result.valueNodesBegin[denseIndex + 1]; ++n)
             {
-                const LiveInterval& node = result.nodes[n];
-                for (const uint32_t defPos : node.defPositions)
-                {
-                    const uint32_t defIndex = defPos / 2;
-                    if (defIndex + 1 >= instructionCount_ || node.spilled || !node.assignedReg.isValid())
-                    {
-                        placeable = false;
-                        break;
-                    }
-                    defStores.push_back({defIndex + 1, 0, MicroReg::invalid(), node.assignedReg, denseIndex});
-                    defStoreCost += weightAt(defIndex);
-                }
+                if (resolutionStoreCost.empty())
+                    resolutionStoreCost.assign(virtualCount, 0);
+                resolutionStoreCost[connector.denseIndex] += weightAt(connector.beforeIndex);
             }
-            if (!placeable || defStores.empty() || defStoreCost > resolutionStoreCost[denseIndex])
-                continue;
-            std::erase_if(connectors, [&](const Connector& connector) { return connector.denseIndex == denseIndex && !connector.dst.isValid() && !isParkStore(connector); });
-            for (const Connector& store : defStores)
-                connectors.push_back(store);
-            rewritten = true;
         }
-        if (rewritten)
+        if (!resolutionStoreCost.empty())
         {
-            std::erase_if(trampolines, [&](const Trampoline& trampoline) {
-                return std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.trampJump == trampoline.jumpIndex; });
-            });
+            bool rewritten = false;
+            for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
+            {
+                if (!resolutionStoreCost[denseIndex])
+                    continue;
+                SmallVector<Connector, 4> defStores;
+                uint64_t                  defStoreCost = 0;
+                bool                      placeable    = true;
+                for (uint32_t n = result.valueNodesBegin[denseIndex]; placeable && n < result.valueNodesBegin[denseIndex + 1]; ++n)
+                {
+                    const LiveInterval& node = result.nodes[n];
+                    for (const uint32_t defPos : node.defPositions)
+                    {
+                        const uint32_t defIndex = defPos / 2;
+                        if (defIndex + 1 >= instructionCount_ || node.spilled || !node.assignedReg.isValid())
+                        {
+                            placeable = false;
+                            break;
+                        }
+                        defStores.push_back({defIndex + 1, 0, MicroReg::invalid(), node.assignedReg, denseIndex});
+                        defStoreCost += weightAt(defIndex);
+                    }
+                }
+                if (!placeable || defStores.empty() || defStoreCost > resolutionStoreCost[denseIndex])
+                    continue;
+                std::erase_if(connectors, [&](const Connector& connector) { return connector.denseIndex == denseIndex && !connector.dst.isValid() && !isParkStore(connector); });
+                for (const Connector& store : defStores)
+                    connectors.push_back(store);
+                rewritten = true;
+            }
+            if (rewritten)
+            {
+                std::erase_if(trampolines, [&](const Trampoline& trampoline) {
+                    return std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.trampJump == trampoline.jumpIndex; });
+                });
+            }
         }
     }
 

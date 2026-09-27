@@ -373,12 +373,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     // Copying an instruction that carries a relocation would need the
     // relocation cloned onto both copies; no test shape observed here does, so
     // such a header is left alone rather than handled.
-    std::unordered_set<uint32_t> relocatedInstructions;
-    for (const MicroRelocation& reloc : context.builder->codeRelocations())
-    {
-        if (reloc.instructionRef.isValid())
-            relocatedInstructions.insert(reloc.instructionRef.get());
-    }
+    std::optional<std::unordered_set<uint32_t>> relocatedInstructions;
 
     SmallVector<Rotation> rotations;
 
@@ -397,6 +392,16 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         if (incoming == jumpsByTarget.end() || incoming->second.count != 1)
             continue;
 
+        if (!relocatedInstructions)
+        {
+            relocatedInstructions.emplace();
+            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    relocatedInstructions->insert(reloc.instructionRef.get());
+            }
+        }
+
         // The test run: one duplicable compare, possibly surrounded by
         // connectors, closed by the conditional jump.
         const uint32_t testBegin = ordinal + 1;
@@ -413,7 +418,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
                 closed = haveTest;
                 break;
             }
-            if (relocatedInstructions.contains(order[testEnd].get()))
+            if (relocatedInstructions->contains(order[testEnd].get()))
                 break;
             if (isDuplicableTest(*testInst))
             {

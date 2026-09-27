@@ -32,8 +32,9 @@ namespace PreRaPeephole
         // Instructions carrying a relocation: rewriting or consuming one
         // would leave the relocation unbound, so claimAll refuses them.
         MicroPeephole::LazyU32Set relocated;
+        bool                      relocationsReady = false;
 
-        bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
+        bool isRelocated(MicroInstrRef ref);
         bool claimAll(std::initializer_list<MicroInstrRef> refs);
     };
 

@@ -126,13 +126,7 @@ namespace
         MicroOperandStorage& operands = *context.operands;
 
         std::unordered_map<uint32_t, uint32_t> labels;
-        for (uint32_t i = 0; i < order.size(); ++i)
-        {
-            const MicroInstr* inst = storage.ptr(order[i]);
-            uint32_t          id   = 0;
-            if (inst && tryGetLabelId(id, *inst, inst->ops(operands)))
-                labels[id] = i;
-        }
+        bool                                   labelsReady = false;
 
         for (uint32_t i = 0; i + 3 < order.size(); ++i)
         {
@@ -150,6 +144,19 @@ namespace
             uint32_t exitId = 0;
             if (!tryGetJumpTargetLabelId(exitId, *jcc, jccOps))
                 continue;
+
+            if (!labelsReady)
+            {
+                for (uint32_t labelOrdinal = 0; labelOrdinal < order.size(); ++labelOrdinal)
+                {
+                    const MicroInstr* inst = storage.ptr(order[labelOrdinal]);
+                    uint32_t          id   = 0;
+                    if (inst && tryGetLabelId(id, *inst, inst->ops(operands)))
+                        labels[id] = labelOrdinal;
+                }
+                labelsReady = true;
+            }
+
             const auto exitIt = labels.find(exitId);
             if (exitIt == labels.end() || exitIt->second <= i + 2)
                 continue;

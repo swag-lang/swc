@@ -196,6 +196,19 @@ func memoryCaller(a, b: [*] u8, size: u64)->s32
     return memoryCall(a, b, size) + memoryCall(b, a, size)
 }
 
+func hotMemoryCall(a, b: [*] u8, size: u64)->s32 => Swag.memcmp(a, b, size)
+
+func hotMemoryCaller(a, b: [*] u8, size: u64)->s32
+{
+    var result = 0
+    for i in 2
+    {
+        result += hotMemoryCall(a, b, size)
+        result += hotMemoryCall(b, a, size)
+    }
+    return result
+}
+
 func recursiveFirst(value: s32)->s32
 {
     if value == 0 do
@@ -300,12 +313,13 @@ func leaf() => useCandidates()
     const AstFunctionDecl* singleCall      = findFunctionDecl(sourceFile.ast(), "singleCall");
     const AstFunctionDecl* repeatedCall    = findFunctionDecl(sourceFile.ast(), "repeatedCall");
     const AstFunctionDecl* memoryCall      = findFunctionDecl(sourceFile.ast(), "memoryCall");
+    const AstFunctionDecl* hotMemoryCall   = findFunctionDecl(sourceFile.ast(), "hotMemoryCall");
     const AstFunctionDecl* recursiveFirst  = findFunctionDecl(sourceFile.ast(), "recursiveFirst");
     const AstFunctionDecl* recursiveSecond = findFunctionDecl(sourceFile.ast(), "recursiveSecond");
     const AstFunctionDecl* errorManaged    = findFunctionDecl(sourceFile.ast(), "errorManaged");
     const AstFunctionDecl* wrapsMixin      = findFunctionDecl(sourceFile.ast(), "wrapsMixin");
     const AstFunctionDecl* wrapsClosure    = findFunctionDecl(sourceFile.ast(), "wrapsClosureProvider");
-    if (!cheapCall || !addressTaken || !singleCall || !repeatedCall || !memoryCall || !recursiveFirst || !recursiveSecond || !errorManaged || !wrapsMixin || !wrapsClosure)
+    if (!cheapCall || !addressTaken || !singleCall || !repeatedCall || !memoryCall || !hotMemoryCall || !recursiveFirst || !recursiveSecond || !errorManaged || !wrapsMixin || !wrapsClosure)
         return Result::Error;
     if (!cheapCall->hasFlag(AstFunctionFlagsE::AutoInlineBody))
         return Result::Error;
@@ -316,6 +330,8 @@ func leaf() => useCandidates()
     if (repeatedCall->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS || repeatedCall->hasFlag(AstFunctionFlagsE::AutoInlineBody))
         return Result::Error;
     if (!memoryCall->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls) || memoryCall->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    if (!hotMemoryCall->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls) || !hotMemoryCall->hasFlag(AstFunctionFlagsE::AutoInlineBody))
         return Result::Error;
     if (recursiveFirst->hasFlag(AstFunctionFlagsE::AutoInlineBody) || recursiveSecond->hasFlag(AstFunctionFlagsE::AutoInlineBody))
         return Result::Error;

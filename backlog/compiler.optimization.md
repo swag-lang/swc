@@ -15,6 +15,26 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
+
+- Recorded: 2026-09-25 23:43
+- Updated: 2026-09-27 22:15 — Reconfirm the repeated indexed test with loop-guided probe inlining.
+- Area: compiler/backend, post-allocation private-frame load elimination
+- Evidence: In both wordfreq token-finalization paths, the inlined probe returns an index, then the caller loads the `used` pointer from its private frame, tests the indexed byte, branches if occupied, and loads the same pointer into the same physical register again on the empty fallthrough before storing. A guarded post-allocation rule removes that second load only when the base is the compiler-identified private stack base, the intervening operations are one read-only indexed compare and conditional jump, and both pointer loads have identical width and address. Wordfreq's `main` falls from 456 to 454 Micro instructions. Csvagg's `main` remains at 1,001; neither hash/collision loop changes. Both programs pass `--validate-micro` with checksums 130489 and 24828641. A C++ regression covers a private frame, a nonprivate base, and a different reload address. All 1,128 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
+- Current evidence: the loop-guided wrapper rule inlines both `mapProbe` call sites in wordfreq `main`, which grows from 327 to 451 optimized Micro instructions. Both paths still test the `used[idx]` byte after the inlined probe's empty-slot exit; the probe can also return an occupied matching key after `memcmp`, so deleting the second test requires a proof over the predecessor paths. The checksum remains 130489. The other six benchmark tasks keep their optimized function counts and checksums. No timing sample informed this change.
+- Next: prove the inlined probe's empty/occupied result across the caller's repeated `used[idx]` test or find a path-specific branch thread that avoids additional jumps; compare both token-finalization paths.
+- Complete when: both callers avoid the repeated indexed test with a sound proof across read-only calls and loop backedges, focused aliasing regressions pass, and no extra hot-path jump replaces the read.
+
+### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
+
+- Recorded: 2026-09-25 11:15
+- Updated: 2026-09-27 22:15 — Rebaseline both comparator loops after loop-guided inlining.
+- Area: compiler/backend, loop-invariant code motion and call effects
+- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
+- Current evidence: the new loop-guided wrapper rule inlines both `less` calls in `qsort`. Its optimized body grows from 72 to 132 Micro instructions, while each unequal-count comparison now reads the retained `g_Idx` and `g_Cnt` pointers without a `less` call or a global reload. The tie path still calls `memcmp`, and the second comparator loop reloads both global pointers on entry. LDC also retains its pointers during the unequal-count loop and reloads after a call. Wordfreq's checksum is 130489; csvagg's selected function counts and checksum are unchanged. No timing sample informed the rule.
+- Next: compare the full tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to determine whether remaining reloads warrant a focused allocation change.
+- Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
+
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 
 - Recorded: 2026-09-27 08:13
@@ -80,24 +100,6 @@ block, and the hot path keeps the register.
 - Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
 - Next: rebaseline `mapProbe` after the calling-convention change, then find a register-pressure-aware way to retain the mask and compare the complete hash and collision loops and call frame against LDC.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
-
-### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
-
-- Recorded: 2026-09-25 23:43
-- Updated: 2026-09-27 17:44 — Narrow the remaining work to the repeated indexed test after the pointer reload fix.
-- Area: compiler/backend, post-allocation private-frame load elimination
-- Evidence: In both wordfreq token-finalization paths, the inlined probe returns an index, then the caller loads the `used` pointer from its private frame, tests the indexed byte, branches if occupied, and loads the same pointer into the same physical register again on the empty fallthrough before storing. A guarded post-allocation rule removes that second load only when the base is the compiler-identified private stack base, the intervening operations are one read-only indexed compare and conditional jump, and both pointer loads have identical width and address. Wordfreq's `main` falls from 456 to 454 Micro instructions. Csvagg's `main` remains at 1,001; neither hash/collision loop changes. Both programs pass `--validate-micro` with checksums 130489 and 24828641. A C++ regression covers a private frame, a nonprivate base, and a different reload address. All 1,128 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
-- Next: rebaseline wordfreq and csvagg after the calling-convention change, then prove the inlined probe's empty/occupied result across the caller's redundant `used[idx]` test or find a path-specific branch thread that avoids additional jumps.
-- Complete when: both callers avoid the repeated indexed test with a sound proof across read-only calls and loop backedges, focused aliasing regressions pass, and no extra hot-path jump replaces the read.
-
-### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
-
-- Recorded: 2026-09-25 11:15
-- Updated: 2026-09-27 17:44 — Require a current quicksort baseline before addressing the remaining pointer reload.
-- Area: compiler/backend, loop-invariant code motion and call effects
-- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
-- Next: rebaseline the current quicksort dump after the calling-convention change. If a comparator still reloads either pointer, improve allocation for loop-invariant values live across calls without increasing spills; recount both inner loops and csvagg's row loop.
-- Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
 
 ### compiler.optimization.090 — CSV aggregation regresses with the shadow-free Swag ABI
 
@@ -721,6 +723,30 @@ block, and the hot path keeps the register.
   with correctness coverage, or the remaining register-residency prerequisite is isolated.
 - Related: compiler.optimization.005, compiler.optimization.016.
 
+### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
+
+- Recorded: 2026-08-28 15:42
+- Updated: 2026-09-14 06:25 — Identify the remaining indexed and foreach aggregate home requirement.
+- Area: compiler/sema
+- Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
+- Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
+  holds the block still emitted four 128-bit loads and four stores copying the argument into a
+  fresh frame slot, then read every row back out of that copy, around the eight interleaves that
+  are the whole operation: 40 instructions and a 0x1C8 frame for eight instructions of work. The
+  same body taking `rows: *[4] U32x4` in place compiles to 28 instructions and a 0x80 frame, which
+  is what the API now does. `materializeInlineBindings` binds a by-value aggregate argument to a
+  concrete local. The current `classifyInlineBinding` already examines parameter uses and can
+  keep a direct binding; an indexed or foreach by-value aggregate still requires a home through
+  `use.indexOrFor`, even if those uses only read. Read-only syntax alone does not establish that
+  the caller's storage remains unchanged while the inlined body executes.
+- Next: in `SemaInline`, measure the homes still required by indexed/foreach aggregate uses.
+  Elide a copy only when the caller's storage remains unchanged through all reads, including
+  indirect calls and alias writes, and when copy/drop hooks and argument evaluation retain their
+  semantics. Absence of a direct assignment to the parameter is not sufficient.
+- Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
+  after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
+  one on the video corpus.
+
 ### compiler.optimization.016 — Independent virtual-register webs need a new normalization measurement
 
 - Recorded: 2026-08-27 07:57
@@ -756,30 +782,6 @@ block, and the hot path keeps the register.
   but no `Pass.WebRename` prototype is present in this checkout; the recorded algorithm is the
   recoverable starting point.
 - Related: compiler.optimization.015, compiler.optimization.017; unlocks the full yield of the web hoisting shipped in LICM.
-
-### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
-
-- Recorded: 2026-08-28 15:42
-- Updated: 2026-09-14 06:25 — Identify the remaining indexed and foreach aggregate home requirement.
-- Area: compiler/sema
-- Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
-- Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
-  holds the block still emitted four 128-bit loads and four stores copying the argument into a
-  fresh frame slot, then read every row back out of that copy, around the eight interleaves that
-  are the whole operation: 40 instructions and a 0x1C8 frame for eight instructions of work. The
-  same body taking `rows: *[4] U32x4` in place compiles to 28 instructions and a 0x80 frame, which
-  is what the API now does. `materializeInlineBindings` binds a by-value aggregate argument to a
-  concrete local. The current `classifyInlineBinding` already examines parameter uses and can
-  keep a direct binding; an indexed or foreach by-value aggregate still requires a home through
-  `use.indexOrFor`, even if those uses only read. Read-only syntax alone does not establish that
-  the caller's storage remains unchanged while the inlined body executes.
-- Next: in `SemaInline`, measure the homes still required by indexed/foreach aggregate uses.
-  Elide a copy only when the caller's storage remains unchanged through all reads, including
-  indirect calls and alias writes, and when copy/drop hooks and argument evaluation retain their
-  semantics. Absence of a direct assignment to the parameter is not sufficient.
-- Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
-  after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
-  one on the video corpus.
 
 ### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
 
@@ -1015,74 +1017,6 @@ block, and the hot path keeps the register.
 - Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
   current experiment identifies the specific missing proof or register-pressure cost.
 
-### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
-
-- Recorded: 2026-08-24 13:31
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: compiler/backend
-- Found while: std.video.001, after mem2reg was taught the vector load and store and the memory traffic
-  of the motion-compensation path fell by a quarter.
-- Observation: promotion now reaches the vector temporaries, so the intermediate values of a
-  `#simd` expression stay in registers. What is still in memory is everything the local
-  allocator put there: `Video.H264.mcChroma` emits 635 instructions with 81 frame stores and 119
-  frame loads, and its interpolation loop reloads the two splat sources on every row. The loop of
-  `Video.H264.copyPlane` shows what the shape should be — after post-RA hoisting learned that a
-  private frame cannot be reached by a store through a program pointer, its sixteen-byte copy is
-  seven instructions with no frame access at all — and mcChroma does not get there because its
-  own locals escape into helpers, which keeps its frame from being private.
-- Evidence: 2026-08-24, release, `#[Swag.PrintMicro("post-emit")]`. mcChroma 707 -> 635
-  instructions and 108 -> 81 frame stores across this pass; copyPlane 111 -> 104 instructions,
-  its hot loop 10 -> 7 with 3 -> 0 frame accesses. The decode of one 2496x1440 picture went from
-  10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
-  is 44 percent of that picture.
-- **The same shape was measured in H.265 before the split allocator (2026-08-26, std.video.005).** Three hot routines dumped at pre-emit, all of them
-  already vectorized and already at their instruction budget on paper:
-  - `Hevc.Decoder.filterLumaEdge` emits 776 instructions with **87 frame stores and 84 frame
-    loads** — 22 percent of the function is stack traffic. It filters 101,633 four-line
-    segments a picture at about 575 cycles each, where the instructions a segment executes
-    predict something closer to a hundred.
-  - `Hevc.Decoder.interpolateLuma` keeps twelve vector spills and twelve reloads inside its
-    innermost body. One call filters about 800 samples in 1.73 microseconds, which is 8.6
-    cycles a sample against about three from the instruction count.
-  - Reading the filter taps once a block instead of once a pair removed fifteen table-pointer
-    loads and twenty multiplies from the same function and **changed the measured time by less
-    than one percent**, which is what says the loop is not bound by those instructions.
-- **What that is worth, measured against another compiler on the same algorithm (2026-08-26)**:
-  the loop filter of clause 8.7.2.5 was written twice, once in C and once in Swag, statement
-  for statement, over the same synthetic 3840x2076 plane with the same thresholds and the same
-  decision mix — 1,612 flat, 430,398 strong and 65,229 weak segments a picture in both. Per
-  picture, best of several runs on a quiet machine:
-  - clang 21 `-O2 -msse2`: **18.3 ms** (37 ns a filtered segment)
-  - clang 21 `-O2 -march=native -fno-vectorize -fno-slp-vectorize`: 18.7 ms
-  - clang 21 `-O2 -march=native`: 34.1 ms — **its own auto-vectorizer costs it 1.9x here**,
-    which is worth knowing before reading any clang figure as the answer sheet
-  - this compiler, release: **40.6 ms** (82 ns a segment)
-- In that historical comparison the backend was **2.2x behind clang's best on identical scalar code**, the
-  largest single factor in the 3x the H.265 decoder is behind FFmpeg — larger than the 256-bit
-  forms of cpu.simd.002, and larger than anything left in the decoder's own algorithms. The frame
-  traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
-  routine, against 61 in 443 for clang's build of the same function.
-- The per-object view shipped (2026-08-26): `Pass.PostRALoopHoist` now classifies escapes per
-  source object from the extents `SymbolFunction::localVariables()` carries, recognizes the
-  prologue's local-base register, and keeps the two address spaces apart — a value use of the
-  stack pointer (call staging) reaches sp-addressed slots, never the locals behind the base. A
-  slot inside no escaped object hoists even when the frame as a whole is handed out.
-- What that revealed: the pass fires only about twenty times across the whole `video` workspace,
-  and in none of the hot decoder functions. The binding constraint is not aliasing any more — it
-  is that a hoist needs the reload's destination register to have **no other definition in the
-  whole loop body**, and after allocation every register in a fat body is reused many times.
-  Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
-  belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
-  The remaining traffic is
-  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
-- Next: rebaseline `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` with the now
-  shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
-  gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump
-  first shows an invariant value with a reusable destination.
-- Complete when: current dumps and alternating timings establish the remaining allocation cost
-  on both large kernels and identify a specific next change or retire this lead.
-- Related: compiler.optimization.006, compiler.optimization.024.
-
 ### compiler.optimization.015 — Carried-slot promotion still rejects multiple accesses or distinct exits
 
 - Recorded: 2026-08-27 07:57
@@ -1155,6 +1089,74 @@ block, and the hot path keeps the register.
   across a disjoint-space store in a codec inner loop (dump-verified), and instruction counts on
   the video corpus do not regress.
 - Related: compiler.optimization.015.
+
+### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
+
+- Recorded: 2026-08-24 13:31
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Area: compiler/backend
+- Found while: std.video.001, after mem2reg was taught the vector load and store and the memory traffic
+  of the motion-compensation path fell by a quarter.
+- Observation: promotion now reaches the vector temporaries, so the intermediate values of a
+  `#simd` expression stay in registers. What is still in memory is everything the local
+  allocator put there: `Video.H264.mcChroma` emits 635 instructions with 81 frame stores and 119
+  frame loads, and its interpolation loop reloads the two splat sources on every row. The loop of
+  `Video.H264.copyPlane` shows what the shape should be — after post-RA hoisting learned that a
+  private frame cannot be reached by a store through a program pointer, its sixteen-byte copy is
+  seven instructions with no frame access at all — and mcChroma does not get there because its
+  own locals escape into helpers, which keeps its frame from being private.
+- Evidence: 2026-08-24, release, `#[Swag.PrintMicro("post-emit")]`. mcChroma 707 -> 635
+  instructions and 108 -> 81 frame stores across this pass; copyPlane 111 -> 104 instructions,
+  its hot loop 10 -> 7 with 3 -> 0 frame accesses. The decode of one 2496x1440 picture went from
+  10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
+  is 44 percent of that picture.
+- **The same shape was measured in H.265 before the split allocator (2026-08-26, std.video.005).** Three hot routines dumped at pre-emit, all of them
+  already vectorized and already at their instruction budget on paper:
+  - `Hevc.Decoder.filterLumaEdge` emits 776 instructions with **87 frame stores and 84 frame
+    loads** — 22 percent of the function is stack traffic. It filters 101,633 four-line
+    segments a picture at about 575 cycles each, where the instructions a segment executes
+    predict something closer to a hundred.
+  - `Hevc.Decoder.interpolateLuma` keeps twelve vector spills and twelve reloads inside its
+    innermost body. One call filters about 800 samples in 1.73 microseconds, which is 8.6
+    cycles a sample against about three from the instruction count.
+  - Reading the filter taps once a block instead of once a pair removed fifteen table-pointer
+    loads and twenty multiplies from the same function and **changed the measured time by less
+    than one percent**, which is what says the loop is not bound by those instructions.
+- **What that is worth, measured against another compiler on the same algorithm (2026-08-26)**:
+  the loop filter of clause 8.7.2.5 was written twice, once in C and once in Swag, statement
+  for statement, over the same synthetic 3840x2076 plane with the same thresholds and the same
+  decision mix — 1,612 flat, 430,398 strong and 65,229 weak segments a picture in both. Per
+  picture, best of several runs on a quiet machine:
+  - clang 21 `-O2 -msse2`: **18.3 ms** (37 ns a filtered segment)
+  - clang 21 `-O2 -march=native -fno-vectorize -fno-slp-vectorize`: 18.7 ms
+  - clang 21 `-O2 -march=native`: 34.1 ms — **its own auto-vectorizer costs it 1.9x here**,
+    which is worth knowing before reading any clang figure as the answer sheet
+  - this compiler, release: **40.6 ms** (82 ns a segment)
+- In that historical comparison the backend was **2.2x behind clang's best on identical scalar code**, the
+  largest single factor in the 3x the H.265 decoder is behind FFmpeg — larger than the 256-bit
+  forms of cpu.simd.002, and larger than anything left in the decoder's own algorithms. The frame
+  traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
+  routine, against 61 in 443 for clang's build of the same function.
+- The per-object view shipped (2026-08-26): `Pass.PostRALoopHoist` now classifies escapes per
+  source object from the extents `SymbolFunction::localVariables()` carries, recognizes the
+  prologue's local-base register, and keeps the two address spaces apart — a value use of the
+  stack pointer (call staging) reaches sp-addressed slots, never the locals behind the base. A
+  slot inside no escaped object hoists even when the frame as a whole is handed out.
+- What that revealed: the pass fires only about twenty times across the whole `video` workspace,
+  and in none of the hot decoder functions. The binding constraint is not aliasing any more — it
+  is that a hoist needs the reload's destination register to have **no other definition in the
+  whole loop body**, and after allocation every register in a fat body is reused many times.
+  Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
+  belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
+  The remaining traffic is
+  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
+- Next: rebaseline `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` with the now
+  shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
+  gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump
+  first shows an invariant value with a reusable destination.
+- Complete when: current dumps and alternating timings establish the remaining allocation cost
+  on both large kernels and identify a specific next change or retire this lead.
+- Related: compiler.optimization.006, compiler.optimization.024.
 
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 

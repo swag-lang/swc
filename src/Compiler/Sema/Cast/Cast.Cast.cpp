@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastConstant.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -44,12 +45,6 @@ namespace
         }
 
         return AstNodeRef::invalid();
-    }
-
-    ConstantRef addValuePointerConstant(Sema& sema, TypeRef dstPointeeTypeRef, TypeInfoFlags dstFlags, uint64_t ptrValue)
-    {
-        const ConstantValue ptrCst = ConstantValue::makeValuePointer(sema.ctx(), dstPointeeTypeRef, ptrValue, dstFlags);
-        return sema.cstMgr().addConstant(sema.ctx(), ptrCst);
     }
 
     bool isProvablyNullRuntimeAnyConstant(const ConstantValue& cst)
@@ -1452,7 +1447,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             if (!srcCst.isStruct())
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             const uint64_t ptr = reinterpret_cast<uint64_t>(srcCst.getStruct().data());
-            castRequest.setConstantFoldingResult(addValuePointerConstant(sema, dstPointeeTypeRef, dstType.flags(), ptr));
+            castRequest.setConstantFoldingResult(CastConstant::addValuePointerConstant(sema, dstPointeeTypeRef, dstType.flags(), ptr));
         }
 
         return Result::Continue;
@@ -1517,7 +1512,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isStruct());
                 const uint64_t ptr = reinterpret_cast<uint64_t>(srcCst.getStruct().data());
-                castRequest.setConstantFoldingResult(addValuePointerConstant(sema, dstPointeeTypeRef, dstType.flags(), ptr));
+                castRequest.setConstantFoldingResult(CastConstant::addValuePointerConstant(sema, dstPointeeTypeRef, dstType.flags(), ptr));
             }
 
             return Result::Continue;
@@ -1557,7 +1552,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
                 ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
             }
 
-            castRequest.setConstantFoldingResult(addValuePointerConstant(sema, dstPointeeTypeRef, dstType.flags(), ptr));
+            castRequest.setConstantFoldingResult(CastConstant::addValuePointerConstant(sema, dstPointeeTypeRef, dstType.flags(), ptr));
         }
 
         return Result::Continue;

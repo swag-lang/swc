@@ -3,6 +3,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCString.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
@@ -415,16 +416,6 @@ namespace
         return Result::Continue;
     }
 
-    MicroReg emitLoadCStringReg(CodeGen& codeGen, const CodeGenNodePayload& payload)
-    {
-        const MicroReg cstrReg = codeGen.nextVirtualIntRegister();
-        if (payload.isAddress())
-            codeGen.builder().emitLoadRegMem(cstrReg, payload.reg, 0, MicroOpBits::B64);
-        else
-            codeGen.builder().emitLoadRegReg(cstrReg, payload.reg, MicroOpBits::B64);
-        return cstrReg;
-    }
-
     Result emitForeachInit(CodeGen& codeGen, const AstForeachStmt& node, ForeachStmtCodeGenPayload& loopState)
     {
         const AstNodeRef exprRef = node.nodeExprRef;
@@ -480,7 +471,7 @@ namespace
                     valueTypeRef          = codeGen.typeMgr().typeU8();
                     loopState.elementSize = 1;
                     loopState.valueSize   = 1;
-                    loopState.baseReg     = emitLoadCStringReg(codeGen, exprPayload);
+                    loopState.baseReg     = CodeGenCString::emitLoadCStringReg(codeGen, exprPayload);
                     CodeGenMemoryHelpers::emitCStringCountReg(codeGen, loopState.countReg, loopState.baseReg);
                 }
                 else if (exprType.isSlice())

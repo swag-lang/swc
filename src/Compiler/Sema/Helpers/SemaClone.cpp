@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaReexpandExpr.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -329,17 +330,6 @@ namespace
         inheritCloneContextOptions(result, cloneContext);
         result.suppressedImplicitCastSubstituteRef = AstNodeRef::invalid();
         return result;
-    }
-
-    bool isDetachedReexpandableExpr(const AstNode& node)
-    {
-        return node.is(AstNodeId::CallExpr) ||
-               node.is(AstNodeId::IntrinsicCallExpr) ||
-               node.is(AstNodeId::UnaryExpr) ||
-               node.is(AstNodeId::BinaryExpr) ||
-               node.is(AstNodeId::RelationalExpr) ||
-               node.is(AstNodeId::IndexExpr) ||
-               node.is(AstNodeId::CastExpr);
     }
 
     bool isImplicitCastSubstitute(const Sema& sema, AstNodeRef sourceRef, AstNodeRef resolvedRef)
@@ -1126,7 +1116,7 @@ namespace
 
     bool shouldReexpandDetachedExpr(Sema& sema, AstNodeRef sourceRef, AstNodeRef resolvedRef)
     {
-        if (resolvedRef.isInvalid() || resolvedRef == sourceRef || !isDetachedReexpandableExpr(sema.node(sourceRef)))
+        if (resolvedRef.isInvalid() || resolvedRef == sourceRef || !SemaReexpandExpr::isReexpandableExpr(sema.node(sourceRef)))
             return false;
 
         // An inlined opIndexPtr keeps its element load outside the expansion. Rebuild

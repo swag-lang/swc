@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
+#include "Compiler/CodeGen/Core/CodeGenPointerIndex.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -110,31 +111,7 @@ namespace
         operandTypeRef                = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), operandTypeRef);
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
         const MicroOpBits srcBits     = CodeGenTypeHelpers::scalarStoreBits(operandType, codeGen.ctx());
-        SWC_ASSERT(operandType.isIntLike());
-        SWC_ASSERT(srcBits != MicroOpBits::Zero);
-
-        const MicroReg resultReg = codeGen.nextVirtualIntRegister();
-        MicroBuilder&  builder   = codeGen.builder();
-        if (operandPayload.isAddress())
-        {
-            if (srcBits == MicroOpBits::B64)
-                builder.emitLoadRegMem(resultReg, operandPayload.reg, 0, MicroOpBits::B64);
-            else if (operandType.isIntLikeUnsigned())
-                builder.emitLoadZeroExtendRegMem(resultReg, operandPayload.reg, 0, MicroOpBits::B64, srcBits);
-            else
-                builder.emitLoadSignedExtendRegMem(resultReg, operandPayload.reg, 0, MicroOpBits::B64, srcBits);
-        }
-        else
-        {
-            if (srcBits == MicroOpBits::B64)
-                builder.emitLoadRegReg(resultReg, operandPayload.reg, MicroOpBits::B64);
-            else if (operandType.isIntLikeUnsigned())
-                builder.emitLoadZeroExtendRegReg(resultReg, operandPayload.reg, MicroOpBits::B64, srcBits);
-            else
-                builder.emitLoadSignedExtendRegReg(resultReg, operandPayload.reg, MicroOpBits::B64, srcBits);
-        }
-
-        return resultReg;
+        return CodeGenPointerIndex::materialize(codeGen, operandPayload, operandType, srcBits);
     }
 
     void normalizeReferenceAssignTarget(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)

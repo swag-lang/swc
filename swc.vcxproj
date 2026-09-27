@@ -669,6 +669,7 @@
         <ClInclude Include="src\Unittest\Compiler\CompilerTestFile.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenParameterReg.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerConstant.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerIndex.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h"/>

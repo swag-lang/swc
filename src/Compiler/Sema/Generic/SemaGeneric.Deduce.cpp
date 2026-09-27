@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Helpers/SemaDeclHelpers.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -21,16 +22,6 @@ namespace
     using DeductionMode = SemaGeneric::Internal::GenericDeductionMode;
 
     constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
-
-    Sema* tryCreateSemaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
-    {
-        return sema.tryCreateDeclSema(ownedSema, fn.srcViewRef(), fn.decl(), fn.declNodeRef());
-    }
-
-    Sema* tryCreateSemaForStructDecl(Sema& sema, const SymbolStruct& st, std::unique_ptr<Sema>& ownedSema)
-    {
-        return sema.tryCreateDeclSema(ownedSema, st.srcViewRef(), st.decl(), st.declNodeRef());
-    }
 
     void collectExplicitGenericArgNodes(const AstNode& calleeNode, const Ast& ast, SmallVector<AstNodeRef>& outArgs)
     {
@@ -625,7 +616,7 @@ namespace
             return Result::Continue;
 
         std::unique_ptr<Sema> rootSemaHolder;
-        Sema*                 rootSema = tryCreateSemaForStructDecl(sema, *patternRoot, rootSemaHolder);
+        Sema*                 rootSema = SemaDeclHelpers::tryCreateForSymbol(sema, *patternRoot, rootSemaHolder);
         if (!rootSema)
             rootSema = &sema;
 
@@ -1117,7 +1108,7 @@ namespace
     {
         outParams.clear();
         std::unique_ptr<Sema> declSemaHolder;
-        Sema*                 declSema = tryCreateSemaForFunctionDecl(sema, root, declSemaHolder);
+        Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, root, declSemaHolder);
         if (!declSema)
             declSema = &sema;
 
@@ -1432,7 +1423,7 @@ namespace SemaGeneric
             return;
 
         std::unique_ptr<Sema> declSemaHolder;
-        Sema*                 declSema = tryCreateSemaForFunctionDecl(sema, function, declSemaHolder);
+        Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, function, declSemaHolder);
         if (!declSema)
             declSema = &sema;
 
@@ -1451,7 +1442,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         std::unique_ptr<Sema> declSemaHolder;
-        Sema*                 declSema = tryCreateSemaForFunctionDecl(sema, root, declSemaHolder);
+        Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, root, declSemaHolder);
         if (!declSema)
             declSema = &sema;
 
@@ -1568,7 +1559,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         std::unique_ptr<Sema> declSemaHolder;
-        Sema*                 declSema = tryCreateSemaForFunctionDecl(sema, function, declSemaHolder);
+        Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, function, declSemaHolder);
         if (!declSema)
             declSema = &sema;
 

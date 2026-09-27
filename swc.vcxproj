@@ -573,6 +573,7 @@
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceOrigin.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceStorage.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericSemaGate.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaDeclHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>
         <ClInclude Include="src\Main\Command\CommandRun.h"/>
         <ClInclude Include="src\Support\Math\Sha256.h"/>
@@ -668,6 +669,7 @@
         <ClInclude Include="src\Unittest\Compiler\CompilerTestFile.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenParameterReg.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerConstant.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerIndex.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h"/>
@@ -876,6 +878,7 @@
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Variable.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h"/>
+        <ClInclude Include="src\Compiler\Sema\Symbol\SymbolOrder.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbols.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeGenGenericArg.h"/>

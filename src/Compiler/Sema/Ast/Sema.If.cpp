@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaVarDeclHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -61,26 +62,9 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    AstNodeRef singleIfVarDeclDeclRef(Sema& sema, AstNodeRef varDeclRef)
-    {
-        AstNodeRef     declRef = varDeclRef;
-        const AstNode& varNode = sema.node(varDeclRef);
-        if (varNode.is(AstNodeId::VarDeclList))
-        {
-            const auto&             list = varNode.cast<AstVarDeclList>();
-            SmallVector<AstNodeRef> decls;
-            sema.ast().appendNodes(decls, list.spanChildrenRef);
-            if (decls.size() != 1)
-                return AstNodeRef::invalid();
-            declRef = decls.front();
-        }
-
-        return declRef;
-    }
-
     bool ifVarDeclUsesLetBinding(Sema& sema, AstNodeRef varDeclRef)
     {
-        const AstNodeRef declRef = singleIfVarDeclDeclRef(sema, varDeclRef);
+        const AstNodeRef declRef = SemaVarDeclHelpers::singleDeclarationRef(sema, varDeclRef);
         if (declRef.isInvalid())
             return false;
 
@@ -96,7 +80,7 @@ namespace
     {
         outSym = nullptr;
 
-        const AstNodeRef declRef = singleIfVarDeclDeclRef(sema, varDeclRef);
+        const AstNodeRef declRef = SemaVarDeclHelpers::singleDeclarationRef(sema, varDeclRef);
         if (declRef.isInvalid())
             return false;
 

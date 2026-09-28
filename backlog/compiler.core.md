@@ -121,6 +121,11 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup. Prelude-state reuse belongs to compiler.core.006; this entry owns lowered runtime artifacts.
 
+The 2026-09-28 prompt-4 continuation removed one Micro instruction lookup per emitted instruction:
+`MicroBuilder` now records its source on the pointer returned by allocation. This keeps the same
+source information for sanity diagnostics and debug tables. The Release `location` selection
+passed 18 native tests; timing and peak memory were not measured.
+
 **Complete when.**
 
 - A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.

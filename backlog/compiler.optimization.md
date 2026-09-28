@@ -15,6 +15,16 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.096 — Remove the loop-bound reload from wordfreq's common path
+
+- Recorded: 2026-09-28 15:46
+- Updated: 2026-09-28 16:15 — The cold-edge placement passed C++, native, JIT, and all seven benchmark checksums.
+- Area: compiler/backend, path-sensitive frame reload placement
+- Evidence: LDC's wordfreq character loop compares its index with the bound retained in `rbp`. Swag's corresponding alphabetic path retains the index in `r12` after compiler.optimization.095, but reloads the bound into `r13` from `[rsp+0x200]` immediately before the loop comparison on every character. A second reload from that slot is needed only after leaving the scan loop for token finalization. The current `main` contains 448 optimized Micro instructions and checksum 130489.
+- Investigation: the post-allocation CFG exposes a join label followed by the index increment and the bound reload. An earlier adjacent-label trial did not match this shape. The accepted rule looks past that independent increment and places the reload between the preceding cold-edge label and the join label. Its backward proof tracks balanced stack adjustments, rejects writes overlapping the private spill slot and paths without an initial value, and checks every direct jump into the join. An entry without a matching store initially exposed an unsound cycle in the proof; the regression test caught it before integration.
+- Evidence: the final Micro for wordfreq keeps the bound store at `[rsp+0x200]`, reloads it once on the cold edge before the join label and once after loop exit, and compares `r12` and `r13` on the alphabetic path. The common increment-and-compare path goes from three instructions with one memory read to two instructions with none; the cold path gains that read. `main` remains at 448 optimized Micro instructions and checksum 130489. The C++ unit test covers an independent loop, balanced stack adjustments, an unrelated memory write, missing initialization, a register clobber, an overlapping slot write, and a slot outside the private spill area. No individual runtime timing was taken.
+- Validation: 1,156 C++ tests, 3,483 native Release tests, 1,500 JIT Release tests, and all seven deterministic benchmark checksums pass. The six other selected benchmark function counts are unchanged.
+
 ### compiler.optimization.095 — Keep loop values off the stack on the common branch
 
 - Recorded: 2026-09-28 14:04

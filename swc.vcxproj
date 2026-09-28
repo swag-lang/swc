@@ -798,6 +798,7 @@
         <ClInclude Include="src\Support\Report\Msg\Notes.Sanity.inc"/>
         <ClInclude Include="src\Support\Report\WarningPolicy.h"/>
         <ClInclude Include="src\Backend\Runtime.h"/>
+        <ClInclude Include="src\Backend\BinaryPatch.h"/>
         <ClInclude Include="src\Backend\RuntimeAllocator.h"/>
         <ClInclude Include="src\Backend\RuntimeAttribute.h"/>
         <ClInclude Include="src\Backend\RuntimeBackendConfig.h"/>

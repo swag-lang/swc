@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/BinaryPatch.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/Linker.h"
@@ -193,16 +194,6 @@ namespace
     bool isCompilerFunction(const SymbolFunction& symbol)
     {
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
-    }
-
-    void writeU64(ByteArray& bytes, const uint32_t offset, const uint64_t value)
-    {
-        std::memcpy(bytes.data() + offset, &value, sizeof(value));
-    }
-
-    void writeU32(ByteArray& bytes, const uint32_t offset, const uint32_t value)
-    {
-        std::memcpy(bytes.data() + offset, &value, sizeof(value));
     }
 
     bool shouldCopyPublishDependencyFile(const fs::path& srcPath, const fs::path& dstPath)
@@ -1030,11 +1021,11 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
             {
                 SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
                 record.type = IMAGE_REL_AMD64_REL32;
-                writeU32(*target.bytes, patchOffset, 0);
+                BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, 0);
             }
             else
             {
-                writeU64(*target.bytes, patchOffset, 0);
+                BinaryPatch::write<uint64_t>(*target.bytes, patchOffset, 0);
             }
             break;
         }
@@ -1065,11 +1056,11 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
                 // "+ 4" lands exactly on the instruction end that RIP holds.
                 SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
                 record.type = IMAGE_REL_AMD64_REL32;
-                writeU32(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
+                BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
                 break;
             }
 
-            writeU64(*target.bytes, patchOffset, record.addend);
+            BinaryPatch::write<uint64_t>(*target.bytes, patchOffset, record.addend);
             break;
         }
 
@@ -1091,11 +1082,11 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
                 SWC_ASSERT(trailingBytes <= 4);
                 record.addend -= trailingBytes;
                 record.type = IMAGE_REL_AMD64_REL32;
-                writeU32(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
+                BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
                 break;
             }
 
-            writeU64(*target.bytes, patchOffset, record.addend);
+            BinaryPatch::write<uint64_t>(*target.bytes, patchOffset, record.addend);
             break;
         }
 

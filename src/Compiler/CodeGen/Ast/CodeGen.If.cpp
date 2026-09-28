@@ -18,21 +18,9 @@ namespace
         bool          hasElseBlock = false;
     };
 
-    IfStmtCodeGenPayload* ifStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.safeNodePayload<IfStmtCodeGenPayload>(nodeRef);
-    }
-
-    void eraseIfStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        IfStmtCodeGenPayload* payload = ifStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
-
     void emitIfStmtCondition(CodeGen& codeGen, AstNodeRef ifRef, const CodeGenNodePayload& conditionPayload, TypeRef conditionTypeRef, bool hasElseBlock)
     {
-        const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
+        const IfStmtCodeGenPayload* state = codeGen.safeNodePayload<IfStmtCodeGenPayload>(ifRef);
         if (!state || !state->falseLabel.isValid())
         {
             MicroBuilder&        builder = codeGen.builder();
@@ -60,7 +48,7 @@ namespace
         if (!isIfBlockChild && !isElseBlockChild)
             return Result::Continue;
 
-        const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
+        const IfStmtCodeGenPayload* state = codeGen.safeNodePayload<IfStmtCodeGenPayload>(ifRef);
         SWC_ASSERT(state != nullptr);
 
         MicroBuilder& builder = codeGen.builder();
@@ -73,13 +61,13 @@ namespace
             builder.placeLabel(state->falseLabel);
 
             if (!state->hasElseBlock)
-                eraseIfStmtCodeGenPayload(codeGen, ifRef);
+                codeGen.resetNodePayload<IfStmtCodeGenPayload>(ifRef);
 
             return Result::Continue;
         }
 
         builder.placeLabel(state->doneLabel);
-        eraseIfStmtCodeGenPayload(codeGen, ifRef);
+        codeGen.resetNodePayload<IfStmtCodeGenPayload>(ifRef);
         return Result::Continue;
     }
 }

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -320,7 +321,7 @@ namespace InstructionCombine
             const bool immediateFits = shiftUpdate ? immediateFoldValue <= 0x7F : immediateFoldBits == MicroOpBits::B8 ? immediateFoldValue <= 0xFF
                                                                               : immediateFoldBits == MicroOpBits::B16  ? immediateFoldValue <= 0xFFFF
                                                                               : immediateFoldBits == MicroOpBits::B32  ? immediateFoldValue <= 0xFFFFFFFF
-                                                                                                                       : immediateFoldValue <= 0x7FFFFFFF || immediateFoldValue >= 0xFFFFFFFF80000000;
+                                                                                                                       : X64Immediate::canEncodeSigned32(immediateFoldValue);
             if (!immediateFits)
                 return false;
 

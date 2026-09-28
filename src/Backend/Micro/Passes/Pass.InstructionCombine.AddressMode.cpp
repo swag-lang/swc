@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -959,7 +960,7 @@ namespace InstructionCombine
                 case MicroOpBits::B32:
                     return value <= 0xFFFFFFFF;
                 case MicroOpBits::B64:
-                    return value <= 0x7FFFFFFF || value >= 0xFFFFFFFF80000000;
+                    return X64Immediate::canEncodeSigned32(value);
                 default:
                     return false;
             }

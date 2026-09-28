@@ -15,6 +15,15 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
+
+- Recorded: 2026-09-28 09:58
+- Area: compiler/backend, register allocation, prologue and unwind information
+- Evidence: The latest accepted campaign names C++/MSVC as raytrace's fastest other runtime (9.601 ms versus Swag's 10.742 ms; ratio 1.119). In `trace`, Swag saves XMM6–XMM15 before its first `intersect` call and reloads all ten on the no-hit return. MSVC saves six XMM registers before that call; after `g_HitI >= 0` it saves XMM9 and XMM13–XMM15, which the no-hit path never touches. The no-hit path therefore avoids four stores and four loads in MSVC. Swag's frame reserves `0x168` bytes and MSVC's `0x128`, though allocation size alone does not measure the path cost.
+- The Swag prologue builder merges the saved area with body allocation and `PrologEpilogSanitize` validates the save/restore plan. Moving a save behind a branch must preserve every exit's caller-visible register values and valid Windows unwind information, including an unwind through the earlier `intersect` call. A local post-RA store move without that metadata proof is not sufficient.
+- Next: establish the unwind representation MSVC uses for the delayed saves, then design path-sensitive save/restore placement for a register first defined only below a guard. Test both arms, nested calls and exceptional unwinding in native and JIT output, and compare no-hit and hit paths against MSVC.
+- Complete when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
+
 ### compiler.optimization.093 — Keep unsigned 64-bit float conversion branchless in hot loops
 
 - Recorded: 2026-09-28 09:31

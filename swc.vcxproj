@@ -668,6 +668,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenExprView.h"/>
         <ClInclude Include="src\Unittest\Format\FormatRewriteCheck.h"/>
         <ClInclude Include="src\Unittest\Compiler\CompilerTestFile.h"/>
+        <ClInclude Include="src\Unittest\Native\NativeTestBytes.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenParameterReg.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerConstant.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerIndex.h"/>

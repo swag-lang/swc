@@ -3187,6 +3187,17 @@ namespace
         return arms.size();
     }
 
+    inline void appendValidChildren(Sema& sema, const AstNode& node, SmallVector<AstNodeRef>& children, SmallVector<AstNodeRef>& worklist)
+    {
+        children.clear();
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (childRef.isValid())
+                worklist.push_back(childRef);
+        }
+    }
+
     // The whole source extent of a subtree. 'codeRangeWithChildren' cannot answer this:
     // it never leaves the node's own line, because it exists to underline one expression
     // in a diagnostic. Where a block ENDS is a different question, and the only source of
@@ -3221,13 +3232,7 @@ namespace
                 last  = std::max(last, range.offset + range.len);
             }
 
-            children.clear();
-            node.collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : children)
-            {
-                if (childRef.isValid())
-                    worklist.push_back(childRef);
-            }
+            appendValidChildren(sema, node, children, worklist);
         }
 
         result.offset = first;
@@ -3274,13 +3279,7 @@ namespace
                     outLoops.push_back({nodeRef, range});
             }
 
-            children.clear();
-            node.collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : children)
-            {
-                if (childRef.isValid())
-                    worklist.push_back(childRef);
-            }
+            appendValidChildren(sema, node, children, worklist);
         }
 
         // The innermost loop takes its back edge first.
@@ -3418,13 +3417,7 @@ namespace
                 }
             }
 
-            children.clear();
-            node.collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : children)
-            {
-                if (childRef.isValid())
-                    worklist.push_back(childRef);
-            }
+            appendValidChildren(sema, node, children, worklist);
         }
 
         // A continue only makes the view safe when the targeted loop rebuilds it. A
@@ -3485,13 +3478,7 @@ namespace
                 }
             }
 
-            children.clear();
-            sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : children)
-            {
-                if (childRef.isValid())
-                    worklist.push_back(childRef);
-            }
+            appendValidChildren(sema, sema.node(nodeRef), children, worklist);
         }
 
         return false;
@@ -3794,13 +3781,7 @@ namespace
                 !setContextInstallsFrameStorage(sema, intrinsicFirstArgument(sema, nodeRef)))
                 return true;
 
-            children.clear();
-            node.collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : children)
-            {
-                if (childRef.isValid())
-                    worklist.push_back(childRef);
-            }
+            appendValidChildren(sema, node, children, worklist);
         }
 
         return false;

@@ -494,7 +494,8 @@ namespace
             return false;
         }
 
-        std::unordered_set<uint32_t> visited;
+        thread_local std::unordered_set<uint32_t> visited;
+        visited.clear();
         visited.reserve(4);
         visited.insert(startLabelId);
 

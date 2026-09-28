@@ -433,9 +433,7 @@ namespace
         if (view.sym() && view.sym()->isVariable() && view.type() && !view.type()->isReference())
         {
             auto& symVar = view.sym()->cast<SymbolVariable>();
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-                symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
-                symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+            symVar.markAddressableIfLocalOrParameter();
         }
 
         const TypeRef typeRef = takeAddressResultTypeRef(sema, view);
@@ -529,9 +527,7 @@ namespace
             if (view.sym() && view.sym()->isVariable())
             {
                 auto& symVar = view.sym()->cast<SymbolVariable>();
-                if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-                    symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
-                    symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+                symVar.markAddressableIfLocalOrParameter();
             }
 
             if (SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))

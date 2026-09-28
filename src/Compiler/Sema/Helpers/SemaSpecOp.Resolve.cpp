@@ -1028,9 +1028,8 @@ namespace
                     operandView.type())
                 {
                     auto& symVar = operandView.sym()->cast<SymbolVariable>();
-                    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                    if (symVar.markAddressableIfLocalOrParameter())
                     {
-                        symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
                         needsRuntimeStorage = false;
                     }
                 }

@@ -107,11 +107,8 @@ AstNodeRef Parser::parseAggregateValue()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerError:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerWarning:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
         case TokenId::CompilerStatic:
@@ -270,11 +267,8 @@ AstNodeRef Parser::parseInterfaceValue()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerError:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerWarning:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
         case TokenId::CompilerStatic:

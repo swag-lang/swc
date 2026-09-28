@@ -199,48 +199,39 @@ namespace
         });
     }
 
-    void collectMetaFunctionNames(const Ast& ast, std::unordered_set<std::string_view>& outNames)
+    void collectMetaFunctionName(const Ast& ast, const AstNode& node, std::unordered_set<std::string_view>& outNames)
     {
-        Ast::visit(ast, ast.root(), [&](AstNodeRef, const AstNode& node) {
-            const auto* attributes = node.safeCast<AstAttributeList>();
-            if (!attributes || attributes->nodeBodyRef.isInvalid() || !ast.hasNode(attributes->nodeBodyRef))
-                return Ast::VisitResult::Continue;
+        const auto* attributes = node.safeCast<AstAttributeList>();
+        if (!attributes || attributes->nodeBodyRef.isInvalid() || !ast.hasNode(attributes->nodeBodyRef))
+            return;
 
-            const auto* decl = ast.node(attributes->nodeBodyRef).safeCast<AstFunctionDecl>();
-            if (!decl || decl->tokNameRef.isInvalid())
-                return Ast::VisitResult::Continue;
+        const auto* decl = ast.node(attributes->nodeBodyRef).safeCast<AstFunctionDecl>();
+        if (!decl || decl->tokNameRef.isInvalid())
+            return;
 
-            const size_t count = ast.spanSize(attributes->spanChildrenRef);
-            for (size_t i = 0; i < count; ++i)
+        const size_t count = ast.spanSize(attributes->spanChildrenRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const AstNodeRef attributeRef = ast.nthNode(attributes->spanChildrenRef, i);
+            if (attributeRef.isInvalid() || !ast.hasNode(attributeRef))
+                continue;
+            const auto* attribute = ast.node(attributeRef).safeCast<AstAttribute>();
+            if (!attribute)
+                continue;
+
+            const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef);
+            if (attributeName == "Macro" || attributeName == "Mixin")
             {
-                const AstNodeRef attributeRef = ast.nthNode(attributes->spanChildrenRef, i);
-                if (attributeRef.isInvalid() || !ast.hasNode(attributeRef))
-                    continue;
-                const auto* attribute = ast.node(attributeRef).safeCast<AstAttribute>();
-                if (!attribute)
-                    continue;
-
-                const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef);
-                if (attributeName == "Macro" || attributeName == "Mixin")
-                {
-                    outNames.insert(ast.srcView().tokenString(decl->tokNameRef));
-                    break;
-                }
+                outNames.insert(ast.srcView().tokenString(decl->tokNameRef));
+                break;
             }
-            return Ast::VisitResult::Continue;
-        });
+        }
     }
 }
 
 void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts)
 {
     std::unordered_set<std::string_view> metaFunctionNames;
-    for (const Ast* ast : moduleAsts)
-    {
-        if (ast && ast->root().isValid())
-            collectMetaFunctionNames(*ast, metaFunctionNames);
-    }
-
     std::unordered_map<std::string_view, uint32_t>                       callCounts;
     std::unordered_map<std::string_view, uint32_t>                       hotCallCounts;
     std::unordered_map<std::string_view, uint32_t>                       useCounts;
@@ -259,6 +250,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             const auto [nodeRef, parentInLoop] = pending.back();
             pending.pop_back();
             const AstNode& node = ast->node(nodeRef);
+            collectMetaFunctionName(*ast, node, metaFunctionNames);
             const bool inLoop = parentInLoop || node.is(AstNodeId::WhileStmt) || node.is(AstNodeId::ForeachStmt) ||
                                 node.is(AstNodeId::ForStmt) || node.is(AstNodeId::ParallelForStmt) || node.is(AstNodeId::InfiniteLoopStmt);
             if (const auto* decl = node.safeCast<AstFunctionDecl>())

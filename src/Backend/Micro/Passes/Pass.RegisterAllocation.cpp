@@ -669,13 +669,17 @@ void MicroRegisterAllocationPass::computeLoopDepth()
     // it forms spans [s, p]. Depth is the number of such ranges covering an
     // instruction. Used to rank pin candidates (deeper uses benefit most from
     // staying register-resident).
-    loopDepth_.clear();
     functionHasLoop_ = false;
     // The CFG records the same backward edges the depth sweep counts.
     if (!hasControlFlow_ || instructionCount_ == 0 || !controlFlowGraph_->hasLoop())
+    {
+        loopDepth_.clear();
         return;
+    }
 
-    loopDepth_.assign(instructionCount_, 0);
+    // The prefix sweep overwrites every depth. Keep the existing size so a
+    // later loop-bearing function does not zero the same entries first.
+    loopDepth_.resize(instructionCount_);
     auto& delta = loopDepthDelta_;
     delta.assign(static_cast<size_t>(instructionCount_) + 1, 0);
     for (uint32_t s = 0; s < instructionCount_; ++s)
@@ -4474,7 +4478,6 @@ void MicroRegisterAllocationPass::clearState()
     liveInVirtualBits_.clear();
     liveInConcreteBits_.clear();
     predecessors_ = {};
-    loopDepth_.clear();
     concreteLoopCarried_.clear();
     virtualSpanLo_.clear();
     virtualSpanHi_.clear();

@@ -4,6 +4,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Report/Assert.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

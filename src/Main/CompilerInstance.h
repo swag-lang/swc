@@ -13,7 +13,7 @@
 #include "Support/Core/Utf8.h"
 #include "Support/Memory/Arena.h"
 #include "Support/Report/WarningPolicy.h"
-#include "Support/Thread/JobManager.h"
+#include "Support/Thread/Job.h"
 #include "Support/Thread/RaceCondition.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -10,6 +10,7 @@
 
 #if SWC_HAS_VALIDATE_NATIVE
 
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Support/Math/Helpers.h"
 

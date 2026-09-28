@@ -547,8 +547,9 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         return Result::Continue;
 
     // These CFG checks can reject a function without constructing its SSA.
-    MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    std::optional<MicroSsaState> localSsaState;
+    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*        ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 

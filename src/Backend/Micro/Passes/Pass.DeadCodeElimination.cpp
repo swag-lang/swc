@@ -285,8 +285,9 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.builder != nullptr);
 
     MicroStorage&        storage = *context.instructions;
-    MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    std::optional<MicroSsaState> localSsaState;
+    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*        ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
     // Every removable instruction defines a virtual value.

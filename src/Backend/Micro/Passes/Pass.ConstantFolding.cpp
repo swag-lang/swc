@@ -916,8 +916,9 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
 
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
-    MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    std::optional<MicroSsaState> localSsaState;
+    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*        ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 

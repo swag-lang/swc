@@ -1498,6 +1498,13 @@ namespace
     bool findCallerParameterIndex(const SymbolFunction& fn, const SymbolVariable& sourceVar, size_t& outIndex)
     {
         const auto& params = fn.parameters();
+        const auto  index  = sourceVar.parameterIndex();
+        if (index < params.size() && params[index] == &sourceVar)
+        {
+            outIndex = index;
+            return true;
+        }
+
         for (size_t i = 0; i < params.size(); ++i)
         {
             if (params[i] == &sourceVar)

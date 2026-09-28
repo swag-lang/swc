@@ -520,22 +520,6 @@ namespace SemaGeneric
             }
         };
 
-        struct GenericInstanceNodeRunInitializer
-        {
-            Sema*         sema = nullptr;
-            const Symbol* root = nullptr;
-            AstNodeRef    nodeRef;
-
-            std::unique_ptr<Sema> operator()() const
-            {
-                SWC_ASSERT(sema != nullptr);
-                SWC_ASSERT(root != nullptr);
-                auto child = std::make_unique<Sema>(sema->ctx(), *sema, nodeRef);
-                prepareGenericNodeRunContext(*child, *sema, *root);
-                return child;
-            }
-        };
-
         Result runGenericNode(Sema& sema, const Symbol& root, AstNodeRef nodeRef)
         {
             SWC_ASSERT(root.isFunction() || root.isStruct());
@@ -558,7 +542,7 @@ namespace SemaGeneric
                 return Result::Error;
 
             const GenericInstanceNodeRunKey         key{&sema.ctx(), &instance};
-            const GenericInstanceNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
+            const GenericNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
             return runCachedSema(sema, genericInstanceNodeRuns(sema.ctx()), key, instance, initRun);
         }
     }

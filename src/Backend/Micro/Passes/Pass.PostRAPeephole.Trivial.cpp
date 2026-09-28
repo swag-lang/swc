@@ -75,7 +75,12 @@ namespace PostRaPeephole
         const CallConv& conv    = CallConv::get(ctx.passContext->callConvKind);
         bool            changed = false;
 
-        const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*ctx.builder);
+        std::optional<std::unordered_set<uint32_t>> readOnlyCallRefs;
+        const auto isReadOnlyCall = [&](const MicroInstrRef ref) {
+            if (!readOnlyCallRefs)
+                readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*ctx.builder);
+            return readOnlyCallRefs->contains(ref.get());
+        };
 
         const auto isSourceObjectSlot = [&](const MicroInstrOperand* source) {
             if (!ctx.passContext->sanitizerFunction || source[1].reg != ctx.localStackBase)
@@ -166,7 +171,7 @@ namespace PostRaPeephole
                         }
                         if (MicroInstr::info(step->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                         {
-                            if (!conv.isIntPersistentReg(load[1].reg) || !readOnlyCallRefs.contains(refs[predecessor].get()))
+                            if (!conv.isIntPersistentReg(load[1].reg) || !isReadOnlyCall(refs[predecessor]))
                             {
                                 valid = false;
                                 break;

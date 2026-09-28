@@ -4,6 +4,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenBinaryValueCall.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
@@ -269,35 +270,17 @@ namespace
 
         codeGen.function().addCallDependency(stringCmpSymbol);
 
-        auto&                             stringCmpFunction = *stringCmpSymbol;
-        const CallConvKind                callConvKind      = stringCmpFunction.callConvKind();
-        const CallConv&                   callConv          = CallConv::get(callConvKind);
-        const auto&                       params            = stringCmpFunction.parameters();
-        SmallVector<ABICall::PreparedArg> preparedArgs;
-        preparedArgs.reserve(2);
+        auto&         stringCmpFunction = *stringCmpSymbol;
+        const auto    callInfo          = CodeGenBinaryValueCall::emit(codeGen, stringCmpFunction, switchState.switchValuePayload, casePayload);
+        MicroBuilder& builder           = codeGen.builder();
 
-        SWC_ASSERT(params.size() >= 2);
-        SWC_ASSERT(params[0] != nullptr);
-        SWC_ASSERT(params[1] != nullptr);
-        CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, switchState.switchValuePayload, params[0]->typeRef());
-        CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, casePayload, params[1]->typeRef());
-
-        CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
-
-        MicroBuilder&               builder      = codeGen.builder();
-        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
-        if (stringCmpFunction.isForeign())
-            ABICall::callExtern(builder, callConvKind, &stringCmpFunction, preparedCall);
-        else
-            ABICall::callLocal(builder, callConvKind, &stringCmpFunction, preparedCall);
-
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
         SWC_ASSERT(normalizedRet.numBits == 8);
 
         const MicroReg compareReg = codeGen.nextVirtualIntRegister();
-        ABICall::materializeReturnToReg(builder, compareReg, callConvKind, normalizedRet);
+        ABICall::materializeReturnToReg(builder, compareReg, callInfo.callConvKind, normalizedRet);
         builder.emitCmpRegImm(compareReg, ApInt(0, 64), MicroOpBits::B8);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, successLabel);
         return Result::Continue;

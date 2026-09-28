@@ -426,13 +426,17 @@ namespace
     {
         MicroStorage&        storage   = *context.instructions;
         MicroOperandStorage& operands  = *context.operands;
+        std::unordered_map<uint64_t, uint32_t> labelOrdinals;
+        for (uint32_t index = 0; index < order.size(); ++index)
+        {
+            const MicroInstr* inst = storage.ptr(order[index]);
+            if (inst && inst->op == MicroInstrOpcode::Label)
+                labelOrdinals.try_emplace(inst->ops(operands)[0].valueU64, index);
+        }
         const auto           findLabel = [&](const uint64_t id, const uint32_t endOrdinal) {
-            for (uint32_t index = 0; index < endOrdinal; ++index)
-            {
-                const MicroInstr* inst = storage.ptr(order[index]);
-                if (inst && inst->op == MicroInstrOpcode::Label && inst->ops(operands)[0].valueU64 == id)
-                    return index;
-            }
+            const auto it = labelOrdinals.find(id);
+            if (it != labelOrdinals.end() && it->second < endOrdinal)
+                return it->second;
             return static_cast<uint32_t>(order.size());
         };
 
@@ -465,10 +469,9 @@ namespace
             if (!MicroPassHelpers::invertLayoutBranchCondition(inverted, secondOps[0].cpuCond))
                 continue;
 
-            const uint32_t stepSearchEnd = static_cast<uint32_t>(std::min<size_t>(order.size(), static_cast<size_t>(ordinal) + 81));
-            const uint32_t stepOrdinal   = findLabel(secondOps[2].valueU64, stepSearchEnd);
+            const uint32_t stepOrdinal   = findLabel(secondOps[2].valueU64, static_cast<uint32_t>(order.size()));
             if (stepOrdinal <= ordinal + 4 ||
-                stepOrdinal - ordinal > 80 || stepOrdinal + 3 >= order.size())
+                stepOrdinal + 3 >= order.size())
                 continue;
             const MicroInstrRef stepLabelRef = order[stepOrdinal];
             const MicroInstrRef updateRef    = order[stepOrdinal + 1];

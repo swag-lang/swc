@@ -46,11 +46,6 @@ namespace
         return codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(nodeRef);
     }
 
-    ForCStyleStmtCodeGenPayload& setForCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const ForCStyleStmtCodeGenPayload& payloadValue)
-    {
-        return codeGen.setNodePayload(nodeRef, payloadValue);
-    }
-
     void eraseForCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         ForCStyleStmtCodeGenPayload* payload = forCStyleStmtCodeGenPayload(codeGen, nodeRef);
@@ -61,11 +56,6 @@ namespace
     ForStmtCodeGenPayload* forStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return codeGen.safeNodePayload<ForStmtCodeGenPayload>(nodeRef);
-    }
-
-    ForStmtCodeGenPayload& setForStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const ForStmtCodeGenPayload& payloadValue)
-    {
-        return codeGen.setNodePayload(nodeRef, payloadValue);
     }
 
     void eraseForStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -349,7 +339,7 @@ Result AstForCStyleStmt::codeGenPreNode(CodeGen& codeGen)
     loopState.bodyLabel = builder.createLabel();
     loopState.postLabel = builder.createLabel();
     loopState.doneLabel = builder.createLabel();
-    setForCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    codeGen.setNodePayload(codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
 
@@ -478,7 +468,7 @@ Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const
     if (symbolView.sym() != nullptr && symbolView.sym()->isVariable())
         loopState.indexSym = &symbolView.sym()->cast<SymbolVariable>();
 
-    setForStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    codeGen.setNodePayload(codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
 

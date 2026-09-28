@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Generic/SemaGeneric.ArgNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -29,13 +30,12 @@ namespace
 
         if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
         {
-            if (quotedExpr->nodeSuffixRef.isValid())
-                outArgs.push_back(quotedExpr->nodeSuffixRef);
+            SemaGeneric::appendQuotedGenericArgs(*quotedExpr, outArgs);
             return;
         }
 
         if (const auto* quotedList = calleeNode.safeCast<AstQuotedListExpr>())
-            ast.appendNodes(outArgs, quotedList->spanChildrenRef);
+            SemaGeneric::appendQuotedGenericArgs(ast, *quotedList, outArgs);
     }
 
     SpanRef genericStructParamSpan(const AstNode& declNode)
@@ -382,19 +382,6 @@ namespace
         return true;
     }
 
-    void collectQuotedGenericArgs(const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
-    {
-        outArgs.clear();
-        if (node.nodeSuffixRef.isValid())
-            outArgs.push_back(node.nodeSuffixRef);
-    }
-
-    void collectQuotedGenericArgs(Sema& sema, const AstQuotedListExpr& node, SmallVector<AstNodeRef>& outArgs)
-    {
-        outArgs.clear();
-        sema.ast().appendNodes(outArgs, node.spanChildrenRef);
-    }
-
     Result tryGetStructPatternGenericArgs(Sema& sema, AstNodeRef identRef, const SymbolStruct*& outGenericRoot, IdentifierRef& outGenericRootIdRef, SmallVector<AstNodeRef>& outGenericArgs, bool& outFound)
     {
         outFound            = false;
@@ -416,12 +403,14 @@ namespace
         if (const auto* quotedExpr = identNode.safeCast<AstQuotedExpr>())
         {
             exprRef = quotedExpr->nodeExprRef;
-            collectQuotedGenericArgs(*quotedExpr, outGenericArgs);
+            outGenericArgs.clear();
+            SemaGeneric::appendQuotedGenericArgs(*quotedExpr, outGenericArgs);
         }
         else if (const auto* quotedList = identNode.safeCast<AstQuotedListExpr>())
         {
             exprRef = quotedList->nodeExprRef;
-            collectQuotedGenericArgs(sema, *quotedList, outGenericArgs);
+            outGenericArgs.clear();
+            SemaGeneric::appendQuotedGenericArgs(sema.ast(), *quotedList, outGenericArgs);
         }
         else
         {

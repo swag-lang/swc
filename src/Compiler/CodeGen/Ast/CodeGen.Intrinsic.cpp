@@ -156,11 +156,6 @@ namespace
         return result;
     }
 
-    void collectIntrinsicInitArgs(SmallVector<AstNodeRef>& outArgs, const Ast& ast, const AstIntrinsicInit& node)
-    {
-        ast.appendNodes(outArgs, node.spanArgsRef);
-    }
-
     Result emitIntrinsicInitStore(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg)
     {
         TaskContext&    ctx       = codeGen.ctx();
@@ -316,7 +311,7 @@ namespace
     Result emitIntrinsicInitStmt(CodeGen& codeGen, const AstIntrinsicInit& node)
     {
         SmallVector<AstNodeRef> args;
-        collectIntrinsicInitArgs(args, codeGen.ast(), node);
+        codeGen.ast().appendNodes(args, node.spanArgsRef);
 
         const CodeGenNodePayload* whatPayload = codeGen.safePayload(node.nodeWhatRef);
         if ((!whatPayload || !whatPayload->reg.isValid()) && node.nodeWhatRef.isValid())

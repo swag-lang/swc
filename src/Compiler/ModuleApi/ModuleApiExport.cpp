@@ -22,14 +22,6 @@ namespace
         bool hasModuleNamespace = false;
     };
 
-    Utf8 buildCfgString(const Runtime::String& value)
-    {
-        if (!value.ptr || !value.length)
-            return {};
-
-        return Utf8{value};
-    }
-
     bool isWholeFileExported(const SourceFile& file)
     {
         const AstNodeRef rootRef = file.ast().root();
@@ -177,11 +169,11 @@ namespace ModuleApiExport
 {
     Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
     {
-        Utf8 moduleNamespaceName = buildCfgString(compiler.buildCfg().moduleNamespace);
+        Utf8 moduleNamespaceName = CompilerInstance::buildCfgString(compiler.buildCfg().moduleNamespace);
         if (!moduleNamespaceName.empty())
             return moduleNamespaceName;
 
-        Utf8 artifactName = buildCfgString(compiler.buildCfg().name);
+        Utf8 artifactName = CompilerInstance::buildCfgString(compiler.buildCfg().name);
         if (artifactName.empty())
             artifactName = defaultArtifactName(compiler.cmdLine());
         return defaultModuleNamespace(artifactName);
@@ -189,7 +181,7 @@ namespace ModuleApiExport
 
     Utf8 buildModuleArtifactName(const CompilerInstance& compiler)
     {
-        Utf8 artifactName = buildCfgString(compiler.buildCfg().name);
+        Utf8 artifactName = CompilerInstance::buildCfgString(compiler.buildCfg().name);
         if (!artifactName.empty())
             return artifactName;
 

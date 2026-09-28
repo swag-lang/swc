@@ -26,11 +26,6 @@ namespace
         return codeGen.safeNodePayload<LoopStmtCodeGenPayload>(nodeRef);
     }
 
-    LoopStmtCodeGenPayload& setLoopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const LoopStmtCodeGenPayload& payloadValue)
-    {
-        return codeGen.setNodePayload(nodeRef, payloadValue);
-    }
-
     void eraseLoopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         LoopStmtCodeGenPayload* payload = loopStmtCodeGenPayload(codeGen, nodeRef);
@@ -45,7 +40,7 @@ Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
     LoopStmtCodeGenPayload loopState;
     loopState.continueLabel = builder.createLabel();
     loopState.doneLabel     = builder.createLabel();
-    setLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    codeGen.setNodePayload(codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
 
@@ -182,7 +177,7 @@ Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
     loopState.bodyLabel     = builder.createLabel();
     loopState.continueLabel = builder.createLabel();
     loopState.doneLabel     = builder.createLabel();
-    setLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    codeGen.setNodePayload(codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
 

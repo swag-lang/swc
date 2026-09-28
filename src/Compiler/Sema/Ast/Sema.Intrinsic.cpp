@@ -59,11 +59,6 @@ namespace
         return whatTypeRef;
     }
 
-    void collectIntrinsicInitArgs(SmallVector<AstNodeRef>& outArgs, const Ast& ast, const AstIntrinsicInit& node)
-    {
-        ast.appendNodes(outArgs, node.spanArgsRef);
-    }
-
     Result failIntrinsicInitRequiresValue(Sema& sema, AstNodeRef whatRef, TypeRef fillTypeRef)
     {
         return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, sema.node(whatRef).codeRef(), fillTypeRef);
@@ -131,7 +126,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
     SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, fillTypeRef, nodeWhatRef));
 
     SmallVector<AstNodeRef> args;
-    collectIntrinsicInitArgs(args, sema.ast(), *this);
+    sema.ast().appendNodes(args, spanArgsRef);
     if (args.empty())
     {
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, fillTypeRef))

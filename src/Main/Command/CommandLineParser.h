@@ -53,18 +53,6 @@ public:
     Result      parse(int argc, char* argv[]);
 
 private:
-    template<typename E>
-    static void setEnumIntValue(void* target, int value)
-    {
-        *static_cast<E*>(target) = static_cast<E>(value);
-    }
-
-    template<typename E>
-    static int getEnumIntValue(const void* target)
-    {
-        return static_cast<int>(*static_cast<const E*>(target));
-    }
-
     std::vector<ArgInfo> args_;
     StructConfigSchema   configSchema_;
     CommandLine*         cmdLine_     = nullptr;
@@ -115,8 +103,8 @@ private:
     {
         EnumIntTarget et;
         et.target = target;
-        et.setter = &CommandLineParser::setEnumIntValue<E>;
-        et.getter = &CommandLineParser::getEnumIntValue<E>;
+        et.setter = &EnumIntTarget::setValue<E>;
+        et.getter = &EnumIntTarget::getValue<E>;
 
         ArgInfo& info = addImpl(g, cmds, lf, sf, desc, et);
         for (const auto& [name, val] : choices)

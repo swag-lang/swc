@@ -12,6 +12,18 @@ struct StructConfigEnumIntTarget
     void (*setter)(void*, int) = nullptr;
     int (*getter)(const void*) = nullptr;
     void* target               = nullptr;
+
+    template<typename E>
+    static void setValue(void* target, int value)
+    {
+        *static_cast<E*>(target) = static_cast<E>(value);
+    }
+
+    template<typename E>
+    static int getValue(const void* target)
+    {
+        return static_cast<int>(*static_cast<const E*>(target));
+    }
 };
 
 struct StructConfigAssignHook
@@ -84,8 +96,8 @@ public:
     {
         StructConfigEnumIntTarget enumTarget;
         enumTarget.target = target;
-        enumTarget.setter = &StructConfigSchema::setEnumIntValue<E>;
-        enumTarget.getter = &StructConfigSchema::getEnumIntValue<E>;
+        enumTarget.setter = &StructConfigEnumIntTarget::setValue<E>;
+        enumTarget.getter = &StructConfigEnumIntTarget::getValue<E>;
 
         StructConfigEntry& entry = addImpl(name, description, enumTarget, hook);
         for (const auto& [choiceName, choiceValue] : choices)
@@ -102,18 +114,6 @@ public:
     const std::vector<StructConfigEntry>& entries() const { return entries_; }
 
 private:
-    template<typename E>
-    static void setEnumIntValue(void* target, int value)
-    {
-        *static_cast<E*>(target) = static_cast<E>(value);
-    }
-
-    template<typename E>
-    static int getEnumIntValue(const void* target)
-    {
-        return static_cast<int>(*static_cast<const E*>(target));
-    }
-
     StructConfigEntry& addImpl(std::string_view name, std::string_view description, const StructConfigTarget& target, StructConfigAssignHook hook);
 
     std::vector<StructConfigEntry> entries_;

@@ -479,9 +479,6 @@ bool MicroRegisterAllocationPass::isConcreteLiveInAt(MicroReg key, uint32_t inst
 
 bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const
 {
-    if (!physReg.isInt() && !physReg.isFloat())
-        return false;
-
     const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= concreteTouchPositionsByDenseIndex_.size())
         return false;

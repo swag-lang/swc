@@ -1165,19 +1165,16 @@ namespace
     {
         std::vector<char> bytes;
 
-        void u32(const uint32_t value)
+        template<typename T>
+        void integer(const T value)
         {
             const size_t offset = bytes.size();
             bytes.resize(offset + sizeof(value));
             std::memcpy(bytes.data() + offset, &value, sizeof(value));
         }
 
-        void u64(const uint64_t value)
-        {
-            const size_t offset = bytes.size();
-            bytes.resize(offset + sizeof(value));
-            std::memcpy(bytes.data() + offset, &value, sizeof(value));
-        }
+        void u32(const uint32_t value) { integer(value); }
+        void u64(const uint64_t value) { integer(value); }
 
         void blob(const void* data, const size_t size)
         {
@@ -1212,9 +1209,10 @@ namespace
             return !failed;
         }
 
-        uint32_t u32()
+        template<typename T>
+        T integer()
         {
-            uint32_t value = 0;
+            T value = 0;
             if (has(sizeof(value)))
             {
                 std::memcpy(&value, bytes.data() + offset, sizeof(value));
@@ -1223,16 +1221,8 @@ namespace
             return value;
         }
 
-        uint64_t u64()
-        {
-            uint64_t value = 0;
-            if (has(sizeof(value)))
-            {
-                std::memcpy(&value, bytes.data() + offset, sizeof(value));
-                offset += sizeof(value);
-            }
-            return value;
-        }
+        uint32_t u32() { return integer<uint32_t>(); }
+        uint64_t u64() { return integer<uint64_t>(); }
 
         std::string_view str()
         {

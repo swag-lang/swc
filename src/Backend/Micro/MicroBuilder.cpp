@@ -975,11 +975,27 @@ Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder,
 
 Result MicroBuilder::runPasses(Encoder* encoder, MicroPassContext& context)
 {
-    // Reuse a thread-local pass manager to avoid per-function allocation/destruction
-    // of 15 pass objects and their internal data structures.
-    thread_local MicroPassManager tlPassManager;
-    tlPassManager.configureDefaultPipeline(backendBuildCfg_);
-    return runPasses(tlPassManager, encoder, context);
+    struct DefaultPipeline
+    {
+        MicroPassManager passes;
+        bool             optimize   = false;
+        bool             costly     = false;
+        bool             configured = false;
+    };
+
+    // The pass objects and their order live on this worker. Only these two
+    // backend decisions change which passes configureDefaultPipeline adds.
+    thread_local DefaultPipeline pipeline;
+    const bool                   optimize = backendBuildCfg_.optimizes();
+    const bool                   costly   = backendBuildCfg_.runsCostlyOptimizations();
+    if (!pipeline.configured || pipeline.optimize != optimize || pipeline.costly != costly)
+    {
+        pipeline.passes.configureDefaultPipeline(backendBuildCfg_);
+        pipeline.optimize   = optimize;
+        pipeline.costly     = costly;
+        pipeline.configured = true;
+    }
+    return runPasses(pipeline.passes, encoder, context);
 }
 
 Utf8 MicroBuilder::formatInstructions(MicroRegPrintMode regPrintMode, const Encoder* encoder) const

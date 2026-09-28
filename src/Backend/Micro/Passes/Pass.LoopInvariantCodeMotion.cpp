@@ -652,11 +652,16 @@ namespace
             };
             thread_local std::unordered_map<MicroReg, RegWeb> websByReg;
             websByReg.clear();
-            slotDefReg.assign(n, MicroReg::invalid());
-            slotIsFullDef.assign(n, 0);
-            slotIsCompute.assign(n, 0);
+            slotDefReg.resize(n);
+            slotIsFullDef.resize(n);
+            slotIsCompute.resize(n);
+            // Only body slots are read below; the other entries can keep their
+            // values from an earlier loop or function.
             for (const uint32_t i : bodyIndices)
             {
+                slotDefReg[i]      = MicroReg::invalid();
+                slotIsFullDef[i]   = 0;
+                slotIsCompute[i]   = 0;
                 if (i == header)
                     continue;
                 const MicroInstr*       inst   = storage.ptr(instrRefs[i]);

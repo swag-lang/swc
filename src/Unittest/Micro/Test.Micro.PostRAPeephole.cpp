@@ -114,6 +114,95 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FrameReloadCannotProveItselfAroundLoop)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  value = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+    MicroBuilder    builder(ctx);
+    const auto      loop = builder.createLabel();
+    const auto      join = builder.createLabel();
+
+    builder.emitLoadMemImm(conv.stackPointer, 64, ApInt(3, 64), MicroOpBits::B64);
+    builder.placeLabel(loop);
+    builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+    builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+    builder.placeLabel(join);
+    builder.emitLoadRegMem(value, conv.stackPointer, 64, MicroOpBits::B64);
+    builder.emitCmpRegImm(flag, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loop);
+    builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    bool seenJoin = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::Label && ops && ops[0].valueU64 == join.get())
+            seenJoin = true;
+        if (inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[0].reg == value &&
+            ops[1].reg == conv.stackPointer && ops[3].valueU64 == 64)
+            return seenJoin ? Result::Continue : Result::Error;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_SinksFrameReloadOnFallthroughOnly)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  value = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+
+    for (const uint32_t variant : {0u, 1u, 2u})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef cold = builder.createLabel();
+        const MicroLabelRef join = builder.createLabel();
+        builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+        builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, cold);
+        builder.emitCmpRegImm(flag, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+        if (variant == 1)
+            builder.emitLoadRegImm(value, ApInt(9, 64), MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadMemImm(conv.stackPointer, 64, ApInt(9, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(cold);
+        builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+        builder.placeLabel(join);
+        builder.emitLoadRegMem(value, conv.stackPointer, 64, MicroOpBits::B64);
+        builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+        uint32_t labelIndex = 0;
+        uint32_t loadIndex  = 0;
+        uint32_t index      = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::Label && ops && ops[0].valueU64 == join.get())
+                labelIndex = index;
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[0].reg == value &&
+                ops[1].reg == conv.stackPointer && ops[3].valueU64 == 64)
+                loadIndex = index;
+            ++index;
+        }
+        if (!labelIndex || !loadIndex || (variant == 0) != (loadIndex < labelIndex))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FoldsDeadScalarIncrement)
 {
     constexpr MicroReg value = MicroReg::intReg(0);

@@ -15,6 +15,16 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
+
+- Recorded: 2026-09-28 09:14
+- Area: compiler/backend, constant-address relocation and indexed loads
+- Evidence: In the latest accepted full campaign (`20260928-051818`), raytrace's fastest other runtime is C++/MSVC (9.601 ms versus Swag's 10.742 ms; ratio 1.119). Its `trace` function materializes one image base with `lea rdi, [__ImageBase]` and reads eight distinct constant arrays through indexed memory operands. Swag's Release Micro for the same function uses eight `LoadRegPtrReloc` instructions followed by eight indexed loads, four for `SRAD`/`SCX`/`SCY`/`SCZ` and four for `SR`/`SG`/`SB`/`SRE`: 16 instructions for those reads versus MSVC's nine. This is an instruction and address-dependency gap, not a timing claim about an edit.
+- A post-allocation rewrite that keeps the first array pointer and adds source-address differences to later loads is invalid for native artifacts: `NativeRDataCollector` emits only reachable allocations and may compact the gaps between them. JIT constants are resolved from shard and offset at patch time. Each indexed consumer therefore needs a relocation relative to a reusable segment or image base, or an equivalent layout contract that survives both backends. The existing emitter binds only RIP-relative scalar accesses, not indexed displacements.
+- A separate check of `trace`'s missing `refl > 0` branch found no correctness defect: all four benchmark reflectivities are positive. A scratch function with a variable float retained both tests and produced `0,1,0` for negative, positive, and depth-limited inputs; changing one reflectivity to a negative value in an external source copy restored the floating compare in `trace`.
+- Next: design and validate a relocation-aware indexed displacement against one reusable base in JIT and native output. Compare eight-array code with MSVC; include unrelated arrays in different allocations and shards, a library artifact, and a negative case whose address cannot share the base.
+- Complete when: indexed reads of separate immutable arrays reuse one base without relying on source allocation spacing, pass JIT/native relocation checks, and close the eight-materialization gap without extra spills.
+
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
 - Recorded: 2026-09-26 12:46

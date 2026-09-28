@@ -13,6 +13,25 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    template<typename T>
+    Result semaPreNodeStructCommon(Sema& sema, const T& node)
+    {
+        if (sema.enteringState())
+            SemaHelpers::declareSymbol(sema, node);
+        auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+        if (!sym.isGenericInstance())
+            SWC_RESULT(Match::ghosting(sema, sym));
+        if (sym.isGenericRoot() && !sym.isGenericInstance())
+        {
+            if (!sym.isTyped())
+                SemaHelpers::ensureStructTypeRef(sema, sym);
+
+            sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
+            return Result::SkipChildren;
+        }
+        return Result::Continue;
+    }
+
     Result checkDynamicFieldLayout(Sema& sema, const SymbolStruct& sym)
     {
         if (!sym.hasDynamicStorage())
@@ -122,20 +141,7 @@ Result AstStructDecl::semaPreDecl(Sema& sema) const
 
 Result AstStructDecl::semaPreNode(Sema& sema) const
 {
-    if (sema.enteringState())
-        SemaHelpers::declareSymbol(sema, *this);
-    auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
-    if (!sym.isGenericInstance())
-        SWC_RESULT(Match::ghosting(sema, sym));
-    if (sym.isGenericRoot() && !sym.isGenericInstance())
-    {
-        if (!sym.isTyped())
-            SemaHelpers::ensureStructTypeRef(sema, sym);
-
-        sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
-        return Result::SkipChildren;
-    }
-    return Result::Continue;
+    return semaPreNodeStructCommon(sema, *this);
 }
 
 Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -191,19 +197,7 @@ Result AstUnionDecl::semaPreDecl(Sema& sema) const
 
 Result AstUnionDecl::semaPreNode(Sema& sema) const
 {
-    if (sema.enteringState())
-        SemaHelpers::declareSymbol(sema, *this);
-    auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
-    if (!sym.isGenericInstance())
-        SWC_RESULT(Match::ghosting(sema, sym));
-    if (sym.isGenericRoot() && !sym.isGenericInstance())
-    {
-        if (!sym.isTyped())
-            SemaHelpers::ensureStructTypeRef(sema, sym);
-        sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
-        return Result::SkipChildren;
-    }
-    return Result::Continue;
+    return semaPreNodeStructCommon(sema, *this);
 }
 
 Result AstUnionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const

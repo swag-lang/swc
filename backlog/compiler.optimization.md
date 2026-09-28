@@ -431,6 +431,11 @@ block, and the hot path keeps the register.
   establish no percentage speedup. A fresh `std/video` rebuild still stops at the 24-sweep
   `Slice.predictIntraPlane` error; compiler `01e0d9e59`, before both recent master changes and
   these two prompt-4 groups, reproduces the same error.
+- The 2026-09-28 prompt-4 continuation reuses the current branch scan's register-mention counts
+  in short-circuit and range-AND folding, avoiding their separate whole-function counts when no
+  preceding rewrite invalidated the scan. OR-chain and packed-switch candidate maps also reuse
+  buckets within a run. Focused Release checks and the full 3,483 native and 1,500 JIT suites
+  passed; elapsed time, CPU, and retained-memory effects remain unmeasured.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way
@@ -689,6 +694,11 @@ block, and the hot path keeps the register.
   per function. Each one still pays for the collection walk, phi placement and the rename walk,
   which together are the 7% this entry measures. The 2026-09-16 experiment on copy elimination's
   internal rebuild remains discarded; revisit it only with the rename walk, not around it.
+- The 2026-09-28 prompt-4 continuation removed redundant dominator-buffer clearing, reused
+  visit stamps for frontier construction, and deferred construction of standalone SSA state
+  where the pass receives shared SSA. These are structural savings within each rebuild; they
+  do not reduce the rebuild count. Focused Release checks and the full 3,483 native and 1,500
+  JIT suites passed. No timing or peak-memory measurement was made in this campaign.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.

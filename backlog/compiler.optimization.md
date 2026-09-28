@@ -275,6 +275,12 @@ block, and the hot path keeps the register.
   removes one `Node` assignment per allocated micro-instruction slot. The focused Release
   register-allocation file passed 20 native tests, followed by 3,483 native and 1,500 JIT tests.
   Timing was not measured.
+- `MicroBuilder::addInstructionWithRef` no longer placement-constructs operand entries after
+  `MicroOperandStorage::emplaceUninitArray` has resized its `std::vector`. The resize already
+  default-constructs every operand, including its `ApInt`; this removes one duplicate construction
+  per emitted operand without changing its initial value. The focused Release `slp_vectorize`
+  file passed 17 native tests, followed by 3,483 native and 1,500 JIT tests. Timing was not
+  measured.
 - Next: count DevMode sweeps and other consumer workspaces before treating the Release
   standard-library maximum as a general bound. If any function approaches 24, identify the
   pass chain that keeps changing it before raising the limit.

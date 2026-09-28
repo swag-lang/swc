@@ -56,10 +56,8 @@ std::pair<MicroInstrRef, MicroInstr&> MicroBuilder::addInstructionWithRef(MicroI
     inst->numOperands    = numOperands;
     if (numOperands)
     {
-        auto [opsRef, ops] = operands_.emplaceUninitArray(numOperands);
-        inst->opsRef       = opsRef;
-        for (uint8_t idx = 0; idx < numOperands; ++idx)
-            new (ops + idx) MicroInstrOperand();
+        // Resizing the operand vector already default-constructs each operand.
+        inst->opsRef = operands_.emplaceUninitArray(numOperands).first;
     }
     else
     {

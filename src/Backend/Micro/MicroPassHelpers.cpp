@@ -1048,7 +1048,9 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     auto& firstChild  = childCursor;
     auto& nextSibling = postorder;
     firstChild.assign(n, MicroDomTree::K_INVALID_NODE);
-    nextSibling.assign(n, MicroDomTree::K_INVALID_NODE);
+    // Each reachable non-entry node gets a sibling link below before the
+    // subtree walk can read it; retained entries need no clearing.
+    nextSibling.resize(n);
     for (const uint32_t node : rpo)
     {
         if (node == entry)

@@ -1222,6 +1222,227 @@ namespace
         context.builder->invalidateControlFlowGraph();
         return true;
     }
+
+    // A folded memory operand can keep an invariant scalar in memory even
+    // when a saved persistent register is idle throughout the loop. Reuse
+    // that register at an identical entry read, replacing rather than adding
+    // the entry memory access. The loop may call a read-only function, but no
+    // instruction in it may write memory or redefine the address base.
+    bool hoistFoldedBitwiseOperand(MicroPassContext& context, const CallConv& conv)
+    {
+        MicroStorage&        storage  = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        bool hasFoldedBitwiseOperand = false;
+        for (const MicroInstr& inst : storage.view())
+        {
+            if (inst.op != MicroInstrOpcode::OpBinaryRegMem)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (ops && (ops[3].microOp == MicroOp::And || ops[3].microOp == MicroOp::Or || ops[3].microOp == MicroOp::Xor) &&
+                (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64) && ops[1].reg.isInt())
+            {
+                hasFoldedBitwiseOperand = true;
+                break;
+            }
+        }
+        if (!hasFoldedBitwiseOperand)
+            return false;
+
+        const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
+        if (!cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
+            return false;
+        const uint32_t n = cfg.instructionCount();
+        const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+        if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
+            return false;
+        const auto dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        const auto loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
+        if (loopsByHeader.empty())
+            return false;
+
+        MicroPhysLiveness liveness;
+        MicroPassHelpers::computePhysicalLiveness(liveness, context);
+        if (!liveness.valid)
+            return false;
+        const auto refs = cfg.instructionRefs();
+        const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
+        std::unordered_set<uint32_t> relocatedRefs;
+        for (const MicroRelocation& relocation : context.builder->codeRelocations())
+        {
+            if (relocation.instructionRef.isValid())
+                relocatedRefs.insert(relocation.instructionRef.get());
+        }
+
+        SmallVector<MicroReg, 8> savedRegs;
+        for (uint32_t i = 0; i < n; ++i)
+        {
+            const MicroInstr* inst = storage.ptr(refs[i]);
+            if (!inst)
+                return false;
+            const MicroInstrFlags flags = MicroInstr::info(inst->op).flags;
+            if (inst->op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                break;
+            if (inst->op == MicroInstrOpcode::Push)
+            {
+                const MicroInstrOperand* ops = inst->ops(operands);
+                if (ops && conv.isIntPersistentReg(ops[0].reg))
+                    savedRegs.push_back(ops[0].reg);
+            }
+        }
+        if (savedRegs.empty())
+            return false;
+
+        for (const auto& loop : loopsByHeader | std::views::values)
+        {
+            const uint32_t header = loop.header;
+            if (!header || loop.inBody[header - 1])
+                continue;
+            uint32_t externalPredCount = 0;
+            bool hasOtherExternalPred = false;
+            for (const uint32_t pred : cfg.predecessors(header))
+            {
+                if (pred < n && !loop.inBody[pred])
+                {
+                    ++externalPredCount;
+                    if (pred != header - 1)
+                        hasOtherExternalPred = true;
+                }
+            }
+            if (externalPredCount != 1 || hasOtherExternalPred)
+                continue;
+
+            for (uint32_t i = header; i < n; ++i)
+            {
+                if (!loop.inBody[i])
+                    continue;
+                const MicroInstr* inst = storage.ptr(refs[i]);
+                const MicroInstrOperand* ops = inst ? inst->ops(operands) : nullptr;
+                if (!ops || inst->op != MicroInstrOpcode::OpBinaryRegMem ||
+                    relocatedRefs.contains(refs[i].get()) ||
+                    (ops[3].microOp != MicroOp::And && ops[3].microOp != MicroOp::Or && ops[3].microOp != MicroOp::Xor) ||
+                    (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+                    !ops[1].reg.isInt())
+                    continue;
+
+                const MicroReg base = ops[1].reg;
+                const uint64_t offset = ops[4].valueU64;
+                uint32_t entryReadIndex = n;
+                for (uint32_t j = header; j > 0 && header - j < 16;)
+                {
+                    --j;
+                    const MicroInstr* prior = storage.ptr(refs[j]);
+                    if (!prior)
+                        break;
+                    const MicroInstrFlags flags = MicroInstr::info(prior->op).flags;
+                    if (prior->op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                        flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                        flags.has(MicroInstrFlagsE::WritesMemory))
+                        break;
+                    if (std::ranges::find(liveness.useDefs[j].defs, base) != liveness.useDefs[j].defs.end())
+                        break;
+                    const MicroInstrOperand* priorOps = prior->ops(operands);
+                    if (prior->op == MicroInstrOpcode::OpBinaryRegMem && priorOps && !relocatedRefs.contains(refs[j].get()) && priorOps[1].reg == base &&
+                        priorOps[2].opBits == ops[2].opBits && priorOps[4].valueU64 == offset &&
+                        (priorOps[3].microOp == MicroOp::And || priorOps[3].microOp == MicroOp::Or || priorOps[3].microOp == MicroOp::Xor))
+                    {
+                        entryReadIndex = j;
+                        break;
+                    }
+                }
+                if (!entryReadIndex || entryReadIndex == n)
+                    continue;
+
+                bool stable = true;
+                for (uint32_t j = 0; j < n && stable; ++j)
+                {
+                    if (!loop.inBody[j])
+                        continue;
+                    const MicroInstr* bodyInst = storage.ptr(refs[j]);
+                    if (!bodyInst)
+                    {
+                        stable = false;
+                        break;
+                    }
+                    const MicroInstrFlags flags = MicroInstr::info(bodyInst->op).flags;
+                    if (flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    {
+                        if ((bodyInst->op != MicroInstrOpcode::CallLocal && bodyInst->op != MicroInstrOpcode::CallExtern) ||
+                            !readOnlyCallRefs.contains(refs[j].get()))
+                            stable = false;
+                    }
+                    else if (flags.has(MicroInstrFlagsE::WritesMemory) || bodyInst->op == MicroInstrOpcode::Push || bodyInst->op == MicroInstrOpcode::Pop)
+                        stable = false;
+                    if (std::ranges::find(liveness.useDefs[j].defs, base) != liveness.useDefs[j].defs.end())
+                        stable = false;
+                }
+                if (!stable)
+                    continue;
+
+                for (auto it = savedRegs.rbegin(); it != savedRegs.rend(); ++it)
+                {
+                    const MicroReg scratch = *it;
+                    if (scratch == base || scratch == ops[0].reg || liveness.isLiveOut(entryReadIndex - 1, scratch))
+                        continue;
+                    bool unused = true;
+                    for (uint32_t j = entryReadIndex; j < header && unused; ++j)
+                    {
+                        const auto& useDef = liveness.useDefs[j];
+                        unused = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
+                                 std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
+                    }
+                    for (uint32_t j = 0; j < n && unused; ++j)
+                    {
+                        if (!loop.inBody[j])
+                            continue;
+                        const auto& useDef = liveness.useDefs[j];
+                        unused = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
+                                 std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
+                    }
+                    if (!unused)
+                        continue;
+
+                    SmallVector<MicroInstrRef, 4> foldedRefs;
+                    bool hasRelocatedUse = false;
+                    for (uint32_t j = 0; j < n; ++j)
+                    {
+                        if (!loop.inBody[j])
+                            continue;
+                        const MicroInstr* other = storage.ptr(refs[j]);
+                        const MicroInstrOperand* otherOps = other ? other->ops(operands) : nullptr;
+                        if (otherOps && other->op == MicroInstrOpcode::OpBinaryRegMem && otherOps[1].reg == base &&
+                            otherOps[2].opBits == ops[2].opBits && otherOps[4].valueU64 == offset &&
+                            (otherOps[3].microOp == MicroOp::And || otherOps[3].microOp == MicroOp::Or || otherOps[3].microOp == MicroOp::Xor))
+                        {
+                            hasRelocatedUse |= relocatedRefs.contains(refs[j].get());
+                            foldedRefs.push_back(refs[j]);
+                        }
+                    }
+                    if (hasRelocatedUse)
+                        continue;
+
+                    MicroInstrOperand loadOps[4] = {};
+                    loadOps[0].reg = scratch;
+                    loadOps[1].reg = base;
+                    loadOps[2].opBits = ops[2].opBits;
+                    loadOps[3].valueU64 = offset;
+                    storage.insertDerivedBefore(operands, refs[entryReadIndex], MicroInstrOpcode::LoadRegMem, loadOps);
+                    foldedRefs.push_back(refs[entryReadIndex]);
+                    for (const MicroInstrRef foldedRef : foldedRefs)
+                    {
+                        MicroInstr* folded = storage.ptr(foldedRef);
+                        MicroInstrOperand* foldedOps = folded->ops(operands);
+                        foldedOps[1].reg = scratch;
+                        folded->op = MicroInstrOpcode::OpBinaryRegReg;
+                        folded->numOperands = 4;
+                    }
+                    context.builder->invalidateControlFlowGraph();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
 
 Result MicroPostRaLoopHoistPass::run(MicroPassContext& context)
@@ -1246,6 +1467,9 @@ Result MicroPostRaLoopHoistPass::run(MicroPassContext& context)
             break;
         context.passChanged = true;
     }
+
+    while (hoistFoldedBitwiseOperand(context, conv))
+        context.passChanged = true;
 
     return Result::Continue;
 }

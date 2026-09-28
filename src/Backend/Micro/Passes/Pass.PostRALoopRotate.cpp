@@ -7,7 +7,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -128,18 +127,9 @@ namespace
                    a[4].valueU64 == b[4].valueU64 && a[5].valueU64 == b[5].valueU64;
         };
 
-        std::unordered_map<uint32_t, const Symbol*> callTargets;
-        for (const MicroRelocation& relocation : context.builder->codeRelocations())
-        {
-            if (relocation.instructionRef.isValid() && relocation.targetSymbol)
-                callTargets[relocation.instructionRef.get()] = relocation.targetSymbol;
-        }
+        const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
         const auto isReadOnlyCall = [&](const MicroInstrRef ref, const MicroInstr& inst) {
-            if (inst.op != MicroInstrOpcode::CallLocal && inst.op != MicroInstrOpcode::CallExtern)
-                return false;
-            const auto it = callTargets.find(ref.get());
-            return it != callTargets.end() && it->second->isFunction() &&
-                   it->second->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly);
+            return (inst.op == MicroInstrOpcode::CallLocal || inst.op == MicroInstrOpcode::CallExtern) && readOnlyCallRefs.contains(ref.get());
         };
 
         for (uint32_t at = 2; at + 3 < order.size(); ++at)

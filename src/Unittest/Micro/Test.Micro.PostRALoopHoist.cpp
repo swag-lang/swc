@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopHoist.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -57,6 +58,84 @@ SWC_TEST_BEGIN(PostRALoopHoist_InvariantReload_MovesToPreheader)
     if (posLoad > posLabel)
         return Result::Error;
 
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A prior read makes the folded operand safe to materialize before a loop.
+// Calls that can write, body stores, a changing base, a live scratch register,
+// and an absent ABI save each prevent the rewrite.
+SWC_TEST_BEGIN(PostRALoopHoist_FoldedBitwiseOperandNeedsStableSavedRegister)
+{
+    constexpr MicroReg base    = MicroReg::intReg(1);
+    constexpr MicroReg value   = MicroReg::intReg(12);
+    constexpr MicroReg other   = MicroReg::intReg(13);
+    constexpr MicroReg counter = MicroReg::intReg(14);
+    constexpr MicroReg scratch = MicroReg::intReg(15);
+    for (uint32_t mode = 0; mode < 9; ++mode)
+    {
+        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        if (mode != 2)
+        {
+            AttributeList attributes;
+            attributes.addRtFlag(RtAttributeFlagsE::ReadOnly);
+            callee.setAttributes(ctx, attributes);
+        }
+        MicroBuilder builder(ctx);
+        const auto top  = builder.createLabel();
+        const auto done = builder.createLabel();
+        if (mode != 6)
+            builder.emitPush(scratch);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        const MicroOp bitwise = mode == 1 ? MicroOp::Or : MicroOp::And;
+        const MicroOpBits bits = mode == 8 ? MicroOpBits::B32 : MicroOpBits::B64;
+        MicroInstrRef entryReadRef;
+        if (mode != 4)
+        {
+            builder.emitOpBinaryRegMem(value, base, 0x20, bitwise, bits);
+            entryReadRef = builder.instructions().lastInstructionRef();
+        }
+        if (mode == 7)
+            builder.emitOpBinaryRegReg(value, scratch, MicroOp::Xor, MicroOpBits::B64);
+        builder.placeLabel(top);
+        builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+        if (mode == 0 || mode == 2)
+            builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitOpBinaryRegMem(value, base, 0x20, bitwise, bits);
+        const MicroInstrRef foldedRef = builder.instructions().lastInstructionRef();
+        MicroInstrRef secondFoldedRef;
+        if (mode == 1)
+        {
+            builder.emitOpBinaryRegMem(value, base, 0x20, MicroOp::Xor, MicroOpBits::B64);
+            secondFoldedRef = builder.instructions().lastInstructionRef();
+        }
+        if (mode == 3)
+            builder.emitLoadMemReg(base, 0x20, other, MicroOpBits::B64);
+        if (mode == 5)
+            builder.emitLoadRegReg(base, other, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        builder.placeLabel(done);
+        if (mode != 6)
+            builder.emitPop(scratch);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopHoistPass(builder));
+        const MicroInstr* folded = builder.instructions().ptr(foldedRef);
+        const bool expected = mode == 0 || mode == 1 || mode == 8;
+        if (!folded || (folded->op == MicroInstrOpcode::OpBinaryRegReg) != expected ||
+            (folded->op == MicroInstrOpcode::OpBinaryRegMem) == expected)
+            return Result::Error;
+        if (expected && folded->ops(builder.operands())[1].reg != scratch)
+            return Result::Error;
+        if (expected && (!builder.instructions().ptr(entryReadRef) ||
+                         builder.instructions().ptr(entryReadRef)->op != MicroInstrOpcode::OpBinaryRegReg))
+            return Result::Error;
+        if (mode == 1 && (!builder.instructions().ptr(secondFoldedRef) ||
+                          builder.instructions().ptr(secondFoldedRef)->op != MicroInstrOpcode::OpBinaryRegReg))
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

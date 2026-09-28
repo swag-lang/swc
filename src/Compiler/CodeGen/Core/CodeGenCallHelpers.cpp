@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFloatConstant.h"
 #include "Compiler/CodeGen/Core/CodeGenPointerConstant.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -75,29 +76,7 @@ namespace
 
             case ConstantKind::Float:
             {
-                const ApFloat& value = cst.getFloat();
-                outPayload.reg       = codeGen.nextVirtualFloatRegister();
-                if (value.bitWidth() == 32)
-                {
-                    const double   widenedValue = value.asFloat();
-                    const uint64_t widenedBits  = std::bit_cast<uint64_t>(widenedValue);
-                    const MicroReg widenedReg   = codeGen.nextVirtualFloatRegister();
-                    builder.emitLoadRegImm(widenedReg, ApInt(widenedBits, 64), MicroOpBits::B64);
-                    builder.emitClearReg(outPayload.reg, MicroOpBits::B32);
-                    builder.emitOpBinaryRegReg(outPayload.reg, widenedReg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
-                    outPayload.setIsValue();
-                    return true;
-                }
-
-                if (value.bitWidth() == 64)
-                {
-                    const auto bits = std::bit_cast<uint64_t>(value.asDouble());
-                    builder.emitLoadRegImm(outPayload.reg, ApInt(bits, 64), MicroOpBits::B64);
-                    outPayload.setIsValue();
-                    return true;
-                }
-
-                return false;
+                return CodeGenFloatConstant::emit(codeGen, builder, outPayload, cst.getFloat());
             }
 
             case ConstantKind::String:

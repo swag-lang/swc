@@ -9,10 +9,10 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Generic/SemaGenericRootAlias.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaDeclGhost.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
-#include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 
@@ -614,10 +614,7 @@ Result AstAliasDecl::semaPreDecl(Sema& sema) const
 
 Result AstAliasDecl::semaPreNode(Sema& sema) const
 {
-    if (sema.enteringState())
-        SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curViewSymbol().sym();
-    return Match::ghosting(sema, sym);
+    return SemaDeclGhost::run(sema, *this);
 }
 
 Result AstAliasDecl::semaPostNode(Sema& sema) const

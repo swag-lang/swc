@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaDeclGhost.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -242,10 +243,7 @@ Result AstAnonymousStructDecl::semaPreDecl(Sema& sema) const
 
 Result AstAnonymousStructDecl::semaPreNode(Sema& sema) const
 {
-    if (sema.enteringState())
-        SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curViewSymbol().sym();
-    return Match::ghosting(sema, sym);
+    return SemaDeclGhost::run(sema, *this);
 }
 
 Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -282,10 +280,7 @@ Result AstAnonymousUnionDecl::semaPreDecl(Sema& sema) const
 
 Result AstAnonymousUnionDecl::semaPreNode(Sema& sema) const
 {
-    if (sema.enteringState())
-        SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curViewSymbol().sym();
-    return Match::ghosting(sema, sym);
+    return SemaDeclGhost::run(sema, *this);
 }
 
 Result AstAnonymousUnionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const

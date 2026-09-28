@@ -2203,6 +2203,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // Include stack/frame roles even when they are outside the allocatable pools.
     denseConcreteRegs_.reserve(conv_->intRegs.size() + conv_->floatRegs.size() + 2);
 
+    // clearState destroyed the previous per-instruction lists, so these new
+    // entries are empty and need no per-instruction clearing below.
     useVirtualIndices_.resize(instructionCount_);
     defVirtualIndices_.resize(instructionCount_);
     useConcreteIndices_.resize(instructionCount_);
@@ -2216,11 +2218,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         auto&                   defsV  = defVirtualIndices_[idx];
         auto&                   usesC  = useConcreteIndices_[idx];
         auto&                   defsC  = defConcreteIndices_[idx];
-        usesV.clear();
-        defsV.clear();
-        usesC.clear();
-        defsC.clear();
-
         for (const MicroReg reg : useDef.uses)
         {
             if (reg.isVirtual())

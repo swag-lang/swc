@@ -24,6 +24,20 @@ namespace
 
         return lhs;
     }
+
+    // In a forward-only graph, block indices are already a topological rank.
+    uint32_t intersectForwardIdom(uint32_t lhs, uint32_t rhs, const std::vector<uint32_t>& idom)
+    {
+        while (lhs != rhs)
+        {
+            while (lhs > rhs)
+                lhs = idom[lhs];
+            while (rhs > lhs)
+                rhs = idom[rhs];
+        }
+
+        return lhs;
+    }
 }
 
 bool MicroSsaState::isTrackedReg(const MicroReg reg)
@@ -434,6 +448,44 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     if (blocks_.empty())
         return false;
 
+    if (acyclic)
+    {
+        // Forward edges make block order topological. The general traversal
+        // visits entry first, then predecessor-less roots in order. At a join
+        // reachable from several roots, the first root owns that block.
+        auto& componentRoots = domRpoPosition_;
+        componentRoots.resize(blocks_.size());
+        for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
+        {
+            const auto& predecessors = blocks_[blockIndex].predecessors;
+            if (predecessors.empty())
+            {
+                componentRoots[blockIndex] = blockIndex;
+                idomValues[blockIndex]      = blockIndex;
+                continue;
+            }
+
+            uint32_t root = K_INVALID_BLOCK;
+            uint32_t newIdom = K_INVALID_BLOCK;
+            for (const uint32_t predecessorBlock : predecessors)
+            {
+                SWC_ASSERT(predecessorBlock < blockIndex);
+                const uint32_t predecessorRoot = componentRoots[predecessorBlock];
+                if (predecessorRoot < root)
+                {
+                    root    = predecessorRoot;
+                    newIdom = predecessorBlock;
+                }
+                else if (predecessorRoot == root)
+                    newIdom = intersectForwardIdom(predecessorBlock, newIdom, idomValues);
+            }
+            SWC_ASSERT(newIdom != K_INVALID_BLOCK);
+            componentRoots[blockIndex] = root;
+            idomValues[blockIndex] = newIdom;
+        }
+        return finalizeDominators(idomValues);
+    }
+
     // Seed roots: entry block plus any predecessor-less block (covers unreachable
     // sub-graphs). Fall back to scanning unvisited blocks for cycles unreachable
     // from any seed.
@@ -563,13 +615,14 @@ bool MicroSsaState::computeDominators(const bool acyclic)
                     changed                = true;
                 }
             }
-            // In a DAG, RPO is topological within this stamped component.
-            // Every admissible predecessor already has its final dominator.
-            if (acyclic)
-                break;
         }
     }
 
+    return finalizeDominators(idomValues);
+}
+
+bool MicroSsaState::finalizeDominators(std::vector<uint32_t>& idomValues)
+{
     bool hasJoin = false;
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {

@@ -63,6 +63,42 @@ SWC_TEST_BEGIN(PostRALoopRotate_IndependentHeadersRotate)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopRotate_RotatesAcrossAdjacentExitLabelsOnly)
+{
+    constexpr MicroReg counter = MicroReg::intReg(10);
+    constexpr MicroReg value   = MicroReg::intReg(11);
+    for (const bool hasInterveningInstruction : {false, true})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef top   = builder.createLabel();
+        const MicroLabelRef alias = builder.createLabel();
+        const MicroLabelRef done  = builder.createLabel();
+        builder.placeLabel(top);
+        builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        const MicroInstrRef backRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(alias);
+        if (hasInterveningInstruction)
+            builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        const MicroInstr* back = builder.instructions().ptr(backRef);
+        if (!back || back->op != MicroInstrOpcode::JumpCond)
+            return Result::Error;
+        const auto* backOps = back->ops(builder.operands());
+        if (backOps[0].cpuCond != (hasInterveningInstruction ? MicroCond::Unconditional : MicroCond::Less) ||
+            (backOps[2].valueU64 == top.get()) != hasInterveningInstruction ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != (hasInterveningInstruction ? 1 : 2))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRALoopRotate_RotatesLatchConnectors)
 {
     constexpr MicroReg counter = MicroReg::intReg(10);

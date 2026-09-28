@@ -191,7 +191,16 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    Context         ctx;
+    // Reuse the analysis and rewrite storage on this worker. All facts and
+    // claims below belong to one pass run and must be reset before its scan.
+    thread_local Context ctx;
+    ctx.claimed.clear();
+    ctx.actions.clear();
+    ctx.instructionIndex      = 0;
+    ctx.physicalLivenessReady = false;
+    ctx.upperHalfReady        = false;
+    ctx.upperHalfValid        = false;
+
     const CallConv& conv = CallConv::get(context.callConvKind);
     ctx.passContext      = &context;
     ctx.storage          = context.instructions;

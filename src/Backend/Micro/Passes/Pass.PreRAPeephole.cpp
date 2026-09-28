@@ -65,7 +65,13 @@ Result MicroPreRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    Context ctx;
+    // Keep rewrite and relocation storage between runs on the same worker.
+    // Claims and relocation membership describe only the current function.
+    thread_local Context ctx;
+    ctx.claimed.clear();
+    ctx.actions.clear();
+    ctx.relocated.clear();
+    ctx.relocationsReady = false;
     ctx.builder  = context.builder;
     ctx.encoder  = context.encoder;
     ctx.storage  = context.instructions;

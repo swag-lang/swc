@@ -46,7 +46,7 @@ is the current scorecard.
 ### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
 
 - Recorded: 2026-09-08 07:59
-- Updated: 2026-09-23 17:21 — Measured the pass, its steps and what a step costs; named the two places to look.
+- Updated: 2026-09-28 15:33 — Removed redundant sanitizer state initialization and conditional-branch lookups; performance remains unmeasured.
 - Area: compiler/backend, `Sanitizer`
 - Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
   populated over far more of a function than before, and the transfer function gained a scan of
@@ -84,6 +84,11 @@ is the current scorecard.
   **`propagateConditionalBranch` 3.2%** and **`applyValueEffects` 2.4%** - the two halves of the
   transfer function are the whole cost. Everything else is small: constructing the states 0.9%,
   `computeFunctionProperties` 0.3%, copying a state 0.3%.
+- **Unmeasured structural change, 2026-09-28:** `Sanitizer::run` now default-constructs each
+  chain-head state without first copying an empty state into every slot. Conditional branches
+  reuse the first register lookup and decode the zero-test condition once, preserving the stack
+  base register's special value. These source-level reductions have no measured speed or memory
+  result; the pass's cost remains open.
 - Next: decide whether 9.9% of a DevMode module rebuild is the intended price of the analysis.
   If it is not, there are exactly two places to look, and narrowing along branch edges is the
   larger of them. The walk itself, the state layout and the property scan are not worth touching.

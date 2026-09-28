@@ -3015,6 +3015,8 @@ namespace
 
         bool               changed = false;
         LazyVirtualIntRegs nextVirtualIntRegs{context};
+        std::unordered_map<uint32_t, uint32_t> chainJumps;
+        std::unordered_map<uint32_t, Arm>      arms;
         for (size_t start = 0; start < count; ++start)
         {
             const MicroInstr* first = instAt(start);
@@ -3095,15 +3097,15 @@ namespace
             if (cases.size() < K_MIN_CASES)
                 continue;
 
-            std::unordered_map<uint32_t, uint32_t> chainJumps;
-            for (const uint32_t target : chainJumpTargets)
-                ++chainJumps[target];
-
             const size_t      tailAt    = at;
             const MicroInstr* tail      = instAt(tailAt);
             uint32_t          defaultId = fallDefaultId;
             if (!fallsIntoCase && (!isUnconditionalJump(tail) || !tryGetJumpTargetLabelId(defaultId, *tail, tail->ops(operands))))
                 continue;
+
+            chainJumps.clear();
+            for (const uint32_t target : chainJumpTargets)
+                ++chainJumps[target];
 
             // Every case loads one immediate into the same register, then
             // returns, or joins at one label.
@@ -3165,8 +3167,8 @@ namespace
                 return true;
             };
 
-            std::unordered_map<uint32_t, Arm> arms;
-            bool                              valid = true;
+            arms.clear();
+            bool valid = true;
             for (const auto& [caseValue, labelId] : cases)
             {
                 if (arms.contains(labelId))

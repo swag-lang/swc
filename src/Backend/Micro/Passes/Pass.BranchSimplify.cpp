@@ -6605,7 +6605,8 @@ namespace
             return false;
         DiamondScan& scan = *scanPtr;
 
-        std::vector<Diamond> diamonds;
+        thread_local std::vector<Diamond> diamonds;
+        diamonds.clear();
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;
@@ -6766,7 +6767,8 @@ namespace
             return false;
         DiamondScan& scan = *scanPtr;
 
-        std::vector<Triangle> triangles;
+        thread_local std::vector<Triangle> triangles;
+        triangles.clear();
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;
@@ -7090,7 +7092,8 @@ namespace
         if (!conv.intReturn.isValid())
             return false;
 
-        std::vector<EarlyReturn> candidates;
+        thread_local std::vector<EarlyReturn> candidates;
+        candidates.clear();
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;

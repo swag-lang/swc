@@ -41,30 +41,6 @@ namespace
         bool            unsignedCmp   = false;
     };
 
-    ForCStyleStmtCodeGenPayload* forCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(nodeRef);
-    }
-
-    void eraseForCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        ForCStyleStmtCodeGenPayload* payload = forCStyleStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
-
-    ForStmtCodeGenPayload* forStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.safeNodePayload<ForStmtCodeGenPayload>(nodeRef);
-    }
-
-    void eraseForStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        ForStmtCodeGenPayload* payload = forStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
-
     AstNodeRef preparedChildRef(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         AstNodeRef preparedRef = codeGen.resolvedNodeRef(nodeRef);
@@ -345,7 +321,7 @@ Result AstForCStyleStmt::codeGenPreNode(CodeGen& codeGen)
 
 Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForCStyleStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef exprRef     = codeGen.resolvedNodeRef(nodeExprRef);
@@ -388,7 +364,7 @@ Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
 
 Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForCStyleStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef exprRef     = codeGen.resolvedNodeRef(nodeExprRef);
@@ -447,12 +423,12 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
 Result AstForCStyleStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForCStyleStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    eraseForCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<ForCStyleStmtCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 
@@ -474,7 +450,7 @@ Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const
 
 Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const bool isWhereChild = nodeWhereRef.isValid() && matchesChildRef(codeGen, childRef, nodeWhereRef);
@@ -493,7 +469,7 @@ Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& child
 
 Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    ForStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const bool isExprChild  = matchesChildRef(codeGen, childRef, nodeExprRef);
@@ -559,12 +535,12 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
 
 Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    eraseForStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<ForStmtCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 

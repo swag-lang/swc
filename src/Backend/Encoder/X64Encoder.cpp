@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -318,11 +319,6 @@ namespace
         return value <= 0x7F || value >= 0xFFFFFFFFFFFFFF80;
     }
 
-    bool canEncodeSigned32(uint64_t value)
-    {
-        return value <= 0x7FFFFFFF || value >= 0xFFFFFFFF80000000;
-    }
-
     bool canEncodeOpImmediate(uint64_t value, MicroOpBits opBits)
     {
         if (opBits == MicroOpBits::B8)
@@ -332,7 +328,7 @@ namespace
         if (opBits == MicroOpBits::B32)
             return value <= 0xFFFFFFFF;
         if (opBits == MicroOpBits::B64)
-            return canEncodeSigned32(value);
+            return X64Immediate::canEncodeSigned32(value);
         return false;
     }
 
@@ -583,7 +579,7 @@ namespace
                 store.pushU8(modRm);
             }
 
-            SWC_ASSERT(canEncodeSigned32(memOffset));
+            SWC_ASSERT(X64Immediate::canEncodeSigned32(memOffset));
             emitValue(store, memOffset, MicroOpBits::B32);
         }
     }
@@ -1222,7 +1218,7 @@ bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const Mi
             // to answer yes.
             for (uint8_t index = 0; index < inst.numOperands; ++index)
             {
-                if (ops[index].hasWideImmediateValue() || !canEncodeSigned32(ops[index].valueU64))
+                if (ops[index].hasWideImmediateValue() || !X64Immediate::canEncodeSigned32(ops[index].valueU64))
                     return true;
             }
             return false;
@@ -1785,7 +1781,7 @@ void X64Encoder::encodeLoadRegImmCompact(MicroReg reg, const ApInt& value, Micro
         return;
     }
 
-    if (canEncodeSigned32(valueU64))
+    if (X64Immediate::canEncodeSigned32(valueU64))
     {
         // C7 /0 sign-extends imm32 to 64 bits and saves three bytes over movabs.
         emitRex(store_, MicroOpBits::B64, MicroReg{}, reg);
@@ -1801,7 +1797,7 @@ void X64Encoder::encodeLoadRegImmCompact(MicroReg reg, const ApInt& value, Micro
 void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     // Instruction-pointer-relative form: a constant, or a global living in
     // the proximity arena. The displacement is left at zero and a Relative32
@@ -1848,7 +1844,7 @@ void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint6
 {
     SWC_ASSERT(numBitsSrc != numBitsDst);
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     // A 32-bit destination already clears its upper half on x64.
     // Keep 16-bit writes narrow, but avoid REX.W for a 64-bit zero-extension.
@@ -1975,7 +1971,7 @@ void X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uin
 {
     SWC_ASSERT(numBitsSrc != numBitsDst);
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     if (numBitsSrc == MicroOpBits::B8)
     {
@@ -2041,7 +2037,7 @@ void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t
 {
     SWC_ASSERT(!memReg.isFloat());
     SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     if (memReg.isInstructionPointer())
     {
@@ -2068,7 +2064,7 @@ namespace
     void encodeAmcImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, const ApInt& value, MicroOpBits opBitsValue)
     {
         SWC_UNUSED(opBitsBaseMul);
-        SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+        SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(addValue));
         const uint64_t valueU64 = immediateToU64(value);
 
         const bool baseIsNoBase = regBase.isNoBase();
@@ -2131,7 +2127,7 @@ namespace
     // is always 64-bit here.
     void encodeAmcOpImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, const ApInt& value, MicroOp op, MicroOpBits opBitsValue)
     {
-        SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+        SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(addValue));
         const uint64_t valueU64 = immediateToU64(value);
 
         const bool baseIsNoBase = regBase.isNoBase();
@@ -2236,7 +2232,7 @@ namespace
 
     void encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, bool mr, MicroOpBits extendSrcBits = MicroOpBits::Zero)
     {
-        SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+        SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(addValue));
 
         const bool baseIsNoBase = regBase.isNoBase();
         auto       baseX64      = baseIsNoBase ? X64Reg::Rax : microRegToX64Reg(regBase);
@@ -2529,7 +2525,7 @@ void X64Encoder::encodeLoadRegTlsSlot(MicroReg regDst, MicroReg indexReg)
 void X64Encoder::encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     emitCpuOp(store_, 0xF3);
     emitRex(store_, MicroOpBits::Zero, regDst, memReg);
     emitCpuOp(store_, 0x0F);
@@ -2546,7 +2542,7 @@ void X64Encoder::encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
                op == MicroOp::VecWidenLoS8 || op == MicroOp::VecWidenLoS16 || op == MicroOp::VecWidenLoS32 ||
                op == MicroOp::VecAbsS8 || op == MicroOp::VecAbsS16 || op == MicroOp::VecAbsS32 ||
                op == MicroOp::VecSqrtF32 || op == MicroOp::VecSqrtF64 || op == MicroOp::VecTruncF32ToS32);
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     const VecOpEncoding enc = vecOpEncoding(op);
     emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(memReg));
@@ -2566,7 +2562,7 @@ void X64Encoder::encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, Micr
                op == MicroOp::VecAbsS8 || op == MicroOp::VecAbsS16 || op == MicroOp::VecAbsS32 ||
                op == MicroOp::VecSqrtF32 || op == MicroOp::VecSqrtF64 || op == MicroOp::VecTruncF32ToS32);
     SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
-    SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(addValue));
 
     X64Reg baseX64 = microRegToX64Reg(regBase);
     X64Reg mulX64  = microRegToX64Reg(regMul);
@@ -2607,7 +2603,7 @@ void X64Encoder::encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, Micr
 void X64Encoder::encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regSrc.isFloat() && !memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     emitCpuOp(store_, 0xF3);
     emitRex(store_, MicroOpBits::Zero, regSrc, memReg);
     emitCpuOp(store_, 0x0F);
@@ -2631,7 +2627,7 @@ void X64Encoder::encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uin
 void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     // Instruction-pointer-relative store, to a global living in the proximity
     // arena. Same shape as the RIP-relative load: zero displacement patched by
@@ -2675,7 +2671,7 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
 void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     SWC_INTERNAL_CHECK(opBits != MicroOpBits::B128);
     uint64_t valueU64 = immediateToU64(value);
 
@@ -2950,7 +2946,7 @@ void X64Encoder::encodeCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits o
 void X64Encoder::encodeTestMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
     SWC_ASSERT((memReg.isInt() || memReg.isInstructionPointer()) && reg.isInt());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     emitRex(store_, opBits, reg, memReg);
     emitSpecCpuOp(store_, MicroOp::Test, opBits);
     if (memReg.isInstructionPointer())
@@ -2966,7 +2962,7 @@ void X64Encoder::encodeTestMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
 void X64Encoder::encodeTestMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
 {
     SWC_ASSERT(memReg.isInt() || memReg.isInstructionPointer());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     const uint64_t valueU64 = immediateToU64(value);
     SWC_INTERNAL_CHECK(canEncodeOpImmediate(valueU64, opBits));
     emitRex(store_, opBits, MicroReg{}, memReg);
@@ -2985,7 +2981,7 @@ void X64Encoder::encodeTestMemImm(MicroReg memReg, uint64_t memOffset, const ApI
 void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     SWC_ASSERT(!reg.isFloat());
 
     emitRex(store_, opBits, reg, memReg);
@@ -3003,7 +2999,7 @@ void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg r
 void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     const uint64_t valueU64 = immediateToU64(value);
 
     const auto emitMemoryOperand = [&] {
@@ -3049,7 +3045,7 @@ void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApIn
 void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     const auto emitMemoryOperand = [&](const uint8_t regField) {
         if (memReg.isInstructionPointer())
@@ -3091,7 +3087,7 @@ void X64Encoder::encodeOpUnaryAmcMem(MicroReg regBase, MicroReg regMul, uint64_t
 {
     SWC_ASSERT(regBase.isInt() && regMul.isInt());
     SWC_ASSERT(op == MicroOp::Add || op == MicroOp::Subtract || op == MicroOp::BitwiseNot || op == MicroOp::Negate);
-    SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(addValue));
 
     auto baseX64 = microRegToX64Reg(regBase);
     auto mulX64  = microRegToX64Reg(regMul);
@@ -3197,7 +3193,7 @@ void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
 void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     const auto emitMemoryOperand = [&](const uint8_t regField) {
         if (memReg.isInstructionPointer())
@@ -3614,7 +3610,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
 void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     SWC_ASSERT(!reg.isFloat());
     SWC_ASSERT(!(op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
 
@@ -4038,7 +4034,7 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
 {
     const uint64_t value = immediateToU64(valueInt);
     SWC_ASSERT(!memReg.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     SWC_ASSERT(!(op == MicroOp::ModuloSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned));
 
     // A global update can use its segment slot directly. The displacement
@@ -4554,7 +4550,7 @@ void X64Encoder::encodeCompareExchangeRegMemReg(MicroReg reg0, MicroReg memReg, 
     // on a match, and leaves the value it saw in rax either way.
     SWC_ASSERT(microRegToX64Reg(reg0) == X64Reg::Rax);
     SWC_ASSERT(!memReg.isFloat() && !reg2.isFloat());
-    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     emitCpuOp(store_, 0xF0);
     emitRex(store_, opBits, reg2, memReg);

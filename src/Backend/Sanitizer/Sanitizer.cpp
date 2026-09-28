@@ -1168,18 +1168,21 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             int64_t    slot            = 0;
             if (resolveAccessStackSlot(slot, state, inst, def, ops))
             {
-                const auto       it = state.stack.find(slot);
+                const bool wide = !extension && ops[indexed ? 3 : 2].opBits == MicroOpBits::B128;
                 SanitizerRegInfo info;
-                info.value                = it != state.stack.end() ? it->second : SanitizerValue{};
-                info.value.storedBytes    = 0;
+                if (wide)
+                    info.value = getStackLane(state, slot);
+                else
+                {
+                    const auto it = state.stack.find(slot);
+                    info.value    = it != state.stack.end() ? it->second : SanitizerValue{};
+                    info.value.storedBytes = 0;
+                }
                 info.hasOriginSlot        = true;
                 info.originSlot           = slot;
                 info.hasPointerOriginSlot = true;
                 info.pointerOriginSlot    = slot;
 
-                const bool wide = !extension && ops[indexed ? 3 : 2].opBits == MicroOpBits::B128;
-                if (wide)
-                    info.value = getStackLane(state, slot);
                 if (info.value.isConstant() && extension)
                 {
                     const uint32_t srcBits = getNumBits(ops[indexed ? 4 : 3].opBits);

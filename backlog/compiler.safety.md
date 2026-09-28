@@ -46,7 +46,7 @@ is the current scorecard.
 ### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
 
 - Recorded: 2026-09-08 07:59
-- Updated: 2026-09-28 15:42 — Reused copied register facts and address values in the sanitizer; performance remains unmeasured.
+- Updated: 2026-09-28 15:54 — Removed duplicate vector-lane and argument-register lookups; performance remains unmeasured.
 - Area: compiler/backend, `Sanitizer`
 - Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
   populated over far more of a function than before, and the transfer function gained a scan of
@@ -93,6 +93,11 @@ is the current scorecard.
   its register facts instead of looking it up again; the stack-base override remains explicit.
   Address formation reuses its already fetched base value to resolve a stack slot. Both remove
   redundant register-table lookups from `applyValueEffects` without changing the facts propagated.
+- **Unmeasured structural change, 2026-09-28:** a wide memory load now reads its stack lane
+  once instead of reading the same slot first for a value it immediately overwrites. The
+  use-after-free check reads an ABI argument's value from the register fact it already found;
+  the stack-base override cannot apply to a physical argument register. No runtime or memory
+  result is inferred from these lookup reductions.
 - Next: decide whether 9.9% of a DevMode module rebuild is the intended price of the analysis.
   If it is not, there are exactly two places to look, and narrowing along branch edges is the
   larger of them. The walk itself, the state layout and the property scan are not worth touching.

@@ -91,8 +91,9 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
 
             // A global's address never came from the allocator: releasing it has it write
             // its own bookkeeping over storage it never handed out. The value analysis
-            // proves the provenance, so no summary is needed to say it.
-            if (sanitizer.getReg(state, argReg).kind == SanitizerValueKind::GlobalAddr)
+            // proves the provenance, so no summary is needed to say it. ABI argument
+            // registers are physical, so the virtual stack-base override cannot apply.
+            if (argInfo->value.kind == SanitizerValueKind::GlobalAddr)
             {
                 sanitizer.report(inst, DiagnosticId::sanity_err_free_global);
                 return;

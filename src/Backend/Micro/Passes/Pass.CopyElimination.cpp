@@ -101,24 +101,16 @@ namespace
         }
     }
 
-    bool isVirtualIntCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
+    bool isForwardableVirtualCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        return isCopyInstruction(inst, ops) &&
-               ops[0].reg.isVirtualInt() &&
-               ops[1].reg.isVirtualInt() &&
-               (ops[2].opBits == MicroOpBits::B64 || ops[2].opBits == MicroOpBits::B32);
-    }
+        if (inst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        if (ops[0].reg.isVirtualInt())
+            return ops[1].reg.isVirtualInt() && (ops[2].opBits == MicroOpBits::B64 || ops[2].opBits == MicroOpBits::B32);
 
-    // A full-width vector copy is a copy too: the 128-bit move writes every
-    // bit of its destination, so nothing the 32-bit rule below guards against
-    // applies, and the value a load or a lane operation produced reaches its
-    // readers directly, where the folds that read through a value find it.
-    bool isVirtualVecCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        return isCopyInstruction(inst, ops) &&
-               ops[0].reg.isVirtualFloat() &&
-               ops[1].reg.isVirtualFloat() &&
-               ops[2].opBits == MicroOpBits::B128;
+        // A full-width vector copy writes every destination bit, so its source
+        // value can reach readers directly just like a full-width integer copy.
+        return ops[0].reg.isVirtualFloat() && ops[1].reg.isVirtualFloat() && ops[2].opBits == MicroOpBits::B128;
     }
 
     bool isSelfCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
@@ -150,7 +142,7 @@ namespace
         if (!ops)
             return false;
 
-        if (!isVirtualIntCopy(*inst, ops) && !isVirtualVecCopy(*inst, ops))
+        if (!isForwardableVirtualCopy(*inst, ops))
         {
             outValue.reg     = valueInfo.reg;
             outValue.valueId = valueId;

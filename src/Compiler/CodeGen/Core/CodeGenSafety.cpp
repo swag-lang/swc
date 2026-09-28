@@ -4,6 +4,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenArrayTraversal.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
@@ -44,26 +45,9 @@ namespace
         // Identity belongs to the storage, including when a moved-from base is later assigned
         // a new value. Poison user fields without corrupting the enclosing object's identity.
         if (type.isArray())
-        {
-            const TypeRef  elementTypeRef = type.payloadArrayElemTypeRef();
-            const uint64_t elementSize    = codeGen.typeMgr().get(elementTypeRef).sizeOf(codeGen.ctx());
-            const uint64_t count          = type.sizeOf(codeGen.ctx()) / elementSize;
-            if (!count)
-                return Result::Continue;
-            MicroBuilder&  builder   = codeGen.builder();
-            const MicroReg cursorReg = codeGen.nextVirtualIntRegister();
-            const MicroReg countReg  = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(cursorReg, addressReg, MicroOpBits::B64);
-            builder.emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
-            const MicroLabelRef loop = builder.createLabel();
-            builder.placeLabel(loop);
-            SWC_RESULT(emitTypedLifecyclePoison(codeGen, cursorReg, elementTypeRef));
-            builder.emitOpBinaryRegImm(cursorReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-            builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loop);
-            return Result::Continue;
-        }
+            return CodeGenArrayTraversal::emit(codeGen, addressReg, type, [&](TypeRef elementTypeRef, MicroReg elementReg) {
+                return emitTypedLifecyclePoison(codeGen, elementReg, elementTypeRef);
+            });
 
         for (const SymbolVariable* field : type.payloadSymStruct().fields())
             SWC_RESULT(emitTypedLifecyclePoison(codeGen, codeGen.offsetAddressReg(addressReg, field->offset()), field->typeRef()));

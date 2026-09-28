@@ -198,6 +198,7 @@ private:
     AstNodeRef parseCompilerTypeExpr();
     AstNodeRef parseCompilerTypeOf();
     AstNodeRef parseConstraint();
+    void       parseConstraintList(SmallVector<AstNodeRef>& outRefs);
     AstNodeRef parseContinue();
     AstNodeRef parseVarDeclDecomposition();
     void       parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool& hasNamed, bool& hasPositional);
@@ -404,6 +405,19 @@ inline void Parser::reportArgumentCountForList(TokenRef calleeRef, const SmallVe
     {
         const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, calleeRef, args[maxCount], maxCount, static_cast<uint32_t>(args.size()));
         diag.report(*ctx_);
+    }
+}
+
+inline void Parser::parseConstraintList(SmallVector<AstNodeRef>& outRefs)
+{
+    while (is(TokenId::KwdWhere))
+    {
+        const Token*     loopStartToken = curToken_;
+        const AstNodeRef whereRef       = parseConstraint();
+        if (whereRef.isValid())
+            outRefs.push_back(whereRef);
+        if (loopStartToken == curToken_)
+            consume();
     }
 }
 

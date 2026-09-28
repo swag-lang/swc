@@ -367,15 +367,7 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
 
     // Constraints
     SmallVector<AstNodeRef> whereRefs;
-    while (is(TokenId::KwdWhere))
-    {
-        const Token*     loopStartToken = curToken_;
-        const AstNodeRef whereRef       = parseConstraint();
-        if (whereRef.isValid())
-            whereRefs.push_back(whereRef);
-        if (loopStartToken == curToken_)
-            consume();
-    }
+    parseConstraintList(whereRefs);
 
     if (whereRefs.empty())
         nodePtr->spanConstraintsRef = SpanRef::invalid();

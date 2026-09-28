@@ -222,16 +222,7 @@ AstNodeRef Parser::parseAggregateDecl()
 
     // Where
     SmallVector<AstNodeRef> whereRefs;
-    while (is(TokenId::KwdWhere))
-    {
-        const Token*     loopStartToken = curToken_;
-        const AstNodeRef whereRef       = parseConstraint();
-        if (whereRef.isValid())
-            whereRefs.push_back(whereRef);
-
-        if (loopStartToken == curToken_)
-            consume();
-    }
+    parseConstraintList(whereRefs);
 
     nodePtr->spanWhereRef = whereRefs.empty() ? SpanRef::invalid() : ast_->pushSpan(whereRefs.span());
 

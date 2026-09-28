@@ -193,6 +193,74 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksPrivateSpillStoreToColdBranch)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_SinksLoopBoundReloadPastIncrement)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  bound = MicroReg::intReg(13);
+    const MicroReg  index = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+
+    for (const uint32_t variant : {0u, 1u, 2u, 3u, 4u, 5u})
+    {
+        MicroBuilder builder(ctx);
+        const auto   loop = builder.createLabel();
+        const auto   cold = builder.createLabel();
+        const auto   coldEdge = builder.createLabel();
+        const auto   join = builder.createLabel();
+        if (variant != 1)
+            builder.emitLoadMemReg(conv.stackPointer, 64, bound, MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, cold);
+        if (variant == 2)
+            builder.emitLoadRegImm(bound, ApInt(9, 64), MicroOpBits::B64);
+        if (variant == 3)
+        {
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitLoadMemReg(MicroReg::intReg(8), 0, index, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        }
+        if (variant == 4)
+            builder.emitLoadMemImm(conv.stackPointer, 64, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(cold);
+        builder.emitLoadRegImm(bound, ApInt(7, 64), MicroOpBits::B64);
+        builder.placeLabel(coldEdge);
+        builder.placeLabel(join);
+        builder.emitOpUnaryReg(index, MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegMem(bound, conv.stackPointer, 64, MicroOpBits::B64);
+        builder.emitCmpRegReg(index, bound, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(conv.intReturn, index, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 64, variant == 5 ? 68 : 72));
+        uint32_t reloads = 0;
+        bool seenColdEdge = false;
+        bool seenJoin = false;
+        bool reloadOnCold = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::Label && ops && ops[0].valueU64 == coldEdge.get())
+                seenColdEdge = true;
+            if (inst.op == MicroInstrOpcode::Label && ops && ops[0].valueU64 == join.get())
+                seenJoin = true;
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[0].reg == bound &&
+                ops[1].reg == conv.stackPointer && ops[3].valueU64 == 64)
+            {
+                ++reloads;
+                reloadOnCold = seenColdEdge && !seenJoin;
+            }
+        }
+        if (reloads != 1 || (variant == 0 || variant == 3) != reloadOnCold)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FrameReloadCannotProveItselfAroundLoop)
 {
     const CallConv& conv  = CallConv::get(CallConvKind::Swag);

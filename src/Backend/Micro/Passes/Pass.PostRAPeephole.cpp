@@ -46,7 +46,10 @@ namespace
         for (uint32_t labelIndex = 1; labelIndex + 1 < refs.size(); ++labelIndex)
         {
             const MicroInstr* label = storage.ptr(refs[labelIndex]);
-            const MicroInstr* load  = storage.ptr(refs[labelIndex + 1]);
+            const MicroInstr* middle = storage.ptr(refs[labelIndex + 1]);
+            const bool        delayed = middle && middle->op == MicroInstrOpcode::OpUnaryReg && labelIndex + 2 < refs.size();
+            const uint32_t    loadIndex = labelIndex + (delayed ? 2 : 1);
+            const MicroInstr* load  = storage.ptr(refs[loadIndex]);
             const auto*       at    = load && load->op == MicroInstrOpcode::LoadRegMem ? load->ops(operands) : nullptr;
             if (!label || label->op != MicroInstrOpcode::Label || !at ||
                 !at[0].reg.isInt() || at[1].reg != conv.stackPointer || at[0].reg == at[1].reg ||
@@ -60,6 +63,126 @@ namespace
             const MicroInstr* fallthrough = storage.ptr(refs[labelIndex - 1]);
             if (!fallthrough || MicroInstr::info(fallthrough->op).flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 continue;
+            if (delayed)
+            {
+                if (fallthrough->op != MicroInstrOpcode::Label || cfg.successors(labelIndex - 1).size() != 1 ||
+                    cfg.successors(labelIndex - 1)[0] != labelIndex ||
+                    context.spillAreaHi < context.spillAreaLo ||
+                    context.spillAreaHi - context.spillAreaLo < sizeof(uint64_t) ||
+                    at[3].valueU64 < context.spillAreaLo ||
+                    at[3].valueU64 > context.spillAreaHi - sizeof(uint64_t))
+                    continue;
+                const MicroInstrUseDef useDef = middle->collectUseDef(operands, context.encoder);
+                if (std::ranges::find(useDef.uses, at[0].reg) != useDef.uses.end() ||
+                    std::ranges::find(useDef.defs, at[0].reg) != useDef.defs.end() ||
+                    std::ranges::find(useDef.defs, at[1].reg) != useDef.defs.end())
+                    continue;
+            }
+
+            // The adjacent label is the new cold-edge reload. Walk each hot
+            // incoming edge back to a register/frame equivalence source. A
+            // balanced stack adjustment changes the meaning of an offset only
+            // temporarily; track it rather than rejecting every call frame.
+            const auto proveDelayedJump = [&](uint32_t jumpIndex) {
+                std::vector<std::pair<uint32_t, int64_t>> pending = {{jumpIndex, 0}};
+                std::unordered_map<uint32_t, int64_t> seen;
+                while (!pending.empty())
+                {
+                    const auto [index, delta] = pending.back();
+                    pending.pop_back();
+                    if (index == labelIndex - 1)
+                    {
+                        if (delta != 0)
+                            return false;
+                        continue;
+                    }
+                    const auto [it, inserted] = seen.emplace(index, delta);
+                    if (!inserted)
+                    {
+                        if (it->second != delta)
+                            return false;
+                        continue;
+                    }
+                    if (seen.size() > K_MAX_BACKTRACK)
+                        return false;
+                    const MicroInstr* inst = storage.ptr(refs[index]);
+                    if (!inst)
+                        return false;
+                    const auto* ops = inst->ops(operands);
+                    if (index != loadIndex && ops && inst->op == MicroInstrOpcode::LoadMemReg &&
+                        ops[0].reg == at[1].reg && ops[1].reg == at[0].reg &&
+                        ops[2].opBits == at[2].opBits && ops[3].valueU64 == at[3].valueU64)
+                    {
+                        if (delta != 0)
+                            return false;
+                        continue;
+                    }
+                    if (index != loadIndex && ops && inst->op == MicroInstrOpcode::LoadRegMem &&
+                        ops[0].reg == at[0].reg && ops[1].reg == at[1].reg &&
+                        ops[2].opBits == at[2].opBits && ops[3].valueU64 == at[3].valueU64)
+                    {
+                        if (delta != 0)
+                            return false;
+                        continue;
+                    }
+
+                    int64_t previousDelta = delta;
+                    if (index != loadIndex)
+                    {
+                        const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                        if (std::ranges::find(useDef.defs, at[0].reg) != useDef.defs.end())
+                            return false;
+                        if (std::ranges::find(useDef.defs, at[1].reg) != useDef.defs.end())
+                        {
+                            if (inst->op != MicroInstrOpcode::OpBinaryRegImm || !ops ||
+                                ops[0].reg != at[1].reg || ops[1].opBits != MicroOpBits::B64 ||
+                                ops[3].valueU64 > 0x100000 ||
+                                (ops[2].microOp != MicroOp::Add && ops[2].microOp != MicroOp::Subtract))
+                                return false;
+                            previousDelta += ops[2].microOp == MicroOp::Subtract ?
+                                                 static_cast<int64_t>(ops[3].valueU64) :
+                                                -static_cast<int64_t>(ops[3].valueU64);
+                            if (previousDelta < -0x100000 || previousDelta > 0)
+                                return false;
+                        }
+                        const auto& info = MicroInstr::info(inst->op);
+                        if (info.flags.has(MicroInstrFlagsE::WritesMemory))
+                        {
+                            if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops &&
+                                ops[info.memBaseOperandIndex].reg == at[1].reg)
+                            {
+                                const uint64_t accessOffset = ops[info.memOffsetOperandIndex].valueU64;
+                                if (accessOffset > 0x100000)
+                                    return false;
+                                uint64_t accessSize = 64;
+                                if (inst->op == MicroInstrOpcode::LoadMemReg)
+                                    accessSize = getNumBytes(ops[2].opBits);
+                                else if (inst->op == MicroInstrOpcode::LoadMemImm)
+                                    accessSize = getNumBytes(ops[1].opBits);
+                                const int64_t first = previousDelta + static_cast<int64_t>(accessOffset);
+                                if (first <= static_cast<int64_t>(at[3].valueU64 + 7) &&
+                                    first + static_cast<int64_t>(accessSize) > static_cast<int64_t>(at[3].valueU64))
+                                    return false;
+                            }
+                            else if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops)
+                            {
+                                for (uint8_t operand = 0; operand < std::min<uint8_t>(inst->numOperands, 3); ++operand)
+                                {
+                                    if (ops[operand].reg == at[1].reg)
+                                        return false;
+                                }
+                            }
+                        }
+                    }
+                    // The first instruction remains a function entry even
+                    // when a loop back edge gives it CFG predecessors.
+                    if (index == 0 || cfg.predecessors(index).empty())
+                        return false;
+                    for (const uint32_t predecessor : cfg.predecessors(index))
+                        pending.emplace_back(predecessor, previousDelta);
+                }
+                return true;
+            };
 
             bool valid = true;
             for (const uint32_t jumpIndex : incoming)
@@ -74,6 +197,13 @@ namespace
                 {
                     valid = false;
                     break;
+                }
+                if (delayed)
+                {
+                    valid = proveDelayedJump(jumpIndex);
+                    if (!valid)
+                        break;
+                    continue;
                 }
 
                 // Every backward path must reach a matching frame store (or
@@ -139,7 +269,7 @@ namespace
             MicroInstrOperand movedOps[4];
             std::copy_n(at, 4, movedOps);
             storage.insertDerivedBefore(operands, refs[labelIndex], MicroInstrOpcode::LoadRegMem, movedOps);
-            storage.erase(refs[labelIndex + 1]);
+            storage.erase(refs[loadIndex]);
             return true;
         }
         return false;

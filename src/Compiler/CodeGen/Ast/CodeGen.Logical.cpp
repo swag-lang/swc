@@ -38,11 +38,6 @@ namespace
         outReg = boolReg;
     }
 
-    LogicalExprCodeGenPayload& ensureLogicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.ensureNodePayload<LogicalExprCodeGenPayload>(nodeRef);
-    }
-
     void eraseLogicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         LogicalExprCodeGenPayload* payload = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(nodeRef);
@@ -91,7 +86,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         MicroReg leftReg;
         materializeLogicalOperand(leftReg, codeGen, leftPayload, leftType);
 
-        LogicalExprCodeGenPayload& state   = ensureLogicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        LogicalExprCodeGenPayload& state   = codeGen.ensureNodePayload<LogicalExprCodeGenPayload>(codeGen.curNodeRef());
         MicroBuilder&              builder = codeGen.builder();
         // 'state.reg' becomes the result register, which the rhs branch overwrites. When the lhs
         // operand is a bool value that materialized to a live storage register (a parameter or

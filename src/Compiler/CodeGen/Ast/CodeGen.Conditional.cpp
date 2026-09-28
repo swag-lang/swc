@@ -46,29 +46,10 @@ namespace
         return CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, opBits);
     }
 
-    ConditionalExprCodeGenPayload& ensureConditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    template<typename T>
+    inline void resetConditionalLabels(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        return codeGen.ensureNodePayload<ConditionalExprCodeGenPayload>(nodeRef);
-    }
-
-    void eraseConditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        ConditionalExprCodeGenPayload* payload = codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(nodeRef);
-        if (payload)
-        {
-            payload->falseLabel = MicroLabelRef::invalid();
-            payload->doneLabel  = MicroLabelRef::invalid();
-        }
-    }
-
-    NullCoalescingCodeGenPayload& ensureNullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.ensureNodePayload<NullCoalescingCodeGenPayload>(nodeRef);
-    }
-
-    void eraseNullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        NullCoalescingCodeGenPayload* payload = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(nodeRef);
+        T* payload = codeGen.safeNodePayload<T>(nodeRef);
         if (payload)
         {
             payload->falseLabel = MicroLabelRef::invalid();
@@ -124,7 +105,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         const MicroReg condReg = materializeTruthyOperand(codeGen, condPayload, condTypeRef);
         SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
 
-        ConditionalExprCodeGenPayload& newState = ensureConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        ConditionalExprCodeGenPayload& newState = codeGen.ensureNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef());
         newState.falseLabel                     = builder.createLabel();
         newState.doneLabel                      = builder.createLabel();
         if (ownsValue)
@@ -162,7 +143,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         else
         {
             builder.placeLabel(state->doneLabel);
-            eraseConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+            resetConditionalLabels<ConditionalExprCodeGenPayload>(codeGen, codeGen.curNodeRef());
         }
         return Result::Continue;
     }
@@ -211,7 +192,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         }
 
         builder.placeLabel(state->doneLabel);
-        eraseConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        resetConditionalLabels<ConditionalExprCodeGenPayload>(codeGen, codeGen.curNodeRef());
     }
 
     return Result::Continue;
@@ -219,7 +200,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
 
 Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen)
 {
-    eraseConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+    resetConditionalLabels<ConditionalExprCodeGenPayload>(codeGen, codeGen.curNodeRef());
     const auto*   lowering = codeGen.loweringPayload(codeGen.curNodeRef());
     const TypeRef typeRef  = codeGen.transparentPayloadTypeRef();
     if (lowering && lowering->ownsValue && lowering->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) &&
@@ -281,7 +262,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
             chainState = codeGen.safeNodePayload<OptionalChainCodeGenPayload>(resolvedChildRef);
         if (chainState != nullptr && chainState->falseLabel.isValid())
         {
-            NullCoalescingCodeGenPayload& newState = ensureNullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
+            NullCoalescingCodeGenPayload& newState = codeGen.ensureNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
             newState.falseLabel                    = chainState->falseLabel;
             newState.doneLabel                     = chainState->doneLabel;
             chainState->falseLabel                 = MicroLabelRef::invalid();
@@ -300,7 +281,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
 
         const MicroReg condReg = materializeTruthyOperand(codeGen, leftPayload, leftTypeRef);
 
-        NullCoalescingCodeGenPayload& newState = ensureNullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
+        NullCoalescingCodeGenPayload& newState = codeGen.ensureNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
         newState.falseLabel                    = builder.createLabel();
         newState.doneLabel                     = builder.createLabel();
 
@@ -328,7 +309,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         }
 
         builder.placeLabel(state->doneLabel);
-        eraseNullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
+        resetConditionalLabels<NullCoalescingCodeGenPayload>(codeGen, codeGen.curNodeRef());
     }
 
     return Result::Continue;

@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaAstLookup.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -1093,22 +1094,14 @@ namespace
     {
         if (nodeRef.isInvalid())
             return nullptr;
-        if (sourceAst.hasNode(nodeRef))
-            return &sourceAst;
-        if (sema.ast().hasNode(nodeRef))
-            return &sema.ast();
-        return nullptr;
+        return SemaAstLookup::resolveValidNodeAst(sema, sourceAst, nodeRef);
     }
 
     const Ast* resolveInlineAnalysisSpanAst(Sema& sema, const Ast& sourceAst, SpanRef spanRef)
     {
         if (spanRef.isInvalid())
             return nullptr;
-        if (sourceAst.hasSpan(spanRef))
-            return &sourceAst;
-        if (sema.ast().hasSpan(spanRef))
-            return &sema.ast();
-        return nullptr;
+        return SemaAstLookup::resolveValidSpanAst(sema, sourceAst, spanRef);
     }
 
     void collectInlineAnalysisChildren(Sema& sema, const Ast& sourceAst, const Ast& nodeAst, const AstNode& node, SmallVector<AstNodeRef>& outChildren)

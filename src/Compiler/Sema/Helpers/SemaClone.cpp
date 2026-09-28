@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaAstLookup.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
@@ -49,15 +50,8 @@ namespace
         if (nodeRef.isInvalid())
             return nullptr;
 
-        // Clone contexts can point at a foreign source AST (inline/generic bodies) or
-        // the current destination AST. Resolve each ref against both before reading
-        // payloads; AstNodeRef values are stable only within their owning Ast.
         const Ast& sourceAst = cloneSourceAst(sema, cloneContext);
-        if (sourceAst.hasNode(nodeRef))
-            return &sourceAst;
-        if (sema.ast().hasNode(nodeRef))
-            return &sema.ast();
-        return nullptr;
+        return SemaAstLookup::resolveValidNodeAst(sema, sourceAst, nodeRef);
     }
 
     const SourceView* resolveCloneSourceView(Sema& sema, const Ast& sourceAst, const AstNode& node)
@@ -75,11 +69,7 @@ namespace
             return nullptr;
 
         const Ast& sourceAst = cloneSourceAst(sema, cloneContext);
-        if (sourceAst.hasSpan(spanRef))
-            return &sourceAst;
-        if (sema.ast().hasSpan(spanRef))
-            return &sema.ast();
-        return nullptr;
+        return SemaAstLookup::resolveValidSpanAst(sema, sourceAst, spanRef);
     }
 
     bool canReadSourcePayload(Sema& sema, const SemaClone::CloneContext& cloneContext)

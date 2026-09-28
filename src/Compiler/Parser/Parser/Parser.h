@@ -301,6 +301,7 @@ private:
     Diagnostic  reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef);
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
+    void        reportArgumentCountForList(TokenRef calleeRef, const SmallVector<AstNodeRef>& args, uint32_t minCount, uint32_t maxCount, bool atLeastWhenUnbounded);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     Diagnostic  reportError(DiagnosticId id, AstNodeRef nodeRef);
     void        reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed);
@@ -390,6 +391,20 @@ inline bool Parser::prepareNextArgument()
     if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
     return !is(TokenId::SymRightParen);
+}
+
+inline void Parser::reportArgumentCountForList(TokenRef calleeRef, const SmallVector<AstNodeRef>& args, uint32_t minCount, uint32_t maxCount, bool atLeastWhenUnbounded)
+{
+    if (args.size() < minCount)
+    {
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, calleeRef, ref(), minCount, static_cast<uint32_t>(args.size()), atLeastWhenUnbounded && maxCount == UINT32_MAX);
+        diag.report(*ctx_);
+    }
+    else if (args.size() > maxCount)
+    {
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, calleeRef, args[maxCount], maxCount, static_cast<uint32_t>(args.size()));
+        diag.report(*ctx_);
+    }
 }
 
 SWC_END_NAMESPACE();

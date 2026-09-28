@@ -58,16 +58,7 @@ AstNodeRef Parser::parseCompilerTypeOf()
             nodeArgs.push_back(parseExpression());
     }
 
-    if (nodeArgs.empty())
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), 1, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
-    else if (nodeArgs.size() > 1)
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[1], 1, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
+    reportArgumentCountForList(tokRef, nodeArgs, 1, 1, false);
 
     nodePtr->nodeArgRef = nodeArgs.empty() ? AstNodeRef::invalid() : nodeArgs[0];
     expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
@@ -87,16 +78,7 @@ void Parser::parseCompilerArgumentList(TokenRef tokRef, uint32_t minCount, uint3
         outArgs.push_back(asCompilerExpressions ? parseCompilerExpression() : parseExpression());
     }
 
-    if (outArgs.size() < minCount)
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), minCount, static_cast<uint32_t>(outArgs.size()), maxCount == UINT32_MAX);
-        diag.report(*ctx_);
-    }
-    else if (outArgs.size() > maxCount)
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, outArgs[maxCount], maxCount, static_cast<uint32_t>(outArgs.size()));
-        diag.report(*ctx_);
-    }
+    reportArgumentCountForList(tokRef, outArgs, minCount, maxCount, true);
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
 }

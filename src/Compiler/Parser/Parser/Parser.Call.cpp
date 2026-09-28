@@ -45,16 +45,7 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
         }
     }
 
-    if (nodeArgs.size() < numParams)
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), numParams, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
-    else if (nodeArgs.size() > numParams)
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[numParams], numParams, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
+    reportArgumentCountForList(tokRef, nodeArgs, numParams, numParams, false);
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
 
@@ -109,18 +100,7 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
     }
 
     if (numParams != UINT32_MAX)
-    {
-        if (nodeArgs.size() < numParams)
-        {
-            const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), numParams, static_cast<uint32_t>(nodeArgs.size()));
-            diag.report(*ctx_);
-        }
-        else if (nodeArgs.size() > numParams)
-        {
-            const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[numParams], numParams, static_cast<uint32_t>(nodeArgs.size()));
-            diag.report(*ctx_);
-        }
-    }
+        reportArgumentCountForList(tokRef, nodeArgs, numParams, numParams, false);
     else
     {
         if (nodeArgs.empty())

@@ -891,6 +891,7 @@
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Constant.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Enum.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Function.h"/>
+        <ClInclude Include="src\Compiler\Sema\Symbol\SymbolGenericData.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Impl.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Interface.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Module.h"/>

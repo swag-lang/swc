@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/SymbolGenericData.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1590,18 +1591,7 @@ SymbolStruct::GenericData* SymbolStruct::genericData() const noexcept
 
 SymbolStruct::GenericData& SymbolStruct::ensureGenericData() const noexcept
 {
-    if (auto* data = genericData())
-        return *data;
-
-    auto* newData  = heapNew<GenericData>();
-    auto* expected = static_cast<GenericData*>(nullptr);
-    if (!genericData_.compare_exchange_strong(expected, newData, std::memory_order_acq_rel, std::memory_order_acquire))
-    {
-        heapDelete(newData);
-        return *expected;
-    }
-
-    return *newData;
+    return SymbolGenericData::ensure(genericData_);
 }
 
 GenericInstanceStorage& SymbolStruct::genericInstanceStorage() noexcept

@@ -3741,18 +3741,18 @@ namespace PostRaPeephole
 
             const uint32_t              count = cfg.instructionCount();
             const auto                  refs  = cfg.instructionRefs();
-            std::vector<UpperHalfState> in(count, ~UpperHalfState{0});
-            std::vector<UpperHalfState> out(count, ~UpperHalfState{0});
+            upperHalfZeroIn.assign(storage->slotCount(), 0);
             if (!cfg.hasLoop())
             {
                 // Every predecessor has a lower index, so one forward pass
-                // sees its final state without allocating a worklist.
+                // sees its final state and can store it by instruction slot.
+                std::vector<UpperHalfState> out(count);
                 for (uint32_t index = 0; index < count; ++index)
                 {
                     UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
                     for (const uint32_t pred : cfg.predecessors(index))
                         state &= out[pred];
-                    in[index] = state;
+                    upperHalfZeroIn[refs[index].get()] = state;
 
                     const MicroInstr* inst = storage->ptr(refs[index]);
                     if (!inst)
@@ -3762,8 +3762,10 @@ namespace PostRaPeephole
             }
             else
             {
-                std::vector<uint8_t>  queued(count, 1);
-                SmallVector<uint32_t> worklist;
+                std::vector<UpperHalfState> in(count, ~UpperHalfState{0});
+                std::vector<UpperHalfState> out(count, ~UpperHalfState{0});
+                std::vector<uint8_t>        queued(count, 1);
+                SmallVector<uint32_t>       worklist;
                 for (uint32_t i = count; i > 0; --i)
                     worklist.push_back(i - 1);
 
@@ -3794,11 +3796,10 @@ namespace PostRaPeephole
                         }
                     }
                 }
+                for (uint32_t index = 0; index < count; ++index)
+                    upperHalfZeroIn[refs[index].get()] = in[index];
             }
 
-            upperHalfZeroIn.assign(storage->slotCount(), 0);
-            for (uint32_t index = 0; index < count; ++index)
-                upperHalfZeroIn[refs[index].get()] = in[index];
             upperHalfValid = true;
         }
 

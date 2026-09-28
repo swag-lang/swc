@@ -274,9 +274,8 @@ namespace
                 explainedBase = firstUseReg(*ud);
             }
 
-            const MicroInstr*        mutInst = storage.ptr(instrRefs[i]);
             MicroInstrRegOperandRefs regRefs;
-            mutInst->collectRegOperands(operands, regRefs, encoder);
+            inst->collectRegOperands(operands, regRefs, encoder);
             for (const auto& rref : regRefs)
             {
                 if (!rref.reg)

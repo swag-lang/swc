@@ -251,6 +251,10 @@ block, and the hot path keeps the register.
   buffer. This removes a separate instruction walk for functions without an early label or jump.
   The Release compiler passed 20 focused native and 17 focused JIT register-allocation tests,
   then 3,483 native and 1,500 JIT tests on the merged master source. Timing was not measured.
+- A follow-up removes four per-instruction clears in allocator liveness collection. `clearState`
+  destroys the old per-instruction lists before the collection resizes them, so every new list
+  is already empty. The focused Release register-allocation file passed 20 native tests, followed
+  by 3,483 native and 1,500 JIT tests. Timing was not measured.
 - Next: count DevMode sweeps and other consumer workspaces before treating the Release
   standard-library maximum as a general bound. If any function approaches 24, identify the
   pass chain that keeps changing it before raising the limit.

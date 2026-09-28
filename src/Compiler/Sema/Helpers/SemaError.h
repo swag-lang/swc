@@ -56,6 +56,7 @@ namespace SemaError
     Result     raiseCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     Result     raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     Result     raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef);
+    Result     raiseInvalidRangeBounds(Sema& sema, AstNodeRef atNodeRef, ConstantRef downCstRef, ConstantRef upCstRef);
     Result     raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     Result     raiseLiteralOverflow(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
     Result     raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef);

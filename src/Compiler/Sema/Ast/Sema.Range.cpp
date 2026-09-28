@@ -100,11 +100,7 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
         // iterations and an empty slice. Only an inverted range (lower above upper) is an error.
         if (!downCst.le(upCst))
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, sema.curNodeRef());
-            diag.addArgument(Diagnostic::ARG_LEFT, downCstRef);
-            diag.addArgument(Diagnostic::ARG_RIGHT, upCstRef);
-            diag.report(sema.ctx());
-            return Result::Error;
+            return SemaError::raiseInvalidRangeBounds(sema, sema.curNodeRef(), downCstRef, upCstRef);
         }
     }
 

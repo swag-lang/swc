@@ -1358,11 +1358,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     {
         if (constDown > constUp)
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, node.nodeArgRef);
-            diag.addArgument(Diagnostic::ARG_LEFT, nodeDownView.cstRef());
-            diag.addArgument(Diagnostic::ARG_RIGHT, nodeUpView.cstRef());
-            diag.report(sema.ctx());
-            return Result::Error;
+            return SemaError::raiseInvalidRangeBounds(sema, node.nodeArgRef, nodeDownView.cstRef(), nodeUpView.cstRef());
         }
 
         // 'opSlice' takes an inclusive upper bound, so lowering an exclusive range subtracts

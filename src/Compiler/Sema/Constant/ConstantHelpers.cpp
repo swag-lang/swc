@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantEnumType.h"
 #include "Compiler/Sema/Constant/ConstantFoldStorage.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -115,15 +116,7 @@ namespace
             return result;
 
         result.setDataSegmentRef(dataSegmentRef);
-        bool isEnumValue = originalType.isEnum();
-        if (!isEnumValue && originalType.isAlias())
-        {
-            const TypeRef unwrappedTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
-                isEnumValue = ctx.typeMgr().get(unwrappedTypeRef).isEnum();
-        }
-
-        if (isEnumValue)
+        if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
         {
             const ConstantRef storageRef = sema.cstMgr().addConstant(ctx, result);
             return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);
@@ -408,14 +401,7 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     // add path, so we leave their legacy placement untouched.
     const TypeInfo& originalType = ctx.typeMgr().get(typeRef);
 
-    bool isEnumValue = originalType.isEnum();
-    if (!isEnumValue && originalType.isAlias())
-    {
-        const TypeRef unwrappedTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias);
-        if (unwrappedTypeRef.isValid())
-            isEnumValue = ctx.typeMgr().get(unwrappedTypeRef).isEnum();
-    }
-    if (isEnumValue)
+    if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
         return 0;
 
     TypeRef storageTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);

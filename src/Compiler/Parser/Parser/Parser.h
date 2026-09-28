@@ -199,6 +199,7 @@ private:
     AstNodeRef parseConstraint();
     AstNodeRef parseContinue();
     AstNodeRef parseVarDeclDecomposition();
+    void       parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool& hasNamed, bool& hasPositional);
     bool       isDestructuringAssignmentAhead() const;
     AstNodeRef parseDefer();
     AstNodeRef parseDiscard();
@@ -301,6 +302,7 @@ private:
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     Diagnostic  reportError(DiagnosticId id, AstNodeRef nodeRef);
+    void        reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed);
     void        raiseError(DiagnosticId id, TokenRef tknRef);
     void        raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
     void        tryEnhanceUnexpectedToken(Diagnostic& diag, TokenRef tknRef) const;
@@ -351,6 +353,32 @@ inline EnumFlags<AstVarStorageFlagsE> Parser::parseStorageModifiers()
     }
 
     return storageFlags;
+}
+
+inline void Parser::parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool& hasNamed, bool& hasPositional)
+{
+    TokenRef   fieldNameRef = TokenRef::invalid();
+    const bool isNamed      = is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter);
+    if (isNamed)
+    {
+        hasNamed     = true;
+        fieldNameRef = consume();
+        consumeAssert(TokenId::SymColon);
+    }
+    else
+        hasPositional = true;
+
+    fieldNames.push_back(fieldNameRef);
+}
+
+inline void Parser::reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed)
+{
+    if (hasNamed && hasPositional && !reportedMixed)
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_mixed_destructuring, itemRef);
+        diag.report(*ctx_);
+        reportedMixed = true;
+    }
 }
 
 SWC_END_NAMESPACE();

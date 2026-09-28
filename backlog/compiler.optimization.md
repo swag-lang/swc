@@ -255,6 +255,15 @@ block, and the hot path keeps the register.
   and `video` runs passed 783 and 117 tests before the two latest workspace changes. A five-pair
   four-workload timing attempt was stopped after unrelated load stretched one core touch to 30 s;
   the shorter A/B screens establish no percentage claim.
+- The 2026-09-28 prompt-4 continuation moved the allocator's control-flow check into its
+  existing use/def collection walk and removed a duplicate clearing of the same instruction
+  buffer. This removes a separate instruction walk for functions without an early label or jump.
+  The Release compiler passed 20 focused native and 17 focused JIT register-allocation tests,
+  then 3,483 native and 1,500 JIT tests on the merged master source. Timing was not measured.
+- A follow-up removes four per-instruction clears in allocator liveness collection. `clearState`
+  destroys the old per-instruction lists before the collection resizes them, so every new list
+  is already empty. The focused Release register-allocation file passed 20 native tests, followed
+  by 3,483 native and 1,500 JIT tests. Timing was not measured.
 - Next: count DevMode sweeps and other consumer workspaces before treating the Release
   standard-library maximum as a general bound. If any function approaches 24, identify the
   pass chain that keeps changing it before raising the limit.
@@ -708,6 +717,10 @@ block, and the hot path keeps the register.
   where the pass receives shared SSA. These reduce per-pass setup and work inside rebuilds;
   they do not reduce the rebuild count. Focused Release checks and the full 3,483 native and 1,500
   JIT suites passed. No timing or peak-memory measurement was made in this campaign.
+- The SLP vectorizer now constructs its standalone SSA fallback only when a block has a viable
+  packed plan and asks for SSA. Blocks rejected earlier no longer initialize the fallback state;
+  a supplied shared SSA state is used as before. The Release `slp_vectorize` file passed 17 native
+  tests, followed by 3,483 native and 1,500 JIT tests. Timing was not measured.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.

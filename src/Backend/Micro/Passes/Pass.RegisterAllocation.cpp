@@ -206,15 +206,6 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     worklist_.reserve(instructionCount_);
     inWorklist_.reserve(instructionCount_);
 
-    for (const auto& inst : instructions_->view())
-    {
-        if (inst.op == MicroInstrOpcode::Label || MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::JumpInstruction))
-        {
-            hasControlFlow_ = true;
-            break;
-        }
-    }
-
     relocationByDefInstruction_.clear();
 }
 
@@ -2154,6 +2145,11 @@ void MicroRegisterAllocationPass::prepareInstructionData()
         if (!inst)
             continue;
 
+        // This collection walk already visits every live instruction after local
+        // copy coalescing. No separate scan is needed to detect control flow.
+        if (!hasControlFlow_ && (inst->op == MicroInstrOpcode::Label || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::JumpInstruction)))
+            hasControlFlow_ = true;
+
         MicroInstrUseDef useDef = inst->collectUseDef(*operands_, context_->encoder);
         if (!hasVirtual)
         {
@@ -2207,6 +2203,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // Include stack/frame roles even when they are outside the allocatable pools.
     denseConcreteRegs_.reserve(conv_->intRegs.size() + conv_->floatRegs.size() + 2);
 
+    // clearState destroyed the previous per-instruction lists, so these new
+    // entries are empty and need no per-instruction clearing below.
     useVirtualIndices_.resize(instructionCount_);
     defVirtualIndices_.resize(instructionCount_);
     useConcreteIndices_.resize(instructionCount_);
@@ -2220,11 +2218,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         auto&                   defsV  = defVirtualIndices_[idx];
         auto&                   usesC  = useConcreteIndices_[idx];
         auto&                   defsC  = defConcreteIndices_[idx];
-        usesV.clear();
-        defsV.clear();
-        usesC.clear();
-        defsC.clear();
-
         for (const MicroReg reg : useDef.uses)
         {
             if (reg.isVirtual())
@@ -4527,7 +4520,6 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     initState(context);
     coalesceLocalCopies();
     instructionCount_ = instructions_->count();
-    instructionUseDefs_.clear();
     instructionUseDefs_.resize(instructionCount_);
 
     prepareInstructionData();

@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -355,12 +356,7 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveStoredVariablePayload(CodeGen&
 
     if (symVar.hasGlobalStorage())
     {
-        CodeGenNodePayload globalPayload;
-        globalPayload.typeRef = symVar.typeRef();
-        globalPayload.setIsAddress();
-        globalPayload.reg = codeGen.nextVirtualIntRegister();
-        CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, globalPayload.reg, symVar);
-        return globalPayload;
+        return CodeGenMemoryHelpers::globalVariableAddressPayload(codeGen, symVar);
     }
 
     if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))

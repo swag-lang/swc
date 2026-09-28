@@ -35,7 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-28 01:50 |
+| [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-28 07:38 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-27 23:45 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-27 18:45 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-27 18:13 |

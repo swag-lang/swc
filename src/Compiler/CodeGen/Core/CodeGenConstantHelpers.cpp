@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/Sema/Constant/ConstantEnumType.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -248,15 +249,7 @@ namespace
             return result;
 
         result.setDataSegmentRef(dataSegmentRef);
-        bool isEnumValue = originalType.isEnum();
-        if (!isEnumValue && originalType.isAlias())
-        {
-            const TypeRef unwrappedTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
-                isEnumValue = ctx.typeMgr().get(unwrappedTypeRef).isEnum();
-        }
-
-        if (isEnumValue)
+        if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
         {
             const ConstantRef storageRef = codeGen.cstMgr().addConstant(ctx, result);
             return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);

@@ -666,6 +666,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCString.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenExprView.h"/>
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantEnumType.h"/>
         <ClInclude Include="src\Unittest\Format\FormatRewriteCheck.h"/>
         <ClInclude Include="src\Unittest\Compiler\CompilerTestFile.h"/>
         <ClInclude Include="src\Unittest\Native\NativeTestBytes.h"/>

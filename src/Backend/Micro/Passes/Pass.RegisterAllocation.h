@@ -256,8 +256,6 @@ private:
     bool              isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
     bool              isLiveInAt(MicroReg key, uint32_t instructionIndex) const;
     bool              isConcreteLiveInAt(MicroReg key, uint32_t instructionIndex) const;
-    void              computeConcreteLoopCarried();
-    bool              isConcreteLoopCarried(MicroReg physReg) const;
     bool              hasFutureConcreteTouchConflict(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const;
     bool              canUsePhysical(MicroReg virtKey, uint32_t instructionIndex, MicroReg physReg, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive) const;
     bool              tryTakeSpecificPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t instructionIndex, MicroReg preferredPhysReg, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys) const;
@@ -375,7 +373,6 @@ private:
     std::span<const MicroControlFlowGraph::EdgeList> predecessors_;
     std::vector<uint32_t>                            loopDepth_;
     bool                                             functionHasLoop_ = false;
-    std::vector<uint8_t>                             concreteLoopCarried_;
 
     // The register each value held on the last control-flow edge that recorded one. Consulted
     // as a preference when a value is given a register again, so the two arms of a diamond

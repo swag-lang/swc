@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
+#include "Backend/BinaryPatch.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Debug/SymbolTable.h"
@@ -269,20 +270,17 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
         switch (relocation.type)
         {
             case IMAGE_REL_AMD64_ADDR64:
-                SWC_ASSERT(relocation.offset + sizeof(uint64_t) <= section.data.bytes.size());
-                writeU64(section.data.bytes, relocation.offset, relocation.addend);
+                BinaryPatch::write<uint64_t>(section.data.bytes, relocation.offset, relocation.addend);
                 break;
 
             case IMAGE_REL_AMD64_ADDR32NB:
             case IMAGE_REL_AMD64_SECREL:
             case IMAGE_REL_AMD64_REL32:
-                SWC_ASSERT(relocation.offset + sizeof(uint32_t) <= section.data.bytes.size());
-                writeU32(section.data.bytes, relocation.offset, static_cast<uint32_t>(relocation.addend));
+                BinaryPatch::write<uint32_t>(section.data.bytes, relocation.offset, static_cast<uint32_t>(relocation.addend));
                 break;
 
             case IMAGE_REL_AMD64_SECTION:
-                SWC_ASSERT(relocation.offset + sizeof(uint16_t) <= section.data.bytes.size());
-                writeU16(section.data.bytes, relocation.offset, static_cast<uint16_t>(relocation.addend));
+                BinaryPatch::write<uint16_t>(section.data.bytes, relocation.offset, static_cast<uint16_t>(relocation.addend));
                 break;
 
             default:
@@ -294,21 +292,6 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
     section.relocations.swap(section.data.relocations);
 
     return Result::Continue;
-}
-
-void NativeObjFileWriterCoff::writeU16(ByteArray& bytes, const uint32_t offset, const uint16_t value)
-{
-    std::memcpy(bytes.data() + offset, &value, sizeof(value));
-}
-
-void NativeObjFileWriterCoff::writeU32(ByteArray& bytes, const uint32_t offset, const uint32_t value)
-{
-    std::memcpy(bytes.data() + offset, &value, sizeof(value));
-}
-
-void NativeObjFileWriterCoff::writeU64(ByteArray& bytes, const uint32_t offset, const uint64_t value)
-{
-    std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
 
 void NativeObjFileWriterCoff::addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices, CoffSymbolRecord record)

@@ -383,11 +383,7 @@ AstNodeRef Parser::parseGeneratedContent(const ParserGeneratedMode mode)
 
         if (parseCompoundSeparator(separatorNodeId, TokenId::EndOfFile) == Result::Error)
         {
-            if (depthParen_ && is(TokenId::SymRightParen))
-                break;
-            if (depthBracket_ && is(TokenId::SymRightBracket))
-                break;
-            if (depthCurly_ && is(TokenId::SymRightCurly))
+            if (isRecoveryClosingDelimiter())
                 break;
         }
 

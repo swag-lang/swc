@@ -272,7 +272,8 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
 
     // Empty hash maps also allocate buckets and sentinel nodes, so only chain heads
     // get a stored state. Intermediate instructions need only the invalid index.
-    inState_.assign(numStates, {});
+    inState_.clear();
+    inState_.resize(numStates);
 
     reached_[0]    = 1;
     inWorklist_[0] = 1;
@@ -1053,12 +1054,13 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             // A move or a widening extension propagates the whole tracked info (value +
             // origin + zero-test fact). Extensions only widen (bool/narrow int -> wider),
             // so zero-ness and the guard facts are preserved: `dst == 0` iff the source
-            // (and its origin slot) is zero. The value goes through getReg so the special
-            // stack-base register is resolved even though it is not stored in the map.
+            // (and its origin slot) is zero. The stack-base register has a special value
+            // outside the map.
             SanitizerRegInfo info;
             if (const SanitizerRegInfo* src = findReg(state, ops[1].reg))
                 info = *src;
-            info.value = getReg(state, ops[1].reg);
+            if (stackBaseReg_.isValid() && ops[1].reg == stackBaseReg_)
+                info.value = SanitizerValue::makeStackAddr(0);
 
             // Keep the FIRST virtual register of the copy chain: a value moved into an
             // argument register has to be nameable again after the call clobbers that
@@ -1087,9 +1089,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             const PointerOrigin carried = takePointerOrigin(state, ops[1].reg);
 
             const SanitizerValue baseValue = getReg(state, ops[1].reg);
-            int64_t              slot      = 0;
-            if (resolveStackSlot(state, ops[1].reg, ops[3].valueU64, slot))
+            if (baseValue.isStackAddr())
             {
+                const int64_t slot = baseValue.stackOffset + static_cast<int64_t>(ops[3].valueU64);
                 // The formed address starts the object being addressed: that is the
                 // origin, unless the base already carries one (derived pointer).
                 const int64_t origin = baseValue.hasStackOrigin() ? baseValue.stackOrigin : slot;
@@ -1166,18 +1168,21 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             int64_t    slot            = 0;
             if (resolveAccessStackSlot(slot, state, inst, def, ops))
             {
-                const auto       it = state.stack.find(slot);
+                const bool wide = !extension && ops[indexed ? 3 : 2].opBits == MicroOpBits::B128;
                 SanitizerRegInfo info;
-                info.value                = it != state.stack.end() ? it->second : SanitizerValue{};
-                info.value.storedBytes    = 0;
+                if (wide)
+                    info.value = getStackLane(state, slot);
+                else
+                {
+                    const auto it = state.stack.find(slot);
+                    info.value    = it != state.stack.end() ? it->second : SanitizerValue{};
+                    info.value.storedBytes = 0;
+                }
                 info.hasOriginSlot        = true;
                 info.originSlot           = slot;
                 info.hasPointerOriginSlot = true;
                 info.pointerOriginSlot    = slot;
 
-                const bool wide = !extension && ops[indexed ? 3 : 2].opBits == MicroOpBits::B128;
-                if (wide)
-                    info.value = getStackLane(state, slot);
                 if (info.value.isConstant() && extension)
                 {
                     const uint32_t srcBits = getNumBits(ops[indexed ? 4 : 3].opBits);
@@ -1378,10 +1383,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         const uint64_t                 freesMask = calleeFn ? calleeFn->freesParamsMask() : 0;
         if (freesMask && ops)
         {
-            for (size_t i = 0; i < 64; i++)
+            for (uint64_t remaining = freesMask; remaining; remaining &= remaining - 1)
             {
-                if (!((freesMask >> i) & 1))
-                    continue;
+                const size_t i = std::countr_zero(remaining);
                 MicroReg argReg;
                 if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, i))
                     continue;
@@ -1520,10 +1524,15 @@ bool Sanitizer::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
 // and fall back to dropping provable zeros when it cannot be modelled.
 void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, SmallVector<uint32_t, 32>& worklist)
 {
-    const SanitizerRegInfo* subject = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
+    const bool              hasSubject    = state.flagsSubject.isValid();
+    const SanitizerRegInfo* subject       = hasSubject ? findReg(state, state.flagsSubject) : nullptr;
+    const SanitizerValue    subjectValue  = stackBaseReg_.isValid() && state.flagsSubject == stackBaseReg_
+                                               ? SanitizerValue::makeStackAddr(0)
+                                               : subject ? subject->value : SanitizerValue{};
 
     bool condTrueIfSubjectZero = false;
-    if (state.flagsSubject.isValid() && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero))
+    const bool isZeroTest = hasSubject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero);
+    if (isZeroTest)
     {
         // A zero-test whose subject value the state already proves decides the branch:
         // only the feasible edge is explored. Inlining a constant null folds the guard
@@ -1531,7 +1540,6 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
         // block, and walking it would report code that can never execute. The compare
         // width is not at hand here, so a constant only counts as non-zero when its low
         // byte is: b8 is the narrowest compare the builder emits.
-        const SanitizerValue subjectValue  = getReg(state, state.flagsSubject);
         const bool           provenZero    = subjectValue.isZero();
         const bool           provenNonZero = subjectValue.isConstant() && (subjectValue.constant & 0xFF) != 0;
         if (provenZero || provenNonZero)
@@ -1546,8 +1554,7 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
 
     int64_t slot                  = 0;
     bool    slotZeroIfSubjectZero = false;
-    if (subject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero) &&
-        resolveGuardSlot(*subject, slot, slotZeroIfSubjectZero))
+    if (subject && isZeroTest && resolveGuardSlot(*subject, slot, slotZeroIfSubjectZero))
     {
         // successors = [taken (cond true), fallthrough (cond false)].
         queueRefined(state, succs[0], slot, condTrueIfSubjectZero == slotZeroIfSubjectZero, worklist);
@@ -1566,7 +1573,7 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
     // bound check compares a constant index against a constant count, and dropping every
     // zero across it took the index `table[0]` is written with along with it - which is
     // what made the first element of a local table, and only the first, unnameable.
-    const bool dropAcrossEdge = state.flagsSubject.isValid() && !getReg(state, state.flagsSubject).isConstant();
+    const bool dropAcrossEdge = hasSubject && !subjectValue.isConstant();
     if (dropAcrossEdge)
         dropZeros(state);
     state.flagsSubject = MicroReg::invalid();

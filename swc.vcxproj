@@ -567,6 +567,7 @@
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Index.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Loop.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Switch.h"/>
+        <ClInclude Include="src\Compiler\Sema\Ast\SemaSwitchScope.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\CodeGenLoweringPayload.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericCloneFlags.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceKey.h"/>
@@ -798,6 +799,7 @@
         <ClInclude Include="src\Support\Report\Msg\Notes.Sanity.inc"/>
         <ClInclude Include="src\Support\Report\WarningPolicy.h"/>
         <ClInclude Include="src\Backend\Runtime.h"/>
+        <ClInclude Include="src\Backend\BinaryPatch.h"/>
         <ClInclude Include="src\Backend\RuntimeAllocator.h"/>
         <ClInclude Include="src\Backend\RuntimeAttribute.h"/>
         <ClInclude Include="src\Backend\RuntimeBackendConfig.h"/>
@@ -862,6 +864,7 @@
         <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.ArgNodes.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaVarDeclHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSymbolLookup.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOpKind.h"/>

@@ -77,10 +77,9 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
         if (!freesMask)
             return;
 
-        for (size_t i = 0; i < 64; i++)
+        for (uint64_t remaining = freesMask; remaining; remaining &= remaining - 1)
         {
-            if (!((freesMask >> i) & 1))
-                continue;
+            const size_t i = std::countr_zero(remaining);
 
             MicroReg argReg;
             if (!sanitizer.callParameterRegister(argReg, *fn, ops[0].callConv, i))
@@ -91,8 +90,9 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
 
             // A global's address never came from the allocator: releasing it has it write
             // its own bookkeeping over storage it never handed out. The value analysis
-            // proves the provenance, so no summary is needed to say it.
-            if (sanitizer.getReg(state, argReg).kind == SanitizerValueKind::GlobalAddr)
+            // proves the provenance, so no summary is needed to say it. ABI argument
+            // registers are physical, so the virtual stack-base override cannot apply.
+            if (argInfo->value.kind == SanitizerValueKind::GlobalAddr)
             {
                 sanitizer.report(inst, DiagnosticId::sanity_err_free_global);
                 return;

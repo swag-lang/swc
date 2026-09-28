@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
+#include "Compiler/Sema/Ast/SemaSwitchScope.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -649,12 +650,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         // Every case of a switch on an enum names the members bare, in its label and its body.
         const TypeRef enumTypeRef = switchEnumTypeRef(sema, exprView.typeRef());
-        if (enumTypeRef.isValid())
-        {
-            SemaFrame frame = sema.frame();
-            frame.pushScopeBindingType(enumTypeRef);
-            sema.pushFramePopOnPostNode(frame);
-        }
+        SemaSwitch::pushEnumScopeBinding(sema, enumTypeRef);
     }
 
     // Each completed case restarts the borrow flow from the switch entry state.

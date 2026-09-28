@@ -463,18 +463,7 @@ namespace
         const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
         if (!inlinePayload)
             inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
-
-        while (inlinePayload)
-        {
-            for (const auto& binding : inlinePayload->argMappings)
-            {
-                if (binding.idRef == idRef)
-                    return &binding;
-            }
-            inlinePayload = inlinePayload->parentInlinePayload;
-        }
-
-        return nullptr;
+        return SemaInline::findArgumentBinding(inlinePayload, idRef);
     }
 
     bool codeArgumentInlineContextTarget(Sema& sema, const SemaInlinePayload*& outTarget, AstNodeRef argRef)

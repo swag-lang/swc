@@ -236,11 +236,7 @@ SpanRef Parser::parseCompoundContentUntil(AstNodeId blockNodeId, std::span<const
         // Separator between statements
         if (parseCompoundSeparatorUntil(blockNodeId, tokenEndIds) == Result::Error)
         {
-            if (depthParen_ && is(TokenId::SymRightParen))
-                break;
-            if (depthBracket_ && is(TokenId::SymRightBracket))
-                break;
-            if (depthCurly_ && is(TokenId::SymRightCurly))
+            if (isRecoveryClosingDelimiter())
                 break;
         }
 

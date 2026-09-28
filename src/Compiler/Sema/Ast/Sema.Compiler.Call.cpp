@@ -201,17 +201,7 @@ namespace
             return nullptr;
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
-        while (inlinePayload)
-        {
-            for (const auto& binding : inlinePayload->argMappings)
-            {
-                if (binding.idRef == idRef)
-                    return &binding;
-            }
-            inlinePayload = inlinePayload->parentInlinePayload;
-        }
-
-        return nullptr;
+        return SemaInline::findArgumentBinding(inlinePayload, idRef);
     }
 
     AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef)

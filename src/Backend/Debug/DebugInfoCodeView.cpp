@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
+#include "Backend/BinaryPatch.h"
 #include "Backend/Debug/DebugPath.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeNames.h"
@@ -328,18 +329,6 @@ namespace
         writeU64(bytes, static_cast<uint64_t>(value));
     }
 
-    void patchU16(ByteArray& bytes, const uint32_t offset, const uint16_t value)
-    {
-        SWC_ASSERT(offset + sizeof(value) <= bytes.size());
-        std::memcpy(bytes.data() + offset, &value, sizeof(value));
-    }
-
-    void patchU32(ByteArray& bytes, const uint32_t offset, const uint32_t value)
-    {
-        SWC_ASSERT(offset + sizeof(value) <= bytes.size());
-        std::memcpy(bytes.data() + offset, &value, sizeof(value));
-    }
-
     void alignBytes(ByteArray& bytes, const uint32_t alignment)
     {
         bytes.align(alignment);
@@ -356,7 +345,7 @@ namespace
     void endRecord(ByteArray& bytes, const uint32_t recordOffset)
     {
         const uint16_t recordLength = static_cast<uint16_t>(bytes.size() - recordOffset - sizeof(uint16_t));
-        patchU16(bytes, recordOffset, recordLength);
+        BinaryPatch::write<uint16_t>(bytes, recordOffset, recordLength);
     }
 
     uint32_t beginTypeRecord(ByteArray& bytes, const uint16_t kind)
@@ -375,7 +364,7 @@ namespace
             bytes.pushBack(static_cast<std::byte>(0xF0u + i));
 
         const uint16_t recordLength = static_cast<uint16_t>(bytes.size() - recordOffset - sizeof(uint16_t));
-        patchU16(bytes, recordOffset, recordLength);
+        BinaryPatch::write<uint16_t>(bytes, recordOffset, recordLength);
     }
 
     uint32_t beginSubsection(ByteArray& bytes, const uint32_t type)
@@ -390,7 +379,7 @@ namespace
     {
         const uint32_t payloadOffset = lenOffset + sizeof(uint32_t);
         const uint32_t payloadSize   = static_cast<uint32_t>(bytes.size()) - payloadOffset;
-        patchU32(bytes, lenOffset, payloadSize);
+        BinaryPatch::write<uint32_t>(bytes, lenOffset, payloadSize);
         alignBytes(bytes, 4);
     }
 
@@ -1502,7 +1491,7 @@ namespace
             unwindReloc.type       = IMAGE_REL_AMD64_ADDR32NB;
             pdataSection.relocations.push_back(unwindReloc);
 
-            patchU32(pdataSection.bytes, pdataOffset + 4, static_cast<uint32_t>(function.machineCode->bytes.size()));
+            BinaryPatch::write<uint32_t>(pdataSection.bytes, pdataOffset + 4, static_cast<uint32_t>(function.machineCode->bytes.size()));
         }
 
         if (!xdataSection.bytes.empty())

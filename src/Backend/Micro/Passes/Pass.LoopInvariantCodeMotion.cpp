@@ -468,8 +468,10 @@ namespace
             // rescan the rest of the function for each loop.
             bodyIndices.clear();
             bodyIndices.reserve(loop->bodySize);
-            std::unordered_set<MicroReg> defsInLoop;
-            std::unordered_set<MicroReg> dereferenceBasesInLoop;
+            thread_local std::unordered_set<MicroReg> defsInLoop;
+            thread_local std::unordered_set<MicroReg> dereferenceBasesInLoop;
+            defsInLoop.clear();
+            dereferenceBasesInLoop.clear();
             bool                         loopHasCall         = false;
             bool                         loopHasReadOnlyCall = false;
             bool                         loopHasPointerStore = false;
@@ -648,7 +650,8 @@ namespace
                 std::vector<uint32_t> defSlots; // ascending
                 bool                  chainOk = true;
             };
-            std::unordered_map<MicroReg, RegWeb> websByReg;
+            thread_local std::unordered_map<MicroReg, RegWeb> websByReg;
+            websByReg.clear();
             slotDefReg.assign(n, MicroReg::invalid());
             slotIsFullDef.assign(n, 0);
             slotIsCompute.assign(n, 0);
@@ -713,7 +716,8 @@ namespace
             };
 
             std::unordered_set<uint32_t> hoistSet;
-            std::unordered_set<MicroReg> banned;
+            thread_local std::unordered_set<MicroReg> banned;
+            banned.clear();
 
             // The value a use reads at slot i is hoisted when every earlier def
             // of its register is: emission in listing order then reproduces it
@@ -922,8 +926,9 @@ namespace
             // preserves; reads between defs see an intermediate, which it does
             // not. A violating register is banned and the whole pipeline reruns
             // without it, cascading until stable.
-            std::unordered_map<MicroReg, uint32_t> inLoopUse;
-            bool                                   countedLoopUses = false;
+            thread_local std::unordered_map<MicroReg, uint32_t> inLoopUse;
+            inLoopUse.clear();
+            bool countedLoopUses = false;
             for (;;)
             {
                 runAcceptance();

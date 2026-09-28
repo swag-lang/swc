@@ -91,7 +91,7 @@ void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart par
     }
 
     const auto trySetTypeFromResolvedSymbol = [&] {
-        if (!part.has(SemaNodeViewPartE::Type))
+        if (!part.has(SemaNodeViewPartE::Type) || type_)
             return;
 
         const Symbol* sym = nullptr;

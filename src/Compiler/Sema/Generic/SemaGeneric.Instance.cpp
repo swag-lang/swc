@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Generic/SemaGenericStoredType.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
@@ -114,22 +115,7 @@ namespace SemaGeneric
             if (clonedTypeRef.isInvalid())
                 return Result::Error;
 
-            const SemaNodeView storedTypeView = sema.viewStored(clonedTypeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
-            outTypeRef                        = storedTypeView.typeRef();
-            if (!outTypeRef.isValid() && storedTypeView.hasSymbol() && storedTypeView.sym() && storedTypeView.sym()->isType())
-                outTypeRef = storedTypeView.sym()->typeRef();
-
-            if (!outTypeRef.isValid())
-            {
-                const AstNode& typeNode = sema.node(clonedTypeRef);
-                if (const auto* namedType = typeNode.safeCast<AstNamedType>())
-                {
-                    const SemaNodeView identView = sema.viewStored(namedType->nodeIdentRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
-                    outTypeRef                   = identView.typeRef();
-                    if (!outTypeRef.isValid() && identView.hasSymbol() && identView.sym() && identView.sym()->isType())
-                        outTypeRef = identView.sym()->typeRef();
-                }
-            }
+            SemaGenericStoredType::resolve(sema, clonedTypeRef, outTypeRef);
 
             return Result::Continue;
         }

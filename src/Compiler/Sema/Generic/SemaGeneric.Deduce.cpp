@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Generic/SemaGenericStoredType.h"
 #include "Compiler/Sema/Generic/SemaGeneric.ArgNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
@@ -1305,39 +1306,13 @@ namespace
         return true;
     }
 
-    bool resolveStoredTypeOrSymbol(Sema& sema, AstNodeRef nodeRef, TypeRef& outTypeRef)
-    {
-        outTypeRef = TypeRef::invalid();
-        if (nodeRef.isInvalid())
-            return false;
-
-        const SemaNodeView storedView = sema.viewStored(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
-        outTypeRef                    = storedView.typeRef();
-        if (!outTypeRef.isValid() && storedView.hasSymbol() && storedView.sym() && storedView.sym()->isType())
-            outTypeRef = storedView.sym()->typeRef();
-
-        if (!outTypeRef.isValid())
-        {
-            const AstNode& typeNode = sema.node(nodeRef);
-            if (const auto* namedType = typeNode.safeCast<AstNamedType>())
-            {
-                const SemaNodeView identView = sema.viewStored(namedType->nodeIdentRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
-                outTypeRef                   = identView.typeRef();
-                if (!outTypeRef.isValid() && identView.hasSymbol() && identView.sym() && identView.sym()->isType())
-                    outTypeRef = identView.sym()->typeRef();
-            }
-        }
-
-        return outTypeRef.isValid();
-    }
-
     Result resolveBoundTypeNode(Sema& sema, const SymbolFunction& function, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, TypeRef& outTypeRef)
     {
         outTypeRef = TypeRef::invalid();
 
         AstNodeRef clonedTypeRef = AstNodeRef::invalid();
         SWC_RESULT(SemaGeneric::Internal::evalGenericClonedNode(sema, function, sourceRef, bindings, SemaGeneric::Internal::GenericEvalReadyKind::TypeOrSymbol, clonedTypeRef));
-        resolveStoredTypeOrSymbol(sema, clonedTypeRef, outTypeRef);
+        SemaGenericStoredType::resolve(sema, clonedTypeRef, outTypeRef);
         return Result::Continue;
     }
 

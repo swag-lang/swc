@@ -15,6 +15,14 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.091 — Remove the inlined probe's collision back-edge jump
+
+- Recorded: 2026-09-28 01:50
+- Area: compiler/backend, post-allocation loop layout
+- Evidence: In wordfreq's first inlined probe, a key-length mismatch reaches the next slot through `inc rsi; and rsi, [rbx+0xC8]; jmp` before testing `used[idx]`. Including that test and the next key-length comparison, the collision path has seven instructions and three memory operands. LDC's winning loop has `inc r14; and r14, r10` followed directly by the `used` and key-length tests: six instructions and two memory operands. The mask load is the separate register-residency gap in .083; the unconditional back-edge jump is an additional control-flow cost. LDC duplicates the `used` test at loop entry to put the collision test after the increment without a jump. This is a static comparison, not a measured speedup.
+- Next: test a general guarded tail-duplication rule for a side-effect-free entry test with one fall-through entry and a collision back edge. Compare the full entry and collision paths, prove flag and memory safety, and check an unrelated eligible loop plus an ineligible one before retaining it.
+- Complete when the collision path loses the back-edge jump without an offsetting hot-path cost or the full-path comparison rules out the transformation.
+
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
 - Recorded: 2026-09-26 12:46

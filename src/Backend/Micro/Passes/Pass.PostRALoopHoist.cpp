@@ -592,8 +592,10 @@ namespace
         const auto slotKey = [](const MicroReg base, const uint64_t offset) {
             return (static_cast<uint64_t>(base.hash()) << 32) ^ offset;
         };
-        std::unordered_map<uint64_t, SlotUse> slots;
-        std::vector<FrameRef>                 blockedRanges;
+        thread_local std::unordered_map<uint64_t, SlotUse> slots;
+        thread_local std::vector<FrameRef>                 blockedRanges;
+        slots.clear();
+        blockedRanges.clear();
 
         for (uint32_t i = 0; i < n; ++i)
         {
@@ -943,12 +945,19 @@ namespace
             MicroReg      source;
         };
 
-        std::vector<Hoist>           hoists;
-        std::vector<MicroInstrRef>   erasures;
-        std::vector<Rewrite>         rewrites;
-        std::vector<Carried>         carried;
-        std::vector<SunkStore>       sunkStores;
-        std::unordered_set<uint32_t> claimed;
+        thread_local std::vector<Hoist>           hoists;
+        thread_local std::vector<MicroInstrRef>   erasures;
+        thread_local std::vector<Rewrite>         rewrites;
+        thread_local std::vector<Carried>         carried;
+        thread_local std::vector<SunkStore>       sunkStores;
+        thread_local std::unordered_set<uint32_t> claimed;
+        hoists.clear();
+        erasures.clear();
+        rewrites.clear();
+        carried.clear();
+        sunkStores.clear();
+        claimed.clear();
+        std::vector<FrameRef> writes;
 
         for (const NaturalLoop* loop : loops)
         {
@@ -965,7 +974,7 @@ namespace
             bool                  hasUnplaceableWrite = false;
             uint64_t              definedRegs         = 0;
             uint64_t              multiplyDefinedRegs = 0;
-            std::vector<FrameRef> writes;
+            writes.clear();
             for (uint32_t i = 0; i < n && !bodyOpaque; ++i)
             {
                 if (!inBody[i])

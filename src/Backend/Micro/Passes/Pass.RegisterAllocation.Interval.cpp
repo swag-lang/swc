@@ -45,7 +45,8 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
     // slot, so copy-shaped instructions can chain source and destination in
     // one register.
     const size_t virtualCount = denseVirtualRegs_.regs().size();
-    out.assign(virtualCount, LiveInterval{});
+    out.clear();
+    out.resize(virtualCount);
 
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
 
@@ -282,7 +283,8 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
         }
     };
 
-    outByPoolIndex.assign(outPoolRegs.size(), LiveInterval{});
+    outByPoolIndex.clear();
+    outByPoolIndex.resize(outPoolRegs.size());
     const uint32_t concreteWordCount = denseConcreteRegs_.wordCount();
     for (size_t poolIndex = 0; poolIndex < outPoolRegs.size(); ++poolIndex)
     {

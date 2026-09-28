@@ -50,11 +50,6 @@ namespace
         bool                  enumValues       = false;
     };
 
-    ForeachStmtCodeGenPayload* foreachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(nodeRef);
-    }
-
     bool foreachUsesCustomVisit(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(nodeRef);
@@ -528,7 +523,7 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
 
 Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForeachStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
@@ -548,7 +543,7 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
 
 Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    ForeachStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef exprRef  = codeGen.resolvedNodeRef(nodeExprRef);
@@ -622,7 +617,7 @@ Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen)
         return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), payload->visitFn);
     }
 
-    const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForeachStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();

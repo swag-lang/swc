@@ -46,11 +46,6 @@ namespace
         return CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, opBits);
     }
 
-    ConditionalExprCodeGenPayload* conditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(nodeRef);
-    }
-
     ConditionalExprCodeGenPayload& ensureConditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return codeGen.ensureNodePayload<ConditionalExprCodeGenPayload>(nodeRef);
@@ -58,17 +53,12 @@ namespace
 
     void eraseConditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        ConditionalExprCodeGenPayload* payload = conditionalExprCodeGenPayload(codeGen, nodeRef);
+        ConditionalExprCodeGenPayload* payload = codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(nodeRef);
         if (payload)
         {
             payload->falseLabel = MicroLabelRef::invalid();
             payload->doneLabel  = MicroLabelRef::invalid();
         }
-    }
-
-    NullCoalescingCodeGenPayload* nullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(nodeRef);
     }
 
     NullCoalescingCodeGenPayload& ensureNullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -78,7 +68,7 @@ namespace
 
     void eraseNullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        NullCoalescingCodeGenPayload* payload = nullCoalescingCodeGenPayload(codeGen, nodeRef);
+        NullCoalescingCodeGenPayload* payload = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(nodeRef);
         if (payload)
         {
             payload->falseLabel = MicroLabelRef::invalid();
@@ -117,7 +107,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     const bool                     ownsValue     = lowering && lowering->ownsValue;
     const bool                     addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
     MicroBuilder&                  builder       = codeGen.builder();
-    ConditionalExprCodeGenPayload* state         = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+    ConditionalExprCodeGenPayload* state         = codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef());
 
     // Qualification casts can rewrite a direct child to a different resolved reference.
     // Child callbacks still arrive in source order, so track the lowering stage explicitly.
@@ -277,7 +267,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     const TypeRef                       resultTypeRef = codeGen.transparentPayloadTypeRef();
     const bool                          addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
     MicroBuilder&                       builder       = codeGen.builder();
-    const NullCoalescingCodeGenPayload* state         = nullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const NullCoalescingCodeGenPayload* state         = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
 
     // Qualification casts can also rewrite either coalescing operand. The first direct
     // callback is the lhs; the presence of lowering state identifies the rhs callback.

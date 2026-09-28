@@ -96,11 +96,6 @@ namespace
         MicroLabelRef doneLabel = MicroLabelRef::invalid();
     };
 
-    CompilerScopeCodeGenPayload* compilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(nodeRef);
-    }
-
     void buildCompilerFunctionStackLayout(CodeGen& codeGen)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
@@ -441,7 +436,7 @@ Result AstCompilerScope::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
 Result AstCompilerScope::codeGenPostNode(CodeGen& codeGen)
 {
-    const CompilerScopeCodeGenPayload* scopeState = compilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const CompilerScopeCodeGenPayload* scopeState = codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(scopeState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
@@ -463,7 +458,7 @@ Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
     if (scopeRef.isInvalid())
         return Result::Continue;
 
-    const CompilerScopeCodeGenPayload* scopeState = compilerScopeCodeGenPayload(codeGen, scopeRef);
+    const CompilerScopeCodeGenPayload* scopeState = codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(scopeRef);
     SWC_ASSERT(scopeState != nullptr);
     if (!scopeState)
         return Result::Continue;

@@ -38,11 +38,6 @@ namespace
         outReg = boolReg;
     }
 
-    LogicalExprCodeGenPayload* logicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.safeNodePayload<LogicalExprCodeGenPayload>(nodeRef);
-    }
-
     LogicalExprCodeGenPayload& ensureLogicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return codeGen.ensureNodePayload<LogicalExprCodeGenPayload>(nodeRef);
@@ -50,14 +45,14 @@ namespace
 
     void eraseLogicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        LogicalExprCodeGenPayload* payload = logicalExprCodeGenPayload(codeGen, nodeRef);
+        LogicalExprCodeGenPayload* payload = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(nodeRef);
         if (payload)
             payload->doneLabel = MicroLabelRef::invalid();
     }
 
     bool emitLogicalRightOperandAndDone(CodeGen& codeGen, AstNodeRef nodeRef, AstNodeRef nodeRightRef)
     {
-        const LogicalExprCodeGenPayload* state = logicalExprCodeGenPayload(codeGen, nodeRef);
+        const LogicalExprCodeGenPayload* state = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(nodeRef);
         if (state == nullptr || state->doneLabel == MicroLabelRef::invalid())
             return false;
 
@@ -83,7 +78,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const AstNodeRef resolvedLeftRef  = codeGen.resolvedNodeRef(nodeLeftRef);
     const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(nodeRightRef);
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
-    const auto*      logicalState     = logicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const auto*      logicalState     = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(codeGen.curNodeRef());
 
     // Some semantic rewrites can substitute the lhs through helper nodes that no longer compare
     // equal by ref at codegen time. The first callback for a logical expression is still the lhs.

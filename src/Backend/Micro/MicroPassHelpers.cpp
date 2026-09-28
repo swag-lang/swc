@@ -708,7 +708,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     else
         out.useDefs.clear();
     if (recordDeadDefs)
-        out.deadDefs.assign(instCount, 0);
+        out.deadDefs.resize(instCount);
     else
         out.deadDefs.clear();
     scratch.useMasks.resize(instCount);
@@ -791,7 +791,6 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
             exitLiveOut |= maskOf(reg);
     }
 
-    out.liveIn.assign(instCount, 0);
     // Every node is visited below. Its live-out is overwritten on its first
     // visit; propagation reads only live-in, so no seed is needed.
     out.liveOut.resize(instCount);
@@ -823,11 +822,15 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     // reverse sweep. Only cyclic graphs need predecessor requeues.
     if (!cfg.hasLoop())
     {
+        // Every successor has been written before it is read, so retained
+        // entries need no zeroing on the acyclic path.
+        out.liveIn.resize(instCount);
         for (uint32_t i = instCount; i != 0;)
             updateLiveIn(--i);
     }
     else
     {
+        out.liveIn.assign(instCount, 0);
         // Graph walks run sequentially on a worker and reuse the same buffers.
         auto& inWorklist = scratch.marks;
         auto& worklist   = scratch.stack;

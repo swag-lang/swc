@@ -130,34 +130,6 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     return nodeRef;
 }
 
-EnumFlags<AstVarStorageFlagsE> Parser::parseStorageModifiers()
-{
-    EnumFlags<AstVarStorageFlagsE> storageFlags = AstVarStorageFlagsE::Zero;
-    for (;;)
-    {
-        AstVarStorageFlagsE storageFlag = AstVarStorageFlagsE::Zero;
-        switch (id())
-        {
-            case TokenId::KwdLate: storageFlag = AstVarStorageFlagsE::Late; break;
-            case TokenId::KwdTls: storageFlag = AstVarStorageFlagsE::Tls; break;
-            case TokenId::KwdGlobal: storageFlag = AstVarStorageFlagsE::Global; break;
-            default: break;
-        }
-
-        if (storageFlag == AstVarStorageFlagsE::Zero)
-            break;
-        if (storageFlags.has(storageFlag))
-        {
-            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_storage_modifier, ref());
-            diag.report(*ctx_);
-        }
-        storageFlags.add(storageFlag);
-        consume();
-    }
-
-    return storageFlags;
-}
-
 AstNodeRef Parser::parseVarDecl()
 {
     EnumFlags<AstVarDeclFlagsE>    flags        = AstVarDeclFlagsE::Zero;

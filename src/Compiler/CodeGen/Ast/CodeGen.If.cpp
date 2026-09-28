@@ -23,11 +23,6 @@ namespace
         return codeGen.safeNodePayload<IfStmtCodeGenPayload>(nodeRef);
     }
 
-    IfStmtCodeGenPayload& setIfStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const IfStmtCodeGenPayload& payloadValue)
-    {
-        return codeGen.setNodePayload(nodeRef, payloadValue);
-    }
-
     void eraseIfStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         IfStmtCodeGenPayload* payload = ifStmtCodeGenPayload(codeGen, nodeRef);
@@ -48,7 +43,7 @@ namespace
 
             // The branch bodies are emitted in later child callbacks, so keep their labels attached to the
             // `if` node until those callbacks run.
-            state = &setIfStmtCodeGenPayload(codeGen, ifRef, s);
+            state = &codeGen.setNodePayload(ifRef, s);
         }
         else
         {

@@ -55,11 +55,6 @@ namespace
         return codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(nodeRef);
     }
 
-    ForeachStmtCodeGenPayload& setForeachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const ForeachStmtCodeGenPayload& payloadValue)
-    {
-        return codeGen.setNodePayload(nodeRef, payloadValue);
-    }
-
     void eraseForeachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         ForeachStmtCodeGenPayload* payload = foreachStmtCodeGenPayload(codeGen, nodeRef);
@@ -534,7 +529,7 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
     loopState.whereFalseLabel = builder.createLabel();
     loopState.continueLabel   = builder.createLabel();
     loopState.doneLabel       = builder.createLabel();
-    setForeachStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    codeGen.setNodePayload(codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
 

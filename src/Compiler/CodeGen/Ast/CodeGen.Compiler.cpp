@@ -101,11 +101,6 @@ namespace
         return codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(nodeRef);
     }
 
-    CompilerScopeCodeGenPayload& setCompilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const CompilerScopeCodeGenPayload& payloadValue)
-    {
-        return codeGen.setNodePayload(nodeRef, payloadValue);
-    }
-
     void eraseCompilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         CompilerScopeCodeGenPayload* payload = compilerScopeCodeGenPayload(codeGen, nodeRef);
@@ -426,7 +421,7 @@ Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)
     MicroBuilder&               builder = codeGen.builder();
     CompilerScopeCodeGenPayload scopeState;
     scopeState.doneLabel = builder.createLabel();
-    setCompilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef(), scopeState);
+    codeGen.setNodePayload(codeGen.curNodeRef(), scopeState);
     return Result::Continue;
 }
 

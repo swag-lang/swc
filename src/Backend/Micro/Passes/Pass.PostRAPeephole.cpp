@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Support/Report/Assert.h"
@@ -22,6 +24,102 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using namespace PostRaPeephole;
+
+    // A RIP load needed only on one side of a forward branch need not run on
+    // the other side. Keep this after allocation: moving it earlier changes
+    // physical-register pressure, while moving it into the sole successor
+    // leaves allocation and the successful path's instruction count intact.
+    bool sinkRipLoadIntoBranchTarget(MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+
+        MicroStorage&        storage  = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        const auto&          cfg      = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+
+        const auto refs = cfg.instructionRefs();
+        thread_local MicroPassHelpers::MicroPhysLiveness liveness;
+        bool livenessReady = false;
+        for (MicroRelocation& relocation : context.builder->codeRelocations())
+        {
+            if (relocation.form != MicroRelocation::Form::Relative32 ||
+                (relocation.kind != MicroRelocation::Kind::ConstantAddress &&
+                relocation.kind != MicroRelocation::Kind::GlobalInitAddress &&
+                relocation.kind != MicroRelocation::Kind::GlobalZeroAddress))
+                continue;
+
+            const uint32_t loadIndex = cfg.indexOf(relocation.instructionRef);
+            if (loadIndex == MicroControlFlowGraph::K_NO_INDEX || loadIndex + 3 >= refs.size())
+                continue;
+            const MicroInstr* load = storage.ptr(refs[loadIndex]);
+            const auto*       ops  = load ? load->ops(operands) : nullptr;
+            if (!load || load->op != MicroInstrOpcode::LoadRegMem || !ops ||
+                ops[1].reg != MicroReg::instructionPointer())
+                continue;
+
+            const MicroReg dst = ops[0].reg;
+            if (MicroPassHelpers::MicroPhysLiveness::bitOf(dst) == MicroPassHelpers::MicroPhysLiveness::K_INVALID_BIT)
+                continue;
+
+            // Require a straight-line region. No intervening instruction may
+            // consume or redefine the loaded register, call, or write memory
+            // before the branch.
+            const uint32_t limit = static_cast<uint32_t>(refs.size());
+            for (uint32_t branchIndex = loadIndex + 1; branchIndex < limit; ++branchIndex)
+            {
+                const MicroInstr* inst = storage.ptr(refs[branchIndex]);
+                if (!inst || cfg.predecessors(branchIndex).size() != 1 ||
+                    cfg.predecessors(branchIndex)[0] != branchIndex - 1)
+                    break;
+                if (inst->op == MicroInstrOpcode::JumpCond)
+                {
+                    const auto& successors = cfg.successors(branchIndex);
+                    if (successors.size() != 2)
+                        break;
+                    const uint32_t target = successors[0];
+                    if (target <= branchIndex + 1 || target + 1 >= refs.size() ||
+                        cfg.predecessors(target).size() != 1 || cfg.predecessors(target)[0] != branchIndex ||
+                        cfg.predecessors(target + 1).size() != 1 || cfg.predecessors(target + 1)[0] != target)
+                        break;
+                    const MicroInstr* targetInst = storage.ptr(refs[target]);
+                    const MicroInstr* nextInst   = storage.ptr(refs[target + 1]);
+                    if (!targetInst || targetInst->op != MicroInstrOpcode::Label ||
+                        !nextInst || nextInst->op == MicroInstrOpcode::Label ||
+                        std::ranges::find(cfg.addressTakenLabelIndices(), target) != cfg.addressTakenLabelIndices().end())
+                        break;
+
+                    if (!livenessReady)
+                    {
+                        MicroPassHelpers::computePhysicalLiveness(liveness, context);
+                        livenessReady = true;
+                    }
+                    const uint32_t bit = MicroPassHelpers::MicroPhysLiveness::bitOf(dst);
+                    if (!liveness.valid || !(liveness.liveIn[target] & (1ull << bit)) ||
+                        (liveness.liveIn[branchIndex + 1] & (1ull << bit)))
+                        break;
+
+                    MicroInstrOperand movedOps[4];
+                    std::copy_n(ops, 4, movedOps);
+                    const MicroInstrRef moved = storage.insertDerivedBefore(operands, refs[target + 1], MicroInstrOpcode::LoadRegMem,
+                                                                            movedOps);
+                    relocation.instructionRef = moved;
+                    storage.erase(refs[loadIndex]);
+                    return true;
+                }
+
+                const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                if (std::ranges::find(useDef.uses, dst) != useDef.uses.end() ||
+                    std::ranges::find(useDef.defs, dst) != useDef.defs.end() ||
+                    useDef.isCall || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory) ||
+                    MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                    break;
+            }
+        }
+        return false;
+    }
 
     PatternRegistry buildRegistry()
     {
@@ -190,6 +288,12 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
+
+    if (sinkRipLoadIntoBranchTarget(context))
+    {
+        context.passChanged = true;
+        return Result::Continue;
+    }
 
     // Reuse the analysis and rewrite storage on this worker. All facts and
     // claims below belong to one pass run and must be reset before its scan.

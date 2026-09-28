@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Support/Core/DenseBits.h"
 
@@ -1242,25 +1243,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
     std::vector<Trampoline> trampolines;
 
-    const auto invertMicroCond = [](const MicroCond cond, MicroCond& outInverted) {
-        switch (cond)
-        {
-            case MicroCond::Equal: outInverted = MicroCond::NotEqual; return true;
-            case MicroCond::NotEqual: outInverted = MicroCond::Equal; return true;
-            case MicroCond::Zero: outInverted = MicroCond::NotZero; return true;
-            case MicroCond::NotZero: outInverted = MicroCond::Zero; return true;
-            case MicroCond::Below: outInverted = MicroCond::AboveOrEqual; return true;
-            case MicroCond::AboveOrEqual: outInverted = MicroCond::Below; return true;
-            case MicroCond::BelowOrEqual: outInverted = MicroCond::Above; return true;
-            case MicroCond::Above: outInverted = MicroCond::BelowOrEqual; return true;
-            case MicroCond::Less: outInverted = MicroCond::GreaterOrEqual; return true;
-            case MicroCond::GreaterOrEqual: outInverted = MicroCond::Less; return true;
-            case MicroCond::LessOrEqual: outInverted = MicroCond::Greater; return true;
-            case MicroCond::Greater: outInverted = MicroCond::LessOrEqual; return true;
-            default: return false;
-        }
-    };
-
     // The width a register move carries: the whole value, 128 bits for a
     // float some instruction names that wide and 64 otherwise - the width
     // ensureSpillSlot gives a home, whether or not this value ever gets one.
@@ -1476,7 +1458,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             {
                 MicroCond                inverted = MicroCond::Unconditional;
                 const MicroInstrOperand* predOps  = predInst->ops(*operands_);
-                if (!isConditional || !predOps || !invertMicroCond(predOps[0].cpuCond, inverted))
+                if (!isConditional || !predOps || !MicroPassHelpers::invertLayoutBranchCondition(inverted, predOps[0].cpuCond))
                 {
                     if (!plainOk)
                         return false; // uninvertible edge

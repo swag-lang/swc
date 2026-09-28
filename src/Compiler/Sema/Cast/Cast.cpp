@@ -679,17 +679,8 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
 
 CastFlags Cast::autoCastFlags(const AstModifierFlags modifierFlags)
 {
-    CastFlags castFlags = CastFlagsE::DeducedDestination;
-    if (modifierFlags.has(AstModifierFlagsE::Bit))
-        castFlags.add(CastFlagsE::BitCast);
-    if (modifierFlags.has(AstModifierFlagsE::UnConst))
-        castFlags.add(CastFlagsE::UnConst);
-    if (modifierFlags.has(AstModifierFlagsE::Wrap))
-        castFlags.add(CastFlagsE::NoOverflow);
-    if (modifierFlags.has(AstModifierFlagsE::Try))
-        castFlags.add(CastFlagsE::Try);
-    if (modifierFlags.has(AstModifierFlagsE::Assume))
-        castFlags.add(CastFlagsE::Assume);
+    CastFlags castFlags = modifierCastFlags(modifierFlags);
+    castFlags.add(CastFlagsE::DeducedDestination);
     return castFlags;
 }
 

@@ -554,26 +554,10 @@ namespace PostRaPeephole
             return false;
         const MicroReg other = xorOps[1].reg;
 
-        const MicroInstrRef otherLoadRef  = ctx.previousRef(copyRef);
-        const MicroInstr*   otherLoad     = ctx.instruction(otherLoadRef);
-        const auto*         otherLoadOps  = otherLoad ? otherLoad->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef resultLoadRef = ctx.previousRef(otherLoadRef);
-        const MicroInstr*   resultLoad    = ctx.instruction(resultLoadRef);
-        const auto*         resultLoadOps = resultLoad ? resultLoad->ops(*ctx.operands) : nullptr;
-        if (!otherLoad || otherLoad->op != MicroInstrOpcode::LoadAmcRegMem || !otherLoadOps ||
-            otherLoadOps[0].reg != other || otherLoadOps[3].opBits != bits || otherLoadOps[4].opBits != MicroOpBits::B64 ||
-            !resultLoad || resultLoad->op != MicroInstrOpcode::LoadAmcRegMem || !resultLoadOps ||
-            resultLoadOps[0].reg != result || resultLoadOps[3].opBits != bits || resultLoadOps[4].opBits != MicroOpBits::B64)
+        WidenableAmcLoadPair loads;
+        if (!loads.match(ctx, copyRef, result, other, bits))
             return false;
 
-        MicroInstrOperand widenedResultLoad[7];
-        MicroInstrOperand widenedOtherLoad[7];
-        std::copy_n(resultLoadOps, 7, widenedResultLoad);
-        std::copy_n(otherLoadOps, 7, widenedOtherLoad);
-        widenedResultLoad[3].opBits       = MicroOpBits::B32;
-        widenedResultLoad[4].opBits       = bits;
-        widenedOtherLoad[3].opBits        = MicroOpBits::B32;
-        widenedOtherLoad[4].opBits        = bits;
         MicroInstrOperand widenedAdd[4]   = {mergeOps[0], mergeOps[1], mergeOps[2], mergeOps[3]};
         widenedAdd[0].reg                 = result;
         widenedAdd[2].opBits              = MicroOpBits::B32;
@@ -592,16 +576,16 @@ namespace PostRaPeephole
         incrementProbe.op          = MicroInstrOpcode::OpUnaryReg;
         incrementProbe.numOperands = 3;
         MicroConformanceIssue issue;
-        if (ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedResultLoad) ||
-            ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedOtherLoad) ||
+        if (ctx.encoder->queryConformanceIssue(issue, loadProbe, loads.resultOps) ||
+            ctx.encoder->queryConformanceIssue(issue, loadProbe, loads.otherOps) ||
             ctx.encoder->queryConformanceIssue(issue, *merge, widenedAdd) ||
             ctx.encoder->queryConformanceIssue(issue, *shift, widenedShift) ||
             (ceil && ctx.encoder->queryConformanceIssue(issue, incrementProbe, increment)) ||
-            !ctx.claimAll({resultLoadRef, otherLoadRef, copyRef, mergeRef, xorRef, shiftRef, combineRef, extendRef}))
+            !ctx.claimAll({loads.resultRef, loads.otherRef, copyRef, mergeRef, xorRef, shiftRef, combineRef, extendRef}))
             return false;
 
-        ctx.emitRewrite(resultLoadRef, loadProbe.op, widenedResultLoad, true);
-        ctx.emitRewrite(otherLoadRef, loadProbe.op, widenedOtherLoad, true);
+        ctx.emitRewrite(loads.resultRef, loadProbe.op, loads.resultOps, true);
+        ctx.emitRewrite(loads.otherRef, loadProbe.op, loads.otherOps, true);
         ctx.emitErase(copyRef);
         ctx.emitRewrite(mergeRef, merge->op, widenedAdd);
         if (ceil)

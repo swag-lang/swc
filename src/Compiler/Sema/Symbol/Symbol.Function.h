@@ -225,6 +225,9 @@ public:
             return true;
 
         const auto& params = parameters();
+        const auto  index  = var.parameterIndex();
+        if (index < params.size() && params[index] == &var)
+            return true;
         return std::ranges::find(params, &var) != params.end();
     }
     void                                addParameter(SymbolVariable* sym);

@@ -1,8 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/SymbolMap.h"
+#include "Compiler/Sema/Symbol/SymbolOwnerFunction.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 
@@ -13,15 +12,7 @@ const SymbolFunction* SymbolVariable::ownerFunction() const noexcept
     if (!hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
         return nullptr;
 
-    const SymbolMap* map = ownerSymMap();
-    while (map)
-    {
-        if (map->isFunction())
-            return &map->cast<SymbolFunction>();
-        map = map->ownerSymMap();
-    }
-
-    return nullptr;
+    return SymbolOwnerFunction::nearest(ownerSymMap());
 }
 
 bool SymbolVariable::isUsingField() const noexcept

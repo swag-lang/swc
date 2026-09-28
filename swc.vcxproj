@@ -892,6 +892,7 @@
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Impl.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Interface.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Module.h"/>
+        <ClInclude Include="src\Compiler\Sema\Symbol\SymbolOwnerFunction.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Struct.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Variable.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h"/>

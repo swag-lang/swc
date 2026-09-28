@@ -1054,12 +1054,13 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             // A move or a widening extension propagates the whole tracked info (value +
             // origin + zero-test fact). Extensions only widen (bool/narrow int -> wider),
             // so zero-ness and the guard facts are preserved: `dst == 0` iff the source
-            // (and its origin slot) is zero. The value goes through getReg so the special
-            // stack-base register is resolved even though it is not stored in the map.
+            // (and its origin slot) is zero. The stack-base register has a special value
+            // outside the map.
             SanitizerRegInfo info;
             if (const SanitizerRegInfo* src = findReg(state, ops[1].reg))
                 info = *src;
-            info.value = getReg(state, ops[1].reg);
+            if (stackBaseReg_.isValid() && ops[1].reg == stackBaseReg_)
+                info.value = SanitizerValue::makeStackAddr(0);
 
             // Keep the FIRST virtual register of the copy chain: a value moved into an
             // argument register has to be nameable again after the call clobbers that
@@ -1088,9 +1089,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             const PointerOrigin carried = takePointerOrigin(state, ops[1].reg);
 
             const SanitizerValue baseValue = getReg(state, ops[1].reg);
-            int64_t              slot      = 0;
-            if (resolveStackSlot(state, ops[1].reg, ops[3].valueU64, slot))
+            if (baseValue.isStackAddr())
             {
+                const int64_t slot = baseValue.stackOffset + static_cast<int64_t>(ops[3].valueU64);
                 // The formed address starts the object being addressed: that is the
                 // origin, unless the base already carries one (derived pointer).
                 const int64_t origin = baseValue.hasStackOrigin() ? baseValue.stackOrigin : slot;

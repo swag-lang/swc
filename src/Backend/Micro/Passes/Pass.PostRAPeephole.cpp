@@ -145,6 +145,306 @@ namespace
         return false;
     }
 
+    // A spill store may be delayed until the sole branch that reads its home.
+    // Restrict this to allocator-owned slots: program pointers cannot reach
+    // them, and every explicit frame access can be checked by its offset.
+    bool sinkFrameStoreIntoBranchTarget(MicroPassContext& context)
+    {
+        if (!context.builder || context.spillAreaLo >= context.spillAreaHi ||
+            context.spillAreaHi - context.spillAreaLo < sizeof(uint64_t))
+            return false;
+
+        MicroStorage&        storage  = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        const auto&          cfg      = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+
+        const auto      refs = cfg.instructionRefs();
+        const MicroReg  stack = CallConv::get(context.callConvKind).stackPointer;
+        for (uint32_t storeIndex = 0; storeIndex + 2 < refs.size(); ++storeIndex)
+        {
+            const MicroInstr* store = storage.ptr(refs[storeIndex]);
+            const auto*       saved = store && store->op == MicroInstrOpcode::LoadMemReg ? store->ops(operands) : nullptr;
+            if (!saved || saved[0].reg != stack || !saved[1].reg.isInt() || saved[1].reg == stack ||
+                saved[2].opBits != MicroOpBits::B64 || saved[3].valueU64 < context.spillAreaLo ||
+                saved[3].valueU64 > context.spillAreaHi - sizeof(uint64_t))
+                continue;
+
+            const MicroReg value  = saved[1].reg;
+            const uint64_t offset = saved[3].valueU64;
+            uint32_t       reloadIndex = MicroControlFlowGraph::K_NO_INDEX;
+            bool           slotOpaque  = false;
+            std::vector<uint32_t> sameStores;
+            for (uint32_t index = 0; index < refs.size(); ++index)
+            {
+                const MicroInstr* inst = storage.ptr(refs[index]);
+                if (!inst)
+                {
+                    slotOpaque = true;
+                    break;
+                }
+                const auto* ops  = inst->ops(operands);
+                const auto& info = MicroInstr::info(inst->op);
+                const bool indexedMemory = inst->op == MicroInstrOpcode::LoadAmcRegMem ||
+                                           inst->op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
+                                           inst->op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
+                                           inst->op == MicroInstrOpcode::LoadAmcMemReg ||
+                                           inst->op == MicroInstrOpcode::LoadAmcMemImm ||
+                                           inst->op == MicroInstrOpcode::OpBinaryRegAmcMem ||
+                                           inst->op == MicroInstrOpcode::OpUnaryAmcMem ||
+                                           inst->op == MicroInstrOpcode::OpBinaryAmcMemReg ||
+                                           inst->op == MicroInstrOpcode::OpBinaryAmcMemImm ||
+                                           inst->op == MicroInstrOpcode::CmpAmcImm ||
+                                           inst->op == MicroInstrOpcode::CmpAmcReg ||
+                                           inst->op == MicroInstrOpcode::VecUnaryAmcRegMem ||
+                                           inst->op == MicroInstrOpcode::CmpRegAmc;
+                if (ops && indexedMemory)
+                {
+                    for (uint8_t operand = 0; operand < std::min<uint8_t>(inst->numOperands, 3); ++operand)
+                        slotOpaque = slotOpaque || ops[operand].reg == stack;
+                    if (slotOpaque)
+                        break;
+                }
+                if (!ops || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) ||
+                    ops[info.memBaseOperandIndex].reg != stack)
+                    continue;
+
+                const uint64_t accessOffset = ops[info.memOffsetOperandIndex].valueU64;
+                uint64_t accessSize = 64;
+                if (inst->op == MicroInstrOpcode::LoadRegMem || inst->op == MicroInstrOpcode::LoadMemReg)
+                    accessSize = getNumBytes(ops[2].opBits);
+                else if (inst->op == MicroInstrOpcode::LoadMemImm)
+                    accessSize = getNumBytes(ops[1].opBits);
+                if (accessOffset > offset + 7 || (accessOffset < offset && offset - accessOffset >= accessSize))
+                    continue;
+                if (inst->op == MicroInstrOpcode::LoadMemReg && accessOffset == offset &&
+                    ops[1].reg == value && ops[2].opBits == MicroOpBits::B64)
+                {
+                    sameStores.push_back(index);
+                    continue;
+                }
+                if (inst->op == MicroInstrOpcode::LoadRegMem && accessOffset == offset &&
+                    ops[2].opBits == MicroOpBits::B64 && reloadIndex == MicroControlFlowGraph::K_NO_INDEX)
+                {
+                    reloadIndex = index;
+                    continue;
+                }
+                slotOpaque = true;
+                break;
+            }
+            if (slotOpaque || reloadIndex == MicroControlFlowGraph::K_NO_INDEX || reloadIndex <= storeIndex)
+                continue;
+
+            for (uint32_t labelIndex = storeIndex + 1; labelIndex < reloadIndex; ++labelIndex)
+            {
+                const MicroInstr* label = storage.ptr(refs[labelIndex]);
+                const MicroInstr* targetFirst = labelIndex + 1 < refs.size() ? storage.ptr(refs[labelIndex + 1]) : nullptr;
+                if (!label || label->op != MicroInstrOpcode::Label || cfg.predecessors(labelIndex).size() != 1 ||
+                    std::ranges::find(cfg.addressTakenLabelIndices(), labelIndex) != cfg.addressTakenLabelIndices().end() ||
+                    !targetFirst || targetFirst->op == MicroInstrOpcode::Label)
+                    continue;
+                const uint32_t branchIndex = cfg.predecessors(labelIndex)[0];
+                const MicroInstr* branch = storage.ptr(refs[branchIndex]);
+                if (!branch || branch->op != MicroInstrOpcode::JumpCond || branchIndex <= storeIndex ||
+                    branchIndex >= labelIndex)
+                    continue;
+
+                // The target must dominate its only reader, even through the
+                // loop back edge. Otherwise delaying the write leaves a path
+                // that can observe an older slot value.
+                std::vector<uint32_t> pending = {0};
+                std::vector<uint8_t>  seen(refs.size(), 0);
+                bool                  dominates = true;
+                while (!pending.empty() && dominates)
+                {
+                    const uint32_t index = pending.back();
+                    pending.pop_back();
+                    if (index == labelIndex || seen[index])
+                        continue;
+                    seen[index] = 1;
+                    if (index == reloadIndex)
+                    {
+                        dominates = false;
+                        break;
+                    }
+                    for (const uint32_t successor : cfg.successors(index))
+                        pending.push_back(successor);
+                }
+                if (!dominates)
+                    continue;
+
+                // A matching offset names the same slot only when the stack
+                // pointer has the same value at the moved store and the read.
+                // Track balanced outgoing-call adjustments on every route.
+                std::vector<uint8_t> reachesRead(refs.size(), 0);
+                pending.assign(1, reloadIndex);
+                while (!pending.empty())
+                {
+                    const uint32_t index = pending.back();
+                    pending.pop_back();
+                    if (reachesRead[index])
+                        continue;
+                    reachesRead[index] = 1;
+                    for (const uint32_t predecessor : cfg.predecessors(index))
+                        pending.push_back(predecessor);
+                }
+                std::vector<int64_t> stackDelta(refs.size(), INT64_MIN);
+                pending.assign(1, labelIndex);
+                stackDelta[labelIndex] = 0;
+                bool stableStack = true;
+                while (!pending.empty() && stableStack)
+                {
+                    const uint32_t index = pending.back();
+                    pending.pop_back();
+                    if (!reachesRead[index])
+                        continue;
+                    const MicroInstr* inst = storage.ptr(refs[index]);
+                    if (!inst)
+                    {
+                        stableStack = false;
+                        break;
+                    }
+                    const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                    int64_t                nextDelta = stackDelta[index];
+                    if (std::ranges::find(useDef.defs, stack) != useDef.defs.end())
+                    {
+                        const auto* ops = inst->ops(operands);
+                        if (inst->op == MicroInstrOpcode::OpBinaryRegImm && ops && ops[0].reg == stack &&
+                            ops[1].opBits == MicroOpBits::B64 && ops[3].valueU64 <= 0x100000 &&
+                            (ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract))
+                            nextDelta += ops[2].microOp == MicroOp::Add ? static_cast<int64_t>(ops[3].valueU64) :
+                                                                      -static_cast<int64_t>(ops[3].valueU64);
+                        else if (inst->op == MicroInstrOpcode::Push)
+                            nextDelta -= 8;
+                        else if (inst->op == MicroInstrOpcode::Pop)
+                            nextDelta += 8;
+                        else
+                        {
+                            stableStack = false;
+                            break;
+                        }
+                    }
+                    if (nextDelta > 0 || (index == reloadIndex && nextDelta != 0))
+                    {
+                        stableStack = false;
+                        break;
+                    }
+                    if (index != reloadIndex)
+                    {
+                        for (const uint32_t successor : cfg.successors(index))
+                        {
+                            if (!reachesRead[successor])
+                                continue;
+                            if (stackDelta[successor] == INT64_MIN)
+                            {
+                                stackDelta[successor] = nextDelta;
+                                pending.push_back(successor);
+                            }
+                            else if (stackDelta[successor] != nextDelta)
+                            {
+                                stableStack = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!stableStack)
+                    continue;
+
+                // On every incoming path, the register must still equal the
+                // slot's last value. A later loop-latch store is also a valid
+                // source; the store we move is the source on the first trip.
+                pending.assign(1, branchIndex);
+                std::unordered_set<uint32_t> visited;
+                bool valid = true;
+                while (!pending.empty() && valid)
+                {
+                    const uint32_t index = pending.back();
+                    pending.pop_back();
+                    if (!visited.insert(index).second || visited.size() > 256)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    const MicroInstr* inst = storage.ptr(refs[index]);
+                    if (!inst)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    const auto* ops = inst->ops(operands);
+                    if (ops && inst->op == MicroInstrOpcode::LoadMemReg &&
+                        ops[0].reg == stack && ops[1].reg == value &&
+                        ops[2].opBits == MicroOpBits::B64 && ops[3].valueU64 == offset)
+                        continue;
+                    if (index == reloadIndex ||
+                        MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory) ||
+                        MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    {
+                        valid = false;
+                        break;
+                    }
+                    const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                    if (std::ranges::find(useDef.defs, value) != useDef.defs.end() ||
+                        std::ranges::find(useDef.defs, stack) != useDef.defs.end() ||
+                        cfg.predecessors(index).empty())
+                    {
+                        valid = false;
+                        break;
+                    }
+                    for (const uint32_t predecessor : cfg.predecessors(index))
+                        pending.push_back(predecessor);
+                }
+                if (!valid)
+                    continue;
+
+                // A later write to this private slot is dead when every route
+                // from that write to the sole read crosses the new cold-entry
+                // store. This removes the loop-latch write on the hot path.
+                std::vector<MicroInstrRef> deadStores;
+                for (const uint32_t otherStore : sameStores)
+                {
+                    if (otherStore == storeIndex)
+                        continue;
+                    pending.clear();
+                    for (const uint32_t successor : cfg.successors(otherStore))
+                        pending.push_back(successor);
+                    std::fill(seen.begin(), seen.end(), 0);
+                    bool readBeforeCold = false;
+                    while (!pending.empty() && !readBeforeCold)
+                    {
+                        const uint32_t index = pending.back();
+                        pending.pop_back();
+                        if (index == labelIndex || seen[index])
+                            continue;
+                        seen[index] = 1;
+                        if (index == reloadIndex)
+                        {
+                            readBeforeCold = true;
+                            break;
+                        }
+                        for (const uint32_t successor : cfg.successors(index))
+                            pending.push_back(successor);
+                    }
+                    if (!readBeforeCold)
+                        deadStores.push_back(refs[otherStore]);
+                }
+                if (deadStores.empty())
+                    continue;
+
+                MicroInstrOperand movedOps[4];
+                std::copy_n(saved, 4, movedOps);
+                storage.insertDerivedBefore(operands, refs[labelIndex + 1], MicroInstrOpcode::LoadMemReg, movedOps);
+                storage.erase(refs[storeIndex]);
+                for (const MicroInstrRef deadStore : deadStores)
+                    storage.erase(deadStore);
+                return true;
+            }
+        }
+        return false;
+    }
+
     // A RIP load needed only on one side of a forward branch need not run on
     // the other side. Keep this after allocation: moving it earlier changes
     // physical-register pressure, while moving it into the sole successor
@@ -409,7 +709,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    if (sinkFrameReloadToFallthrough(context) || sinkRipLoadIntoBranchTarget(context))
+    if (sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context))
     {
         context.passChanged = true;
         return Result::Continue;

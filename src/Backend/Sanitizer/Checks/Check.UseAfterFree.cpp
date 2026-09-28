@@ -77,10 +77,9 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
         if (!freesMask)
             return;
 
-        for (size_t i = 0; i < 64; i++)
+        for (uint64_t remaining = freesMask; remaining; remaining &= remaining - 1)
         {
-            if (!((freesMask >> i) & 1))
-                continue;
+            const size_t i = std::countr_zero(remaining);
 
             MicroReg argReg;
             if (!sanitizer.callParameterRegister(argReg, *fn, ops[0].callConv, i))

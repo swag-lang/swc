@@ -1383,10 +1383,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         const uint64_t                 freesMask = calleeFn ? calleeFn->freesParamsMask() : 0;
         if (freesMask && ops)
         {
-            for (size_t i = 0; i < 64; i++)
+            for (uint64_t remaining = freesMask; remaining; remaining &= remaining - 1)
             {
-                if (!((freesMask >> i) & 1))
-                    continue;
+                const size_t i = std::countr_zero(remaining);
                 MicroReg argReg;
                 if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, i))
                     continue;

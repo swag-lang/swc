@@ -453,8 +453,10 @@ namespace
                 }
             };
 
-            std::vector<Candidate> products;
-            std::vector<Candidate> sums;
+            thread_local std::vector<Candidate> products;
+            thread_local std::vector<Candidate> sums;
+            products.clear();
+            sums.clear();
             for (uint32_t i = 0; i < n; ++i)
             {
                 if (!inBody[i])
@@ -610,16 +612,18 @@ namespace
 
             // Products first; the sums over the accumulators they make are for
             // a later sweep, once copy elimination has put the accumulator
-            // itself in the sum.
-            std::vector<Candidate> chosen;
-            if (!products.empty())
-                chosen = std::move(products);
-            else
+            // itself in the sum. Select the existing product buffer directly,
+            // so both candidate buffers keep their capacity for later loops.
+            thread_local std::vector<Candidate> chosenSums;
+            chosenSums.clear();
+            const std::vector<Candidate>* chosen = &products;
+            if (products.empty())
             {
                 // A sum is carried only when it takes every use of its
                 // induction with it, so the induction dies and the carried
                 // pointer costs no register.
-                std::unordered_map<uint32_t, uint32_t> sumsPerInduction;
+                thread_local std::unordered_map<uint32_t, uint32_t> sumsPerInduction;
+                sumsPerInduction.clear();
                 for (const Candidate& candidate : sums)
                     ++sumsPerInduction[candidate.inductionIx];
                 for (const Candidate& candidate : sums)
@@ -629,19 +633,23 @@ namespace
                     const uint32_t   useCount  = useIt == uses.end() ? 0 : useIt->second.count;
                     // The step reads the induction once itself.
                     if (useCount == sumsPerInduction[candidate.inductionIx] + 1)
-                        chosen.push_back(candidate);
+                        chosenSums.push_back(candidate);
                 }
+                chosen = &chosenSums;
             }
-            if (chosen.empty())
+            if (chosen->empty())
                 continue;
 
             if (nextVirtualIntRegIndex == 0)
                 nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
-            std::vector<Carrier>         carriers;
-            std::vector<MicroInstrRef>   erased;
-            std::unordered_set<uint32_t> inductionsCarried;
-            for (const Candidate& candidate : chosen)
+            thread_local std::vector<Carrier>         carriers;
+            thread_local std::vector<MicroInstrRef>   erased;
+            thread_local std::unordered_set<uint32_t> inductionsCarried;
+            carriers.clear();
+            erased.clear();
+            inductionsCarried.clear();
+            for (const Candidate& candidate : *chosen)
             {
                 const Induction& induction = inductions[candidate.inductionIx];
 

@@ -59,6 +59,21 @@ struct SemaInlinePayload
 
 namespace SemaInline
 {
+    inline const SemaClone::ParamBinding* findArgumentBinding(const SemaInlinePayload* payload, IdentifierRef idRef)
+    {
+        while (payload)
+        {
+            for (const auto& binding : payload->argMappings)
+            {
+                if (binding.idRef == idRef)
+                    return &binding;
+            }
+            payload = payload->parentInlinePayload;
+        }
+
+        return nullptr;
+    }
+
     inline bool hasReturnContext(const SemaInlinePayload& payload) { return !payload.returnsToCallerSite() && payload.returnTypeRef.isValid(); }
 
     inline SemaInlinePayload* returnContextPayload(SemaInlinePayload* payload)

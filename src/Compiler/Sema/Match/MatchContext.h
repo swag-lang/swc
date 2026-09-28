@@ -85,15 +85,9 @@ public:
     SmallVector<Priority>         symMapPriorities;
 
 private:
-    struct CandidateSymbol
-    {
-        const Symbol* symbol;
-        Priority      priority;
-    };
-
     SmallVector<const Symbol*> symbols_;
     // Unique symbols in first-discovery order, including candidates below the best priority.
-    SmallVector<CandidateSymbol> allSymbols_;
+    SmallVector<const Symbol*> allSymbols_;
 
     Priority bestPriority_        = {};
     Priority ignoredBestPriority_ = {};

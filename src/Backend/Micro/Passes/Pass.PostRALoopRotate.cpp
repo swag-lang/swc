@@ -757,13 +757,21 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
             continue;
 
         // Falling out of the rotated back edge must land where the header test
-        // used to send control, which it does exactly when the exit label is
-        // what physically follows the back edge.
+        // used to send control. Adjacent labels name the same instruction, so
+        // the exit label may follow other labels without changing that path.
         if (backOrdinal + 1 >= order.size())
             continue;
-        const MicroInstr* afterBack = storage.ptr(order[backOrdinal + 1]);
-        uint32_t          afterId   = 0;
-        if (!afterBack || !tryGetLabelId(afterId, *afterBack, afterBack->ops(operands)) || afterId != exitLabelId)
+        bool exitsAfterBack = false;
+        for (uint32_t after = backOrdinal + 1; after < order.size(); ++after)
+        {
+            const MicroInstr* afterInst = storage.ptr(order[after]);
+            uint32_t          afterId   = 0;
+            if (!afterInst || !tryGetLabelId(afterId, *afterInst, afterInst->ops(operands)))
+                break;
+            if (afterId == exitLabelId)
+                exitsAfterBack = true;
+        }
+        if (!exitsAfterBack)
             continue;
 
         MicroCond inverted = MicroCond::Unconditional;

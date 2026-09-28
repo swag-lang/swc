@@ -158,6 +158,13 @@ public:
     const std::byte*                dataSegmentAddress(DataSegmentKind kind, uint32_t offset) const;
     Runtime::BuildCfg&              buildCfg() { return buildCfg_; }
     const Runtime::BuildCfg&        buildCfg() const { return buildCfg_; }
+    static Utf8 buildCfgString(const Runtime::String& value)
+    {
+        if (!value.ptr || !value.length)
+            return {};
+
+        return Utf8{value};
+    }
     const WarningPolicy&            warningPolicy() const { return warningPolicy_; }
     const Utf8&                     lastArtifactLabel() const { return lastArtifactLabel_; }
     void                            setLastArtifactLabel(Utf8 label) { lastArtifactLabel_ = std::move(label); }

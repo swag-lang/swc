@@ -137,14 +137,6 @@ namespace
         return inserted;
     }
 
-    Utf8 buildCfgString(const Runtime::String& value)
-    {
-        if (!value.ptr || !value.length)
-            return {};
-
-        return Utf8{value};
-    }
-
     bool endsWithLineBreak(const std::string_view text)
     {
         if (text.empty())
@@ -197,7 +189,7 @@ namespace
 
     Utf8 generatedSourceDumpBaseName(const CompilerInstance& compiler)
     {
-        Utf8 baseName = buildCfgString(compiler.buildCfg().name);
+        Utf8 baseName = CompilerInstance::buildCfgString(compiler.buildCfg().name);
         if (baseName.empty())
             baseName = defaultArtifactName(compiler.cmdLine());
 
@@ -211,7 +203,7 @@ namespace
     {
         if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && !compiler.buildCfg().backend.debugInfo)
         {
-            const Utf8 workDir = buildCfgString(compiler.buildCfg().workDir);
+            const Utf8 workDir = CompilerInstance::buildCfgString(compiler.buildCfg().workDir);
             if (!workDir.empty())
                 return FileSystem::absolutePathNoThrow(fs::path(workDir.c_str()));
             if (!compiler.cmdLine().workDir.empty())
@@ -219,7 +211,7 @@ namespace
             return FileSystem::absolutePathNoThrow(Os::getTemporaryPath());
         }
 
-        const Utf8 outDir = buildCfgString(compiler.buildCfg().outDir);
+        const Utf8 outDir = CompilerInstance::buildCfgString(compiler.buildCfg().outDir);
         if (!outDir.empty())
             return FileSystem::absolutePathNoThrow(fs::path(outDir.c_str()));
         if (!compiler.cmdLine().outDir.empty())
@@ -227,7 +219,7 @@ namespace
         if (!compiler.cmdLine().exportApiDir.empty())
             return FileSystem::absolutePathNoThrow(compiler.cmdLine().exportApiDir);
 
-        const Utf8 workDir = buildCfgString(compiler.buildCfg().workDir);
+        const Utf8 workDir = CompilerInstance::buildCfgString(compiler.buildCfg().workDir);
         if (!workDir.empty())
             return FileSystem::absolutePathNoThrow(fs::path(workDir.c_str()));
 

@@ -62,11 +62,6 @@ namespace
         return codeGen.safeNodePayload<SwitchStmtCodeGenPayload>(nodeRef);
     }
 
-    SwitchStmtCodeGenPayload& setSwitchStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const SwitchStmtCodeGenPayload& payloadValue)
-    {
-        return codeGen.setNodePayload(nodeRef, payloadValue);
-    }
-
     void eraseSwitchStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         SwitchStmtCodeGenPayload* payload = switchStmtCodeGenPayload(codeGen, nodeRef);
@@ -1290,7 +1285,7 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
         }
     }
 
-    setSwitchStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), switchState);
+    codeGen.setNodePayload(codeGen.curNodeRef(), switchState);
 
     CodeGenFrame frame = codeGen.frame();
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Switch);

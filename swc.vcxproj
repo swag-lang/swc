@@ -849,6 +849,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaFileError.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.h"/>
+        <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.ArgNodes.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSymbolLookup.h"/>

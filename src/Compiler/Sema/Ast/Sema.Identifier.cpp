@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Generic/SemaGeneric.ArgNodes.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -453,25 +454,15 @@ namespace
         return targetIdRef;
     }
 
-    void collectQuotedGenericArgs(const Sema& sema, const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
-    {
-        SWC_UNUSED(sema);
-        outArgs.clear();
-        if (node.nodeSuffixRef.isValid())
-            outArgs.push_back(node.nodeSuffixRef);
-    }
-
-    void collectQuotedGenericArgs(Sema& sema, const AstQuotedListExpr& node, SmallVector<AstNodeRef>& outArgs)
-    {
-        outArgs.clear();
-        sema.ast().appendNodes(outArgs, node.spanChildrenRef);
-    }
-
     template<typename T>
     Result semaQuotedGenericCommon(Sema& sema, const T& node)
     {
         SmallVector<AstNodeRef> genericArgs;
-        collectQuotedGenericArgs(sema, node, genericArgs);
+        genericArgs.clear();
+        if constexpr (std::is_same_v<T, AstQuotedExpr>)
+            SemaGeneric::appendQuotedGenericArgs(node, genericArgs);
+        else
+            SemaGeneric::appendQuotedGenericArgs(sema.ast(), node, genericArgs);
 
         SmallVector<Symbol*> baseSymbols;
         sema.viewNodeSymbolList(node.nodeExprRef).getSymbols(baseSymbols);

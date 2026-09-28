@@ -15,6 +15,17 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
+
+- Recorded: 2026-09-28 09:58
+- Updated: 2026-09-28 16:50 — Mapped the chained-unwind requirement through encoding, native output, and JIT registration.
+- Area: compiler/backend, register allocation, prologue and unwind information
+- Evidence: The latest accepted campaign names C++/MSVC as raytrace's fastest other runtime (9.601 ms versus Swag's 10.742 ms; ratio 1.119). In `trace`, Swag saves XMM6–XMM15 before its first `intersect` call and reloads all ten on the no-hit return. MSVC saves six XMM registers before that call; after `g_HitI >= 0` it saves XMM9 and XMM13–XMM15, which the no-hit path never touches. The no-hit path therefore avoids four stores and four loads in MSVC. Swag's frame reserves `0x168` bytes and MSVC's `0x128`, though allocation size alone does not measure the path cost.
+- Unwind evidence: `dumpbin /unwindinfo` on the accepted MSVC executable shows a primary `trace` range `0x1440–0x14DA` with six `SAVE_XMM128` records and a chained range `0x14DA–0x16F0` with saves for XMM9/XMM13/XMM14/XMM15 plus RBX/RDI. The no-hit return at object offset `0x74` lies in the primary range; the four later saves begin at offset `0xB4`. Two further chained ranges describe later control-flow regions. Swag currently builds one `UNWIND_INFO` blob in `X64UnwindWindows`, one native `.pdata` entry per function in `DebugInfoCodeView`, and one JIT `RUNTIME_FUNCTION` per allocation in `Os.Windows`. Those three interfaces must represent multiple code ranges before a delayed save can be correct under Windows unwinding.
+- Contract: [Microsoft's x64 unwind specification](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170#chained-unwind-info-structures) permits chained code regions for delayed register saves, but excludes an additional push or fixed stack allocation in the delayed region. The save slots must therefore remain in the entry frame. The encoder currently closes unwind tracking after the first ordinary instruction, while `MachineCode` exposes a single unwind byte array; `DebugInfoCodeView::appendUnwindSections` writes one `.pdata` record, and `Os::addHostJitFunctionTable` registers one runtime range. `PrologEpilogSanitize` also shares identical return tails, so the early and hit exits must carry the right saved-register state after that rewrite.
+- Next: represent unwind ranges and parent links in `MachineCode`, emit them from the final physical instruction stream, and publish all ranges in native `.pdata` and the JIT function table. Then move only saves for registers first defined below the guard, with a proof for each path to a restore. Test both arms, nested calls and exceptional unwinding before and after the delayed saves in native and JIT output; compare no-hit and hit paths against MSVC.
+- Complete when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
+
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 
 - Recorded: 2026-09-28 16:35
@@ -22,16 +33,6 @@ block, and the hot path keeps the register.
 - Audit: `placeShortLoopStep` searched only 80 Micro instructions ahead for the step label. That distance did not participate in the branch or register proof; it excluded otherwise identical loops with a longer cold arm. A label-to-ordinal map now resolves the target in constant expected time and allows the same structural rewrite at any distance. The test covers a 96-instruction cold arm, the original short arm, and a non-unit step that must remain unchanged.
 - Evidence: the long-arm case removes one executed unconditional jump from its advancing path without adding an instruction there. All seven benchmark tasks retain their selected function counts and checksums, so this batch has no claimed benchmark gain. C++ (1,156), native Release (3,483), and JIT Release (1,500) pass.
 - Next: at the next full campaign milestone, inspect any larger ordinary loop newly reached by this layout rule and check its hot and cold branch balance before closing this lead.
-
-### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
-
-- Recorded: 2026-09-28 09:58
-- Updated: 2026-09-28 16:34 — Identified MSVC's chained unwind regions and Swag's single-record boundary.
-- Area: compiler/backend, register allocation, prologue and unwind information
-- Evidence: The latest accepted campaign names C++/MSVC as raytrace's fastest other runtime (9.601 ms versus Swag's 10.742 ms; ratio 1.119). In `trace`, Swag saves XMM6–XMM15 before its first `intersect` call and reloads all ten on the no-hit return. MSVC saves six XMM registers before that call; after `g_HitI >= 0` it saves XMM9 and XMM13–XMM15, which the no-hit path never touches. The no-hit path therefore avoids four stores and four loads in MSVC. Swag's frame reserves `0x168` bytes and MSVC's `0x128`, though allocation size alone does not measure the path cost.
-- Unwind evidence: `dumpbin /unwindinfo` on the accepted MSVC executable shows a primary `trace` range `0x1440–0x14DA` with six `SAVE_XMM128` records and a chained range `0x14DA–0x16F0` with saves for XMM9/XMM13/XMM14/XMM15 plus RBX/RDI. The no-hit return at object offset `0x74` lies in the primary range; the four later saves begin at offset `0xB4`. Two further chained ranges describe later control-flow regions. Swag currently builds one `UNWIND_INFO` blob in `X64UnwindWindows`, one native `.pdata` entry per function in `DebugInfoCodeView`, and one JIT `RUNTIME_FUNCTION` per allocation in `Os.Windows`. Those three interfaces must represent multiple code ranges before a delayed save can be correct under Windows unwinding.
-- Next: introduce region-aware unwind records across the encoder, native object writer, and JIT function table, then move only registers first defined below the guard. Test both arms, nested calls and exceptional unwinding in native and JIT output, and compare no-hit and hit paths against MSVC.
-- Complete when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
 
 ### compiler.optimization.096 — Remove the loop-bound reload from wordfreq's common path
 

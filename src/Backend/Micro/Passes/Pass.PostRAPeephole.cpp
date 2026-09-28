@@ -25,6 +25,126 @@ namespace
 {
     using namespace PostRaPeephole;
 
+    // Put a frame reload on the fallthrough edge of a join when every jump
+    // into that join already carries the stored value in the same register.
+    // A loop's common branch can then skip a reload needed only after its
+    // uncommon branch has reused the register.
+    bool sinkFrameReloadToFallthrough(MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+
+        MicroStorage&        storage  = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        const auto&          cfg      = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+
+        const auto     refs = cfg.instructionRefs();
+        const CallConv& conv = CallConv::get(context.callConvKind);
+        constexpr uint32_t K_MAX_BACKTRACK = 256;
+        for (uint32_t labelIndex = 1; labelIndex + 1 < refs.size(); ++labelIndex)
+        {
+            const MicroInstr* label = storage.ptr(refs[labelIndex]);
+            const MicroInstr* load  = storage.ptr(refs[labelIndex + 1]);
+            const auto*       at    = load && load->op == MicroInstrOpcode::LoadRegMem ? load->ops(operands) : nullptr;
+            if (!label || label->op != MicroInstrOpcode::Label || !at ||
+                !at[0].reg.isInt() || at[1].reg != conv.stackPointer || at[0].reg == at[1].reg ||
+                at[2].opBits != MicroOpBits::B64 ||
+                std::ranges::find(cfg.addressTakenLabelIndices(), labelIndex) != cfg.addressTakenLabelIndices().end())
+                continue;
+
+            const auto& incoming = cfg.predecessors(labelIndex);
+            if (incoming.size() < 2 || std::ranges::find(incoming, labelIndex - 1) == incoming.end())
+                continue;
+            const MicroInstr* fallthrough = storage.ptr(refs[labelIndex - 1]);
+            if (!fallthrough || MicroInstr::info(fallthrough->op).flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                continue;
+
+            bool valid = true;
+            for (const uint32_t jumpIndex : incoming)
+            {
+                if (jumpIndex == labelIndex - 1)
+                    continue;
+                const MicroInstr* jump    = storage.ptr(refs[jumpIndex]);
+                const auto*       jumpOps = jump && jump->op == MicroInstrOpcode::JumpCond ? jump->ops(operands) : nullptr;
+                if (!jumpOps ||
+                    std::ranges::find(cfg.successors(jumpIndex), labelIndex) == cfg.successors(jumpIndex).end() ||
+                    jumpIndex >= labelIndex)
+                {
+                    valid = false;
+                    break;
+                }
+
+                // Every backward path must reach a matching frame store (or
+                // reload) before a register change or a memory write. The
+                // bounded walk deliberately rejects complicated joins.
+                std::vector<uint32_t> pending = {jumpIndex};
+                std::unordered_set<uint32_t> visited;
+                while (!pending.empty() && valid)
+                {
+                    const uint32_t index = pending.back();
+                    pending.pop_back();
+                    if (!visited.insert(index).second)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    // A back edge may reach a store at the preceding loop
+                    // latch. Never use the reload being moved as its own
+                    // proof of register/frame equivalence.
+                    if (visited.size() > K_MAX_BACKTRACK || index == labelIndex + 1)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    const MicroInstr* inst = storage.ptr(refs[index]);
+                    if (!inst)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    const auto* ops = inst->ops(operands);
+                    if (ops && inst->op == MicroInstrOpcode::LoadMemReg &&
+                        ops[0].reg == at[1].reg && ops[1].reg == at[0].reg &&
+                        ops[2].opBits == at[2].opBits && ops[3].valueU64 == at[3].valueU64)
+                        continue;
+                    if (ops && inst->op == MicroInstrOpcode::LoadRegMem &&
+                        ops[0].reg == at[0].reg && ops[1].reg == at[1].reg &&
+                        ops[2].opBits == at[2].opBits && ops[3].valueU64 == at[3].valueU64)
+                        continue;
+                    if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory) ||
+                        MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    {
+                        valid = false;
+                        break;
+                    }
+                    const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                    if (std::ranges::find(useDef.defs, at[0].reg) != useDef.defs.end() ||
+                        std::ranges::find(useDef.defs, at[1].reg) != useDef.defs.end() ||
+                        cfg.predecessors(index).empty())
+                    {
+                        valid = false;
+                        break;
+                    }
+                    for (const uint32_t predecessor : cfg.predecessors(index))
+                        pending.push_back(predecessor);
+                }
+                if (!valid)
+                    break;
+            }
+            if (!valid)
+                continue;
+
+            MicroInstrOperand movedOps[4];
+            std::copy_n(at, 4, movedOps);
+            storage.insertDerivedBefore(operands, refs[labelIndex], MicroInstrOpcode::LoadRegMem, movedOps);
+            storage.erase(refs[labelIndex + 1]);
+            return true;
+        }
+        return false;
+    }
+
     // A RIP load needed only on one side of a forward branch need not run on
     // the other side. Keep this after allocation: moving it earlier changes
     // physical-register pressure, while moving it into the sole successor
@@ -289,7 +409,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    if (sinkRipLoadIntoBranchTarget(context))
+    if (sinkFrameReloadToFallthrough(context) || sinkRipLoadIntoBranchTarget(context))
     {
         context.passChanged = true;
         return Result::Continue;

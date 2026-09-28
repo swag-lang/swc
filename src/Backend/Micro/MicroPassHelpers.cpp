@@ -1075,10 +1075,10 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
 
     // Immediate dominators and RPO positions are no longer queried. Their
     // buffers become the subtree intervals returned to the optimization passes.
+    // Both started with invalid entries; the tree walk overwrites every
+    // reachable node, leaving unreachable entries invalid without another fill.
     auto& subtreeBegin = rpoPosition;
     auto& subtreeEnd   = idom;
-    std::ranges::fill(subtreeBegin, MicroDomTree::K_INVALID_NODE);
-    std::ranges::fill(subtreeEnd, MicroDomTree::K_INVALID_NODE);
     auto& pending = rpo;
     pending.clear();
     pending.push_back(entry);

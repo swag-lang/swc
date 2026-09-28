@@ -3418,6 +3418,64 @@ SWC_TEST_BEGIN(PostRAPeephole_BranchOverJumpInverted)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_SinkRipLoadIntoOneBranchArm)
+{
+    constexpr MicroReg value = MicroReg::floatReg(0);
+    constexpr MicroReg test  = MicroReg::intReg(0);
+    constexpr MicroReg base  = MicroReg::intReg(8);
+    const MicroReg     rip   = MicroReg::instructionPointer();
+
+    for (uint32_t variant = 0; variant < 6; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        const auto   hit  = builder.createLabel();
+        const auto   done = builder.createLabel();
+        if (variant == 2)
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, hit);
+        builder.emitLoadRegMem(value, variant == 3 ? base : rip, 0, MicroOpBits::B64);
+        const MicroInstrRef original = builder.instructions().lastInstructionRef();
+        if (variant != 3)
+            builder.addRelocation({
+                .kind           = MicroRelocation::Kind::GlobalZeroAddress,
+                .form           = MicroRelocation::Form::Relative32,
+                .instructionRef = original,
+            });
+        if (variant == 4)
+            builder.emitLoadMemReg(base, 32, base, MicroOpBits::B64);
+        if (variant == 5)
+            builder.emitCallReg(base, CallConvKind::Swag, 0, 0);
+        builder.emitLoadRegMem(test, base, 0, MicroOpBits::B32);
+        builder.emitCmpRegImm(test, ApInt(0, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, hit);
+        if (variant == 1)
+            builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+        builder.emitClearReg(value, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+        builder.placeLabel(hit);
+        builder.emitLoadMemReg(base, 8, value, MicroOpBits::B64);
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+        const MicroInstrRef relocated = variant == 3 ? original : builder.codeRelocations()[0].instructionRef;
+        if ((variant == 0) != (relocated != original))
+            return Result::Error;
+        if (!builder.instructions().ptr(relocated) || builder.instructions().ptr(relocated)->op != MicroInstrOpcode::LoadRegMem)
+            return Result::Error;
+        if (variant == 0)
+        {
+            const MicroInstrRef previous = builder.instructions().findPreviousInstructionRef(relocated);
+            const MicroInstr* previousInst = builder.instructions().ptr(previous);
+            if (!previousInst || previousInst->op != MicroInstrOpcode::Label)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

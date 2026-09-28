@@ -738,6 +738,11 @@ block, and the hot path keeps the register.
   packed plan and asks for SSA. Blocks rejected earlier no longer initialize the fallback state;
   a supplied shared SSA state is used as before. The Release `slp_vectorize` file passed 17 native
   tests, followed by 3,483 native and 1,500 JIT tests. Timing was not measured.
+- The SSA value fixed point now retains existing value entries across passes and resets only their
+  validity flags. Every value read checks its flag, and successful inference overwrites its entry
+  before setting that flag. This removes one full value-array fill per constant-folding, copy-
+  elimination or branch-simplification run when scratch storage is reused. The Release optimizer
+  selection passed 241 native tests; timing and peak memory were not measured.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.

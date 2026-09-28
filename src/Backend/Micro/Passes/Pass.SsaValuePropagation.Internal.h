@@ -120,7 +120,8 @@ template<typename T_VALUE, typename T_TRAITS, typename T_CONTEXT>
 void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const T_CONTEXT& context, const SsaTryInferInstructionFn<T_VALUE, T_TRAITS, T_CONTEXT> tryInferInstruction)
 {
     const auto values = ssaState.values();
-    outValues.assign(values.size(), T_VALUE{});
+    // Every read checks the corresponding flag, so retained entries need no reset.
+    outValues.resize(values.size());
     outFlags.assign(values.size(), 0);
 
     size_t unresolved = values.size();

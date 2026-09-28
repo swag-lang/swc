@@ -49,18 +49,8 @@ AstNodeRef Parser::parseCompilerTypeOf()
 
     while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        if (!nodeArgs.empty())
-        {
-            // Error recovery can land on a container closer from the surrounding
-            // syntax. Stop there and let expectAndConsumeClosing handle the final
-            // diagnostic instead of eating tokens from the parent construct.
-            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
-                break;
-            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-                skipTo({TokenId::SymComma, TokenId::SymRightParen});
-            if (is(TokenId::SymRightParen))
-                break;
-        }
+        if (!nodeArgs.empty() && !prepareNextArgument())
+            break;
 
         if (nodeArgs.empty() && isAny(TokenId::KwdFunc, TokenId::KwdMtd))
             nodeArgs.push_back(parseType());
@@ -91,17 +81,8 @@ void Parser::parseCompilerArgumentList(TokenRef tokRef, uint32_t minCount, uint3
 
     while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        if (!outArgs.empty())
-        {
-            // Error recovery can land on a container closer from the surrounding syntax. Stop
-            // there and let expectAndConsumeClosing report it instead of eating the parent's tokens.
-            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
-                break;
-            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-                skipTo({TokenId::SymComma, TokenId::SymRightParen});
-            if (is(TokenId::SymRightParen))
-                break;
-        }
+        if (!outArgs.empty() && !prepareNextArgument())
+            break;
 
         outArgs.push_back(asCompilerExpressions ? parseCompilerExpression() : parseExpression());
     }

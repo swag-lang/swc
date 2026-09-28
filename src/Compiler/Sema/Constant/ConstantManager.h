@@ -1,6 +1,5 @@
 #pragma once
 #include "Compiler/Sema/Constant/ConstantValue.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
@@ -8,6 +7,8 @@
 
 SWC_BEGIN_NAMESPACE();
 class CompilerInstance;
+class Sema;
+class TaskContext;
 
 class ConstantManager
 {

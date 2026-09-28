@@ -299,9 +299,11 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     auto&                worklist              = worklist_;
     bool                 changed               = false;
     bool                 directUseCursorsReady = false;
-    FloatDefCounts       floatDefs;
+    thread_local FloatDefCounts floatDefs;
     floatDefs.storage  = &storage;
     floatDefs.ssaState = ssaState;
+    floatDefs.counts.clear();
+    floatDefs.ready = false;
 
     // Erasing a dead definition cannot change the reaching value of a surviving
     // use. Keep this SSA graph for the entire fixed point and ignore erased

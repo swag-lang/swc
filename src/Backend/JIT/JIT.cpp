@@ -468,16 +468,9 @@ namespace
     {
         if (ctx.state().codeRef.isValid())
             return ctx.state().codeRef;
-        if (ownerFunction && ownerFunction->decl())
-            return ownerFunction->codeRef();
+        if (ownerFunction)
+            return ownerFunction->codeRefIfDeclared();
         return SourceCodeRef::invalid();
-    }
-
-    SourceCodeRef symbolCodeRef(const SymbolFunction& function)
-    {
-        if (!function.decl())
-            return SourceCodeRef::invalid();
-        return function.codeRef();
     }
 
     const SymbolFunction* waitOwnerFunction(const TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
@@ -559,7 +552,7 @@ namespace
         if (wait.nodeRef.isInvalid())
             wait.nodeRef = targetFunction.declNodeRef();
         if (!wait.codeRef.isValid())
-            wait.codeRef = symbolCodeRef(targetFunction);
+            wait.codeRef = targetFunction.codeRefIfDeclared();
     }
 
     void setWaitCodeGenCompleted(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)

@@ -392,17 +392,6 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
 
 namespace
 {
-    bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
-    {
-        for (const auto& step : usingPath)
-        {
-            if (step.isPointer)
-                return true;
-        }
-
-        return false;
-    }
-
     Result resolveUsingStructCastPath(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps, bool& outFound)
     {
         outFound = false;
@@ -431,7 +420,7 @@ Result resolveUsingStructCastPathWithoutPointerStep(Sema& sema, const CastReques
     SmallVector<SymbolStructUsingPathStep> usingPath;
     bool                                   hasUsingPath = false;
     SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcStructTypeRef, dstStructTypeRef, usingPath, hasUsingPath));
-    outFound = hasUsingPath && !usingPathHasPointerStep(usingPath);
+    outFound = hasUsingPath && !SymbolStruct::usingPathHasPointerStep(usingPath);
     return Result::Continue;
 }
 

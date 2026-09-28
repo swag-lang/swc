@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Math/Fold.h"
+#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -236,6 +237,9 @@ namespace MicroPassHelpers
     // A flag writer may preserve incoming flags: rotates and zero-count shifts
     // must not terminate a liveness proof. Keep any-write checks for invalidation.
     bool instructionOverwritesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
+    // Relocations of direct calls whose target promises no caller-visible writes.
+    // Callers still verify the instruction is a direct call before using the set.
+    std::unordered_set<uint32_t> collectReadOnlyCallRefs(const MicroBuilder& builder);
     // A straight-line proof, ending at a flag overwrite, call, or return.
     // Jumps preserve flags and require the CFG variant to prove their successors.
     bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef, MicroBuilder* builder = nullptr);

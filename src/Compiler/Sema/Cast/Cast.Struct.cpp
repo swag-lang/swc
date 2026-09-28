@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastAggregateArgs.h"
 #include "Compiler/Sema/Cast/CastElementHelpers.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -163,17 +164,7 @@ namespace
         return &suffixLiteral;
     }
 
-    struct CastStructArgs
-    {
-        Sema*           sema;
-        CastRequest*    castRequest;
-        TypeRef         srcTypeRef;
-        TypeRef         dstTypeRef;
-        const TypeInfo* srcType;
-        const TypeInfo* dstType;
-    };
-
-    Result failStructFieldCount(const CastStructArgs& args, size_t srcCount, size_t dstCount)
+    Result failStructFieldCount(const CastAggregateArgs& args, size_t srcCount, size_t dstCount)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_count, args.srcTypeRef, args.dstTypeRef);
         if (args.srcType->isAggregateStruct())
@@ -183,12 +174,12 @@ namespace
         return res;
     }
 
-    Result failStructFieldType(const CastStructArgs& ctx, std::string_view fieldName)
+    Result failStructFieldType(const CastAggregateArgs& ctx, std::string_view fieldName)
     {
         return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
     }
 
-    Result failStructMissingFieldNoDefault(const CastStructArgs& args, const SymbolVariable& field)
+    Result failStructMissingFieldNoDefault(const CastAggregateArgs& args, const SymbolVariable& field)
     {
         const std::string_view fieldName = field.name(args.sema->ctx());
         const Result           res       = args.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, args.srcTypeRef, args.dstTypeRef, fieldName);
@@ -207,7 +198,7 @@ namespace
         castRequest.failure.addArgument(Diagnostic::ARG_VALUE, fieldName);
     }
 
-    AstNodeRef aggregateFieldNodeRef(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount)
+    AstNodeRef aggregateFieldNodeRef(const CastAggregateArgs& args, size_t fieldIndex, size_t expectedCount)
     {
         if (!args.castRequest->errorNodeRef.isValid())
             return AstNodeRef::invalid();
@@ -230,7 +221,7 @@ namespace
         return args.sema->ast().nthNode(fieldSpanRef, fieldIndex);
     }
 
-    SourceCodeRef aggregateFieldRef(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount)
+    SourceCodeRef aggregateFieldRef(const CastAggregateArgs& args, size_t fieldIndex, size_t expectedCount)
     {
         const AstNodeRef nodeRef = aggregateFieldNodeRef(args, fieldIndex, expectedCount);
         if (nodeRef.isInvalid())
@@ -238,7 +229,7 @@ namespace
         return args.sema->node(nodeRef).codeRef();
     }
 
-    Result failStructField(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount, DiagnosticId id, std::string_view value = "")
+    Result failStructField(const CastAggregateArgs& args, size_t fieldIndex, size_t expectedCount, DiagnosticId id, std::string_view value = "")
     {
         const SourceCodeRef previous = args.castRequest->errorCodeRef;
         const SourceCodeRef fieldRef = aggregateFieldRef(args, fieldIndex, expectedCount);
@@ -260,7 +251,7 @@ namespace
         return res;
     }
 
-    Result failStructFieldCountAt(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount, size_t srcCount, size_t dstCount)
+    Result failStructFieldCountAt(const CastAggregateArgs& args, size_t fieldIndex, size_t expectedCount, size_t srcCount, size_t dstCount)
     {
         const SourceCodeRef previous = args.castRequest->errorCodeRef;
         const SourceCodeRef fieldRef = aggregateFieldRef(args, fieldIndex, expectedCount);
@@ -271,7 +262,7 @@ namespace
         return res;
     }
 
-    CastRequest makeFieldCastRequest(const CastStructArgs& args, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
+    CastRequest makeFieldCastRequest(const CastAggregateArgs& args, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
     {
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
@@ -282,7 +273,7 @@ namespace
         return elemCtx;
     }
 
-    Result checkElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
+    Result checkElemCast(const CastAggregateArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
     {
         CastRequest  elemCtx = makeFieldCastRequest(args, fieldNodeRef, fieldRef);
         const Result res     = CastElementHelpers::allowed(*args.sema, *args.castRequest, elemCtx, srcElemType, dstElemType);
@@ -308,7 +299,7 @@ namespace
         return Result::Continue;
     }
 
-    Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef, ConstantRef valueRef, ConstantRef& outRef)
+    Result foldElemCast(const CastAggregateArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef, ConstantRef valueRef, ConstantRef& outRef)
     {
         CastRequest elemCtx = makeFieldCastRequest(args, fieldNodeRef, fieldRef);
         return CastElementHelpers::foldConstant(*args.sema, *args.castRequest, elemCtx, srcElemType, dstElemType, valueRef, outRef);
@@ -448,7 +439,7 @@ namespace
         return SetCastRank::Standard;
     }
 
-    Result castStructToStruct(const CastStructArgs& args)
+    Result castStructToStruct(const CastAggregateArgs& args)
     {
         const auto& srcFields = args.srcType->payloadSymStruct().fields();
         const auto& dstFields = args.dstType->payloadSymStruct().fields();
@@ -464,7 +455,7 @@ namespace
         return Result::Continue;
     }
 
-    Result mapAggregateStructFields(const CastStructArgs& args, std::vector<size_t>& srcToDst)
+    Result mapAggregateStructFields(const CastAggregateArgs& args, std::vector<size_t>& srcToDst)
     {
         const auto& aggregate = args.srcType->payloadAggregate();
         const auto& srcTypes  = aggregate.types;
@@ -547,7 +538,7 @@ namespace
         return Result::Continue;
     }
 
-    Result validateAggregateStructElementCasts(const CastStructArgs& args, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
+    Result validateAggregateStructElementCasts(const CastAggregateArgs& args, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
     {
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
@@ -562,7 +553,7 @@ namespace
 
     // A runtime-valid pointer can be impossible to relocate into compiler static storage. In that
     // case the fold deliberately produces no constant and code generation constructs the value.
-    Result foldAggregateStructConstant(const CastStructArgs& args, const std::vector<size_t>& srcToDst)
+    Result foldAggregateStructConstant(const CastAggregateArgs& args, const std::vector<size_t>& srcToDst)
     {
         if (!args.castRequest->isConstantFolding())
             return Result::Continue;
@@ -622,7 +613,7 @@ namespace
     }
 
     // Single-field structs follow the same best-effort static-materialization rule.
-    Result foldSingleFieldStructConstant(const CastStructArgs& args, const SymbolVariable& field, ConstantRef fieldValueRef)
+    Result foldSingleFieldStructConstant(const CastAggregateArgs& args, const SymbolVariable& field, ConstantRef fieldValueRef)
     {
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
@@ -641,7 +632,7 @@ namespace
         return Result::Continue;
     }
 
-    Result castToSingleFieldStruct(const CastStructArgs& args)
+    Result castToSingleFieldStruct(const CastAggregateArgs& args)
     {
         const auto& dstFields = args.dstType->payloadSymStruct().fields();
         if (dstFields.size() != 1 || !dstFields.front())
@@ -713,7 +704,7 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 {
     const TypeInfo&      srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
-    const CastStructArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
+    const CastAggregateArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
     const SourceCodeRef  codeRef = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
                                                                                                                                       : sema.node(sema.curNodeRef()).codeRef();
 

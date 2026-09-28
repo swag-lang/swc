@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastAggregateArgs.h"
 #include "Compiler/Sema/Cast/CastConstant.h"
 #include "Compiler/Sema/Cast/CastElementHelpers.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -16,16 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct CastArrayArgs
-    {
-        Sema*           sema;
-        CastRequest*    castRequest;
-        TypeRef         srcTypeRef;
-        TypeRef         dstTypeRef;
-        const TypeInfo* srcType;
-        const TypeInfo* dstType;
-    };
-
     struct ArrayElemLocation
     {
         AstNodeRef    nodeRef = AstNodeRef::invalid();
@@ -49,7 +40,7 @@ namespace
         return AstNodeRef::invalid();
     }
 
-    Result failArrayDimCount(const CastArrayArgs& args, size_t srcCount, size_t dstCount)
+    Result failArrayDimCount(const CastAggregateArgs& args, size_t srcCount, size_t dstCount)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_num_dims, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
@@ -57,7 +48,7 @@ namespace
         return res;
     }
 
-    Result failArrayDimMismatch(const CastArrayArgs& args, size_t, uint64_t srcDim, uint64_t dstDim)
+    Result failArrayDimMismatch(const CastAggregateArgs& args, size_t, uint64_t srcDim, uint64_t dstDim)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_dim_mismatch, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_LEFT, srcDim);
@@ -65,7 +56,7 @@ namespace
         return res;
     }
 
-    bool aggregateArraySourceHasNestedArrays(const CastArrayArgs& args)
+    bool aggregateArraySourceHasNestedArrays(const CastAggregateArgs& args)
     {
         const auto& srcTypes = args.srcType->payloadAggregate().types;
         for (const TypeRef srcElemTypeRef : srcTypes)
@@ -78,7 +69,7 @@ namespace
         return true;
     }
 
-    Result failArrayTooManyValues(const CastArrayArgs& args, size_t srcCount, uint64_t dstCount)
+    Result failArrayTooManyValues(const CastAggregateArgs& args, size_t srcCount, uint64_t dstCount)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_too_many_values, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
@@ -86,17 +77,17 @@ namespace
         return res;
     }
 
-    Result failArrayConst(const CastArrayArgs& args, DiagnosticId diagnosticId)
+    Result failArrayConst(const CastAggregateArgs& args, DiagnosticId diagnosticId)
     {
         return args.castRequest->fail(diagnosticId, args.srcTypeRef, args.dstTypeRef);
     }
 
-    Result failArrayMissingRequiredValues(const CastArrayArgs& args)
+    Result failArrayMissingRequiredValues(const CastAggregateArgs& args)
     {
         return args.castRequest->fail(DiagnosticId::sema_err_type_requires_init, args.dstTypeRef, args.dstTypeRef);
     }
 
-    ArrayElemLocation arrayElemLocation(const CastArrayArgs& args, size_t elemIndex)
+    ArrayElemLocation arrayElemLocation(const CastAggregateArgs& args, size_t elemIndex)
     {
         if (!args.castRequest->errorNodeRef.isValid())
             return {};
@@ -113,7 +104,7 @@ namespace
         return {nodeRef, args.sema->node(nodeRef).codeRef()};
     }
 
-    CastRequest makeElemCastRequest(const CastArrayArgs& args, const ArrayElemLocation& location)
+    CastRequest makeElemCastRequest(const CastAggregateArgs& args, const ArrayElemLocation& location)
     {
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags   = args.castRequest->flags;
@@ -132,7 +123,7 @@ namespace
         return elemCtx;
     }
 
-    Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef = ConstantRef::invalid())
+    Result checkElemCast(const CastAggregateArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef = ConstantRef::invalid())
     {
         CastRequest elemCtx = makeElemCastRequest(args, location);
         if (valueRef.isValid())
@@ -158,13 +149,13 @@ namespace
         return Cast::castIfNeeded(*args.sema, valueView, dstElemType, elemCtx.kind, elemCtx.flags);
     }
 
-    Result foldElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef, ConstantRef& outRef)
+    Result foldElemCast(const CastAggregateArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef, ConstantRef& outRef)
     {
         CastRequest elemCtx = makeElemCastRequest(args, location);
         return CastElementHelpers::foldConstant(*args.sema, *args.castRequest, elemCtx, srcElemType, dstElemType, valueRef, outRef);
     }
 
-    ConstantRef makeArrayConstantFromValues(const CastArrayArgs& args, const std::vector<ConstantRef>& values)
+    ConstantRef makeArrayConstantFromValues(const CastAggregateArgs& args, const std::vector<ConstantRef>& values)
     {
         TaskContext&   ctx       = args.sema->ctx();
         const uint64_t arraySize = args.dstType->sizeOf(ctx);
@@ -176,7 +167,7 @@ namespace
         return result;
     }
 
-    Result getAggregateConstantValues(const CastArrayArgs& args, const std::vector<ConstantRef>*& outValues)
+    Result getAggregateConstantValues(const CastAggregateArgs& args, const std::vector<ConstantRef>*& outValues)
     {
         outValues = nullptr;
         if (!args.castRequest->isConstantFolding())
@@ -190,7 +181,7 @@ namespace
         return Result::Continue;
     }
 
-    Result castArrayToArray(const CastArrayArgs& args)
+    Result castArrayToArray(const CastAggregateArgs& args)
     {
         const auto&   dstDims        = args.dstType->payloadArrayDims();
         const TypeRef dstElemTypeRef = args.dstType->payloadArrayElemTypeRef();
@@ -240,7 +231,7 @@ namespace
         return Result::Continue;
     }
 
-    Result castAggregateToArray(const CastArrayArgs& args)
+    Result castAggregateToArray(const CastAggregateArgs& args)
     {
         const AstNodeRef waitNodeRef = args.castRequest->errorNodeRef.isValid() ? args.castRequest->errorNodeRef : args.sema->curNodeRef();
         SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(*args.sema, args.dstTypeRef, waitNodeRef));
@@ -342,7 +333,7 @@ namespace
     // Single value initialization: fill an entire array with one scalar value.
     // Single value initialization: validate that the scalar can be cast to
     // the array's leaf element type, and produce a fill constant.
-    Result castScalarToArray(const CastArrayArgs& args)
+    Result castScalarToArray(const CastAggregateArgs& args)
     {
         TypeRef leafTypeRef = args.dstType->payloadArrayElemTypeRef();
         while (args.sema->typeMgr().get(leafTypeRef).isArray())
@@ -385,7 +376,7 @@ Result Cast::castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 {
     const TypeInfo&     srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo&     dstType = sema.typeMgr().get(dstTypeRef);
-    const CastArrayArgs args{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
+    const CastAggregateArgs args{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
     if (srcType.isArray())
         return castArrayToArray(args);
@@ -404,7 +395,7 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     TypeManager&        typeMgr = sema.typeMgr();
     const TypeInfo&     srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&     dstType = typeMgr.get(dstTypeRef);
-    const CastArrayArgs args{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
+    const CastAggregateArgs args{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
     const TypeRef  laneTypeRef = dstType.payloadSimdLaneTypeRef();
     const uint32_t laneCount   = dstType.payloadSimdLaneCount();

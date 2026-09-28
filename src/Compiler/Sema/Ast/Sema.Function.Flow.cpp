@@ -97,12 +97,8 @@ namespace
         return AstNodeRef::invalid();
     }
 
-    bool isAttributeContextCall(const AstCallExpr& node)
-    {
-        return node.hasFlag(AstCallExprFlagsE::AttributeContext);
-    }
-
-    bool isAttributeContextCall(const AstIntrinsicCallExpr& node)
+    template<typename T>
+    bool isAttributeContextCall(const T& node)
     {
         return node.hasFlag(AstCallExprFlagsE::AttributeContext);
     }

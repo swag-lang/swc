@@ -56,12 +56,8 @@ namespace
         return {static_cast<const std::byte*>(data), narrowByteCount(size)};
     }
 
-    std::span<std::byte> subBytes(const std::span<std::byte> bytes, const uint64_t offset, const uint64_t size)
-    {
-        return bytes.subspan(narrowByteCount(offset), narrowByteCount(size));
-    }
-
-    std::span<const std::byte> subBytes(const std::span<const std::byte> bytes, const uint64_t offset, const uint64_t size)
+    template<typename T>
+    std::span<T> subBytes(const std::span<T> bytes, const uint64_t offset, const uint64_t size)
     {
         return bytes.subspan(narrowByteCount(offset), narrowByteCount(size));
     }

@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenLoopFrame.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -341,10 +342,7 @@ Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
         builder.placeLabel(loopState->postLabel);
 
         CodeGenFrame frame = codeGen.frame();
-        frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
-        frame.setCurrentLoopContinueLabel(loopState->loopLabel);
-        frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-        codeGen.pushFrame(frame);
+        CodeGenLoopFrame::push(codeGen, frame, loopState->loopLabel, loopState->doneLabel);
         return Result::Continue;
     }
 
@@ -353,11 +351,7 @@ Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
         builder.placeLabel(loopState->bodyLabel);
 
         CodeGenFrame frame = codeGen.frame();
-        frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
-        frame.setCurrentLoopContinueLabel(postStmtRef.isValid() ? loopState->postLabel : loopState->loopLabel);
-        frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-        codeGen.pushFrame(frame);
-        codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
+        CodeGenLoopFrame::pushWithDeferScope(codeGen, frame, postStmtRef.isValid() ? loopState->postLabel : loopState->loopLabel, loopState->doneLabel);
     }
 
     return Result::Continue;
@@ -460,11 +454,7 @@ Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& child
         return Result::Continue;
 
     CodeGenFrame frame = codeGen.frame();
-    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
-    frame.setCurrentLoopContinueLabel(loopState->continueLabel);
-    frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-    codeGen.pushFrame(frame);
-    codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
+    CodeGenLoopFrame::pushWithDeferScope(codeGen, frame, loopState->continueLabel, loopState->doneLabel);
     return Result::Continue;
 }
 

@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenLoopFrame.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -51,11 +52,7 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
     if (childRef == bodyRef)
     {
         CodeGenFrame frame = codeGen.frame();
-        frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
-        frame.setCurrentLoopContinueLabel(loopState->continueLabel);
-        frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-        codeGen.pushFrame(frame);
-        codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
+        CodeGenLoopFrame::pushWithDeferScope(codeGen, frame, loopState->continueLabel, loopState->doneLabel);
     }
 
     return Result::Continue;
@@ -182,11 +179,7 @@ Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     builder.placeLabel(loopState->bodyLabel);
 
     CodeGenFrame frame = codeGen.frame();
-    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
-    frame.setCurrentLoopContinueLabel(loopState->bodyLabel);
-    frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-    codeGen.pushFrame(frame);
-    codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
+    CodeGenLoopFrame::pushWithDeferScope(codeGen, frame, loopState->bodyLabel, loopState->doneLabel);
     return Result::Continue;
 }
 

@@ -64,22 +64,14 @@ std::pair<MicroInstrRef, MicroInstr&> MicroBuilder::addInstructionWithRef(MicroI
         inst->opsRef = MicroOperandRef::invalid();
     }
 
-    storeInstructionDebugInfo(instRef);
+    // Every instruction keeps its source for sanity diagnostics and debug tables.
+    inst->debugSourceInfo = currentDebugSourceInfo_;
     return {instRef, *(inst)};
 }
 
 MicroInstr& MicroBuilder::addInstruction(MicroInstrOpcode op, uint8_t numOperands)
 {
     return addInstructionWithRef(op, numOperands).second;
-}
-
-// Every instruction records the source it came from, whatever the build emits: the static
-// sanity analysis anchors its diagnostics on it, and the debug tables read it only when asked.
-void MicroBuilder::storeInstructionDebugInfo(MicroInstrRef instructionRef)
-{
-    MicroInstr* inst = instructions_.ptr(instructionRef);
-    SWC_ASSERT(inst != nullptr);
-    inst->debugSourceInfo = currentDebugSourceInfo_;
 }
 
 void MicroBuilder::setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef)

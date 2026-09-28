@@ -264,6 +264,12 @@ block, and the hot path keeps the register.
   destroys the old per-instruction lists before the collection resizes them, so every new list
   is already empty. The focused Release register-allocation file passed 20 native tests, followed
   by 3,483 native and 1,500 JIT tests. Timing was not measured.
+- Post-allocation upper-half analysis now resizes its slot table without zeroing old entries.
+  Both acyclic and cyclic CFG paths overwrite every live instruction slot before any caller asks
+  for it; callers use live references while rewrites are still queued. This removes one
+  slot-count fill per analysis after the table first reaches that size. Four focused native Release
+  zero-extension tests passed, followed by 3,483 native and 1,500 JIT tests. Timing and peak
+  memory were not measured.
 - Next: count DevMode sweeps and other consumer workspaces before treating the Release
   standard-library maximum as a general bound. If any function approaches 24, identify the
   pass chain that keeps changing it before raising the limit.

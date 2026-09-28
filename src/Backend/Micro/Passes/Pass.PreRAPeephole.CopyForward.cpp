@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 
@@ -9,11 +10,6 @@ namespace PreRaPeephole
 {
     namespace
     {
-        bool canEncodeSigned32(const uint64_t value)
-        {
-            return value <= 0x7FFFFFFF || value >= 0xFFFFFFFF80000000;
-        }
-
         bool getAddressAddOffset(uint64_t& outOffset, const MicroOp op, const uint64_t imm)
         {
             if (op == MicroOp::Add)
@@ -49,7 +45,7 @@ namespace PreRaPeephole
                 return false;
 
             uint64_t offset = 0;
-            if (!getAddressAddOffset(offset, addOps[2].microOp, addOps[3].valueU64) || !canEncodeSigned32(offset))
+            if (!getAddressAddOffset(offset, addOps[2].microOp, addOps[3].valueU64) || !X64Immediate::canEncodeSigned32(offset))
                 return false;
 
             // Adding nothing leaves the copy: a lea with no displacement is

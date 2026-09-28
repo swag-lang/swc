@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -2553,7 +2554,7 @@ namespace InstructionCombine
                 return false;
         }
         const auto& first = loads[3]; // The most significant result byte has the lowest address.
-        if (first.offset > 0x7FFFFFFF && first.offset < 0xFFFFFFFF80000000)
+        if (!X64Immediate::canEncodeSigned32(first.offset))
             return false;
         for (uint32_t i = 0; i < 4; ++i)
         {

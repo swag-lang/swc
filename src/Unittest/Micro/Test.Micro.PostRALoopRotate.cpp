@@ -351,8 +351,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRALoopRotate_PlacesShortComparisonStepOnFallthrough)
 {
-    for (const bool unitStep : {true, false})
+    for (const uint32_t variant : {0u, 1u, 2u})
     {
+        const bool         unitStep = variant != 1;
         MicroBuilder       builder(ctx);
         const auto         header  = builder.createLabel();
         const auto         tie     = builder.createLabel();
@@ -370,6 +371,12 @@ SWC_TEST_BEGIN(PostRALoopRotate_PlacesShortComparisonStepOnFallthrough)
         builder.placeLabel(tie);
         builder.emitCmpRegImm(counter, ApInt(5, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B64, stop);
+        if (variant == 2)
+        {
+            // The cold arm's length does not change the advancing edge.
+            for (uint32_t pad = 0; pad < 96; ++pad)
+                builder.emitLoadRegImm(MicroReg::intReg(9), ApInt(pad, 64), MicroOpBits::B64);
+        }
         builder.placeLabel(step);
         builder.emitOpBinaryRegImm(counter, ApInt(unitStep ? 1 : 2, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, header);

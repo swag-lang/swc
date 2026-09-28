@@ -1,17 +1,15 @@
 #pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
+#include "Compiler/SourceFile.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Core/StrongRef.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 
-class SourceFile;
 class SymbolFunction;
 class SymbolVariable;
 enum class DiagnosticId;
-using FileRef = StrongRef<SourceFile>;
 
 // A call whose result may borrow one of its arguments, recorded while analyzing the
 // caller and judged once the whole module is sema-completed: only then is the callee's

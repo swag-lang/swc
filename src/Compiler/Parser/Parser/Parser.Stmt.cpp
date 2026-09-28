@@ -844,19 +844,8 @@ AstNodeRef Parser::parseAssignStmt()
         bool                    reportedMixed = false;
         do
         {
-            const TokenRef itemRef      = ref();
-            TokenRef       fieldNameRef = TokenRef::invalid();
-            const bool     isNamed      = is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter);
-            if (isNamed)
-            {
-                hasNamed     = true;
-                fieldNameRef = consume();
-                consumeAssert(TokenId::SymColon);
-            }
-            else
-                hasPositional = true;
-
-            fieldNames.push_back(fieldNameRef);
+            const TokenRef itemRef = ref();
+            parseDestructuringFieldName(fieldNames, hasNamed, hasPositional);
             const TokenRef ignoreRef = consumeIf(TokenId::SymQuestion);
             if (ignoreRef.isValid())
             {
@@ -866,12 +855,7 @@ AstNodeRef Parser::parseAssignStmt()
             else
                 affects.push_back(parseExpression());
 
-            if (hasNamed && hasPositional && !reportedMixed)
-            {
-                const Diagnostic diag = reportError(DiagnosticId::parser_err_mixed_destructuring, itemRef);
-                diag.report(*ctx_);
-                reportedMixed = true;
-            }
+            reportMixedDestructuring(itemRef, hasNamed, hasPositional, reportedMixed);
         } while (consumeIf(TokenId::SymComma).isValid());
 
         expectAndConsumeClosing(TokenId::SymRightCurly, openRef);

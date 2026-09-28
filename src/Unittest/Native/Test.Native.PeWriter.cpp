@@ -7,6 +7,7 @@
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
+#include "Unittest/Native/NativeTestBytes.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -14,12 +15,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using RtlDecompressBufferFn = LONG(WINAPI*)(USHORT compressionFormat, PUCHAR uncompressedBuffer, ULONG uncompressedBufferSize, PUCHAR compressedBuffer, ULONG compressedBufferSize, ULONG* finalUncompressedSize);
-
-    void emit(ByteArray& out, std::initializer_list<int> bytes)
-    {
-        for (const int b : bytes)
-            out.pushBack(static_cast<std::byte>(b));
-    }
 
     uint16_t peSubsystem(const ByteArray& bytes)
     {
@@ -201,7 +196,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PeWriter_CompressesEmbeddedDebugTable)
 {
     ByteArray text;
-    emit(text, {0xC3});
+    NativeTest::emit(text, {0xC3});
 
     LinkSection textSection;
     textSection.name  = ".text";
@@ -280,12 +275,12 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
     SWC_UNUSED(ctx);
 
     ByteArray text;
-    emit(text, {0x48, 0x83, 0xEC, 0x28});       // sub rsp, 0x28
-    emit(text, {0xB9, 0x2A, 0x00, 0x00, 0x00}); // mov ecx, 42
-    emit(text, {0xE8});                         // call <ExitProcess thunk>
+    NativeTest::emit(text, {0x48, 0x83, 0xEC, 0x28});       // sub rsp, 0x28
+    NativeTest::emit(text, {0xB9, 0x2A, 0x00, 0x00, 0x00}); // mov ecx, 42
+    NativeTest::emit(text, {0xE8});                         // call <ExitProcess thunk>
     const uint32_t relocOffset = static_cast<uint32_t>(text.size());
-    emit(text, {0, 0, 0, 0}); // rel32 (addend 0, patched by the linker)
-    emit(text, {0xC3});       // ret
+    NativeTest::emit(text, {0, 0, 0, 0}); // rel32 (addend 0, patched by the linker)
+    NativeTest::emit(text, {0xC3});       // ret
 
     LinkSection textSection;
     textSection.name  = ".text";
@@ -351,7 +346,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PeWriter_FoldsIdenticalUnwindInfo)
 {
     ByteArray text;
-    emit(text, {0xC3, 0xC3, 0xC3});
+    NativeTest::emit(text, {0xC3, 0xC3, 0xC3});
 
     LinkSection textSection;
     textSection.name  = ".text";
@@ -360,7 +355,7 @@ SWC_TEST_BEGIN(PeWriter_FoldsIdenticalUnwindInfo)
     textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
 
     ByteArray xdata;
-    emit(xdata, {1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0});
+    NativeTest::emit(xdata, {1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0});
 
     LinkSection xdataSection;
     xdataSection.name  = ".xdata";
@@ -426,7 +421,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NonDebugImageRemovesStalePdb)
     SWC_UNUSED(ctx);
 
     ByteArray text;
-    emit(text, {0xC3});
+    NativeTest::emit(text, {0xC3});
 
     LinkSection textSection;
     textSection.name  = ".text";
@@ -474,7 +469,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
 {
     ByteArray text;
-    emit(text, {0xC3});
+    NativeTest::emit(text, {0xC3});
 
     LinkSection textSection;
     textSection.name  = ".text";
@@ -483,7 +478,7 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
     textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
 
     ByteArray iconPayload;
-    emit(iconPayload, {0x11, 0x22, 0x33, 0x44, 0x55});
+    NativeTest::emit(iconPayload, {0x11, 0x22, 0x33, 0x44, 0x55});
 
     LinkImage image;
     image.sections.push_back(std::move(textSection));

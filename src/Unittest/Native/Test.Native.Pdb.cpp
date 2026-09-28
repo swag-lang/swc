@@ -5,6 +5,7 @@
 #include "Backend/Linker/PeWriter.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
+#include "Unittest/Native/NativeTestBytes.h"
 #include "Unittest/Unittest.h"
 
 #include <dbghelp.h>
@@ -28,12 +29,6 @@ namespace
     constexpr uint32_t K_NODE_FIELDS      = 0x1002;
     constexpr uint32_t K_TYPE_INDEX_END   = 0x1004;
     constexpr uint16_t K_NODE_SIZE        = 16;
-
-    void emit(ByteArray& out, std::initializer_list<int> bytes)
-    {
-        for (const int b : bytes)
-            out.pushBack(static_cast<std::byte>(b));
-    }
 
     bool writeFile(const fs::path& path, const ByteArray& bytes)
     {
@@ -138,11 +133,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     constexpr uint64_t imageBase = 0x140000000ull;
 
     ByteArray text;
-    emit(text, {0x48, 0x83, 0xEC, 0x28}); // sub rsp, 0x28   (line 10)
-    emit(text, {0xB8, 0x2A, 0x00, 0x00}); // mov eax, ...    (macro line 20)
-    emit(text, {0x90, 0x90, 0x90, 0x90}); //                 (line 11)
-    emit(text, {0x48, 0x83, 0xC4, 0x28}); // add rsp, 0x28   (line 11)
-    emit(text, {0xC3});                   // ret             (line 12)
+    NativeTest::emit(text, {0x48, 0x83, 0xEC, 0x28}); // sub rsp, 0x28   (line 10)
+    NativeTest::emit(text, {0xB8, 0x2A, 0x00, 0x00}); // mov eax, ...    (macro line 20)
+    NativeTest::emit(text, {0x90, 0x90, 0x90, 0x90}); //                 (line 11)
+    NativeTest::emit(text, {0x48, 0x83, 0xC4, 0x28}); // add rsp, 0x28   (line 11)
+    NativeTest::emit(text, {0xC3});                   // ret             (line 12)
     const auto codeSize = static_cast<uint32_t>(text.size());
 
     LinkSection textSection;

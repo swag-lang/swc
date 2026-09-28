@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 

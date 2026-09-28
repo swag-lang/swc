@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Support/Math/ApInt.h"
 
 SWC_BEGIN_NAMESPACE();
 

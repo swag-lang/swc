@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -74,15 +75,7 @@ namespace PostRaPeephole
         const CallConv& conv    = CallConv::get(ctx.passContext->callConvKind);
         bool            changed = false;
 
-        const auto readOnlyCall = [&](const MicroInstrRef ref) {
-            for (const auto& relocation : ctx.builder->codeRelocations())
-            {
-                if (relocation.instructionRef != ref || !relocation.targetSymbol || !relocation.targetSymbol->isFunction())
-                    continue;
-                return relocation.targetSymbol->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly);
-            }
-            return false;
-        };
+        const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*ctx.builder);
 
         const auto isSourceObjectSlot = [&](const MicroInstrOperand* source) {
             if (!ctx.passContext->sanitizerFunction || source[1].reg != ctx.localStackBase)
@@ -173,7 +166,7 @@ namespace PostRaPeephole
                         }
                         if (MicroInstr::info(step->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                         {
-                            if (!conv.isIntPersistentReg(load[1].reg) || !readOnlyCall(refs[predecessor]))
+                            if (!conv.isIntPersistentReg(load[1].reg) || !readOnlyCallRefs.contains(refs[predecessor].get()))
                             {
                                 valid = false;
                                 break;

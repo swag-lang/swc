@@ -441,18 +441,18 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         return false;
     }
 
-    // buildBlocks reset active blocks to invalid dominators and empty trees.
-    auto& idomValues = domIdomValues_;
-    idomValues.assign(blocks_.size(), K_INVALID_BLOCK);
-
     if (blocks_.empty())
         return false;
 
+    // buildBlocks reset active blocks to invalid dominators and empty trees.
+    auto& idomValues = domIdomValues_;
     if (acyclic)
     {
         // Forward edges make block order topological. The general traversal
         // visits entry first, then predecessor-less roots in order. At a join
         // reachable from several roots, the first root owns that block.
+        // Each idom is written before any later block can read it.
+        idomValues.resize(blocks_.size());
         auto& componentRoots = domRpoPosition_;
         componentRoots.resize(blocks_.size());
         for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
@@ -489,6 +489,7 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     // Seed roots: entry block plus any predecessor-less block (covers unreachable
     // sub-graphs). Fall back to scanning unvisited blocks for cycles unreachable
     // from any seed.
+    idomValues.assign(blocks_.size(), K_INVALID_BLOCK);
     auto& visited = blockMarks_;
     visited.assign(blocks_.size(), 0);
     SmallVector<uint32_t, 8> roots;

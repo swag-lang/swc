@@ -6,10 +6,23 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/ApsInt.h"
 
 SWC_BEGIN_NAMESPACE();
+
+std::unordered_set<uint32_t> MicroPassHelpers::collectReadOnlyCallRefs(const MicroBuilder& builder)
+{
+    std::unordered_set<uint32_t> refs;
+    for (const MicroRelocation& relocation : builder.codeRelocations())
+    {
+        if (relocation.instructionRef.isValid() && relocation.targetSymbol && relocation.targetSymbol->isFunction() &&
+            relocation.targetSymbol->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly))
+            refs.insert(relocation.instructionRef.get());
+    }
+    return refs;
+}
 
 // Logical complement of a branch condition at the CPU-flag level. The pairs
 // are exact complements over (CF, ZF, SF, OF, PF), so flipping is valid for
@@ -1048,7 +1061,9 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     auto& firstChild  = childCursor;
     auto& nextSibling = postorder;
     firstChild.assign(n, MicroDomTree::K_INVALID_NODE);
-    nextSibling.assign(n, MicroDomTree::K_INVALID_NODE);
+    // Each reachable non-entry node gets a sibling link below before the
+    // subtree walk can read it; retained entries need no clearing.
+    nextSibling.resize(n);
     for (const uint32_t node : rpo)
     {
         if (node == entry)

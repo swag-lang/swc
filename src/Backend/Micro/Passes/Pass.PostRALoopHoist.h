@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// Hoists loop-invariant spill reloads and persistent argument copies.
+// Hoists loop-invariant spill reloads, folded memory operands, and persistent argument copies.
 //
 // The register allocator hands every value a whole-function register or none at
 // all, ranked by how much it earns per unit of the register-time it occupies. A

@@ -15,22 +15,15 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.091 — Remove the inlined probe's collision back-edge jump
-
-- Recorded: 2026-09-28 01:50
-- Area: compiler/backend, post-allocation loop layout
-- Evidence: In wordfreq's first inlined probe, a key-length mismatch reaches the next slot through `inc rsi; and rsi, [rbx+0xC8]; jmp` before testing `used[idx]`. Including that test and the next key-length comparison, the collision path has seven instructions and three memory operands. LDC's winning loop has `inc r14; and r14, r10` followed directly by the `used` and key-length tests: six instructions and two memory operands. The mask load is the separate register-residency gap in .083; the unconditional back-edge jump is an additional control-flow cost. LDC duplicates the `used` test at loop entry to put the collision test after the increment without a jump. This is a static comparison, not a measured speedup.
-- Next: test a general guarded tail-duplication rule for a side-effect-free entry test with one fall-through entry and a collision back edge. Compare the full entry and collision paths, prove flag and memory safety, and check an unrelated eligible loop plus an ineligible one before retaining it.
-- Complete when the collision path loses the back-edge jump without an offsetting hot-path cost or the full-path comparison rules out the transformation.
-
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
 - Recorded: 2026-09-26 12:46
-- Updated: 2026-09-28 00:56 — Compare the retained LDC mask against the threaded Swag probe.
+- Updated: 2026-09-28 07:38 — Remove the collision back-edge jump; retain the mask-load gap.
 - Area: compiler/backend, LICM and register allocation
 - Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
 - Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
-- With the subsequent caller-test threading, wordfreq `main` is 443 instructions. Its first inlined probe still reads `[rbx+0xC8]` for the initial hash mask and again for each collision step; LDC holds that mask in `r10` across `memcmp`, saving and restoring it around the call. The Swag collision step retains the extra memory operand, while the checksum remains 130489. This is a current code comparison, not a new LICM trial.
+- With the subsequent caller-test threading, wordfreq `main` was 443 instructions. Its first inlined probe still read `[rbx+0xC8]` for the initial hash mask and again for each collision step; LDC held that mask in `r10` across `memcmp`, saving and restoring it around the call. The Swag collision step retained the extra memory operand, while the checksum remained 130489. This was a code comparison, not a new LICM trial.
+- Post-allocation loop rotation now recognizes the exit label after any run of adjacent labels following the back edge. It duplicates the `used[idx]` comparison at the collision tail and removes the unconditional jump: the first wordfreq collision path falls from seven to six runtime instructions, with three memory operands still versus LDC's two. The two inlined probes add two compares and two labels in total, so `main` rises from 443 to 447 static Micro instructions. The entry comparison remains on the cold entry path, and neither allocation nor spills change. All seven task checksums pass with `--validate-micro`; the other six selected function counts are unchanged. A C++ regression covers adjacent exit aliases and an intervening instruction. This closes .091; the mask load remains this entry's gap. No timing sample informed the decision.
 - Next: rebaseline `mapProbe` after the calling-convention change, then find a register-pressure-aware way to retain the mask and compare the complete hash and collision loops and call frame against LDC.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 

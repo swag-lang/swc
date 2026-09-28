@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaVarDeclHelpers.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
@@ -675,17 +676,9 @@ Result SemaCheck::castToBool(Sema& sema, SemaNodeView& view)
 
 Result SemaCheck::conditionBinding(Sema& sema, AstNodeRef varDeclRef)
 {
-    AstNodeRef     declRef = varDeclRef;
-    const AstNode& varNode = sema.node(varDeclRef);
-    if (varNode.is(AstNodeId::VarDeclList))
-    {
-        const auto&             list = varNode.cast<AstVarDeclList>();
-        SmallVector<AstNodeRef> decls;
-        sema.ast().appendNodes(decls, list.spanChildrenRef);
-        if (decls.size() != 1)
-            return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, varDeclRef);
-        declRef = decls.front();
-    }
+    const AstNodeRef declRef = SemaVarDeclHelpers::singleDeclarationRef(sema, varDeclRef);
+    if (declRef.isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, varDeclRef);
 
     if (const auto* decl = sema.node(declRef).safeCast<AstSingleVarDecl>())
         SWC_RESULT(typePattern(sema, decl->nodeInitRef, true));

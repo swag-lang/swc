@@ -142,17 +142,6 @@ namespace
         return spillAddrReg;
     }
 
-    bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
-    {
-        for (const auto& step : usingPath)
-        {
-            if (step.isPointer)
-                return true;
-        }
-
-        return false;
-    }
-
     bool resolveUsingStructCastPath(CodeGen& codeGen, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
     {
         outSteps.clear();
@@ -171,7 +160,7 @@ namespace
         if (!srcStructType.payloadSymStruct().resolveUsingFieldPath(codeGen.ctx(), dstStructType.payloadSymStruct(), outSteps))
             return false;
 
-        return !outSteps.empty() && !usingPathHasPointerStep(outSteps);
+        return !outSteps.empty() && !SymbolStruct::usingPathHasPointerStep(outSteps);
     }
 
     bool resolveUsingPointerLikeCastPath(CodeGen& codeGen, TypeRef sourceTypeRef, TypeRef dstTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)

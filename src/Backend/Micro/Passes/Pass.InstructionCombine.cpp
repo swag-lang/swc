@@ -210,10 +210,26 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    MicroSsaState        localSsa;
-    const MicroSsaState* ssa = MicroSsaState::ensureFor(context, localSsa);
+    // The optimization loop supplies shared SSA. Construct the fallback only
+    // when this pass is run standalone.
+    std::optional<MicroSsaState> localSsa;
+    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsa.emplace();
+    const MicroSsaState*        ssa        = MicroSsaState::ensureFor(context, ssaScratch);
 
-    Context ctx;
+    // Retain the rewrite, relocation and loop-set capacities on this worker.
+    // Every fact below describes one function and is reset before scanning it.
+    thread_local Context ctx;
+    ctx.claimed.clear();
+    ctx.actions.clear();
+    ctx.relocated.clear();
+    ctx.booleanMerges.clear();
+    ctx.loopSlots.clear();
+    ctx.loopSlotsReady           = false;
+    ctx.loopSlotsAll             = false;
+    ctx.nextVirtualFloatRegIndex = 0;
+    ctx.nextVirtualIntRegIndex   = 0;
+    ctx.virtualIndicesReady      = false;
+    ctx.floatReadFits.fill(Context::FloatReadFit::Unknown);
     ctx.passContext  = &context;
     ctx.storage      = context.instructions;
     ctx.operands     = context.operands;

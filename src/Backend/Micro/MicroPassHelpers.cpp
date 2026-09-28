@@ -721,7 +721,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     else
         out.useDefs.clear();
     if (recordDeadDefs)
-        out.deadDefs.assign(instCount, 0);
+        out.deadDefs.resize(instCount);
     else
         out.deadDefs.clear();
     scratch.useMasks.resize(instCount);
@@ -804,7 +804,6 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
             exitLiveOut |= maskOf(reg);
     }
 
-    out.liveIn.assign(instCount, 0);
     // Every node is visited below. Its live-out is overwritten on its first
     // visit; propagation reads only live-in, so no seed is needed.
     out.liveOut.resize(instCount);
@@ -836,11 +835,15 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     // reverse sweep. Only cyclic graphs need predecessor requeues.
     if (!cfg.hasLoop())
     {
+        // Every successor has been written before it is read, so retained
+        // entries need no zeroing on the acyclic path.
+        out.liveIn.resize(instCount);
         for (uint32_t i = instCount; i != 0;)
             updateLiveIn(--i);
     }
     else
     {
+        out.liveIn.assign(instCount, 0);
         // Graph walks run sequentially on a worker and reuse the same buffers.
         auto& inWorklist = scratch.marks;
         auto& worklist   = scratch.stack;
@@ -950,48 +953,11 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     std::vector<uint32_t> idom(n, MicroDomTree::K_INVALID_NODE);
     std::vector<uint32_t> rpoPosition(n, MicroDomTree::K_INVALID_NODE);
 
-    auto& scratch   = graphWalkScratch();
-    auto& postorder = scratch.postorder;
-    postorder.clear();
-    postorder.reserve(n);
-    auto& visited = scratch.marks;
-    visited.assign(n, 0);
+    auto& scratch     = graphWalkScratch();
+    auto& postorder   = scratch.postorder;
     auto& childCursor = scratch.childCursor;
-    childCursor.assign(n, 0);
-    auto& stack = scratch.stack;
-    stack.clear();
-    stack.push_back(entry);
-    visited[entry] = 1;
-    while (!stack.empty())
-    {
-        const uint32_t u    = stack.back();
-        const auto&    succ = cfg.successors(u);
-        if (childCursor[u] < succ.size())
-        {
-            const uint32_t v = succ[childCursor[u]++];
-            if (v < n && !visited[v])
-            {
-                visited[v] = 1;
-                stack.push_back(v);
-            }
-        }
-        else
-        {
-            postorder.push_back(u);
-            stack.pop_back();
-        }
-    }
-
-    const uint32_t count = static_cast<uint32_t>(postorder.size());
-    auto&          rpo   = stack;
+    auto& rpo         = scratch.stack;
     rpo.clear();
-    rpo.reserve(count);
-    for (uint32_t i = count; i-- > 0;)
-    {
-        const uint32_t node = postorder[i];
-        rpoPosition[node]   = static_cast<uint32_t>(rpo.size());
-        rpo.push_back(node);
-    }
 
     auto intersect = [&](uint32_t a, uint32_t b) {
         while (a != b)
@@ -1004,15 +970,16 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
         return a;
     };
 
-    idom[entry]  = entry;
-    bool changed = true;
-    while (changed)
+    idom[entry] = entry;
+    if (!cfg.hasLoop())
     {
-        changed = false;
-        for (const uint32_t node : rpo)
+        // Every edge points forward. Process reachable nodes in instruction
+        // order; an unreachable predecessor still has no dominator and is
+        // ignored exactly as it is in the general traversal.
+        rpoPosition[entry] = 0;
+        rpo.push_back(entry);
+        for (uint32_t node = entry + 1; node < n; ++node)
         {
-            if (node == entry)
-                continue;
             uint32_t newIdom = MicroDomTree::K_INVALID_NODE;
             for (const uint32_t pred : cfg.predecessors(node))
             {
@@ -1020,23 +987,80 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
                     continue;
                 newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
             }
-            if (newIdom != MicroDomTree::K_INVALID_NODE && newIdom != idom[node])
+            if (newIdom == MicroDomTree::K_INVALID_NODE)
+                continue;
+            idom[node]        = newIdom;
+            rpoPosition[node] = static_cast<uint32_t>(rpo.size());
+            rpo.push_back(node);
+        }
+    }
+    else
+    {
+        postorder.clear();
+        postorder.reserve(n);
+        auto& visited = scratch.marks;
+        visited.assign(n, 0);
+        childCursor.assign(n, 0);
+        rpo.push_back(entry);
+        visited[entry] = 1;
+        while (!rpo.empty())
+        {
+            const uint32_t u    = rpo.back();
+            const auto&    succ = cfg.successors(u);
+            if (childCursor[u] < succ.size())
             {
-                idom[node] = newIdom;
-                changed    = true;
+                const uint32_t v = succ[childCursor[u]++];
+                if (v < n && !visited[v])
+                {
+                    visited[v] = 1;
+                    rpo.push_back(v);
+                }
+            }
+            else
+            {
+                postorder.push_back(u);
+                rpo.pop_back();
             }
         }
-        // With only forward edges, RPO is topological and every reachable
-        // predecessor was finalized before its successors in this sweep.
-        if (!cfg.hasLoop())
-            break;
+
+        const uint32_t count = static_cast<uint32_t>(postorder.size());
+        rpo.reserve(count);
+        for (uint32_t i = count; i-- > 0;)
+        {
+            const uint32_t node = postorder[i];
+            rpoPosition[node]   = static_cast<uint32_t>(rpo.size());
+            rpo.push_back(node);
+        }
+
+        bool changed = true;
+        while (changed)
+        {
+            changed = false;
+            for (const uint32_t node : rpo)
+            {
+                if (node == entry)
+                    continue;
+                uint32_t newIdom = MicroDomTree::K_INVALID_NODE;
+                for (const uint32_t pred : cfg.predecessors(node))
+                {
+                    if (pred >= n || idom[pred] == MicroDomTree::K_INVALID_NODE)
+                        continue;
+                    newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
+                }
+                if (newIdom != MicroDomTree::K_INVALID_NODE && newIdom != idom[node])
+                {
+                    idom[node] = newIdom;
+                    changed    = true;
+                }
+            }
+        }
     }
 
     // Reuse the CFG traversal buffers for dominator-tree child links. The
     // result still retains only two arrays; no ancestor table is needed.
     auto& firstChild  = childCursor;
     auto& nextSibling = postorder;
-    std::ranges::fill(firstChild, MicroDomTree::K_INVALID_NODE);
+    firstChild.assign(n, MicroDomTree::K_INVALID_NODE);
     nextSibling.assign(n, MicroDomTree::K_INVALID_NODE);
     for (const uint32_t node : rpo)
     {

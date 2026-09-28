@@ -67,6 +67,12 @@ public:
     }
 
     TypeRef returnTypeRef() const { return returnType_; }
+    SourceCodeRef codeRefIfDeclared() const noexcept
+    {
+        if (!decl())
+            return SourceCodeRef::invalid();
+        return codeRef();
+    }
     TokenId intrinsicId() const
     {
         const auto* fnDecl = decl() ? decl()->safeCast<AstFunctionDecl>() : nullptr;

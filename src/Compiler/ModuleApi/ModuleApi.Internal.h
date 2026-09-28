@@ -6,6 +6,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace ModuleApi
 {
+    inline bool sameNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
+    {
+        return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
     inline TokenRef matchingModuleApiDelimiter(const SourceView& srcView, TokenRef openRef, TokenId openId, TokenId closeId)
     {
         uint32_t balance = 0;

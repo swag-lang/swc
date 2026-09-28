@@ -67,19 +67,12 @@ namespace
         }
     }
 
-    SourceCodeRef safeCodeRef(const SymbolFunction& function)
-    {
-        if (!function.decl())
-            return SourceCodeRef::invalid();
-        return function.codeRef();
-    }
-
     void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction& function, const Symbol* waiterSymbol)
     {
         TaskState& wait   = ctx.state();
         wait.kind         = TaskStateKind::SemaWaitSymJitCompleted;
         wait.nodeRef      = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : function.declNodeRef();
-        wait.codeRef      = ctx.state().codeRef.isValid() ? ctx.state().codeRef : safeCodeRef(function);
+        wait.codeRef      = ctx.state().codeRef.isValid() ? ctx.state().codeRef : function.codeRefIfDeclared();
         wait.symbol       = &function;
         wait.waiterSymbol = waiterSymbol != &function ? waiterSymbol : nullptr;
     }
@@ -91,9 +84,9 @@ namespace
         wait.nodeRef    = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : waiterFunction.declNodeRef();
         if (wait.nodeRef.isInvalid())
             wait.nodeRef = targetFunction.declNodeRef();
-        wait.codeRef = ctx.state().codeRef.isValid() ? ctx.state().codeRef : safeCodeRef(waiterFunction);
+        wait.codeRef = ctx.state().codeRef.isValid() ? ctx.state().codeRef : waiterFunction.codeRefIfDeclared();
         if (!wait.codeRef.isValid())
-            wait.codeRef = safeCodeRef(targetFunction);
+            wait.codeRef = targetFunction.codeRefIfDeclared();
         wait.symbol       = &targetFunction;
         wait.waiterSymbol = &waiterFunction != &targetFunction ? &waiterFunction : nullptr;
     }

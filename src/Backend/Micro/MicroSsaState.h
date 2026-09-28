@@ -156,6 +156,7 @@ private:
     void            resetForBuild(MicroStorage& storage);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
     bool            computeDominators(bool acyclic); // true when any dominance frontier exists
+    bool            finalizeDominators(std::vector<uint32_t>& idomValues);
     void            placePhiNodes();
     void            renameIntoSsa();
     void            renameBlock(uint32_t blockIndex, RenameState& state);

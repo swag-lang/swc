@@ -926,7 +926,9 @@ namespace
         const FrameReachability& reach        = framePrivacy;
         const bool               framePrivate = reach.wholeFramePrivate;
 
-        MicroPhysLiveness liveness;
+        // Hoist rounds run sequentially on a worker. The analysis overwrites
+        // the live entries each round, so retain its storage between rounds.
+        thread_local MicroPhysLiveness liveness;
         MicroPassHelpers::computePhysicalLiveness(liveness, context);
         if (!liveness.valid)
             return false;

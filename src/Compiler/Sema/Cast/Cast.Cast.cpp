@@ -969,12 +969,7 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
         if (!srcFits || !dstFits)
             return castRequest.fail(DiagnosticId::sema_err_bit_cast_invalid_type, orgSrcTypeRef, dstTypeRef);
 
-        if (castRequest.isConstantFolding() && castRequest.materializeConstantResult())
-        {
-            const ConstantValue& cst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-            if (cst.isArray())
-                castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, cst.getArray());
-        }
+        CastConstant::materializeArrayPayload(sema, castRequest, dstTypeRef);
         return Result::Continue;
     }
 

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastConstant.h"
 #include "Compiler/Sema/Cast/CastElementHelpers.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -476,12 +477,7 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         if (dims.size() != 1 || dims[0] != laneCount || srcElemTypeRef != laneTypeRef)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-        if (castRequest.isConstantFolding() && castRequest.materializeConstantResult())
-        {
-            const ConstantValue& cst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-            if (cst.isArray())
-                castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, cst.getArray());
-        }
+        CastConstant::materializeArrayPayload(sema, castRequest, dstTypeRef);
         return Result::Continue;
     }
 
@@ -509,12 +505,7 @@ Result Cast::castFromSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     if (dims.size() != 1 || dims[0] != srcType.payloadSimdLaneCount() || dstElemTypeRef != srcType.payloadSimdLaneTypeRef())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    if (castRequest.isConstantFolding() && castRequest.materializeConstantResult())
-    {
-        const ConstantValue& cst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-        if (cst.isArray())
-            castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, cst.getArray());
-    }
+    CastConstant::materializeArrayPayload(sema, castRequest, dstTypeRef);
     return Result::Continue;
 }
 

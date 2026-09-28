@@ -13,7 +13,7 @@
 // Classic backward-liveness DCE over the per-instruction CFG on physical
 // registers. Live-out at function-exit instructions is seeded with the ABI
 // live-out set (return regs + callee-save / persistent regs + stack pointer
-// + frame pointer). Iterative worklist computes per-instruction live-out;
+// + frame pointer). Backward liveness computes per-instruction live-out;
 // any instruction whose defs are all non-live and which has no observable
 // side effect is erased.
 

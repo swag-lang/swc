@@ -155,8 +155,9 @@ namespace
         // Two independent packed accumulators shorten the XOR dependency chain
         // when an exact group of eight is available.
         const bool twoVectors = cmpOps[2].valueU64 >= 128 && cmpOps[2].valueU64 % 8 == 0;
-        uint32_t   nextInt    = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-        uint32_t   nextFloat  = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+        uint32_t   nextInt    = 0;
+        uint32_t   nextFloat  = 0;
+        MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
         if (nextInt > MicroReg::K_MAX_INDEX - 3 || nextFloat > MicroReg::K_MAX_INDEX - (twoVectors ? 6u : 4u))
             return false;
         const MicroReg scalar = MicroReg::virtualIntReg(nextInt++);

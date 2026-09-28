@@ -7,6 +7,7 @@
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -80,6 +81,16 @@ public:
     bool                     implementsInterface(const SymbolInterface& itf) const;
     bool                     implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
     bool                     resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const;
+    static bool              usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
+    {
+        for (const auto& step : usingPath)
+        {
+            if (step.isPointer)
+                return true;
+        }
+
+        return false;
+    }
 
     Result                    computeLayout(TaskContext& ctx);
     bool                      isDynamic() const noexcept { return !dynamicSlotOffsets_.empty(); }

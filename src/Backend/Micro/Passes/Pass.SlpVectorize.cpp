@@ -1559,7 +1559,7 @@ namespace
         uint32_t planReg = K_INVALID_ID;
     };
 
-    bool vectorizeBlock(SlpFunctionContext& fn, MicroSsaState& localSsa, std::span<const BlockInstr> blockInstrs)
+    bool vectorizeBlock(SlpFunctionContext& fn, std::optional<MicroSsaState>& localSsa, std::span<const BlockInstr> blockInstrs)
     {
         if (blockInstrs.size() < static_cast<size_t>(K_LANE_COUNT) * 2)
             return false;
@@ -1753,7 +1753,10 @@ namespace
         // plan, still before any block can mutate the instruction stream.
         if (!fn.ssa)
         {
-            fn.ssa = MicroSsaState::ensureFor(*fn.context, localSsa);
+            // Most scanned blocks have no viable packed plan. Construct the
+            // standalone fallback only when SSA is actually requested.
+            MicroSsaState& ssaScratch = fn.context->ssaState ? *fn.context->ssaState : localSsa.emplace();
+            fn.ssa                   = MicroSsaState::ensureFor(*fn.context, ssaScratch);
             if (!fn.ssa)
                 return false;
         }
@@ -2017,7 +2020,7 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     if (scalarStores < K_LANE_COUNT)
         return Result::Continue;
 
-    MicroSsaState localSsa;
+    std::optional<MicroSsaState> localSsa;
 
     // Walk the straight-line blocks.
     bool changed = false;

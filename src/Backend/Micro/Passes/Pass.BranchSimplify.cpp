@@ -2601,7 +2601,8 @@ namespace
             return index < count ? storage.ptr(layout.order[index]) : nullptr;
         };
 
-        bool changed = false;
+        bool                                   changed = false;
+        std::unordered_map<uint32_t, uint32_t> inside;
         for (size_t start = 1; start < count; ++start)
         {
             const MicroInstr* firstSet = instAt(start);
@@ -2658,7 +2659,7 @@ namespace
                 // What a later link defines, other than D, only that link reads.
                 if (!links.empty())
                 {
-                    std::unordered_map<uint32_t, uint32_t> inside;
+                    inside.clear();
                     for (size_t index = at; index <= link.merge; ++index)
                     {
                         const MicroInstr*        instruction    = instAt(index);

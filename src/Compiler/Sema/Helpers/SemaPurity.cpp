@@ -51,6 +51,9 @@ namespace
     bool isFunctionParameter(const SymbolFunction& fn, const SymbolVariable& var)
     {
         const auto& params = fn.parameters();
+        const auto  index  = var.parameterIndex();
+        if (index < params.size() && params[index] == &var)
+            return true;
         return std::ranges::find(params, &var) != params.end();
     }
 

@@ -737,7 +737,8 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
 
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
-    MicroSsaState        localSsaState;
+    std::optional<MicroSsaState> localSsaState;
+    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
     const MicroSsaState* ssaState               = nullptr;
     uint32_t             nextVirtualIntRegIndex = 0; // computed lazily on the first expansion
 
@@ -797,7 +798,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
                         break;
                     if (!ssaState)
-                        ssaState = MicroSsaState::ensureFor(context, localSsaState);
+                        ssaState = MicroSsaState::ensureFor(context, ssaScratch);
                     if (ssaState && ssaState->isValid() && !ssaState->isRegUsedAfter(ops[0].reg, instRef))
                         changed = storage.erase(instRef);
                 }
@@ -818,7 +819,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     changed = true;
                     break;
                 }
-                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, localSsaState, instRef, ops, nextVirtualIntRegIndex) ||
+                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, ssaScratch, instRef, ops, nextVirtualIntRegIndex) ||
                           tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;
 

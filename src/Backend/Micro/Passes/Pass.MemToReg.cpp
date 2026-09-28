@@ -480,11 +480,16 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         MicroInstrRef defRef    = MicroInstrRef::invalid();
         bool          ambiguous = false;
     };
-    std::unordered_map<MicroReg, AddrRegInfo> addrRegOffset;
-    std::unordered_set<uint32_t>              addressAdjustments;
+    // These tables describe one function, but their capacity can serve
+    // later mem2reg rounds and functions on the same worker.
+    thread_local std::unordered_map<MicroReg, AddrRegInfo> addrRegOffset;
+    thread_local std::unordered_set<uint32_t>              addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
-    std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;
+    thread_local std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;
+    addrRegOffset.clear();
+    addressAdjustments.clear();
+    addrRegMoreOffsets.clear();
 
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
     {
@@ -592,7 +597,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         uint64_t hi       = 0;
         bool     poisoned = false;
     };
-    std::vector<FrameVarRange> varRanges;
+    thread_local std::vector<FrameVarRange> varRanges;
+    varRanges.clear();
 
     const bool rangesUsable = context.sanitizerFunction != nullptr &&
                               (!context.debugStackBaseVirtualReg.isValid() || context.debugStackBaseVirtualReg == frameBase);
@@ -690,11 +696,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // ---- Pass 2: classify accesses; an unexplained escape poisons the
     //      containing variable, or bails the whole function when it cannot be
     //      pinned to one. ----
-    std::unordered_map<uint64_t, SlotInfo> slots;
-    bool                                   bail = false;
-    bool                                   hasFieldSplitWrite = false;
-    bool                                   hasNarrowFieldRead = false;
-    bool                                   hasVectorWrite = false;
+    thread_local std::unordered_map<uint64_t, SlotInfo> slots;
+    slots.clear();
+    bool bail               = false;
+    bool hasFieldSplitWrite = false;
+    bool hasNarrowFieldRead = false;
+    bool hasVectorWrite     = false;
     // Slots addressed directly by the stack pointer include outgoing arguments;
     // a callee can read those behind this analysis, so they cannot be promoted.
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)

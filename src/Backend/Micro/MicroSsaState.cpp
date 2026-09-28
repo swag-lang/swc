@@ -642,24 +642,29 @@ bool MicroSsaState::finalizeDominators(std::vector<uint32_t>& idomValues)
 
     // Each join is visited once. Once two predecessor walks meet, the remaining
     // dominator path has already contributed this join to every frontier on it.
-    // Immediate dominators now live on the blocks; reuse their scratch array
-    // for frontier stamps instead of allocating another row per block.
+    // Immediate dominators now live on the blocks. Their indices are below
+    // blockCount, so stamps starting at blockCount cannot match an untouched
+    // entry. This avoids clearing the scratch array before frontier walks.
     auto& frontierVisit = idomValues;
-    std::ranges::fill(frontierVisit, K_INVALID_BLOCK);
+    const uint32_t blockCount = static_cast<uint32_t>(blocks_.size());
+    const uint32_t stampBase  = blockCount < K_INVALID_BLOCK / 2 ? blockCount : 0;
+    if (!stampBase)
+        std::ranges::fill(frontierVisit, K_INVALID_BLOCK);
     bool hasFrontier = false;
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
         if (blocks_[blockIndex].predecessors.size() < 2)
             continue;
 
+        const uint32_t stamp = stampBase + blockIndex;
         for (const uint32_t predecessorBlock : blocks_[blockIndex].predecessors)
         {
             uint32_t runner = predecessorBlock;
             while (runner != K_INVALID_BLOCK && runner != blocks_[blockIndex].idom)
             {
-                if (frontierVisit[runner] == blockIndex)
+                if (frontierVisit[runner] == stamp)
                     break;
-                frontierVisit[runner] = blockIndex;
+                frontierVisit[runner] = stamp;
                 blocks_[runner].dominanceFrontier.push_back(blockIndex);
                 hasFrontier               = true;
                 const uint32_t runnerIdom = blocks_[runner].idom;

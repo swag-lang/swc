@@ -65,11 +65,6 @@ struct StructConfigEntry
     StructConfigAssignHook afterSet{};
 
     bool isEnum() const { return !choices.empty(); }
-    bool isBoolLike() const
-    {
-        return std::holds_alternative<bool*>(target) ||
-               std::holds_alternative<std::optional<bool>*>(target);
-    }
 
     // The entry's current value, spelled the way the reader accepts it back.
     // A repeated key holds several values and has no single spelling, so asking

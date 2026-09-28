@@ -9,6 +9,7 @@
 #include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenStoredExprPayload.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
@@ -152,32 +153,6 @@ namespace
         regPayload.reg = codeGen.nextVirtualRegisterForType(symVar.typeRef());
         codeGen.setVariablePayload(symVar, regPayload);
         return regPayload;
-    }
-
-    using CodeGenFunctionHelpers::resolveStoredVariablePayload;
-
-    CodeGenNodePayload foreachExprPayload(CodeGen& codeGen, AstNodeRef exprRef)
-    {
-        if (const auto* payload = codeGen.safePayload(exprRef))
-        {
-            if (payload->reg.isValid())
-                return *payload;
-        }
-
-        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
-        if (storedView.sym() && storedView.sym()->isVariable())
-        {
-            const auto& symVar = storedView.sym()->cast<SymbolVariable>();
-            if (symVar.isClosureCapture() ||
-                symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-                symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
-                symVar.hasGlobalStorage() ||
-                codeGen.variablePayload(symVar) ||
-                (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
-                return resolveStoredVariablePayload(codeGen, symVar);
-        }
-
-        return codeGen.payload(exprRef);
     }
 
     const SymbolEnum* enumSymbolFromTypeRef(CodeGen& codeGen, TypeRef typeRef)
@@ -418,7 +393,7 @@ namespace
         else
         {
             const SemaNodeView exprView    = CodeGenExprView::storedOrType(codeGen, exprRef);
-            CodeGenNodePayload exprPayload = foreachExprPayload(codeGen, exprRef);
+            CodeGenNodePayload exprPayload = CodeGenStoredExprPayload::resolve<CodeGenStoredExprPayload::CallerReturnStorageE::Exclude>(codeGen, exprRef);
             TypeRef            exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
             CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
             const TypeRef   unwrappedExprTypeRef = SemaHelpers::unwrapAliasRefType(codeGen.ctx(), exprTypeRef);

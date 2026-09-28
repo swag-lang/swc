@@ -190,19 +190,7 @@ namespace
             SmallVector<MicroReg> futureSourceRegs;
             CodeGenParameterReg::collectFutureSourceRegs(futureSourceRegs, callConv, paramInfos, registerParamIndices.span(), i, paramInfos[paramIndex].isFloat);
 
-            builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs.span());
-            if (!futureSourceRegs.empty())
-                builder.preserveVirtualCopy(symbolPayload.reg);
-            CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfos[paramIndex], symbolPayload.reg);
-            symbolPayload.setValueOrAddress(paramInfos[paramIndex].isIndirect);
-            codeGen.setVariablePayload(*symVar, symbolPayload);
-
-            CodeGenParameterReg::RegisterParameterPayload registerPayload;
-            registerPayload.symVar      = symVar;
-            registerPayload.payload     = symbolPayload;
-            registerPayload.paramInfo   = paramInfos[paramIndex];
-            registerPayload.needsRebind = !futureSourceRegs.empty();
-            registerPayloads.push_back(registerPayload);
+            CodeGenParameterReg::bindRegisterParameter(codeGen, builder, symbolFunc, *symVar, paramInfos[paramIndex], symbolPayload, futureSourceRegs, registerPayloads);
         }
 
         CodeGenParameterReg::rebindRegisterParameters(codeGen, builder, registerPayloads.span());

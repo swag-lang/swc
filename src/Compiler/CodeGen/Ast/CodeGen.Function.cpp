@@ -346,19 +346,7 @@ namespace
             CodeGenNodePayload symbolPayload;
             symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
             symbolPayload.typeRef = symVar->typeRef();
-            builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs.span());
-            if (!futureSourceRegs.empty())
-                builder.preserveVirtualCopy(symbolPayload.reg);
-            CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
-            symbolPayload.setValueOrAddress(paramInfo.isIndirect);
-            codeGen.setVariablePayload(*symVar, symbolPayload);
-
-            CodeGenParameterReg::RegisterParameterPayload registerPayload;
-            registerPayload.symVar      = symVar;
-            registerPayload.payload     = symbolPayload;
-            registerPayload.paramInfo   = paramInfo;
-            registerPayload.needsRebind = !futureSourceRegs.empty();
-            registerPayloads.push_back(registerPayload);
+            CodeGenParameterReg::bindRegisterParameter(codeGen, builder, symbolFunc, *symVar, paramInfo, symbolPayload, futureSourceRegs, registerPayloads);
         }
 
         CodeGenParameterReg::rebindRegisterParameters(codeGen, builder, registerPayloads.span());

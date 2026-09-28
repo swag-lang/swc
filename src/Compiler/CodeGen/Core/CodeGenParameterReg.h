@@ -56,6 +56,23 @@ namespace CodeGenParameterReg
         }
     }
 
+    inline void bindRegisterParameter(CodeGen& codeGen, MicroBuilder& builder, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo, CodeGenNodePayload& symbolPayload, const SmallVector<MicroReg>& futureSourceRegs, SmallVector<RegisterParameterPayload>& registerPayloads)
+    {
+        builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs.span());
+        if (!futureSourceRegs.empty())
+            builder.preserveVirtualCopy(symbolPayload.reg);
+        CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
+        symbolPayload.setValueOrAddress(paramInfo.isIndirect);
+        codeGen.setVariablePayload(symVar, symbolPayload);
+
+        RegisterParameterPayload registerPayload;
+        registerPayload.symVar      = &symVar;
+        registerPayload.payload     = symbolPayload;
+        registerPayload.paramInfo   = paramInfo;
+        registerPayload.needsRebind = !futureSourceRegs.empty();
+        registerPayloads.push_back(registerPayload);
+    }
+
     inline void rebindRegisterParameters(CodeGen& codeGen, MicroBuilder& builder, std::span<const RegisterParameterPayload> registerPayloads)
     {
         for (const auto& registerPayload : registerPayloads)

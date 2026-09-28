@@ -1450,12 +1450,6 @@ namespace
         return Result::Continue;
     }
 
-    void writeAddend(ByteArray& bytes, const uint32_t offset, const uint32_t value)
-    {
-        SWC_ASSERT(offset + sizeof(value) <= bytes.size());
-        std::memcpy(bytes.data() + offset, &value, sizeof(value));
-    }
-
     Result appendUnwindSections(const DebugInfoObjectRequest& request, DebugInfoObjectResult& outResult)
     {
         NativeSectionData xdataSection;
@@ -1507,7 +1501,7 @@ namespace
             unwindReloc.type       = IMAGE_REL_AMD64_ADDR32NB;
             pdataSection.relocations.push_back(unwindReloc);
 
-            writeAddend(pdataSection.bytes, pdataOffset + 4, static_cast<uint32_t>(function.machineCode->bytes.size()));
+            patchU32(pdataSection.bytes, pdataOffset + 4, static_cast<uint32_t>(function.machineCode->bytes.size()));
         }
 
         if (!xdataSection.bytes.empty())

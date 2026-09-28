@@ -66,26 +66,9 @@ namespace
                type.isLambdaClosure();
     }
 
-    bool isDirectStorageHandle(Sema& sema, TypeRef typeRef)
-    {
-        typeRef = unwrapAliasEnum(sema, typeRef);
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
-        return type.isString() ||
-               type.isCString() ||
-               type.isSlice() ||
-               type.isAnyPointer() ||
-               type.isReference() ||
-               type.isInterface() ||
-               type.isAny() ||
-               type.isLambdaClosure();
-    }
-
     bool localProjectionRootCanReceiveLocalStore(Sema& sema, const SymbolVariable& root)
     {
-        if (!isDirectStorageHandle(sema, root.typeRef()))
+        if (!isDirectBorrowCarrier(sema, root.typeRef()))
             return true;
 
         const SemaEscapeInfo* info = sema.variableEscapeInfo(root);

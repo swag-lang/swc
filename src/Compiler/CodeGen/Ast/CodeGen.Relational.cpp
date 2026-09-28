@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenIntegerConversion.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
@@ -178,26 +179,7 @@ namespace
 
         if (srcType.isIntLike() && dstType.isIntLike())
         {
-            const MicroReg dstReg = codeGen.nextVirtualIntRegister();
-            if (srcBits == dstBits)
-            {
-                builder.emitLoadRegReg(dstReg, outReg, dstBits);
-                outReg = dstReg;
-                return;
-            }
-
-            if (getNumBits(srcBits) > getNumBits(dstBits))
-            {
-                builder.emitLoadRegReg(dstReg, outReg, dstBits);
-                outReg = dstReg;
-                return;
-            }
-
-            if (srcType.isIntSigned())
-                builder.emitLoadSignedExtendRegReg(dstReg, outReg, dstBits, srcBits);
-            else
-                builder.emitLoadZeroExtendRegReg(dstReg, outReg, dstBits, srcBits);
-            outReg = dstReg;
+            CodeGenIntegerConversion::convertOperand(codeGen, outReg, srcType, srcBits, dstBits);
             return;
         }
 

@@ -9,6 +9,7 @@
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenIntegerConversion.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
@@ -159,26 +160,7 @@ namespace
 
         if (srcType.isIntLike() && dstType.isIntLike())
         {
-            const MicroReg dstReg = codeGen.nextVirtualIntRegister();
-            if (srcBits == dstBits)
-            {
-                builder.emitLoadRegReg(dstReg, outReg, dstBits);
-                outReg = dstReg;
-                return;
-            }
-
-            if (getNumBits(srcBits) > getNumBits(dstBits))
-            {
-                builder.emitLoadRegReg(dstReg, outReg, dstBits);
-                outReg = dstReg;
-                return;
-            }
-
-            if (srcType.isIntSigned())
-                builder.emitLoadSignedExtendRegReg(dstReg, outReg, dstBits, srcBits);
-            else
-                builder.emitLoadZeroExtendRegReg(dstReg, outReg, dstBits, srcBits);
-            outReg = dstReg;
+            CodeGenIntegerConversion::convertOperand(codeGen, outReg, srcType, srcBits, dstBits);
             return;
         }
 

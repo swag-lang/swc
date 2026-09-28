@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenStoredExprPayload.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -426,35 +427,6 @@ namespace
         return payload.reg;
     }
 
-    using CodeGenFunctionHelpers::resolveStoredVariablePayload;
-
-    CodeGenNodePayload countOfExprPayload(CodeGen& codeGen, AstNodeRef exprRef)
-    {
-        if (const auto* payload = codeGen.safePayload(exprRef))
-        {
-            if (payload->reg.isValid())
-                return *payload;
-        }
-
-        // `.count` can target a stored symbol not reached through the current AST walk, so fall
-        // back to sema-owned symbol/type views before using the transient node payload.
-        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
-        if (storedView.sym() && storedView.sym()->isVariable())
-        {
-            const auto& symVar = storedView.sym()->cast<SymbolVariable>();
-            if (symVar.isClosureCapture() ||
-                CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar) ||
-                symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-                symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
-                symVar.hasGlobalStorage() ||
-                codeGen.variablePayload(symVar) ||
-                (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
-                return resolveStoredVariablePayload(codeGen, symVar);
-        }
-
-        return codeGen.payload(exprRef);
-    }
-
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)
     {
         const auto* countPayload = codeGen.sema().semaPayload<CountOfSpecOpPayload>(codeGen.curNodeRef());
@@ -463,7 +435,7 @@ namespace
 
         MicroBuilder&      builder       = codeGen.builder();
         const SemaNodeView exprView      = CodeGenExprView::storedOrType(codeGen, exprRef);
-        CodeGenNodePayload exprPayload   = countOfExprPayload(codeGen, exprRef);
+        CodeGenNodePayload exprPayload   = CodeGenStoredExprPayload::resolve<CodeGenStoredExprPayload::CallerReturnStorageE::Include>(codeGen, exprRef);
         TypeRef            exprTypeRef   = exprPayload.effectiveTypeRef(exprView.typeRef());
         const TypeRef      resultTypeRef = codeGen.curViewType().typeRef();
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);

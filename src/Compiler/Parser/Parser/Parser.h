@@ -123,6 +123,7 @@ private:
     TokenRef consumeIf(TokenId id);
     TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef, const SmallVector<TokenId>& skipIds = {}, bool skipToEol = true);
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
+    bool     prepareNextArgument();
     void     expectEndStatement();
 
     AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
@@ -379,6 +380,16 @@ inline void Parser::reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bo
         diag.report(*ctx_);
         reportedMixed = true;
     }
+}
+
+inline bool Parser::prepareNextArgument()
+{
+    // Leave an enclosing container closer for the closing-delimiter diagnostic.
+    if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
+        return false;
+    if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
+        skipTo({TokenId::SymComma, TokenId::SymRightParen});
+    return !is(TokenId::SymRightParen);
 }
 
 SWC_END_NAMESPACE();

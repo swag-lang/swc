@@ -162,7 +162,6 @@ public:
 private:
     std::pair<MicroInstrRef, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands);
     MicroInstr&                           addInstruction(MicroInstrOpcode op, uint8_t numOperands);
-    void                                  storeInstructionDebugInfo(MicroInstrRef instructionRef);
 
     TaskContext*                                        ctx_ = nullptr;
     MicroStorage                                        instructions_;

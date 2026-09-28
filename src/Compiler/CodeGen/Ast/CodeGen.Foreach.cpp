@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
+#include "Compiler/CodeGen/Core/CodeGenLoopFrame.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenStoredExprPayload.h"
@@ -505,11 +506,7 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
         return Result::Continue;
 
     CodeGenFrame frame = codeGen.frame();
-    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
-    frame.setCurrentLoopContinueLabel(loopState->continueLabel);
-    frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-    codeGen.pushFrame(frame);
-    codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
+    CodeGenLoopFrame::pushWithDeferScope(codeGen, frame, loopState->continueLabel, loopState->doneLabel);
     registerForeachAliasImplicitDrops(codeGen, *loopState);
     return Result::Continue;
 }

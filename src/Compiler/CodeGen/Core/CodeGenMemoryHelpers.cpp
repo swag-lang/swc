@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenArrayTraversal.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
@@ -24,25 +25,9 @@ namespace
         const TypeInfo& type    = codeGen.typeMgr().get(typeRef);
         MicroBuilder&   builder = codeGen.builder();
         if (type.isArray())
-        {
-            const TypeRef  elementTypeRef = type.payloadArrayElemTypeRef();
-            const uint64_t elementSize    = codeGen.typeMgr().get(elementTypeRef).sizeOf(codeGen.ctx());
-            const uint64_t count          = type.sizeOf(codeGen.ctx()) / elementSize;
-            if (!count)
-                return Result::Continue;
-            const MicroReg elementReg = codeGen.nextVirtualIntRegister();
-            const MicroReg countReg   = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(elementReg, dstReg, MicroOpBits::B64);
-            builder.emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
-            const MicroLabelRef loop = builder.createLabel();
-            builder.placeLabel(loop);
-            SWC_RESULT(emitDynamicIdentityRec(codeGen, elementTypeRef, elementReg, true));
-            builder.emitOpBinaryRegImm(elementReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-            builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loop);
-            return Result::Continue;
-        }
+            return CodeGenArrayTraversal::emit(codeGen, dstReg, type, [&](TypeRef elementTypeRef, MicroReg elementReg) {
+                return emitDynamicIdentityRec(codeGen, elementTypeRef, elementReg, true);
+            });
 
         const SymbolStruct& symStruct = type.payloadSymStruct();
         if (initializeUsingSlots && symStruct.isDynamic())

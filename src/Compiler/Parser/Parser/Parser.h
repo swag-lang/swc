@@ -123,6 +123,7 @@ private:
     TokenRef consumeIf(TokenId id);
     TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef, const SmallVector<TokenId>& skipIds = {}, bool skipToEol = true);
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
+    bool     prepareNextArgument();
     void     expectEndStatement();
 
     AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
@@ -197,6 +198,7 @@ private:
     AstNodeRef parseCompilerTypeExpr();
     AstNodeRef parseCompilerTypeOf();
     AstNodeRef parseConstraint();
+    void       parseConstraintList(SmallVector<AstNodeRef>& outRefs);
     AstNodeRef parseContinue();
     AstNodeRef parseVarDeclDecomposition();
     void       parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool& hasNamed, bool& hasPositional);
@@ -300,6 +302,7 @@ private:
     Diagnostic  reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef);
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
+    void        reportArgumentCountForList(TokenRef calleeRef, const SmallVector<AstNodeRef>& args, uint32_t minCount, uint32_t maxCount, bool atLeastWhenUnbounded);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     Diagnostic  reportError(DiagnosticId id, AstNodeRef nodeRef);
     void        reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed);
@@ -378,6 +381,43 @@ inline void Parser::reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bo
         const Diagnostic diag = reportError(DiagnosticId::parser_err_mixed_destructuring, itemRef);
         diag.report(*ctx_);
         reportedMixed = true;
+    }
+}
+
+inline bool Parser::prepareNextArgument()
+{
+    // Leave an enclosing container closer for the closing-delimiter diagnostic.
+    if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
+        return false;
+    if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
+        skipTo({TokenId::SymComma, TokenId::SymRightParen});
+    return !is(TokenId::SymRightParen);
+}
+
+inline void Parser::reportArgumentCountForList(TokenRef calleeRef, const SmallVector<AstNodeRef>& args, uint32_t minCount, uint32_t maxCount, bool atLeastWhenUnbounded)
+{
+    if (args.size() < minCount)
+    {
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, calleeRef, ref(), minCount, static_cast<uint32_t>(args.size()), atLeastWhenUnbounded && maxCount == UINT32_MAX);
+        diag.report(*ctx_);
+    }
+    else if (args.size() > maxCount)
+    {
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, calleeRef, args[maxCount], maxCount, static_cast<uint32_t>(args.size()));
+        diag.report(*ctx_);
+    }
+}
+
+inline void Parser::parseConstraintList(SmallVector<AstNodeRef>& outRefs)
+{
+    while (is(TokenId::KwdWhere))
+    {
+        const Token*     loopStartToken = curToken_;
+        const AstNodeRef whereRef       = parseConstraint();
+        if (whereRef.isValid())
+            outRefs.push_back(whereRef);
+        if (loopStartToken == curToken_)
+            consume();
     }
 }
 

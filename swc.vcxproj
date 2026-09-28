@@ -675,8 +675,12 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenPointerIndex.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFloatConstant.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenArrayTraversal.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenLoopFrame.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenGlobalVariablePayload.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenIntegerConversion.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenBinaryValueCall.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenStoredExprPayload.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.h"/>
@@ -831,6 +835,7 @@
         <ClInclude Include="src\Backend\Native\SymbolSort.h"/>
         <ClInclude Include="src\Backend\RuntimeContext.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>
+        <ClInclude Include="src\Compiler\Sema\Cast\CastElementHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastConstant.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h"/>

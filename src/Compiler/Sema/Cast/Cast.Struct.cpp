@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastElementHelpers.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -284,12 +285,9 @@ namespace
     Result checkElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
     {
         CastRequest  elemCtx = makeFieldCastRequest(args, fieldNodeRef, fieldRef);
-        const Result res     = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
+        const Result res     = CastElementHelpers::allowed(*args.sema, *args.castRequest, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
-        {
-            args.castRequest->failure = elemCtx.failure;
             return res;
-        }
 
         const AstNodeRef valueNodeRef = aggregateFieldValueNodeRef(*args.sema, fieldNodeRef);
         if (valueNodeRef.isInvalid())
@@ -313,24 +311,7 @@ namespace
     Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef, ConstantRef valueRef, ConstantRef& outRef)
     {
         CastRequest elemCtx = makeFieldCastRequest(args, fieldNodeRef, fieldRef);
-        elemCtx.setConstantFoldingSrc(valueRef);
-        const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
-        if (res != Result::Continue)
-        {
-            args.castRequest->failure = elemCtx.failure;
-            return res;
-        }
-
-        outRef = elemCtx.constantFoldingResult();
-        if (srcElemType != dstElemType)
-        {
-            SWC_RESULT(Cast::castConstant(*args.sema, outRef, elemCtx, valueRef, dstElemType));
-            return Result::Continue;
-        }
-
-        if (outRef.isInvalid())
-            outRef = valueRef;
-        return Result::Continue;
+        return CastElementHelpers::foldConstant(*args.sema, *args.castRequest, elemCtx, srcElemType, dstElemType, valueRef, outRef);
     }
 
     enum class SetCastRank : uint8_t

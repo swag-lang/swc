@@ -266,6 +266,23 @@ block, and the hot path keeps the register.
   destroys the old per-instruction lists before the collection resizes them, so every new list
   is already empty. The focused Release register-allocation file passed 20 native tests, followed
   by 3,483 native and 1,500 JIT tests. Timing was not measured.
+- Post-allocation upper-half analysis now resizes its slot table without zeroing old entries.
+  Both acyclic and cyclic CFG paths overwrite every live instruction slot before any caller asks
+  for it; callers use live references while rewrites are still queued. This removes one
+  slot-count fill per analysis after the table first reaches that size. Four focused native Release
+  zero-extension tests passed, followed by 3,483 native and 1,500 JIT tests. Timing and peak
+  memory were not measured.
+- `MicroStorage::allocNode` no longer resets a node after obtaining it. A fresh slot is already
+  default-constructed, and `erase` resets a recycled slot before it enters the free list. This
+  removes one `Node` assignment per allocated micro-instruction slot. The focused Release
+  register-allocation file passed 20 native tests, followed by 3,483 native and 1,500 JIT tests.
+  Timing was not measured.
+- `MicroBuilder::addInstructionWithRef` no longer placement-constructs operand entries after
+  `MicroOperandStorage::emplaceUninitArray` has resized its `std::vector`. The resize already
+  default-constructs every operand, including its `ApInt`; this removes one duplicate construction
+  per emitted operand without changing its initial value. The focused Release `slp_vectorize`
+  file passed 17 native tests, followed by 3,483 native and 1,500 JIT tests. Timing was not
+  measured.
 - Next: count DevMode sweeps and other consumer workspaces before treating the Release
   standard-library maximum as a general bound. If any function approaches 24, identify the
   pass chain that keeps changing it before raising the limit.
@@ -723,6 +740,11 @@ block, and the hot path keeps the register.
   packed plan and asks for SSA. Blocks rejected earlier no longer initialize the fallback state;
   a supplied shared SSA state is used as before. The Release `slp_vectorize` file passed 17 native
   tests, followed by 3,483 native and 1,500 JIT tests. Timing was not measured.
+- The SSA value fixed point now retains existing value entries across passes and resets only their
+  validity flags. Every value read checks its flag, and successful inference overwrites its entry
+  before setting that flag. This removes one full value-array fill per constant-folding, copy-
+  elimination or branch-simplification run when scratch storage is reused. The Release optimizer
+  selection passed 241 native tests; timing and peak memory were not measured.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
@@ -1240,6 +1262,11 @@ block, and the hot path keeps the register.
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
   the earlier scan, which also remains the fallback whenever a precondition fails or the
   walk bails, and the C++ conformity cases run both.
+- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
+  fixed-claim interval arrays with direct default construction. The call sites pass empty
+  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
+  copied for every register. The Release `interval` selection passed two native tests; timing
+  and peak memory were not measured.
 - Evidence: the walk describes every concrete claim by the position it occupies, except
   for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
   the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole

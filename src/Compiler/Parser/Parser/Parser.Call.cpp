@@ -36,15 +36,8 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
 
     while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        if (!nodeArgs.empty())
-        {
-            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
-                break;
-            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-                skipTo({TokenId::SymComma, TokenId::SymRightParen});
-            if (is(TokenId::SymRightParen))
-                break;
-        }
+        if (!nodeArgs.empty() && !prepareNextArgument())
+            break;
 
         {
             const PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
@@ -52,16 +45,7 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
         }
     }
 
-    if (nodeArgs.size() < numParams)
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), numParams, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
-    else if (nodeArgs.size() > numParams)
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[numParams], numParams, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
+    reportArgumentCountForList(tokRef, nodeArgs, numParams, numParams, false);
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
 
@@ -106,15 +90,8 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
 
     while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        if (!nodeArgs.empty())
-        {
-            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
-                break;
-            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-                skipTo({TokenId::SymComma, TokenId::SymRightParen});
-            if (is(TokenId::SymRightParen))
-                break;
-        }
+        if (!nodeArgs.empty() && !prepareNextArgument())
+            break;
 
         {
             const PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
@@ -123,18 +100,7 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
     }
 
     if (numParams != UINT32_MAX)
-    {
-        if (nodeArgs.size() < numParams)
-        {
-            const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), numParams, static_cast<uint32_t>(nodeArgs.size()));
-            diag.report(*ctx_);
-        }
-        else if (nodeArgs.size() > numParams)
-        {
-            const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[numParams], numParams, static_cast<uint32_t>(nodeArgs.size()));
-            diag.report(*ctx_);
-        }
-    }
+        reportArgumentCountForList(tokRef, nodeArgs, numParams, numParams, false);
     else
     {
         if (nodeArgs.empty())

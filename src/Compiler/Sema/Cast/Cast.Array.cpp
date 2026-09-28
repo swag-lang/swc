@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastElementHelpers.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -135,12 +136,9 @@ namespace
         CastRequest elemCtx = makeElemCastRequest(args, location);
         if (valueRef.isValid())
             elemCtx.setConstantFoldingSrc(valueRef);
-        const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
+        const Result res = CastElementHelpers::allowed(*args.sema, *args.castRequest, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
-        {
-            args.castRequest->failure = elemCtx.failure;
             return res;
-        }
 
         const AstNodeRef valueNodeRef = arrayElemValueNodeRef(*args.sema, location.nodeRef);
         if (valueNodeRef.isInvalid())
@@ -162,24 +160,7 @@ namespace
     Result foldElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef, ConstantRef& outRef)
     {
         CastRequest elemCtx = makeElemCastRequest(args, location);
-        elemCtx.setConstantFoldingSrc(valueRef);
-        const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
-        if (res != Result::Continue)
-        {
-            args.castRequest->failure = elemCtx.failure;
-            return res;
-        }
-
-        outRef = elemCtx.constantFoldingResult();
-        if (srcElemType != dstElemType)
-        {
-            SWC_RESULT(Cast::castConstant(*args.sema, outRef, elemCtx, valueRef, dstElemType));
-            return Result::Continue;
-        }
-
-        if (outRef.isInvalid())
-            outRef = valueRef;
-        return Result::Continue;
+        return CastElementHelpers::foldConstant(*args.sema, *args.castRequest, elemCtx, srcElemType, dstElemType, valueRef, outRef);
     }
 
     ConstantRef makeArrayConstantFromValues(const CastArrayArgs& args, const std::vector<ConstantRef>& values)

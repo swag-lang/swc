@@ -3725,7 +3725,10 @@ namespace PostRaPeephole
 
             const uint32_t              count = cfg.instructionCount();
             const auto                  refs  = cfg.instructionRefs();
-            upperHalfZeroIn.assign(storage->slotCount(), 0);
+            // Both CFG paths write every live instruction slot before a query.
+            // Dead slots are never queried, so retain the old buffer without
+            // zeroing it once more for each function.
+            upperHalfZeroIn.resize(storage->slotCount());
             if (!cfg.hasLoop())
             {
                 // Every predecessor has a lower index, so one forward pass

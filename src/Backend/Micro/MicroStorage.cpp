@@ -237,8 +237,9 @@ MicroInstrRef MicroStorage::allocNode()
         nodes_.emplace_back();
     }
 
+    // New nodes were default-constructed above; erased nodes were reset in
+    // erase() before entering the free list. Neither needs a second reset.
     Node& node = nodes_[ref.get()];
-    node       = Node{};
     node.alive = true;
     ++count_;
     return ref;

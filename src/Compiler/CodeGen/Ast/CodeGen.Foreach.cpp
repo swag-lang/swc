@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCString.h"
 #include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -135,11 +136,7 @@ namespace
 
         if (symVar.hasGlobalStorage())
         {
-            CodeGenNodePayload symbolPayload;
-            symbolPayload.typeRef = symVar.typeRef();
-            symbolPayload.setIsAddress();
-            symbolPayload.reg = codeGen.nextVirtualIntRegister();
-            CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, symbolPayload.reg, symVar);
+            CodeGenNodePayload symbolPayload = CodeGenMemoryHelpers::globalVariableAddressPayload(codeGen, symVar);
             codeGen.setVariablePayload(symVar, symbolPayload);
             return symbolPayload;
         }

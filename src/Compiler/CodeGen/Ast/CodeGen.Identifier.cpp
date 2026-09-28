@@ -4,6 +4,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
@@ -250,12 +251,7 @@ namespace
 
         if (payloadSym.hasGlobalStorage())
         {
-            CodeGenNodePayload globalPayload;
-            globalPayload.typeRef = payloadSym.typeRef();
-            globalPayload.setIsAddress();
-            globalPayload.reg = codeGen.nextVirtualIntRegister();
-            CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, globalPayload.reg, payloadSym);
-            return globalPayload;
+            return CodeGenMemoryHelpers::globalVariableAddressPayload(codeGen, payloadSym);
         }
 
         SWC_UNREACHABLE();

@@ -3932,7 +3932,7 @@ namespace
         return false;
     }
 
-    bool convertShortCircuitBooleans(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertShortCircuitBooleans(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, const BranchScanCache& scanCache)
     {
         if (!context.builder)
             return false;
@@ -3954,10 +3954,14 @@ namespace
         };
 
         SmallVector<Candidate> candidates;
-        for (const MicroInstr& inst : storage.view())
+        const bool hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
+        if (!hasCurrentBranchScan)
         {
-            if (inst.op == MicroInstrOpcode::JumpReg)
-                return false;
+            for (const MicroInstr& inst : storage.view())
+            {
+                if (inst.op == MicroInstrOpcode::JumpReg)
+                    return false;
+            }
         }
 
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
@@ -4097,41 +4101,49 @@ namespace
 
         // D is a byte the skipped part made for B alone: nothing else may read
         // it, or running that part on the other path would be observable.
-        std::unordered_map<uint32_t, uint32_t> mentions;
-        for (const Candidate& candidate : candidates)
+        std::unordered_map<uint32_t, uint32_t> localMentions;
+        const auto* mentions = hasCurrentBranchScan ? &scanCache.scan.mentions : &localMentions;
+        if (!hasCurrentBranchScan)
         {
-            mentions[candidate.rhs.index()] = 0;
-            if (candidate.skippedDecrement.isValid())
+            for (const Candidate& candidate : candidates)
             {
-                mentions[candidate.skippedDecrement.index()] = 0;
-                mentions[candidate.skippedMask.index()]      = 0;
+                localMentions[candidate.rhs.index()] = 0;
+                if (candidate.skippedDecrement.isValid())
+                {
+                    localMentions[candidate.skippedDecrement.index()] = 0;
+                    localMentions[candidate.skippedMask.index()]      = 0;
+                }
             }
-        }
-        for (const MicroInstr& inst : storage.view())
-        {
-            const MicroInstrOperand* ops = inst.ops(operands);
-            if (!ops)
-                continue;
-            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
-            for (size_t i = 0; i < modes.size(); ++i)
+            for (const MicroInstr& inst : storage.view())
             {
-                if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
+                const MicroInstrOperand* ops = inst.ops(operands);
+                if (!ops)
                     continue;
-                const auto found = mentions.find(ops[i].reg.index());
-                if (found != mentions.end())
-                    ++found->second;
+                const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
+                        continue;
+                    const auto found = localMentions.find(ops[i].reg.index());
+                    if (found != localMentions.end())
+                        ++found->second;
+                }
             }
         }
+        const auto mentionCount = [&](const MicroReg reg) {
+            const auto it = mentions->find(reg.index());
+            return it == mentions->end() ? 0u : it->second;
+        };
 
         bool               changed = false;
         LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const Candidate& candidate : candidates)
         {
             // The setcc, the optional self-widening and the merge only.
-            if (mentions[candidate.rhs.index()] != candidate.mentions)
+            if (mentionCount(candidate.rhs) != candidate.mentions)
                 continue;
             if (candidate.skippedDecrement.isValid() &&
-                (mentions[candidate.skippedDecrement.index()] != 3 || mentions[candidate.skippedMask.index()] != 3))
+                (mentionCount(candidate.skippedDecrement) != 3 || mentionCount(candidate.skippedMask) != 3))
                 continue;
 
             const RangeMerge range{.leftCmpRef = candidate.leftCmpRef, .rightCmpRef = candidate.rightCmpRef, .rightSetRef = candidate.rightSetRef, .leftCond = candidate.leftCond};
@@ -7406,7 +7418,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // A matching chain has both a conditional jump and a setcc. Use the
     // existing layout only while it still describes the current stream.
     if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasConditionalJump && scanCache.scan.layout.hasSetCondition))
-        rewrote(convertShortCircuitBooleans(storage, operands, context));
+        rewrote(convertShortCircuitBooleans(storage, operands, context, scanCache));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     // This fold needs immediate compares and a setcc result before the boolean and.

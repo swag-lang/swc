@@ -295,6 +295,9 @@ bool SemaHelpers::bindingSymbolResolvesStandalone(Sema& sema, const SymbolVariab
         if (!fn)
             return false;
         const auto& params = fn->parameters();
+        const auto  index  = symVar.parameterIndex();
+        if (index < params.size() && params[index] == &symVar)
+            return true;
         return std::ranges::find(params, &symVar) != params.end();
     }
 

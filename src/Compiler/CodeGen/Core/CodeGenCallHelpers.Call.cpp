@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
@@ -80,11 +81,7 @@ namespace
 
         if (symVar.hasGlobalStorage())
         {
-            CodeGenNodePayload payload;
-            payload.typeRef = symVar.typeRef();
-            payload.setIsAddress();
-            payload.reg = codeGen.nextVirtualIntRegister();
-            CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, payload.reg, symVar);
+            CodeGenNodePayload payload = CodeGenMemoryHelpers::globalVariableAddressPayload(codeGen, symVar);
             return payload;
         }
 
@@ -600,11 +597,7 @@ namespace
         if (!storageSym->hasGlobalStorage())
             return false;
 
-        CodeGenNodePayload storagePayload;
-        storagePayload.typeRef = storageSym->typeRef();
-        storagePayload.setIsAddress();
-        storagePayload.reg = codeGen.nextVirtualIntRegister();
-        CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, storagePayload.reg, *storageSym);
+        CodeGenNodePayload storagePayload = CodeGenMemoryHelpers::globalVariableAddressPayload(codeGen, *storageSym);
         outStorageReg = storagePayload.reg;
         return outStorageReg.isValid();
     }

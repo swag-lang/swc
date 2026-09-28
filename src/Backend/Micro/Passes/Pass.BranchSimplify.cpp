@@ -776,7 +776,8 @@ namespace
             uint32_t references  = 0;
             uint32_t jumpOrdinal = 0;
         };
-        std::unordered_map<uint32_t, LabelUse> labelUses;
+        thread_local std::unordered_map<uint32_t, LabelUse> labelUses;
+        labelUses.clear();
         for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
         {
             const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -824,7 +825,9 @@ namespace
             MicroInstrRef compareRef;
             bool          taken = false;
         };
-        std::vector<Decision> decisions;
+        thread_local std::vector<Decision> decisions;
+        decisions.clear();
+        thread_local std::unordered_set<uint32_t> visitedLabels;
 
         constexpr uint32_t K_MAX_WALK = 256;
         for (uint32_t ordinal = 1; ordinal < count; ++ordinal)
@@ -846,12 +849,12 @@ namespace
             if (!value.valid())
                 continue;
 
-            // Most backward walks remain in straight-line code. Allocate the
-            // cycle detector only when a label is actually encountered.
-            std::optional<std::unordered_set<uint32_t>> visitedLabels;
-            int64_t                                     at      = static_cast<int64_t>(ordinal) - 2;
-            bool                                        decided = false;
-            bool                                        taken   = false;
+            // Most backward walks remain in straight-line code. Clear the
+            // retained cycle detector only when a label is encountered.
+            bool    visitedLabelsReady = false;
+            int64_t at                 = static_cast<int64_t>(ordinal) - 2;
+            bool    decided            = false;
+            bool    taken              = false;
             for (uint32_t step = 0; at >= 0 && step < K_MAX_WALK && !decided; ++step)
             {
                 const uint32_t           current  = static_cast<uint32_t>(at);
@@ -865,9 +868,12 @@ namespace
                     uint32_t labelId = 0;
                     if (!tryGetLabelId(labelId, *inst, instOps))
                         break;
-                    if (!visitedLabels)
-                        visitedLabels.emplace();
-                    if (!visitedLabels->insert(labelId).second)
+                    if (!visitedLabelsReady)
+                    {
+                        visitedLabels.clear();
+                        visitedLabelsReady = true;
+                    }
+                    if (!visitedLabels.insert(labelId).second)
                         break;
                     const auto     useIt      = labelUses.find(labelId);
                     const uint32_t references = useIt == labelUses.end() ? 0 : useIt->second.references;

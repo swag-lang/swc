@@ -695,11 +695,6 @@ namespace
         return nullptr;
     }
 
-    void appendIndexArgs(const Ast& ast, const AstIndexListExpr& node, SmallVector<AstNodeRef>& outArgs)
-    {
-        ast.appendNodes(outArgs, node.spanChildrenRef);
-    }
-
     AstNodeRef normalizeIndexSpecOpArgRef(Sema& sema, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -739,7 +734,7 @@ namespace
         {
             const auto& indexNode = node.cast<AstIndexListExpr>();
             outIndexedExprRef     = indexNode.nodeExprRef;
-            appendIndexArgs(sema.ast(), indexNode, outArgs);
+            sema.ast().appendNodes(outArgs, indexNode.spanChildrenRef);
             for (const AstNodeRef argRef : outArgs)
             {
                 if (sema.node(argRef).is(AstNodeId::RangeExpr))
@@ -1363,11 +1358,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     {
         if (constDown > constUp)
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, node.nodeArgRef);
-            diag.addArgument(Diagnostic::ARG_LEFT, nodeDownView.cstRef());
-            diag.addArgument(Diagnostic::ARG_RIGHT, nodeUpView.cstRef());
-            diag.report(sema.ctx());
-            return Result::Error;
+            return SemaError::raiseInvalidRangeBounds(sema, node.nodeArgRef, nodeDownView.cstRef(), nodeUpView.cstRef());
         }
 
         // 'opSlice' takes an inclusive upper bound, so lowering an exclusive range subtracts
@@ -1670,7 +1661,7 @@ Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const S
 Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexListExpr& node, const SemaNodeView& indexedView, bool& outHandled)
 {
     SmallVector<AstNodeRef> args;
-    appendIndexArgs(sema.ast(), node, args);
+    sema.ast().appendNodes(args, node.spanChildrenRef);
     return tryResolveIndexWithArgs(sema, sema.curNodeRef(), node.nodeExprRef, node.codeRef(), args.span(), indexedView, outHandled);
 }
 

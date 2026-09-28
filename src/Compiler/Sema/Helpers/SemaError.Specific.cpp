@@ -161,6 +161,15 @@ Result SemaError::raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRe
     return Result::Error;
 }
 
+Result SemaError::raiseInvalidRangeBounds(Sema& sema, AstNodeRef atNodeRef, ConstantRef downCstRef, ConstantRef upCstRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_range_invalid_bounds, atNodeRef);
+    diag.addArgument(Diagnostic::ARG_LEFT, downCstRef);
+    diag.addArgument(Diagnostic::ARG_RIGHT, upCstRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     TaskContext& ctx  = sema.ctx();

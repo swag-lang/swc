@@ -321,19 +321,6 @@ namespace
         }
     }
 
-    void collectRegisterParameterIndices(SmallVector<uint32_t>& outIndices, const std::vector<SymbolVariable*>& params, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
-    {
-        SWC_ASSERT(paramInfos.size() == params.size());
-        outIndices.clear();
-        outIndices.reserve(params.size());
-        for (size_t i = 0; i < params.size(); ++i)
-        {
-            SWC_ASSERT(params[i] != nullptr);
-            if (paramInfos[i].isRegisterArg)
-                outIndices.push_back(static_cast<uint32_t>(i));
-        }
-    }
-
     void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         const CallConv&                     callConv = CallConv::get(symbolFunc.callConvKind());
@@ -341,17 +328,9 @@ namespace
         MicroBuilder&                       builder  = codeGen.builder();
         SWC_ASSERT(paramInfos.size() == params.size());
 
-        struct RegisterParameterPayload
-        {
-            const SymbolVariable*                         symVar      = nullptr;
-            CodeGenNodePayload                            payload     = {};
-            CodeGenFunctionHelpers::FunctionParameterInfo paramInfo   = {};
-            bool                                          needsRebind = false;
-        };
-
         SmallVector<uint32_t> registerParamIndices;
-        collectRegisterParameterIndices(registerParamIndices, params, paramInfos);
-        SmallVector<RegisterParameterPayload> registerPayloads;
+        CodeGenParameterReg::collectRegisterParameterIndices(registerParamIndices, params, paramInfos);
+        SmallVector<CodeGenParameterReg::RegisterParameterPayload> registerPayloads;
         registerPayloads.reserve(registerParamIndices.size());
 
         for (size_t i = 0; i < registerParamIndices.size(); ++i)
@@ -362,45 +341,15 @@ namespace
             const auto paramInfo = paramInfos[paramIndex];
 
             SmallVector<MicroReg> futureSourceRegs;
-            futureSourceRegs.reserve(registerParamIndices.size() - i - 1);
-            for (size_t j = i + 1; j < registerParamIndices.size(); ++j)
-            {
-                const uint32_t                                      laterParamIndex = registerParamIndices[j];
-                const CodeGenFunctionHelpers::FunctionParameterInfo laterParamInfo  = paramInfos[laterParamIndex];
-                if (laterParamInfo.isFloat != paramInfo.isFloat)
-                    continue;
-
-                futureSourceRegs.push_back(CodeGenParameterReg::parameterSourcePhysReg(callConv, laterParamInfo));
-            }
+            CodeGenParameterReg::collectFutureSourceRegs(futureSourceRegs, callConv, paramInfos, registerParamIndices.span(), i, paramInfo.isFloat);
 
             CodeGenNodePayload symbolPayload;
             symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
             symbolPayload.typeRef = symVar->typeRef();
-            builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs.span());
-            if (!futureSourceRegs.empty())
-                builder.preserveVirtualCopy(symbolPayload.reg);
-            CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
-            symbolPayload.setValueOrAddress(paramInfo.isIndirect);
-            codeGen.setVariablePayload(*symVar, symbolPayload);
-
-            RegisterParameterPayload registerPayload;
-            registerPayload.symVar      = symVar;
-            registerPayload.payload     = symbolPayload;
-            registerPayload.paramInfo   = paramInfo;
-            registerPayload.needsRebind = !futureSourceRegs.empty();
-            registerPayloads.push_back(registerPayload);
+            CodeGenParameterReg::bindRegisterParameter(codeGen, builder, symbolFunc, *symVar, paramInfo, symbolPayload, futureSourceRegs, registerPayloads);
         }
 
-        for (const auto& registerPayload : registerPayloads)
-        {
-            if (!registerPayload.needsRebind)
-                continue;
-
-            CodeGenNodePayload reboundPayload = registerPayload.payload;
-            reboundPayload.reg                = registerPayload.paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(reboundPayload.reg, registerPayload.payload.reg, registerPayload.paramInfo.opBits);
-            codeGen.setVariablePayload(*registerPayload.symVar, reboundPayload);
-        }
+        CodeGenParameterReg::rebindRegisterParameters(codeGen, builder, registerPayloads.span());
     }
 
     // A parameter that needs addressable storage owns a local slot, which

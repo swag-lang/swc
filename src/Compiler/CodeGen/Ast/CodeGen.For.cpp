@@ -46,23 +46,9 @@ namespace
         return codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(nodeRef);
     }
 
-    void eraseForCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        ForCStyleStmtCodeGenPayload* payload = forCStyleStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
-
     ForStmtCodeGenPayload* forStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return codeGen.safeNodePayload<ForStmtCodeGenPayload>(nodeRef);
-    }
-
-    void eraseForStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        ForStmtCodeGenPayload* payload = forStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
     }
 
     AstNodeRef preparedChildRef(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -452,7 +438,7 @@ Result AstForCStyleStmt::codeGenPostNode(CodeGen& codeGen)
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    eraseForCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<ForCStyleStmtCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 
@@ -564,7 +550,7 @@ Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    eraseForStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<ForStmtCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 

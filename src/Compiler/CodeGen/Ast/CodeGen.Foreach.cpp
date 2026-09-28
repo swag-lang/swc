@@ -55,13 +55,6 @@ namespace
         return codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(nodeRef);
     }
 
-    void eraseForeachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        ForeachStmtCodeGenPayload* payload = foreachStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
-
     bool foreachUsesCustomVisit(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(nodeRef);
@@ -634,7 +627,7 @@ Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen)
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    eraseForeachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<ForeachStmtCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 

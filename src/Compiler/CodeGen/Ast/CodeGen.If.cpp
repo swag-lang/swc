@@ -23,13 +23,6 @@ namespace
         return codeGen.safeNodePayload<IfStmtCodeGenPayload>(nodeRef);
     }
 
-    void eraseIfStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        IfStmtCodeGenPayload* payload = ifStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
-
     void emitIfStmtCondition(CodeGen& codeGen, AstNodeRef ifRef, const CodeGenNodePayload& conditionPayload, TypeRef conditionTypeRef, bool hasElseBlock)
     {
         const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
@@ -73,13 +66,13 @@ namespace
             builder.placeLabel(state->falseLabel);
 
             if (!state->hasElseBlock)
-                eraseIfStmtCodeGenPayload(codeGen, ifRef);
+                codeGen.resetNodePayload<IfStmtCodeGenPayload>(ifRef);
 
             return Result::Continue;
         }
 
         builder.placeLabel(state->doneLabel);
-        eraseIfStmtCodeGenPayload(codeGen, ifRef);
+        codeGen.resetNodePayload<IfStmtCodeGenPayload>(ifRef);
         return Result::Continue;
     }
 }

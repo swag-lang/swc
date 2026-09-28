@@ -101,13 +101,6 @@ namespace
         return codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(nodeRef);
     }
 
-    void eraseCompilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        CompilerScopeCodeGenPayload* payload = compilerScopeCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
-
     void buildCompilerFunctionStackLayout(CodeGen& codeGen)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
@@ -453,7 +446,7 @@ Result AstCompilerScope::codeGenPostNode(CodeGen& codeGen)
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(scopeState->doneLabel);
-    eraseCompilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<CompilerScopeCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 

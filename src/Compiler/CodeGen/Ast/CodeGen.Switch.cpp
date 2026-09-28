@@ -62,13 +62,6 @@ namespace
         return codeGen.safeNodePayload<SwitchStmtCodeGenPayload>(nodeRef);
     }
 
-    void eraseSwitchStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        SwitchStmtCodeGenPayload* payload = switchStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
-
     MicroOpBits switchCompareOpBits(const TypeInfo& typeInfo, TaskContext& ctx)
     {
         if (typeInfo.isFloat())
@@ -1381,7 +1374,7 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
 
     builder.placeLabel(switchState->doneLabel);
     codeGen.popFrame();
-    eraseSwitchStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<SwitchStmtCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 

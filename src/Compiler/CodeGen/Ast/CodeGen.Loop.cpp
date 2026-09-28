@@ -25,13 +25,6 @@ namespace
     {
         return codeGen.safeNodePayload<LoopStmtCodeGenPayload>(nodeRef);
     }
-
-    void eraseLoopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        LoopStmtCodeGenPayload* payload = loopStmtCodeGenPayload(codeGen, nodeRef);
-        if (payload)
-            *payload = {};
-    }
 }
 
 Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
@@ -166,7 +159,7 @@ Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    eraseLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 
@@ -224,7 +217,7 @@ Result AstInfiniteLoopStmt::codeGenPostNode(CodeGen& codeGen)
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    eraseLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    codeGen.resetNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
     return Result::Continue;
 }
 

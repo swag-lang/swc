@@ -15,16 +15,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool samePublicEntryNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
-    {
-        return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
-    }
-
     ModuleApiPublicEntry* findMatchingPublicEntry(std::vector<ModuleApiPublicEntry>& entries, const ModuleApiPublicEntry& needle)
     {
         for (ModuleApiPublicEntry& entry : entries)
         {
-            if (entry.rootRef == needle.rootRef && samePublicEntryNamespacePath(entry.namespacePath, needle.namespacePath))
+            if (entry.rootRef == needle.rootRef && ModuleApi::sameNamespacePath(entry.namespacePath, needle.namespacePath))
                 return &entry;
         }
 

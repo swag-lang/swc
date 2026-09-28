@@ -21,6 +21,7 @@ namespace ModuleApiExport
     using ModuleApi::isModuleApiOpaqueType;
     using ModuleApi::moduleApiNodeSourceView;
     using ModuleApi::moduleApiSnippetStartTokRef;
+    using ModuleApi::sameNamespacePath;
     using ModuleApi::tryFindReachableNodeRef;
     using ModuleApi::tryGetModuleApiSnippet;
     using ModuleApi::tryGetModuleApiSnippetOffsets;
@@ -74,7 +75,6 @@ namespace ModuleApiExport
     Utf8             buildModuleArtifactName(const CompilerInstance& compiler);
     bool             isCurrentModuleSymbol(const CompilerInstance& compiler, const Symbol& symbol);
     bool             isWholeFileExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol);
-    bool             sameNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs);
     std::string_view preferredLineEnding(const SourceFile& file);
     Result           writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content);
 

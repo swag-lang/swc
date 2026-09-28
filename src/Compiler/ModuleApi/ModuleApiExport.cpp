@@ -214,11 +214,6 @@ namespace ModuleApiExport
         return sourceFile && isWholeFileExported(*sourceFile);
     }
 
-    bool sameNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
-    {
-        return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
-    }
-
     std::string_view preferredLineEnding(const SourceFile& file)
     {
         const std::string_view content = file.sourceView();

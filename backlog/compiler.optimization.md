@@ -696,8 +696,8 @@ block, and the hot path keeps the register.
   internal rebuild remains discarded; revisit it only with the rename walk, not around it.
 - The 2026-09-28 prompt-4 continuation removed redundant dominator-buffer clearing, reused
   visit stamps for frontier construction, and deferred construction of standalone SSA state
-  where the pass receives shared SSA. These are structural savings within each rebuild; they
-  do not reduce the rebuild count. Focused Release checks and the full 3,483 native and 1,500
+  where the pass receives shared SSA. These reduce per-pass setup and work inside rebuilds;
+  they do not reduce the rebuild count. Focused Release checks and the full 3,483 native and 1,500
   JIT suites passed. No timing or peak-memory measurement was made in this campaign.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.

@@ -350,7 +350,8 @@ namespace
         // Only a loop with a clean fall-through preheader can move code. Keep
         // the existing loop order, but reject the others before collecting
         // whole-function register effects, relocations, and frame privacy.
-        std::vector<NaturalLoop*> loops;
+        thread_local std::vector<NaturalLoop*> loops;
+        loops.clear();
         loops.reserve(loopsByHeader.size());
         for (auto& loop : loopsByHeader | std::views::values)
             loops.push_back(&loop);
@@ -384,8 +385,10 @@ namespace
 
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
-        std::vector<MicroInstrUseDef> useDefs(n);
-        std::unordered_map<MicroReg, RegDefinitionSummary> definitions;
+        thread_local std::vector<MicroInstrUseDef> useDefs;
+        thread_local std::unordered_map<MicroReg, RegDefinitionSummary> definitions;
+        useDefs.resize(n); // every instruction effect is replaced below
+        definitions.clear();
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
@@ -403,8 +406,10 @@ namespace
 
         auto&                                relocations   = context.builder->codeRelocations();
         const size_t                         relocationEnd = relocations.size();
-        std::unordered_map<uint32_t, size_t> firstRelocation;
-        std::vector<size_t>                  nextRelocation(relocationEnd, relocationEnd);
+        thread_local std::unordered_map<uint32_t, size_t> firstRelocation;
+        thread_local std::vector<size_t>                  nextRelocation;
+        firstRelocation.clear();
+        nextRelocation.assign(relocationEnd, relocationEnd);
         // One compact chain per instruction, preserving relocation order and
         // duplicates without allocating a separate vector for every key.
         for (size_t index = relocationEnd; index != 0;)
@@ -434,12 +439,14 @@ namespace
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
         const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, definitions, context.encoder);
 
-        std::unordered_set<uint32_t> claimed; // instruction slot ids planned this round
-        std::vector<HoistPlan>       plans;
-        std::vector<uint32_t>        bodyIndices;
-        std::vector<MicroReg>        slotDefReg;
-        std::vector<uint8_t>         slotIsFullDef;
-        std::vector<uint8_t>         slotIsCompute;
+        thread_local std::unordered_set<uint32_t> claimed; // instruction slot ids planned this round
+        thread_local std::vector<HoistPlan>       plans;
+        thread_local std::vector<uint32_t>        bodyIndices;
+        thread_local std::vector<MicroReg>        slotDefReg;
+        thread_local std::vector<uint8_t>         slotIsFullDef;
+        thread_local std::vector<uint8_t>         slotIsCompute;
+        claimed.clear();
+        plans.clear();
 
         for (const NaturalLoop* loop : loops)
         {

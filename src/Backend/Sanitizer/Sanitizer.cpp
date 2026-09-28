@@ -272,7 +272,8 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
 
     // Empty hash maps also allocate buckets and sentinel nodes, so only chain heads
     // get a stored state. Intermediate instructions need only the invalid index.
-    inState_.assign(numStates, {});
+    inState_.clear();
+    inState_.resize(numStates);
 
     reached_[0]    = 1;
     inWorklist_[0] = 1;
@@ -1520,10 +1521,15 @@ bool Sanitizer::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
 // and fall back to dropping provable zeros when it cannot be modelled.
 void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, SmallVector<uint32_t, 32>& worklist)
 {
-    const SanitizerRegInfo* subject = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
+    const bool              hasSubject    = state.flagsSubject.isValid();
+    const SanitizerRegInfo* subject       = hasSubject ? findReg(state, state.flagsSubject) : nullptr;
+    const SanitizerValue    subjectValue  = stackBaseReg_.isValid() && state.flagsSubject == stackBaseReg_
+                                               ? SanitizerValue::makeStackAddr(0)
+                                               : subject ? subject->value : SanitizerValue{};
 
     bool condTrueIfSubjectZero = false;
-    if (state.flagsSubject.isValid() && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero))
+    const bool isZeroTest = hasSubject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero);
+    if (isZeroTest)
     {
         // A zero-test whose subject value the state already proves decides the branch:
         // only the feasible edge is explored. Inlining a constant null folds the guard
@@ -1531,7 +1537,6 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
         // block, and walking it would report code that can never execute. The compare
         // width is not at hand here, so a constant only counts as non-zero when its low
         // byte is: b8 is the narrowest compare the builder emits.
-        const SanitizerValue subjectValue  = getReg(state, state.flagsSubject);
         const bool           provenZero    = subjectValue.isZero();
         const bool           provenNonZero = subjectValue.isConstant() && (subjectValue.constant & 0xFF) != 0;
         if (provenZero || provenNonZero)
@@ -1546,8 +1551,7 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
 
     int64_t slot                  = 0;
     bool    slotZeroIfSubjectZero = false;
-    if (subject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero) &&
-        resolveGuardSlot(*subject, slot, slotZeroIfSubjectZero))
+    if (subject && isZeroTest && resolveGuardSlot(*subject, slot, slotZeroIfSubjectZero))
     {
         // successors = [taken (cond true), fallthrough (cond false)].
         queueRefined(state, succs[0], slot, condTrueIfSubjectZero == slotZeroIfSubjectZero, worklist);
@@ -1566,7 +1570,7 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
     // bound check compares a constant index against a constant count, and dropping every
     // zero across it took the index `table[0]` is written with along with it - which is
     // what made the first element of a local table, and only the first, unnameable.
-    const bool dropAcrossEdge = state.flagsSubject.isValid() && !getReg(state, state.flagsSubject).isConstant();
+    const bool dropAcrossEdge = hasSubject && !subjectValue.isConstant();
     if (dropAcrossEdge)
         dropZeros(state);
     state.flagsSubject = MicroReg::invalid();

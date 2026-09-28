@@ -18,7 +18,7 @@ void MatchContext::replaceWithSingleSymbol(const Symbol* symbol)
     symbols_.clear();
     symbols_.push_back(symbol);
     allSymbols_.clear();
-    allSymbols_.push_back({.symbol = symbol, .priority = bestPriority_});
+    allSymbols_.push_back(symbol);
 }
 
 void MatchContext::clear()
@@ -60,8 +60,13 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
         }
     }
 
-    if (std::ranges::find(allSymbols_, symbol, &CandidateSymbol::symbol) == allSymbols_.end())
-        allSymbols_.push_back({.symbol = symbol, .priority = priority});
+    const int cmp = hasBestPriority_ ? Priority::compare(priority, bestPriority_) : 0;
+    // A current best candidate is already present in the complete candidate list.
+    if (hasBestPriority_ && cmp == 0 && std::ranges::find(symbols_, symbol) != symbols_.end())
+        return;
+
+    if (std::ranges::find(allSymbols_, symbol) == allSymbols_.end())
+        allSymbols_.push_back(symbol);
 
     if (!hasBestPriority_)
     {
@@ -71,8 +76,6 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
         symbols_.push_back(symbol);
         return;
     }
-
-    const int cmp = Priority::compare(priority, bestPriority_);
 
     if (cmp > 0)
     {
@@ -89,11 +92,7 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
         return;
     }
 
-    // Same priority: keep all candidates at this level (for ambiguity checks),
-    // but avoid duplicates.
-    if (std::ranges::find(symbols_, symbol) != symbols_.end())
-        return;
-
+    // Same priority: keep all candidates at this level (for ambiguity checks).
     symbols_.push_back(symbol);
 }
 
@@ -110,9 +109,8 @@ void MatchContext::collectCallFallbackSymbols(SmallVector<const Symbol*>& outSym
             return;
     }
 
-    for (const CandidateSymbol& candidate : allSymbols_)
+    for (const Symbol* symbol : allSymbols_)
     {
-        const Symbol* symbol = candidate.symbol;
         if (!symbol || !symbol->acceptOverloads())
             continue;
 
@@ -124,9 +122,8 @@ void MatchContext::collectCallableSymbols(SmallVector<const Symbol*>& outSymbols
 {
     outSymbols.clear();
 
-    for (const CandidateSymbol& candidate : allSymbols_)
+    for (const Symbol* symbol : allSymbols_)
     {
-        const Symbol* symbol = candidate.symbol;
         if (!symbol || !symbol->isFunction())
             continue;
 

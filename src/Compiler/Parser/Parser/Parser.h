@@ -96,6 +96,12 @@ private:
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
     bool         isClosureCaptureEndPipe() const;
+    bool         isRecoveryClosingDelimiter() const
+    {
+        return (depthParen_ && is(TokenId::SymRightParen)) ||
+               (depthBracket_ && is(TokenId::SymRightBracket)) ||
+               (depthCurly_ && is(TokenId::SymRightCurly));
+    }
 
     TokenRef ref() const
     {

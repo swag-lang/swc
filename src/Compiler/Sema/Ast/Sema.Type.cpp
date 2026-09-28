@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Generic/SemaGenericRootAlias.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -96,29 +97,6 @@ namespace
 
         outCount = count;
         return Result::Continue;
-    }
-
-    SymbolStruct* resolveGenericRootStructAlias(Symbol* symbol)
-    {
-        Symbol* current = symbol;
-        while (current && current->isAlias())
-        {
-            auto& alias = current->cast<SymbolAlias>();
-            if (alias.isStrict())
-                return nullptr;
-
-            const auto* next = alias.aliasedSymbol();
-            if (!next || next == current)
-                return nullptr;
-
-            current = const_cast<Symbol*>(next);
-        }
-
-        if (!current || !current->isStruct())
-            return nullptr;
-
-        auto& st = current->cast<SymbolStruct>();
-        return st.isGenericRoot() ? &st : nullptr;
     }
 
     TypeRef ensureForwardNamedTypeRef(Sema& sema, Symbol& sym)
@@ -415,7 +393,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
     }
     else if (view.sym()->isAlias())
     {
-        genericRoot = resolveGenericRootStructAlias(view.sym());
+        genericRoot = SemaGenericRootAlias::resolve(view.sym());
     }
 
     if (genericRoot)

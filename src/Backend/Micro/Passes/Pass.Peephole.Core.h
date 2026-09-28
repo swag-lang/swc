@@ -24,6 +24,11 @@ namespace MicroPeephole
     public:
         bool empty() const { return !values_ || values_->empty(); }
         bool contains(uint32_t value) const { return values_ && values_->contains(value); }
+        void clear()
+        {
+            if (values_)
+                values_->clear();
+        }
 
         void reserve(size_t count)
         {

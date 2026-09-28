@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

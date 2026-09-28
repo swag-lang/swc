@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroTypes.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 

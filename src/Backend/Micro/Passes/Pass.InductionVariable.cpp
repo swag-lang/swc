@@ -269,8 +269,12 @@ namespace
 
         // Every loop reads the same unmodified instruction stream. Collect its
         // register effects and whole-function uses once, without constructing SSA.
-        std::vector<MicroInstrUseDef>                useDefs(n);
-        std::unordered_map<MicroReg, RegOccurrences> uses;
+        // Each round overwrites the instruction effects before reading them.
+        // Keep their storage and the use-count buckets on this worker.
+        thread_local std::vector<MicroInstrUseDef>                useDefs;
+        thread_local std::unordered_map<MicroReg, RegOccurrences> uses;
+        useDefs.resize(n);
+        uses.clear();
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
@@ -294,7 +298,8 @@ namespace
             const auto&         inBody    = loop.inBody;
             const MicroInstrRef headerRef = instrRefs[header];
 
-            LoopScan scan;
+            thread_local LoopScan scan;
+            scan.defs.clear();
             for (uint32_t i = 0; i < n; ++i)
             {
                 if (!inBody[i])
@@ -316,7 +321,8 @@ namespace
             // immediate or of an invariant register at the induction's width,
             // whose flags nothing reads before they are redefined (a carrier's
             // step lands right behind it and writes them too).
-            std::vector<Induction> inductions;
+            thread_local std::vector<Induction> inductions;
+            inductions.clear();
             auto                   inductionIndexOf = [&](const MicroReg reg) -> uint32_t {
                 for (uint32_t k = 0; k < inductions.size(); ++k)
                     if (inductions[k].reg == reg)

@@ -3727,35 +3727,55 @@ namespace PostRaPeephole
             const auto                  refs  = cfg.instructionRefs();
             std::vector<UpperHalfState> in(count, ~UpperHalfState{0});
             std::vector<UpperHalfState> out(count, ~UpperHalfState{0});
-            std::vector<uint8_t>        queued(count, 1);
-            SmallVector<uint32_t>       worklist;
-            for (uint32_t i = count; i > 0; --i)
-                worklist.push_back(i - 1);
-
-            while (!worklist.empty())
+            if (!cfg.hasLoop())
             {
-                const uint32_t index = worklist.back();
-                worklist.pop_back();
-                queued[index] = 0;
-
-                UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
-                for (const uint32_t pred : cfg.predecessors(index))
-                    state &= out[pred];
-                in[index] = state;
-
-                const MicroInstr* inst = storage->ptr(refs[index]);
-                if (!inst)
-                    return false;
-                const UpperHalfState after = upperHalfAfter(*this, *inst, state);
-                if (after == out[index])
-                    continue;
-                out[index] = after;
-                for (const uint32_t succ : cfg.successors(index))
+                // Every predecessor has a lower index, so one forward pass
+                // sees its final state without allocating a worklist.
+                for (uint32_t index = 0; index < count; ++index)
                 {
-                    if (!queued[succ])
+                    UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
+                    for (const uint32_t pred : cfg.predecessors(index))
+                        state &= out[pred];
+                    in[index] = state;
+
+                    const MicroInstr* inst = storage->ptr(refs[index]);
+                    if (!inst)
+                        return false;
+                    out[index] = upperHalfAfter(*this, *inst, state);
+                }
+            }
+            else
+            {
+                std::vector<uint8_t>  queued(count, 1);
+                SmallVector<uint32_t> worklist;
+                for (uint32_t i = count; i > 0; --i)
+                    worklist.push_back(i - 1);
+
+                while (!worklist.empty())
+                {
+                    const uint32_t index = worklist.back();
+                    worklist.pop_back();
+                    queued[index] = 0;
+
+                    UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
+                    for (const uint32_t pred : cfg.predecessors(index))
+                        state &= out[pred];
+                    in[index] = state;
+
+                    const MicroInstr* inst = storage->ptr(refs[index]);
+                    if (!inst)
+                        return false;
+                    const UpperHalfState after = upperHalfAfter(*this, *inst, state);
+                    if (after == out[index])
+                        continue;
+                    out[index] = after;
+                    for (const uint32_t succ : cfg.successors(index))
                     {
-                        queued[succ] = 1;
-                        worklist.push_back(succ);
+                        if (!queued[succ])
+                        {
+                            queued[succ] = 1;
+                            worklist.push_back(succ);
+                        }
                     }
                 }
             }

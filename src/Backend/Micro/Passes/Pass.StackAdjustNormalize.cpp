@@ -51,19 +51,8 @@ namespace
         uint64_t amount = 0;
     };
 
-    struct InstructionDepth
-    {
-        MicroInstrRef instRef;
-        uint64_t      depth = 0;
-    };
-
-    struct AnalyzeResult
-    {
-        std::vector<InstructionDepth> instructionDepths;
-        std::vector<MicroInstrRef>    stackAdjustRefs;
-        uint64_t                      frameSize    = 0;
-        uint64_t                      minCallDepth = std::numeric_limits<uint64_t>::max();
-    };
+    using InstructionDepth = MicroStackAdjustNormalizePass::InstructionDepth;
+    using AnalyzeResult     = MicroStackAdjustNormalizePass::AnalyzeResult;
 
     bool tryParseStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, StackAdjustInfo& outInfo)
     {
@@ -183,7 +172,10 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        outResult = {};
+        outResult.instructionDepths.clear();
+        outResult.stackAdjustRefs.clear();
+        outResult.frameSize    = 0;
+        outResult.minCallDepth = std::numeric_limits<uint64_t>::max();
         outResult.instructionDepths.reserve(context.instructions->count());
 
         std::unordered_map<uint32_t, uint64_t> labelDepthById;
@@ -324,7 +316,7 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
 
     const CallConv& conv = CallConv::get(context.callConvKind);
 
-    AnalyzeResult analysisResult;
+    AnalyzeResult& analysisResult = analysisResult_;
     if (!analyzeFunctionStackAdjustments(context, conv, analysisResult))
         return Result::Continue;
     if (analysisResult.stackAdjustRefs.empty())

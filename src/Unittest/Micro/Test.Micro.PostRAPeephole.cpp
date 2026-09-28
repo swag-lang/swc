@@ -114,6 +114,85 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_SinksPrivateSpillStoreToColdBranch)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  value = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+
+    for (const uint32_t variant : {0u, 1u, 2u, 3u, 4u, 5u})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef loop = builder.createLabel();
+        const MicroLabelRef cold = builder.createLabel();
+        const MicroLabelRef join = builder.createLabel();
+        builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+        builder.placeLabel(loop);
+        if (variant == 1)
+            builder.emitLoadRegMem(flag, conv.stackPointer, 60, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadAmcRegMem(flag, MicroOpBits::B64, conv.stackPointer,
+                                      MicroReg::intReg(9), 1, 0, MicroOpBits::B64);
+        builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, cold);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(cold);
+        if (variant == 4)
+        {
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        }
+        if (variant == 5)
+        {
+            builder.emitLoadRegReg(MicroReg::intReg(9), conv.stackPointer, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitLoadRegReg(conv.stackPointer, MicroReg::intReg(9), MicroOpBits::B64);
+        }
+        builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+        builder.placeLabel(join);
+        builder.emitLoadRegMem(value, conv.stackPointer, 64, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        if (variant != 3)
+            builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+        builder.emitCmpRegImm(flag, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 64, 72));
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 64, 72));
+
+        uint32_t stores = 0;
+        bool     seenCold = false;
+        bool     seenJoin = false;
+        bool     storeOnCold = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::Label && ops && ops[0].valueU64 == cold.get())
+                seenCold = true;
+            if (inst.op == MicroInstrOpcode::Label && ops && ops[0].valueU64 == join.get())
+                seenJoin = true;
+            if (inst.op == MicroInstrOpcode::LoadMemReg && ops && ops[0].reg == conv.stackPointer &&
+                ops[1].reg == value && ops[3].valueU64 == 64)
+            {
+                ++stores;
+                storeOnCold = seenCold && !seenJoin;
+            }
+        }
+        const bool expectColdStore = variant == 0 || variant == 4;
+        if (expectColdStore && (stores != 1 || !storeOnCold))
+            return Result::Error;
+        if (variant == 3 && (stores != 1 || storeOnCold))
+            return Result::Error;
+        if (!expectColdStore && variant != 3 && stores != 2)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FrameReloadCannotProveItselfAroundLoop)
 {
     const CallConv& conv  = CallConv::get(CallConvKind::Swag);

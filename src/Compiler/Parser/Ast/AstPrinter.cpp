@@ -2,6 +2,7 @@
 #include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"

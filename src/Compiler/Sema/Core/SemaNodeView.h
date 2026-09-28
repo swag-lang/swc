@@ -1,8 +1,8 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
-#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE()
 class Symbol;

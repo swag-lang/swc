@@ -1,8 +1,11 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Math/Fold.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 

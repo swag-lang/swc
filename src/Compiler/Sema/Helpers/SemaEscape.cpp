@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"

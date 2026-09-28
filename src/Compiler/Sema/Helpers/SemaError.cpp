@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"

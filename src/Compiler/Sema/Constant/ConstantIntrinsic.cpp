@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Support/Math/Fold.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 

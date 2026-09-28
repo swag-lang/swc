@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Support/Math/Fold.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"

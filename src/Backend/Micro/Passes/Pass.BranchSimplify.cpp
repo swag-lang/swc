@@ -4182,7 +4182,7 @@ namespace
     //     [zext  D]                      setbe  D
     //     B &= D                         [zext D]
     //                                    B = D
-    bool foldRangeAnds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool foldRangeAnds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, const BranchScanCache& scanCache)
     {
         if (!context.builder)
             return false;
@@ -4259,30 +4259,39 @@ namespace
         if (candidates.empty())
             return false;
 
-        std::unordered_map<uint32_t, uint32_t> rhsMentions;
-        for (const Candidate& candidate : candidates)
-            rhsMentions[candidate.rhs.index()] = 0;
-        for (const MicroInstr& inst : storage.view())
+        std::unordered_map<uint32_t, uint32_t> localMentions;
+        const bool hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
+        const auto* mentions = hasCurrentBranchScan ? &scanCache.scan.mentions : &localMentions;
+        if (!hasCurrentBranchScan)
         {
-            const MicroInstrOperand* ops = inst.ops(operands);
-            if (!ops)
-                continue;
-            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
-            for (size_t i = 0; i < modes.size(); ++i)
+            for (const Candidate& candidate : candidates)
+                localMentions[candidate.rhs.index()] = 0;
+            for (const MicroInstr& inst : storage.view())
             {
-                if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
+                const MicroInstrOperand* ops = inst.ops(operands);
+                if (!ops)
                     continue;
-                const auto found = rhsMentions.find(ops[i].reg.index());
-                if (found != rhsMentions.end())
-                    ++found->second;
+                const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
+                        continue;
+                    const auto found = localMentions.find(ops[i].reg.index());
+                    if (found != localMentions.end())
+                        ++found->second;
+                }
             }
         }
+        const auto mentionCount = [&](const MicroReg reg) {
+            const auto it = mentions->find(reg.index());
+            return it == mentions->end() ? 0u : it->second;
+        };
 
         bool               changed = false;
         LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const Candidate& candidate : candidates)
         {
-            if (rhsMentions[candidate.rhs.index()] != candidate.mentions)
+            if (mentionCount(candidate.rhs) != candidate.mentions)
                 continue;
             if (!tryFoldRangeMerge(storage, operands, candidate.range, nextVirtualIntRegs.index()))
                 continue;
@@ -7423,7 +7432,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         context.builder->invalidateControlFlowGraph();
     // This fold needs immediate compares and a setcc result before the boolean and.
     if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasImmediateCompare && scanCache.scan.layout.hasSetCondition))
-        rewrote(foldRangeAnds(storage, operands, context));
+        rewrote(foldRangeAnds(storage, operands, context, scanCache));
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

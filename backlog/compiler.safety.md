@@ -46,7 +46,7 @@ is the current scorecard.
 ### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
 
 - Recorded: 2026-09-08 07:59
-- Updated: 2026-09-28 15:33 — Removed redundant sanitizer state initialization and conditional-branch lookups; performance remains unmeasured.
+- Updated: 2026-09-28 15:42 — Reused copied register facts and address values in the sanitizer; performance remains unmeasured.
 - Area: compiler/backend, `Sanitizer`
 - Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
   populated over far more of a function than before, and the transfer function gained a scan of
@@ -89,6 +89,10 @@ is the current scorecard.
   reuse the first register lookup and decode the zero-test condition once, preserving the stack
   base register's special value. These source-level reductions have no measured speed or memory
   result; the pass's cost remains open.
+- **Unmeasured structural change, 2026-09-28:** a register move now uses the value copied with
+  its register facts instead of looking it up again; the stack-base override remains explicit.
+  Address formation reuses its already fetched base value to resolve a stack slot. Both remove
+  redundant register-table lookups from `applyValueEffects` without changing the facts propagated.
 - Next: decide whether 9.9% of a DevMode module rebuild is the intended price of the analysis.
   If it is not, there are exactly two places to look, and narrowing along branch edges is the
   larger of them. The walk itself, the state layout and the property scan are not worth touching.

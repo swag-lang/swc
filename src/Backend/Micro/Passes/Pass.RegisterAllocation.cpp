@@ -206,15 +206,6 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     worklist_.reserve(instructionCount_);
     inWorklist_.reserve(instructionCount_);
 
-    for (const auto& inst : instructions_->view())
-    {
-        if (inst.op == MicroInstrOpcode::Label || MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::JumpInstruction))
-        {
-            hasControlFlow_ = true;
-            break;
-        }
-    }
-
     relocationByDefInstruction_.clear();
 }
 
@@ -2153,6 +2144,11 @@ void MicroRegisterAllocationPass::prepareInstructionData()
         const MicroInstr* inst = instructions_->ptr(instructionRefs[idx]);
         if (!inst)
             continue;
+
+        // This collection walk already visits every live instruction after local
+        // copy coalescing. No separate scan is needed to detect control flow.
+        if (!hasControlFlow_ && (inst->op == MicroInstrOpcode::Label || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::JumpInstruction)))
+            hasControlFlow_ = true;
 
         MicroInstrUseDef useDef = inst->collectUseDef(*operands_, context_->encoder);
         if (!hasVirtual)
@@ -4527,7 +4523,6 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     initState(context);
     coalesceLocalCopies();
     instructionCount_ = instructions_->count();
-    instructionUseDefs_.clear();
     instructionUseDefs_.resize(instructionCount_);
 
     prepareInstructionData();

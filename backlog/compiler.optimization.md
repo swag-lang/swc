@@ -1260,6 +1260,11 @@ block, and the hot path keeps the register.
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
   the earlier scan, which also remains the fallback whenever a precondition fails or the
   walk bails, and the C++ conformity cases run both.
+- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
+  fixed-claim interval arrays with direct default construction. The call sites pass empty
+  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
+  copied for every register. The Release `interval` selection passed two native tests; timing
+  and peak memory were not measured.
 - Evidence: the walk describes every concrete claim by the position it occupies, except
   for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
   the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole

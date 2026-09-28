@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
+#include "Compiler/Sema/Symbol/SymbolOwnerFunction.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
@@ -1333,15 +1334,7 @@ const SymbolStruct* SymbolFunction::ownerStruct() const
 
 const SymbolFunction* SymbolFunction::parentLexicalFunction() const
 {
-    const SymbolMap* map = ownerSymMap();
-    while (map)
-    {
-        if (map->isFunction())
-            return &map->cast<SymbolFunction>();
-        map = map->ownerSymMap();
-    }
-
-    return nullptr;
+    return SymbolOwnerFunction::nearest(ownerSymMap());
 }
 
 SWC_END_NAMESPACE();

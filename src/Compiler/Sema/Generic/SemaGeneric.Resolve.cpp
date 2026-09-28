@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Generic/SemaGenericRootAlias.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -14,37 +15,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    SymbolStruct* resolveGenericRootStructAlias(Symbol* symbol)
-    {
-        // Explicit type arguments may name a non-strict alias of a generic root.
-        // Follow aliases only while they preserve specialization semantics; strict
-        // aliases are distinct API surfaces and must not be auto-instantiated.
-        Symbol* current = symbol;
-        while (current && current->isAlias())
-        {
-            auto& alias = current->cast<SymbolAlias>();
-            if (alias.isStrict())
-                return nullptr;
-
-            const auto* next = alias.aliasedSymbol();
-            if (!next || next == current)
-                return nullptr;
-
-            current = const_cast<Symbol*>(next);
-        }
-
-        if (!current || !current->isStruct())
-            return nullptr;
-
-        auto& st = current->cast<SymbolStruct>();
-        return st.isGenericRoot() && !st.isGenericInstance() ? &st : nullptr;
-    }
-
     SymbolStruct* genericRootStructFromExplicitTypeArg(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
     {
         const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
-        if (auto* genericRoot = resolveGenericRootStructAlias(view.sym()))
-            return genericRoot;
+        if (auto* genericRoot = SemaGenericRootAlias::resolve(view.sym()))
+        {
+            if (!genericRoot->isGenericInstance())
+                return genericRoot;
+        }
 
         TypeRef representedTypeRef = TypeRef::invalid();
         if (typeRef.isValid())
@@ -60,7 +38,8 @@ namespace
             return nullptr;
 
         Symbol* representedSym = sema.typeMgr().get(representedTypeRef).getSymbol();
-        return resolveGenericRootStructAlias(representedSym);
+        auto* genericRoot = SemaGenericRootAlias::resolve(representedSym);
+        return genericRoot && !genericRoot->isGenericInstance() ? genericRoot : nullptr;
     }
 
     Result specializeExplicitGenericTypeArgFromContext(Sema& sema, AstNodeRef nodeRef, TypeRef& ioTypeRef)

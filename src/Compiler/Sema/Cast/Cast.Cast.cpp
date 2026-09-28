@@ -634,8 +634,7 @@ namespace
             if (sourceView.sym() && sourceView.sym()->isVariable())
             {
                 auto& symVar = sourceView.sym()->cast<SymbolVariable>();
-                if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
-                    symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+                symVar.markAddressableIfLocalOrParameter();
             }
         }
 

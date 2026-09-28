@@ -63,6 +63,15 @@ public:
     bool                  closureCaptureByRef() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCaptureByRef); }
     void                  setClosureCaptureByRef(bool value) noexcept;
     bool                  hasGlobalStorage() const { return hasExtraFlag(SymbolVariableFlagsE::GlobalStorage); }
+    bool                  markAddressableIfLocalOrParameter()
+    {
+        if (hasExtraFlag(SymbolVariableFlagsE::Parameter) || hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+        {
+            addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+            return true;
+        }
+        return false;
+    }
     bool                  isDeclaredGlobal() const noexcept { return declaredGlobal_; }
     void                  setDeclaredGlobal(bool value) noexcept { declaredGlobal_ = value; }
     bool                  isDeclaredThreadLocal() const noexcept { return declaredThreadLocal_; }

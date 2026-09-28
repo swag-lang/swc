@@ -2,9 +2,9 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaDeclGhost.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -17,10 +17,7 @@ Result AstInterfaceDecl::semaPreDecl(Sema& sema) const
 
 Result AstInterfaceDecl::semaPreNode(Sema& sema) const
 {
-    if (sema.enteringState())
-        SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curViewSymbol().sym();
-    return Match::ghosting(sema, sym);
+    return SemaDeclGhost::run(sema, *this);
 }
 
 Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const

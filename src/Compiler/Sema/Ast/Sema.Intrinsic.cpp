@@ -80,9 +80,7 @@ namespace
             return;
 
         auto& symVar = operandView.sym()->cast<SymbolVariable>();
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-            symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
-            symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+        symVar.markAddressableIfLocalOrParameter();
     }
 
     Result semaIntrinsicLifecycleStmt(Sema& sema, AstNodeRef whatRef, AstNodeRef countRef)

@@ -857,12 +857,16 @@
         <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaAccess.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaAstLookup.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCallArgument.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaDeclGhost.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaFileError.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.h"/>
+        <ClInclude Include="src\Compiler\Sema\Generic\SemaGenericRootAlias.h"/>
+        <ClInclude Include="src\Compiler\Sema\Generic\SemaGenericStoredType.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.ArgNodes.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaVarDeclHelpers.h"/>
@@ -890,6 +894,7 @@
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Impl.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Interface.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Module.h"/>
+        <ClInclude Include="src\Compiler\Sema\Symbol\SymbolOwnerFunction.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Struct.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Variable.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h"/>

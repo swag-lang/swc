@@ -2340,8 +2340,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         computeReachability();
     computeLoopDepth();
 
-    tempOutVirtual_.assign(virtualWordCount, 0);
-    tempOutConcrete_.assign(concreteWordCount, 0);
+    // computeCurrentLiveOutBits overwrites both rows before their first read.
+    tempOutVirtual_.resize(virtualWordCount);
+    tempOutConcrete_.resize(concreteWordCount);
 
     const auto updateLiveIn = [&](const uint32_t instructionIndex) {
         computeCurrentLiveOutBits(instructionIndex);

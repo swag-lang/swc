@@ -928,10 +928,15 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     auto&                 knownFlags  = scratch.flags;
     computeKnownValues(knownValues, knownFlags, *ssaState, storage, operands);
 
-    ConstantMemoryContext memoryContext;
-    memoryContext.ssaState = ssaState;
-    memoryContext.storage  = &storage;
-    memoryContext.operands = &operands;
+    // Keep relocation buckets across functions, but publish only this run's
+    // addresses and context pointers to the constant-load folds.
+    thread_local ConstantMemoryContext memoryContext;
+    memoryContext.ssaState      = ssaState;
+    memoryContext.storage       = &storage;
+    memoryContext.operands      = &operands;
+    memoryContext.taskContext   = nullptr;
+    memoryContext.addressSource = nullptr;
+    memoryContext.constantAddressByInstruction.clear();
     if (context.builder && !context.builder->codeRelocations().empty() && context.taskContext && context.taskContext->hasCompiler())
     {
         memoryContext.taskContext   = context.taskContext;

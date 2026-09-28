@@ -1529,10 +1529,9 @@ namespace
         SemaEscapeProjection  payloadProjection;
         const SymbolVariable* payloadField = ownedPayloadProjection(sema, info, payloadProjection) ? firstProjectionField(payloadProjection) : nullptr;
         const uint64_t        origins      = parameterOriginsMask(fn, info);
-        for (size_t i = 0; i < 64; ++i)
+        for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
         {
-            if (!(origins & (1ULL << i)))
-                continue;
+            const size_t i = std::countr_zero(remainingOrigins);
             fn.addReturnBorrowsParam(i);
             if (!info.viaStoredField)
                 fn.addReturnsStorageParam(i);
@@ -1554,20 +1553,20 @@ namespace
     void addStoredBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
     {
         const uint64_t origins = parameterOriginsMask(fn, info);
-        for (size_t i = 0; i < 64; ++i)
+        for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
         {
-            if (origins & (1ULL << i))
-                fn.addStoresParam(i);
+            const size_t i = std::countr_zero(remainingOrigins);
+            fn.addStoresParam(i);
         }
     }
 
     void addFreedBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
     {
         const uint64_t origins = parameterOriginsMask(fn, info);
-        for (size_t i = 0; i < 64; ++i)
+        for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
         {
-            if (origins & (1ULL << i))
-                fn.addFreesParam(i);
+            const size_t i = std::countr_zero(remainingOrigins);
+            fn.addFreesParam(i);
         }
     }
 
@@ -1874,15 +1873,13 @@ namespace
                             SemaEscapeProjection  carriedProjection;
                             const SymbolVariable* reallocatedField = ownedPayloadProjection(sema, carried, carriedProjection) ? firstProjectionField(carriedProjection) : nullptr;
                             const uint64_t        origins          = parameterOriginsMask(*callerFn, carried);
-                            for (size_t i = 0; i < 64; ++i)
+                            for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
                             {
-                                if (origins & (1ULL << i))
-                                {
-                                    if (reallocatedField)
-                                        callerFn->addReallocatesParamField(i, *reallocatedField);
-                                    else
-                                        callerFn->addReallocatesParam(i);
-                                }
+                                const size_t i = std::countr_zero(remainingOrigins);
+                                if (reallocatedField)
+                                    callerFn->addReallocatesParamField(i, *reallocatedField);
+                                else
+                                    callerFn->addReallocatesParam(i);
                             }
                         }
                     }
@@ -1928,10 +1925,9 @@ namespace
                 }
 
                 const uint64_t origins = parameterOriginsMask(*callerFn, info);
-                for (size_t callerParamIndex = 0; callerParamIndex < 64; ++callerParamIndex)
+                for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
                 {
-                    if (!(origins & (1ULL << callerParamIndex)))
-                        continue;
+                    const size_t callerParamIndex = std::countr_zero(remainingOrigins);
 
                     SemaEscapeSummaryEdge edge;
                     edge.caller                = callerFn;
@@ -4144,9 +4140,10 @@ namespace SemaEscape
                     if (findCallerParameterIndex(*currentFn, *dstParam, intoIndex))
                     {
                         const uint64_t origins = parameterOriginsMask(*currentFn, info);
-                        for (size_t storedIndex = 0; storedIndex < 64; ++storedIndex)
+                        for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
                         {
-                            if ((origins & (1ULL << storedIndex)) && storedIndex != intoIndex)
+                            const size_t storedIndex = std::countr_zero(remainingOrigins);
+                            if (storedIndex != intoIndex)
                                 currentFn->addStoresIntoParam(intoIndex, storedIndex);
                         }
                     }

@@ -5,6 +5,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
+#include "Compiler/Sema/Ast/SemaSwitchScope.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -641,12 +642,7 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         SWC_RESULT(SemaCheck::isConstant(sema, nodeExprRef));
 
         const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, exprView.typeRef());
-        if (enumTypeRef.isValid())
-        {
-            SemaFrame frame = sema.frame();
-            frame.pushScopeBindingType(enumTypeRef);
-            sema.pushFramePopOnPostNode(frame);
-        }
+        SemaSwitch::pushEnumScopeBinding(sema, enumTypeRef);
 
         return Result::Continue;
     }

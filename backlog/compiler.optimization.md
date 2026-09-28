@@ -15,6 +15,15 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.095 — Keep loop values off the stack on the common branch
+
+- Recorded: 2026-09-28 14:04
+- Area: compiler/backend, path-sensitive spill placement
+- Evidence: In wordfreq's character scan, the alphabetic path reaches a join where `r12` still holds the index, while token processing may reuse `r12`. The interval allocator had put the reload from `[rsp+0x210]` at that join, so every alphabetic character read the index from the stack. A post-allocation rule now moves the reload to the join's fallthrough edge only when every direct jump into the join can trace the same register value back to a matching frame store or reload without an intervening register definition, memory write, or call. It rejects a cyclic proof through the reload being moved. The common path loses one memory read; `main` grows from 448 to 450 static Micro instructions because subsequent branch layout changes, with no new instruction on that path. The checksum remains 130489; the other six benchmark checksums and selected function counts are unchanged. C++ (1,154), native Release (3,483), and JIT Release (1,500) tests pass. No timing sample was taken for this edit.
+- The same loop still stores `r12` to `[rsp+0x210]` at the header and latch, and reloads the bound `r13` from `[rsp+0x200]` at the latch. On the alphabetic path, both registers remain intact. Sinking the stores or the bound reload needs a proof over the loop back edge and all cold exits; the current rule only moves the join reload.
+- Next: prove that the frame slot is read only on the cold path, then move the index store to that path and remove the redundant latch store. Separately prove that the bound register remains equal to its frame slot on every hot edge before moving its reload. Compare complete hot and cold paths and obtain a clean paired measurement at a campaign milestone.
+- Complete when: the common character path has no index or bound spill traffic without adding costs to the token-processing path or changing JIT/native behavior; otherwise retain only the proven reload placement.
+
 ### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
 
 - Recorded: 2026-09-28 09:14

@@ -896,7 +896,11 @@ namespace
                             }
 
                             // Speculation safety: the load must already run on every
-                            // iteration (dominate every back-edge tail).
+                            // iteration (dominate every back-edge tail). A constant of the
+                            // read-only pool is the exception: reading it can neither fault
+                            // nor observe a store, so the preheader may read it for an arm
+                            // that only some iterations take, as LLVM hoists a constant-pool
+                            // load out of a conditional block.
                             bool dominatesAllTails = true;
                             for (const uint32_t t : loop->tails)
                             {
@@ -906,7 +910,7 @@ namespace
                                     break;
                                 }
                             }
-                            if (!dominatesAllTails)
+                            if (!dominatesAllTails && !constantPoolVector)
                                 continue;
                         }
 

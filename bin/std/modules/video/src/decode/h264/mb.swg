@@ -920,8 +920,11 @@ impl Slice
                 else do
                     try .parseMbCavlc(mb)
                 .bookkeepMb(mb)
-                if dec.inlineRecon do
+                if dec.inlineRecon
+                {
                     try .reconstructMb(mb)
+                    .releaseScratchResidual(mb)
+                }
                 dec.decodedMbs += 1
                 .advanceMb()
             }
@@ -950,6 +953,41 @@ impl Slice
             fail InvalidFormatError{"H.264 slice data is truncated"}
         if dec.inlineRecon and .mbAddr >= mbCount do
             dec.completeInlinePicture()
+    }
+
+    // Zeroes the coefficients a reconstructed macroblock may have left in the scratch record: its
+    // DC blocks, and the blocks of every quadrant and chroma plane its coded block pattern let it
+    // parse. A 4:4:4 macroblock keeps clearing the whole record when it starts.
+    mtd releaseScratchResidual(mb: *Mb)
+    {
+        if mb.residual != &.scratchResidual or mb.residual444 != null do
+            return
+
+        let residual = mb.residual!
+        if mb.class == MbClassIntra16x16 do
+            Memory.clear(&residual.lumaDc, #sizeof(residual.lumaDc))
+        for quad in 4'u64
+        {
+            if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
+                continue
+            if mb.transform8x8
+            {
+                Memory.clear(&residual.luma8[quad * 64], 64 * #sizeof(s16))
+            }
+            else
+            {
+                // The quadrant's two block rows are two pairs of adjacent 4x4 blocks.
+                let first = (quad >> 1) * 8 + (quad & 1) * 2
+                Memory.clear(&residual.lumaAc[first * 16], 32 * #sizeof(s16))
+                Memory.clear(&residual.lumaAc[(first + 4) * 16], 32 * #sizeof(s16))
+            }
+        }
+
+        if mb.cbpChroma != 0 do
+            Memory.clear(&residual.chromaDc, #sizeof(residual.chromaDc))
+        if mb.cbpChroma == 2 do
+            Memory.clear(&residual.chromaAc, #sizeof(residual.chromaAc))
+        .scratchClean = true
     }
 
     // Resets the parse state for the macroblock at the current address.
@@ -999,7 +1037,9 @@ impl Slice
             }
 
             Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
-            Memory.clear(mb.residual, #sizeof(MbResidual))
+            if mb.residual != &.scratchResidual or not .scratchClean do
+                Memory.clear(mb.residual, #sizeof(MbResidual))
+            .scratchClean = false
 
             if dec.sps!.is444()
             {

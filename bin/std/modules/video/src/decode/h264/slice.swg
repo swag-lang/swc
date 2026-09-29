@@ -101,6 +101,11 @@ struct Slice
     scratchResidual444: MbResidual444
     scratchExtraJobs:   MbExtraJobs
 
+    // The record of the macroblock being parsed when it is reconstructed at once. Nothing reads
+    // a parsed record afterwards on that path, so one record serves the slice and stays in cache
+    // instead of a fresh one per macroblock of the picture.
+    scratchMb: Mb
+
     qp:          s32     // Current luma QP, carried from macroblock to macroblock.
     lastQpDelta: s32     // For the CABAC QP-delta context.
     mbX:         s32

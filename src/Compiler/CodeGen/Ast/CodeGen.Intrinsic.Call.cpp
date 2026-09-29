@@ -127,8 +127,8 @@ namespace
     void loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         const TypeRef operandStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
-        outReg                              = codeGen.nextVirtualRegisterForType(operandStorageTypeRef);
         const TypeInfo&   operandType       = codeGen.typeMgr().get(operandStorageTypeRef);
+        outReg                              = codeGen.nextVirtualRegisterForType(operandStorageTypeRef, operandType);
         const MicroOpBits opBits            = CodeGenTypeHelpers::numericBits(operandType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
@@ -166,7 +166,7 @@ namespace
 
         if (srcType.isIntLike() && dstType.isFloat())
         {
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstStorageTypeRef);
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstStorageTypeRef, dstType);
             CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstReg, outReg, srcBits, dstBits, !srcType.isIntSigned());
             outReg = dstReg;
             return;
@@ -177,7 +177,7 @@ namespace
             if (srcBits == dstBits)
                 return;
 
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstStorageTypeRef);
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstStorageTypeRef, dstType);
             builder.emitClearReg(dstReg, dstBits);
             builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
             outReg = dstReg;
@@ -1249,7 +1249,7 @@ namespace
 
         MicroBuilder&       builder       = codeGen.builder();
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
         if (exprPayload.isAddress())
             builder.emitLoadRegMem(resultPayload.reg, exprPayload.reg, 0, opBits);
         else
@@ -1288,7 +1288,7 @@ namespace
 
         if (resultType.isFloat())
         {
-            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultStorageTypeRef);
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultStorageTypeRef, resultType);
             builder.emitLoadRegReg(resultPayload.reg, materializedReg, opBits);
 
             const uint64_t mask    = opBits == MicroOpBits::B32 ? 0x7FFFFFFFu : 0x7FFFFFFFFFFFFFFFull;
@@ -1342,7 +1342,7 @@ namespace
 
         if (resultType.isFloat())
         {
-            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultStorageTypeRef);
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultStorageTypeRef, resultType);
             builder.emitLoadRegReg(resultPayload.reg, leftReg, opBits);
             builder.emitOpBinaryRegReg(resultPayload.reg, rightReg, isMin ? MicroOp::FloatMin : MicroOp::FloatMax, opBits);
             return Result::Continue;
@@ -1523,7 +1523,7 @@ namespace
 
         MicroBuilder&       builder       = codeGen.builder();
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
         builder.emitLoadRegReg(resultPayload.reg, aReg, opBits);
         builder.emitOpTernaryRegRegReg(resultPayload.reg, bReg, cReg, MicroOp::MultiplyAdd, opBits);
         return Result::Continue;
@@ -1549,7 +1549,7 @@ namespace
 
         MicroBuilder&       builder       = codeGen.builder();
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
         builder.emitLoadRegReg(resultPayload.reg, materializedValue, opBits);
         builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(static_cast<uint64_t>(kind), 64), MicroOp::FloatRound, opBits);
         return Result::Continue;
@@ -1575,14 +1575,14 @@ namespace
 
         MicroBuilder&       builder       = codeGen.builder();
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
         builder.emitLoadRegReg(resultPayload.reg, materializedValue, opBits);
 
-        const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
         builder.emitClearReg(zeroReg, opBits);
 
         const uint64_t halfBits = opBits == MicroOpBits::B32 ? 0x3F000000ull : 0x3FE0000000000000ull;
-        const MicroReg halfReg  = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        const MicroReg halfReg  = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
         builder.emitLoadRegImm(halfReg, ApInt(halfBits, 64), opBits);
 
         const MicroLabelRef negativeLabel = builder.createLabel();
@@ -1701,10 +1701,11 @@ namespace
 
         const TypeInfo& contextType = codeGen.typeMgr().get(contextTypeRef);
         const TypeRef   rawTypeRef  = contextType.unwrap(codeGen.ctx(), contextTypeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid())
+        const bool      resolvedAlias = rawTypeRef.isValid() && rawTypeRef != contextTypeRef;
+        if (resolvedAlias)
             contextTypeRef = rawTypeRef;
 
-        const TypeInfo& rawContextType = codeGen.typeMgr().get(contextTypeRef);
+        const TypeInfo& rawContextType = resolvedAlias ? codeGen.typeMgr().get(contextTypeRef) : contextType;
         if (rawContextType.isReference() || rawContextType.isAnyPointer())
         {
             if (!contextPayload.isAddress())
@@ -1992,7 +1993,7 @@ namespace
         MicroReg scalarReg = srcPayload.reg;
         if (srcPayload.isAddress())
         {
-            scalarReg = codeGen.nextVirtualRegisterForType(laneTypeRef);
+            scalarReg = codeGen.nextVirtualRegisterForType(laneTypeRef, laneType);
             codeGen.builder().emitLoadRegMem(scalarReg, srcPayload.reg, 0, CodeGenTypeHelpers::numericBits(laneType));
         }
 

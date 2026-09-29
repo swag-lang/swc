@@ -247,7 +247,8 @@ namespace
         const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
         const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeRef   scalarTypeRef  = storageTypeRef.isValid() ? storageTypeRef : typeRef;
-        return CodeGenTypeHelpers::scalarStoreBits(codeGen.typeMgr().get(scalarTypeRef), codeGen.ctx());
+        const TypeInfo& scalarType = scalarTypeRef == typeRef ? typeInfo : codeGen.typeMgr().get(scalarTypeRef);
+        return CodeGenTypeHelpers::scalarStoreBits(scalarType, codeGen.ctx());
     }
 
     TypeRef unwrapAliasTypeRef(CodeGen& codeGen, TypeRef typeRef)

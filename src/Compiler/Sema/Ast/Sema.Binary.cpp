@@ -104,11 +104,11 @@ namespace
         }
     }
 
-    bool keepEnumFlagsResult(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, TokenId op)
+    bool keepEnumFlagsResult(const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, const TypeInfo& leftType, const TypeInfo& rightType, TokenId op)
     {
         if (op != TokenId::SymPipe && op != TokenId::SymAmpersand && op != TokenId::SymCircumflex)
             return false;
-        if (!SemaHelpers::aliasType(sema, nodeLeftView).isEnumFlags() || !SemaHelpers::aliasType(sema, nodeRightView).isEnumFlags())
+        if (!leftType.isEnumFlags() || !rightType.isEnumFlags())
             return false;
         return nodeLeftView.typeRef() == nodeRightView.typeRef();
     }
@@ -144,9 +144,9 @@ namespace
         const TaskContext& ctx         = sema.ctx();
         ConstantRef        leftCstRef  = nodeLeftView.cstRef();
         ConstantRef        rightCstRef = nodeRightView.cstRef();
-        const bool         keepEnumRes = keepEnumFlagsResult(sema, nodeLeftView, nodeRightView, op);
         const TypeInfo&    leftType    = SemaHelpers::aliasType(sema, nodeLeftView);
         const TypeInfo&    rightType   = SemaHelpers::aliasType(sema, nodeRightView);
+        const bool         keepEnumRes = keepEnumFlagsResult(nodeLeftView, nodeRightView, leftType, rightType, op);
 
         if (keepEnumRes)
         {

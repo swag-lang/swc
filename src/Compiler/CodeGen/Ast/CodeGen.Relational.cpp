@@ -129,8 +129,8 @@ namespace
 
     void loadCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        outReg                                 = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        const TypeInfo&   operandType          = codeGen.typeMgr().get(operandTypeRef);
+        const TypeInfo& operandType = codeGen.typeMgr().get(operandTypeRef);
+        outReg                      = codeGen.nextVirtualRegisterForType(operandTypeRef, operandType);
         const MicroOpBits opBits               = CodeGenTypeHelpers::compareBits(operandType, codeGen.ctx());
         const bool        isAddressBackedValue = operandType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
 
@@ -164,7 +164,7 @@ namespace
 
         if (srcType.isIntLike() && dstType.isFloat())
         {
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstReg, outReg, srcBits, dstBits, !srcType.isIntSigned());
             outReg = dstReg;
             return;
@@ -175,7 +175,7 @@ namespace
             if (srcBits == dstBits)
                 return;
 
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             builder.emitClearReg(dstReg, dstBits);
             builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
             outReg = dstReg;

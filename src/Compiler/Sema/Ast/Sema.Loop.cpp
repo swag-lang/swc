@@ -131,7 +131,7 @@ namespace
         if (!unwrappedTypeRef.isValid())
             unwrappedTypeRef = typeRef;
 
-        const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
+        const TypeInfo& unwrappedType = unwrappedTypeRef == typeRef ? type : sema.typeMgr().get(unwrappedTypeRef);
         if (!unwrappedType.isEnum())
             return nullptr;
 

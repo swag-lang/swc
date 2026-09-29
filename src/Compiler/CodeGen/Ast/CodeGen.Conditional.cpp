@@ -168,7 +168,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
             // The join register must match the result type's register class: a float
             // selection materialized in an integer register would turn the branch
             // moves into bit reinterprets and break every float consumer downstream.
-            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
             emitSelectedOperand(codeGen, resultPayload, truePayload, resultBits);
         }
 
@@ -232,7 +232,7 @@ namespace
             // The join register must match the result type's register class: a float
             // selection materialized in an integer register would turn the branch
             // moves into bit reinterprets and break every float consumer downstream.
-            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
             emitSelectedOperand(codeGen, resultPayload, leftPayload, resultBits);
         }
 

@@ -1891,31 +1891,28 @@ impl Slice
             return
         let frame = dec.current!
         frame.colUniform[mbIdx] = 0
-        if mb.class == MbClassInter and mb.jobCount == 1
+
+        // An intra macroblock leaves no motion at all, so like a macroblock with a single motion
+        // it publishes one record for every block, a row at a time.
+        let intra = mb.class != MbClassInter
+        if intra or mb.jobCount == 1
         {
             let job = &mb.firstJob
-            var ref:   s8
+            var ref:   s8 = -1
             var mvX:   s16
             var mvY:   s16
             var poc:   s32
             var short: u8
-            if job.refIdx[0] >= 0
+            if not intra
             {
-                ref   = job.refIdx[0]
-                mvX   = job.mv[0, 0]
-                mvY   = job.mv[0, 1]
-                poc   = .refs[0, cast(u64) ref].poc
-                short = .refs[0, cast(u64) ref].isLong ? 0 : 1
-            }
-            else
-            {
-                ref = job.refIdx[1]
-                mvX = job.mv[1, 0]
-                mvY = job.mv[1, 1]
+                let list = job.refIdx[0] >= 0 ? 0'u64 : 1'u64
+                ref = job.refIdx[list]
+                mvX = job.mv[list, 0]
+                mvY = job.mv[list, 1]
                 if ref >= 0
                 {
-                    poc   = .refs[1, cast(u64) ref].poc
-                    short = .refs[1, cast(u64) ref].isLong ? 0 : 1
+                    poc   = .refs[list, cast(u64) ref].poc
+                    short = .refs[list, cast(u64) ref].isLong ? 0 : 1
                 }
             }
 
@@ -1940,16 +1937,6 @@ impl Slice
         for block in 16's32
         {
             let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
-            if mb.class != MbClassInter
-            {
-                frame.colRef[index]        = -1
-                frame.colMv[index * 2]     = 0
-                frame.colMv[index * 2 + 1] = 0
-                frame.colPoc[index]        = 0
-                frame.colShort[index]      = 0
-                continue
-            }
-
             let motion0 = &dec.motionL0[index]
             let ref0    = motion0.refIdx
             if ref0 >= 0

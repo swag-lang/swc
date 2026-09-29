@@ -46,7 +46,7 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
     if (!typeRef().isValid())
         return nullptr;
 
-    const TypeRef fieldTypeRef = typeMgr.get(typeRef()).unwrapAliasEnum(ctx, typeRef());
+    const TypeRef fieldTypeRef = typeMgr.unwrapAliasEnum(ctx, typeRef());
     if (!fieldTypeRef.isValid())
         return nullptr;
 
@@ -61,7 +61,7 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
     if (!rawPointeeTypeRef.isValid())
         return nullptr;
 
-    const TypeRef pointeeTypeRef = typeMgr.get(rawPointeeTypeRef).unwrapAliasEnum(ctx, rawPointeeTypeRef);
+    const TypeRef pointeeTypeRef = typeMgr.unwrapAliasEnum(ctx, rawPointeeTypeRef);
     if (!pointeeTypeRef.isValid())
         return nullptr;
 

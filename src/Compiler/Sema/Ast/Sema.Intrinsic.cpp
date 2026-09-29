@@ -29,7 +29,7 @@ namespace
         if (!typeInfo.isAlias())
             return typeRef;
 
-        const TypeRef rawTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeRef rawTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
         if (rawTypeRef.isValid() && !IntrinsicInitType::preservesAliasType(sema.typeMgr().get(rawTypeRef)))
             return rawTypeRef;
         return typeRef;
@@ -455,12 +455,12 @@ namespace
             return SemaError::raiseRequestedTypeFam(sema, itfView.nodeRef(), itfView.typeRef(), sema.typeMgr().typeTypeInfo());
 
         const TypeRef interfaceTypeValueRef = SemaHelpers::resolveRepresentedTypeRef(sema, itfView);
-        const TypeRef interfaceTypeRef      = interfaceTypeValueRef.isValid() ? sema.typeMgr().get(interfaceTypeValueRef).unwrapAliasEnum(sema.ctx(), interfaceTypeValueRef) : TypeRef::invalid();
+        const TypeRef interfaceTypeRef      = interfaceTypeValueRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), interfaceTypeValueRef) : TypeRef::invalid();
         if (!interfaceTypeRef.isValid() || !sema.typeMgr().get(interfaceTypeRef).isInterface())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, itfView.nodeRef());
 
         const TypeRef objectTypeValueRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView);
-        const TypeRef objectTypeRef      = objectTypeValueRef.isValid() ? sema.typeMgr().get(objectTypeValueRef).unwrapAliasEnum(sema.ctx(), objectTypeValueRef) : TypeRef::invalid();
+        const TypeRef objectTypeRef      = objectTypeValueRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), objectTypeValueRef) : TypeRef::invalid();
         if (objectTypeRef.isValid())
         {
             const TypeInfo& objectType = sema.typeMgr().get(objectTypeRef);

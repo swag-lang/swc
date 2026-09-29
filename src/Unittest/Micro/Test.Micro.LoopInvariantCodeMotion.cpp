@@ -954,6 +954,54 @@ SWC_TEST_BEGIN(LICM_LeavesCopyAddAddressWhenBothInputsVary)
 }
 SWC_TEST_END()
 
+// An invariant address read twice moves to the preheader when every iteration
+// computes it, and stays in the loop when only one arm of a branch does: there
+// it would hold a register across the iterations that never take the arm.
+SWC_TEST_BEGIN(LICM_HoistsMultiplyUsedAddressOnlyWhenEveryIterationComputesIt)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg address = MicroReg::virtualIntReg(3);
+    constexpr MicroReg first   = MicroReg::virtualIntReg(4);
+    constexpr MicroReg second  = MicroReg::virtualIntReg(5);
+    constexpr MicroReg acc     = MicroReg::virtualIntReg(6);
+
+    for (const bool conditional : {false, true})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef loop = builder.createLabel();
+        const MicroLabelRef skip = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(acc, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        if (conditional)
+        {
+            builder.emitCmpRegImm(count, ApInt(uint64_t{2}, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, skip);
+        }
+        builder.emitLoadAddressRegMem(address, base, 0x88, MicroOpBits::B64);
+        builder.emitLoadRegMem(first, address, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(second, address, 8, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(acc, first, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(acc, second, MicroOp::Add, MicroOpBits::B64);
+        builder.placeLabel(skip);
+        builder.emitOpBinaryRegImm(count, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(uint64_t{8}, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(MicroReg::intReg(0), acc, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runLicmPass(builder));
+
+        const bool hoisted = firstPositionOf(builder, MicroInstrOpcode::LoadAddrRegMem) < firstPositionOf(builder, MicroInstrOpcode::Label);
+        if (hoisted == conditional)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NaturalLoop_CollectBody_CountsMembersOnceAcrossTailsAndRebuilds)
 {
     MicroBuilder        builder(ctx);

@@ -109,11 +109,6 @@ namespace
         }
     }
 
-    bool isBinaryOperator(TokenId id)
-    {
-        return Token::isOpArithmeticOrBitwise(id);
-    }
-
     int getRelationalPrecedence(TokenId id)
     {
         switch (id)
@@ -145,6 +140,9 @@ namespace
                 return 1;
             case TokenId::KwdAnd:
                 return 2;
+            case TokenId::SymAmpersandAmpersand:
+            case TokenId::SymPipePipe:
+                return -2; // C-style logical operator, diagnosed by the parser
             default:
                 return -1;
         }
@@ -310,9 +308,6 @@ AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
     {
         const TokenId opId = id();
         if (isClosureCaptureEndPipe())
-            break;
-
-        if (!isBinaryOperator(opId))
             break;
 
         const int precedence = getBinaryPrecedence(opId);
@@ -599,15 +594,13 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
     while (true)
     {
         const TokenId opId = id();
-        if (!Token::isOpLogical(opId))
-            break;
-
-        if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
-            raiseError(DiagnosticId::parser_err_cstyle_logical_op, ref());
-
         const int precedence = getLogicalPrecedence(opId);
         if (precedence < minPrecedence)
+        {
+            if (precedence == -2)
+                raiseError(DiagnosticId::parser_err_cstyle_logical_op, ref());
             break;
+        }
 
         const TokenRef tokOp             = consume();
         const int      nextMinPrecedence = precedence + 1;
@@ -1062,9 +1055,6 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
     while (true)
     {
         const TokenId opId = id();
-        if (!Token::isOpRelational(opId))
-            break;
-
         const int precedence = getRelationalPrecedence(opId);
         if (precedence < minPrecedence)
             break;

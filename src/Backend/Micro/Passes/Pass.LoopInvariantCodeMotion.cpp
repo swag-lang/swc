@@ -980,7 +980,28 @@ namespace
 
                         if (inst->op == MicroInstrOpcode::ClearReg && loopHasCall)
                             continue;
-                        if (opcodeReadsMemory(inst->op) || multiplyUsed || isCostlyMaterialization(*inst, instOps))
+
+                        // A value computed only on some iterations, inside one
+                        // arm of a branch, saves nothing on the others: however
+                        // many readers that arm has, hoisting it trades at most
+                        // one instruction on the arm for a register held across
+                        // every iteration, the ones that never take the arm
+                        // included. A refill or an error path computing a field
+                        // address is the typical case. Such a value moves only
+                        // when it is costly to rebuild. (A memory read other than a
+                        // read-only pool constant already has to run on every
+                        // iteration to be accepted.)
+                        bool runsEveryIteration = true;
+                        for (const uint32_t t : loop->tails)
+                        {
+                            if (!dom.dominates(i, t))
+                            {
+                                runsEveryIteration = false;
+                                break;
+                            }
+                        }
+
+                        if (opcodeReadsMemory(inst->op) || (multiplyUsed && runsEveryIteration) || isCostlyMaterialization(*inst, instOps))
                         {
                             if (keep.insert(i).second)
                                 worklist.push_back(i);

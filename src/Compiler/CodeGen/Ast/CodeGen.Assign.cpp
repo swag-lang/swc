@@ -143,8 +143,7 @@ namespace
         AssignTarget target;
         target.payload = codeGen.payload(leftRef);
 
-        const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
-        const TypeRef      leftTypeRef  = target.payload.effectiveTypeRef(leftTypeView.typeRef());
+        const TypeRef leftTypeRef = target.payload.typeRef.isValid() ? target.payload.typeRef : codeGen.viewType(leftRef).typeRef();
         SWC_ASSERT(leftTypeRef.isValid());
 
         TypeRef targetTypeRef = leftTypeRef;
@@ -153,7 +152,7 @@ namespace
         if (!codeGen.typeMgr().get(leftTypeRef).isReference())
             SWC_ASSERT(target.payload.isAddress());
 
-        const TypeRef opTypeRef = codeGen.typeMgr().get(targetTypeRef).unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
+        const TypeRef opTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
         target.typeRef          = targetTypeRef;
         target.opTypeRef        = opTypeRef;
         return target;

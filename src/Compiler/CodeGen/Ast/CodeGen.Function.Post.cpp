@@ -247,7 +247,8 @@ namespace
         const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
         const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeRef   scalarTypeRef  = storageTypeRef.isValid() ? storageTypeRef : typeRef;
-        return CodeGenTypeHelpers::scalarStoreBits(codeGen.typeMgr().get(scalarTypeRef), codeGen.ctx());
+        const TypeInfo& scalarType = scalarTypeRef == typeRef ? typeInfo : codeGen.typeMgr().get(scalarTypeRef);
+        return CodeGenTypeHelpers::scalarStoreBits(scalarType, codeGen.ctx());
     }
 
     TypeRef unwrapAliasTypeRef(CodeGen& codeGen, TypeRef typeRef)
@@ -405,9 +406,10 @@ namespace
         if (unwrappedExprTypeRef.isValid())
             exprTypeRef = unwrappedExprTypeRef;
 
-        const MicroOpBits         presenceBits = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(exprTypeRef), codeGen.ctx());
+        const TypeInfo&           exprType     = codeGen.typeMgr().get(exprTypeRef);
+        const MicroOpBits         presenceBits = CodeGenTypeHelpers::compareBits(exprType, codeGen.ctx());
         const CodeGenNodePayload& exprPayload  = codeGen.payload(resolvedExprRef);
-        const MicroReg            presenceReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, exprPayload, exprTypeRef, presenceBits);
+        const MicroReg            presenceReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, exprPayload, exprTypeRef, exprType, presenceBits);
         MicroBuilder&             builder      = codeGen.builder();
         const MicroLabelRef       presentLabel = builder.createLabel();
         builder.emitCmpRegImm(presenceReg, ApInt(0, 64), presenceBits);
@@ -1045,7 +1047,7 @@ namespace
             const MicroOpBits retBits = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
             SWC_ASSERT(retBits != MicroOpBits::Zero);
 
-            const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
+            const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef, returnTypeInfo);
             const TypeRef  exprTypeRef    = codeGen.viewType(exprRef).typeRef();
             if (!delayReturnMaterialization)
             {

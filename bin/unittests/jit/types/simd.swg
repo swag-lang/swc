@@ -98,23 +98,73 @@ const FoldedBitVocabulary = #run bitVocabulary()
 
 // Auto-vectorized rotations also have to load their byte-control mask in JIT code.
 #[Swag.NoInline, Swag.Optimize(true)]
-func rotateFourWords(values: *[8] u32)
+func rotateFourWords(values: *[12] u32)
 {
     values[][4] = Swag.rol(values[][0], 8)
     values[][5] = Swag.rol(values[][1], 8)
     values[][6] = Swag.rol(values[][2], 8)
     values[][7] = Swag.rol(values[][3], 8)
+    values[][8]  = Swag.rol(values[][0], 16)
+    values[][9]  = Swag.rol(values[][1], 16)
+    values[][10] = Swag.rol(values[][2], 16)
+    values[][11] = Swag.rol(values[][3], 16)
 }
 
 func jitRotateFourWords()->bool
 {
-    var values: [8] u32 = [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC, 0, 0, 0, 0]
+    var values: [12] u32 = [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC, 0, 0, 0, 0, 0, 0, 0, 0]
     rotateFourWords(&values)
     return values[4] == 0x23456701 and values[5] == 0xABCDEF89 and
-           values[6] == 0x20304010 and values[7] == 0xEEDDCCFF
+           values[6] == 0x20304010 and values[7] == 0xEEDDCCFF and
+           values[8] == 0x45670123 and values[9] == 0xCDEF89AB and
+           values[10] == 0x30401020 and values[11] == 0xDDCCFFEE
 }
 
 #assert(#run jitRotateFourWords())
+
+func jitRotateByteLanes()->bool
+{
+    let words = cast(#simd [8] u16) [0x1234, 0xABCD, 0x0102, 0xFEED, 0x8001, 0x00FF, 0x5500, 0x7F80]
+    let quads = cast(#simd [4] u32) [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC]
+    let pairs = cast(#simd [2] u64) [0x0123456789ABCDEF, 0xFFEEDDCCBBAA9988]
+    let rotatedWords = cast([8] u16) Swag.rol(words, 8)
+    let rotatedQuads = cast([4] u32) Swag.rol(quads, 16)
+    let rotatedPairs = cast([2] u64) Swag.ror(pairs, 16)
+    let halfPairs = cast([2] u64) Swag.rol(pairs, 32)
+    return rotatedWords[0] == 0x3412 and rotatedWords[1] == 0xCDAB and
+           rotatedQuads[0] == 0x45670123 and rotatedQuads[1] == 0xCDEF89AB and
+           rotatedPairs[0] == 0xCDEF0123456789AB and rotatedPairs[1] == 0x9988FFEEDDCCBBAA and
+           halfPairs[0] == 0x89ABCDEF01234567 and halfPairs[1] == 0xBBAA9988FFEEDDCC
+}
+
+#assert(#run jitRotateByteLanes())
+
+#[Swag.NoInline, Swag.Optimize(true)]
+func xorFourFromFrame(output: *[4] u32, seed: u32)
+{
+    var input: [4] u32
+    if seed != 0
+    {
+        input = [seed + 1, seed + 10, seed + 20, seed + 30]
+    }
+    else
+    {
+        input = [1, 10, 20, 30]
+    }
+    output[][0] ^= input[0] + 7
+    output[][1] ^= input[1] + 7
+    output[][2] ^= input[2] + 7
+    output[][3] ^= input[3] + 7
+}
+
+func jitGroupedXor()->bool
+{
+    var output: [4] u32 = [100, 200, 300, 400]
+    xorFourFromFrame(&output, 10)
+    return output == [100 ^ 18, 200 ^ 27, 300 ^ 37, 400 ^ 47]
+}
+
+#assert(#run jitGroupedXor())
 
 #[Swag.NoInline]
 func floatMagnitude()->f32

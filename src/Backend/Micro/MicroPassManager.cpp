@@ -676,7 +676,10 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_ASSERT(context.builder);
     const uint32_t         preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
     const LoopPassSettings preRaSettings{.maxIterations = preRaMaxIterations, .buildSsa = true, .pruneStableSuffix = true, .name = "pre-ra-optimization-loop"};
+    context.deferXorMemoryFoldForSlp = context.builder->backendBuildCfg().vectorize && !vectorizePasses_.empty();
+    context.deferredXorMemoryFold    = false;
     SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaSettings, verifyCache));
+    context.deferXorMemoryFoldForSlp = false;
 
     // Auto-vectorization runs once on the converged scalar IR. When it fires,
     // the pre-RA loop runs again: the scalar chains it strands are dead code,
@@ -693,7 +696,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
             SWC_RESULT(runPass(context, *pass, verifyCache));
             vectorizeChanged |= context.passChanged;
         }
-        if (vectorizeChanged)
+        if (vectorizeChanged || context.deferredXorMemoryFold)
         {
             const LoopPassSettings cleanupSettings{.maxIterations = preRaMaxIterations, .buildSsa = true, .pruneStableSuffix = true, .name = "post-vectorize-cleanup-loop"};
             SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, cleanupSettings, verifyCache));

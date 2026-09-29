@@ -294,10 +294,11 @@ namespace
 
         const TypeInfo& originalType = codeGen.typeMgr().get(typeRef);
         const TypeRef   rawTypeRef   = originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid() && rawTypeRef != typeRef)
+        const bool      resolvedAlias = rawTypeRef.isValid() && rawTypeRef != typeRef;
+        if (resolvedAlias)
             typeRef = rawTypeRef;
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo = resolvedAlias ? codeGen.typeMgr().get(typeRef) : originalType;
         if (typeInfo.isArray())
         {
             const uint64_t multiplier = arrayTotalElementCount(typeInfo);
@@ -1843,18 +1844,22 @@ void CodeGen::popFrame()
 
 MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 {
-    if (typeRef.isValid())
-    {
-        const TypeInfo& typeInfo        = typeMgr().get(typeRef);
-        TypeRef         resolvedTypeRef = typeRef;
-        if (typeInfo.isAlias())
-            resolvedTypeRef = typeInfo.unwrapAliasEnum(ctx(), typeRef);
+    if (typeRef.isInvalid())
+        return nextVirtualIntRegister();
+    return nextVirtualRegisterForType(typeRef, typeMgr().get(typeRef));
+}
 
-        const TypeInfo& resolvedTypeInfo = typeMgr().get(resolvedTypeRef);
-        if (resolvedTypeInfo.isFloat() || resolvedTypeInfo.isSimd())
-            return nextVirtualFloatRegister();
+MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& typeInfo)
+{
+    const TypeInfo* registerType = &typeInfo;
+    if (registerType->isAlias())
+    {
+        const TypeRef resolvedTypeRef = registerType->unwrapAliasEnum(ctx(), typeRef);
+        registerType = &typeMgr().get(resolvedTypeRef);
     }
 
+    if (registerType->isFloat() || registerType->isSimd())
+        return nextVirtualFloatRegister();
     return nextVirtualIntRegister();
 }
 

@@ -204,14 +204,11 @@ Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* s
     Shard&                 shard = shards[shardIndex(idRef)];
     const std::unique_lock lock(shard.mutex);
 
-    if (!acceptHomonyms)
-    {
-        const auto it = shard.map.find(idRef);
-        if (it != shard.map.end())
-            return it->second;
-    }
+    const auto [it, inserted] = shard.map.try_emplace(idRef, nullptr);
+    if (!acceptHomonyms && !inserted)
+        return it->second;
 
-    Symbol*& head         = shard.map[idRef];
+    Symbol*& head         = it->second;
     Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
     symbol->setOwnerSymMap(this);
 
@@ -483,14 +480,11 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     }
 
     // Still unsharded big map.
-    if (!acceptHomonyms)
-    {
-        const auto it = bigMap_.find(idRef);
-        if (it != bigMap_.end())
-            return it->second;
-    }
+    const auto [it, inserted] = bigMap_.try_emplace(idRef, nullptr);
+    if (!acceptHomonyms && !inserted)
+        return it->second;
 
-    Symbol*& head         = bigMap_[idRef];
+    Symbol*& head         = it->second;
     Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
     count_.fetch_add(1, std::memory_order_relaxed);
     symbol->setOwnerSymMap(this);

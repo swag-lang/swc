@@ -329,13 +329,14 @@ void Lexer::pushToken()
     }
 
     // Update the current token's flags based on the previous token
-    if (prevToken_.id == TokenId::Whitespace)
+    if (prevTokenWasWhitespace_)
         token_.flags.add(TokenFlagsE::BlankBefore);
-    if (prevToken_.flags.has(TokenFlagsE::EolInside))
+    if (prevTokenHadEolInside_)
         token_.flags.add(TokenFlagsE::EolBefore);
 
-    // Always update prevToken, even for filtered tokens
-    prevToken_ = token_;
+    // Always update the previous-token facts, even for filtered tokens.
+    prevTokenWasWhitespace_ = tokenId == TokenId::Whitespace;
+    prevTokenHadEolInside_  = hasEolInside;
     if (!isTrivia)
         prevCodeTokenId_ = tokenId;
     else if (hasEolInside)
@@ -1446,8 +1447,9 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     srcView_ = &srcView;
     srcView_->tokens().clear();
     srcView_->lines().clear();
-    prevToken_       = {};
-    prevCodeTokenId_ = TokenId::Invalid;
+    prevTokenWasWhitespace_ = false;
+    prevTokenHadEolInside_  = false;
+    prevCodeTokenId_        = TokenId::Invalid;
     hasFileError_    = false;
     hasUtf8Error_    = false;
 

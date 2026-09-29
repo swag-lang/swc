@@ -39,7 +39,7 @@ namespace InstructionCombine
     // struct stays assignable and matches project conventions.
     struct Context : MicroPeephole::RewriteQueue<Action>
     {
-        const MicroPassContext* passContext = nullptr;
+        MicroPassContext* passContext = nullptr;
         const MicroSsaState*    ssa         = nullptr;
         MicroBuilder*           builder     = nullptr;
         // Instructions that carry a relocation. Rewriting or erasing one

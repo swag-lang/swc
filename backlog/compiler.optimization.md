@@ -15,7 +15,44 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.098 — A local array's declaration fill survives its complete overwrite
+### compiler.optimization.051 — Calibrate the loop-rotation header budget
+
+- Recorded: 2026-09-24 11:53
+- Updated: 2026-09-29 11:32 — Recorded the aborted full campaign and checked its documentation failure.
+- Area: compiler/backend, post-RA loop rotation
+- Evidence: `PostRALoopRotate` duplicates a flag-only test and the allocator's flag-neutral
+  connectors at the back edge, replacing one unconditional jump per iteration. The unrelated
+  `PostRALoopRotate_IndependentHeadersRotate` test rotates headers with one incoming back edge;
+  `PostRALoopRotate_SecondIncomingJumpBlocks` keeps a header with another incoming edge. These
+  safety guards use general control flow, and the pass now covers register and memory `test`
+  instructions as well as compares. Its eight-instruction header limit is a static growth budget,
+  but no cost comparison explains why a safe nine-instruction header should keep its per-iteration
+  jump while an eight-instruction header is duplicated.
+- Address-header batch: the same rotation now accepts flag-neutral `lea` instructions before the
+  compare and clones each RIP-relative relocation onto the copied test instruction. Dijkstra's
+  `pop` changes from 48 to 52 static Micro instructions; its inlined copy in `main` changes that
+  function from 435 to 439. Both remove one executed unconditional jump per sift-down step, with
+  the address calculation, bound load, and compare still executed once per step. MSVC's winning
+  sift-down loop likewise branches conditionally back to the comparison. Leven's unrelated
+  row-shift loop changes its enclosing `main` from 474 to 477 static instructions and removes its
+  unconditional back edge. Five other benchmark tasks have identical normalized selected Micro
+  instructions. All seven checksums pass. The C++ test checks the copied relocation target and
+  rejects a flag-changing arithmetic connector; 1,158 C++ tests, 3,488 native Release tests,
+  and 1,502 JIT Release tests pass. The JIT case changes a global bound inside the loop, proving
+  the copied load reads the next iteration's value. No timing sample informed this batch.
+- Campaign check: a full sweep after this batch passed all seven task checksums but stopped before
+  recording because the `doc_std` edit-build workload raised a compiler hardware exception.
+  The reference probes moved 78.3% between neighbouring points (40% limit), so its timings would
+  have been rejected even without that error. The exact `doc --workspace bin/std --rebuild`
+  command subsequently completed all twelve modules in both DevMode and Release with six workers;
+  the exception was not reproduced. The driver left `history.json` and the latest accepted
+  campaign (`20260928-170009`) unchanged. Do not infer a runtime ranking from this sweep.
+- Next: compare code size and executed jumps for unrelated loops with short and long connector
+  runs, then derive a header budget from code growth and work saved instead of the fixed cutoff.
+- Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests
+  around the chosen boundary.
+
+### compiler.optimization.100 — A local array's declaration fill survives its complete overwrite
 
 - Recorded: 2026-09-29 11:28
 - Area: compiler/backend, memory optimization
@@ -33,6 +70,87 @@ block, and the hot path keeps the register.
 - Complete when: the tile fill of `filterLumaVertical` disappears from its release dump, a fill
   followed by a partial overwrite and a read keeps its stores, and unit tests cover both.
 - Related: compiler.optimization.011
+### compiler.optimization.099 — The CABAC significance loop still holds one value in two registers
+
+- Recorded: 2026-09-29 09:34
+- Updated: 2026-09-29 10:47 — Record the post-allocation coalescing trial.
+- Area: compiler/backend, copy forwarding and register allocation
+- Evidence: after the 2026-09-29 prompt-2 batches on `std/video` (see std.video.001), a no-hit
+  iteration of the 4x4 luma significance loop of `Slice.residualCabac` is 35 Micro instructions with
+  four memory accesses, two spill reloads (the slice and the significance-state pointer) and three
+  branches; FFmpeg's `decode_significance_x86` spends about 23 instructions and no spill on the same
+  bin. Two of the remaining instructions are copies after the renormalizing shifts
+  (`rdx = r8 << cl; r11 = rdx`, the same for the offset). Before allocation the new range is
+  computed into `%606` and copied into the loop-carried `%2482`; copy elimination then points the
+  last-coefficient bin's reads of `%2482` at `%606`, so the two values overlap and cannot share a
+  register. The local-stack base also keeps `rbx` for the whole function although the body only
+  addresses one 64-byte array through it, and `clear` precedes every `lzcnt`/`tzcnt`.
+- Tried and reverted, each measured on the seven H.264 decoder files (`#global #[Swag.PrintMicro]`)
+  and the seven benchmark programs:
+  1. Copy elimination leaving the readers of a copy that feeds a live phi on the copy's
+     destination: 28601 -> 29300 decoder instructions (predictIntraPlane +81, bookkeepMb +67,
+     intraPredict8x8 +57) and 5662 -> 5890 benchmark instructions (Dijkstra main +110). Forwarding
+     pays far more often than the overlap it creates costs.
+  2. Computing a copied result directly into the copy's destination when the copy follows the
+     definition, the result has one definition and no phi reader, and every reader still sees the
+     copy's value: residualCabac 4x4 618 -> 628, its significance loop 115 -> 129 instructions and
+     6 -> 9 frame accesses; the two target copies were not reached (the join after the refill).
+  3. An out-of-line `CabacReader.reload`: 630 -> 619 static instructions, but `low` became
+     frame-resident (a load and a store on every bin) and the selects became branches: one call
+     in the function stops the offset from being promoted to a register.
+  4. A write pointer instead of `indices[count]` (618 -> 625, frame accesses 6 -> 9) and walking the
+     significance states by pointer as FFmpeg does (618 -> 631, 6 -> 10): each frees a value in the
+     source and costs more spills after allocation.
+  5. After allocation, computing a copied result into the copy's destination when every later read
+     of the result sees the copy, tracking a spill-and-reload of the destination through the refill
+     path: it never reaches the target, because the last-coefficient bin updates the range in place
+     in the copy's source (`sub rdx, r8`), so the value continues there. Elsewhere the decoder
+     functions outside `cabac.swg` lost 15 instructions (CAVLC residual parsing -16), but csvagg's
+     record loop grew by four instructions and one frame access, so the rule was reverted.
+- Next: give the interval allocator value-aware interference, as LLVM's coalescer joins a copy's
+  source and destination where they overlap holding the same value, or rewrite after allocation the
+  reads of a copy's source that its destination reaches, tracking the spill-slot round trip of the
+  refill path, then retarget the shift into the destination. Separately, measure releasing the
+  local-stack base register when the body never moves `rsp`.
+- Complete when: the significance bin has no register copy after its shifts and no decoder function
+  or benchmark program grows.
+- Related: std.video.001, compiler.optimization.037, compiler.optimization.095
+### compiler.optimization.098 — Feed adjacent array updates from a packed state
+
+- Recorded: 2026-09-29 08:04
+- Updated: 2026-09-29 10:25 — Archived the full milestone campaign under machine drift.
+- Area: compiler/backend, SIMD dataflow and memory aliasing
+- Evidence: after ChaCha's packed round loop, Swag stores four vectors to the local state array, then emits 16 repetitions of a scalar state load, an add from the initial array, and an indexed XOR into the output array: four vector stores and 48 scalar Micro instructions per output block. The latest accepted campaign names C++/clang-cl as the fastest other runtime. Its emitted code packs one four-word slice for a vector add, XOR, and store while updating the remaining words individually. This identifies an output path left scalar after Swag's round vectorization, not a measured cost for a compiler edit.
+- Mechanism: `InstructionCombine::tryMemoryFoldTriple` folds each scalar load/XOR/store into `OpBinaryMemReg` before SLP runs. A bounded four-word-store filter now defers the 32-bit XOR fold until SLP has checked the block, then the cleanup loop folds any residual scalar triples. In a scratch function with an incoming output pointer and a stack-resident four-word input, SLP emits one vector load of the input, one splat, add, vector load of the output, XOR, and vector store: seven operations instead of twelve scalar load/add/memory-XOR operations. An unrelated four-store case with different add constants retains its four memory XOR instructions and 36-function-instruction count; two overlapping parameter pointers also stay scalar and preserve sequential results. A global suppression without cleanup had grown an earlier scalar case from 30 to 38 instructions and was removed.
+- Constraint: packing several output updates changes when later state and initial elements are read relative to earlier output writes. The output comes from `benchAlloc`, a wrapper around the runtime allocator; the current Micro pass does not carry a freshness or no-alias proof from that call. A rewrite based only on adjacent addresses could change programs whose output overlaps an input array.
+- Further inspection: each source iteration has one indexed read-modify-write; the existing loop unroller makes sixteen adjacent instances, which `tryMemoryFoldAmcTriple` folds before SLP. SLP rejects every indexed read and write as unresolved, and its root proof recognizes stack and incoming-parameter disjointness but gives allocator returns an unknown root. Extending only the earlier four-store deferral therefore cannot vectorize this loop. A new path needs both a proof across the unrolled iterations and either a documented fresh-allocation contract or a checked overlap fallback.
+- Validation: native Release and DevMode tests for the packed and overlapping cases, JIT Release, 1,156 C++ tests, and all seven benchmark checksums pass. The selected functions of all seven benchmarks have unchanged normalized Micro instructions, including ChaCha's 51-instruction packed round and 457-instruction main. No individual runtime timing informed the decision.
+- Milestone: the full campaign `20260929-082219` passed every checksum but was archived under `bench/results/rejected/`. Its reference workload moved 65.9% between neighbouring probes (40% limit), and unchanged build controls spread by 30.7% (25% limit). Other compiler builds and test suites were active on the shared machine during the sweep. The accepted baseline and runtime winners remain `20260928-170009`; no speedup or regression is inferred from the rejected timings.
+- Next: establish the allocator result's usable provenance and the exact stack/heap disjointness contract, or guard the overlap case at run time. Extend the deferral and SLP proof to four indexed output updates only when their stable base and adjacent offsets are known. Test overlapping and disjoint indexed arrays, then compare the output path's instructions, memory operations, and spills with clang-cl. Keep the benchmark's computation unchanged.
+
+### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
+
+- Recorded: 2026-09-24 10:33
+- Updated: 2026-09-29 09:25 — Audited the ordinary-loop cap and repaired constant-index folding after memory operations.
+- Area: compiler/backend, loop unrolling
+- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
+  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
+  branch, and constant-table guards already describe general costs and benefits. The unrelated
+  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
+  indices and branches; it benefits from constant-index folding. Conversely,
+  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
+  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
+- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
+  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
+  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
+  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
+  flattens, while the otherwise identical plain loop still keeps its latch.
+- Audit: temporarily raising the ordinary cap to 32 made an unrelated 17-trip arithmetic sum fold from a nine-instruction loop to three straight-line instructions. A 17-word XOR update instead grew from an eight-instruction loop to 35 instructions: the index became constant, but its already-folded memory XOR was outside the constant-index rule. Extending that rule to indexed compares, register-memory operations, and unary/binary memory updates reduces the unrolled XOR case from 35 to 19 instructions, with 17 direct-offset XORs and no indexed reads or per-element index materializations. The production 16-trip cap remains: even after this repair, the 17-word update grows from eight to 19 static instructions and retains all 17 memory updates, so a general profitability rule needs more than a trip count. The C++ test covers five operation forms and rejects dynamic and 32-bit addresses; a native test covers indexed XOR, increment, decrement and dynamic indexing, and a JIT test covers the constant-index updates. All 1,157 C++ tests and seven benchmark checksums pass; the seven selected benchmark functions have identical normalized Micro instructions before and after. No runtime timing was used.
+- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
+  only when a general work-saved versus code-growth rule improves them without expanding loops
+  whose bodies retain their per-trip work.
+- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
+  both admitted and rejected shapes.
 
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 
@@ -621,46 +739,6 @@ block, and the hot path keeps the register.
   remains after inspecting the generated code.
 - Complete when: the current unroll limit has profitability evidence for this loop, including
   the effects of temporary renaming and later instruction folds.
-
-### compiler.optimization.051 — Calibrate the loop-rotation header budget
-
-- Recorded: 2026-09-24 11:53
-- Area: compiler/backend, post-RA loop rotation
-- Evidence: `PostRALoopRotate` duplicates a flag-only test and the allocator's flag-neutral
-  connectors at the back edge, replacing one unconditional jump per iteration. The unrelated
-  `PostRALoopRotate_IndependentHeadersRotate` test rotates headers with one incoming back edge;
-  `PostRALoopRotate_SecondIncomingJumpBlocks` keeps a header with another incoming edge. These
-  safety guards use general control flow, and the pass now covers register and memory `test`
-  instructions as well as compares. Its eight-instruction header limit is a static growth budget,
-  but no cost comparison explains why a safe nine-instruction header should keep its per-iteration
-  jump while an eight-instruction header is duplicated.
-- Next: compare code size and executed jumps for unrelated loops with short and long connector
-  runs, then derive a header budget from code growth and work saved instead of the fixed cutoff.
-- Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests
-  around the chosen boundary.
-
-### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
-
-- Recorded: 2026-09-24 10:33
-- Updated: 2026-09-24 11:33 — The constant-table case now crosses sixteen trips within the size budget; the ordinary-loop cap remains to calibrate.
-- Area: compiler/backend, loop unrolling
-- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
-  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
-  branch, and constant-table guards already describe general costs and benefits. The unrelated
-  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
-  indices and branches; it benefits from constant-index folding. Conversely,
-  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
-  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
-- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
-  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
-  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
-  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
-  flattens, while the otherwise identical plain loop still keeps its latch.
-- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
-  only when a general work-saved versus code-growth rule improves them without expanding loops
-  whose bodies retain their per-trip work.
-- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
-  both admitted and rejected shapes.
 
 ### compiler.optimization.048 — Check LICM's relocated address policy outside benchmarks
 

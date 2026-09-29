@@ -44,7 +44,7 @@ namespace
 
         const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
         const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
-        return codeGen.typeMgr().get(storageTypeRef).isFloat();
+        return storageTypeRef == typeRef ? typeInfo.isFloat() : codeGen.typeMgr().get(storageTypeRef).isFloat();
     }
 
     TypeRef normalizeIntrinsicInitTypeRef(CodeGen& codeGen, TypeRef typeRef)
@@ -56,7 +56,7 @@ namespace
         if (!typeInfo.isAlias())
             return typeRef;
 
-        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeRef rawTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         if (rawTypeRef.isValid() && !IntrinsicInitType::preservesAliasType(codeGen.typeMgr().get(rawTypeRef)))
             return rawTypeRef;
         return typeRef;
@@ -68,19 +68,24 @@ namespace
         if (!whatTypeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeInfo& whatType = codeGen.typeMgr().get(whatTypeRef);
-        if (whatType.isReference() || whatType.isAnyPointer())
-            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatType.payloadTypeRef());
+        const TypeInfo* currentType = &codeGen.typeMgr().get(whatTypeRef);
+        if (currentType->isReference() || currentType->isAnyPointer())
+        {
+            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType->payloadTypeRef());
+            if (hasExplicitCount && whatTypeRef.isValid())
+                currentType = &codeGen.typeMgr().get(whatTypeRef);
+        }
 
         if (!hasExplicitCount)
             return whatTypeRef;
 
         while (whatTypeRef.isValid())
         {
-            const TypeInfo& currentType = codeGen.typeMgr().get(whatTypeRef);
-            if (!currentType.isArray())
+            if (!currentType->isArray())
                 break;
-            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType.payloadArrayElemTypeRef());
+            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType->payloadArrayElemTypeRef());
+            if (whatTypeRef.isValid())
+                currentType = &codeGen.typeMgr().get(whatTypeRef);
         }
 
         return whatTypeRef;
@@ -169,7 +174,7 @@ namespace
             MicroReg      srcReg  = srcPayload.reg;
             if (srcPayload.isAddress())
             {
-                srcReg = codeGen.nextVirtualRegisterForType(fillTypeRef);
+                srcReg = codeGen.nextVirtualRegisterForType(fillTypeRef, fillType);
                 builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, storeBits);
             }
 

@@ -139,9 +139,11 @@ namespace
 
     TypeRef resolveMemberAccessLeftTypeRef(CodeGen& codeGen, AstNodeRef leftRef)
     {
-        TypeRef leftTypeRef = codeGen.viewType(leftRef).typeRef();
-        if (const CodeGenNodePayload* leftPayload = codeGen.safePayload(leftRef); leftPayload && leftPayload->reg.isValid())
-            leftTypeRef = leftPayload->effectiveTypeRef(leftTypeRef);
+        TypeRef leftTypeRef = TypeRef::invalid();
+        if (const CodeGenNodePayload* leftPayload = codeGen.safePayload(leftRef); leftPayload && leftPayload->reg.isValid() && leftPayload->typeRef.isValid())
+            leftTypeRef = leftPayload->typeRef;
+        if (!leftTypeRef.isValid())
+            leftTypeRef = codeGen.viewType(leftRef).typeRef();
 
         return CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, leftRef, leftTypeRef);
     }

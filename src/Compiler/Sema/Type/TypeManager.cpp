@@ -341,7 +341,10 @@ TypeRef TypeManager::unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) co
 {
     if (!typeRef.isValid())
         return TypeRef::invalid();
-    return get(typeRef).unwrapAliasEnum(ctx, typeRef);
+    const TypeInfo& typeInfo = get(typeRef);
+    if (!typeInfo.isAlias() && !typeInfo.isEnum())
+        return typeRef;
+    return typeInfo.unwrapAliasEnum(ctx, typeRef);
 }
 
 bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, const LifecycleOperator lifecycleOperator) const

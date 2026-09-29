@@ -15,6 +15,68 @@ bounded sound windows.
 The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
+### std.video.001 — Reduce the remaining serial cost of H.264 decoding
+
+- Recorded: 2026-08-19 13:23
+- Updated: 2026-09-29 09:34 — Record the entropy-layer instruction counts after the prompt-2 CABAC batches.
+- Evidence: on 2026-09-12, decoding the same 3840x2160 one-slice High/CABAC clip and alternating
+  the two decoders inside one measurement window, this decoder and FFmpeg's own build with its
+  hand-written assembly disabled read within a tenth of each other, while FFmpeg with its
+  assembly read half. Forcing its dispatch down one instruction set at a time gives the ladder
+  the assembly climbs: compiled code 179, with SSE2 111, with SSSE3 82, and with everything 83.
+  Alternation matters: this machine's cores are shared and its clock moves, and the same binary
+  read 124 and 204 million cycles in two rounds an hour apart.
+- The gap is not algorithmic. The entropy layer decodes a number of bins fixed by the bitstream,
+  5.29 million per picture here, so no decoder can decode fewer; the three shortcuts that do
+  carry algorithmic freedom are all taken, namely the integer-sample copy and per-phase kernels
+  in `mcLuma`, the skip of a zero-strength edge in `deblockMb`, and the flat-block and
+  zero-block skips in `addPlane4x4Residual`. A decoder doing materially more work per
+  macroblock could not match FFmpeg's compiled code within a tenth.
+- What remains is scalar. `cabac.swg` holds 46 per cent of the decode and uses no vector
+  arithmetic, because an arithmetic decoder cannot: each bin is decoded from the range the bin
+  before it left. At 5.29 million bins that layer costs about 16 cycles per bin. Sampling inside
+  `Slice.residualCabac` shows the significance loop remaking three relocated table addresses and
+  spilling the range on every bin, which is register pressure, not instruction selection.
+- Entropy layer, 2026-09-29 (prompt 2): the CABAC decision now holds the packed state at register
+  width and leaves it in `binState`, the level tables joined `CabacTables`, the significance loop
+  walks its states through one pointer, and backend rules fold address arithmetic into loads,
+  keep conditional work and its spills off loop common paths, and fuse field-address additions.
+  On the 4x4 luma `residualCabac` a no-hit significance iteration went from 46 Micro instructions
+  (six memory accesses, two of them spill reloads, six branches) to 35 (four, two, three); the
+  function from 669 to 618 instructions, its significance loop span from 139 to 115 and 11 to 6
+  frame accesses, its level loop from 326 to 306 and five relocated table addresses to one. FFmpeg's
+  asm bin is about 23 instructions; what separates them is recorded in compiler.optimization.098.
+  Decoded planes of a 60-picture 3840x2160 High/CABAC extract stay byte-identical to libavcodec.
+- Current source: `Slice.resolveNeighbors` caches the four neighboring macroblocks;
+  `bookkeepMb` writes grid rows and reference-picture co-located motion in words/vectors;
+  `Frame.colMotion` receives the macroblock index. The old next step to build those paths is done.
+  CABAC significance decoding uses caller-local arithmetic state and padded input; build 438's
+  cold-call allocation fix is also shipped. Implementation chronology remains in Git.
+- Remaining evidence: pre-cache profiles attributed substantial cost to context derivation and
+  bookkeeping, but those percentages cannot rank the current code. Six-tap luma compensation was
+  another measured gap. Reprofile before choosing among the remaining syntax and pixel kernels.
+- Measurement contract: verify one VCL slice per picture, use one AVC lane, warm the reference
+  set, walk forward, and interleave identical input against single-threaded FFmpeg. Read the actual
+  decoding thread with `QueryThreadCycleTime` and also measure the caller to establish where work
+  runs. Whole-process cycles include unrelated spinning workers; old multi-slice timings belong
+  to std.video.013.
+- Next: collect a current per-function profile, select one remaining kernel or bookkeeping cost,
+  and compare its change on the same fixture and compiler. Keep plane digests byte-exact across
+  the existing Baseline/Main/High and 4:4:4 corpus.
+- Constraints: `prepareMb` must clear residual blocks that intra reconstruction can read without
+  entropy parsing. Per-block overrun checks cannot be removed until the terminating path has an
+  equivalent post-loop check and truncated-input coverage. Shipped packed deblocking is not new
+  work; the remaining strong vertical chroma vector path belongs to cpu.simd.023.
+- Avoid unqualified retries: earlier register-only CABAC and global scratch experiments did not
+  establish a durable whole-picture gain; generic decision inlining was neutral under splitting.
+  Recasting RGB conversion as pair sums predates cross-module SIMD inlining and needs a fresh
+  comparison before its old verdict is used.
+- Complete when: serial decode costs at most four-thirds of FFmpeg on the same one-slice fixture
+  and machine, measured in decoding-thread cycles with unchanged decoded planes. Parity with its
+  compiled code is reached; the remaining factor is its assembly, so the target is now reached by
+  vector kernels in the pixel layer and by relieving register pressure in the entropy layer.
+- Related: std.video.013, compiler.optimization.011, cpu.simd.023
+
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
 - Recorded: 2026-08-25 08:38
@@ -48,58 +110,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Complete when: serial decode costs at most four-thirds of FFmpeg on the same 3840x2076 Main10
   fixture and machine, with exact conformance and reference planes and recorded measurement scope.
 - Related: std.video.001, std.video.009, compiler.optimization.011, cpu.simd.002
-
-### std.video.001 — Reduce the remaining serial cost of H.264 decoding
-
-- Recorded: 2026-08-19 13:23
-- Updated: 2026-09-12 17:40 — Record what the FFmpeg gap is made of, measured against its own build without assembly.
-- Evidence: on 2026-09-12, decoding the same 3840x2160 one-slice High/CABAC clip and alternating
-  the two decoders inside one measurement window, this decoder and FFmpeg's own build with its
-  hand-written assembly disabled read within a tenth of each other, while FFmpeg with its
-  assembly read half. Forcing its dispatch down one instruction set at a time gives the ladder
-  the assembly climbs: compiled code 179, with SSE2 111, with SSSE3 82, and with everything 83.
-  Alternation matters: this machine's cores are shared and its clock moves, and the same binary
-  read 124 and 204 million cycles in two rounds an hour apart.
-- The gap is not algorithmic. The entropy layer decodes a number of bins fixed by the bitstream,
-  5.29 million per picture here, so no decoder can decode fewer; the three shortcuts that do
-  carry algorithmic freedom are all taken, namely the integer-sample copy and per-phase kernels
-  in `mcLuma`, the skip of a zero-strength edge in `deblockMb`, and the flat-block and
-  zero-block skips in `addPlane4x4Residual`. A decoder doing materially more work per
-  macroblock could not match FFmpeg's compiled code within a tenth.
-- What remains is scalar. `cabac.swg` holds 46 per cent of the decode and uses no vector
-  arithmetic, because an arithmetic decoder cannot: each bin is decoded from the range the bin
-  before it left. At 5.29 million bins that layer costs about 16 cycles per bin. Sampling inside
-  `Slice.residualCabac` shows the significance loop remaking three relocated table addresses and
-  spilling the range on every bin, which is register pressure, not instruction selection.
-- Current source: `Slice.resolveNeighbors` caches the four neighboring macroblocks;
-  `bookkeepMb` writes grid rows and reference-picture co-located motion in words/vectors;
-  `Frame.colMotion` receives the macroblock index. The old next step to build those paths is done.
-  CABAC significance decoding uses caller-local arithmetic state and padded input; build 438's
-  cold-call allocation fix is also shipped. Implementation chronology remains in Git.
-- Remaining evidence: pre-cache profiles attributed substantial cost to context derivation and
-  bookkeeping, but those percentages cannot rank the current code. Six-tap luma compensation was
-  another measured gap. Reprofile before choosing among the remaining syntax and pixel kernels.
-- Measurement contract: verify one VCL slice per picture, use one AVC lane, warm the reference
-  set, walk forward, and interleave identical input against single-threaded FFmpeg. Read the actual
-  decoding thread with `QueryThreadCycleTime` and also measure the caller to establish where work
-  runs. Whole-process cycles include unrelated spinning workers; old multi-slice timings belong
-  to std.video.013.
-- Next: collect a current per-function profile, select one remaining kernel or bookkeeping cost,
-  and compare its change on the same fixture and compiler. Keep plane digests byte-exact across
-  the existing Baseline/Main/High and 4:4:4 corpus.
-- Constraints: `prepareMb` must clear residual blocks that intra reconstruction can read without
-  entropy parsing. Per-block overrun checks cannot be removed until the terminating path has an
-  equivalent post-loop check and truncated-input coverage. Shipped packed deblocking is not new
-  work; the remaining strong vertical chroma vector path belongs to cpu.simd.023.
-- Avoid unqualified retries: earlier register-only CABAC and global scratch experiments did not
-  establish a durable whole-picture gain; generic decision inlining was neutral under splitting.
-  Recasting RGB conversion as pair sums predates cross-module SIMD inlining and needs a fresh
-  comparison before its old verdict is used.
-- Complete when: serial decode costs at most four-thirds of FFmpeg on the same one-slice fixture
-  and machine, measured in decoding-thread cycles with unchanged decoded planes. Parity with its
-  compiled code is reached; the remaining factor is its assembly, so the target is now reached by
-  vector kernels in the pixel layer and by relieving register pressure in the entropy layer.
-- Related: std.video.013, compiler.optimization.011, cpu.simd.023
 
 ### std.video.009 — H.265 range-extension chroma formats are not decoded
 

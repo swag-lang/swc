@@ -15,6 +15,45 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.098 — The CABAC significance loop still holds one value in two registers
+
+- Recorded: 2026-09-29 09:34
+- Area: compiler/backend, copy forwarding and register allocation
+- Evidence: after the 2026-09-29 prompt-2 batches on `std/video` (see std.video.001), a no-hit
+  iteration of the 4x4 luma significance loop of `Slice.residualCabac` is 35 Micro instructions with
+  four memory accesses, two spill reloads (the slice and the significance-state pointer) and three
+  branches; FFmpeg's `decode_significance_x86` spends about 23 instructions and no spill on the same
+  bin. Two of the remaining instructions are copies after the renormalizing shifts
+  (`rdx = r8 << cl; r11 = rdx`, the same for the offset). Before allocation the new range is
+  computed into `%606` and copied into the loop-carried `%2482`; copy elimination then points the
+  last-coefficient bin's reads of `%2482` at `%606`, so the two values overlap and cannot share a
+  register. The local-stack base also keeps `rbx` for the whole function although the body only
+  addresses one 64-byte array through it, and `clear` precedes every `lzcnt`/`tzcnt`.
+- Tried and reverted, each measured on the seven H.264 decoder files (`#global #[Swag.PrintMicro]`)
+  and the seven benchmark programs:
+  1. Copy elimination leaving the readers of a copy that feeds a live phi on the copy's
+     destination: 28601 -> 29300 decoder instructions (predictIntraPlane +81, bookkeepMb +67,
+     intraPredict8x8 +57) and 5662 -> 5890 benchmark instructions (Dijkstra main +110). Forwarding
+     pays far more often than the overlap it creates costs.
+  2. Computing a copied result directly into the copy's destination when the copy follows the
+     definition, the result has one definition and no phi reader, and every reader still sees the
+     copy's value: residualCabac 4x4 618 -> 628, its significance loop 115 -> 129 instructions and
+     6 -> 9 frame accesses; the two target copies were not reached (the join after the refill).
+  3. An out-of-line `CabacReader.reload`: 630 -> 619 static instructions, but `low` became
+     frame-resident (a load and a store on every bin) and the selects became branches: one call
+     in the function stops the offset from being promoted to a register.
+  4. A write pointer instead of `indices[count]` (618 -> 625, frame accesses 6 -> 9) and walking the
+     significance states by pointer as FFmpeg does (618 -> 631, 6 -> 10): each frees a value in the
+     source and costs more spills after allocation.
+- Next: give the interval allocator value-aware interference, as LLVM's coalescer joins a copy's
+  source and destination where they overlap holding the same value, or rewrite after allocation the
+  reads of a copy's source that its destination reaches, tracking the spill-slot round trip of the
+  refill path, then retarget the shift into the destination. Separately, measure releasing the
+  local-stack base register when the body never moves `rsp`.
+- Complete when: the significance bin has no register copy after its shifts and no decoder function
+  or benchmark program grows.
+- Related: std.video.001, compiler.optimization.037, compiler.optimization.095
+
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 
 - Recorded: 2026-09-28 16:35

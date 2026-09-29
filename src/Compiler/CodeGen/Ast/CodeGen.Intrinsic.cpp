@@ -44,7 +44,7 @@ namespace
 
         const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
         const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
-        return codeGen.typeMgr().get(storageTypeRef).isFloat();
+        return storageTypeRef == typeRef ? typeInfo.isFloat() : codeGen.typeMgr().get(storageTypeRef).isFloat();
     }
 
     TypeRef normalizeIntrinsicInitTypeRef(CodeGen& codeGen, TypeRef typeRef)
@@ -56,7 +56,7 @@ namespace
         if (!typeInfo.isAlias())
             return typeRef;
 
-        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeRef rawTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         if (rawTypeRef.isValid() && !IntrinsicInitType::preservesAliasType(codeGen.typeMgr().get(rawTypeRef)))
             return rawTypeRef;
         return typeRef;

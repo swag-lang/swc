@@ -771,6 +771,138 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsDoubledAddressIntoAdd)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FoldsIndexedAddressIntoNextLoad)
+{
+    constexpr MicroReg base    = MicroReg::intReg(8);
+    constexpr MicroReg index   = MicroReg::intReg(9);
+    constexpr MicroReg address = MicroReg::intReg(10);
+    constexpr MicroReg other   = MicroReg::intReg(11);
+    const MicroReg     stack   = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    // 0: the byte load overwrites the address; 1: the address stays live;
+    // 2: a doubleword zero extension has no indexed encoding; 3: a plain load
+    // into another register, the address dead after it.
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, base, index, 2, 4, MicroOpBits::B64);
+        if (variant == 0)
+            builder.emitLoadZeroExtendRegMem(address, address, 3, MicroOpBits::B32, MicroOpBits::B8);
+        else if (variant == 1)
+            builder.emitLoadZeroExtendRegMem(other, address, 3, MicroOpBits::B32, MicroOpBits::B8);
+        else if (variant == 2)
+            builder.emitLoadZeroExtendRegMem(address, address, 3, MicroOpBits::B64, MicroOpBits::B32);
+        else
+            builder.emitLoadRegMem(other, address, 8, MicroOpBits::B64);
+        builder.emitLoadMemReg(stack, 16, variant == 1 ? address : other, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const bool      expectFold = variant == 0 || variant == 3;
+        const auto      indexedOp  = variant == 3 ? MicroInstrOpcode::LoadAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        const MicroReg  result     = variant == 0 ? address : other;
+        const uint64_t  offset     = variant == 3 ? 12 : 7;
+        bool            folded     = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != indexedOp)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            folded |= ops && ops[0].reg == result && ops[1].reg == base && ops[2].reg == index &&
+                      ops[5].valueU64 == 2 && ops[6].valueU64 == offset;
+        }
+        if (folded != expectFold ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrAmcRegMem) != (expectFold ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FoldsPointerAddIntoNextLoad)
+{
+    constexpr MicroReg table    = MicroReg::intReg(10);
+    constexpr MicroReg position = MicroReg::intReg(11);
+    constexpr MicroReg other    = MicroReg::intReg(9);
+    const MicroReg     stack    = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    // 0: the load overwrites the pointer; 1: the advanced pointer stays live;
+    // 2: a branch reads the add's flags; 3: a 32-bit add is not an address.
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegReg(table, position, MicroOp::Add, variant == 3 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitLoadZeroExtendRegMem(variant == 1 ? other : table, table, 5, MicroOpBits::B32, MicroOpBits::B8);
+        if (variant == 2)
+        {
+            const MicroLabelRef exit = builder.createLabel();
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+            builder.placeLabel(exit);
+        }
+        builder.emitLoadMemReg(stack, 16, table, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        bool folded = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadZeroExtAmcRegMem)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            folded |= ops && ops[0].reg == table && ops[1].reg == table && ops[2].reg == position &&
+                      ops[5].valueU64 == 1 && ops[6].valueU64 == 5;
+        }
+        if (folded != (variant == 0) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != (variant == 0 ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FoldsMaskedDoubleIntoScaledAddress)
+{
+    constexpr MicroReg value   = MicroReg::intReg(10);
+    constexpr MicroReg pointer = MicroReg::intReg(8);
+    const MicroReg     stack   = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    // 0: folds; 1: the mask leaves bit 31, so the doubling can wrap; 2: the
+    // doubling is 64-bit; 3: a branch reads the final add's flags.
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(value, ApInt(variant == 1 ? 0x80000000u : 0xC0u, 32), MicroOp::And, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(value, value, MicroOp::Add, variant == 2 ? MicroOpBits::B64 : MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(value, pointer, MicroOp::Add, MicroOpBits::B64);
+        if (variant == 3)
+        {
+            const MicroLabelRef exit = builder.createLabel();
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+            builder.placeLabel(exit);
+        }
+        builder.emitLoadMemReg(stack, 16, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        bool folded = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            folded |= ops && ops[0].reg == value && ops[1].reg == pointer && ops[2].reg == value && ops[5].valueU64 == 2;
+        }
+        if (folded != (variant == 0) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != (variant == 0 ? 0u : 2u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FoldsMaskedIndexIncrementOnlyWhenAddressIsIndependent)
 {
     constexpr MicroReg index = MicroReg::intReg(13);

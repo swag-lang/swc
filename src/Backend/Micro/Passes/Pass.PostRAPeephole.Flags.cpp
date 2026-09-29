@@ -1895,6 +1895,187 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Folds the address `base + index*scale + disp`, computed into `address`
+    // by the instruction at `addressRef`, into the load right after it. The
+    // load reads base and index at the same point the address did, so the
+    // only condition is that no later instruction reads `address`: the load
+    // overwrites it, or liveness proves it dead.
+    static bool foldAddressIntoNextLoad(Context& ctx, const MicroInstrRef addressRef, const MicroReg address, const MicroReg base, const MicroReg index,
+                                        const uint64_t scale, const uint64_t disp)
+    {
+        if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
+            return false;
+
+        const MicroInstrRef loadRef = ctx.nextRef(addressRef);
+        const MicroInstr*   load    = ctx.instruction(loadRef);
+        const auto*         loadOps = load ? load->ops(*ctx.operands) : nullptr;
+        if (!load || !loadOps || ctx.isClaimed(loadRef))
+            return false;
+
+        // Base + offset layouts: [dst, base, bits, offset] for a plain load,
+        // [dst, base, dstBits, srcBits, offset] for an extending one.
+        MicroInstrOpcode  indexedOp = MicroInstrOpcode::Nop;
+        MicroInstrOperand folded[7] = {};
+        uint64_t          offset    = 0;
+        switch (load->op)
+        {
+            case MicroInstrOpcode::LoadRegMem:
+                indexedOp        = MicroInstrOpcode::LoadAmcRegMem;
+                folded[3].opBits = loadOps[2].opBits;
+                folded[4].opBits = MicroOpBits::B64;
+                offset           = loadOps[3].valueU64;
+                break;
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+                indexedOp        = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+                folded[3].opBits = loadOps[2].opBits;
+                folded[4].opBits = loadOps[3].opBits;
+                offset           = loadOps[4].valueU64;
+                break;
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+                indexedOp        = MicroInstrOpcode::LoadSignedExtAmcRegMem;
+                folded[3].opBits = loadOps[2].opBits;
+                folded[4].opBits = loadOps[3].opBits;
+                offset           = loadOps[4].valueU64;
+                break;
+            default:
+                return false;
+        }
+
+        // The indexed extending forms encode a byte or word source (and the
+        // sign-extending one a doubleword into 64 bits) into a 32- or 64-bit
+        // destination; the base + offset forms also carry the other widths.
+        if (indexedOp != MicroInstrOpcode::LoadAmcRegMem)
+        {
+            const MicroOpBits dstBits = folded[3].opBits;
+            const MicroOpBits srcBits = folded[4].opBits;
+            if (dstBits != MicroOpBits::B32 && dstBits != MicroOpBits::B64)
+                return false;
+            const bool narrowSource = srcBits == MicroOpBits::B8 || srcBits == MicroOpBits::B16;
+            const bool signedDouble = indexedOp == MicroInstrOpcode::LoadSignedExtAmcRegMem && srcBits == MicroOpBits::B32 && dstBits == MicroOpBits::B64;
+            if (!narrowSource && !signedDouble)
+                return false;
+        }
+
+        const MicroReg result = loadOps[0].reg;
+        if (loadOps[1].reg != address || !result.isInt() || ctx.isPrivateFrameBase(result) ||
+            (result != address && !ctx.isRegDeadAfter(address, ctx.instructionIndex + 1)))
+            return false;
+        const int64_t displacement = static_cast<int64_t>(disp + offset);
+        if (displacement != static_cast<int64_t>(static_cast<int32_t>(displacement)))
+            return false;
+
+        folded[0].reg      = result;
+        folded[1].reg      = base;
+        folded[2].reg      = index;
+        folded[5].valueU64 = scale;
+        folded[6].valueU64 = static_cast<uint64_t>(displacement);
+        MicroInstr probe;
+        probe.op          = indexedOp;
+        probe.numOperands = 7;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, folded) || !ctx.claimAll({addressRef, loadRef}))
+            return false;
+        ctx.emitRewrite(loadRef, indexedOp, folded, true);
+        ctx.emitErase(addressRef);
+        return true;
+    }
+
+    // An indexed address read once, by the load right after it, can be the
+    // load's own operand:
+    //
+    //     lea   T, [B + I*s + d]
+    //     movzx R, byte [T + k]   ->   movzx R, byte [B + I*s + d + k]
+    bool tryFoldIndexedAddressIntoNextLoad(Context& ctx, const MicroInstrRef addressRef, const MicroInstr& addressInst)
+    {
+        if (ctx.isClaimed(addressRef) || !ctx.encoder)
+            return false;
+        const auto* address = addressInst.ops(*ctx.operands);
+        if (!address || !address[0].reg.isInt() || !address[1].reg.isInt() || !address[2].reg.isInt() ||
+            address[3].opBits != MicroOpBits::B64 || address[4].opBits != MicroOpBits::B64 ||
+            ctx.isPrivateFrameBase(address[0].reg) || ctx.isPrivateFrameBase(address[1].reg) ||
+            ctx.isPrivateFrameBase(address[2].reg))
+            return false;
+        return foldAddressIntoNextLoad(ctx, addressRef, address[0].reg, address[1].reg, address[2].reg, address[5].valueU64, address[6].valueU64);
+    }
+
+    // A pointer advanced in place by a register and then dereferenced once is
+    // an indexed operand of the load, typically a table address plus a
+    // position:
+    //
+    //     add   T, I   (64-bit)
+    //     movzx R, byte [T + k]   ->   movzx R, byte [T + I + k]
+    //
+    // The load writes no flags, so the flags the add wrote must be unobserved.
+    bool tryFoldPointerAddIntoNextLoad(Context& ctx, const MicroInstrRef addRef, const MicroInstr& addInst)
+    {
+        if (ctx.isClaimed(addRef) || !ctx.encoder)
+            return false;
+        const auto* add = addInst.ops(*ctx.operands);
+        if (!add || add[3].microOp != MicroOp::Add || add[2].opBits != MicroOpBits::B64 || !add[0].reg.isInt() ||
+            !add[1].reg.isInt() || add[0].reg == add[1].reg || ctx.isPrivateFrameBase(add[0].reg) ||
+            ctx.isPrivateFrameBase(add[1].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+        return foldAddressIntoNextLoad(ctx, addRef, add[0].reg, add[0].reg, add[1].reg, 1, 0);
+    }
+
+    // A masked value doubled in place and then added to a pointer is one
+    // scaled address:
+    //
+    //     and x, m                  and x, m
+    //     add x, x           ->     lea x, [y + x*2]
+    //     add x, y   (64-bit)
+    //
+    // The 32-bit doubling cannot wrap because the mask leaves the value below
+    // 2^31, and the 32-bit writes leave its upper half clear, so the 64-bit
+    // address computes the same sum. LEA writes no flags, so the flags the
+    // final add wrote must be unobserved.
+    bool tryFoldMaskedDoubleIntoAddress(Context& ctx, const MicroInstrRef doubleRef, const MicroInstr& doubleInst)
+    {
+        if (ctx.isClaimed(doubleRef) || !ctx.encoder)
+            return false;
+        const auto* doubled = doubleInst.ops(*ctx.operands);
+        if (!doubled || doubled[0].reg != doubled[1].reg || !doubled[0].reg.isInt() || doubled[2].opBits != MicroOpBits::B32 ||
+            doubled[3].microOp != MicroOp::Add || ctx.isPrivateFrameBase(doubled[0].reg))
+            return false;
+        const MicroReg value = doubled[0].reg;
+
+        const MicroInstrRef maskRef = ctx.previousRef(doubleRef);
+        const MicroInstr*   mask    = ctx.instruction(maskRef);
+        const auto*         maskOps = mask ? mask->ops(*ctx.operands) : nullptr;
+        if (!mask || mask->op != MicroInstrOpcode::OpBinaryRegImm || !maskOps || maskOps[0].reg != value ||
+            maskOps[1].opBits != MicroOpBits::B32 || maskOps[2].microOp != MicroOp::And ||
+            maskOps[3].hasWideImmediateValue() || maskOps[3].valueU64 > 0x7FFFFFFF)
+            return false;
+
+        const MicroInstrRef addRef = ctx.nextRef(doubleRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        const auto*         addOps = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegReg || !addOps || ctx.isClaimed(addRef) ||
+            addOps[0].reg != value || addOps[1].reg == value || !addOps[1].reg.isInt() ||
+            addOps[2].opBits != MicroOpBits::B64 || addOps[3].microOp != MicroOp::Add ||
+            ctx.isPrivateFrameBase(addOps[1].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand scaled[8] = {};
+        scaled[0].reg               = value;
+        scaled[1].reg               = addOps[1].reg;
+        scaled[2].reg               = value;
+        scaled[3].opBits            = MicroOpBits::B64;
+        scaled[4].opBits            = MicroOpBits::B64;
+        scaled[5].valueU64          = 2;
+        MicroInstr probe;
+        probe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+        probe.numOperands = 8;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, scaled) || !ctx.claimAll({doubleRef, addRef}))
+            return false;
+        ctx.emitRewrite(addRef, probe.op, scaled, true);
+        ctx.emitErase(doubleRef);
+        return true;
+    }
+
     // A small product immediately added to another value is shorter when the
     // product is formed in the final destination by scaled addressing:
     //

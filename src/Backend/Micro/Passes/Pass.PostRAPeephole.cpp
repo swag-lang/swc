@@ -726,6 +726,9 @@ namespace
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldScaledAdd);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldDoubledAddressAdd);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldIndexedAddressIntoNextLoad);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldMaskedDoubleIntoAddress);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldPointerAddIntoNextLoad);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanOrSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldCarrySelectOfConstants);

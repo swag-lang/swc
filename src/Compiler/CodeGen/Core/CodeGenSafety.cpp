@@ -508,7 +508,7 @@ Result CodeGenSafety::emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, As
     SWC_ASSERT(presenceBits != MicroOpBits::Zero);
 
     MicroBuilder&  builder     = codeGen.builder();
-    const MicroReg presenceReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, valuePayload, valueTypeRef, presenceBits);
+    const MicroReg presenceReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, valuePayload, valueTypeRef, valueType, presenceBits);
 
     // Resolve the panic helper from the runtime directly. A node carries ONE runtime
     // function, and the owner's slot may already hold an unrelated one, so neither payload
@@ -553,7 +553,7 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
         valuePayload.setIsAddress();
     else
         valuePayload.setIsValue();
-    const MicroReg presenceReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, valuePayload, resolvedTypeRef, bits);
+    const MicroReg presenceReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, valuePayload, resolvedTypeRef, typeInfo, bits);
 
     const MicroLabelRef presentLabel = builder.createLabel();
     builder.emitCmpRegImm(presenceReg, ApInt(0, 64), bits);

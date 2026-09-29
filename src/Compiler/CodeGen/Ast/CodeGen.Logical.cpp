@@ -28,7 +28,7 @@ namespace
             return;
         }
 
-        outReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, operandBits);
+        outReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, operandType, operandBits);
 
         if (operandType.isBool())
             return;

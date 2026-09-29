@@ -1801,7 +1801,7 @@ namespace
 
         if (resolvedDstType.isBool() && (resolvedSrcType.isPointerLike() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference() || resolvedSrcType.isNull()))
         {
-            const MicroReg srcReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, srcPayload, resolvedSrcTypeRef, MicroOpBits::B64);
+            const MicroReg srcReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, srcPayload, resolvedSrcTypeRef, resolvedSrcType, MicroOpBits::B64);
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();

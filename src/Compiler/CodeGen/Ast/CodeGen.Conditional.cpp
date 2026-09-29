@@ -38,7 +38,7 @@ namespace
     MicroReg materializeTruthyOperand(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         const TypeInfo* typeInfo = &codeGen.typeMgr().get(operandTypeRef);
-        if (operandPayload.typeRef.isValid() && typeInfo->isBool())
+        if (operandPayload.typeRef.isValid() && operandPayload.typeRef != operandTypeRef && typeInfo->isBool())
         {
             operandTypeRef = operandPayload.typeRef;
             typeInfo       = &codeGen.typeMgr().get(operandTypeRef);
@@ -46,7 +46,7 @@ namespace
 
         const MicroOpBits opBits = CodeGenTypeHelpers::compareBits(*typeInfo, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
-        return CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, opBits);
+        return CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, *typeInfo, opBits);
     }
 
     template<typename T>

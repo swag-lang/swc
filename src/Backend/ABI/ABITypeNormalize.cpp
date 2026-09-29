@@ -29,7 +29,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     // Convert semantic types into one ABI transfer model: register value or indirect pointer.
     SWC_ASSERT(typeRef.isValid());
 
-    const TypeRef expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    const TypeRef expanded = ctx.typeMgr().unwrapAliasEnum(ctx, typeRef);
     SWC_ASSERT(expanded.isValid());
 
     const TypeInfo& ty = ctx.typeMgr().get(expanded);

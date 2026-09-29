@@ -140,62 +140,6 @@ SWC_TEST_BEGIN(PostRALoopHoist_FoldedBitwiseOperandNeedsStableSavedRegister)
 }
 SWC_TEST_END()
 
-// An unrelated frame write between the entry read and the loop does not
-// change the folded operand. The saved local base may be restored at return,
-// and an unrelated temporary copy of rsp is not another local base.
-SWC_TEST_BEGIN(PostRALoopHoist_FoldedBitwiseOperandCrossesDisjointFrameStore)
-{
-    const CallConv& conv    = CallConv::get(CallConvKind::Swag);
-    const MicroReg  base    = conv.intPersistentRegs[0];
-    const MicroReg  scratch = conv.intPersistentRegs.back();
-    const MicroReg  value   = conv.intTransientRegs[3];
-    const MicroReg  other   = conv.intTransientRegs[4];
-    const MicroReg  counter = conv.intTransientRegs[5];
-
-    for (uint32_t mode = 0; mode < 4; ++mode)
-    {
-        MicroBuilder builder(ctx);
-        const auto top  = builder.createLabel();
-        const auto done = builder.createLabel();
-        builder.emitPush(base);
-        builder.emitPush(scratch);
-        builder.emitLoadRegReg(base, conv.stackPointer, MicroOpBits::B64);
-        if (mode == 3)
-        {
-            builder.emitLoadRegReg(other, conv.stackPointer, MicroOpBits::B64);
-            builder.emitLoadRegImm(other, ApInt(7, 64), MicroOpBits::B64);
-        }
-        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitOpBinaryRegMem(value, base, 0x20, MicroOp::And, MicroOpBits::B64);
-        const auto entryRead = builder.instructions().lastInstructionRef();
-        if (mode == 2)
-            builder.emitLoadMemReg(other, 0x40, counter, MicroOpBits::B64);
-        else
-            builder.emitLoadMemReg(base, mode == 1 ? 0x20 : 0x40, counter, MicroOpBits::B64);
-        builder.placeLabel(top);
-        builder.emitOpBinaryRegMem(value, base, 0x20, MicroOp::And, MicroOpBits::B64);
-        const auto folded = builder.instructions().lastInstructionRef();
-        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
-        builder.placeLabel(done);
-        builder.emitPop(scratch);
-        builder.emitPop(base);
-        builder.emitRet();
-
-        SWC_RESULT(runPostRaLoopHoistPass(builder));
-        const MicroInstr* foldedInst = builder.instructions().ptr(folded);
-        const bool expected = mode == 0 || mode == 3;
-        if (!foldedInst || (foldedInst->op == MicroInstrOpcode::OpBinaryRegReg) != expected)
-            return Result::Error;
-        if (expected && (!builder.instructions().ptr(entryRead) ||
-                         builder.instructions().ptr(entryRead)->op != MicroInstrOpcode::OpBinaryRegReg))
-            return Result::Error;
-    }
-    return Result::Continue;
-}
-SWC_TEST_END()
-
 // The register already holds the initial frame value and remains current on
 // every exit. Only the final value needs to reach its frame home.
 SWC_TEST_BEGIN(PostRALoopHoist_LoopStore_WritesBackAtExit)

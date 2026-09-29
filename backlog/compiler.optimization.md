@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
 - Recorded: 2026-09-26 12:46
-- Updated: 2026-09-29 14:24 — Retain csvagg's probe mask across allocator spill stores.
+- Updated: 2026-09-29 15:08 — Reject mask retention on csvagg's never-taken collision path.
 - Area: compiler/backend, LICM and register allocation
 - Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
 - Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
@@ -33,22 +33,18 @@ block, and the hot path keeps the register.
   conditional back edge that the preceding rotation established. This repeats the earlier
   wordfreq failure: exposing one constant by inlining the whole allocator-heavy initializer
   worsens the hot loop. The trial was rejected on static code quality without timing.
-- The post-RA mask rule now crosses preheader writes whose frame ranges are proven disjoint
-  from its source object. In csvagg, `rbx` is the one-definition local base; a temporary
-  `rcx = rsp` and the return-tail `pop rbx` previously hid that fact. The two intervening
-  stores at `[rsp+0x838]` and `[rsp+0x840]` are wholly inside the allocator's spill area,
-  separate from `m.mask` at `[rbx+0x250]`. The already saved, idle `r15` holds the mask
-  across the read-only `memcmp`. On a key-length mismatch, the Swag collision step now
-  executes six instructions, two branches, and two memory operations; the accepted Zig
-  object executes seven, two, and three respectively. `main` grows from 1,003 to 1,004
-  static Micro instructions because the entry folded operand becomes a load and register
-  operation. The frame and spill traffic are unchanged, and csvagg's checksum remains
-  24828641. A C++ regression covers disjoint, overlapping, and opaque preheader stores,
-  the transient stack-pointer copy, and the saved-register restore. These are code-shape
-  observations, not a runtime measurement.
-- Next: compare complete hash and collision paths with their current winners, including entry
-  frequency and frame traffic. Obtain clean paired csvagg and wordfreq measurements at a campaign
-  milestone before closing this lead.
+- A scratch-only post-RA refinement crossed the allocator spill stores at `[rsp+0x838]` and
+  `[rsp+0x840]` before csvagg's probe loop, identified `rbx` as the local base despite a
+  temporary `rcx = rsp` and the return-tail `pop rbx`, and kept the mask in the already saved
+  `r15`. The collision step fell from three to two memory operations, but the entry mask
+  operation grew from one instruction to two. The benchmark's eight region names hash to
+  distinct slots modulo 64 (`21, 36, 16, 32, 12, 31, 14, 5`), so its collision step never
+  executes; every lookup pays the extra entry instruction with no collision saving. The
+  csvagg checksum remained 24828641 and the six other task checksums passed. The refinement
+  was rejected on this executed-path evidence without a timing sample; no compiler rule was
+  retained from the trial.
+- Next: compare wordfreq's complete probe paths and measure its retained mask at a clean paired
+  campaign milestone. For csvagg, inspect the hash and matching-key paths that actually run.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget

@@ -147,7 +147,7 @@ namespace
     // addresses two different things.
     MicroReg findLocalBaseRegister(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder)
     {
-        SmallVector<MicroReg, 4> candidates;
+        MicroReg candidate;
         for (const MicroInstr& inst : storage.view())
         {
             if (inst.op != MicroInstrOpcode::LoadRegReg)
@@ -157,49 +157,38 @@ namespace
                 continue;
             if (isFrameBaseRegister(ops[0].reg, conv))
                 continue;
-            if (std::ranges::find(candidates, ops[0].reg) == candidates.end())
-                candidates.push_back(ops[0].reg);
-        }
-
-        MicroReg localBase;
-        for (const MicroReg candidate : candidates)
-        {
-            uint32_t defCount = 0;
-            for (const MicroInstr& inst : storage.view())
-            {
-                // Restoring a saved register in a return tail does not redefine
-                // the local base on any path that continues into the function.
-                if (inst.op == MicroInstrOpcode::Pop)
-                    continue;
-                const MicroInstrDef& info = MicroInstr::info(inst.op);
-                if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                    (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
-                {
-                    const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
-                    for (const MicroReg def : useDef.defs)
-                        defCount += def == candidate ? 1 : 0;
-                }
-                else if (const MicroInstrOperand* ops = inst.ops(operands))
-                {
-                    const auto modes = info.resolvedRegModes(ops);
-                    for (size_t i = 0; i < modes.size(); ++i)
-                    {
-                        if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == candidate)
-                            ++defCount;
-                    }
-                }
-                if (defCount > 1)
-                    break;
-            }
-
-            if (defCount != 1)
-                continue;
-            if (localBase.isValid())
+            if (candidate.isValid() && candidate != ops[0].reg)
                 return MicroReg::invalid();
-            localBase = candidate;
+            candidate = ops[0].reg;
+        }
+        if (!candidate.isValid())
+            return MicroReg::invalid();
+
+        uint32_t defCount = 0;
+        for (const MicroInstr& inst : storage.view())
+        {
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+                for (const MicroReg def : useDef.defs)
+                    defCount += def == candidate ? 1 : 0;
+            }
+            else if (const MicroInstrOperand* ops = inst.ops(operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == candidate)
+                        ++defCount;
+                }
+            }
+            if (defCount > 1)
+                return MicroReg::invalid();
         }
 
-        return localBase;
+        return defCount == 1 ? candidate : MicroReg::invalid();
     }
 
     void markEscapedObject(FrameReachability& out, const int64_t offset)
@@ -1250,7 +1239,7 @@ namespace
     // that register at an identical entry read, replacing rather than adding
     // the entry memory access. The loop may call a read-only function, but no
     // instruction in it may write memory or redefine the address base.
-    bool hoistFoldedBitwiseOperand(MicroPassContext& context, const CallConv& conv, FrameReachability& framePrivacy)
+    bool hoistFoldedBitwiseOperand(MicroPassContext& context, const CallConv& conv)
     {
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
@@ -1315,13 +1304,6 @@ namespace
         if (savedRegs.empty())
             return false;
 
-        if (!framePrivacy.computed)
-        {
-            framePrivacy.localBaseReg = findLocalBaseRegister(storage, operands, conv, context.encoder);
-            analyzeFrameReachability(framePrivacy, context, storage, operands, conv);
-        }
-        const MicroReg localBaseReg = framePrivacy.localBaseReg;
-
         for (const auto& loop : loopsByHeader | std::views::values)
         {
             const uint32_t header = loop.header;
@@ -1356,13 +1338,6 @@ namespace
 
                 const MicroReg base = ops[1].reg;
                 const uint64_t offset = ops[4].valueU64;
-                const FrameRef readRange = {.base = base, .lo = offset, .hi = offset + getNumBytes(ops[2].opBits)};
-                const bool trackedFrameRead = readRange.hi > readRange.lo &&
-                                              (isFrameBaseRegister(base, conv) || (localBaseReg.isValid() && base == localBaseReg));
-                FrameRef sourceObject;
-                const bool localSourceRead = localBaseReg.isValid() && base == localBaseReg &&
-                                             findContainingObject(sourceObject, framePrivacy, base, static_cast<int64_t>(offset)) &&
-                                             readRange.hi <= sourceObject.hi;
                 uint32_t entryReadIndex = n;
                 for (uint32_t j = header; j > 0 && header - j < 16;)
                 {
@@ -1372,25 +1347,12 @@ namespace
                         break;
                     const MicroInstrFlags flags = MicroInstr::info(prior->op).flags;
                     if (prior->op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::JumpInstruction) ||
-                        flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
+                        flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                        flags.has(MicroInstrFlagsE::WritesMemory))
                         break;
                     if (std::ranges::find(liveness.useDefs[j].defs, base) != liveness.useDefs[j].defs.end())
                         break;
                     const MicroInstrOperand* priorOps = prior->ops(operands);
-                    if (flags.has(MicroInstrFlagsE::WritesMemory))
-                    {
-                        FrameRef written;
-                        if (!trackedFrameRead || !frameWriteRange(written, *prior, priorOps, conv, localBaseReg))
-                            break;
-                        const bool sameBaseDisjoint = written.base == base && !overlaps(readRange, written);
-                        // The allocator owns its spill area: a local source object cannot overlap it.
-                        const bool spillDisjoint = localSourceRead &&
-                                                   written.base == conv.stackPointer &&
-                                                   context.spillAreaLo < context.spillAreaHi &&
-                                                   written.lo >= context.spillAreaLo && written.hi <= context.spillAreaHi;
-                        if (!sameBaseDisjoint && !spillDisjoint)
-                            break;
-                    }
                     if (prior->op == MicroInstrOpcode::OpBinaryRegMem && priorOps && !relocatedRefs.contains(refs[j].get()) && priorOps[1].reg == base &&
                         priorOps[2].opBits == ops[2].opBits && priorOps[4].valueU64 == offset &&
                         (priorOps[3].microOp == MicroOp::And || priorOps[3].microOp == MicroOp::Or || priorOps[3].microOp == MicroOp::Xor))
@@ -1517,7 +1479,7 @@ Result MicroPostRaLoopHoistPass::run(MicroPassContext& context)
         context.passChanged = true;
     }
 
-    while (hoistFoldedBitwiseOperand(context, conv, framePrivacy))
+    while (hoistFoldedBitwiseOperand(context, conv))
         context.passChanged = true;
 
     return Result::Continue;

@@ -51,7 +51,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 ### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
 
 - Recorded: 2026-09-12 18:05
-- Updated: 2026-09-29 18:54 — `Swag.prefetch` added and used as FFmpeg does; the reference reads are not what limits the kernels.
+- Updated: 2026-09-29 19:50 — Prefetch pays once inlined; 8x8 transform transposes once; the goal needs the entropy layer too.
 - Evidence: forcing FFmpeg's dispatch down one instruction set at a time on a 3840x2160 one-slice
   High/CABAC clip gives the ladder its assembly climbs, in millions of decode-thread cycles per
   picture: compiled code 179, with SSE2 111, with SSSE3 82. Its SSE2 step covers the deblocking
@@ -136,25 +136,39 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   sixteen paired rounds read a median ratio of 0.90 (best runs 83.9 against 72.5 million lane
   cycles per picture) on a machine still shared with other builds.
 - Done (2026-09-29 evening, prompt 2): the language has a `Swag.prefetch` intrinsic
-  (`prefetcht0`), and `Slice.compensate` issues FFmpeg's `prefetch_motion`: before and after each
-  inter macroblock, four luma rows and one row of each chroma plane, 64 samples past the block's
-  first vector and rotating with the macroblock column, for list 0 then list 1. Decoded planes
-  are unchanged (hash 10215554823036995501). It does not move the measure: on a machine at 6 to
-  14 per cent load, two runs of ten interleaved rounds read median ratios of 1.000 and 0.999
-  against the same decoder without it, and loaded runs spread from 0.99 to 1.14. Prefetching
-  the exact window of the next macroblock instead, whose vector is known because a band is
-  parsed before it is reconstructed (21 luma and 18 chroma rows per list), read 1.018 to 1.036
-  and was reverted: the next block mostly lies in the lines the current one just loaded. So
-  `copyPlane` and the chroma interpolation are not waiting on reference memory; their share of
-  the samples is work, not latency.
-- Where the ladder stands (same session, eight interleaved rounds, loaded machine): FFmpeg
-  forced to SSE2 reads a median 64 million lane cycles per picture, with all of its assembly 60,
-  compiled C 114; this decoder about 100. The gap to the SSE2 figure is about 1.5x.
-- Next: profile the decode lane on a quiet machine with the prefetch in place and take the
-  largest pixel kernel against its FFmpeg SSE2 counterpart; the luma six-tap byte rewrite waits on
-  compiler.optimization.037 (coefficients kept in registers across the loop).
-- Complete when: the H.264 pixel layer reaches FFmpeg's SSE2 figure on the same fixture with
-  unchanged decoded planes.
+  (`prefetcht0`), and `Slice.compensate` prefetches for list 0 before and list 1 after each
+  inter macroblock, as FFmpeg's `prefetch_motion` does, 64 samples past the first vector. Timing
+  A/Bs could not see it (median ratios 0.999 and 1.000); sampling the decode lane could. FFmpeg's
+  exact form (four rotating luma rows, one chroma row, an out-of-line call) halved the copy
+  stalls (`copyPlane` 3.2 -> 1.8 per cent of samples, `mcChromaPair` 2.4 -> 1.9) but cost 1.3 per
+  cent itself. Inlined, unclamped, and taking all sixteen luma rows with two rotating rows per
+  chroma plane, the motion group falls from 17.0 to 14.9 per cent of the lane. Eight chroma rows
+  read 14.9 against 15.1, inside the noise, and were not kept. The 8x8 coefficients are now
+  stored transposed, as FFmpeg stores them, so `addIdct8x8` transposes once (1.68 -> 1.30 per
+  cent). Every change is byte-exact (hash 10215554823036995501).
+- Where the lane goes (2026-09-29 19:50, release with debug information, 60 s of samples of
+  the one-lane decode of the 60-picture extract): entropy decoding and macroblock syntax 59 per
+  cent (`residualCabac` alone 21), prediction, residual and reconstruction 26, deblocking 1.6,
+  waits in `ntdll` 8. On a quiet machine the lane reads about 66 to 70 million cycles per picture
+  and FFmpeg forced to SSE2 about 51 (64 and 100 under load), so the pixel layer is about 18
+  million cycles and the entropy layer about 40. Whole-decoder parity with FFmpeg's SSE2 figure,
+  the goal this entry first set, cannot be met here: with a free pixel layer the lane would still
+  read about 46. FFmpeg's own
+  ladder bounds the pixel budget: its C build reads 79 to 89, so its assembly removes 25 to 35
+  million cycles of pixel work and leaves its SSE2 pixel layer near 10. The entropy side is
+  std.video.001.
+- Next: the pixel layer's remaining costs are spread thin: `compensate` 3.6 per cent with the
+  inlined prefetch, `addChromaResidual` 2.1, `mcChromaPair` 1.9, `addPlaneResidual` 1.8,
+  `intraPredict8x8` 1.6, `interpolateChroma` 1.6, `addIdct8x8` 1.3, `copyPlane` 1.3,
+  `interpolateLuma` 1.2. Store 4x4 blocks transposed as well (FFmpeg does, and `addIdct4x4`
+  opens with a four-shuffle transpose); take the chroma DC path of `addChromaResidual` to
+  FFmpeg's `chroma_dc_dequant_idct` shape; the luma six-tap byte rewrite waits on
+  compiler.optimization.037. Measure each by sampling the lane, not by timing it.
+- Complete when: the decode lane's prediction, residual, reconstruction and deblocking
+  functions together take no more than 10 million cycles per picture on the same fixture (their
+  share of lane samples times the lane's cycles, on a quiet machine), the budget FFmpeg's SSE2
+  ladder leaves its own pixel layer, with unchanged decoded planes. Whole-decoder parity with
+  FFmpeg's SSE2 figure also needs std.video.001.
 - Related: std.video.001, cpu.simd.023, cpu.simd.024
 
 ### cpu.simd.008 — Packed memory access has no alignment or cache policy

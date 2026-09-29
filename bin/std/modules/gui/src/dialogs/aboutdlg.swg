@@ -175,7 +175,6 @@ public impl AboutDlg
 
         with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap | .SecondaryText)
         {
-            .dockStyle = .Top
             .setTextAlignment(.Left, .Top)
         }
 

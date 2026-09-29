@@ -469,7 +469,8 @@ namespace
         if (symRef.isInvalid())
             symRef = nodeRef;
 
-        if (!sema.viewSymbol(symRef).hasSymbol())
+        Symbol* storedSym = sema.viewSymbol(symRef).sym();
+        if (!storedSym)
         {
             TaskContext&        ctx   = sema.ctx();
             const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
@@ -482,10 +483,11 @@ namespace
             symFn->setAttributes(ctx, sema.frame().currentAttributes());
             symFn->setDeclared(ctx);
             sema.setSymbol(symRef, symFn);
+            storedSym = symFn;
         }
 
         SemaFrame frame = sema.frame();
-        auto&     symFn = sema.viewSymbol(symRef).sym()->cast<SymbolFunction>();
+        auto&     symFn = storedSym->cast<SymbolFunction>();
         // `#run` lowers to a helper function that is executed during sema. The enclosing
         // runtime function must not keep it as a normal runtime call dependency, or JIT/native
         // test discovery will try to prepare a compile-time-only helper that never survives
@@ -533,10 +535,11 @@ Result AstCompilerMessageFunc::semaPreNode(Sema& sema)
     if (sema.enteringState())
     {
         const AstNodeRef curNodeRef = sema.curNodeRef();
-        if (!sema.viewSymbol(curNodeRef).hasSymbol())
-            registerCompilerBodyFunction(sema, sema.curNode(), "message");
+        Symbol* declared = sema.viewSymbol(curNodeRef).sym();
+        if (!declared)
+            declared = &registerCompilerBodyFunction(sema, sema.curNode(), "message");
 
-        auto& declaredSym = sema.viewSymbol(curNodeRef).sym()->cast<SymbolFunction>();
+        auto& declaredSym = declared->cast<SymbolFunction>();
         declaredSym.registerAttributes(sema);
         declaredSym.setDeclared(sema.ctx());
     }
@@ -647,17 +650,19 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     if (sema.enteringState())
     {
         const AstNodeRef curNodeRef = sema.curNodeRef();
-        if (!sema.viewSymbol(curNodeRef).hasSymbol())
+        Symbol* declared = sema.viewSymbol(curNodeRef).sym();
+        if (!declared)
         {
             const Result declResult = sema.curNode().cast<AstCompilerFunc>().semaPreDecl(sema);
             if (declResult == Result::Error || declResult == Result::Pause)
                 return declResult;
+            declared = sema.viewSymbol(curNodeRef).sym();
         }
 
-        if (!sema.viewSymbol(curNodeRef).hasSymbol())
+        if (!declared)
             return Result::Error;
 
-        auto& declaredSym = sema.viewSymbol(curNodeRef).sym()->cast<SymbolFunction>();
+        auto& declaredSym = declared->cast<SymbolFunction>();
         declaredSym.registerAttributes(sema);
         declaredSym.setDeclared(sema.ctx());
     }

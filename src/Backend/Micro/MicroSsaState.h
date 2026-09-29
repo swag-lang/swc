@@ -162,7 +162,7 @@ private:
     void            renameBlock(uint32_t blockIndex, RenameState& state);
     static uint32_t currentValue(const RenameState& state, uint32_t regIndex);
     void            assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const RenameState& state);
-    void            pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId);
+    void            pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId, uint32_t blockIndex);
     void            setCurrentValue(RenameState& state, uint32_t regIndex, uint32_t valueId);
     uint32_t        createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
     uint32_t        createPhi(uint32_t blockIndex, MicroReg reg, uint32_t regIndex);

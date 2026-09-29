@@ -799,7 +799,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
         PhiInfo& phi      = phiInfos_[phiIndex];
         phi.resultValueId = createValue(phi.reg, blockIndex, MicroInstrRef::invalid(), phiIndex);
         if (needsRestore)
-            pushCurrentValue(restores, state, phi.regIndex, phi.resultValueId);
+            pushCurrentValue(restores, state, phi.regIndex, phi.resultValueId, blockIndex);
         else
             setCurrentValue(state, phi.regIndex, phi.resultValueId);
     }
@@ -835,7 +835,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
             const uint32_t valueId = createValue(reg, blockIndex, instRef, K_INVALID_PHI);
             info.defValues.push_back(RegValueEntry{reg, valueId});
             if (needsRestore)
-                pushCurrentValue(restores, state, regIndex, valueId);
+                pushCurrentValue(restores, state, regIndex, valueId, blockIndex);
             else
                 setCurrentValue(state, regIndex, valueId);
         }
@@ -894,14 +894,14 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
     }
 }
 
-void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, const uint32_t regIndex, const uint32_t valueId)
+void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, const uint32_t regIndex, const uint32_t valueId, const uint32_t blockIndex)
 {
     SWC_ASSERT(regIndex < state.currentValues.size());
     const uint32_t previousId = state.currentValues[regIndex];
     // All definitions in this block precede its dominator children. Only its
     // first definition of a register must save the value visible on entry;
     // intermediate restores would share one rename position and be overwritten.
-    if (previousId == K_INVALID_VALUE || valueInfos_[previousId].blockIndex != valueInfos_[valueId].blockIndex)
+    if (previousId == K_INVALID_VALUE || valueInfos_[previousId].blockIndex != blockIndex)
         restores.push_back(RestorePoint{regIndex, previousId});
     setCurrentValue(state, regIndex, valueId);
 }

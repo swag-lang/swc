@@ -285,11 +285,15 @@ impl Slice
 
             if .header.type == SliceTypeP and info.skipped
             {
-                let job = &dec.parsedMbs[other.mbIndex].firstJob
+                // A P-skip refers to the first picture of list 0 and to nothing in list 1
+                // (deriveSkipP), and its vector is in the compact lanes it published for the
+                // filter, sixteen bytes a macroblock, rather than in its whole parsed record,
+                // which the macroblock above has long left the cache with.
+                let lanes = cast(const [*] s16) (dec.skipMotion.storage() + other.mbIndex)
                 result.available = true
-                result.refIdx    = job.refIdx[list]
-                result.mvX       = job.mv[list, 0]
-                result.mvY       = job.mv[list, 1]
+                result.refIdx    = list == 0 ? 0 : -1
+                result.mvX       = list == 0 ? lanes[0] : 0
+                result.mvY       = list == 0 ? lanes[1] : 0
                 return result
             }
 

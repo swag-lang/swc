@@ -1082,8 +1082,7 @@ namespace
 
         const AstNodeRef          exprRef     = children[0];
         CodeGenNodePayload        exprPayload = codeGen.payload(exprRef);
-        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
-        TypeRef                   exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+        TypeRef                   exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
         const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder     = codeGen.builder();
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
@@ -1125,8 +1124,7 @@ namespace
 
         const AstNodeRef    exprRef     = children[0];
         CodeGenNodePayload  exprPayload = codeGen.payload(exprRef);
-        const SemaNodeView  exprView    = codeGen.viewType(exprRef);
-        TypeRef             exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+        TypeRef             exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
         CodeGenNodePayload& result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&       builder     = codeGen.builder();
         result.reg                      = codeGen.nextVirtualIntRegister();
@@ -1276,8 +1274,7 @@ namespace
 
         const AstNodeRef          exprRef              = children[0];
         const CodeGenNodePayload& exprPayload          = codeGen.payload(exprRef);
-        const SemaNodeView        exprView             = codeGen.viewType(exprRef);
-        const TypeRef             exprTypeRef          = exprPayload.typeRef.isValid() ? exprPayload.typeRef : exprView.typeRef();
+        const TypeRef             exprTypeRef          = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
         const TypeRef             resultStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, resultTypeRef);
         const TypeInfo&           resultType           = codeGen.typeMgr().get(resultStorageTypeRef);
@@ -1328,10 +1325,8 @@ namespace
         const AstNodeRef          rightRef             = children[1];
         const CodeGenNodePayload& leftPayload          = codeGen.payload(leftRef);
         const CodeGenNodePayload& rightPayload         = codeGen.payload(rightRef);
-        const SemaNodeView        leftView             = codeGen.viewType(leftRef);
-        const SemaNodeView        rightView            = codeGen.viewType(rightRef);
-        const TypeRef             leftOperandTypeRef   = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        const TypeRef             rightOperandTypeRef  = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        const TypeRef             leftOperandTypeRef   = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(leftRef).typeRef();
+        const TypeRef             rightOperandTypeRef  = rightPayload.typeRef.isValid() ? rightPayload.typeRef : codeGen.viewType(rightRef).typeRef();
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
         const TypeRef             resultStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, resultTypeRef);
         const TypeInfo&           resultType           = codeGen.typeMgr().get(resultStorageTypeRef);
@@ -1381,10 +1376,8 @@ namespace
         const AstNodeRef          countRef             = children[1];
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
         const CodeGenNodePayload& countPayload         = codeGen.payload(countRef);
-        const SemaNodeView        valueView            = codeGen.viewType(valueRef);
-        const SemaNodeView        countView            = codeGen.viewType(countRef);
-        const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
-        const TypeRef             countTypeRef         = countPayload.typeRef.isValid() ? countPayload.typeRef : countView.typeRef();
+        const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
+        const TypeRef             countTypeRef         = countPayload.typeRef.isValid() ? countPayload.typeRef : codeGen.viewType(countRef).typeRef();
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
         const TypeRef             resultStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, resultTypeRef);
         const TypeRef             countStorageTypeRef  = intrinsicNumericStorageTypeRef(codeGen, countTypeRef);
@@ -1417,8 +1410,7 @@ namespace
 
         const AstNodeRef          valueRef             = children[0];
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
-        const SemaNodeView        valueView            = codeGen.viewType(valueRef);
-        const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
         const TypeRef             resultStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, resultTypeRef);
         const TypeInfo&           resultType           = codeGen.typeMgr().get(resultStorageTypeRef);
@@ -1445,8 +1437,7 @@ namespace
 
         const AstNodeRef          valueRef             = children[0];
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
-        const SemaNodeView        valueView            = codeGen.viewType(valueRef);
-        const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
         const TypeRef             resultStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, resultTypeRef);
         const TypeInfo&           resultType           = codeGen.typeMgr().get(resultStorageTypeRef);
@@ -1516,12 +1507,9 @@ namespace
         const CodeGenNodePayload& aPayload      = codeGen.payload(aRef);
         const CodeGenNodePayload& bPayload      = codeGen.payload(bRef);
         const CodeGenNodePayload& cPayload      = codeGen.payload(cRef);
-        const SemaNodeView        aView         = codeGen.viewType(aRef);
-        const SemaNodeView        bView         = codeGen.viewType(bRef);
-        const SemaNodeView        cView         = codeGen.viewType(cRef);
-        const TypeRef             aTypeRef      = aPayload.typeRef.isValid() ? aPayload.typeRef : aView.typeRef();
-        const TypeRef             bTypeRef      = bPayload.typeRef.isValid() ? bPayload.typeRef : bView.typeRef();
-        const TypeRef             cTypeRef      = cPayload.typeRef.isValid() ? cPayload.typeRef : cView.typeRef();
+        const TypeRef             aTypeRef      = aPayload.typeRef.isValid() ? aPayload.typeRef : codeGen.viewType(aRef).typeRef();
+        const TypeRef             bTypeRef      = bPayload.typeRef.isValid() ? bPayload.typeRef : codeGen.viewType(bRef).typeRef();
+        const TypeRef             cTypeRef      = cPayload.typeRef.isValid() ? cPayload.typeRef : codeGen.viewType(cRef).typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
         const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
@@ -1549,8 +1537,7 @@ namespace
 
         const AstNodeRef          valueRef      = children[0];
         const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
-        const SemaNodeView        valueView     = codeGen.viewType(valueRef);
-        const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
         const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
@@ -1576,8 +1563,7 @@ namespace
 
         const AstNodeRef          valueRef      = children[0];
         const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
-        const SemaNodeView        valueView     = codeGen.viewType(valueRef);
-        const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
         const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
@@ -2066,8 +2052,8 @@ namespace
             return Result::Continue;
         }
 
-        const SemaNodeView firstView    = codeGen.viewType(children[0]);
-        TypeRef            firstTypeRef = codeGen.payload(children[0]).effectiveTypeRef(firstView.typeRef());
+        const CodeGenNodePayload& firstPayload = codeGen.payload(children[0]);
+        TypeRef firstTypeRef = firstPayload.typeRef.isValid() ? firstPayload.typeRef : codeGen.viewType(children[0]).typeRef();
         firstTypeRef                    = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), firstTypeRef);
         const TypeInfo& firstType       = codeGen.typeMgr().get(firstTypeRef);
         if (!firstType.isSimd())

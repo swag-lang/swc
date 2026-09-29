@@ -405,9 +405,10 @@ namespace
         if (unwrappedExprTypeRef.isValid())
             exprTypeRef = unwrappedExprTypeRef;
 
-        const MicroOpBits         presenceBits = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(exprTypeRef), codeGen.ctx());
+        const TypeInfo&           exprType     = codeGen.typeMgr().get(exprTypeRef);
+        const MicroOpBits         presenceBits = CodeGenTypeHelpers::compareBits(exprType, codeGen.ctx());
         const CodeGenNodePayload& exprPayload  = codeGen.payload(resolvedExprRef);
-        const MicroReg            presenceReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, exprPayload, exprTypeRef, presenceBits);
+        const MicroReg            presenceReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, exprPayload, exprTypeRef, exprType, presenceBits);
         MicroBuilder&             builder      = codeGen.builder();
         const MicroLabelRef       presentLabel = builder.createLabel();
         builder.emitCmpRegImm(presenceReg, ApInt(0, 64), presenceBits);

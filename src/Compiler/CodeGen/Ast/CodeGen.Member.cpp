@@ -229,7 +229,7 @@ namespace
     Result codeGenStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
         const CodeGenNodePayload& leftPayload  = codeGen.payload(node.nodeLeftRef);
-        const SemaNodeView        leftTypeView = codeGen.viewType(node.nodeLeftRef);
+        const TypeRef             preOverrideTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(node.nodeLeftRef).typeRef();
         const SemaNodeView        rightView    = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*             rightSym     = rightView.sym();
         if (!rightSym)
@@ -238,7 +238,6 @@ namespace
         if (!rightSym)
             return Result::Error;
         const auto&   semaSymVar         = rightSym->cast<SymbolVariable>();
-        const TypeRef preOverrideTypeRef = leftPayload.effectiveTypeRef(leftTypeView.typeRef());
         TypeRef       leftTypeRef        = CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, preOverrideTypeRef);
         SWC_ASSERT(leftTypeRef.isValid());
         const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
@@ -482,8 +481,7 @@ Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     SWC_ASSERT(chainState != nullptr && chainState->falseLabel.isValid());
 
     const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedLeftRef);
-    const SemaNodeView        leftView    = codeGen.viewType(resolvedLeftRef);
-    const TypeRef             leftTypeRef = leftPayload.effectiveTypeRef(leftView.typeRef());
+    const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(resolvedLeftRef).typeRef();
     const ScopedDebugSource   debugSource(codeGen.builder(), leftPayload.sourceCodeRef);
     CodeGenCompareHelpers::emitConditionFalseJump(codeGen, leftPayload, leftTypeRef, chainState->falseLabel);
     return Result::Continue;

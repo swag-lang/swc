@@ -124,16 +124,15 @@ namespace
 
     SemaNodeView resolveBinaryOperandSemanticView(CodeGen& codeGen, AstNodeRef operandRef)
     {
-        const SemaNodeView semanticView = codeGen.viewType(operandRef);
-        const AstNode&     operand      = codeGen.node(operandRef);
-        if (operand.isNot(AstNodeId::CastExpr) && operand.isNot(AstNodeId::AutoCastExpr) && operand.isNot(AstNodeId::AsCastExpr))
-            return semanticView;
+        const AstNode& operand = codeGen.node(operandRef);
+        if (operand.is(AstNodeId::CastExpr) || operand.is(AstNodeId::AutoCastExpr) || operand.is(AstNodeId::AsCastExpr))
+        {
+            const SemaNodeView storedView = codeGen.sema().viewStored(operandRef, SemaNodeViewPartE::Type);
+            if (storedView.typeRef().isValid())
+                return storedView;
+        }
 
-        const SemaNodeView storedView = codeGen.sema().viewStored(operandRef, SemaNodeViewPartE::Type);
-        if (storedView.typeRef().isValid())
-            return storedView;
-
-        return semanticView;
+        return codeGen.viewType(operandRef);
     }
 
     TypeRef resolveBinaryOperandSourceTypeRef(CodeGen& codeGen, AstNodeRef operandRef, const SemaNodeView& operandView, const CodeGenNodePayload& operandPayload)
@@ -219,31 +218,30 @@ namespace
             if (storedResultTypeRef.isValid())
                 ctx.resultTypeRef = storedResultTypeRef;
         }
-        ctx.operationTypeRef = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
-        if (!ctx.operationTypeRef.isValid())
-            ctx.operationTypeRef = leftView.typeRef().isValid() ? leftView.typeRef() : ctx.leftOperandTypeRef;
+        TypeRef leftSemanticTypeRef = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
+        if (!leftSemanticTypeRef.isValid())
+            leftSemanticTypeRef = leftView.typeRef().isValid() ? leftView.typeRef() : ctx.leftOperandTypeRef;
+        ctx.operationTypeRef = leftSemanticTypeRef;
         const TypeInfo& resultType = typeMgr.get(ctx.resultTypeRef);
         const TypeInfo& opType     = typeMgr.get(ctx.operationTypeRef);
-        if (!resultType.isBool() && resultType.isScalarNumeric() && opType.isScalarNumeric())
+        const bool      resultIsBool = resultType.isBool();
+        if (!resultIsBool && resultType.isScalarNumeric() && opType.isScalarNumeric())
         {
             const MicroOpBits resultBits = CodeGenTypeHelpers::numericOrBoolBits(resultType);
             const MicroOpBits opBits     = CodeGenTypeHelpers::numericOrBoolBits(opType);
             if (resultType.isFloat() != opType.isFloat() || resultBits != opBits)
                 ctx.operationTypeRef = ctx.resultTypeRef;
         }
-        if (ctx.resultTypeRef.isValid() && typeMgr.get(ctx.resultTypeRef).isBool() && typeMgr.get(ctx.leftOperandTypeRef).isNumericIntLike())
+        if (ctx.resultTypeRef.isValid() && resultIsBool && typeMgr.get(ctx.leftOperandTypeRef).isNumericIntLike())
             ctx.operationTypeRef = ctx.leftOperandTypeRef;
-        if (ctx.resultTypeRef.isValid() && typeMgr.get(ctx.resultTypeRef).isBool() && typeMgr.get(ctx.operationTypeRef).isNumericIntLike())
+        if (ctx.resultTypeRef.isValid() && resultIsBool && typeMgr.get(ctx.operationTypeRef).isNumericIntLike())
             ctx.resultTypeRef = ctx.operationTypeRef;
         SWC_ASSERT(ctx.leftOperandTypeRef.isValid());
         SWC_ASSERT(ctx.rightOperandTypeRef.isValid());
         SWC_ASSERT(ctx.resultTypeRef.isValid());
         SWC_ASSERT(ctx.operationTypeRef.isValid());
 
-        TypeRef leftSemanticTypeRef  = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
         TypeRef rightSemanticTypeRef = typeMgr.get(rightView.typeRef()).unwrapAliasEnum(codeGen.ctx(), rightView.typeRef());
-        if (!leftSemanticTypeRef.isValid())
-            leftSemanticTypeRef = leftView.typeRef().isValid() ? leftView.typeRef() : ctx.leftOperandTypeRef;
         if (!rightSemanticTypeRef.isValid())
             rightSemanticTypeRef = rightView.typeRef().isValid() ? rightView.typeRef() : ctx.rightOperandTypeRef;
 

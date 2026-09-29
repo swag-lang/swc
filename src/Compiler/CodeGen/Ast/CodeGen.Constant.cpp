@@ -773,10 +773,10 @@ namespace
         uint32_t                            totalSize = 0;
         const bool                          hasLayout = computeLiteralLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
         SWC_INTERNAL_CHECK(hasLayout);
-        SWC_INTERNAL_CHECK(totalSize == codeGen.typeMgr().get(aggregateTypeRef).sizeOf(codeGen.ctx()));
+        const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
+        SWC_INTERNAL_CHECK(totalSize == storageType.sizeOf(codeGen.ctx()));
 
         const MicroReg  dstBaseReg  = codeGen.runtimeStorageAddressReg(nodeRef);
-        const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
         // Concrete arrays/structs start from their default storage so omitted literal elements keep the
         // correct zeroed or default-initialized bytes.
         if (storageType.isArray() || storageType.isStruct())

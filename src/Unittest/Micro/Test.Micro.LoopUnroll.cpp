@@ -82,6 +82,7 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
         uint64_t bound;
         uint64_t initialSum;
         uint64_t expectedSum;
+        MicroOp reductionOp = MicroOp::Add;
     };
     constexpr Case cases[] = {
         {MicroOpBits::B64, MicroOpBits::B64, 0, 1, 17, 0, 136},
@@ -91,6 +92,9 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
         {MicroOpBits::B64, MicroOpBits::B32, 2, 3, 17, 7, 47},
         {MicroOpBits::B64, MicroOpBits::B32, 0, 1, 17, UINT32_MAX, 135},
         {MicroOpBits::B32, MicroOpBits::B32, 0, 1, 17, 0, 136},
+        {MicroOpBits::B64, MicroOpBits::B64, 0, 1, 17, 0, UINT64_MAX - 135, MicroOp::Subtract},
+        {MicroOpBits::B64, MicroOpBits::B32, 0, 1, 17, 0, UINT32_MAX - 135, MicroOp::Subtract},
+        {MicroOpBits::B64, MicroOpBits::B32, 2, 3, 17, 100, 60, MicroOp::Subtract},
     };
     for (const Case& test : cases)
     {
@@ -103,7 +107,7 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
         builder.emitLoadRegImm(accumulator, ApInt(test.initialSum, sumWidth), test.sumBits);
         builder.emitLoadRegImm(counter, ApInt(test.start, counterWidth), test.counterBits);
         builder.placeLabel(header);
-        builder.emitOpBinaryRegReg(accumulator, counter, MicroOp::Add, test.sumBits);
+        builder.emitOpBinaryRegReg(accumulator, counter, test.reductionOp, test.sumBits);
         builder.emitOpBinaryRegImm(counter, ApInt(test.step, counterWidth), MicroOp::Add, test.counterBits);
         builder.emitCmpRegImm(counter, ApInt(test.bound, counterWidth), test.counterBits);
         builder.emitJumpToLabel(MicroCond::Below, test.counterBits, header);
@@ -112,7 +116,8 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
 
         SWC_RESULT(runLoopUnrollPass(builder));
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
-            Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 0)
+            Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 0 ||
+            Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Subtract) != 0)
             return Result::Error;
         bool foundResult = false;
         bool foundExit   = false;

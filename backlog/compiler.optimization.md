@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
 
 - Recorded: 2026-09-24 10:33
-- Updated: 2026-09-29 17:04 — Extended the counted-sum fold to 32-bit accumulators.
+- Updated: 2026-09-29 17:23 — Folded pure index subtraction as well as addition.
 - Area: compiler/backend, loop unrolling
 - Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
   16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
@@ -49,11 +49,55 @@ block, and the hot path keeps the register.
   return `CHECK=391`; a C++ case also starts the accumulator at `UINT32_MAX`. All 1,175 C++ tests and
   1,502 JIT DevMode tests pass. The seven benchmark task checksums and selected function sizes
   are unchanged. No task timing was taken.
+- The same closed form now folds a body that subtracts the induction value. A separate
+  `u32` 17-trip subtractor falls from eight to two Release Micro instructions; its
+  parameter-driven counterpart remains at eight. Native and JIT execution both return
+  `CHECK=8589934201`, including unsigned wraparound. The 1,175 C++ and 1,502 JIT DevMode
+  tests pass. This is a code-size and executed-work gain on an unrelated input; no timing was used.
 - Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
   only when a general work-saved versus code-growth rule improves them without expanding loops
   whose bodies retain their per-trip work.
 - Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
   both admitted and rejected shapes.
+
+### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
+
+- Recorded: 2026-09-07 10:46
+- Updated: 2026-09-29 17:22 — Measured the alias-proof upper bound with explicit local pointers.
+- Area: compiler/backend, memory optimization
+- Found while: the generated-code campaign, comparing Dijkstra's heap loops with current
+  clang-cl and MSVC output at `8d3f0498b` on 2026-09-07.
+- Evidence: after local identical-target load forwarding, Swag release's sift-up loop has
+  26 instructions / 15 explicit memory operations, against clang-cl's 16 / eight and MSVC's
+  15 / eight. Five Swag accesses reload global pointer cells; ten access heap elements,
+  including the values read again after the comparison branch. These are program-memory
+  accesses, not allocator spill slots. The sift-down loop still has 39 / 20.
+- Current static comparison: in the Release `push` sift-up loop, Swag executes 19 Micro
+  instructions and 12 explicit memory operations on a swapping iteration, versus 15 instructions
+  and eight memory operations in the accepted winner's MSVC object. Swag reloads `g_HeapD` and
+  `g_HeapN` after stores through those pointers; MSVC retains both pointer values in registers.
+  Swag's `pop` and its inlined copy now place their address calculation and relocated heap-size
+  load at the back edge, removing one executed unconditional jump per sift-down step. These
+  current counts supersede the September 7 loop counts above; they are static code evidence,
+  not a timing claim. The Dijkstra checksum remains `4431000`.
+- A scratch source copy loads `g_HeapD` and `g_HeapN` once into local pointers at `push` entry.
+  Its Release `push` shrinks from 32 to 28 Micro instructions, and the inlined `main` from
+  439 to 435. A swapping sift-up step then executes 15 instructions and eight memory operations,
+  matching MSVC's counts; `CHECK=4431000` remains exact. This is an upper bound for a compiler
+  rule, since caching a raw global pointer would change a program whose pointee aliases the
+  pointer's global cell. `benchAlloc` returns fresh allocator storage for this task, but Micro
+  has no provenance proof from that return through the global assignment and call to `push`.
+- Boundary: the local forwarding cache is flushed by control flow and potentially aliasing
+  stores. Reusing a global pointer across an arbitrary heap write needs a provenance proof;
+  keeping the heap elements already read by a comparison needs control-flow-aware memory
+  availability. An exact relocation identity alone proves neither.
+- Next: establish which heap stores cannot reach the global pointer cells, and propagate a
+  compared element only along paths with no intervening aliasing write. Preserve the global
+  reload when a pointer can address that global, and exercise both branch outcomes, calls,
+  and zero-trip loops. Check `pop` and register pressure across every benchmark task before
+  broadening the alias analysis.
+- Complete when: the remaining repeated pointer/element reads disappear with sound alias and
+  control-flow proofs, or a focused experiment identifies the register-residency constraint.
 
 ### compiler.optimization.101 — Small records are assembled in the frame and read back whole
 
@@ -271,38 +315,6 @@ block, and the hot path keeps the register.
 - Complete when: the significance bin has no register copy after its shifts and no decoder function
   or benchmark program grows.
 - Related: std.video.001, compiler.optimization.037, compiler.optimization.095
-
-### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
-
-- Recorded: 2026-09-07 10:46
-- Updated: 2026-09-29 11:50 — Recounted the current heap loop after header rotation.
-- Area: compiler/backend, memory optimization
-- Found while: the generated-code campaign, comparing Dijkstra's heap loops with current
-  clang-cl and MSVC output at `8d3f0498b` on 2026-09-07.
-- Evidence: after local identical-target load forwarding, Swag release's sift-up loop has
-  26 instructions / 15 explicit memory operations, against clang-cl's 16 / eight and MSVC's
-  15 / eight. Five Swag accesses reload global pointer cells; ten access heap elements,
-  including the values read again after the comparison branch. These are program-memory
-  accesses, not allocator spill slots. The sift-down loop still has 39 / 20.
-- Current static comparison: in the Release `push` sift-up loop, Swag executes 19 Micro
-  instructions and 12 explicit memory operations on a swapping iteration, versus 15 instructions
-  and eight memory operations in the accepted winner's MSVC object. Swag reloads `g_HeapD` and
-  `g_HeapN` after stores through those pointers; MSVC retains both pointer values in registers.
-  Swag's `pop` and its inlined copy now place their address calculation and relocated heap-size
-  load at the back edge, removing one executed unconditional jump per sift-down step. These
-  current counts supersede the September 7 loop counts above; they are static code evidence,
-  not a timing claim. The Dijkstra checksum remains `4431000`.
-- Boundary: the local forwarding cache is flushed by control flow and potentially aliasing
-  stores. Reusing a global pointer across an arbitrary heap write needs a provenance proof;
-  keeping the heap elements already read by a comparison needs control-flow-aware memory
-  availability. An exact relocation identity alone proves neither.
-- Next: establish which heap stores cannot reach the global pointer cells, and propagate a
-  compared element only along paths with no intervening aliasing write. Preserve the global
-  reload when a pointer can address that global, and exercise both branch outcomes, calls,
-  and zero-trip loops. Check `pop` and register pressure across every benchmark task before
-  broadening the alias analysis.
-- Complete when: the remaining repeated pointer/element reads disappear with sound alias and
-  control-flow proofs, or a focused experiment identifies the register-residency constraint.
 
 ### compiler.optimization.100 — A local array's declaration fill survives its complete overwrite
 

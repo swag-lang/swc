@@ -641,8 +641,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (!bodyCount || bodyCount > K_MAX_BODY_INSTR)
                 continue;
 
-            // A pure sum of the induction values has a closed form. Folding
-            // it avoids both the loop and the code growth of full unrolling.
+            // A pure addition or subtraction of the induction values has a
+            // closed form. Folding it avoids the code growth of full unrolling.
             // The bound limits each term to one million, so the progression
             // calculation below fits in 64 bits before the accumulator's
             // intentional modular addition.
@@ -652,7 +652,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 const MicroInstr*   body    = storage.ptr(bodyRef);
                 const auto*         bodyOps = body ? body->ops(operands) : nullptr;
                 if (body && body->op == MicroInstrOpcode::OpBinaryRegReg && bodyOps &&
-                    bodyOps[3].microOp == MicroOp::Add &&
+                    (bodyOps[3].microOp == MicroOp::Add || bodyOps[3].microOp == MicroOp::Subtract) &&
                     (bodyOps[2].opBits == MicroOpBits::B32 || bodyOps[2].opBits == MicroOpBits::B64) &&
                     bodyOps[0].reg.isVirtualInt() && bodyOps[0].reg != counter && bodyOps[1].reg == counter &&
                     !relocsBySlot.contains(bodyRef.get()) &&
@@ -691,8 +691,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     if (haveSumInit)
                     {
                         const uint64_t progression = trips * (2 * initValue + (trips - 1) * step) / 2;
+                        const uint64_t updatedSum = bodyOps[3].microOp == MicroOp::Add ?
+                                                        initialSum + progression : initialSum - progression;
                         const uint64_t finalSum = sumBits == MicroOpBits::B32 ?
-                                                      static_cast<uint32_t>(initialSum + progression) : initialSum + progression;
+                                                      static_cast<uint32_t>(updatedSum) : updatedSum;
                         const uint32_t sumWidth = sumBits == MicroOpBits::B32 ? 32 : 64;
                         const uint32_t counterWidth = counterBits == MicroOpBits::B32 ? 32 : 64;
                         MicroInstrOperand resultOps[3] = {};

@@ -51,7 +51,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 ### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
 
 - Recorded: 2026-09-12 18:05
-- Updated: 2026-09-29 15:15 — Deblocking skips macroblocks under the QP threshold; strengths decide without branches.
+- Updated: 2026-09-29 18:54 — `Swag.prefetch` added and used as FFmpeg does; the reference reads are not what limits the kernels.
 - Evidence: forcing FFmpeg's dispatch down one instruction set at a time on a 3840x2160 one-slice
   High/CABAC clip gives the ladder its assembly climbs, in millions of decode-thread cycles per
   picture: compiled code 179, with SSE2 111, with SSSE3 82. Its SSE2 step covers the deblocking
@@ -135,16 +135,40 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   PyAV. Together, against the morning's merge (2a449a021) and pinned to the performance cores,
   sixteen paired rounds read a median ratio of 0.90 (best runs 83.9 against 72.5 million lane
   cycles per picture) on a machine still shared with other builds.
-- Next: the decode lane's remaining pixel costs are memory-bound: `copyPlane` (about 5 per
-  cent of samples) and the chroma interpolation read reference rows that FFmpeg prefetches a
-  macroblock ahead (`prefetch_motion`), and the language has no prefetch intrinsic; adding one
-  is a surface change (reference, VSCode extension). Timing A/Bs on the shared machine were
-  unusable for single batches this afternoon (paired ratios from 0.5 to 6.8 between rounds), so
-  each batch rests on instruction and memory-operation counts; re-measure them pinned on a
-  quiet machine.
+- Done (2026-09-29 evening, prompt 2): the language has a `Swag.prefetch` intrinsic
+  (`prefetcht0`), and `Slice.compensate` issues FFmpeg's `prefetch_motion`: before and after each
+  inter macroblock, four luma rows and one row of each chroma plane, 64 samples past the block's
+  first vector and rotating with the macroblock column, for list 0 then list 1. Decoded planes
+  are unchanged (hash 10215554823036995501). It does not move the measure: on a machine at 6 to
+  14 per cent load, two runs of ten interleaved rounds read median ratios of 1.000 and 0.999
+  against the same decoder without it, and loaded runs spread from 0.99 to 1.14. Prefetching
+  the exact window of the next macroblock instead, whose vector is known because a band is
+  parsed before it is reconstructed (21 luma and 18 chroma rows per list), read 1.018 to 1.036
+  and was reverted: the next block mostly lies in the lines the current one just loaded. So
+  `copyPlane` and the chroma interpolation are not waiting on reference memory; their share of
+  the samples is work, not latency.
+- Where the ladder stands (same session, eight interleaved rounds, loaded machine): FFmpeg
+  forced to SSE2 reads a median 64 million lane cycles per picture, with all of its assembly 60,
+  compiled C 114; this decoder about 100. The gap to the SSE2 figure is about 1.5x.
+- Next: profile the decode lane on a quiet machine with the prefetch in place and take the
+  largest pixel kernel against its FFmpeg SSE2 counterpart; the luma six-tap byte rewrite waits on
+  compiler.optimization.037 (coefficients kept in registers across the loop).
 - Complete when: the H.264 pixel layer reaches FFmpeg's SSE2 figure on the same fixture with
   unchanged decoded planes.
 - Related: std.video.001, cpu.simd.023, cpu.simd.024
+
+### cpu.simd.008 — Packed memory access has no alignment or cache policy
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-29 18:54 — `Swag.prefetch` covers the prefetch control; locality variants remain.
+- Intent: add aligned load/store assertions or hints, broadcast loads, and non-temporal stores.
+  `Swag.prefetch` already hints a read into every cache level (`prefetcht0`), never faults and is
+  a no-op where a target has no such instruction; a locality or write-intent variant belongs here
+  once a consumer measures a need for it.
+- Complete when: alignment violations are diagnosed or guarded as declared, large copy/fill and
+  image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
+  remains the default portable operation.
+- Related: cpu.simd.001, cpu.simd.025, cpu.simd.032.
 
 ### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
 
@@ -496,17 +520,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   constant folding, and runtime execution have one documented contract and the cost model declines
   transformations that would lose to scalar code.
 - Related: cpu.simd.017, cpu.simd.025, cpu.simd.027.
-
-### cpu.simd.008 — Packed memory access has no alignment or cache policy
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: add aligned load/store assertions or hints, broadcast loads, non-temporal stores, and
-  prefetch controls with semantics that remain safe when a target ignores the hint.
-- Complete when: alignment violations are diagnosed or guarded as declared, large copy/fill and
-  image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
-  remains the default portable operation.
-- Related: cpu.simd.001, cpu.simd.025, cpu.simd.032.
 
 ### cpu.simd.010 — Dot products have no VNNI form
 

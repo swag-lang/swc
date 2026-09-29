@@ -197,6 +197,7 @@ namespace
             case MicroInstrOpcode::Label:
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:
+            case MicroInstrOpcode::Prefetch:
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
             case MicroInstrOpcode::JumpReg:

@@ -1051,6 +1051,8 @@ namespace
                 return tagInstructionToken("ret");
             case MicroInstrOpcode::Breakpoint:
                 return tagInstructionToken("breakpoint");
+            case MicroInstrOpcode::Prefetch:
+                return std::format("{} [{}]", tagInstructionToken("prefetch"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Push:
                 return std::format("{} {}", tagInstructionToken("push"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Pop:
@@ -1819,6 +1821,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:
+            case MicroInstrOpcode::Prefetch:
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 break;
 

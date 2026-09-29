@@ -107,6 +107,7 @@ protected:
     virtual void encodePop(MicroReg reg)                                                                 = 0;
     virtual void encodeNop()                                                                             = 0;
     virtual void encodeBreakpoint()                                                                      = 0;
+    virtual void encodePrefetch(MicroReg memReg)                                                         = 0;
     virtual void encodeRet()                                                                             = 0;
     virtual void encodeCallRelative(Symbol* targetSymbol, CallConvKind callConv)                         = 0;
     virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv)   = 0;

@@ -344,6 +344,7 @@ SWC_TOKEN_DEF(IntrinsicMemCpy, "Swag.memcpy", TokenIdKindE::Intrinsic | TokenIdK
 SWC_TOKEN_DEF(IntrinsicMemMove, "Swag.memmove", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicMemSet, "Swag.memset", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicMemCmp, "Swag.memcmp", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicPrefetch, "Swag.prefetch", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
 
 // INTRINSICS - ATOMIC
 

@@ -156,6 +156,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::Breakpoint:
             encoder.encodeBreakpoint();
             break;
+        case MicroInstrOpcode::Prefetch:
+            encoder.encodePrefetch(ops[0].reg);
+            break;
         case MicroInstrOpcode::Ret:
             encoder.encodeRet();
             break;

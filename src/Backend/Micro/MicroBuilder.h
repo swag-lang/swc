@@ -101,6 +101,7 @@ public:
     void emitPop(MicroReg reg);
     void emitNop();
     void emitBreakpoint();
+    void emitPrefetch(MicroReg addrReg);
     void emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes);
     void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.170
+
+- Add the `Swag.prefetch` intrinsic.
+
 ## 0.0.167
 
 - Color `not` as a control keyword and `Swag.vecclmul` as an intrinsic.

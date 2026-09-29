@@ -720,6 +720,17 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenPrefetch(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        codeGen.builder().emitPrefetch(ptrReg);
+        return Result::Continue;
+    }
+
     // 'Swag.memcpy' and 'Swag.memmove' lower to an inline block copy only when the size is a constant;
     // otherwise the runtime call stands. They differ solely in overlap handling.
     Result codeGenMemBlockIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node, bool mayOverlap)
@@ -2656,6 +2667,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMemBlockIntrinsic(codeGen, *this, true);
         case TokenId::IntrinsicMemCmp:
             return codeGenMemCmpIntrinsic(codeGen, *this);
+        case TokenId::IntrinsicPrefetch:
+            return codeGenPrefetch(codeGen, *this);
         case TokenId::IntrinsicAtomicAdd:
             return codeGenAtomicBinaryRmw(codeGen, *this, MicroOp::Add);
         case TokenId::IntrinsicAtomicAnd:

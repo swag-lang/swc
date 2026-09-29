@@ -287,6 +287,12 @@ void MicroBuilder::emitBreakpoint()
     addInstruction(MicroInstrOpcode::Breakpoint, 0);
 }
 
+void MicroBuilder::emitPrefetch(MicroReg addrReg)
+{
+    const auto& inst           = addInstruction(MicroInstrOpcode::Prefetch, 1);
+    inst.ops(operands_)[0].reg = addrReg;
+}
+
 void MicroBuilder::emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::SanityInvalidate, 2);

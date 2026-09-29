@@ -4793,4 +4793,14 @@ void X64Encoder::encodeBreakpoint()
     emitCpuOp(store_, 0xCC);
 }
 
+// prefetcht0 [memReg]: 0F 18 /1, the hint FFmpeg's prefetch_motion uses.
+void X64Encoder::encodePrefetch(MicroReg memReg)
+{
+    SWC_ASSERT(memReg.isInt());
+    emitRex(store_, MicroOpBits::Zero, MicroReg{}, memReg);
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0x18);
+    emitModRm(store_, 0, MODRM_REG_1, memReg);
+}
+
 SWC_END_NAMESPACE();

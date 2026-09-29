@@ -105,6 +105,12 @@ namespace
         ENCODE_CASE("jump_reg_r8", "41 FF E0", b.emitJumpReg(R8););
         ENCODE_CASE("jump_reg_r13", "41 FF E5", b.emitJumpReg(R13););
         ENCODE_CASE("ret", "C3", b.emitRet(););
+        ENCODE_CASE("prefetch_rax", "0F 18 08", b.emitPrefetch(RAX););
+        ENCODE_CASE("prefetch_rsp", "0F 18 0C 24", b.emitPrefetch(RSP););
+        ENCODE_CASE("prefetch_rbp", "0F 18 4D 00", b.emitPrefetch(RBP););
+        ENCODE_CASE("prefetch_r12", "41 0F 18 0C 24", b.emitPrefetch(R12););
+        ENCODE_CASE("prefetch_r13", "41 0F 18 4D 00", b.emitPrefetch(R13););
+        ENCODE_CASE("prefetch_r9", "41 0F 18 09", b.emitPrefetch(R9););
 
         ENCODE_CASE("jump_not_zero_b8_patch_here", "75 00",
                     const auto l = b.createLabel();

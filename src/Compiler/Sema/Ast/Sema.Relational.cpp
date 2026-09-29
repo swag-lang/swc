@@ -74,17 +74,23 @@ namespace
         return leftTypeInfo->crc == rightTypeInfo->crc;
     }
 
-    bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
+    TypeRef scalarReferencePayloadTypeRef(Sema& sema, TypeRef typeRef)
     {
         const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
         if (!normalizedTypeRef.isValid())
-            return false;
+            return TypeRef::invalid();
 
         const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
         if (!normalizedType.isReference())
-            return false;
+            return TypeRef::invalid();
 
-        return sema.typeMgr().get(normalizedType.payloadTypeRef()).isScalarNumeric();
+        const TypeRef payloadTypeRef = normalizedType.payloadTypeRef();
+        return sema.typeMgr().get(payloadTypeRef).isScalarNumeric() ? payloadTypeRef : TypeRef::invalid();
+    }
+
+    bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
+    {
+        return scalarReferencePayloadTypeRef(sema, typeRef).isValid();
     }
 
     ConstantRef readScalarReferenceConstant(Sema& sema, ConstantRef cstRef, TypeRef payloadTypeRef)
@@ -103,12 +109,11 @@ namespace
 
     SemaNodeView scalarReadView(Sema& sema, const SemaNodeView& view)
     {
-        if (!shouldReadScalarReference(sema, view.typeRef()))
+        const TypeRef payloadTypeRef = scalarReferencePayloadTypeRef(sema, view.typeRef());
+        if (!payloadTypeRef.isValid())
             return view;
 
         SemaNodeView  result           = view;
-        const TypeRef normalizedRef    = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        const TypeRef payloadTypeRef   = sema.typeMgr().get(normalizedRef).payloadTypeRef();
         result.typeRef()               = payloadTypeRef;
         result.type()                  = &sema.typeMgr().get(payloadTypeRef);
         const ConstantRef scalarCstRef = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);

@@ -46,6 +46,7 @@ block, and the hot path keeps the register.
 - Complete when: a small record returned by value and a vector literal of runtime lanes are
   built in registers with no frame round trip, without growing any benchmark program.
 - Related: compiler.optimization.099, std.video.001
+
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
 - Recorded: 2026-09-26 12:46
@@ -188,6 +189,7 @@ block, and the hot path keeps the register.
 - Complete when: the significance bin has no register copy after its shifts and no decoder function
   or benchmark program grows.
 - Related: std.video.001, compiler.optimization.037, compiler.optimization.095
+
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 
 - Recorded: 2026-09-07 10:46
@@ -238,6 +240,7 @@ block, and the hot path keeps the register.
 - Complete when: the tile fill of `filterLumaVertical` disappears from its release dump, a fill
   followed by a partial overwrite and a read keeps its stores, and unit tests cover both.
 - Related: compiler.optimization.011
+
 ### compiler.optimization.098 — Feed adjacent array updates from a packed state
 
 - Recorded: 2026-09-29 08:04
@@ -977,6 +980,7 @@ block, and the hot path keeps the register.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
+
 ### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
 
 - Recorded: 2026-09-18 19:48

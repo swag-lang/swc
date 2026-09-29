@@ -1845,13 +1845,14 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 {
     if (typeRef.isValid())
     {
-        const TypeInfo& typeInfo        = typeMgr().get(typeRef);
-        TypeRef         resolvedTypeRef = typeRef;
-        if (typeInfo.isAlias())
-            resolvedTypeRef = typeInfo.unwrapAliasEnum(ctx(), typeRef);
+        const TypeInfo* typeInfo = &typeMgr().get(typeRef);
+        if (typeInfo->isAlias())
+        {
+            const TypeRef resolvedTypeRef = typeInfo->unwrapAliasEnum(ctx(), typeRef);
+            typeInfo = &typeMgr().get(resolvedTypeRef);
+        }
 
-        const TypeInfo& resolvedTypeInfo = typeMgr().get(resolvedTypeRef);
-        if (resolvedTypeInfo.isFloat() || resolvedTypeInfo.isSimd())
+        if (typeInfo->isFloat() || typeInfo->isSimd())
             return nextVirtualFloatRegister();
     }
 

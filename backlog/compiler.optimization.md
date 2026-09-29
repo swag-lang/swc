@@ -15,6 +15,36 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.051 — Calibrate the loop-rotation header budget
+
+- Recorded: 2026-09-24 11:53
+- Updated: 2026-09-29 10:45 — Rotated address-producing headers with cloned relocations.
+- Area: compiler/backend, post-RA loop rotation
+- Evidence: `PostRALoopRotate` duplicates a flag-only test and the allocator's flag-neutral
+  connectors at the back edge, replacing one unconditional jump per iteration. The unrelated
+  `PostRALoopRotate_IndependentHeadersRotate` test rotates headers with one incoming back edge;
+  `PostRALoopRotate_SecondIncomingJumpBlocks` keeps a header with another incoming edge. These
+  safety guards use general control flow, and the pass now covers register and memory `test`
+  instructions as well as compares. Its eight-instruction header limit is a static growth budget,
+  but no cost comparison explains why a safe nine-instruction header should keep its per-iteration
+  jump while an eight-instruction header is duplicated.
+- Address-header batch: the same rotation now accepts flag-neutral `lea` instructions before the
+  compare and clones each RIP-relative relocation onto the copied test instruction. Dijkstra's
+  `pop` changes from 48 to 52 static Micro instructions; its inlined copy in `main` changes that
+  function from 435 to 439. Both remove one executed unconditional jump per sift-down step, with
+  the address calculation, bound load, and compare still executed once per step. MSVC's winning
+  sift-down loop likewise branches conditionally back to the comparison. Leven's unrelated
+  row-shift loop changes its enclosing `main` from 474 to 477 static instructions and removes its
+  unconditional back edge. Five other benchmark tasks have identical normalized selected Micro
+  instructions. All seven checksums pass. The C++ test checks the copied relocation target and
+  rejects a flag-changing arithmetic connector; 1,158 C++ tests, 3,488 native Release tests,
+  and 1,502 JIT Release tests pass. The JIT case changes a global bound inside the loop, proving
+  the copied load reads the next iteration's value. No timing sample informed this batch.
+- Next: compare code size and executed jumps for unrelated loops with short and long connector
+  runs, then derive a header budget from code growth and work saved instead of the fixed cutoff.
+- Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests
+  around the chosen boundary.
+
 ### compiler.optimization.098 — Feed adjacent array updates from a packed state
 
 - Recorded: 2026-09-29 08:04
@@ -639,23 +669,6 @@ block, and the hot path keeps the register.
   remains after inspecting the generated code.
 - Complete when: the current unroll limit has profitability evidence for this loop, including
   the effects of temporary renaming and later instruction folds.
-
-### compiler.optimization.051 — Calibrate the loop-rotation header budget
-
-- Recorded: 2026-09-24 11:53
-- Area: compiler/backend, post-RA loop rotation
-- Evidence: `PostRALoopRotate` duplicates a flag-only test and the allocator's flag-neutral
-  connectors at the back edge, replacing one unconditional jump per iteration. The unrelated
-  `PostRALoopRotate_IndependentHeadersRotate` test rotates headers with one incoming back edge;
-  `PostRALoopRotate_SecondIncomingJumpBlocks` keeps a header with another incoming edge. These
-  safety guards use general control flow, and the pass now covers register and memory `test`
-  instructions as well as compares. Its eight-instruction header limit is a static growth budget,
-  but no cost comparison explains why a safe nine-instruction header should keep its per-iteration
-  jump while an eight-instruction header is duplicated.
-- Next: compare code size and executed jumps for unrelated loops with short and long connector
-  runs, then derive a header budget from code growth and work saved instead of the fixed cutoff.
-- Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests
-  around the chosen boundary.
 
 ### compiler.optimization.048 — Check LICM's relocated address policy outside benchmarks
 

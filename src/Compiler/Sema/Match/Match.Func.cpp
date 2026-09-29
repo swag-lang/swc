@@ -329,6 +329,9 @@ namespace
         AstNodeRef argRef       = AstNodeRef::invalid();
         AstNodeRef valueRef     = AstNodeRef::invalid();
         uint32_t   callArgIndex = 0;
+        // Position between the parentheses, from 1, as the user reads it. Zero for the receiver
+        // bound by the dot and for a parameter left to its default.
+        uint32_t argNumber = 0;
     };
 
     struct CallArgMapping
@@ -384,6 +387,20 @@ namespace
     uint32_t callArgIndexFromUserIndex(uint32_t userArgIndex, AstNodeRef ufcsArg)
     {
         return ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
+    }
+
+    // The inverse of 'callArgIndexFromUserIndex', counted from 1: the number a diagnostic shows.
+    // The receiver written before the dot is not an argument between the parentheses; it has
+    // no number, and zero says so.
+    uint32_t writtenArgNumber(uint32_t callArgIndex, AstNodeRef ufcsArg)
+    {
+        return ufcsArg.isValid() ? callArgIndex : callArgIndex + 1;
+    }
+
+    // The argument count a diagnostic shows, which leaves the receiver out as well.
+    uint32_t writtenArgCount(uint32_t callArgCount, AstNodeRef ufcsArg)
+    {
+        return ufcsArg.isValid() && callArgCount ? callArgCount - 1 : callArgCount;
     }
 
     bool allowsImplicitAddressBinding(const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef ufcsArg)
@@ -622,6 +639,7 @@ namespace
 
                 outMapping.paramArgs[found].argRef       = argRef;
                 outMapping.paramArgs[found].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                outMapping.paramArgs[found].argNumber    = userIndex + 1;
                 continue;
             }
 
@@ -632,6 +650,7 @@ namespace
             {
                 outMapping.paramArgs.back().argRef       = argRef;
                 outMapping.paramArgs.back().callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                outMapping.paramArgs.back().argNumber    = userIndex + 1;
                 continue;
             }
 
@@ -648,6 +667,7 @@ namespace
             {
                 outMapping.paramArgs[nextPos].argRef       = argRef;
                 outMapping.paramArgs[nextPos].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                outMapping.paramArgs[nextPos].argNumber    = userIndex + 1;
                 ++nextPos;
                 continue;
             }
@@ -655,6 +675,7 @@ namespace
             CallArgEntry entry;
             entry.argRef       = argRef;
             entry.callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+            entry.argNumber    = userIndex + 1;
             outMapping.variadicArgs.push_back(entry);
         }
 
@@ -942,14 +963,17 @@ namespace
         }
     }
 
-    void setCallArgumentFailureArgs(DiagnosticElement& diagElement, const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
+    void setCallArgumentFailureArgs(DiagnosticElement& diagElement, const SymbolFunction& fn, const MatchFailure& fail, AstNodeRef ufcsArg, const TaskContext& ctx)
     {
         if (fail.kind != MatchFailKind::InvalidArgumentType)
             return;
         if (fail.castFailure.diagId == DiagnosticId::None)
             return;
+        const uint32_t argNumber = writtenArgNumber(fail.argIndex, ufcsArg);
+        if (!argNumber)
+            return;
 
-        diagElement.addArgument(Diagnostic::ARG_INDEX, fail.argIndex + 1);
+        diagElement.addArgument(Diagnostic::ARG_INDEX, argNumber);
         if (!fn.name(ctx).empty())
             diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
 
@@ -970,21 +994,22 @@ namespace
         diagElement.addArgument(Diagnostic::ARG_WHAT, makeCannotCastArgumentText(fn, fail, ctx));
     }
 
-    DiagnosticArguments makeCallCastErrorArguments(const SymbolFunction& fn, uint32_t callArgIndex, const TaskContext& ctx)
+    DiagnosticArguments makeCallCastErrorArguments(const SymbolFunction& fn, const CallArgEntry& entry, const TaskContext& ctx)
     {
-        // A call through a function-typed value has no declaration to name. Leaving the name out
-        // lets the message fall back to its form without the callee instead of printing an empty one.
+        // A call through a function-typed value has no declaration to name, and a receiver has
+        // no position between the parentheses. Leaving them out lets the message fall back to its
+        // form without the callee instead of printing an empty name or a number the user never wrote.
         DiagnosticArguments arguments;
-        if (fn.name(ctx).empty())
+        if (fn.name(ctx).empty() || !entry.argNumber)
             return arguments;
-        arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INDEX, callArgIndex + 1});
+        arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INDEX, entry.argNumber});
         arguments.push_back(DiagnosticArgument{Diagnostic::ARG_SYM, Utf8{fn.name(ctx)}});
         return arguments;
     }
 
-    void attachCallCastFailureArgs(CastFailure& failure, const SymbolFunction& fn, uint32_t callArgIndex, const TaskContext& ctx)
+    void attachCallCastFailureArgs(CastFailure& failure, const SymbolFunction& fn, const CallArgEntry& entry, const TaskContext& ctx)
     {
-        failure.mergeArguments(makeCallCastErrorArguments(fn, callArgIndex, ctx));
+        failure.mergeArguments(makeCallCastErrorArguments(fn, entry, ctx));
     }
 
     Diagnostic reportMatchFailure(Sema& sema, DiagnosticId id, const SemaNodeView& nodeCallee, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
@@ -1020,15 +1045,15 @@ namespace
             case MatchFailKind::TooManyArguments:
                 if (!isNote)
                     diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
-                diagElement.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
-                diagElement.addArgument(Diagnostic::ARG_VALUE, fail.providedCount);
+                diagElement.addArgument(Diagnostic::ARG_COUNT, writtenArgCount(fail.expectedCount, ufcsArg));
+                diagElement.addArgument(Diagnostic::ARG_VALUE, writtenArgCount(fail.providedCount, ufcsArg));
                 break;
 
             case MatchFailKind::TooFewArguments:
                 if (!isNote)
                     diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
-                diagElement.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
-                diagElement.addArgument(Diagnostic::ARG_VALUE, fail.providedCount);
+                diagElement.addArgument(Diagnostic::ARG_COUNT, writtenArgCount(fail.expectedCount, ufcsArg));
+                diagElement.addArgument(Diagnostic::ARG_VALUE, writtenArgCount(fail.providedCount, ufcsArg));
                 if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
                     diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
                 break;
@@ -1040,7 +1065,7 @@ namespace
                     {
                         if (diagElement.id() == DiagnosticId::sema_note_overload_candidate_argument_type)
                         {
-                            diagElement.addArgument(Diagnostic::ARG_INDEX, fail.argIndex + 1);
+                            diagElement.addArgument(Diagnostic::ARG_INDEX, writtenArgNumber(fail.argIndex, ufcsArg));
                         }
                         else
                         {
@@ -1057,7 +1082,7 @@ namespace
                     addCastFailureNote(sema, diag, fail.castFailure);
                     addFunctionWhereFailureNotes(sema, diag, fail.castFailure);
                     if (!isNote)
-                        setCallArgumentFailureArgs(diagElement, fn, fail, ctx);
+                        setCallArgumentFailureArgs(diagElement, fn, fail, ufcsArg, ctx);
                 }
                 else
                 {
@@ -1476,7 +1501,7 @@ namespace
                 cf.diagId     = DiagnosticId::sema_err_cannot_cast;
                 cf.srcTypeRef = argTy;
                 cf.dstTypeRef = variadicTy;
-                attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
+                attachCallCastFailureArgs(cf, fn, entry, sema.ctx());
             }
 
             cf.nodeRef = argValueRef;
@@ -1497,7 +1522,7 @@ namespace
             cf.nodeRef    = argValueRef;
             cf.srcTypeRef = argTy;
             cf.dstTypeRef = variadicTy;
-            attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
+            attachCallCastFailureArgs(cf, fn, entry, sema.ctx());
             failBadType(outFail, entry.callArgIndex, variadicParamIndex, cf);
             return Result::Continue;
         }
@@ -1514,7 +1539,7 @@ namespace
             }
 
             setCastFailureNodeIfMissing(cf, argValueRef);
-            attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
+            attachCallCastFailureArgs(cf, fn, entry, sema.ctx());
             failBadType(outFail, entry.callArgIndex, variadicParamIndex, cf);
             return Result::Continue;
         }
@@ -1972,7 +1997,7 @@ namespace
                     cf.dstTypeRef = paramTy;
                 }
                 setCastFailureNodeIfMissing(cf, argNodeView.nodeRef());
-                attachCallCastFailureArgs(cf, fn, mapping.paramArgs[i].callArgIndex, ctx);
+                attachCallCastFailureArgs(cf, fn, mapping.paramArgs[i], ctx);
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
@@ -1993,7 +2018,7 @@ namespace
                     cf.dstTypeRef = paramTy;
                 }
                 setCastFailureNodeIfMissing(cf, argNodeView.nodeRef());
-                attachCallCastFailureArgs(cf, fn, mapping.paramArgs[i].callArgIndex, ctx);
+                attachCallCastFailureArgs(cf, fn, mapping.paramArgs[i], ctx);
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
@@ -2621,7 +2646,7 @@ namespace
                 }
             }
 
-            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
+            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry, sema.ctx());
             if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
                 SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
 
@@ -2656,7 +2681,7 @@ namespace
             const AstNodeRef argValueRef = resolvedCallArgValueRef(sema, fixedVariadicArg);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, variadicTy, argView));
-            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, fixedVariadicArg.callArgIndex, sema.ctx());
+            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, fixedVariadicArg, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
             fixedVariadicArg.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, fixedVariadicArg.argRef, argView.nodeRef());
@@ -2667,7 +2692,7 @@ namespace
             const AstNodeRef argValueRef = resolvedCallArgValueRef(sema, entry);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, variadicTy, argView));
-            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
+            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
             entry.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, entry.argRef, argView.nodeRef());

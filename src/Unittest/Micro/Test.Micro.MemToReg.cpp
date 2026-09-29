@@ -377,6 +377,250 @@ SWC_TEST_BEGIN(MemToReg_VectorReadByLanesSplits)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // One 32-byte local at 0x20, the tile the dead-fill tests clear and overwrite.
+    struct TileFunction
+    {
+        SymbolFunction function{nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero};
+        SymbolVariable tile{nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero};
+
+        explicit TileFunction(TaskContext& ctx)
+        {
+            tile.setTypeRef(ctx.typeMgr().typeU64());
+            tile.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+            tile.setCodeGenLocalSize(32);
+            function.addLocalVariable(ctx, &tile);
+            tile.setOffset(0x20);
+        }
+    };
+
+    enum class TileCase : uint8_t
+    {
+        Overwritten,
+        PartialOverwrite,
+        ReadBeforeOverwrite,
+        EscapeBeforeForeignRead,
+        NotOnEntryLine,
+    };
+
+    // Clears the tile with two vector stores, loads a row through a pointer the
+    // frame analysis does not track, writes the tile's rows through its
+    // address, then hands that address out. Returns the number of fill stores
+    // left.
+    Result runTileCase(TaskContext& ctx, const TileCase tileCase, uint32_t& outFillStores)
+    {
+        TileFunction       fn(ctx);
+        const MicroReg     sp      = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg frame   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg rows    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg source  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg peek    = MicroReg::virtualIntReg(4);
+        constexpr MicroReg zero    = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg row     = MicroReg::virtualFloatReg(2);
+        MicroBuilder       builder(ctx);
+
+        builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(source, MicroReg::intReg(2), MicroOpBits::B64);
+        if (tileCase == TileCase::NotOnEntryLine)
+        {
+            MicroLabelRef label;
+            builder.emitLabel(label);
+        }
+        builder.emitClearReg(zero, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(frame, 0x20, zero, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(frame, 0x30, zero, MicroOpBits::B128);
+        builder.emitLoadAddressRegMem(rows, frame, 0x20, MicroOpBits::B64);
+        if (tileCase == TileCase::ReadBeforeOverwrite)
+            builder.emitLoadRegMem(peek, frame, 0x34, MicroOpBits::B32);
+        if (tileCase == TileCase::EscapeBeforeForeignRead)
+            builder.emitLoadRegReg(MicroReg::intReg(1), rows, MicroOpBits::B64);
+        builder.emitLoadVecRegMem(row, source, 0, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(rows, 0, row, MicroOpBits::B128);
+        if (tileCase == TileCase::PartialOverwrite)
+            builder.emitLoadMemReg(rows, 0x10, source, MicroOpBits::B64);
+        else
+            builder.emitStoreVecMemReg(rows, 0x10, row, MicroOpBits::B128);
+        if (tileCase != TileCase::EscapeBeforeForeignRead)
+            builder.emitLoadRegReg(MicroReg::intReg(1), rows, MicroOpBits::B64);
+        builder.emitLoadRegMem(peek, frame, 0x38, MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::intReg(0), peek, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runMemToRegPass(builder, &fn.function));
+
+        outFillStores = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::StoreVecMemReg && ops && ops[1].reg == zero)
+                ++outFillStores;
+        }
+        return Result::Continue;
+    }
+}
+
+// A local cleared at its declaration and then overwritten whole, before any
+// read, loses its clear - even when its address is handed out afterwards and
+// a pointer the analysis cannot follow is read in between.
+SWC_TEST_BEGIN(MemToReg_DeadFillIsErased)
+{
+    uint32_t fillStores = 0;
+    SWC_RESULT(runTileCase(ctx, TileCase::Overwritten, fillStores));
+    if (fillStores != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The clear stays wherever it may still be read: the half the second row only
+// partly overwrites, a byte read before the rows are written, an address
+// handed out before a foreign pointer is read, and a fill off the entry line
+// of an object whose address escapes, which an earlier pass through a loop
+// may have handed out.
+SWC_TEST_BEGIN(MemToReg_LiveFillIsKept)
+{
+    uint32_t fillStores = 0;
+    SWC_RESULT(runTileCase(ctx, TileCase::PartialOverwrite, fillStores));
+    if (fillStores != 1)
+        return Result::Error;
+    SWC_RESULT(runTileCase(ctx, TileCase::ReadBeforeOverwrite, fillStores));
+    if (fillStores != 1)
+        return Result::Error;
+    SWC_RESULT(runTileCase(ctx, TileCase::EscapeBeforeForeignRead, fillStores));
+    if (fillStores != 2)
+        return Result::Error;
+    SWC_RESULT(runTileCase(ctx, TileCase::NotOnEntryLine, fillStores));
+    if (fillStores != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    uint32_t countFrameAccesses(const MicroBuilder& builder, const MicroReg frame)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (!ops)
+                continue;
+            if ((inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm) && ops[0].reg == frame)
+                ++count;
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops[1].reg == frame)
+                ++count;
+        }
+        return count;
+    }
+
+    uint32_t countBinaryImm(const MicroBuilder& builder, const MicroOp op)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops && ops[2].microOp == op)
+                ++count;
+        }
+        return count;
+    }
+}
+
+// A record returned in one register, given its zero default and then built
+// field by field on two paths that each read it back whole, lives in one
+// integer register: no frame access is left, no field needs clearing first
+// since every one lands in bytes still zero, and the first field of each path
+// is the whole word.
+SWC_TEST_BEGIN(MemToReg_RecordBuiltOnEveryPathStaysInRegister)
+{
+    const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg cond   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg refIdx = MicroReg::virtualIntReg(3);
+    constexpr MicroReg mvX    = MicroReg::virtualIntReg(4);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(5);
+    constexpr MicroReg second = MicroReg::virtualIntReg(6);
+    MicroBuilder       builder(ctx);
+    const MicroLabelRef intra = builder.createLabel();
+
+    builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+    builder.emitLoadRegReg(cond, MicroReg::intReg(1), MicroOpBits::B64);
+    builder.emitLoadRegReg(refIdx, MicroReg::intReg(2), MicroOpBits::B64);
+    builder.emitLoadRegReg(mvX, MicroReg::intReg(8), MicroOpBits::B64);
+    builder.emitLoadMemImm(frame, 0, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(cond, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, intra);
+    builder.emitLoadMemImm(frame, 0, ApInt(1, 8), MicroOpBits::B8);
+    builder.emitLoadMemReg(frame, 2, refIdx, MicroOpBits::B8);
+    builder.emitLoadMemReg(frame, 4, mvX, MicroOpBits::B16);
+    builder.emitLoadRegMem(first, frame, 0, MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::intReg(0), first, MicroOpBits::B64);
+    builder.emitRet();
+    builder.placeLabel(intra);
+    builder.emitLoadMemImm(frame, 0, ApInt(1, 8), MicroOpBits::B8);
+    builder.emitLoadMemImm(frame, 1, ApInt(1, 8), MicroOpBits::B8);
+    builder.emitLoadMemImm(frame, 2, ApInt(0xFF, 8), MicroOpBits::B8);
+    builder.emitLoadRegMem(second, frame, 0, MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::intReg(0), second, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runMemToRegPass(builder));
+
+    if (countFrameAccesses(builder, frame) != 0)
+        return Result::Error;
+    if (countBinaryImm(builder, MicroOp::And) != 0 || countBinaryImm(builder, MicroOp::Or) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A field stored over a word whose bytes are not known zero clears them
+// first; a record whose address escapes, or whose field is stored before the
+// word has a value on every path, stays in the frame.
+SWC_TEST_BEGIN(MemToReg_RecordFieldStoreClearsUnknownBytes)
+{
+    const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame = MicroReg::virtualIntReg(1);
+    constexpr MicroReg word  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg field = MicroReg::virtualIntReg(3);
+    constexpr MicroReg whole = MicroReg::virtualIntReg(4);
+
+    enum class Shape : uint8_t
+    {
+        UnknownBytes,
+        Escaped,
+        Undefined,
+    };
+    for (const Shape shape : {Shape::UnknownBytes, Shape::Escaped, Shape::Undefined})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(word, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(field, MicroReg::intReg(2), MicroOpBits::B64);
+        if (shape != Shape::Undefined)
+            builder.emitLoadMemReg(frame, 0x10, word, MicroOpBits::B64);
+        if (shape == Shape::Escaped)
+            builder.emitLoadRegReg(MicroReg::intReg(1), frame, MicroOpBits::B64);
+        builder.emitLoadMemReg(frame, 0x12, field, MicroOpBits::B16);
+        builder.emitLoadMemReg(frame, 0x14, field, MicroOpBits::B32);
+        builder.emitLoadRegMem(whole, frame, 0x10, MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::intReg(0), whole, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runMemToRegPass(builder));
+
+        const uint32_t frameAccesses = countFrameAccesses(builder, frame);
+        if (shape == Shape::UnknownBytes && (frameAccesses != 0 || countBinaryImm(builder, MicroOp::And) != 2))
+            return Result::Error;
+        if (shape != Shape::UnknownBytes && frameAccesses == 0)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

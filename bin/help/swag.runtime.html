@@ -5301,7 +5301,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_PrintMicro" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PrintMicro</span> <a class="api-item-permalink" href="#Swag_PrintMicro" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L63">src</a></div>
 <p>Prints the micro instructions generated for a function, a struct, or a file.</p>
-<p>Without a parameter, the instructions are printed right before the emit pass. Otherwise each parameter names a stage, spelled <span class="code-inline">before-&lt;pass&gt;</span> or <span class="code-inline">after-&lt;pass&gt;</span>.</p>
+<p>Without a parameter, the instructions are printed right before the emit pass. Otherwise each parameter names a stage, spelled <span class="code-inline">pre-&lt;pass&gt;</span> or <span class="code-inline">post-&lt;pass&gt;</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]</span>
 <span class="SKwd">attr</span> <span class="SFct">PrintMicro</span>(stages: <span class="STpe">string</span>...)</span></div>
 </section>

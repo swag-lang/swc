@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
@@ -593,9 +594,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // variable) is the old whole-function bail.
     struct FrameVarRange
     {
-        uint64_t lo       = 0;
-        uint64_t hi       = 0;
-        bool     poisoned = false;
+        uint64_t      lo          = 0;
+        uint64_t      hi          = 0;
+        MicroInstrRef firstEscape = MicroInstrRef::invalid();
+        bool          poisoned    = false;
     };
     thread_local std::vector<FrameVarRange> varRanges;
     varRanges.clear();
@@ -610,7 +612,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // so that unknown object cannot overlap a known variable: the sound answer
     // is to treat all frame space OUTSIDE the known variables as reachable
     // through the escaped pointer, and keep promoting inside them.
-    bool unknownSpaceEscaped = false;
+    bool          unknownSpaceEscaped = false;
+    MicroInstrRef unknownFirstEscape  = MicroInstrRef::invalid();
+    // The instruction pass 2 is classifying: where an escape it records happens.
+    MicroInstrRef escapingRef = MicroInstrRef::invalid();
 
     // Poison the variable containing 'offset'; false only when no extent
     // information is available at all and the caller must fall back to the
@@ -620,15 +625,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             return false;
         if (!varRangesReady)
         {
-            for (const SymbolVariable* localVar : context.sanitizerFunction->localVariables())
-            {
-                if (!localVar || !localVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
-                    continue;
-                const uint64_t size = localVar->codeGenLocalSize();
-                if (!size)
-                    continue;
-                varRanges.push_back({.lo = localVar->offset(), .hi = localVar->offset() + size});
-            }
+            thread_local std::vector<std::pair<uint64_t, uint64_t>> extents;
+            MicroPassHelpers::collectFrameVariableExtents(extents, context, frameBase);
+            for (const auto& [lo, hi] : extents)
+                varRanges.push_back({.lo = lo, .hi = hi});
             varRangesReady = true;
         }
         bool found = false;
@@ -636,12 +636,17 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         {
             if (offset >= range.lo && offset < range.hi)
             {
+                if (!range.poisoned)
+                    range.firstEscape = escapingRef;
                 range.poisoned = true;
                 found          = true;
             }
         }
-        if (!found)
+        if (!found && !unknownSpaceEscaped)
+        {
             unknownSpaceEscaped = true;
+            unknownFirstEscape  = escapingRef;
+        }
         return true;
     };
 
@@ -711,6 +716,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         const MicroInstrOperand* ops  = inst.ops(operands);
         if (!ops)
             continue;
+        escapingRef = ref;
 
         if (ref == frameBaseDefRef)
             continue;
@@ -972,6 +978,228 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
     if (bail)
         return Result::Continue;
+
+    bool erasedDeadStores = false;
+    const auto finish     = [&] {
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        context.builder->invalidateControlFlowGraph();
+        context.passChanged = true;
+        return Result::Continue;
+    };
+
+    // ---- Stores killed by a later store before anything reads them. ----
+    //
+    // A local is cleared where it is declared, and a program that then writes
+    // every byte of it before reading one leaves that clear dead - a transpose
+    // tile filled right after its declaration, a record assembled field by
+    // field over its zero default. On one straight line, a store is dead once
+    // later stores through the frame have covered each of its bytes and no
+    // instruction in between read an uncovered one.
+    //
+    // Reads the analysis resolved are compared byte for byte. Any other read
+    // through the frame, or through the stack pointer, may reach the store and
+    // keeps it. A read through some other pointer cannot reach an object whose
+    // address never escapes; nor, on the function's entry line, one whose first
+    // escape has not been executed yet, since nothing before that escape can
+    // have handed its address out. Calls, jumps and labels end the line.
+    {
+        // Only a store some other write overlaps can be killed.
+        thread_local std::vector<std::pair<uint64_t, uint64_t>> writeRanges;
+        writeRanges.clear();
+        for (const auto& [offset, slot] : slots)
+        {
+            for (const SlotAccess& acc : slot.accesses)
+            {
+                if (acc.isWrite)
+                    writeRanges.emplace_back(offset, offset + getNumBytes(acc.bits));
+            }
+        }
+        std::ranges::sort(writeRanges);
+        bool overlappingWrites = false;
+        for (size_t i = 1; i < writeRanges.size() && !overlappingWrites; ++i)
+            overlappingWrites = writeRanges[i].first < writeRanges[i - 1].second;
+
+        if (overlappingWrites)
+        {
+            thread_local std::unordered_map<uint32_t, const SlotAccess*> accessOf;
+            accessOf.clear();
+            for (const auto& [offset, slot] : slots)
+            {
+                for (const SlotAccess& acc : slot.accesses)
+                    accessOf[acc.ref.get()] = &acc;
+            }
+
+            // The object a byte range lies in: a known variable's index, or
+            // -1 for the frame space outside every known variable.
+            const auto objectOf = [&](const uint64_t lo, const uint64_t hi) -> int32_t {
+                for (size_t i = 0; i < varRanges.size(); ++i)
+                {
+                    if (lo >= varRanges[i].lo && hi <= varRanges[i].hi)
+                        return static_cast<int32_t>(i);
+                }
+                return -1;
+            };
+
+            struct PendingStore
+            {
+                MicroInstrRef ref       = MicroInstrRef::invalid();
+                uint64_t      lo        = 0;
+                uint32_t      uncovered = 0;
+                int32_t       object    = -1;
+                bool          onEntry   = false;
+            };
+            constexpr uint32_t         K_MAX_PENDING = 64;
+            SmallVector<PendingStore>  pendingStores;
+            SmallVector<MicroInstrRef> deadStores;
+            std::vector<uint8_t>       escapedNow(varRanges.size(), 0);
+            bool                       unknownEscapedNow = false;
+            bool                       onEntryLine       = true;
+
+            // Whether a read through a pointer the analysis does not track can
+            // see the pending store's object at this point.
+            const auto reachableByUnknownPointer = [&](const PendingStore& pendingStore) {
+                if (pendingStore.object < 0)
+                    return unknownSpaceEscaped && (!pendingStore.onEntry || unknownEscapedNow);
+                const FrameVarRange& range = varRanges[pendingStore.object];
+                return range.poisoned && (!pendingStore.onEntry || escapedNow[pendingStore.object] != 0);
+            };
+
+            // The bytes of [lo, lo + 16) an access to [accessLo, accessHi) touches.
+            const auto touchedBytes = [](const uint64_t lo, const uint64_t accessLo, const uint64_t accessHi) -> uint32_t {
+                const uint64_t from = std::max(lo, accessLo);
+                const uint64_t to   = std::min(lo + 16, accessHi);
+                if (from >= to)
+                    return 0;
+                const uint32_t width = static_cast<uint32_t>(to - from);
+                return ((1u << width) - 1) << (from - lo);
+            };
+
+            for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+            {
+                const MicroInstrRef      ref  = it.current;
+                const MicroInstr&        inst = *it;
+                const MicroInstrDef&     info = MicroInstr::info(inst.op);
+                const MicroInstrOperand* ops  = inst.ops(operands);
+
+                if (inst.op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                {
+                    pendingStores.clear();
+                    onEntryLine = false;
+                    continue;
+                }
+
+                // Escapes first: the instruction that hands an address out can
+                // also read through it.
+                if (onEntryLine)
+                {
+                    for (size_t i = 0; i < varRanges.size(); ++i)
+                        escapedNow[i] |= varRanges[i].firstEscape == ref ? 1 : 0;
+                    unknownEscapedNow |= unknownFirstEscape == ref;
+                }
+
+                const auto found = accessOf.find(ref.get());
+                if (found != accessOf.end())
+                {
+                    const SlotAccess& acc       = *found->second;
+                    const uint64_t    accessLo  = acc.offset;
+                    const uint64_t    accessHi  = acc.offset + getNumBytes(acc.bits);
+                    const bool        pureStore = inst.op == MicroInstrOpcode::LoadMemReg ||
+                                           inst.op == MicroInstrOpcode::LoadMemImm ||
+                                           inst.op == MicroInstrOpcode::StoreVecMemReg;
+                    for (size_t i = 0; i < pendingStores.size();)
+                    {
+                        PendingStore&  pendingStore = pendingStores[i];
+                        const uint32_t touched      = touchedBytes(pendingStore.lo, accessLo, accessHi) & pendingStore.uncovered;
+                        if (touched && !pureStore)
+                        {
+                            pendingStores.erase(pendingStores.begin() + i);
+                            continue;
+                        }
+                        if (touched)
+                        {
+                            pendingStore.uncovered &= ~touched;
+                            if (!pendingStore.uncovered)
+                            {
+                                deadStores.push_back(pendingStore.ref);
+                                pendingStores.erase(pendingStores.begin() + i);
+                                continue;
+                            }
+                        }
+                        ++i;
+                    }
+
+                    const uint64_t width = accessHi - accessLo;
+                    if (pureStore && width <= 16 && pendingStores.size() < K_MAX_PENDING)
+                    {
+                        PendingStore pendingStore;
+                        pendingStore.ref       = ref;
+                        pendingStore.lo        = accessLo;
+                        pendingStore.uncovered = (1u << width) - 1;
+                        pendingStore.object    = objectOf(accessLo, accessHi);
+                        pendingStore.onEntry   = onEntryLine;
+                        pendingStores.push_back(pendingStore);
+                    }
+                    continue;
+                }
+
+                if (pendingStores.empty() || !ops)
+                    continue;
+
+                // A read the analysis could not place. Stores through other
+                // pointers read nothing.
+                uint8_t    baseIndex = 0;
+                const bool viaBase   = MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, info);
+                bool       reads     = false;
+                if (viaBase)
+                    reads = inst.op != MicroInstrOpcode::LoadMemReg && inst.op != MicroInstrOpcode::LoadMemImm &&
+                            inst.op != MicroInstrOpcode::StoreVecMemReg && inst.op != MicroInstrOpcode::LoadAmcMemReg &&
+                            inst.op != MicroInstrOpcode::LoadAmcMemImm;
+                else
+                    reads = inst.op == MicroInstrOpcode::Pop || inst.op == MicroInstrOpcode::LoadRegTlsSlot ||
+                            inst.op == MicroInstrOpcode::SanityInvalidate || inst.op == MicroInstrOpcode::Breakpoint;
+                if (!reads)
+                    continue;
+
+                const MicroReg base         = viaBase ? ops[baseIndex].reg : MicroReg::invalid();
+                const bool     framePointer = !base.isValid() || isFrameRegister(base) || isTracked(base) || base == stackPointer;
+                for (size_t i = 0; i < pendingStores.size();)
+                {
+                    if (framePointer || reachableByUnknownPointer(pendingStores[i]))
+                        pendingStores.erase(pendingStores.begin() + i);
+                    else
+                        ++i;
+                }
+            }
+
+            // The stores go, and so do their accesses: what the slots still
+            // see is what the rest of this round rewrites.
+            if (!deadStores.empty())
+            {
+                std::unordered_set<uint32_t> erased;
+                for (const MicroInstrRef deadStore : deadStores)
+                {
+                    erased.insert(deadStore.get());
+                    storage.erase(deadStore);
+                }
+                for (auto& [offset, slot] : slots)
+                {
+                    SmallVector<SlotAccess> live;
+                    for (const SlotAccess& acc : slot.accesses)
+                    {
+                        if (!erased.contains(acc.ref.get()))
+                            live.push_back(acc);
+                    }
+                    slot.accesses = std::move(live);
+                    slot.hasWrite = std::ranges::any_of(slot.accesses, [](const SlotAccess& acc) { return acc.isWrite; });
+                }
+                std::erase_if(slots, [](const auto& entry) { return entry.second.accesses.empty(); });
+                context.builder->invalidateControlFlowGraph();
+                erasedDeadStores = true;
+            }
+        }
+    }
 
     // ---- Decide candidate offsets: consistent b32/b64 width, a single
     //      register class (all-int or all-float), a write, and no overlap with
@@ -1491,8 +1719,234 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
     }
 
-    if (promotions.empty() && splits.empty() && laneSplits.empty())
-        return Result::Continue;
+    // ---- A word-sized record written field by field and read back whole. ----
+    // A small aggregate returned or passed in one register is assembled in its
+    // frame home: a default for the whole word, then one store per field,
+    // then a load of the word - on every path that returns it. The load waits
+    // on narrow stores it cannot forward from, and the stores and the load are
+    // memory traffic LLVM never emits: SROA keeps such a record in one integer
+    // and inserts each field with a shift and an or. The same happens here: a
+    // whole store sets the word register, a field store clears the field's
+    // bits and ors the shifted field in, and every read takes the word or its
+    // shifted field. The clear is skipped where a forward pass over the graph
+    // proves the field's bytes still zero, as they are after the declaration's
+    // default, so a field costs its shift and its or. Every read and every
+    // field store must find the whole word defined on every path.
+    struct RecordWord
+    {
+        uint64_t                offset = 0;
+        uint32_t                bytes  = 0;
+        SmallVector<SlotAccess> accesses;
+    };
+    SmallVector<RecordWord> records;
+    {
+        // Bytes another rewrite of this round already owns.
+        const auto claimed = [&](const uint64_t lo, const uint64_t hi) {
+            for (const Promotion& p : promotions)
+            {
+                if (lo < p.offset + getNumBytes(p.bits) && p.offset < hi)
+                    return true;
+            }
+            for (const FieldSplit& split : splits)
+            {
+                if (lo < split.offset + 8 && split.offset < hi)
+                    return true;
+            }
+            for (const LaneSplit& split : laneSplits)
+            {
+                if (lo < split.offset + 16 && split.offset < hi)
+                    return true;
+            }
+            return false;
+        };
+
+        for (const auto& [offset, slot] : slots)
+        {
+            if (slot.stackPointerAccess)
+                continue;
+
+            // The word is the widest integer read at the slot's own offset.
+            uint32_t wordBytes = 0;
+            for (const SlotAccess& acc : slot.accesses)
+            {
+                const MicroInstr* inst = storage.ptr(acc.ref);
+                if (!acc.isWrite && inst && inst->op == MicroInstrOpcode::LoadRegMem && inst->ops(operands)[0].reg.isVirtualInt() &&
+                    (acc.bits == MicroOpBits::B32 || acc.bits == MicroOpBits::B64))
+                    wordBytes = std::max(wordBytes, getNumBytes(acc.bits));
+            }
+            if (!wordBytes)
+                continue;
+            const uint64_t end = offset + wordBytes;
+            if (claimed(offset, end) || overlapsPoisonedVariable(offset, end) || (unknownSpaceEscaped && !insideKnownVariable(offset, end)))
+                continue;
+
+            RecordWord record;
+            record.offset = offset;
+            record.bytes  = wordBytes;
+            bool usable   = true;
+            bool narrow   = false;
+            for (const auto& [other, otherSlot] : slots)
+            {
+                if (otherSlot.maxAccessEnd <= offset || other >= end)
+                    continue;
+                if (other < offset || otherSlot.maxAccessEnd > end || otherSlot.stackPointerAccess)
+                {
+                    usable = false;
+                    break;
+                }
+                for (const SlotAccess& acc : otherSlot.accesses)
+                {
+                    const MicroInstr* inst = storage.ptr(acc.ref);
+                    if (!inst)
+                    {
+                        usable = false;
+                        break;
+                    }
+                    const MicroReg valueReg = slotValueRegister(inst->op, inst->ops(operands));
+                    const bool     store    = inst->op == MicroInstrOpcode::LoadMemImm || inst->op == MicroInstrOpcode::LoadMemReg;
+                    const bool     read     = !acc.isWrite && isFieldReadOp(inst->op);
+                    if ((!store && !read) || (valueReg.isValid() && !valueReg.isVirtualInt()))
+                    {
+                        usable = false;
+                        break;
+                    }
+                    narrow |= other != offset || getNumBytes(acc.bits) != wordBytes;
+                    record.accesses.push_back(acc);
+                }
+                if (!usable)
+                    break;
+            }
+            if (usable && narrow)
+                records.push_back(std::move(record));
+        }
+
+        // Two words over the same bytes - a narrower one read inside a wider
+        // one - are neither a record.
+        SmallVector<RecordWord> disjoint;
+        for (size_t i = 0; i < records.size(); ++i)
+        {
+            bool overlap = false;
+            for (size_t j = 0; j < records.size() && !overlap; ++j)
+                overlap = i != j && records[i].offset < records[j].offset + records[j].bytes && records[j].offset < records[i].offset + records[i].bytes;
+            if (!overlap)
+                disjoint.push_back(std::move(records[i]));
+        }
+        records = std::move(disjoint);
+    }
+
+    // Per record, the word's defined and known-zero bytes where each access
+    // runs, from a forward pass over the instruction graph.
+    struct RecordState
+    {
+        uint8_t defined = 0;
+        uint8_t zero    = 0;
+    };
+    std::unordered_map<uint32_t, RecordState> recordStateAt;
+    if (!records.empty())
+    {
+        const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
+        const uint32_t               n   = cfg.instructionCount();
+        const auto                   refs = cfg.instructionRefs();
+        const uint32_t               entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+
+        SmallVector<RecordWord> kept;
+        for (RecordWord& record : records)
+        {
+            const uint8_t all = static_cast<uint8_t>((1u << record.bytes) - 1);
+            std::unordered_map<uint32_t, const SlotAccess*> accessAt;
+            for (const SlotAccess& acc : record.accesses)
+                accessAt[acc.ref.get()] = &acc;
+
+            // The state after an instruction, from the state before it.
+            const auto transfer = [&](const uint32_t index, RecordState state) {
+                const auto found = accessAt.find(refs[index].get());
+                if (found == accessAt.end() || !found->second->isWrite)
+                    return state;
+                const SlotAccess&        acc   = *found->second;
+                const MicroInstr*        inst  = storage.ptr(acc.ref);
+                const MicroInstrOperand* iops  = inst->ops(operands);
+                const uint32_t           rel   = static_cast<uint32_t>(acc.offset - record.offset);
+                const uint32_t           count = getNumBytes(acc.bits);
+                const uint8_t            mask  = static_cast<uint8_t>(((1u << count) - 1) << rel);
+                state.defined |= mask;
+                state.zero &= static_cast<uint8_t>(~mask);
+                if (inst->op == MicroInstrOpcode::LoadMemImm)
+                {
+                    const uint64_t value = iops[3].valueU64;
+                    for (uint32_t b = 0; b < count; ++b)
+                    {
+                        if (((value >> (b * 8)) & 0xFF) == 0)
+                            state.zero |= static_cast<uint8_t>(1u << (rel + b));
+                    }
+                }
+                return state;
+            };
+
+            // Unreached instructions keep the optimistic state; the entry
+            // starts with nothing defined.
+            std::vector<RecordState> in(n, RecordState{all, all});
+            std::vector<uint8_t>     reached(n, 0);
+            bool                     valid = entry != MicroPassHelpers::MicroDomTree::K_INVALID_NODE && !cfg.hasUnsupportedControlFlowForCfgLiveness();
+            if (valid)
+            {
+                in[entry]      = RecordState{};
+                reached[entry] = 1;
+                bool changed   = true;
+                for (uint32_t sweep = 0; changed && sweep < 64; ++sweep)
+                {
+                    changed = false;
+                    for (uint32_t index = 0; index < n; ++index)
+                    {
+                        if (!reached[index])
+                            continue;
+                        const RecordState out = transfer(index, in[index]);
+                        for (const uint32_t succ : cfg.successors(index))
+                        {
+                            const RecordState merged{
+                                .defined = static_cast<uint8_t>(reached[succ] ? in[succ].defined & out.defined : out.defined),
+                                .zero    = static_cast<uint8_t>(reached[succ] ? in[succ].zero & out.zero : out.zero),
+                            };
+                            if (!reached[succ] || merged.defined != in[succ].defined || merged.zero != in[succ].zero)
+                            {
+                                reached[succ] = 1;
+                                in[succ]      = merged;
+                                changed       = true;
+                            }
+                        }
+                    }
+                }
+                valid = !changed;
+            }
+
+            // A field store and a read need the whole word; a whole store
+            // needs nothing.
+            for (const SlotAccess& acc : record.accesses)
+            {
+                if (!valid)
+                    break;
+                const uint32_t index = cfg.indexOf(acc.ref);
+                if (index == MicroControlFlowGraph::K_NO_INDEX || !reached[index])
+                {
+                    valid = false;
+                    break;
+                }
+                const bool wholeStore = acc.isWrite && acc.offset == record.offset && getNumBytes(acc.bits) == record.bytes;
+                if (!wholeStore && in[index].defined != all)
+                    valid = false;
+                // The field's clear, shift and or write the flags.
+                const bool rewritesFlags = acc.isWrite ? !wholeStore : acc.offset != record.offset;
+                if (rewritesFlags && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, acc.ref, context.builder))
+                    valid = false;
+                recordStateAt[acc.ref.get()] = in[index];
+            }
+            if (valid)
+                kept.push_back(std::move(record));
+        }
+        records = std::move(kept);
+    }
+
+    if (promotions.empty() && splits.empty() && laneSplits.empty() && records.empty())
+        return erasedDeadStores ? finish() : Result::Continue;
 
     // Loop-carried slots (values live across a back-edge) are promoted too: the
     // register allocator gives every non-pinned loop-carried virtual register a
@@ -1650,6 +2104,137 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             }
 
             rewriteSlotAccess(storage, operands, acc, found->second);
+        }
+    }
+
+    // ---- Assemble the records in their word register. ----
+    for (const RecordWord& record : records)
+    {
+        const MicroReg    word     = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+        const MicroOpBits wordBits = record.bytes == 8 ? MicroOpBits::B64 : MicroOpBits::B32;
+        const uint64_t    wordMask = record.bytes == 8 ? ~0ull : 0xFFFFFFFFull;
+
+        const auto insertBinaryImm = [&](const MicroInstrRef before, const MicroOp op, const uint64_t value) {
+            MicroInstrOperand binOps[4];
+            binOps[0].reg     = word;
+            binOps[1].opBits  = wordBits;
+            binOps[2].microOp = op;
+            binOps[3].setImmediateValue(ApInt(value & wordMask, getNumBits(wordBits)));
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::OpBinaryRegImm, binOps);
+        };
+
+        for (const SlotAccess& acc : record.accesses)
+        {
+            // Read before anything is inserted: an insertion can move the
+            // instruction and its operands.
+            const MicroInstr*        inst     = storage.ptr(acc.ref);
+            const MicroInstrOperand* iops     = inst->ops(operands);
+            const bool               storeImm = inst->op == MicroInstrOpcode::LoadMemImm;
+            const uint64_t           imm      = storeImm ? iops[3].valueU64 : 0;
+            const MicroReg           src      = acc.isWrite && !storeImm ? iops[1].reg : MicroReg::invalid();
+            const uint32_t           rel      = static_cast<uint32_t>(acc.offset - record.offset);
+            const uint32_t           count    = getNumBytes(acc.bits);
+            const uint32_t           shift    = rel * 8;
+
+            if (!acc.isWrite)
+            {
+                // The word itself, or its field brought down to the low bits.
+                if (!rel)
+                {
+                    rewriteSlotAccess(storage, operands, acc, word);
+                    continue;
+                }
+                const MicroReg    field = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                MicroInstrOperand copyOps[3];
+                copyOps[0].reg    = field;
+                copyOps[1].reg    = word;
+                copyOps[2].opBits = wordBits;
+                storage.insertDerivedBefore(operands, acc.ref, MicroInstrOpcode::LoadRegReg, copyOps);
+                MicroInstrOperand shiftOps[4];
+                shiftOps[0].reg     = field;
+                shiftOps[1].opBits  = wordBits;
+                shiftOps[2].microOp = MicroOp::ShiftRight;
+                shiftOps[3].setImmediateValue(ApInt(shift, getNumBits(wordBits)));
+                storage.insertDerivedBefore(operands, acc.ref, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+                rewriteSlotAccess(storage, operands, acc, field);
+                continue;
+            }
+
+            // A store of the whole word sets the register.
+            if (!rel && count == record.bytes)
+            {
+                rewriteSlotAccess(storage, operands, acc, word);
+                continue;
+            }
+
+            // A field store: clear the field unless it is known zero, then or
+            // the value in.
+            // Over a word known to be zero, the field is the whole word.
+            const uint64_t    fieldMask = (count == 8 ? ~0ull : (1ull << (count * 8)) - 1) << shift;
+            const RecordState state     = recordStateAt[acc.ref.get()];
+            const uint8_t     byteMask  = static_cast<uint8_t>(((1u << count) - 1) << rel);
+            const bool        wordZero  = state.zero == static_cast<uint8_t>((1u << record.bytes) - 1);
+            if ((state.zero & byteMask) != byteMask)
+                insertBinaryImm(acc.ref, MicroOp::And, ~fieldMask);
+
+            if (storeImm)
+            {
+                const uint64_t value = (imm << shift) & fieldMask;
+                if (value && wordZero)
+                {
+                    MicroInstrOperand loadOps[3];
+                    loadOps[0].reg    = word;
+                    loadOps[1].opBits = wordBits;
+                    loadOps[2].setImmediateValue(ApInt(value, getNumBits(wordBits)));
+                    storage.insertDerivedBefore(operands, acc.ref, MicroInstrOpcode::LoadRegImm, loadOps);
+                }
+                else if (value)
+                    insertBinaryImm(acc.ref, MicroOp::Or, value);
+            }
+            else
+            {
+                const MicroReg    part = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                MicroInstrOperand extendOps[4];
+                extendOps[0].reg    = part;
+                extendOps[1].reg    = src;
+                extendOps[2].opBits = wordBits;
+                extendOps[3].opBits = acc.bits;
+                if (count == 4)
+                {
+                    // A 32-bit copy clears the upper half.
+                    extendOps[2].opBits = MicroOpBits::B32;
+                    storage.insertDerivedBefore(operands, acc.ref, MicroInstrOpcode::LoadRegReg, std::span<const MicroInstrOperand>(extendOps, 3));
+                }
+                else
+                    storage.insertDerivedBefore(operands, acc.ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+                if (shift)
+                {
+                    MicroInstrOperand shiftOps[4];
+                    shiftOps[0].reg     = part;
+                    shiftOps[1].opBits  = wordBits;
+                    shiftOps[2].microOp = MicroOp::ShiftLeft;
+                    shiftOps[3].setImmediateValue(ApInt(shift, getNumBits(wordBits)));
+                    storage.insertDerivedBefore(operands, acc.ref, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+                }
+                if (wordZero)
+                {
+                    MicroInstrOperand copyOps[3];
+                    copyOps[0].reg    = word;
+                    copyOps[1].reg    = part;
+                    copyOps[2].opBits = wordBits;
+                    storage.insertDerivedBefore(operands, acc.ref, MicroInstrOpcode::LoadRegReg, copyOps);
+                }
+                else
+                {
+                    MicroInstrOperand orOps[4];
+                    orOps[0].reg     = word;
+                    orOps[1].reg     = part;
+                    orOps[2].opBits  = wordBits;
+                    orOps[3].microOp = MicroOp::Or;
+                    storage.insertDerivedBefore(operands, acc.ref, MicroInstrOpcode::OpBinaryRegReg, orOps);
+                }
+            }
+            storage.erase(acc.ref);
         }
     }
 

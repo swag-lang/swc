@@ -265,6 +265,13 @@ namespace MicroPassHelpers
     bool areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands, uint32_t index);
     bool areCpuFlagsDeadAfterInCfg(MicroBuilder& builder, MicroInstrRef afterRef);
 
+    // The frame extents [lo, hi) of the function's stack locals, as offsets from the frame base
+    // the code generator names (MicroPassContext::debugStackBaseVirtualReg). Frame objects are
+    // disjoint, and an address formed from one object reaches that object alone, so these are
+    // what bounds an escaped frame address. Empty when the lowered function is unknown, or its
+    // locals hang from another register.
+    void collectFrameVariableExtents(std::vector<std::pair<uint64_t, uint64_t>>& out, const MicroPassContext& context, MicroReg frameBase);
+
     // First virtual register index not used by any operand, starting above the
     // builder's hint. Passes that synthesize registers allocate upward from here.
     uint32_t computeNextVirtualIntRegIndex(const MicroPassContext& context);

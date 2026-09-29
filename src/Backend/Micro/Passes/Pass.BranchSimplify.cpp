@@ -1044,6 +1044,57 @@ namespace
         return changed;
     }
 
+    // A boolean materialized from a decided comparison is that constant:
+    // `cmp 1, 0 ; setne` is how a `true` assigned to a bool reaches the
+    // backend. Once the boolean is a field inserted into a register-held
+    // record, the constant is what lets the insertion fold to an immediate.
+    // This runs late, on the converged code: while the loop still iterates,
+    // the fuse below wants the setcc chain to thread a branch through a flag
+    // left for it, and a constant would hide that chain.
+    bool foldDecidedBooleans(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
+    {
+        const KnownValueContext context{&ssaState, &storage, &operands};
+
+        bool          changed        = false;
+        MicroInstrRef currentFlagDef = MicroInstrRef::invalid();
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt;)
+        {
+            const MicroInstrRef instRef = it.current;
+            MicroInstr&         inst    = *it;
+            ++it;
+
+            const MicroInstrFlags flags = MicroInstr::info(inst.op).flags;
+            if (inst.op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction))
+            {
+                currentFlagDef = MicroInstrRef::invalid();
+                continue;
+            }
+
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (inst.op == MicroInstrOpcode::SetCondReg)
+            {
+                bool isSet = false;
+                if (ops && ops[0].reg.isVirtualInt() &&
+                    tryEvaluateKnownBranch(isSet, context, knownValues, knownFlags, currentFlagDef, ops[1].cpuCond))
+                {
+                    MicroInstrOperand loadOps[3];
+                    loadOps[0].reg    = ops[0].reg;
+                    loadOps[1].opBits = MicroOpBits::B8;
+                    loadOps[2].setImmediateValue(ApInt(isSet ? 1 : 0, 8));
+                    storage.insertDerivedBefore(operands, instRef, MicroInstrOpcode::LoadRegImm, loadOps);
+                    changed |= storage.erase(instRef);
+                }
+                continue;
+            }
+
+            if (flags.has(MicroInstrFlagsE::DefinesCpuFlags) && MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, ops))
+                currentFlagDef = instRef;
+        }
+
+        return changed;
+    }
+
     // Fuse a materialized-boolean branch back onto the comparison flags that
     // produced it:
     //
@@ -7298,18 +7349,40 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         thread_local BranchScanCache scanCache;
         scanCache.invalidate();
         scanCache.ensureLayout(storage, operands);
-        if (!scanCache.scan.layout.hasConditionalJump)
+        const bool hasSetCondition = scanCache.scan.layout.hasSetCondition;
+        if (!scanCache.scan.layout.hasConditionalJump && !hasSetCondition)
             return Result::Continue;
 
-        bool lateChanged = speculateCheapElseArms(storage, operands, scanCache);
-        if (lateChanged)
-            scanCache.invalidate();
-        if (threadShortCircuitReturnValues(storage, operands, context.builder, scanCache))
+        bool lateChanged = false;
+        if (scanCache.scan.layout.hasConditionalJump)
         {
-            lateChanged = true;
-            scanCache.invalidate();
+            lateChanged = speculateCheapElseArms(storage, operands, scanCache);
+            if (lateChanged)
+                scanCache.invalidate();
+            if (threadShortCircuitReturnValues(storage, operands, context.builder, scanCache))
+            {
+                lateChanged = true;
+                scanCache.invalidate();
+            }
+            lateChanged |= foldAbsoluteRangeTests(storage, operands, context, scanCache);
         }
-        lateChanged |= foldAbsoluteRangeTests(storage, operands, context, scanCache);
+        if (hasSetCondition)
+        {
+            std::optional<MicroSsaState> localSsaState;
+            MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+            if (lateChanged && context.ssaState)
+                context.ssaState->invalidate();
+            if (lateChanged)
+                context.builder->invalidateControlFlowGraph();
+            const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, ssaScratch);
+            if (ssaState && ssaState->isValid())
+            {
+                SWC_ASSERT(context.ssaValueScratch != nullptr);
+                MicroSsaValueScratch& scratch = *context.ssaValueScratch;
+                computeKnownValues(scratch.knownValues, scratch.flags, *ssaState, storage, operands);
+                lateChanged |= foldDecidedBooleans(storage, operands, *ssaState, scratch.knownValues, scratch.flags);
+            }
+        }
         if (lateChanged)
         {
             context.passChanged = true;

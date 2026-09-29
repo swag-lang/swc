@@ -5097,6 +5097,99 @@ SWC_TEST_BEGIN(InstCombine_EqualIndexedAddressesAreNotTraded)
 }
 SWC_TEST_END()
 
+// A vector literal whose local is first cleared through an address formed from its base - the
+// way a local gets its default - is built in registers: the clear supplies the lanes no store
+// names, and the address, used only by that clear, does not escape. Handing the address out
+// keeps the literal in the frame.
+SWC_TEST_BEGIN(InstCombine_VectorLiteralClearedThroughAddressBuildsInRegisters)
+{
+    const MicroReg     stack  = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg local  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg second = MicroReg::virtualIntReg(4);
+    constexpr MicroReg zero   = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(2);
+
+    for (const bool escapes : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressRegMem(base, stack, 0x20, MicroOpBits::B64);
+        builder.emitLoadRegReg(first, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(second, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(local, base, 0x40, MicroOpBits::B64);
+        builder.emitClearReg(zero, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(local, 0, zero, MicroOpBits::B128);
+        if (escapes)
+            builder.emitLoadRegReg(MicroReg::intReg(8), local, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 0x40, first, MicroOpBits::B16);
+        builder.emitLoadMemReg(base, 0x42, second, MicroOpBits::B16);
+        builder.emitLoadRegMem(vector, base, 0x40, MicroOpBits::B128);
+        builder.emitLoadRegReg(MicroReg::floatReg(0), vector, MicroOpBits::B128);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        uint32_t wholeLoads = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[0].reg == vector)
+                ++wholeLoads;
+        }
+        if (wholeLoads != (escapes ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Storing back the value just loaded from the same place, at the same width, writes nothing new:
+// the store goes. A write through another pointer in between may have changed those bytes, and a
+// different width stores other bytes; both keep the store.
+SWC_TEST_BEGIN(InstCombine_StoreOfJustLoadedValueIsErased)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg other = MicroReg::virtualIntReg(2);
+    constexpr MicroReg low   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg whole = MicroReg::virtualIntReg(4);
+
+    enum class Shape : uint8_t
+    {
+        Plain,
+        ForeignWrite,
+        OtherWidth,
+    };
+    for (const Shape shape : {Shape::Plain, Shape::ForeignWrite, Shape::OtherWidth})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(other, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(low, MicroReg::intReg(8), MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 0x34, low, MicroOpBits::B16);
+        builder.emitLoadMemReg(base, 0x36, low, MicroOpBits::B16);
+        builder.emitLoadRegMem(whole, base, 0x34, MicroOpBits::B32);
+        if (shape == Shape::ForeignWrite)
+            builder.emitLoadMemImm(other, 0, ApInt(7, 32), MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 0x34, whole, shape == Shape::OtherWidth ? MicroOpBits::B16 : MicroOpBits::B32);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        uint32_t storesBack = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadMemReg && ops && ops[1].reg == whole)
+                ++storesBack;
+        }
+        if (storesBack != (shape == Shape::Plain ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

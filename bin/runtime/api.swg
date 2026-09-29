@@ -57,7 +57,7 @@ namespace Swag
     // Prints the micro instructions generated for a function, a struct, or a file.
     //
     // Without a parameter, the instructions are printed right before the emit pass. Otherwise
-    // each parameter names a stage, spelled `before-<pass>` or `after-<pass>`.
+    // each parameter names a stage, spelled `pre-<pass>` or `post-<pass>`.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
     attr PrintMicro(stages: string...)
 

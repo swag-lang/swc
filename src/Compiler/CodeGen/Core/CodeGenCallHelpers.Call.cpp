@@ -349,16 +349,14 @@ namespace
         if (normalizedType.isReference())
             return;
 
-        const TypeRef   normalizedTypeUnwrapped = normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
-        const TypeRef   dstTypeRef              = normalizedTypeUnwrapped.isValid() ? normalizedTypeUnwrapped : normalizedTypeRef;
-        const TypeInfo& dstType                 = typeMgr.get(dstTypeRef);
+        const TypeRef   normalizedTypeUnwrapped = normalizedType.isAlias() ? normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias) : TypeRef::invalid();
+        const TypeInfo& dstType                 = normalizedTypeUnwrapped.isValid() ? typeMgr.get(normalizedTypeUnwrapped) : normalizedType;
 
         if (argPayload.typeRef.isValid())
         {
             const TypeInfo& srcTypeInfo      = typeMgr.get(argPayload.typeRef);
-            const TypeRef   srcTypeUnwrapped = srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
-            const TypeRef   srcTypeRef       = srcTypeUnwrapped.isValid() ? srcTypeUnwrapped : argPayload.typeRef;
-            const TypeInfo& srcType          = typeMgr.get(srcTypeRef);
+            const TypeRef   srcTypeUnwrapped = srcTypeInfo.isAlias() ? srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias) : TypeRef::invalid();
+            const TypeInfo& srcType          = srcTypeUnwrapped.isValid() ? typeMgr.get(srcTypeUnwrapped) : srcTypeInfo;
             const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
             const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 

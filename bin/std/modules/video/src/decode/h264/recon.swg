@@ -280,24 +280,38 @@ impl Slice
             // The AC levels are already in place, so the DC completes each block. A block with
             // no AC level is flat: its transform is the rounded DC on every sample, and a zero
             // DC leaves the prediction as it is, as FFmpeg's intra 16x16 residual loop skips.
-            let dcList = cast(u64) plane
-            for raster in 16's32
+            // An 8x8 quarter whose four blocks are all flat takes one pass.
+            let dcScale = cast(s32) pps.dequant4[cast(u64) plane, cast(u64) qp, 0]
+            for quarter in 4's32
             {
-                let bx          = raster & 3
-                let by          = raster >> 2
-                let dc          = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[dcList, cast(u64) qp, 0] + 32) >> 6
-                let clamped     = clampS32(dc, -32768, 32767)
-                let destination = frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4)
-                if storage.nz[cast(u64) raster] == 0
+                let first = (quarter >> 1) * 8 + (quarter & 1) * 2
+                if storage.nz[cast(u64) first] == 0 and storage.nz[cast(u64) first + 1] == 0 and storage.nz[cast(u64) first + 4] == 0 and storage.nz[cast(u64) first + 5] == 0
                 {
-                    if clamped != 0 do
-                        addDc4x4(destination, stride, clamped)
+                    let dc0 = intra16Dc(dcBlock.buffer, first, dcScale)
+                    let dc1 = intra16Dc(dcBlock.buffer, first + 1, dcScale)
+                    let dc2 = intra16Dc(dcBlock.buffer, first + 4, dcScale)
+                    let dc3 = intra16Dc(dcBlock.buffer, first + 5, dcScale)
+                    if dc0 != 0 or dc1 != 0 or dc2 != 0 or dc3 != 0 do
+                        addDc8x8Quad(frame.pixPlane(plane, mb.mbX * 16 + (first & 3) * 4, mb.mbY * 16 + (first >> 2) * 4), stride, dc0, dc1, dc2, dc3)
                     continue
                 }
 
-                let block = storage.ac + cast(u64) raster * 16
-                block[0] = cast(s16) clamped
-                addIdct4x4(destination, stride, block)
+                for sub in 4's32
+                {
+                    let raster      = first + (sub >> 1) * 4 + (sub & 1)
+                    let clamped     = intra16Dc(dcBlock.buffer, raster, dcScale)
+                    let destination = frame.pixPlane(plane, mb.mbX * 16 + (raster & 3) * 4, mb.mbY * 16 + (raster >> 2) * 4)
+                    if storage.nz[cast(u64) raster] == 0
+                    {
+                        if clamped != 0 do
+                            addDc4x4(destination, stride, clamped)
+                        continue
+                    }
+
+                    let block = storage.ac + cast(u64) raster * 16
+                    block[0] = cast(s16) clamped
+                    addIdct4x4(destination, stride, block)
+                }
             }
 
             return
@@ -349,6 +363,19 @@ impl Slice
 
         // The AC levels are already dequantized in place, so the DC completes each block.
         let counts = plane == 0 ? (mb.nzCb).buffer : (mb.nzCr).buffer
+
+        // Four flat blocks, the common case, take one pass over the 8x8 block.
+        if counts[0] == 0 and counts[1] == 0 and counts[2] == 0 and counts[3] == 0
+        {
+            let dc0 = clampS32((cast(s32) dc[0] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc1 = clampS32((cast(s32) dc[1] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc2 = clampS32((cast(s32) dc[2] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc3 = clampS32((cast(s32) dc[3] * cast(s32) table[0]) >> 5, -32768, 32767)
+            if dc0 != 0 or dc1 != 0 or dc2 != 0 or dc3 != 0 do
+                addDc8x8Quad(frame.pixChroma(plane, mb.mbX * 8, mb.mbY * 8), stride, dc0, dc1, dc2, dc3)
+            return
+        }
+
         for block in 4's32
         {
             let bx      = block & 1
@@ -614,6 +641,13 @@ private func reconstructBand(decoder: *Decoder, first, end: u32)
         if reconstructionError != null do
             Atomic.exchange(&decoder.pipelineFailed, 1)
     }
+}
+
+// The dequantized DC of the intra 16x16 block at `raster`, from the transformed DC block.
+#[Swag.Inline]
+private func intra16Dc(dcBlock: const [*] s16, raster: s32, scale: s32)->s32
+{
+    return clampS32((cast(s32) dcBlock[cast(u64) raster] * scale + 32) >> 6, -32768, 32767)
 }
 
 // Adds one 4x4 block of a colour plane, already dequantized in raster order, to its prediction.

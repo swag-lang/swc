@@ -364,14 +364,32 @@ impl Slice
     }
 
     // Decodes one intra 4x4 or 8x8 prediction mode against its neighbor prediction.
+    //
+    // This and the other syntax elements of several bins decode against local arithmetic
+    // registers written back once, like a residual block, rather than one call per bin.
     mtd intraModeCabac(predicted: u32)->u32
     {
-        if .decision(68) != 0 do
-            return predicted
-        var mode = .decision(69)
-        mode += 2 * .decision(69)
-        mode += 4 * .decision(69)
-        return mode >= predicted ? mode + 1 : mode
+        var range = .cabac.range
+        var low   = .cabac.low
+        var binState: s64
+        var mode = predicted
+        .binDecision(68)
+        if (binState & 1) == 0
+        {
+            let states = .cabac.contexts.buffer + 69
+            .binDecisionAt(states)
+            mode = cast(u32) (binState & 1)
+            .binDecisionAt(states)
+            mode += 2 * cast(u32) (binState & 1)
+            .binDecisionAt(states)
+            mode += 4 * cast(u32) (binState & 1)
+            if mode >= predicted do
+                mode += 1
+        }
+
+        .cabac.range = range
+        .cabac.low   = low
+        return mode
     }
 
     // Decodes the intra chroma prediction mode.
@@ -413,15 +431,25 @@ impl Slice
         if .neighbors.b.available do
             topCbp = cast(u32) .neighbors.b.info!.cbpLuma
 
-        var cbp = 0'u32
-        var ctx = (leftCbp & 0x02 ? 0'u32 : 1) + 2 * (topCbp & 0x04 ? 0'u32 : 1)
-        cbp += .decision(73 + ctx)
-        ctx = (cbp & 0x01 ? 0'u32 : 1) + 2 * (topCbp & 0x08 ? 0'u32 : 1)
-        cbp += .decision(73 + ctx) << 1
-        ctx = (leftCbp & 0x08 ? 0'u32 : 1) + 2 * (cbp & 0x01 ? 0'u32 : 1)
-        cbp += .decision(73 + ctx) << 2
-        ctx = (cbp & 0x04 ? 0'u32 : 1) + 2 * (cbp & 0x02 ? 0'u32 : 1)
-        cbp += .decision(73 + ctx) << 3
+        var range = .cabac.range
+        var low   = .cabac.low
+        var binState: s64
+        let states = .cabac.contexts.buffer + 73
+        var cbp    = 0'u32
+        var ctx    = (leftCbp & 0x02 ? 0'u64 : 1) + 2 * (topCbp & 0x04 ? 0'u64 : 1)
+        .binDecisionAt(states + ctx)
+        cbp += cast(u32) (binState & 1)
+        ctx = (cbp & 0x01 ? 0'u64 : 1) + 2 * (topCbp & 0x08 ? 0'u64 : 1)
+        .binDecisionAt(states + ctx)
+        cbp += cast(u32) (binState & 1) << 1
+        ctx = (leftCbp & 0x08 ? 0'u64 : 1) + 2 * (cbp & 0x01 ? 0'u64 : 1)
+        .binDecisionAt(states + ctx)
+        cbp += cast(u32) (binState & 1) << 2
+        ctx = (cbp & 0x04 ? 0'u64 : 1) + 2 * (cbp & 0x02 ? 0'u64 : 1)
+        .binDecisionAt(states + ctx)
+        cbp += cast(u32) (binState & 1) << 3
+        .cabac.range = range
+        .cabac.low   = low
         return cbp
     }
 
@@ -454,16 +482,24 @@ impl Slice
     // Decodes the macroblock QP delta.
     mtd qpDeltaCabac()->s32
     {
+        var range = .cabac.range
+        var low   = .cabac.low
+        var binState: s64
         var ctx   = .lastQpDelta != 0 ? 1'u32 : 0'u32
         var count = 0's32
-        while .decision(60 + ctx) != 0
+        while true
         {
+            .binDecision(60 + ctx)
+            if (binState & 1) == 0 do
+                break
             ctx   = ctx < 2 ? 2 : 3
             count += 1
             if count > 104 do
                 break
         }
 
+        .cabac.range = range
+        .cabac.low   = low
         return count & 1 ? (count + 1) >> 1 : -(count >> 1)
     }
 
@@ -476,15 +512,23 @@ impl Slice
         if .refCtxFlag(mb, list, x4, y4 - 1) do
             ctx += 2
 
+        var range = .cabac.range
+        var low   = .cabac.low
+        var binState: s64
         var ref = 0'u32
-        while .decision(54 + ctx) != 0
+        while true
         {
+            .binDecision(54 + ctx)
+            if (binState & 1) == 0 do
+                break
             ref += 1
             ctx = (ctx >> 2) + 4
             if ref >= 32 do
                 break
         }
 
+        .cabac.range = range
+        .cabac.low   = low
         return ref
     }
 

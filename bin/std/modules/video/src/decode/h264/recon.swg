@@ -408,6 +408,7 @@ impl Slice
     mtd compensate(mb: *Mb, frame: *Frame) fail
     {
         let dec = .dec!
+        .prefetchMotion(mb, 0)
 
         // Skip and direct derivations partition uniformly: when every job carries the same
         // references and motion, one 16x16 job compensates the whole macroblock. The jobs of
@@ -543,6 +544,55 @@ impl Slice
                 }
             }
         }
+
+        .prefetchMotion(mb, 1)
+    }
+
+    // Asks the cache for the reference rows the macroblocks four places to the right will
+    // likely read, as FFmpeg's `prefetch_motion` does. Neighbors tend to move alike, so the
+    // samples sixty-four columns past this block's first vector are where their interpolation
+    // lands; each macroblock requests four of those sixteen luma rows, rotating with its column,
+    // and one chroma row of each plane, so a run of macroblocks covers the whole region just
+    // before reaching it. The rows are clamped to the padded plane: the hint never faults, but
+    // the offsets must stay representable.
+    mtd prefetchMotion(mb: *Mb, list: u32)
+    {
+        let job    = &mb.firstJob
+        let refIdx = job.refIdx[list]
+        if refIdx < 0 do
+            return
+        let reference = .refs[list, cast(u64) refIdx].frame
+        if not reference do
+            return
+
+        let x      = (cast(s32) job.mv[list, 0] >> 2) + mb.mbX * 16 + 8
+        let y      = (cast(s32) job.mv[list, 1] >> 2) + mb.mbY * 16
+        let stride = reference.strideLuma
+        let column = cast(u64) Math.clamp(x + 64 + FramePadding, 0, cast(s32) stride - 1)
+        let row    = cast(u64) Math.clamp(y + (mb.mbX & 3) * 4 + FramePadding, 0, reference.mbHeight * 16 + FramePadding * 2 - 4)
+        let luma   = reference.luma.storage() + row * stride + column
+        for line in 4'u64 do
+            Swag.prefetch(luma + line * stride)
+
+        // A 4:4:4 colour plane has the luma geometry and is read exactly as luma is.
+        if reference.chromaShift == 0
+        {
+            let offset = row * stride + column
+            for line in 4'u64
+            {
+                Swag.prefetch(reference.cb.storage() + offset + line * stride)
+                Swag.prefetch(reference.cr.storage() + offset + line * stride)
+            }
+
+            return
+        }
+
+        let chromaStride = reference.strideChroma
+        let chromaColumn = cast(u64) Math.clamp((x >> 1) + 64 + FramePadding, 0, cast(s32) chromaStride - 1)
+        let chromaRow    = cast(u64) Math.clamp((y >> 1) + (mb.mbX & 7) + FramePadding, 0, reference.mbHeight * 8 + FramePadding * 2 - 1)
+        let chromaOffset = chromaRow * chromaStride + chromaColumn
+        Swag.prefetch(reference.cb.storage() + chromaOffset)
+        Swag.prefetch(reference.cr.storage() + chromaOffset)
     }
 
     // Waits until a reference picture holds every row one job reads from it.

@@ -35,11 +35,11 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-29 18:54 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-29 18:48 |
 | [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-29 18:46 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-29 18:46 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-29 16:26 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-29 16:26 |
-| [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-29 15:15 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-29 13:48 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-28 16:00 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-27 18:13 |

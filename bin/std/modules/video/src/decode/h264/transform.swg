@@ -64,14 +64,14 @@ func maxS32(a, b: s32)->s32
 // The inverse 4x4 core transform of section 8.5.12.2 in 32-bit scalar arithmetic: the
 // reference [[addIdct4x4]] is checked against.
 //
-// `block` is in natural raster order, exactly as [[Decoder.dequant4x4]] builds it. The spec's
+// `block` is transposed, column after column, as the entropy decoders store it. The spec's
 // pass order follows: rows first, then each intermediate column lands in one destination
 // column, with the final rounding bias riding on the DC coefficient.
 func addIdct4x4Scalar(destination: [*] u8, stride: u64, block: [*] s16)
 {
     var work: [16] s32
     for index in 16'u64 do
-        work[index] = cast(s32) block[index]
+        work[index] = cast(s32) block[(index & 3) * 4 + (index >> 2)]
     work[0] += 32
 
     for row in 4'u64
@@ -100,10 +100,10 @@ func addIdct4x4Scalar(destination: [*] u8, stride: u64, block: [*] s16)
     }
 }
 
-// Adds the inverse 4x4 core transform of `block` to the destination, section 8.5.12.2, in
-// 16-bit lanes. The row pass runs on the four columns held two per vector, a transpose turns
-// its result back into rows, the column pass runs the same butterfly on those, and the
-// prediction is added two rows per vector. A conforming stream keeps every intermediate of
+// Adds the inverse 4x4 core transform of `block`, stored transposed, to the destination,
+// section 8.5.12.2, in 16-bit lanes. The row pass runs on the four columns held two per
+// vector, as the block arrives, a transpose turns its result back into rows, the column pass
+// runs the same butterfly on those, and the prediction is added two rows per vector. A conforming stream keeps every intermediate of
 // this transform in the 16-bit range (8.5.12), so the lanes never wrap where the 32-bit
 // scalar form would not, and the result is exactly [[addIdct4x4Scalar]].
 func addIdct4x4(destination: [*] u8, stride: u64, block: [*] s16)
@@ -111,14 +111,10 @@ func addIdct4x4(destination: [*] u8, stride: u64, block: [*] s16)
     const Bias       = cast(Simd.S16x8) [32's16, 0, 0, 0, 0, 0, 0, 0]
     const SwapHalves = cast(Simd.U8x16) [8'u8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7]
 
-    // Rows 0,1 and rows 2,3, the rounding bias riding on the DC coefficient; then the
-    // columns, two per vector: `x` holds columns 0 and 1, `y` columns 2 and 3.
-    let rows01 = cast #bit(Simd.U16x8) (Simd.load(block) + Bias)
-    let rows23 = cast #bit(Simd.U16x8) Simd.load(block + 8)
-    let even   = Simd.interleaveLow(rows01, rows23)
-    let odd    = Simd.interleaveHigh(rows01, rows23)
-    let x      = cast #bit(Simd.S16x8) Simd.interleaveLow(even, odd)
-    let y      = cast #bit(Simd.S16x8) Simd.interleaveHigh(even, odd)
+    // The block is stored transposed, so its columns load two per vector: `x` holds columns 0
+    // and 1, `y` columns 2 and 3, the rounding bias riding on the DC coefficient.
+    let x = Simd.load(block) + Bias
+    let y = Simd.load(block + 8)
 
     // The butterfly on a column pair leaves z0, z1 in the low halves and z2, z3 in the high
     // ones; regrouping them by 64-bit halves gives the four outputs as [col0 | col1] and
@@ -318,13 +314,13 @@ func hadamard2x2(block: [*] s16)
 // The inverse 8x8 transform of section 8.5.13.1 in 32-bit scalar arithmetic: the reference
 // [[addIdct8x8]] is checked against.
 //
-// Structured exactly like [[addIdct4x4Scalar]]: natural raster input, rows first, then each
-// intermediate column lands in one destination column.
+// Structured like [[addIdct4x4Scalar]], from the transposed block the entropy decoders store:
+// rows first, then each intermediate column lands in one destination column.
 func addIdct8x8Scalar(destination: [*] u8, stride: u64, block: [*] s16)
 {
     var work: [64] s32
     for index in 64'u64 do
-        work[index] = cast(s32) block[index]
+        work[index] = cast(s32) block[(index & 7) * 8 + (index >> 3)]
     work[0] += 32
 
     for row in 8'u64
@@ -489,9 +485,10 @@ private func addRow8(destination: [*] u8, row: Simd.S16x8)
     Simd.storeLow8(destination, Simd.packUnsigned(sum, sum))
 }
 
-// Adds the inverse 8x8 transform of `block` to the destination, section 8.5.13.1, in 16-bit
-// lanes: rows first, as the spec orders it, by transposing the block so one vector holds one
-// column and the lanes walk the rows, then back to rows for the column pass. A conforming
+// Adds the inverse 8x8 transform of `block`, stored transposed, to the destination, section
+// 8.5.13.1, in 16-bit lanes: rows first, as the spec orders it, with one vector per column and
+// the lanes walking the rows, which is how the block arrives, then one transpose back to rows
+// for the column pass. A conforming
 // stream keeps every intermediate in the 16-bit range, so the lanes never wrap where the
 // 32-bit scalar form would not, and the result is exactly [[addIdct8x8Scalar]].
 func addIdct8x8(destination: [*] u8, stride: u64, block: [*] s16)
@@ -506,7 +503,6 @@ func addIdct8x8(destination: [*] u8, stride: u64, block: [*] s16)
     var r6 = Simd.load(block + 48)
     var r7 = Simd.load(block + 56)
 
-    transpose8x8Lanes()
     idct8Lanes()
     transpose8x8Lanes()
     idct8Lanes()

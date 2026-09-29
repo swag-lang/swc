@@ -6,21 +6,6 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
-### compiler.core.059 — A method call numbers its arguments from the receiver
-
-- Recorded: 2026-09-29 18:48
-- Evidence: `decoder.prefetchInterMb(index + 1)`, whose only written argument is a `u64` passed
-  to a `u32` parameter, reports "argument 2 for call to 'prefetchInterMb' has type 'u64', but
-  parameter 'index' needs 'u32'". The receiver bound by the dot is counted as argument 1, so the
-  number names an argument the reader cannot find between the parentheses. `callArgIndex` in
-  `Match.Func.cpp` indexes the call with its UFCS receiver first, and every
-  `ARG_INDEX` site (`setCallArgumentFailureArgs`, the overload-candidate note,
-  `makeCallCastErrorArguments` and its callers) prints it plus one.
-- Next: decide the numbering once, most likely the written arguments counted from one with the
-  receiver named "the receiver" when it is the one that fails, pass the UFCS receiver to every
-  `ARG_INDEX` site, and add a `sema` fixture for a failing method argument and a failing receiver.
-- Complete when: both fixtures show the argument as written, and the existing `sema` suite
-  expectations that count a receiver are updated deliberately.
 ### compiler.core.005 — Compiler memory has no attributed, enforced budget
 
 - Recorded: 2026-08-06 20:18

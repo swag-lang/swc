@@ -760,6 +760,18 @@ const DeblockTc0: [156] u8 = [
     6, 8, 13, 7, 10, 14, 8, 11, 16, 9, 12, 18, 10, 13, 20,
     11, 15, 23, 13, 17, 25]
 
+// The same clips, one little-endian word per indexA holding the bytes 0, tC0(1), tC0(2),
+// tC0(3): the byte a strength of 0 to 3 names in the word, and byte 4 of the word splatted
+// twice is the 0 a strength of 4 names, so one byte shuffle maps strengths to clips.
+const DeblockTcRows: [52] u32 = [
+    0x00000000'u32, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0x00000000, 0x01000000, 0x01000000, 0x01000000, 0x01000000, 0x01010000, 0x01010000, 0x01010100,
+    0x01010100, 0x01010100, 0x01010100, 0x02010100, 0x02010100, 0x02010100, 0x02010100, 0x03020100,
+    0x03020100, 0x03020200, 0x04020200, 0x04030200, 0x04030200, 0x05030300, 0x06040300, 0x06040300,
+    0x07050400, 0x08050400, 0x09060400, 0x0A070500, 0x0B080600, 0x0D080600, 0x0E0A0700, 0x100B0800,
+    0x120C0900, 0x140D0A00, 0x170F0B00, 0x19110D00]
+
 // Table 7-3: default 4x4 scaling lists, intra then inter, in zig-zag scan order.
 
 const DefaultScaling4: [32] u8 = [

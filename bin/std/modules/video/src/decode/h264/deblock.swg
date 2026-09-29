@@ -151,6 +151,20 @@ private func edgeStrength(dec: *Decoder, pMbIndex, pIndex, qMbIndex, qIndex: u64
     return deblockMotionMatches(p, swapped) ? 0'u32 : 1'u32
 }
 
+// All ones for the strengths the normal filter applies, 1 to 3, as the bytes a strength indexes.
+const WeakStrengths = cast(Simd.U8x16) [0'u8, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+// The four strengths of an edge as byte shuffle indices, each repeated over the `repeat`
+// lanes its segment covers: a strength is at most four, so it indexes the first five bytes of
+// a table row and one shuffle turns the row into per-lane values.
+#[Swag.Inline]
+private func weakStrengthLanes(strengths: const *EdgeStrength, repeat: u64)->Simd.U8x16
+{
+    const ByFour = cast(Simd.U8x16) [0'u8, 0, 0, 0, 4, 4, 4, 4, 8, 8, 8, 8, 12, 12, 12, 12]
+    const ByTwo  = cast(Simd.U8x16) [0'u8, 0, 4, 4, 8, 8, 12, 12, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80]
+    return Simd.shuffle(Simd.load(cast(const [*] u8) strengths), repeat == 4 ? ByFour : ByTwo)
+}
+
 // Filters every edge of one macroblock.
 // Filters one complete macroblock row, in the raster order the specification defines.
 func deblockRow(dec: *Decoder, mbY: s32)
@@ -510,22 +524,10 @@ func filterLumaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeSt
     let q1 = Simd.load(pix + stride)
     let q2 = Simd.load(pix + 2 * stride)
 
-    let bs0 = cast(s32) strengths.bs[0]
-    let bs1 = cast(s32) strengths.bs[1]
-    let bs2 = cast(s32) strengths.bs[2]
-    let bs3 = cast(s32) strengths.bs[3]
-    let tc0 = bs0 == 0 or bs0 == 4 ? 0'u8 : DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs0 - 1)]
-    let tc1 = bs1 == 0 or bs1 == 4 ? 0'u8 : DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs1 - 1)]
-    let tc2 = bs2 == 0 or bs2 == 4 ? 0'u8 : DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs2 - 1)]
-    let tc3 = bs3 == 0 or bs3 == 4 ? 0'u8 : DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs3 - 1)]
-    let on0 = bs0 > 0 and bs0 < 4 ? 0xFF'u8 : 0'u8
-    let on1 = bs1 > 0 and bs1 < 4 ? 0xFF'u8 : 0'u8
-    let on2 = bs2 > 0 and bs2 < 4 ? 0xFF'u8 : 0'u8
-    let on3 = bs3 > 0 and bs3 < 4 ? 0xFF'u8 : 0'u8
-
     // Four samples carry one strength, and a strength of zero or four is not this filter's.
-    let limits    = cast(Simd.U8x16) [tc0, tc0, tc0, tc0, tc1, tc1, tc1, tc1, tc2, tc2, tc2, tc2, tc3, tc3, tc3, tc3]
-    let strengthy = cast(Simd.U8x16) [on0, on0, on0, on0, on1, on1, on1, on1, on2, on2, on2, on2, on3, on3, on3, on3]
+    let lanes     = weakStrengthLanes(strengths, 4)
+    let limits    = Simd.shuffle(cast #bit(Simd.U8x16) Simd.splat(DeblockTcRows[cast(u64) indexA]), lanes)
+    let strengthy = Simd.shuffle(WeakStrengths, lanes)
 
     // The standard states its two thresholds as strict bounds and a byte comparison is inclusive,
     // so both drop by one.
@@ -563,18 +565,13 @@ func filterChromaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     let q0         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix))
     let p1         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - 2 * stride))
     let q1         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix + stride))
-    let bs0        = cast(s16) strengths.bs[0]
-    let bs1        = cast(s16) strengths.bs[1]
-    let bs2        = cast(s16) strengths.bs[2]
-    let bs3        = cast(s16) strengths.bs[3]
-    let tc0        = bs0 == 0 or bs0 == 4 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs0 - 1)] + 1
-    let tc1        = bs1 == 0 or bs1 == 4 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs1 - 1)] + 1
-    let tc2        = bs2 == 0 or bs2 == 4 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs2 - 1)] + 1
-    let tc3        = bs3 == 0 or bs3 == 4 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs3 - 1)] + 1
-    let strengths8 = cast(Simd.S16x8) [bs0, bs0, bs1, bs1, bs2, bs2, bs3, bs3]
-    let limits     = cast(Simd.S16x8) [tc0, tc0, tc1, tc1, tc2, tc2, tc3, tc3]
+    // Two samples carry one strength. A lane the strength leaves unfiltered is masked off
+    // below, so its clip may be anything; a filtered one clips at tC0 + 1.
+    let lanes      = weakStrengthLanes(strengths, 2)
+    let limits     = cast #bit(Simd.S16x8) Simd.widenLow(Simd.shuffle(cast #bit(Simd.U8x16) Simd.splat(DeblockTcRows[cast(u64) indexA]), lanes)) + 1
+    let strengthy  = cast #bit(Simd.U16x8) Simd.widenLow(cast #bit(Simd.S8x16) Simd.shuffle(WeakStrengths, lanes))
     let zeros      = Simd.splat(0's16)
-    let active     = (strengths8 > zeros) & (strengths8 < Simd.splat(4's16)) & (Math.abs(p0 - q0) < Simd.splat(cast(s16) alpha)) & (Math.abs(p1 - p0) < Simd.splat(cast(s16) beta)) & (Math.abs(q1 - q0) < Simd.splat(cast(s16) beta))
+    let active     = strengthy & (Math.abs(p0 - q0) < Simd.splat(cast(s16) alpha)) & (Math.abs(p1 - p0) < Simd.splat(cast(s16) beta)) & (Math.abs(q1 - q0) < Simd.splat(cast(s16) beta))
     var delta      = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
     delta = Math.max(Math.min(delta, limits), -limits)
     Simd.storeLow8(pix - stride, Simd.packUnsigned(Simd.select(active, p0 + delta, p0), zeros))
@@ -687,10 +684,7 @@ func filterChromaStrongHorizontal(pix: [*] u8, stride: u64, strengths: const *Ed
 #[Swag.Inline]
 private func storeLines4(dst: [*] u8, stride: u64, columns: Simd.U32x4)
 {
-    (cast([*] u32) dst)[0] = columns[0]
-    (cast([*] u32) (dst + stride))[0]     = columns[1]
-    (cast([*] u32) (dst + 2 * stride))[0] = columns[2]
-    (cast([*] u32) (dst + 3 * stride))[0] = columns[3]
+    storeRows4(columns, dst, dst + stride, dst + 2 * stride, dst + 3 * stride)
 }
 
 // Filters one complete vertical luma edge: the sixteen lines crossing the edge are

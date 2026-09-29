@@ -141,14 +141,20 @@ func addIdct4x4(destination: [*] u8, stride: u64, block: [*] s16)
     // Prediction rows 0,1 and 3,2, in the order the outputs come out, added and clamped.
     let pred01 = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) Simd.interleaveLow(cast #bit(Simd.U32x4) Simd.load(destination), cast #bit(Simd.U32x4) Simd.load(destination + stride)))
     let pred32 = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) Simd.interleaveLow(cast #bit(Simd.U32x4) Simd.load(destination + 3 * stride), cast #bit(Simd.U32x4) Simd.load(destination + 2 * stride)))
-    let sum01  = pred01 + rows01Out
-    let sum32  = pred32 + rows32Out
-    let out01  = cast #bit(Simd.U32x4) Simd.packUnsigned(sum01, sum01)
-    let out32  = cast #bit(Simd.U32x4) Simd.packUnsigned(sum32, sum32)
-    (cast([*] u32) destination)[0] = out01[0]
-    (cast([*] u32) (destination + stride))[0]     = out01[1]
-    (cast([*] u32) (destination + 3 * stride))[0] = out32[0]
-    (cast([*] u32) (destination + 2 * stride))[0] = out32[1]
+    let rows   = cast #bit(Simd.U32x4) Simd.packUnsigned(pred01 + rows01Out, pred32 + rows32Out)
+    storeRows4(rows, destination, destination + stride, destination + 3 * stride, destination + 2 * stride)
+}
+
+// Stores the four 32-bit lanes of `rows` at four addresses. Each lane reaches the low lane
+// through a shuffle and leaves in one 32-bit store, as FFmpeg's kernels write their rows; read
+// back as lanes, the vector would round-trip through the stack first.
+#[Swag.Inline]
+func storeRows4(rows: Simd.U32x4, first, second, third, fourth: [*] u8)
+{
+    Simd.storeLow4(first, cast #bit(Simd.U8x16) rows)
+    Simd.storeLow4(second, cast #bit(Simd.U8x16) Simd.permute(rows, cast(Simd.U32x4) [1'u32, 1, 1, 1]))
+    Simd.storeLow4(third, cast #bit(Simd.U8x16) Simd.permute(rows, cast(Simd.U32x4) [2'u32, 2, 2, 2]))
+    Simd.storeLow4(fourth, cast #bit(Simd.U8x16) Simd.permute(rows, cast(Simd.U32x4) [3'u32, 3, 3, 3]))
 }
 
 // Adds a flat DC-only 4x4 block to the destination: the rounded value broadcasts over eight
@@ -160,14 +166,8 @@ func addDc4x4(destination: [*] u8, stride: u64, dc: s32)
     let value  = Simd.splat(cast(s16) Math.clamp((dc + 32) >> 6, -256, 256))
     let pred01 = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) Simd.interleaveLow(cast #bit(Simd.U32x4) Simd.load(destination), cast #bit(Simd.U32x4) Simd.load(destination + stride)))
     let pred23 = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) Simd.interleaveLow(cast #bit(Simd.U32x4) Simd.load(destination + 2 * stride), cast #bit(Simd.U32x4) Simd.load(destination + 3 * stride)))
-    let sum01  = pred01 + value
-    let sum23  = pred23 + value
-    let out01  = cast #bit(Simd.U32x4) Simd.packUnsigned(sum01, sum01)
-    let out23  = cast #bit(Simd.U32x4) Simd.packUnsigned(sum23, sum23)
-    (cast([*] u32) destination)[0] = out01[0]
-    (cast([*] u32) (destination + stride))[0]     = out01[1]
-    (cast([*] u32) (destination + 2 * stride))[0] = out23[0]
-    (cast([*] u32) (destination + 3 * stride))[0] = out23[1]
+    let rows   = cast #bit(Simd.U32x4) Simd.packUnsigned(pred01 + value, pred23 + value)
+    storeRows4(rows, destination, destination + stride, destination + 2 * stride, destination + 3 * stride)
 }
 
 // The flat DC-only add in scalar form: the reference [[addDc4x4]] is checked against.

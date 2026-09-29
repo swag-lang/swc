@@ -1854,12 +1854,14 @@ namespace PostRaPeephole
 
     // A doubled value staged in a dead temporary can be added directly with
     // the scaled address mode. Both forms compute modulo the selected width.
+    // The temporary may be the doubled value's own register: the scaled form
+    // then reads it before the doubling it replaces.
     bool tryFoldDoubledAddressAdd(Context& ctx, const MicroInstrRef addressRef, const MicroInstr& addressInst)
     {
         if (ctx.isClaimed(addressRef) || !ctx.encoder)
             return false;
         const auto* address = addressInst.ops(*ctx.operands);
-        if (!address || address[1].reg != address[2].reg || address[0].reg == address[1].reg ||
+        if (!address || address[1].reg != address[2].reg ||
             !address[0].reg.isInt() || !address[1].reg.isInt() ||
             (address[3].opBits != MicroOpBits::B32 && address[3].opBits != MicroOpBits::B64) ||
             address[4].opBits != MicroOpBits::B64 || address[5].valueU64 != 1 || address[6].valueU64 != 0)

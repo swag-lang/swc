@@ -2177,6 +2177,332 @@ bool MicroRegisterAllocationPass::walkLeftAnIntegerRegisterFree(const IntervalWa
     return false;
 }
 
+// compiler.optimization.099: joins the two values of a copy whose source stays live after it,
+// when the two never hold different contents while both are live, as LLVM's register coalescer
+// joins a copy's intervals through value numbers. The walk sees one interval per value and treats
+// any overlap as interference, so `d = s` with `s` still read later occupies two registers and
+// keeps the move even where both hold the same bits.
+//
+// The test is Chaitin's: two values interfere when one of them is defined at a point where the
+// other is live afterwards, except by a full copy of the other one; both live at the function
+// entry counts as such a definition. Any other definition while the partner is live is where the
+// contents diverge. A join never raises the register demand at any point: where both were live,
+// one value now is. Only a copy whose source is live after it is a candidate, since the copy of
+// a value that dies there is the hint's business and needs no join.
+//
+// What a join may cost is the shape of the interval the walk splits: one value now carries both
+// roles. So a join is kept to copies whose overlap crosses control flow, inside the copy's own
+// loop nest, with a source that does not outlive that loop; the guards below say why each one.
+//
+// Returns whether a value was renamed, in which case every analysis of the pass is stale.
+bool MicroRegisterAllocationPass::coalesceSameValueCopies()
+{
+    if (!intervalAllocationAccepts() || !instructionCount_)
+        return false;
+
+    const auto&    virtualRegs = denseVirtualRegs_.regs();
+    const uint32_t wordCount   = denseVirtualRegs_.wordCount();
+    const auto     instrRefs   = controlFlowGraph_->instructionRefs();
+
+    // The integer values whose every definition clears the top half of the
+    // register, and which no caller hands in: a 32-bit copy of one of them
+    // copies every bit.
+    std::vector<uint8_t> zeroHigh(virtualRegs.size(), 1);
+    {
+        const auto liveInEntry = DenseBits::row(liveInVirtualBits_, 0, wordCount);
+        for (uint32_t dense = 0; dense < virtualRegs.size(); ++dense)
+        {
+            if (DenseBits::contains(liveInEntry, dense))
+                zeroHigh[dense] = 0;
+        }
+        for (uint32_t idx = 0; idx < instructionCount_; ++idx)
+        {
+            if (defVirtualIndices_[idx].empty())
+                continue;
+            const MicroInstr*        inst = instructions_->ptr(instrRefs[idx]);
+            const MicroInstrOperand* ops  = inst ? inst->ops(*operands_) : nullptr;
+            for (const uint32_t dense : defVirtualIndices_[idx])
+            {
+                if (!ops || ops[0].reg != virtualRegs[dense] || !MicroPassHelpers::definesZeroHighBits(*inst, ops))
+                    zeroHigh[dense] = 0;
+            }
+        }
+    }
+
+    // A copy between two distinct virtual registers of one class that copies
+    // every bit: the only definition that leaves both holding the same contents.
+    const auto fullCopyOperands = [&](const uint32_t idx, MicroReg& outDst, MicroReg& outSrc) {
+        const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);
+        if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroInstrOperand* ops = inst->ops(*operands_);
+        if (!ops || !ops[0].reg.isVirtual() || !ops[1].reg.isVirtual() || ops[0].reg == ops[1].reg || !ops[0].reg.isSameClass(ops[1].reg))
+            return false;
+        if (ops[0].reg.isVirtualInt())
+        {
+            if (ops[2].opBits != MicroOpBits::B64)
+            {
+                const uint32_t src = denseVirtualRegs_.find(ops[1].reg);
+                if (ops[2].opBits != MicroOpBits::B32 || src == MicroDenseRegIndex::K_INVALID_INDEX || !zeroHigh[src])
+                    return false;
+            }
+        }
+        else if (ops[2].opBits != MicroOpBits::B128)
+        {
+            return false;
+        }
+        outDst = ops[0].reg;
+        outSrc = ops[1].reg;
+        return true;
+    };
+
+    struct Candidate
+    {
+        uint32_t dst;
+        uint32_t src;
+        uint32_t copyDepth;
+        bool     rejected;
+    };
+    const auto depthAt = [&](const uint32_t idx) { return idx < loopDepth_.size() ? loopDepth_[idx] : 0u; };
+
+    // Inside a loop, the source of a joined copy must die in the loop: outside
+    // it, the joined value then lives exactly where the destination did, and
+    // the walk sees the destination's interval there unchanged. A source that
+    // leaves the loop would stretch the destination's register past its exits,
+    // where the walk splits and stores it on every exit edge rather than once
+    // at the definition it spilled from before.
+    const auto sourceStaysInCopyLoop = [&](const uint32_t copyIdx, const uint32_t src) {
+        uint32_t head   = 0;
+        uint32_t tail   = 0;
+        bool     inLoop = false;
+        for (uint32_t s = 0; s <= copyIdx && s < predecessors_.size(); ++s)
+        {
+            for (const uint32_t p : predecessors_[s])
+            {
+                if (p < s || p >= instructionCount_ || p < copyIdx)
+                    continue;
+                if (!inLoop || p - s < tail - head)
+                {
+                    head   = s;
+                    tail   = p;
+                    inLoop = true;
+                }
+            }
+        }
+        if (!inLoop)
+            return true;
+
+        for (uint32_t idx = head; idx <= tail; ++idx)
+        {
+            for (const uint32_t succ : controlFlowGraph_->successors(idx))
+            {
+                if (succ >= instructionCount_ || (succ >= head && succ <= tail))
+                    continue;
+                if (DenseBits::contains(DenseBits::row(liveInVirtualBits_, succ, wordCount), src))
+                    return false;
+            }
+        }
+        return true;
+    };
+
+    // A source that dies in the copy's own block overlaps the destination on a
+    // straight line, which the forwarding after allocation already folds: it
+    // reads the destination there and drops the copy, while the two values
+    // keep their short intervals. Only a source still live where the block
+    // ends makes the walk hold both across control flow.
+    const auto sourceLeavesCopyBlock = [&](const uint32_t copyIdx, const uint32_t src) {
+        for (uint32_t idx = copyIdx + 1; idx < instructionCount_; ++idx)
+        {
+            if (!DenseBits::contains(DenseBits::row(liveInVirtualBits_, idx, wordCount), src))
+                return false;
+            const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);
+            if (!inst || inst->op == MicroInstrOpcode::Label)
+                return true;
+            const MicroInstrFlags flags = MicroInstr::info(inst->op).flags;
+            if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return true;
+        }
+        return false;
+    };
+
+    SmallVector<Candidate> candidates;
+    const MicroReg         debugBase = context_->debugStackBaseVirtualReg;
+    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
+    {
+        MicroReg dstReg;
+        MicroReg srcReg;
+        if (!fullCopyOperands(idx, dstReg, srcReg))
+            continue;
+        if (dstReg == debugBase || srcReg == debugBase)
+            continue;
+        if (context_->builder->shouldPreserveVirtualCopy(dstReg) || context_->builder->shouldPreserveVirtualCopy(srcReg))
+            continue;
+
+        const uint32_t dst = denseVirtualRegs_.find(dstReg);
+        const uint32_t src = denseVirtualRegs_.find(srcReg);
+        if (dst == MicroDenseRegIndex::K_INVALID_INDEX || src == MicroDenseRegIndex::K_INVALID_INDEX)
+            continue;
+
+        computeCurrentLiveOutBits(idx);
+        if (!DenseBits::contains(tempOutVirtual_, src) || !DenseBits::contains(tempOutVirtual_, dst))
+            continue;
+
+        if (!sourceLeavesCopyBlock(idx, src))
+            continue;
+
+        const bool confined = sourceStaysInCopyLoop(idx, src);
+        const auto known    = std::ranges::find_if(candidates, [&](const Candidate& c) { return (c.dst == dst && c.src == src) || (c.dst == src && c.src == dst); });
+        if (known != candidates.end())
+        {
+            known->copyDepth = std::max(known->copyDepth, depthAt(idx));
+            known->rejected |= !confined;
+            continue;
+        }
+        candidates.push_back({.dst = dst, .src = src, .copyDepth = depthAt(idx), .rejected = !confined});
+    }
+
+    if (candidates.empty())
+        return false;
+
+    const auto liveInEntry = DenseBits::row(liveInVirtualBits_, 0, wordCount);
+    for (Candidate& c : candidates)
+        c.rejected |= DenseBits::contains(liveInEntry, c.dst) && DenseBits::contains(liveInEntry, c.src);
+
+    MicroInstrRegOperandRefs regRefs;
+    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
+    {
+        const auto& defs = defVirtualIndices_[idx];
+        const auto& uses = useVirtualIndices_[idx];
+
+        MicroReg   copyDst;
+        MicroReg   copySrc;
+        const bool isCopy = fullCopyOperands(idx, copyDst, copySrc);
+
+        // A value an instruction names outside its register operands (an
+        // encoder-implied use or definition) cannot be renamed there.
+        regRefs.clear();
+        const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);
+        if (inst)
+            inst->collectRegOperands(*operands_, regRefs, context_->encoder);
+        const auto namedByOperand = [&](const uint32_t dense) {
+            return std::ranges::any_of(regRefs, [&](const MicroInstrRegOperandRef& ref) { return *ref.reg == virtualRegs[dense]; });
+        };
+
+        bool           haveLiveOut = false;
+        const auto     liveIn      = DenseBits::row(liveInVirtualBits_, idx, wordCount);
+        const uint32_t depth       = depthAt(idx);
+        for (Candidate& c : candidates)
+        {
+            if (c.rejected)
+                continue;
+
+            // Where both are live inside a loop deeper than every copy, the
+            // two values meet more often than the copy runs: the walk may keep
+            // one of them in memory there and the other in a register, and
+            // one joined value would make it split, and store, inside that
+            // loop to save a move outside it.
+            if (depth > c.copyDepth && DenseBits::contains(liveIn, c.dst) && DenseBits::contains(liveIn, c.src))
+            {
+                c.rejected = true;
+                continue;
+            }
+
+            const bool touchesDst = std::ranges::find(defs, c.dst) != defs.end() || std::ranges::find(uses, c.dst) != uses.end();
+            const bool touchesSrc = std::ranges::find(defs, c.src) != defs.end() || std::ranges::find(uses, c.src) != uses.end();
+            if ((touchesDst && !namedByOperand(c.dst)) || (touchesSrc && !namedByOperand(c.src)))
+            {
+                c.rejected = true;
+                continue;
+            }
+
+            const bool defDst = std::ranges::find(defs, c.dst) != defs.end();
+            const bool defSrc = std::ranges::find(defs, c.src) != defs.end();
+            if (!defDst && !defSrc)
+                continue;
+            if (defDst && defSrc)
+            {
+                c.rejected = true;
+                continue;
+            }
+
+            if (!haveLiveOut)
+            {
+                computeCurrentLiveOutBits(idx);
+                haveLiveOut = true;
+            }
+
+            const uint32_t defined = defDst ? c.dst : c.src;
+            const uint32_t partner = defDst ? c.src : c.dst;
+            if (!DenseBits::contains(tempOutVirtual_, partner))
+                continue;
+            if (isCopy && copyDst == virtualRegs[defined] && copySrc == virtualRegs[partner])
+                continue;
+            c.rejected = true;
+        }
+    }
+
+    // Join each accepted pair, the destination renamed to the source. A value
+    // joined once is left out of every later pair: the test above compared the
+    // original values two at a time, which says nothing about three of them.
+    SmallVector<std::pair<MicroReg, MicroReg>> renames;
+    std::vector<uint8_t>                       joined(virtualRegs.size(), 0);
+    for (const Candidate& c : candidates)
+    {
+        if (c.rejected || joined[c.dst] || joined[c.src])
+            continue;
+        joined[c.dst] = 1;
+        joined[c.src] = 1;
+        renames.push_back({virtualRegs[c.dst], virtualRegs[c.src]});
+    }
+
+    if (renames.empty())
+        return false;
+
+    for (const auto& [fromReg, toReg] : renames)
+        context_->builder->mergeVirtualRegForbiddenPhysRegs(fromReg, toReg);
+
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt;)
+    {
+        const MicroInstrRef instructionRef = it.current;
+        MicroInstr&         inst           = *it;
+        ++it;
+
+        const MicroInstrOperand* ops         = inst.ops(*operands_);
+        bool                     copiesWhole = false;
+        if (inst.op == MicroInstrOpcode::LoadRegReg && ops && ops[1].reg.isVirtual())
+        {
+            const uint32_t src = denseVirtualRegs_.find(ops[1].reg);
+            copiesWhole        = ops[1].reg.isVirtualInt() ? ops[2].opBits == MicroOpBits::B64 ||
+                                                          (ops[2].opBits == MicroOpBits::B32 && src != MicroDenseRegIndex::K_INVALID_INDEX && zeroHigh[src])
+                                                           : ops[2].opBits == MicroOpBits::B128;
+        }
+
+        regRefs.clear();
+        inst.collectRegOperands(*operands_, regRefs, context_->encoder);
+        bool renamed = false;
+        for (const MicroInstrRegOperandRef& ref : regRefs)
+        {
+            for (const auto& [fromReg, toReg] : renames)
+            {
+                if (*ref.reg == fromReg)
+                {
+                    *ref.reg = toReg;
+                    renamed  = true;
+                    break;
+                }
+            }
+        }
+
+        // A joined copy that copied every bit is now a move of the value onto
+        // itself. A narrower one still truncates.
+        if (renamed && copiesWhole && ops[0].reg == ops[1].reg)
+            instructions_->erase(instructionRef);
+    }
+
+    context_->passChanged = true;
+    return true;
+}
+
 bool MicroRegisterAllocationPass::runIntervalAllocation()
 {
     if (!intervalAllocationAccepts())

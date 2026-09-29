@@ -1173,4 +1173,48 @@ bool MicroPassHelpers::dereferenceBaseOperandIndex(uint8_t& outIndex, MicroInstr
     return true;
 }
 
+bool MicroPassHelpers::definesZeroHighBits(const MicroInstr& inst, const MicroInstrOperand* ops)
+{
+    if (!ops)
+        return false;
+
+    switch (inst.op)
+    {
+        // The width operand sits at a different index per opcode; each of these is the one
+        // that governs the destination register.
+        case MicroInstrOpcode::ClearReg:
+        case MicroInstrOpcode::LoadRegImm:
+        case MicroInstrOpcode::OpUnaryReg:
+        case MicroInstrOpcode::OpBinaryRegImm:
+            return ops[1].opBits == MicroOpBits::B32;
+
+        case MicroInstrOpcode::LoadRegReg:
+        case MicroInstrOpcode::LoadRegMem:
+        case MicroInstrOpcode::LoadAddrRegMem:
+        case MicroInstrOpcode::OpBinaryRegReg:
+        case MicroInstrOpcode::OpBinaryRegMem:
+            return ops[2].opBits == MicroOpBits::B32;
+
+        case MicroInstrOpcode::LoadAmcRegMem:
+        case MicroInstrOpcode::LoadAddrAmcRegMem:
+        case MicroInstrOpcode::LoadCondRegReg:
+            return ops[3].opBits == MicroOpBits::B32;
+
+        // The three-register form also carries the vector operations, whose narrow widths name
+        // a lane rather than a cleared half.
+        case MicroInstrOpcode::OpBinaryRegRegReg:
+            return ops[0].reg.isAnyInt() && ops[3].opBits == MicroOpBits::B32;
+
+        // A zero-extension writes the whole register with the top half clear whatever the
+        // width it reads.
+        case MicroInstrOpcode::LoadZeroExtRegReg:
+        case MicroInstrOpcode::LoadZeroExtRegMem:
+        case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 SWC_END_NAMESPACE();

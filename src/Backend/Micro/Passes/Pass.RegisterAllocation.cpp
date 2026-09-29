@@ -35,6 +35,10 @@
 //                          tracks call sites for caller-saved spilling, and
 //                          builds the per-virtual position lists used for
 //                          `distanceToNextUse` heuristics during eviction.
+//   coalesceSameValueCopies
+//                        : on the interval path, join a copy's source and
+//                          destination where they overlap holding the same
+//                          value, then analyze again.
 //   setupPools           : seed the free-register pools (one per register
 //                          class) from the calling-convention's allocatable
 //                          regs, honoring per-virtual forbidden-physreg
@@ -4564,24 +4568,39 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     if (!context.isFirstAllocationSweep && !hasVirtualRegisters(*context.instructions, *context.operands, context.encoder))
         return Result::Continue;
 
-    clearState();
-    initState(context);
-    coalesceLocalCopies();
-    instructionCount_ = instructions_->count();
-    instructionUseDefs_.resize(instructionCount_);
+    const auto analyze = [&] {
+        clearState();
+        initState(context);
+        coalesceLocalCopies();
+        instructionCount_ = instructions_->count();
+        instructionUseDefs_.resize(instructionCount_);
 
-    prepareInstructionData();
-    if (!hasVirtualRegs_)
+        prepareInstructionData();
+        if (!hasVirtualRegs_)
+            return false;
+
+        computeGuardedCallPositions();
+        for (const uint32_t idx : callPositions_)
+        {
+            if (guardedCallPositions_.empty() || !guardedCallPositions_[idx])
+                hotCallPositions_.push_back(idx);
+        }
+        analyzeLiveness();
+        computeVirtualLiveSpans();
+        return true;
+    };
+
+    if (!analyze())
         return Result::Continue;
-
-    computeGuardedCallPositions();
-    for (const uint32_t idx : callPositions_)
+    // Joining the two values of a copy renames registers and erases the copy,
+    // which every analysis above has to see again. A round joins each value
+    // once, so a value copied into several others takes more than one round.
+    constexpr uint32_t K_MAX_JOIN_ROUNDS = 4;
+    for (uint32_t round = 0; round < K_MAX_JOIN_ROUNDS && coalesceSameValueCopies(); ++round)
     {
-        if (guardedCallPositions_.empty() || !guardedCallPositions_[idx])
-            hotCallPositions_.push_back(idx);
+        if (!analyze())
+            return Result::Continue;
     }
-    analyzeLiveness();
-    computeVirtualLiveSpans();
     setupPools();
 
     // compiler.optimization.024: the gated interval path replaces everything below when it

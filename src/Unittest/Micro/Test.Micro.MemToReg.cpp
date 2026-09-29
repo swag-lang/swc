@@ -332,6 +332,51 @@ SWC_TEST_BEGIN(MemToReg_ModifiedFrameAddressCanReachAnotherLocal)
 }
 SWC_TEST_END()
 
+// A vector spilled once and read back lane by lane stays in a register: each lane comes out
+// with a shuffle to lane zero and one move, and no frame access remains. A read that a label
+// separates from the store keeps the slot in memory.
+SWC_TEST_BEGIN(MemToReg_VectorReadByLanesSplits)
+{
+    for (const bool separated : {false, true})
+    {
+        const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg vFb    = MicroReg::virtualIntReg(1);
+        constexpr MicroReg lane0  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg lane1  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg lane3  = MicroReg::virtualIntReg(4);
+        constexpr MicroReg high   = MicroReg::virtualIntReg(5);
+        constexpr MicroReg vector = MicroReg::virtualFloatReg(1);
+        MicroBuilder       builder(ctx);
+        const auto         label = builder.createLabel();
+
+        builder.emitLoadAddressRegMem(vFb, sp, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(vector, MicroReg::intReg(2), 0, MicroOpBits::B128);
+        builder.emitLoadMemReg(vFb, 0x20, vector, MicroOpBits::B128);
+        if (separated)
+            builder.placeLabel(label);
+        builder.emitLoadRegMem(lane0, vFb, 0x20, MicroOpBits::B32);
+        builder.emitLoadRegMem(lane1, vFb, 0x24, MicroOpBits::B32);
+        builder.emitLoadRegMem(lane3, vFb, 0x2C, MicroOpBits::B32);
+        builder.emitLoadRegMem(high, vFb, 0x28, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(3), 0, lane0, MicroOpBits::B32);
+        builder.emitLoadMemReg(MicroReg::intReg(3), 4, lane1, MicroOpBits::B32);
+        builder.emitLoadMemReg(MicroReg::intReg(3), 8, lane3, MicroOpBits::B32);
+        builder.emitLoadMemReg(MicroReg::intReg(3), 16, high, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runMemToRegPass(builder));
+
+        // The source load stays; the four lane reads through the frame go.
+        const uint32_t frameLoads = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) - 1;
+        const uint32_t shuffles   = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm);
+        if (separated ? (frameLoads != 4 || shuffles != 0) : (frameLoads != 0 || shuffles != 3))
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

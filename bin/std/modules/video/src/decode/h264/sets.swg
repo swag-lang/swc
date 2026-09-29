@@ -25,17 +25,18 @@ const Zigzag8: [64] u8 = [
 // The entropy decoders store every level at its raster position, already dequantized, so the
 // inverse transform reads the block as it is. A DC block keeps its own order, since it goes
 // through a transform of its own before it is scaled. An AC block codes the zigzag scan from
-// its second position, the first being the DC that reconstruction adds. An 8x8 block is stored
-// transposed, column after column, as FFmpeg stores it: the packed transform then finds the
-// columns its row pass needs already in its vectors, and transposes once instead of twice.
+// its second position, the first being the DC that reconstruction adds. A 4x4 or 8x8 block is
+// stored transposed, column after column, as FFmpeg stores it: the packed transforms then find
+// the columns their row pass needs already in their vectors, and transpose once instead of
+// twice.
 const ResidualOrderDc         = 0'u64
 const ResidualOrder4x4        = 16'u64
 const ResidualOrderAc         = 32'u64
 const ResidualOrder8x8        = 48'u64
 const ResidualOrder: [112] u8 = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-    0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15,
-    1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15, 0,
+    0, 4, 1, 2, 5, 8, 12, 9, 6, 3, 7, 10, 13, 14, 11, 15,
+    4, 1, 2, 5, 8, 12, 9, 6, 3, 7, 10, 13, 14, 11, 15, 0,
     0, 8, 1, 2, 9, 16, 24, 17, 10, 3, 4, 11, 18, 25, 32, 40,
     33, 26, 19, 12, 5, 6, 13, 20, 27, 34, 41, 48, 56, 49, 42,
     35, 28, 21, 14, 7, 15, 22, 29, 36, 43, 50, 57, 58, 51, 44,
@@ -423,7 +424,7 @@ impl Pps
                     let x        = raster & 3
                     let y        = raster >> 2
                     let posClass = (x & 1) + (y & 1)
-                    .dequant4[list, qp, raster] = (cast(u32) scaling4[list * 16 + scan] * cast(u32) Dequant4Scale[mod6 * 3 + posClass]) << shift
+                    .dequant4[list, qp, x * 4 + y] = (cast(u32) scaling4[list * 16 + scan] * cast(u32) Dequant4Scale[mod6 * 3 + posClass]) << shift
                 }
             }
         }

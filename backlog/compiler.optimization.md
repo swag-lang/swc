@@ -66,6 +66,65 @@ block, and the hot path keeps the register.
   around the chosen boundary.
 - Related: compiler.optimization.083
 
+### compiler.optimization.099 — The CABAC significance loop still holds one value in two registers
+
+- Recorded: 2026-09-29 09:34
+- Updated: 2026-09-29 12:21 — Record the reverted multi-join reload sinking trial.
+- Area: compiler/backend, copy forwarding and register allocation
+- Evidence: after the 2026-09-29 prompt-2 batches on `std/video` (see std.video.001), a no-hit
+  iteration of the 4x4 luma significance loop of `Slice.residualCabac` is 35 Micro instructions with
+  four memory accesses, two spill reloads (the slice and the significance-state pointer) and three
+  branches; FFmpeg's `decode_significance_x86` spends about 23 instructions and no spill on the same
+  bin. Two of the remaining instructions are copies after the renormalizing shifts
+  (`rdx = r8 << cl; r11 = rdx`, the same for the offset). Before allocation the new range is
+  computed into `%606` and copied into the loop-carried `%2482`; copy elimination then points the
+  last-coefficient bin's reads of `%2482` at `%606`, so the two values overlap and cannot share a
+  register. `clear` precedes every `lzcnt`/`tzcnt` (the count forms only write their destination,
+  so this is a false-dependency guard for older cores that clang's generic tuning omits).
+- Done 2026-09-29: the local-stack base no longer holds `rbx` when the body never moves the stack
+  pointer and no debug records name it (`foldLocalStackBaseIntoStackPointer`); the interval
+  allocator admits that register whenever no base exists. residualCabac DC 577 -> 555 with its
+  significance loop 126 -> 114 instructions and 9 -> 5 frame accesses, 8x8 597 -> 590, 4x4
+  577 -> 574; no decoder function or benchmark program grew. The 4x4 no-hit iteration still reloads
+  the slice and the significance-state pointer at the loop latch: the refill path and the hit path
+  both reuse those registers, so the reloads would have to move to the end of each of those cold
+  regions, past two joins, which `sinkFrameReloadToFallthrough` does not reach.
+- Tried and reverted, each measured on the seven H.264 decoder files (`#global #[Swag.PrintMicro]`)
+  and the seven benchmark programs:
+  1. Copy elimination leaving the readers of a copy that feeds a live phi on the copy's
+     destination: 28601 -> 29300 decoder instructions (predictIntraPlane +81, bookkeepMb +67,
+     intraPredict8x8 +57) and 5662 -> 5890 benchmark instructions (Dijkstra main +110). Forwarding
+     pays far more often than the overlap it creates costs.
+  2. Computing a copied result directly into the copy's destination when the copy follows the
+     definition, the result has one definition and no phi reader, and every reader still sees the
+     copy's value: residualCabac 4x4 618 -> 628, its significance loop 115 -> 129 instructions and
+     6 -> 9 frame accesses; the two target copies were not reached (the join after the refill).
+  3. An out-of-line `CabacReader.reload`: 630 -> 619 static instructions, but `low` became
+     frame-resident (a load and a store on every bin) and the selects became branches: one call
+     in the function stops the offset from being promoted to a register.
+  4. A write pointer instead of `indices[count]` (618 -> 625, frame accesses 6 -> 9) and walking the
+     significance states by pointer as FFmpeg does (618 -> 631, 6 -> 10): each frees a value in the
+     source and costs more spills after allocation.
+  5. After allocation, computing a copied result into the copy's destination when every later read
+     of the result sees the copy, tracking a spill-and-reload of the destination through the refill
+     path: it never reaches the target, because the last-coefficient bin updates the range in place
+     in the copy's source (`sub rdx, r8`), so the value continues there. Elsewhere the decoder
+     functions outside `cabac.swg` lost 15 instructions (CAVLC residual parsing -16), but csvagg's
+     record loop grew by four instructions and one frame access, so the rule was reverted.
+  6. After allocation, sinking a frame reload that stands just after a join into the fallthrough
+     edges of the predecessor regions that clobbered its register, planned with a forward
+     must-analysis of "register equals slot" across up to four planted reloads: the two latch
+     reloads of the 4x4 significance loop stayed (the slice pointer arrives as a copy of the
+     register that was stored, which the analysis does not follow; why the state pointer failed
+     was not diagnosed), while csvagg's main grew by 14 instructions and leven's by 4. Reverted.
+- Next: give the interval allocator value-aware interference, as LLVM's coalescer joins a copy's
+  source and destination where they overlap holding the same value, or rewrite after allocation the
+  reads of a copy's source that its destination reaches, tracking the spill-slot round trip of the
+  refill path, then retarget the shift into the destination. Separately, sink a latch reload into
+  every cold predecessor region that clobbers its register, across nested joins.
+- Complete when: the significance bin has no register copy after its shifts and no decoder function
+  or benchmark program grows.
+- Related: std.video.001, compiler.optimization.037, compiler.optimization.095
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 
 - Recorded: 2026-09-07 10:46
@@ -116,51 +175,6 @@ block, and the hot path keeps the register.
 - Complete when: the tile fill of `filterLumaVertical` disappears from its release dump, a fill
   followed by a partial overwrite and a read keeps its stores, and unit tests cover both.
 - Related: compiler.optimization.011
-### compiler.optimization.099 — The CABAC significance loop still holds one value in two registers
-
-- Recorded: 2026-09-29 09:34
-- Updated: 2026-09-29 10:47 — Record the post-allocation coalescing trial.
-- Area: compiler/backend, copy forwarding and register allocation
-- Evidence: after the 2026-09-29 prompt-2 batches on `std/video` (see std.video.001), a no-hit
-  iteration of the 4x4 luma significance loop of `Slice.residualCabac` is 35 Micro instructions with
-  four memory accesses, two spill reloads (the slice and the significance-state pointer) and three
-  branches; FFmpeg's `decode_significance_x86` spends about 23 instructions and no spill on the same
-  bin. Two of the remaining instructions are copies after the renormalizing shifts
-  (`rdx = r8 << cl; r11 = rdx`, the same for the offset). Before allocation the new range is
-  computed into `%606` and copied into the loop-carried `%2482`; copy elimination then points the
-  last-coefficient bin's reads of `%2482` at `%606`, so the two values overlap and cannot share a
-  register. The local-stack base also keeps `rbx` for the whole function although the body only
-  addresses one 64-byte array through it, and `clear` precedes every `lzcnt`/`tzcnt`.
-- Tried and reverted, each measured on the seven H.264 decoder files (`#global #[Swag.PrintMicro]`)
-  and the seven benchmark programs:
-  1. Copy elimination leaving the readers of a copy that feeds a live phi on the copy's
-     destination: 28601 -> 29300 decoder instructions (predictIntraPlane +81, bookkeepMb +67,
-     intraPredict8x8 +57) and 5662 -> 5890 benchmark instructions (Dijkstra main +110). Forwarding
-     pays far more often than the overlap it creates costs.
-  2. Computing a copied result directly into the copy's destination when the copy follows the
-     definition, the result has one definition and no phi reader, and every reader still sees the
-     copy's value: residualCabac 4x4 618 -> 628, its significance loop 115 -> 129 instructions and
-     6 -> 9 frame accesses; the two target copies were not reached (the join after the refill).
-  3. An out-of-line `CabacReader.reload`: 630 -> 619 static instructions, but `low` became
-     frame-resident (a load and a store on every bin) and the selects became branches: one call
-     in the function stops the offset from being promoted to a register.
-  4. A write pointer instead of `indices[count]` (618 -> 625, frame accesses 6 -> 9) and walking the
-     significance states by pointer as FFmpeg does (618 -> 631, 6 -> 10): each frees a value in the
-     source and costs more spills after allocation.
-  5. After allocation, computing a copied result into the copy's destination when every later read
-     of the result sees the copy, tracking a spill-and-reload of the destination through the refill
-     path: it never reaches the target, because the last-coefficient bin updates the range in place
-     in the copy's source (`sub rdx, r8`), so the value continues there. Elsewhere the decoder
-     functions outside `cabac.swg` lost 15 instructions (CAVLC residual parsing -16), but csvagg's
-     record loop grew by four instructions and one frame access, so the rule was reverted.
-- Next: give the interval allocator value-aware interference, as LLVM's coalescer joins a copy's
-  source and destination where they overlap holding the same value, or rewrite after allocation the
-  reads of a copy's source that its destination reaches, tracking the spill-slot round trip of the
-  refill path, then retarget the shift into the destination. Separately, measure releasing the
-  local-stack base register when the body never moves `rsp`.
-- Complete when: the significance bin has no register copy after its shifts and no decoder function
-  or benchmark program grows.
-- Related: std.video.001, compiler.optimization.037, compiler.optimization.095
 ### compiler.optimization.098 — Feed adjacent array updates from a packed state
 
 - Recorded: 2026-09-29 08:04

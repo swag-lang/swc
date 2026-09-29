@@ -5,7 +5,9 @@
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/DenseBits.h"
 #include "Support/Core/SmallVector.h"
@@ -4446,9 +4448,116 @@ void MicroRegisterAllocationPass::clearState()
     labelStackDepth_.clear();
 }
 
+namespace
+{
+    // A function with locals copies the stack pointer into a register once its frame is
+    // allocated and addresses every local through that copy, so the copy holds a callee-saved
+    // register for the whole body. When nothing in the body moves the stack pointer again -
+    // only the frame release on the way to a return does - the copy always equals it, and the
+    // locals can be read through the stack pointer itself, as C compilers address them. The
+    // register goes back to the allocator. Debug records name the base register, so a build
+    // with debug information keeps it.
+    bool foldLocalStackBaseIntoStackPointer(MicroPassContext& context)
+    {
+        const MicroReg base = context.debugStackBaseVirtualReg;
+        if (!base.isValid() || !base.isVirtual() || context.keepLocalStackBase || !context.instructions || !context.operands)
+            return false;
+
+        MicroStorage&        storage  = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        const MicroReg       stack    = CallConv::get(context.callConvKind).stackPointer;
+
+        std::vector<MicroInstrRef> refs;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+            refs.push_back(it.current);
+
+        // The frame release before a return: stack-pointer additions and pops up to the return.
+        const auto releasesFrame = [&](size_t index) {
+            for (; index < refs.size(); ++index)
+            {
+                const MicroInstr* inst = storage.ptr(refs[index]);
+                if (!inst)
+                    return false;
+                if (inst->op == MicroInstrOpcode::Ret)
+                    return true;
+                if (inst->op == MicroInstrOpcode::Pop)
+                    continue;
+                const auto* ops = inst->ops(operands);
+                if (inst->op != MicroInstrOpcode::OpBinaryRegImm || !ops || ops[0].reg != stack || ops[2].microOp != MicroOp::Add)
+                    return false;
+            }
+            return false;
+        };
+
+        MicroInstrRef                        defRef = MicroInstrRef::invalid();
+        std::vector<MicroInstrRegOperandRef> uses;
+        for (size_t index = 0; index < refs.size(); ++index)
+        {
+            MicroInstr* inst = storage.ptr(refs[index]);
+            if (!inst)
+                return false;
+            const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+            const bool             defsBase  = std::ranges::find(useDef.defs, base) != useDef.defs.end();
+            const bool             defsStack = std::ranges::find(useDef.defs, stack) != useDef.defs.end();
+            if (defsBase)
+            {
+                const auto* ops = inst->ops(operands);
+                if (defRef.isValid() || inst->op != MicroInstrOpcode::LoadRegReg || !ops || ops[0].reg != base || ops[1].reg != stack ||
+                    ops[2].opBits != MicroOpBits::B64)
+                    return false;
+                defRef = refs[index];
+                continue;
+            }
+            if (defsStack)
+            {
+                // Before the copy, the frame allocation; after it, only the release.
+                if (defRef.isValid() && !releasesFrame(index))
+                    return false;
+                continue;
+            }
+            if (std::ranges::find(useDef.uses, base) == useDef.uses.end())
+                continue;
+            if (!defRef.isValid())
+                return false;
+
+            MicroInstrRegOperandRefs regs;
+            inst->collectRegOperands(operands, regs, context.encoder);
+            size_t explicitUses = 0;
+            for (const MicroInstrRegOperandRef& reg : regs)
+            {
+                if (!reg.reg || *reg.reg != base)
+                    continue;
+                if (reg.def)
+                    return false;
+                uses.push_back(reg);
+                ++explicitUses;
+            }
+            if (explicitUses != static_cast<size_t>(std::ranges::count(useDef.uses, base)))
+                return false;
+
+            // The stack pointer cannot be the index of an indexed address.
+            MicroPassHelpers::AmcLayout layout;
+            const auto*                 ops = inst->ops(operands);
+            if (MicroPassHelpers::amcLayoutFor(layout, inst->op) && ops && ops[layout.indexIdx].reg == base)
+                return false;
+        }
+        if (!defRef.isValid())
+            return false;
+
+        for (const MicroInstrRegOperandRef& use : uses)
+            *use.reg = stack;
+        storage.erase(defRef);
+        context.debugStackBaseVirtualReg = MicroReg::invalid();
+        context.localStackBaseFolded     = true;
+        return true;
+    }
+}
+
 Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
+    if (context.isFirstAllocationSweep && foldLocalStackBaseIntoStackPointer(context))
+        context.passChanged = true;
 
     // A previous allocation sweep may already have replaced every virtual
     // register. On later sweeps, check before rebuilding CFG and use/def data.

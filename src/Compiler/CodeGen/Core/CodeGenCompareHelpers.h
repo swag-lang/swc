@@ -149,7 +149,7 @@ namespace CodeGenCompareHelpers
     // for implementations whose methods do not access instance storage.
     inline MicroReg materializeConditionOperand(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, const TypeInfo& typeInfo, MicroOpBits bits)
     {
-        const MicroReg resultReg = codeGen.nextVirtualRegisterForType(typeRef);
+        const MicroReg resultReg = codeGen.nextVirtualRegisterForType(typeRef, typeInfo);
         if (payload.isAddress() || typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t))
         {
             const uint64_t offset = typeInfo.isInterface() ? offsetof(Runtime::Interface, itable) : 0;

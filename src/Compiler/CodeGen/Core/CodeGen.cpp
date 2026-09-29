@@ -1844,19 +1844,22 @@ void CodeGen::popFrame()
 
 MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 {
-    if (typeRef.isValid())
-    {
-        const TypeInfo* typeInfo = &typeMgr().get(typeRef);
-        if (typeInfo->isAlias())
-        {
-            const TypeRef resolvedTypeRef = typeInfo->unwrapAliasEnum(ctx(), typeRef);
-            typeInfo = &typeMgr().get(resolvedTypeRef);
-        }
+    if (typeRef.isInvalid())
+        return nextVirtualIntRegister();
+    return nextVirtualRegisterForType(typeRef, typeMgr().get(typeRef));
+}
 
-        if (typeInfo->isFloat() || typeInfo->isSimd())
-            return nextVirtualFloatRegister();
+MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& typeInfo)
+{
+    const TypeInfo* registerType = &typeInfo;
+    if (registerType->isAlias())
+    {
+        const TypeRef resolvedTypeRef = registerType->unwrapAliasEnum(ctx(), typeRef);
+        registerType = &typeMgr().get(resolvedTypeRef);
     }
 
+    if (registerType->isFloat() || registerType->isSimd())
+        return nextVirtualFloatRegister();
     return nextVirtualIntRegister();
 }
 

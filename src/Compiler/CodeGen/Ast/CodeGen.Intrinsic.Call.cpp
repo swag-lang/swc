@@ -127,8 +127,8 @@ namespace
     void loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         const TypeRef operandStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
-        outReg                              = codeGen.nextVirtualRegisterForType(operandStorageTypeRef);
         const TypeInfo&   operandType       = codeGen.typeMgr().get(operandStorageTypeRef);
+        outReg                              = codeGen.nextVirtualRegisterForType(operandStorageTypeRef, operandType);
         const MicroOpBits opBits            = CodeGenTypeHelpers::numericBits(operandType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 

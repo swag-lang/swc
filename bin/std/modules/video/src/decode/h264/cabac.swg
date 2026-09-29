@@ -670,12 +670,15 @@ impl Slice
         if (low & 0xFFFF) == 0 do
             low = .cabac.reload(low)
 
-        // Same bin as the bypass, read as a sign: below the range it is positive.
+        // Same bin as the bypass, read as a sign: below the range it is positive. The negation
+        // comes before the comparison, whose flags then serve both selects: after it, it would
+        // overwrite them and the comparison would have to be kept as a boolean and tested again.
         let #uniq0 = range << 17
         let #uniq1 = low - #wrap #uniq0
+        let #uniq3 = -magnitude
         let #uniq2 = cast(s32) #uniq0 <= cast(s32) low
         low   = #uniq2 ? #uniq1 : low
-        level = #uniq2 ? -magnitude : magnitude
+        level = #uniq2 ? #uniq3 : magnitude
     }
 
     // Decodes one bin with the context at `contextIndex`, section 9.3.3.2.1, for the syntax
@@ -847,9 +850,9 @@ impl Slice
             .binSign(magnitude)
             let raster = cast(u64) ResidualOrder[order + position]
             if IsDc do
-                coeffs[raster] = cast(s16) clampS32(level, -32768, 32767)
+                coeffs[raster] = cast(s16) Math.clamp(level, -32768, 32767)
             else do
-                coeffs[raster] = dequantLevel(clampS32(level, -32768, 32767), scale![raster], shift)
+                coeffs[raster] = dequantLevel(level, scale![raster], shift)
         }
 
         .cabac.range = range

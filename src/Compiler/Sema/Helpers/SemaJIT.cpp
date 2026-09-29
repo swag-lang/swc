@@ -1139,8 +1139,8 @@ namespace
         if (calledFn.parameters().empty())
             return false;
 
-        const TypeRef   receiverParamTypeRef      = sema.typeMgr().get(calledFn.parameters().front()->typeRef()).unwrap(sema.ctx(), calledFn.parameters().front()->typeRef(), TypeExpandE::Alias);
-        const TypeRef   normalizedReceiverTypeRef = sema.typeMgr().get(receiverTypeRef).unwrap(sema.ctx(), receiverTypeRef, TypeExpandE::Alias);
+        const TypeRef   receiverParamTypeRef      = sema.typeMgr().unwrapAlias(sema.ctx(), calledFn.parameters().front()->typeRef());
+        const TypeRef   normalizedReceiverTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), receiverTypeRef);
         const TypeRef   receiverParamRef          = receiverParamTypeRef.isValid() ? receiverParamTypeRef : calledFn.parameters().front()->typeRef();
         const TypeRef   receiverType              = normalizedReceiverTypeRef.isValid() ? normalizedReceiverTypeRef : receiverTypeRef;
         const TypeInfo& receiverParam             = sema.typeMgr().get(receiverParamRef);
@@ -1255,7 +1255,7 @@ namespace
             const SymbolVariable* param = calledFn.parameters()[i];
             SWC_ASSERT(param != nullptr);
 
-            TypeRef argValueTypeRef = sema.typeMgr().get(param->typeRef()).unwrap(ctx, param->typeRef(), TypeExpandE::Alias);
+            TypeRef argValueTypeRef = sema.typeMgr().unwrapAlias(ctx, param->typeRef());
             if (!argValueTypeRef.isValid())
                 return Result::Continue;
 
@@ -1364,7 +1364,7 @@ namespace
             const SymbolVariable* param = calledFn.parameters()[i];
             SWC_ASSERT(param != nullptr);
 
-            TypeRef argValueTypeRef = sema.typeMgr().get(param->typeRef()).unwrap(ctx, param->typeRef(), TypeExpandE::Alias);
+            TypeRef argValueTypeRef = sema.typeMgr().unwrapAlias(ctx, param->typeRef());
             if (!argValueTypeRef.isValid())
                 return Result::Continue;
 

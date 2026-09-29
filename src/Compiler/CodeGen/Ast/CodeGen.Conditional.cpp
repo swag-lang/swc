@@ -381,7 +381,7 @@ Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
     {
         const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(chainType, codeGen.ctx());
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), chainTypeRef);
-        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(chainTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(chainTypeRef, chainType);
         emitSelectedOperand(codeGen, resultPayload, childPayload, resultBits);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
         builder.placeLabel(falseLabel);

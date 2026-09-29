@@ -46,14 +46,14 @@ const SymbolStruct* CodeGenStructHelpers::resolveRuntimeStructType(CodeGen& code
     if (!typeRef.isValid())
         return nullptr;
 
-    typeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
+    typeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
     if (typeRef.isInvalid())
         return nullptr;
 
     const TypeInfo* typeInfo = &codeGen.typeMgr().get(typeRef);
     if (typeInfo->isPointerOrReference())
     {
-        typeRef  = codeGen.typeMgr().get(typeInfo->payloadTypeRef()).unwrapAliasEnum(codeGen.ctx(), typeInfo->payloadTypeRef());
+        typeRef  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeInfo->payloadTypeRef());
         typeInfo = &codeGen.typeMgr().get(typeRef);
     }
 

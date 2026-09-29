@@ -24,7 +24,7 @@ namespace
 {
     TypeRef resolveDerefResultTypeRef(CodeGen& codeGen, TypeRef operandTypeRef)
     {
-        operandTypeRef = codeGen.typeMgr().get(operandTypeRef).unwrapAliasEnum(codeGen.ctx(), operandTypeRef);
+        operandTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), operandTypeRef);
         return codeGen.typeMgr().get(operandTypeRef).dereferenceTypeRef(codeGen.ctx());
     }
 

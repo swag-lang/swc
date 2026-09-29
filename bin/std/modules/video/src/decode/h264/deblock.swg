@@ -242,6 +242,19 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
     if info.deblockIdc == 1 do
         return
 
+    // Below index 16 either threshold is zero and no edge is filtered. When the quantizers of
+    // this macroblock and of the neighbours its outer edges average with keep every edge of both
+    // planes there, the strengths are not worth deriving, which is FFmpeg's `qp_thresh` test.
+    // The chroma quantizer only grows with the luma one, so the largest luma one bounds both.
+    var maxQp = cast(s32) info.qp
+    if mbX > 0 do
+        maxQp = Math.max(maxQp, cast(s32) dec.mbInfo[mbIndex - 1].qp)
+    if mbY > 0 do
+        maxQp = Math.max(maxQp, cast(s32) dec.mbInfo[mbIndex - cast(u64) sps.mbWidth].qp)
+    let thresholdOffset = Math.min(cast(s32) info.alphaOffset, cast(s32) info.betaOffset)
+    if maxQp + thresholdOffset < 16 and chromaQpAtLevel(dec, maxQp) + thresholdOffset < 16 do
+        return
+
     let gw     = sps.mbWidth * 4
     let qIntra = info.class != MbClassInter
 
@@ -899,9 +912,12 @@ func filterChromaStrongVertical(pix: [*] u8, stride: u64, strengths: const *Edge
 // planes filter with the same strength, so one offset serves both.
 private func chromaQpAt(dec: *Decoder, mbX, mbY: s32)->s32
 {
-    let qp = cast(s32) dec.mbInfo[cast(u64) (mbY * dec.sps!.mbWidth + mbX)].qp
-    return cast(s32) ChromaQp[cast(u64) Math.clamp(qp + dec.pps!.chromaQpOffset[0], 0, 51)]
+    return chromaQpAtLevel(dec, cast(s32) dec.mbInfo[cast(u64) (mbY * dec.sps!.mbWidth + mbX)].qp)
 }
+
+// Returns the chroma QP that goes with the luma QP `qp`, with the same offset as [[chromaQpAt]].
+#[Swag.Inline]
+private func chromaQpAtLevel(dec: *Decoder, qp: s32)->s32 => cast(s32) ChromaQp[cast(u64) Math.clamp(qp + dec.pps!.chromaQpOffset[0], 0, 51)]
 
 // Filters one luma line across an edge; `pix` sits on the first q sample, `step` walks
 // across the edge and `lineStride` along it.

@@ -1047,7 +1047,7 @@ namespace
             const MicroOpBits retBits = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
             SWC_ASSERT(retBits != MicroOpBits::Zero);
 
-            const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
+            const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef, returnTypeInfo);
             const TypeRef  exprTypeRef    = codeGen.viewType(exprRef).typeRef();
             if (!delayReturnMaterialization)
             {

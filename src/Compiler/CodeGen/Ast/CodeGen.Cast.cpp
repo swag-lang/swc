@@ -471,7 +471,7 @@ namespace
                 return Result::Continue;
             }
 
-            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstPayload.reg, srcReg, srcOpBits, dstOpBits, /*unsignedSource=*/false);
             return Result::Continue;
         }
@@ -484,7 +484,7 @@ namespace
                 return Result::Continue;
             }
 
-            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
             builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
             return Result::Continue;
@@ -497,7 +497,7 @@ namespace
             return Result::Continue;
         }
 
-        dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
         SWC_RESULT(CodeGenSafety::emitFloatToIntCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, readType, dstType));
         CodeGenMemoryHelpers::emitConvertFloatToInt(codeGen, dstPayload.reg, srcReg, readType, dstType);
         return Result::Continue;
@@ -1311,7 +1311,7 @@ namespace
         if (anyCastAsValueBits(codeGen, dstTypeRef, valueBits))
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             builder.emitLoadRegMem(dstPayload.reg, finalValueAddrReg, 0, valueBits);
             SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, false, dstTypeRef));
             return Result::Continue;
@@ -1970,7 +1970,7 @@ namespace
                 return Result::Continue;
             }
 
-            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, resolvedDstType);
             CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstPayload.reg, srcReg, srcOpBits, dstOpBits, /*unsignedSource=*/false);
             return Result::Continue;
         }
@@ -1984,7 +1984,7 @@ namespace
                 return Result::Continue;
             }
 
-            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, resolvedDstType);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
             builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
             return Result::Continue;
@@ -1999,7 +1999,7 @@ namespace
         }
 
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-        dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef, resolvedDstType);
         SWC_RESULT(CodeGenSafety::emitFloatToIntCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, resolvedSrcType, resolvedDstType));
         CodeGenMemoryHelpers::emitConvertFloatToInt(codeGen, dstPayload.reg, srcReg, resolvedSrcType, resolvedDstType);
 

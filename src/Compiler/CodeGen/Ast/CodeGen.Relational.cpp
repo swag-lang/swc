@@ -44,42 +44,29 @@ namespace
         return idRef.isValid() ? codeGen.compiler().runtimeFunctionSymbol(idRef) : nullptr;
     }
 
-    bool shouldReadScalarReference(CodeGen& codeGen, TypeRef typeRef)
-    {
-        const TypeRef normalizedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
-        if (!normalizedTypeRef.isValid())
-            return false;
-
-        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
-        if (!normalizedType.isReference())
-            return false;
-
-        return codeGen.typeMgr().get(normalizedType.payloadTypeRef()).isScalarNumeric();
-    }
-
-    void normalizeScalarReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
+    TypeRef normalizeScalarReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
     {
         const TypeRef normalizedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), ioTypeRef);
         if (!normalizedTypeRef.isValid())
-            return;
+            return normalizedTypeRef;
 
         const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
         if (!normalizedType.isReference())
         {
             ioTypeRef = normalizedTypeRef;
-            return;
+            return normalizedTypeRef;
         }
 
         const TypeRef payloadTypeRef = normalizedType.payloadTypeRef();
         if (!codeGen.typeMgr().get(payloadTypeRef).isScalarNumeric())
-            return;
+            return normalizedTypeRef;
 
         ioTypeRef         = payloadTypeRef;
         ioPayload.typeRef = payloadTypeRef;
         if (ioPayload.isValue())
         {
             ioPayload.setIsAddress();
-            return;
+            return payloadTypeRef;
         }
 
         const MicroReg referenceSlotReg = ioPayload.reg;
@@ -88,9 +75,10 @@ namespace
         const ScopedDebugSource debugSource(builder, ioPayload.sourceCodeRef);
         builder.emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
         ioPayload.setIsAddress();
+        return payloadTypeRef;
     }
 
-    TypeRef resolveRelationalOperandTypeRef(CodeGen& codeGen, AstNodeRef operandRef, const SemaNodeView& operandView, const CodeGenNodePayload& operandPayload)
+    TypeRef resolveRelationalOperandTypeRef(CodeGen& codeGen, AstNodeRef operandRef, const CodeGenNodePayload& operandPayload)
     {
         if (operandPayload.typeRef.isValid())
             return operandPayload.typeRef;
@@ -107,21 +95,11 @@ namespace
                 return storedResolvedTypeRef;
         }
 
-        return operandView.typeRef();
+        return codeGen.viewType(operandRef).typeRef();
     }
 
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
-        if (shouldReadScalarReference(codeGen, leftTypeRef))
-            leftTypeRef = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftTypeRef)).payloadTypeRef();
-        else
-            leftTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftTypeRef);
-
-        if (shouldReadScalarReference(codeGen, rightTypeRef))
-            rightTypeRef = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), rightTypeRef)).payloadTypeRef();
-        else
-            rightTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), rightTypeRef);
-
         const TypeInfo& leftType  = codeGen.typeMgr().get(leftTypeRef);
         const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);
         if (leftType.isScalarNumeric() && rightType.isScalarNumeric())
@@ -784,21 +762,18 @@ namespace
 
     Result emitRelationalBool(CodeGen& codeGen, const AstRelationalExpr& node, TokenId tokId)
     {
-        const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
-        const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
-
         const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
-        TypeRef                   leftOperandTypeRef  = resolveRelationalOperandTypeRef(codeGen, node.nodeLeftRef, leftView, leftPayload);
-        TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightView, rightPayload);
+        TypeRef                   leftOperandTypeRef  = resolveRelationalOperandTypeRef(codeGen, node.nodeLeftRef, leftPayload);
+        TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightPayload);
         SWC_ASSERT(leftOperandTypeRef.isValid());
         SWC_ASSERT(rightOperandTypeRef.isValid());
         CodeGenNodePayload leftOperandPayload  = leftPayload;
         CodeGenNodePayload rightOperandPayload = rightPayload;
-        normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
-        normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
+        const TypeRef leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
+        const TypeRef rightCompareTypeRef = normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
-        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
+        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftCompareTypeRef, rightCompareTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef) &&
             hasPreparedRuntimeContentCompare(codeGen))
@@ -858,21 +833,18 @@ namespace
 
     Result emitThreeWayCompare(CodeGen& codeGen, const AstRelationalExpr& node)
     {
-        const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
-        const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
-
         const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
-        TypeRef                   leftOperandTypeRef  = resolveRelationalOperandTypeRef(codeGen, node.nodeLeftRef, leftView, leftPayload);
-        TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightView, rightPayload);
+        TypeRef                   leftOperandTypeRef  = resolveRelationalOperandTypeRef(codeGen, node.nodeLeftRef, leftPayload);
+        TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightPayload);
         SWC_ASSERT(leftOperandTypeRef.isValid());
         SWC_ASSERT(rightOperandTypeRef.isValid());
         CodeGenNodePayload leftOperandPayload  = leftPayload;
         CodeGenNodePayload rightOperandPayload = rightPayload;
-        normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
-        normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
+        const TypeRef leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
+        const TypeRef rightCompareTypeRef = normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
-        const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
+        const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftCompareTypeRef, rightCompareTypeRef);
         const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
         const MicroOpBits opBits         = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);

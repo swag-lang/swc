@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-29 09:34 — Record the entropy-layer instruction counts after the prompt-2 CABAC batches.
+- Updated: 2026-09-29 10:13 — Record the entropy-layer instruction counts after the prompt-2 CABAC batches.
 - Evidence: on 2026-09-12, decoding the same 3840x2160 one-slice High/CABAC clip and alternating
   the two decoders inside one measurement window, this decoder and FFmpeg's own build with its
   hand-written assembly disabled read within a tenth of each other, while FFmpeg with its
@@ -38,15 +38,20 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   `Slice.residualCabac` shows the significance loop remaking three relocated table addresses and
   spilling the range on every bin, which is register pressure, not instruction selection.
 - Entropy layer, 2026-09-29 (prompt 2): the CABAC decision now holds the packed state at register
-  width and leaves it in `binState`, the level tables joined `CabacTables`, the significance loop
-  walks its states through one pointer, and backend rules fold address arithmetic into loads,
-  keep conditional work and its spills off loop common paths, and fuse field-address additions.
+  width and leaves it in `binState`, the level tables joined `CabacTables`, the significance and
+  level loops reach their states through one pointer each, levels are dequantized at 64 bits
+  under one conditional-move clamp instead of two sign-bit clamps, the scan and shift are
+  constants of each block shape, and backend rules fold address arithmetic into loads, keep
+  conditional work and its spills off loop common paths, and fuse field-address additions.
   On the 4x4 luma `residualCabac` a no-hit significance iteration went from 46 Micro instructions
   (six memory accesses, two of them spill reloads, six branches) to 35 (four, two, three); the
-  function from 669 to 618 instructions, its significance loop span from 139 to 115 and 11 to 6
-  frame accesses, its level loop from 326 to 306 and five relocated table addresses to one. FFmpeg's
-  asm bin is about 23 instructions; what separates them is recorded in compiler.optimization.098.
-  Decoded planes of a 60-picture 3840x2160 High/CABAC extract stay byte-identical to libavcodec.
+  function from 669 to 577 instructions, its significance loop span from 139 to 115 and 11 to 6
+  frame accesses, its level loop from 326 to 272, 25 to 13 frame accesses and five relocated
+  table addresses to one. FFmpeg's asm bin is about 23 instructions; what separates them is
+  recorded in compiler.optimization.098. Decoded planes of a 60-picture 3840x2160 High/CABAC
+  extract stay byte-identical to libavcodec. Interleaved decoding-thread cycle measurements on
+  this shared machine could not resolve the change (paired ratios 0.91 to 1.13 across three
+  sessions, individual runs spreading by more than 30 per cent).
 - Current source: `Slice.resolveNeighbors` caches the four neighboring macroblocks;
   `bookkeepMb` writes grid rows and reference-picture co-located motion in words/vectors;
   `Frame.colMotion` receives the macroblock index. The old next step to build those paths is done.

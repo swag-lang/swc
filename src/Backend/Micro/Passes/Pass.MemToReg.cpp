@@ -1370,7 +1370,128 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
     }
 
-    if (promotions.empty() && splits.empty())
+    // ---- A vector written once and read lane by lane. ----
+    // `v[k]` of a local vector spills the vector and reads the lane back: a
+    // 16-byte store, then narrower loads at +4, +8 or +12, which overlap the
+    // vector slot and keep every access in memory. When the store is the only
+    // write and every read follows it on the same straight line, the store
+    // becomes a copy into a vector register and each lane comes out with a
+    // shuffle that brings it to lane zero and one move to an integer register,
+    // which is how LLVM extracts a lane without SSE4.1.
+    struct LaneSplit
+    {
+        uint64_t                offset   = 0;
+        MicroInstrRef           writeRef = MicroInstrRef::invalid();
+        SmallVector<SlotAccess> reads;
+    };
+    SmallVector<LaneSplit> laneSplits;
+    if (hasVectorWrite)
+    {
+        // Instruction ordinals, and the number of block breaks before each, so a
+        // read on the write's straight line is one with the same break count.
+        // Built on the first slot that has the shape, since most functions with a
+        // vector store have none.
+        std::unordered_map<uint32_t, uint32_t> ordinal;
+        std::unordered_map<uint32_t, uint32_t> breaksBefore;
+        bool                                   ordinalsReady = false;
+        const auto                             ensureOrdinals = [&] {
+            if (ordinalsReady)
+                return;
+            ordinalsReady   = true;
+            uint32_t index  = 0;
+            uint32_t breaks = 0;
+            for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++index)
+            {
+                const MicroInstrDef& info = MicroInstr::info(it->op);
+                if (it->op == MicroInstrOpcode::Label)
+                    ++breaks;
+                ordinal[it.current.get()]      = index;
+                breaksBefore[it.current.get()] = breaks;
+                if (info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                    ++breaks;
+            }
+        };
+
+        for (const auto& [offset, slot] : slots)
+        {
+            if (slot.stackPointerAccess)
+                continue;
+
+            const SlotAccess* write  = nullptr;
+            bool              usable = true;
+            for (const SlotAccess& acc : slot.accesses)
+            {
+                if (!acc.isWrite)
+                    continue;
+                usable = write == nullptr;
+                write  = &acc;
+            }
+            if (!usable || !write || write->bits != MicroOpBits::B128)
+                continue;
+            const MicroInstr* writeInst = storage.ptr(write->ref);
+            if (!writeInst || (writeInst->op != MicroInstrOpcode::LoadMemReg && writeInst->op != MicroInstrOpcode::StoreVecMemReg) ||
+                !writeInst->ops(operands)[1].reg.isVirtualFloat())
+                continue;
+            const uint64_t end = offset + 16;
+            if (overlapsPoisonedVariable(offset, end) || (unknownSpaceEscaped && !insideKnownVariable(offset, end)))
+                continue;
+
+            // Only a vector some narrower read overlaps is a candidate.
+            bool narrowRead = false;
+            for (const auto& [other, otherSlot] : slots)
+                narrowRead = narrowRead || (other > offset && other < end);
+            if (!narrowRead)
+                continue;
+
+            ensureOrdinals();
+            const uint32_t writeOrdinal = ordinal[write->ref.get()];
+            const uint32_t writeBreaks  = breaksBefore[write->ref.get()];
+            LaneSplit      split;
+            split.offset   = offset;
+            split.writeRef = write->ref;
+            bool beyondLaneZero = false;
+            for (const auto& [other, otherSlot] : slots)
+            {
+                if (otherSlot.maxAccessEnd <= offset || other >= end)
+                    continue;
+                if (other < offset || otherSlot.maxAccessEnd > end || (other != offset && otherSlot.hasWrite) || otherSlot.stackPointerAccess)
+                {
+                    usable = false;
+                    break;
+                }
+                for (const SlotAccess& acc : otherSlot.accesses)
+                {
+                    if (acc.ref == write->ref)
+                        continue;
+                    const MicroInstr* read     = storage.ptr(acc.ref);
+                    const uint64_t    at       = other - offset;
+                    const bool        laneRead = (acc.bits == MicroOpBits::B32 && at % 4 == 0) || (acc.bits == MicroOpBits::B64 && at % 8 == 0);
+                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || !laneRead || ordinal[acc.ref.get()] <= writeOrdinal ||
+                        breaksBefore[acc.ref.get()] != writeBreaks)
+                    {
+                        usable = false;
+                        break;
+                    }
+                    const MicroReg valueReg = slotValueRegister(read->op, read->ops(operands));
+                    if (valueReg.isValid() && !valueReg.isAnyInt())
+                    {
+                        usable = false;
+                        break;
+                    }
+                    beyondLaneZero |= at != 0;
+                    split.reads.push_back(acc);
+                }
+                if (!usable)
+                    break;
+            }
+
+            if (usable && beyondLaneZero)
+                laneSplits.push_back(std::move(split));
+        }
+    }
+
+    if (promotions.empty() && splits.empty() && laneSplits.empty())
         return Result::Continue;
 
     // Loop-carried slots (values live across a back-edge) are promoted too: the
@@ -1479,6 +1600,56 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 floatIt = floatFields.emplace(floatKey, floatField).first;
             }
             rewriteSlotAccess(storage, operands, acc, floatIt->second);
+        }
+    }
+
+    // ---- Split the vectors read lane by lane. ----
+    for (const LaneSplit& split : laneSplits)
+    {
+        const MicroReg vector = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);
+
+        // The store becomes the copy of the stored vector.
+        MicroInstr*        writeInst = storage.ptr(split.writeRef);
+        MicroInstrOperand* writeOps  = writeInst->ops(operands);
+        const MicroReg     source    = writeOps[1].reg;
+        writeOps[0].reg              = vector;
+        writeOps[1].reg              = source;
+        writeOps[2].opBits           = MicroOpBits::B128;
+        writeInst->op                = MicroInstrOpcode::LoadRegReg;
+        writeInst->numOperands       = 3;
+
+        const MicroInstrRef                    afterWrite = storage.findNextInstructionRef(split.writeRef);
+        std::unordered_map<uint64_t, MicroReg> lanes;
+        for (const SlotAccess& acc : split.reads)
+        {
+            const uint64_t at  = acc.offset - split.offset;
+            const uint64_t key = at * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0);
+            auto           found = lanes.find(key);
+            if (found == lanes.end())
+            {
+                MicroReg laneSource = vector;
+                if (at != 0)
+                {
+                    // Lane `at / 4` of the dwords, or the high quadword, down to lane zero.
+                    laneSource = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);
+                    MicroInstrOperand shuffleOps[4];
+                    shuffleOps[0].reg      = laneSource;
+                    shuffleOps[1].reg      = vector;
+                    shuffleOps[2].opBits   = MicroOpBits::B128;
+                    shuffleOps[3].valueU64 = acc.bits == MicroOpBits::B64 ? 0xEE : at / 4;
+                    storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::VecShuffleRegRegImm, shuffleOps);
+                }
+
+                const MicroReg    lane = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                MicroInstrOperand moveOps[3];
+                moveOps[0].reg    = lane;
+                moveOps[1].reg    = laneSource;
+                moveOps[2].opBits = acc.bits;
+                storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::LoadRegReg, moveOps);
+                found = lanes.emplace(key, lane).first;
+            }
+
+            rewriteSlotAccess(storage, operands, acc, found->second);
         }
     }
 

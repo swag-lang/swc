@@ -1926,6 +1926,14 @@ impl Slice
             Simd.storeLow4(dec.codedLuma.storage() + index, zeros)
         }
 
+        // The lanes the deblocking filter compares for every block of this macroblock: each
+        // list's vector and its reference identity in the high byte of the third lane.
+        let ref1  = job.refIdx[1]
+        let id0   = ref >= 0 ? .refs[0, cast(u64) ref].identity : NoReferenceIdentity
+        let id1   = ref1 >= 0 ? .refs[1, cast(u64) ref1].identity : NoReferenceIdentity
+        let mbIdx = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
+        dec.skipMotion[mbIdx] = cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], cast(s16) (cast(s32) id0 << 8), 0, job.mv[1, 0], job.mv[1, 1], cast(s16) (cast(s32) id1 << 8), 0]
+
         // Only a reference picture is read as a co-located one.
         if not dec.isRefPicture do
             return

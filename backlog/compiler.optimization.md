@@ -93,6 +93,24 @@ block, and the hot path keeps the register.
 - Complete when: the remaining repeated pointer/element reads disappear with sound alias and
   control-flow proofs, or a focused experiment identifies the register-residency constraint.
 
+### compiler.optimization.100 — A local array's declaration fill survives its complete overwrite
+
+- Recorded: 2026-09-29 11:28
+- Area: compiler/backend, memory optimization
+- Evidence: a local array is cleared where it is declared, and nothing removes the fill when the
+  program overwrites every byte before reading one. `Video.H264.filterLumaVertical` clears its
+  128-byte transpose tile (eight 16-byte stores) and then stores all eight rows; the H.264 luma
+  prediction cleared a 504-byte clamp window and a 256-byte plane on every call, 47 stores for a
+  path that nearly never reads them (moved into their branches in source on
+  perf/mp4-pixel-20260929, where the zero loop now indexes an unchanged base so mem2reg keeps the
+  rest of the frame promotable). No micro pass eliminates a store killed by a later store.
+- Next: a block-local dead-store pass over frame slots: a store is dead when a later store in the
+  same block covers its bytes and nothing between them reads memory the object can reach. At the
+  declaration fill the object has not escaped yet in this activation, so reads through other
+  pointers cannot see it; calls, and reads through frame-derived registers that overlap, keep it.
+- Complete when: the tile fill of `filterLumaVertical` disappears from its release dump, a fill
+  followed by a partial overwrite and a read keeps its stores, and unit tests cover both.
+- Related: compiler.optimization.011
 ### compiler.optimization.099 — The CABAC significance loop still holds one value in two registers
 
 - Recorded: 2026-09-29 09:34

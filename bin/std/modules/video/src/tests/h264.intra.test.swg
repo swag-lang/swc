@@ -410,6 +410,44 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
             }
         }
 
+    case H264.IntraVerticalRight:
+        var topRef:  [18] s32
+        var leftRef: [10] s32
+        topRef[0]  = left[0]
+        topRef[1]  = corner
+        leftRef[0] = top[0]
+        leftRef[1] = corner
+        for index in 16'u64 do
+            topRef[2 + index] = top[index]
+        for index in 8'u64 do
+            leftRef[2 + index] = left[index]
+
+        for row in 8's64
+        {
+            for column in 8's64
+            {
+                let z = 2 * column - row
+                var value: s32
+                if z >= 0 and z & 1 == 0
+                {
+                    let k = cast(u64) (column - (row >> 1))
+                    value = (topRef[k + 1] + topRef[k + 2] + 1) >> 1
+                }
+                elif z >= -1
+                {
+                    let k = cast(u64) (column - (row >> 1))
+                    value = (topRef[k] + 2 * topRef[k + 1] + topRef[k + 2] + 2) >> 2
+                }
+                else
+                {
+                    let e = cast(u64) (row - 2 * column)
+                    value = (leftRef[e + 1] + 2 * leftRef[e] + leftRef[e - 1] + 2) >> 2
+                }
+
+                dst[cast(u64) row * IntraTestStride + cast(u64) column] = cast(u8) value
+            }
+        }
+
     case H264.IntraHorizontalDown:
         var topRef:  [18] s32
         var leftRef: [10] s32
@@ -497,7 +535,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
 {
     const Availability = [false, true]
     const Intra4Modes  = [H264.IntraVertical, H264.IntraHorizontal, H264.IntraDc, H264.IntraDownLeft, H264.IntraVerticalLeft, H264.IntraHorizontalUp]
-    const Intra8Modes  = [H264.IntraVertical, H264.IntraHorizontal, H264.IntraDc, H264.IntraDownLeft, H264.IntraDownRight, H264.IntraHorizontalDown, H264.IntraVerticalLeft, H264.IntraHorizontalUp]
+    const Intra8Modes  = [H264.IntraVertical, H264.IntraHorizontal, H264.IntraDc, H264.IntraDownLeft, H264.IntraDownRight, H264.IntraVerticalRight, H264.IntraHorizontalDown, H264.IntraVerticalLeft, H264.IntraHorizontalUp]
     const Modes        = [H264.Intra16Vertical, H264.Intra16Horizontal, H264.Intra16Dc, H264.Intra16Plane]
     var expected: [1024] u8
     var actual:   [1024] u8

@@ -21,36 +21,41 @@ using Core, Core.Math
 #[Swag.Inline]
 func tap6(a, b, c, d, e, f: s32)->s32 => a - 5 * b + 20 * c + 20 * d - 5 * e + f
 
-// Eight unclipped six-tap sums on widened byte lanes. Every sum fits s16: the
-// positive taps reach 20 * 510 + 510 = 10710 and the negative ones -2550, so
-// the arithmetic never wraps.
+// Eight unclipped six-tap sums on widened byte lanes, as `(4 * inner - outer) * 5
+// + edges`: one multiply where `20 * inner - 5 * outer` takes two. Every sum fits
+// s16: the positive taps reach 20 * 510 + 510 = 10710 and the negative ones
+// -2550, so the arithmetic never wraps.
 #[Swag.Inline]
-private func tap6Raw16(inner, outer, edges: Simd.U16x8)->Simd.S16x8 => cast #bit(Simd.S16x8) edges + cast #bit(Simd.S16x8) inner * 20 - cast #bit(Simd.S16x8) outer * 5
+private func tap6Raw16(inner, outer, edges: Simd.U16x8)->Simd.S16x8
+{
+    let widened = cast #bit(Simd.S16x8) inner
+    return ((widened << 2) - cast #bit(Simd.S16x8) outer) * 5 + cast #bit(Simd.S16x8) edges
+}
 
 // Eight six-tap half-samples on widened byte lanes; the caller's saturating
 // pack is exactly the scalar clamp.
 #[Swag.Inline]
 private func tap6Half16(inner, outer, edges: Simd.U16x8)->Simd.S16x8 => (tap6Raw16(inner, outer, edges) + 16) >> 5
 
-// One vertical six-tap over four widened sums, with the center rounding shift.
-// The 32-bit intermediates stay far inside the lane range: the sums reach
-// ±10710, so the filtered value reaches about ±470000.
-#[Swag.Inline]
-private func tap6CenterQuad(inner, outer, edges: Simd.S32x4)->Simd.S32x4
-{
-    let sum = edges + inner * 20 - outer * 5
-    return (sum + 512) >> 10
-}
+// The rounding term of the center half-sample, added once to the edge pair.
+const CenterBias = 512's16
 
-// One vertical six-tap over eight 16-bit sums, back to 16-bit lanes; the
-// shifted result reaches about ±460, so the signed pack never saturates and
-// the caller's unsigned pack is exactly the scalar clamp.
+// One vertical six-tap over eight 16-bit horizontal sums, with the center
+// rounding shift, without leaving 16-bit lanes.
+//
+// With `x` the edge pair plus the rounding term, `y` the outer pair and `z` the
+// inner one, `(x - 5y + 20z) >> 10` is `((((x - y) >> 2) - y + z) >> 2) + z) >> 6`:
+// each floored shift drops only low bits the later ones would drop too, so the
+// chain is exact. Its intermediates stay in 16 bits: the sums reach -2550 to
+// 10710, so `x - y` is at most 27032 and every later step is smaller, except
+// the one adding `z`, which saturates. That clamp only fires when the exact
+// result lies beyond a byte either way, where it keeps the sign and the
+// magnitude past 255, so the caller's unsigned pack is still the scalar clamp.
 #[Swag.Inline]
-private func tap6Center8(inner, outer, edges: Simd.S16x8)->Simd.S16x8
+private func tap6Center16(inner, outer, edges: Simd.S16x8)->Simd.S16x8
 {
-    let lo = tap6CenterQuad(Simd.widenLow(inner), Simd.widenLow(outer), Simd.widenLow(edges))
-    let hi = tap6CenterQuad(Simd.widenHigh(inner), Simd.widenHigh(outer), Simd.widenHigh(edges))
-    return Simd.packSigned(lo, hi)
+    let partial = Simd.addSaturating(((edges - outer) >> 2) - outer, inner)
+    return ((partial >> 2) + inner) >> 6
 }
 
 // Sixteen six-tap half-samples in one pass: rows spaced by `stride` widen to
@@ -184,27 +189,95 @@ private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
     }
 }
 
-// Produces the clipped vertical half-sample plane at integer columns.
-private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
+// Vertical six-tap half-samples of a 4, 8, or 16 wide block, optionally averaged
+// with `anchor`. The six source rows the filter reads slide down the block in
+// registers, so each output row loads and widens one new source row instead of
+// all six.
+#[Swag.Inline]
+private func halfVerticalRows(dst: [*] u8, dstStride: u64, src: const [*] u8, srcStride: u64, anchor: const [*] u8, anchorStride: u64, averaged: bool, width, height: s32)
 {
+    var line  = src - 2 * srcStride
+    var out   = dst
+    var other = anchor
     if width == 16
     {
-        for row in cast(u64) height do
-            Simd.store(dst + row * dstStride, tap6Row16(src + row * srcStride - 2 * srcStride, srcStride))
+        let b0 = Simd.load(line)
+        let b1 = Simd.load(line + srcStride)
+        let b2 = Simd.load(line + 2 * srcStride)
+        let b3 = Simd.load(line + 3 * srcStride)
+        let b4 = Simd.load(line + 4 * srcStride)
+        var l0 = Simd.widenLow(b0)
+        var l1 = Simd.widenLow(b1)
+        var l2 = Simd.widenLow(b2)
+        var l3 = Simd.widenLow(b3)
+        var l4 = Simd.widenLow(b4)
+        var h0 = Simd.widenHigh(b0)
+        var h1 = Simd.widenHigh(b1)
+        var h2 = Simd.widenHigh(b2)
+        var h3 = Simd.widenHigh(b3)
+        var h4 = Simd.widenHigh(b4)
+        line += 5 * srcStride
+        for cast(u64) height
+        {
+            let b5   = Simd.load(line)
+            let l5   = Simd.widenLow(b5)
+            let h5   = Simd.widenHigh(b5)
+            var half = Simd.packUnsigned(tap6Half16(l2 + l3, l1 + l4, l0 + l5), tap6Half16(h2 + h3, h1 + h4, h0 + h5))
+            if averaged do
+                half = Simd.average(half, Simd.load(other))
+            Simd.store(out, half)
+            l0 = l1
+            l1 = l2
+            l2 = l3
+            l3 = l4
+            l4 = l5
+            h0 = h1
+            h1 = h2
+            h2 = h3
+            h3 = h4
+            h4 = h5
+            line  += srcStride
+            out   += dstStride
+            other += anchorStride
+        }
+
         return
     }
 
-    if width == 8 or width == 4
+    var r0 = Simd.widenLow(Simd.load(line))
+    var r1 = Simd.widenLow(Simd.load(line + srcStride))
+    var r2 = Simd.widenLow(Simd.load(line + 2 * srcStride))
+    var r3 = Simd.widenLow(Simd.load(line + 3 * srcStride))
+    var r4 = Simd.widenLow(Simd.load(line + 4 * srcStride))
+    line += 5 * srcStride
+    for cast(u64) height
     {
-        for row in cast(u64) height
-        {
-            let half = tap6Row8(src + row * srcStride - 2 * srcStride, srcStride)
-            if width == 8 do
-                Simd.storeLow8(dst + row * dstStride, half)
-            else do
-                Simd.storeLow4(dst + row * dstStride, half)
-        }
+        let r5   = Simd.widenLow(Simd.load(line))
+        let sum  = tap6Half16(r2 + r3, r1 + r4, r0 + r5)
+        var half = Simd.packUnsigned(sum, sum)
+        if averaged do
+            half = Simd.average(half, Simd.load(other))
+        if width == 8 do
+            Simd.storeLow8(out, half)
+        else do
+            Simd.storeLow4(out, half)
+        r0 = r1
+        r1 = r2
+        r2 = r3
+        r3 = r4
+        r4 = r5
+        line  += srcStride
+        out   += dstStride
+        other += anchorStride
+    }
+}
 
+// Produces the clipped vertical half-sample plane at integer columns.
+private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
+{
+    if width == 16 or width == 8 or width == 4
+    {
+        halfVerticalRows(dst, dstStride, src, srcStride, src, 0, false, width, height)
         return
     }
 
@@ -223,31 +296,9 @@ private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
 // Produces the vertical half-samples averaged with `anchor`, in one pass.
 private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, anchor: [*] u8, anchorStride: u64, width, height: s32)
 {
-    if width == 16
+    if width == 16 or width == 8 or width == 4
     {
-        for row in cast(u64) height
-        {
-            let half  = tap6Row16(src + row * srcStride - 2 * srcStride, srcStride)
-            let other = Simd.load(anchor + row * anchorStride)
-            Simd.store(dst + row * dstStride, Simd.average(half, other))
-        }
-
-        return
-    }
-
-    if width == 8 or width == 4
-    {
-        for row in cast(u64) height
-        {
-            let half  = tap6Row8(src + row * srcStride - 2 * srcStride, srcStride)
-            let other = Simd.load(anchor + row * anchorStride)
-            let mixed = Simd.average(half, other)
-            if width == 8 do
-                Simd.storeLow8(dst + row * dstStride, mixed)
-            else do
-                Simd.storeLow4(dst + row * dstStride, mixed)
-        }
-
+        halfVerticalRows(dst, dstStride, src, srcStride, anchor, anchorStride, true, width, height)
         return
     }
 
@@ -269,15 +320,17 @@ private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
 // vertically.
 private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
+    // A sixteen-wide block is two strips of eight, as FFmpeg's kernel walks it.
     if width == 16
     {
-        halfCenter16(dst, dstStride, src, srcStride, height)
+        halfCenterStrip(dst, dstStride, src, srcStride, 8, height)
+        halfCenterStrip(dst + 8, dstStride, src + 8, srcStride, 8, height)
         return
     }
 
     if width == 8 or width == 4
     {
-        halfCenter8(dst, dstStride, src, srcStride, width, height)
+        halfCenterStrip(dst, dstStride, src, srcStride, width, height)
         return
     }
 
@@ -303,57 +356,51 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
     }
 }
 
-// Sixteen center half-samples per row: the horizontal sums stay in 16-bit
-// lanes, two vectors per row, and the vertical pass widens them on the fly.
-private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, height: s32)
+// Eight unclipped horizontal six-tap sums of one row, in the low lanes of the widened
+// bytes: the sixteen-byte loads cover the thirteen bytes the shifted lanes read.
+#[Swag.Inline]
+private func centerSums8(line: const [*] u8)->Simd.S16x8
 {
-    var sums: [21 * 2] Simd.S16x8
-    for row in cast(u64) (height + 5)
-    {
-        let line = src + row * srcStride - 2 * srcStride - 2
-        let r0   = Simd.load(line)
-        let r1   = Simd.load(line + 1)
-        let r2   = Simd.load(line + 2)
-        let r3   = Simd.load(line + 3)
-        let r4   = Simd.load(line + 4)
-        let r5   = Simd.load(line + 5)
-        sums[row * 2]     = tap6Raw16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
-        sums[row * 2 + 1] = tap6Raw16(Simd.widenHigh(r2) + Simd.widenHigh(r3), Simd.widenHigh(r1) + Simd.widenHigh(r4), Simd.widenHigh(r0) + Simd.widenHigh(r5))
-    }
-
-    for row in cast(u64) height
-    {
-        let lo = tap6Center8(sums[row * 2 + 4] + sums[row * 2 + 6], sums[row * 2 + 2] + sums[row * 2 + 8], sums[row * 2] + sums[row * 2 + 10])
-        let hi = tap6Center8(sums[row * 2 + 5] + sums[row * 2 + 7], sums[row * 2 + 3] + sums[row * 2 + 9], sums[row * 2 + 1] + sums[row * 2 + 11])
-        Simd.store(dst + row * dstStride, Simd.packUnsigned(lo, hi))
-    }
+    let r0 = Simd.widenLow(Simd.load(line))
+    let r1 = Simd.widenLow(Simd.load(line + 1))
+    let r2 = Simd.widenLow(Simd.load(line + 2))
+    let r3 = Simd.widenLow(Simd.load(line + 3))
+    let r4 = Simd.widenLow(Simd.load(line + 4))
+    let r5 = Simd.widenLow(Simd.load(line + 5))
+    return tap6Raw16(r2 + r3, r1 + r4, r0 + r5)
 }
 
-// Same shape for the narrower blocks: one sum vector per row, the low lanes
-// carrying the block.
-private func halfCenter8(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
+// Center half-samples down one strip of up to eight columns. The horizontal sums of the six
+// rows the vertical filter reads slide down the strip in registers: each output row filters
+// one new source row horizontally, and no row of sums is stored or reloaded.
+private func halfCenterStrip(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
-    var sums: [21] Simd.S16x8
-    for row in cast(u64) (height + 5)
-    {
-        let line = src + row * srcStride - 2 * srcStride - 2
-        let r0   = Simd.load(line)
-        let r1   = Simd.load(line + 1)
-        let r2   = Simd.load(line + 2)
-        let r3   = Simd.load(line + 3)
-        let r4   = Simd.load(line + 4)
-        let r5   = Simd.load(line + 5)
-        sums[row] = tap6Raw16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
-    }
+    var line = src - 2 * srcStride - 2
+    var s0   = centerSums8(line)
+    var s1   = centerSums8(line + srcStride)
+    var s2   = centerSums8(line + 2 * srcStride)
+    var s3   = centerSums8(line + 3 * srcStride)
+    var s4   = centerSums8(line + 4 * srcStride)
+    line += 5 * srcStride
 
-    for row in cast(u64) height
+    let bias = Simd.splat(CenterBias)
+    var out  = dst
+    for cast(u64) height
     {
-        let half   = tap6Center8(sums[row + 2] + sums[row + 3], sums[row + 1] + sums[row + 4], sums[row] + sums[row + 5])
+        let s5     = centerSums8(line)
+        let half   = tap6Center16(s2 + s3, s1 + s4, s0 + s5 + bias)
         let packed = Simd.packUnsigned(half, half)
-        if width == 8 do
-            Simd.storeLow8(dst + row * dstStride, packed)
+        if width == 4 do
+            Simd.storeLow4(out, packed)
         else do
-            Simd.storeLow4(dst + row * dstStride, packed)
+            Simd.storeLow8(out, packed)
+        s0 = s1
+        s1 = s2
+        s2 = s3
+        s3 = s4
+        s4 = s5
+        line += srcStride
+        out += dstStride
     }
 }
 
@@ -432,31 +479,33 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
 
     // A window outside the replicated padding goes through a clamped copy first. The
     // right bound uses the sixteen-byte span of the packed row loads whatever the
-    // block width, so the narrow filters may read wide.
-    var window:    [21 * 24] u8
-    var src:       [*] u8
-    var srcStride: u64
+    // block width, so the narrow filters may read wide. The window lives in this branch
+    // only: a local array is cleared where it is declared, and the vectors that stay
+    // inside the padding, nearly all of them, have no use for one.
     if x - 2 < -FramePadding or y - 2 < -FramePadding or x + 19 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
     {
+        var window: [21 * 24] u8
         copyClamped(window.buffer, 21, planeBase, planePitch, x - 2, y - 2, width + 5, height + 5, planeWidth, planeHeight)
-        src       = window.buffer + 2 * 21 + 2
-        srcStride = 21
-    }
-    else
-    {
-        src       = planeBase + cast(u64) (y + FramePadding) * planePitch + cast(u64) (x + FramePadding)
-        srcStride = planePitch
+        interpolateLuma(dst, dstStride, window.buffer + 2 * 21 + 2, 21, fracX, fracY, width, height)
+        return
     }
 
+    interpolateLuma(dst, dstStride, planeBase + cast(u64) (y + FramePadding) * planePitch + cast(u64) (x + FramePadding), planePitch, fracX, fracY, width, height)
+}
+
+// Interpolates one block from the full-sample position `src` at quarter-sample phase
+// `fracX`, `fracY`, section 8.4.2.2.1.
+private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, fracX, fracY, width, height: s32)
+{
     if fracX == 0 and fracY == 0
     {
         copyPlane(dst, dstStride, src, srcStride, width, height)
         return
     }
 
-    // Each remaining position needs at most one intermediate plane: the averaging half of
-    // section 8.4.2.2.1 rides in the last filter pass instead of a pass of its own.
-    var planeA: [16 * 16] u8
+    // Each remaining position needs at most one intermediate plane, declared by the
+    // positions that use it: the averaging half of section 8.4.2.2.1 rides in the last
+    // filter pass instead of a pass of its own.
     if fracY == 0
     {
         if fracX == 2 do
@@ -484,6 +533,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
     if fracX == 2
     {
         // Positions f and q: the center half against the nearest horizontal half row.
+        var planeA: [16 * 16] u8
         halfCenter(planeA.buffer, 16, src, srcStride, width, height)
         halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, planeA.buffer, 16, width, height)
         return
@@ -492,6 +542,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
     if fracY == 2
     {
         // Positions i and k: the center half against the nearest vertical half column.
+        var planeA: [16 * 16] u8
         halfCenter(planeA.buffer, 16, src, srcStride, width, height)
         halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
         return
@@ -499,6 +550,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
 
     // Diagonal quarter positions e, g, p, r: nearest horizontal half against nearest
     // vertical half.
+    var planeA: [16 * 16] u8
     halfHorizontal(planeA.buffer, 16, fracY == 1 ? src : src + srcStride, srcStride, width, height)
     halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
 }
@@ -556,22 +608,23 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     let base        = plane == 0 ? reference.cb.storage() : reference.cr.storage()
 
     // The right bound uses the sixteen-byte span of the packed row loads whatever the
-    // block width, so the narrow blends may read wide.
-    var window:    [9 * 12] u8
-    var src:       [*] u8
-    var srcStride: u64
+    // block width, so the narrow blends may read wide. As for luma, the window is declared
+    // only where it is used.
     if x < -FramePadding or y < -FramePadding or x + 17 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
     {
+        var window: [9 * 12] u8
         copyClamped(window.buffer, 9, base, reference.strideChroma, x, y, width + 1, height + 1, planeWidth, planeHeight)
-        src       = window.buffer
-        srcStride = 9
-    }
-    else
-    {
-        src       = base + cast(u64) (y + FramePadding) * reference.strideChroma + cast(u64) (x + FramePadding)
-        srcStride = reference.strideChroma
+        interpolateChroma(dst, dstStride, window.buffer, 9, fracX, fracY, width, height)
+        return
     }
 
+    interpolateChroma(dst, dstStride, base + cast(u64) (y + FramePadding) * reference.strideChroma + cast(u64) (x + FramePadding), reference.strideChroma, fracX, fracY, width, height)
+}
+
+// Blends one chroma block from the full-sample position `src` at eighth-sample phase
+// `fracX`, `fracY`, section 8.4.2.2.2.
+private func interpolateChroma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, fracX, fracY, width, height: s32)
+{
     // A zero phase on both axes is a plain copy, and a zero phase on one axis collapses the
     // bilinear blend to a two-tap filter; the skipped macroblocks of a still scene all take
     // the copy path.
@@ -617,12 +670,17 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         let wb = fracY * 8
         if width == 8 or width == 4
         {
+            // Each source row is the lower row of one output and the upper row of the next,
+            // so it is loaded once.
             let weights = chromaWeights(wt, wb)
+            var upper   = Simd.load(line)
             for cast(u64) height
             {
-                storeChromaBlend(out, width, chromaPairs(Simd.load(line), Simd.load(line + srcStride), weights))
-                out  += dstStride
                 line += srcStride
+                let lower = Simd.load(line)
+                storeChromaBlend(out, width, chromaPairs(upper, lower, weights))
+                upper = lower
+                out += dstStride
             }
 
             return
@@ -646,17 +704,19 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     if width == 8 or width == 4
     {
         // Each row carries its own vertical weight folded into its horizontal pair, so the two
-        // rows are two multiplies and one sum rather than four multiplies and three sums.
+        // rows are two multiplies and one sum rather than four multiplies and three sums. The
+        // interleaved pairs of a source row serve as the lower row of one output and the upper
+        // row of the next, so each row is loaded and interleaved once, as FFmpeg's kernel does.
         let topWeights    = chromaWeights(wlt, wrt)
         let bottomWeights = chromaWeights(wlb, wrb)
+        var upper         = Simd.interleaveLow(Simd.load(line), Simd.load(line + 1))
         for cast(u64) height
         {
-            let below = line + srcStride
-            let top   = chromaPairs(Simd.load(line), Simd.load(line + 1), topWeights)
-            let lower = chromaPairs(Simd.load(below), Simd.load(below + 1), bottomWeights)
-            storeChromaBlend(out, width, top + lower)
-            out  += dstStride
             line += srcStride
+            let lower = Simd.interleaveLow(Simd.load(line), Simd.load(line + 1))
+            storeChromaBlend(out, width, Simd.mulAddPairs(upper, topWeights) + Simd.mulAddPairs(lower, bottomWeights))
+            upper = lower
+            out += dstStride
         }
 
         return

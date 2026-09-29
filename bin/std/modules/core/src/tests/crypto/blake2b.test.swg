@@ -112,3 +112,14 @@ func assertBlake2b(data: const [..] u8, expected: string)
     discard catch Hash.Blake2b.computeKeyed(oversizedKey, "abc", digest) as hugeKey
     Swag.assert(hugeKey != null)
 }
+
+// An input ending exactly on a block boundary leaves the last block buffered and full when the
+// sequence is finalized.
+#test
+{
+    var data: [256] u8
+    for index in data.count do
+        data[index] = cast(u8) index
+    assertBlake2b(data[0 until 128], "2319e3789c47e2daa5fe807f61bec2a1a6537fa03f19ff32e87eecbfd64b7e0e8ccff439ac333b040f19b0c4ddd11a61e24ac1fe0f10a039806c5dcc0da3d115")
+    assertBlake2b(data[0 until 256], "1ecc896f34d3f9cac484c73f75f6a5fb58ee6784be41b35f46067b9c65c63a6794d3d744112c653f73dd7deb6666204c5a9bfa5b46081fc10fdbe7884fa5cbf8")
+}

@@ -153,6 +153,9 @@ namespace InstructionCombine
     // Two address values can differ only by a constant displacement. Rebase a
     // one-use indexed load on the other value when that absorbs the load's own
     // displacement. The unused address computation then dies in the next sweep.
+    // An equal address is value numbering's to merge: two loads through two
+    // equal addresses would otherwise trade them back and forth, one sweep
+    // after the other.
     bool tryUseOffsetRelatedIndex(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
         if (!ctx.ssa || ctx.isClaimed(ref))
@@ -185,7 +188,7 @@ namespace InstructionCombine
                 other[0].reg == load[0].reg || other[1].reg != address[1].reg ||
                 other[2].reg != address[2].reg || other[3].opBits != address[3].opBits ||
                 other[4].opBits != address[4].opBits || other[5].valueU64 != address[5].valueU64 ||
-                other[6].valueU64 > INT32_MAX)
+                other[6].valueU64 > INT32_MAX || other[6].valueU64 == address[6].valueU64)
                 continue;
 
             const auto available = ctx.ssa->reachingDef(other[0].reg, ref);
@@ -576,6 +579,351 @@ namespace InstructionCombine
             ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{address, 8}, true);
             if (copyRef.isValid())
                 ctx.emitErase(copyRef);
+            return true;
+        }
+
+        return false;
+    }
+
+    namespace
+    {
+        // What an index is before the constant it adds: a register (`index = &[a + C]`,
+        // `index = a; index += C`) or an address with no displacement of its own
+        // (`index = &[a + b*s + C]`).
+        struct IndexPeel
+        {
+            MicroReg          source = MicroReg::invalid();
+            MicroInstrOperand address[8] = {};
+            uint32_t          addressOperands = 0;
+            uint64_t          displacement    = 0;
+        };
+
+        // Peels the constant `index` adds at `at` into `displacement`, where the index is
+        // scaled by `multiplier`, when the registers it adds still hold their values at `at`
+        // and the moved displacement still fits.
+        bool peelIndexConstant(IndexPeel& out, Context& ctx, const MicroReg index, const MicroInstrRef at, const uint64_t multiplier, const uint64_t displacement)
+        {
+            const auto def = ctx.ssa->reachingDef(index, at);
+            if (!def.valid() || def.isPhi || !def.inst)
+                return false;
+            const MicroInstrOperand* defOps = def.inst->ops(*ctx.operands);
+            if (!defOps)
+                return false;
+
+            const auto moveBy = [&](const uint64_t constant, const bool subtract) {
+                if (!constant || static_cast<int64_t>(constant) != static_cast<int32_t>(constant))
+                    return false;
+                const uint64_t delta = constant * multiplier;
+                const int64_t  moved = static_cast<int64_t>(subtract ? displacement - delta : displacement + delta);
+                if (moved != static_cast<int32_t>(moved))
+                    return false;
+                out.displacement = static_cast<uint64_t>(moved);
+                return true;
+            };
+
+            switch (def.inst->op)
+            {
+                case MicroInstrOpcode::LoadAddrRegMem:
+                    if (defOps[2].opBits != MicroOpBits::B64 || !defOps[1].reg.isVirtualInt() || !sameValueAt(ctx, defOps[1].reg, def.instRef, at))
+                        return false;
+                    if (!moveBy(defOps[3].valueU64, false))
+                        return false;
+                    out.source = defOps[1].reg;
+                    return true;
+
+                case MicroInstrOpcode::OpBinaryRegImm:
+                {
+                    if (defOps[0].reg != index || defOps[1].opBits != MicroOpBits::B64 || defOps[3].hasWideImmediateValue() ||
+                        (defOps[2].microOp != MicroOp::Add && defOps[2].microOp != MicroOp::Subtract))
+                        return false;
+                    const auto copy = ctx.ssa->reachingDef(index, def.instRef);
+                    if (!copy.valid() || copy.isPhi || !copy.inst || copy.inst->op != MicroInstrOpcode::LoadRegReg)
+                        return false;
+                    const MicroInstrOperand* copyOps = copy.inst->ops(*ctx.operands);
+                    if (!copyOps || copyOps[0].reg != index || !copyOps[1].reg.isVirtualInt() || copyOps[2].opBits != MicroOpBits::B64 ||
+                        !sameValueAt(ctx, copyOps[1].reg, copy.instRef, at))
+                        return false;
+                    if (!moveBy(defOps[3].valueU64, defOps[2].microOp == MicroOp::Subtract))
+                        return false;
+                    out.source = copyOps[1].reg;
+                    return true;
+                }
+
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                    if (def.inst->numOperands > 8 || defOps[3].opBits != MicroOpBits::B64 || defOps[4].opBits != MicroOpBits::B64 ||
+                        !defOps[1].reg.isVirtualInt() || !defOps[2].reg.isVirtualInt() ||
+                        !sameValueAt(ctx, defOps[1].reg, def.instRef, at) || !sameValueAt(ctx, defOps[2].reg, def.instRef, at))
+                        return false;
+                    if (!moveBy(defOps[6].valueU64, false))
+                        return false;
+                    for (uint32_t i = 0; i < def.inst->numOperands; ++i)
+                        out.address[i] = defOps[i];
+                    out.address[6].valueU64 = 0;
+                    out.addressOperands     = def.inst->numOperands;
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+    }
+
+    // An address whose index scales by a power of two past eight - the element of an array
+    // of 16-byte vectors or structs - has no machine form. Scale the index up to the last
+    // factor of eight first, in a register of its own:
+    //
+    //     lea A, [B + I*32 + d]    ->    X = I; X <<= 2; lea A, [B + X*8 + d]
+    //
+    // Left to the legalizer, each such address becomes its own copy, multiply and two adds
+    // after the optimization loop, so the subscripts `a[i]`, `a[i + 1]`, ... of one loop
+    // body recompute the same product once per access. Split here, the scaled index is one
+    // value the numbering shares between them, and each access is one lea.
+    bool trySplitWideAddressScale(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref) || inst.numOperands > Action::K_MAX_OPS)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].opBits != MicroOpBits::B64 || ops[4].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg index = ops[2].reg;
+        const uint64_t scale = ops[5].valueU64;
+        if (!index.isVirtualInt() || scale <= 8 || scale > (uint64_t{1} << 30) || !std::has_single_bit(scale))
+            return false;
+
+        // The shift writes the flags, which the address computation it lands in front of
+        // does not; they must hold nothing a later instruction reads.
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+
+        ctx.ensureVirtualIndices();
+        if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX)
+            return false;
+        if (!ctx.claimAll({ref}))
+            return false;
+        const MicroReg scaledIndex = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+
+        MicroInstrOperand copy[3] = {};
+        copy[0].reg               = scaledIndex;
+        copy[1].reg               = index;
+        copy[2].opBits            = MicroOpBits::B64;
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadRegReg, copy);
+
+        MicroInstrOperand shift[4] = {};
+        shift[0].reg               = scaledIndex;
+        shift[1].opBits            = MicroOpBits::B64;
+        shift[2].microOp           = MicroOp::ShiftLeft;
+        shift[3].valueU64          = static_cast<uint64_t>(std::countr_zero(scale) - 3);
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, shift);
+
+        MicroInstrOperand address[8] = {};
+        for (uint32_t i = 0; i < inst.numOperands; ++i)
+            address[i] = ops[i];
+        address[2].reg      = scaledIndex;
+        address[5].valueU64 = 8;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{address, inst.numOperands}, true);
+        return true;
+    }
+
+    // The index a wide scale was split into still carries the constant of its subscript:
+    //
+    //     I = a + C; X = I; X <<= k; lea A, [B + X*8 + d]
+    //   ->
+    //     X = a; X <<= k; lea A, [B + X*8 + d + C * 8 << k]
+    //
+    // so the subscripts `a[i + 1]`, `a[i + 2]`, ... of one row scale the same register and
+    // the numbering keeps one of them. The constant is often still being folded when the
+    // scale is split, which is why this waits for it instead of peeling at the split.
+    bool tryPeelScaledIndexConstant(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref) || inst.numOperands > Action::K_MAX_OPS)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].opBits != MicroOpBits::B64 || ops[4].opBits != MicroOpBits::B64 || ops[5].valueU64 != 8)
+            return false;
+
+        const MicroReg scaled = ops[2].reg;
+        if (!scaled.isVirtualInt() || scaled == ops[1].reg)
+            return false;
+
+        const auto shift = ctx.ssa->reachingDef(scaled, ref);
+        if (!shift.valid() || shift.isPhi || !shift.inst || ctx.isClaimed(shift.instRef) || !valueHasSingleUse(*ctx.ssa, scaled, shift.instRef))
+            return false;
+
+        // The shift of a small scale is often already an address, `X = &[I + I]` or
+        // `X = &[I*4]`: the constant of I peels the same way into either.
+        if (shift.inst->op == MicroInstrOpcode::LoadAddrAmcRegMem && shift.inst->numOperands <= 8)
+        {
+            const MicroInstrOperand* leaOps  = shift.inst->ops(*ctx.operands);
+            if (!leaOps || leaOps[0].reg != scaled || leaOps[3].opBits != MicroOpBits::B64 || leaOps[4].opBits != MicroOpBits::B64 || leaOps[6].valueU64)
+                return false;
+            const bool     doubled = leaOps[1].reg == leaOps[2].reg && leaOps[5].valueU64 == 1;
+            const bool     indexed = leaOps[1].reg.isNoBase() && (leaOps[5].valueU64 == 2 || leaOps[5].valueU64 == 4 || leaOps[5].valueU64 == 8);
+            const MicroReg source  = leaOps[2].reg;
+            if ((!doubled && !indexed) || !source.isVirtualInt() || source == scaled)
+                return false;
+
+            IndexPeel      peel;
+            const uint64_t factor = doubled ? 2 : leaOps[5].valueU64;
+            if (!peelIndexConstant(peel, ctx, source, shift.instRef, factor * 8, ops[6].valueU64))
+                return false;
+
+            // A source that was itself an indexed address keeps its sum, without the
+            // constant, in a register of its own: the numbering finds it equal to the
+            // other subscripts' sums.
+            MicroReg base = peel.source;
+            if (!base.isValid())
+            {
+                ctx.ensureVirtualIndices();
+                if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX)
+                    return false;
+            }
+            if (!ctx.claimAll({ref, shift.instRef}))
+                return false;
+            if (!base.isValid())
+            {
+                base                = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+                peel.address[0].reg = base;
+                ctx.emitInsertBefore(shift.instRef, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{peel.address, peel.addressOperands});
+            }
+
+            MicroInstrOperand newLea[8] = {};
+            for (uint32_t i = 0; i < shift.inst->numOperands; ++i)
+                newLea[i] = leaOps[i];
+            if (doubled)
+                newLea[1].reg = base;
+            newLea[2].reg = base;
+            ctx.emitRewrite(shift.instRef, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{newLea, shift.inst->numOperands}, true);
+
+            MicroInstrOperand address[8] = {};
+            for (uint32_t i = 0; i < inst.numOperands; ++i)
+                address[i] = ops[i];
+            address[6].valueU64 = peel.displacement;
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{address, inst.numOperands}, true);
+            return true;
+        }
+
+        if (shift.inst->op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const MicroInstrOperand* shiftOps = shift.inst->ops(*ctx.operands);
+        if (!shiftOps || shiftOps[0].reg != scaled || shiftOps[1].opBits != MicroOpBits::B64 || shiftOps[2].microOp != MicroOp::ShiftLeft ||
+            shiftOps[3].valueU64 == 0 || shiftOps[3].valueU64 > 27)
+            return false;
+
+        const auto copy = ctx.ssa->reachingDef(scaled, shift.instRef);
+        if (!copy.valid() || copy.isPhi || !copy.inst || copy.inst->op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(copy.instRef))
+            return false;
+        const MicroInstrOperand* copyOps = copy.inst->ops(*ctx.operands);
+        if (!copyOps || copyOps[0].reg != scaled || copyOps[2].opBits != MicroOpBits::B64 || !copyOps[1].reg.isVirtualInt())
+            return false;
+
+        IndexPeel peel;
+        if (!peelIndexConstant(peel, ctx, copyOps[1].reg, copy.instRef, uint64_t{8} << shiftOps[3].valueU64, ops[6].valueU64))
+            return false;
+        if (!ctx.claimAll({ref, copy.instRef}))
+            return false;
+
+        if (peel.source.isValid())
+        {
+            MicroInstrOperand newCopy[3] = {};
+            newCopy[0].reg               = scaled;
+            newCopy[1].reg               = peel.source;
+            newCopy[2].opBits            = MicroOpBits::B64;
+            ctx.emitRewrite(copy.instRef, MicroInstrOpcode::LoadRegReg, newCopy);
+        }
+        else
+        {
+            peel.address[0].reg = scaled;
+            ctx.emitRewrite(copy.instRef, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{peel.address, peel.addressOperands}, true);
+        }
+
+        MicroInstrOperand address[8] = {};
+        for (uint32_t i = 0; i < inst.numOperands; ++i)
+            address[i] = ops[i];
+        address[6].valueU64 = peel.displacement;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{address, inst.numOperands}, true);
+        return true;
+    }
+
+    // A constant that an address's single-use base or index carries moves into the address's
+    // own displacement:
+    //
+    //     I = &[a + b*s + C]; A = &[B + I*k + d]    ->    I = &[a + b*s]; A = &[B + I*k + d + C*k]
+    //
+    // Subscripts `row[j + 1]`, `row[j + 2]`, ... then compute one index and differ only by
+    // their displacements, which is what lets the numbering keep a single copy of it.
+    bool tryFoldAddressOperandConstant(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref) || inst.numOperands > Action::K_MAX_OPS)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].opBits != MicroOpBits::B64 || ops[4].opBits != MicroOpBits::B64 || ops[1].reg == ops[2].reg)
+            return false;
+
+        for (uint32_t side = 0; side < 2; ++side)
+        {
+            const MicroReg reg        = side == 0 ? ops[2].reg : ops[1].reg;
+            const uint64_t multiplier = side == 0 ? ops[5].valueU64 : 1;
+            if (!reg.isVirtualInt() || reg == ops[0].reg)
+                continue;
+
+            const auto def = ctx.ssa->reachingDef(reg, ref);
+            if (!def.valid() || def.isPhi || !def.inst || ctx.isClaimed(def.instRef) || def.inst->numOperands > Action::K_MAX_OPS ||
+                !valueHasSingleUse(*ctx.ssa, reg, def.instRef))
+                continue;
+            const MicroInstrOperand* defOps = def.inst->ops(*ctx.operands);
+            if (!defOps || defOps[0].reg != reg)
+                continue;
+
+            uint64_t constant = 0;
+            if (def.inst->op == MicroInstrOpcode::LoadAddrAmcRegMem)
+            {
+                if (defOps[3].opBits != MicroOpBits::B64 || defOps[4].opBits != MicroOpBits::B64 || defOps[1].reg == reg || defOps[2].reg == reg)
+                    continue;
+                constant = defOps[6].valueU64;
+            }
+            else if (def.inst->op == MicroInstrOpcode::LoadAddrRegMem && side == 1)
+            {
+                if (defOps[2].opBits != MicroOpBits::B64 || !defOps[1].reg.isVirtualInt() || defOps[1].reg == reg)
+                    continue;
+                constant = defOps[3].valueU64;
+            }
+            else
+                continue;
+
+            if (!constant || static_cast<int64_t>(constant) != static_cast<int32_t>(constant))
+                continue;
+            const int64_t moved = static_cast<int64_t>(ops[6].valueU64 + constant * multiplier);
+            if (moved != static_cast<int32_t>(moved))
+                continue;
+            if (!ctx.claimAll({ref, def.instRef}))
+                return false;
+
+            if (def.inst->op == MicroInstrOpcode::LoadAddrAmcRegMem)
+            {
+                MicroInstrOperand newDef[8] = {};
+                for (uint32_t i = 0; i < def.inst->numOperands; ++i)
+                    newDef[i] = defOps[i];
+                newDef[6].valueU64 = 0;
+                ctx.emitRewrite(def.instRef, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{newDef, def.inst->numOperands}, true);
+            }
+            else
+            {
+                MicroInstrOperand copy[3] = {};
+                copy[0].reg               = reg;
+                copy[1].reg               = defOps[1].reg;
+                copy[2].opBits            = MicroOpBits::B64;
+                ctx.emitRewrite(def.instRef, MicroInstrOpcode::LoadRegReg, copy);
+            }
+
+            MicroInstrOperand address[8] = {};
+            for (uint32_t i = 0; i < inst.numOperands; ++i)
+                address[i] = ops[i];
+            address[6].valueU64 = static_cast<uint64_t>(moved);
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{address, inst.numOperands}, true);
             return true;
         }
 

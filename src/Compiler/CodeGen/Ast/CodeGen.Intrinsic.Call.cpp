@@ -2117,10 +2117,19 @@ namespace
             case TokenId::IntrinsicVecAny:
             case TokenId::IntrinsicVecAll:
             {
-                MicroReg srcReg   = loadArg(0);
-                MicroOp  maskOp   = MicroOp::VecMoveMaskB;
-                uint32_t fullMask = 0xFFFF;
-                if (laneBits == 16)
+                MicroReg srcReg       = loadArg(0);
+                MicroOp  maskOp       = MicroOp::VecMoveMaskB;
+                uint32_t fullMask     = 0xFFFF;
+                uint32_t laneBitsMask = 0;
+                if (laneBits == 16 && tokId != TokenId::IntrinsicVecMask)
+                {
+                    // A word lane's sign is the sign of its high byte: the byte
+                    // movemask already holds it at every odd bit, so the any and
+                    // all tests read those bits without first narrowing the lanes.
+                    laneBitsMask = 0xAAAA;
+                    fullMask     = 0xAAAA;
+                }
+                else if (laneBits == 16)
                 {
                     // No word movemask exists: narrow the mask lanes to bytes
                     // first, one bit per lane.
@@ -2143,7 +2152,9 @@ namespace
                 CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
                 resultPayload.reg                 = codeGen.nextVirtualIntRegister();
                 builder.emitVecUnaryRegReg(resultPayload.reg, srcReg, maskOp, MicroOpBits::B128);
-                if (laneBits == 16)
+                if (laneBitsMask)
+                    builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(laneBitsMask, 32), MicroOp::And, MicroOpBits::B32);
+                else if (laneBits == 16)
                     builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(0xFF, 32), MicroOp::And, MicroOpBits::B32);
 
                 if (tokId == TokenId::IntrinsicVecAny)

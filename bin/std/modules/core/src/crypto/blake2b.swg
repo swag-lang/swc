@@ -160,7 +160,9 @@ public impl Blake2b
         if destination.count != .digestSize do
             fail Errors.BadParameterError{"BLAKE2b needs a destination of the declared digest length"}
 
-        Swag.memset(&.buffer[.bufferCount], 0, Blake2bBlockSize - .bufferCount)
+        // A sequence ending on a block boundary leaves the buffer full: the final compression
+        // takes it as it is, and there is no element at `bufferCount` to address.
+        Swag.memset(.buffer.buffer + .bufferCount, 0, Blake2bBlockSize - .bufferCount)
         .compress(true)
 
         var words: [Blake2bMaxDigestSize] u8

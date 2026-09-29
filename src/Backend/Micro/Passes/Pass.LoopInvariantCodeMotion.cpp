@@ -896,7 +896,11 @@ namespace
                             }
 
                             // Speculation safety: the load must already run on every
-                            // iteration (dominate every back-edge tail).
+                            // iteration (dominate every back-edge tail). A constant of the
+                            // read-only pool is the exception: reading it can neither fault
+                            // nor observe a store, so the preheader may read it for an arm
+                            // that only some iterations take, as LLVM hoists a constant-pool
+                            // load out of a conditional block.
                             bool dominatesAllTails = true;
                             for (const uint32_t t : loop->tails)
                             {
@@ -906,7 +910,7 @@ namespace
                                     break;
                                 }
                             }
-                            if (!dominatesAllTails)
+                            if (!dominatesAllTails && !constantPoolVector)
                                 continue;
                         }
 
@@ -943,7 +947,12 @@ namespace
                 // values recomputed by several in-loop uses. A standalone
                 // single-use address/copy would just add register pressure, so
                 // keep only memory reads and multiply used values, plus the
-                // hoisted webs that feed them.
+                // hoisted webs that feed them. A zeroing clear in a loop that
+                // calls does not pay by itself, however many readers it has:
+                // the register renamer executes it for free, and hoisted it
+                // must survive every call, which takes a callee-saved register
+                // the prologue spills - one per clear once several pile up. It
+                // then moves only with a kept value that reads it.
                 if (!hoistSet.empty())
                 {
                     // Acceptance changes only the hoist plan, not the IR or its uses.
@@ -969,6 +978,9 @@ namespace
                         const bool               multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
                         const MicroInstrOperand* instOps      = inst->ops(operands);
 
+                        if (inst->op == MicroInstrOpcode::ClearReg && loopHasCall)
+                            continue;
+
                         // A value computed only on some iterations, inside one
                         // arm of a branch, saves nothing on the others: however
                         // many readers that arm has, hoisting it trades at most
@@ -976,8 +988,9 @@ namespace
                         // every iteration, the ones that never take the arm
                         // included. A refill or an error path computing a field
                         // address is the typical case. Such a value moves only
-                        // when it is costly to rebuild. (A memory read already
-                        // has to run on every iteration to be accepted.)
+                        // when it is costly to rebuild. (A memory read other than a
+                        // read-only pool constant already has to run on every
+                        // iteration to be accepted.)
                         bool runsEveryIteration = true;
                         for (const uint32_t t : loop->tails)
                         {

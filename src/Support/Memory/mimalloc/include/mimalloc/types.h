@@ -209,7 +209,9 @@ terms of the MIT license. A copy of the license can be found in the file
 #define MI_MAX_ALLOC_SIZE        PTRDIFF_MAX
 
 // Minimal commit for a page on-demand commit (should be >= OS page size)
+#ifndef MI_PAGE_MIN_COMMIT_SIZE
 #define MI_PAGE_MIN_COMMIT_SIZE  MI_ARENA_SLICE_SIZE
+#endif
 
 
 // ------------------------------------------------------

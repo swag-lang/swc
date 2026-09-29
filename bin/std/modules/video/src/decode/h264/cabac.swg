@@ -590,7 +590,10 @@ impl Slice
     // inlined function takes, both registers went through memory at every step of every bin, and
     // the significance loops spent a fifth of their time on those round trips. The two outcomes
     // are selected without a branch, since a bin's value is close to unpredictable by design.
-    // The decoded bin lands in `bin`.
+    //
+    // The decoded bin is the low bit of `binState`, the context's packed state after the bin, as
+    // FFmpeg's `get_cabac` leaves it: a caller branching on the bin tests that bit, where a bin
+    // extracted first cost a copy and a mask on every bin.
     #[Swag.Mixin]
     private mtd binDecision(binCtx: u32)
     {
@@ -627,7 +630,7 @@ impl Slice
         range  = #uniq5 ? #uniq1 : range
         #uniq0 = #uniq5 ? ~#uniq0 : #uniq0
         state[0] = CabacTables[CabacStateAt + cast(u64) (128 + #uniq0)]
-        bin    = cast(u32) (#uniq0 & 1)
+        binState = #uniq0
 
         // The renormalization shift is the distance from the range's highest set bit to bit 8,
         // which the machine counts in one instruction. The table it replaces was 512 bytes the
@@ -681,11 +684,11 @@ impl Slice
     {
         var range = .cabac.range
         var low   = .cabac.low
-        var bin: u32
+        var binState: s64
         .binDecision(contextIndex)
         .cabac.range = range
         .cabac.low   = low
-        return bin
+        return cast(u32) (binState & 1)
     }
 
     // Decodes one bypass bin, section 9.3.3.2.3.
@@ -733,6 +736,7 @@ impl Slice
         var range = .cabac.range
         var low   = .cabac.low
         var bin: u32
+        var binState: s64
 
         // A block of sixty-four coefficients states nothing of its own, the coded block pattern
         // having said whether it is coded — except in 4:4:4, where every block codes a flag,
@@ -746,7 +750,7 @@ impl Slice
             if nzB > 0 or (nzB < 0 and intra) do
                 ctx += 2
             .binDecision(ctx)
-            if bin == 0
+            if (binState & 1) == 0
             {
                 .cabac.range = range
                 .cabac.low   = low
@@ -766,12 +770,12 @@ impl Slice
         while scan < MaxCoeffs - 1
         {
             .binDecisionAt(sigStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacSigAt + scan] : scan))
-            if bin != 0
+            if (binState & 1) != 0
             {
                 indices[count] = cast(u8) scan
                 count += 1
                 .binDecisionAt(lastStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacLastAt + scan] : scan))
-                if bin != 0
+                if (binState & 1) != 0
                 {
                     foundLast = true
                     break
@@ -799,7 +803,7 @@ impl Slice
             let position  = cast(u64) indices[remaining]
             var magnitude = 1's32
             .binDecision(absBase + cast(u32) CabacTables[CabacLevel1At + node])
-            if bin == 0
+            if (binState & 1) == 0
             {
                 node = cast(u64) CabacTables[CabacNodeAt + node]
             }
@@ -811,7 +815,7 @@ impl Slice
                 while magnitude < 15
                 {
                     .binDecision(gt1Ctx)
-                    if bin == 0 do
+                    if (binState & 1) == 0 do
                         break
                     magnitude += 1
                 }

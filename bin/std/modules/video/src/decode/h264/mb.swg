@@ -418,8 +418,7 @@ impl Slice
         let dec   = .dec!
         let gw    = cast(u64) (dec.sps!.mbWidth * 4)
         let refId = refIdx >= 0 ? .refs[list, refIdx].identity : NoReferenceIdentity
-        let entry = cast(u64) cast #bit (u16) mv[0] | (cast(u64) cast #bit (u16) mv[1] << 16) |
-                    (cast(u64) cast #bit (u16) packedReferences(cast(s8) refIdx, refId) << 32)
+        let entry = packedMotion(mv, cast(s8) refIdx, refId)
         let diff  = cast(u32) cast #bit (u16) mvd[0] | (cast(u32) cast #bit (u16) mvd[1] << 16)
         let flag  = isDirect ? 1'u8 : 0'u8
         let grid  = cast([*] u64) (list == 0 ? dec.motionL0.storage() : dec.motionL1.storage())
@@ -470,22 +469,22 @@ impl Slice
         if x4 == 0 and y4 == 0 and w4 == 4 and h4 == 4
         {
             // One block record is eight bytes, so one store publishes two blocks and two cover
-            // a whole macroblock row of the grid.
-            let refs0   = packedReferences(refIdx[0], id0)
-            let refs1   = packedReferences(refIdx[1], id1)
-            let pair0   = cast(Simd.S16x8) [mv0[0], mv0[1], refs0, 0's16, mv0[0], mv0[1], refs0, 0's16]
-            let pair1   = cast(Simd.S16x8) [mv1[0], mv1[1], refs1, 0's16, mv1[0], mv1[1], refs1, 0's16]
+            // a whole macroblock row of the grid. The record is packed in a scalar register and
+            // broadcast: a vector assembled lane by lane goes through memory and its wide load
+            // waits on the narrow stores.
+            let pair0   = Simd.splat(packedMotion(mv0, refIdx[0], id0))
+            let pair1   = Simd.splat(packedMotion(mv1, refIdx[1], id1))
             let zeros16 = Simd.splat(0's16)
             let direct  = Simd.splat(isDirect ? 1'u8 : 0)
             for row in 4'u64
             {
                 let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-                let grid0 = cast([*] s16) (dec.motionL0.storage() + index)
-                let grid1 = cast([*] s16) (dec.motionL1.storage() + index)
+                let grid0 = cast([*] u64) (dec.motionL0.storage() + index)
+                let grid1 = cast([*] u64) (dec.motionL1.storage() + index)
                 Simd.store(grid0, pair0)
-                Simd.store(grid0 + 8, pair0)
+                Simd.store(grid0 + 2, pair0)
                 Simd.store(grid1, pair1)
-                Simd.store(grid1 + 8, pair1)
+                Simd.store(grid1 + 2, pair1)
                 Simd.store(dec.mvdL0.storage() + index * 2, zeros16)
                 Simd.store(dec.mvdL1.storage() + index * 2, zeros16)
                 Simd.storeLow4(dec.directFlags.storage() + index, direct)
@@ -1960,14 +1959,14 @@ impl Slice
             // word or vector, so a row goes out in one store each.
             let refWord   = cast(u32) (cast #bit(u8) ref) * 0x01010101
             let shortWord = cast(u32) short * 0x01010101
-            let mvRow     = cast(Simd.S16x8) [mvX, mvY, mvX, mvY, mvX, mvY, mvX, mvY]
+            let mvRow     = Simd.splat(cast(u32) cast #bit (u16) mvX | (cast(u32) cast #bit (u16) mvY << 16))
             let pocRow    = Simd.splat(poc)
             for row in 4'u64
             {
                 let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
                 (cast([*] u32) (frame.colRef.storage() + index))[0]   = refWord
                 (cast([*] u32) (frame.colShort.storage() + index))[0] = shortWord
-                Simd.store(frame.colMv.storage() + index * 2, mvRow)
+                Simd.store(cast([*] u32) (frame.colMv.storage() + index * 2), mvRow)
                 Simd.store(frame.colPoc.storage() + index, pocRow)
             }
 
@@ -2305,6 +2304,14 @@ const NoReferenceIdentity = 0's8
 // to present them as a lane rather than as two fields.
 #[Swag.Inline]
 func packedReferences(refIdx, refId: s8)->s16 => cast #bit (s16) (cast(u16) (cast #bit (u8) refIdx) | (cast(u16) (cast #bit (u8) refId) << 8))
+
+// Packs one block's motion record, laid out as `BlockMotion`, into one 64-bit word.
+#[Swag.Inline]
+func packedMotion(mv: [2] s16, refIdx, refId: s8)->u64
+{
+    return cast(u64) cast #bit (u16) mv[0] | (cast(u64) cast #bit (u16) mv[1] << 16) |
+           (cast(u64) cast #bit (u16) packedReferences(refIdx, refId) << 32)
+}
 
 // Partition shape of each B macroblock type 1..21, Table 7-14.
 const BShapes: [23] u8 = [

@@ -1865,12 +1865,20 @@ impl Slice
         let modeWords     = cast(const [*] u32) &mb.intraModes[0]
         let nzWords       = cast(const [*] u32) &mb.nzLuma[0]
         let codedWords    = cast(const [*] u32) &mb.codedBlocks[0]
+
+        // The grids are addressed from the macroblock's first block, a row further each time;
+        // their storage is read once rather than on every row.
+        let firstBlock = cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
+        let rowStep    = cast(u64) gw
+        let modesGrid  = dec.intraModes.storage() + firstBlock
+        let nzGrid     = dec.nonZeroLuma.storage() + firstBlock
+        let codedGrid  = dec.codedLuma.storage() + firstBlock
         for row in 4'u64
         {
-            let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-            (cast([*] u32) (dec.intraModes.storage() + index))[0]  = perBlockModes ? modeWords[row] : dcModes
-            (cast([*] u32) (dec.nonZeroLuma.storage() + index))[0] = nzWords[row]
-            (cast([*] u32) (dec.codedLuma.storage() + index))[0]   = codedWords[row]
+            let offset = row * rowStep
+            (cast([*] u32) (modesGrid + offset))[0] = perBlockModes ? modeWords[row] : dcModes
+            (cast([*] u32) (nzGrid + offset))[0]    = nzWords[row]
+            (cast([*] u32) (codedGrid + offset))[0] = codedWords[row]
         }
 
         // A 4:4:4 colour plane has one block per luma block, and its counts go out on the
@@ -1912,18 +1920,23 @@ impl Slice
             let clean   = cast(Simd.S16x8) [0's16, 0's16, refs, 0's16, 0's16, 0's16, refs, 0's16]
             let zeros16 = Simd.splat(0's16)
             let zeros8  = Simd.splat(0'u8)
-            for row in 4's32
+            let motion0 = dec.motionL0.storage()
+            let motion1 = dec.motionL1.storage()
+            let diffs0  = dec.mvdL0.storage()
+            let diffs1  = dec.mvdL1.storage()
+            let direct  = dec.directFlags.storage()
+            for row in 4'u64
             {
-                let index = cast(u64) ((mb.mbY * 4 + row) * gw + mb.mbX * 4)
-                let grid0 = cast([*] s16) (dec.motionL0.storage() + index)
-                let grid1 = cast([*] s16) (dec.motionL1.storage() + index)
+                let index = firstBlock + row * rowStep
+                let grid0 = cast([*] s16) (motion0 + index)
+                let grid1 = cast([*] s16) (motion1 + index)
                 Simd.store(grid0, clean)
                 Simd.store(grid0 + 8, clean)
                 Simd.store(grid1, clean)
                 Simd.store(grid1 + 8, clean)
-                Simd.store(dec.mvdL0.storage() + index * 2, zeros16)
-                Simd.store(dec.mvdL1.storage() + index * 2, zeros16)
-                Simd.storeLow4(dec.directFlags.storage() + index, zeros8)
+                Simd.store(diffs0 + index * 2, zeros16)
+                Simd.store(diffs1 + index * 2, zeros16)
+                Simd.storeLow4(direct + index, zeros8)
             }
         }
 
@@ -1965,13 +1978,17 @@ impl Slice
             let shortWord = cast(u32) short * 0x01010101
             let mvRow     = Simd.splat(cast(u32) cast #bit (u16) mvX | (cast(u32) cast #bit (u16) mvY << 16))
             let pocRow    = Simd.splat(poc)
+            let colRef    = frame.colRef.storage()
+            let colShort  = frame.colShort.storage()
+            let colMv     = cast([*] u32) frame.colMv.storage()
+            let colPoc    = frame.colPoc.storage()
             for row in 4'u64
             {
-                let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-                (cast([*] u32) (frame.colRef.storage() + index))[0]   = refWord
-                (cast([*] u32) (frame.colShort.storage() + index))[0] = shortWord
-                Simd.store(cast([*] u32) (frame.colMv.storage() + index * 2), mvRow)
-                Simd.store(frame.colPoc.storage() + index, pocRow)
+                let index = firstBlock + row * rowStep
+                (cast([*] u32) (colRef + index))[0]   = refWord
+                (cast([*] u32) (colShort + index))[0] = shortWord
+                Simd.store(colMv + index, mvRow)
+                Simd.store(colPoc + index, pocRow)
             }
 
             return
@@ -2028,11 +2045,9 @@ impl Slice
         let poc   = ref >= 0 ? .refs[0, cast(u64) ref].poc : 0
         let gw    = dec.sps!.mbWidth * 4
         let zeros = Simd.splat(0'u8)
-        for row in 4'u64
-        {
-            let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-            Simd.storeLow4(dec.codedLuma.storage() + index, zeros)
-        }
+        let coded = dec.codedLuma.storage() + cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
+        for row in 4'u64 do
+            Simd.storeLow4(coded + row * cast(u64) gw, zeros)
 
         // The lanes the deblocking filter compares for every block of this macroblock: each
         // list's vector and its reference identity in the high byte of the third lane.
@@ -2040,7 +2055,10 @@ impl Slice
         let id0   = ref >= 0 ? .refs[0, cast(u64) ref].identity : NoReferenceIdentity
         let id1   = ref1 >= 0 ? .refs[1, cast(u64) ref1].identity : NoReferenceIdentity
         let mbIdx = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
-        dec.skipMotion[mbIdx] = cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], cast(s16) (cast(s32) id0 << 8), 0, job.mv[1, 0], job.mv[1, 1], cast(s16) (cast(s32) id1 << 8), 0]
+        // Two packed halves rather than a vector assembled lane by lane through memory.
+        let lanes = cast([*] u64) dec.skipMotion.storage() + mbIdx * 2
+        lanes[0]  = packedMotion([job.mv[0, 0], job.mv[0, 1]], 0, id0)
+        lanes[1]  = packedMotion([job.mv[1, 0], job.mv[1, 1]], 0, id1)
 
         // Only a reference picture is read as a co-located one.
         if not dec.isRefPicture do

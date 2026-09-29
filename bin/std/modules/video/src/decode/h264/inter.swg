@@ -320,15 +320,17 @@ private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
 // vertically.
 private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
+    // A sixteen-wide block is two strips of eight, as FFmpeg's kernel walks it.
     if width == 16
     {
-        halfCenter16(dst, dstStride, src, srcStride, height)
+        halfCenterStrip(dst, dstStride, src, srcStride, 8, height)
+        halfCenterStrip(dst + 8, dstStride, src + 8, srcStride, 8, height)
         return
     }
 
     if width == 8 or width == 4
     {
-        halfCenter8(dst, dstStride, src, srcStride, width, height)
+        halfCenterStrip(dst, dstStride, src, srcStride, width, height)
         return
     }
 
@@ -354,59 +356,51 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
     }
 }
 
-// Sixteen center half-samples per row: the horizontal sums stay in 16-bit
-// lanes, two vectors per row, and so does the vertical pass over them.
-private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, height: s32)
+// Eight unclipped horizontal six-tap sums of one row, in the low lanes of the widened
+// bytes: the sixteen-byte loads cover the thirteen bytes the shifted lanes read.
+#[Swag.Inline]
+private func centerSums8(line: const [*] u8)->Simd.S16x8
 {
-    var sums: [21 * 2] Simd.S16x8
-    for row in cast(u64) (height + 5)
-    {
-        let line = src + row * srcStride - 2 * srcStride - 2
-        let r0   = Simd.load(line)
-        let r1   = Simd.load(line + 1)
-        let r2   = Simd.load(line + 2)
-        let r3   = Simd.load(line + 3)
-        let r4   = Simd.load(line + 4)
-        let r5   = Simd.load(line + 5)
-        sums[row * 2]     = tap6Raw16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
-        sums[row * 2 + 1] = tap6Raw16(Simd.widenHigh(r2) + Simd.widenHigh(r3), Simd.widenHigh(r1) + Simd.widenHigh(r4), Simd.widenHigh(r0) + Simd.widenHigh(r5))
-    }
-
-    let bias = Simd.splat(CenterBias)
-    for row in cast(u64) height
-    {
-        let lo = tap6Center16(sums[row * 2 + 4] + sums[row * 2 + 6], sums[row * 2 + 2] + sums[row * 2 + 8], sums[row * 2] + sums[row * 2 + 10] + bias)
-        let hi = tap6Center16(sums[row * 2 + 5] + sums[row * 2 + 7], sums[row * 2 + 3] + sums[row * 2 + 9], sums[row * 2 + 1] + sums[row * 2 + 11] + bias)
-        Simd.store(dst + row * dstStride, Simd.packUnsigned(lo, hi))
-    }
+    let r0 = Simd.widenLow(Simd.load(line))
+    let r1 = Simd.widenLow(Simd.load(line + 1))
+    let r2 = Simd.widenLow(Simd.load(line + 2))
+    let r3 = Simd.widenLow(Simd.load(line + 3))
+    let r4 = Simd.widenLow(Simd.load(line + 4))
+    let r5 = Simd.widenLow(Simd.load(line + 5))
+    return tap6Raw16(r2 + r3, r1 + r4, r0 + r5)
 }
 
-// Same shape for the narrower blocks: one sum vector per row, the low lanes
-// carrying the block.
-private func halfCenter8(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
+// Center half-samples down one strip of up to eight columns. The horizontal sums of the six
+// rows the vertical filter reads slide down the strip in registers: each output row filters
+// one new source row horizontally, and no row of sums is stored or reloaded.
+private func halfCenterStrip(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
-    var sums: [21] Simd.S16x8
-    for row in cast(u64) (height + 5)
-    {
-        let line = src + row * srcStride - 2 * srcStride - 2
-        let r0   = Simd.load(line)
-        let r1   = Simd.load(line + 1)
-        let r2   = Simd.load(line + 2)
-        let r3   = Simd.load(line + 3)
-        let r4   = Simd.load(line + 4)
-        let r5   = Simd.load(line + 5)
-        sums[row] = tap6Raw16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
-    }
+    var line = src - 2 * srcStride - 2
+    var s0   = centerSums8(line)
+    var s1   = centerSums8(line + srcStride)
+    var s2   = centerSums8(line + 2 * srcStride)
+    var s3   = centerSums8(line + 3 * srcStride)
+    var s4   = centerSums8(line + 4 * srcStride)
+    line += 5 * srcStride
 
     let bias = Simd.splat(CenterBias)
-    for row in cast(u64) height
+    var out  = dst
+    for cast(u64) height
     {
-        let half   = tap6Center16(sums[row + 2] + sums[row + 3], sums[row + 1] + sums[row + 4], sums[row] + sums[row + 5] + bias)
+        let s5     = centerSums8(line)
+        let half   = tap6Center16(s2 + s3, s1 + s4, s0 + s5 + bias)
         let packed = Simd.packUnsigned(half, half)
-        if width == 8 do
-            Simd.storeLow8(dst + row * dstStride, packed)
+        if width == 4 do
+            Simd.storeLow4(out, packed)
         else do
-            Simd.storeLow4(dst + row * dstStride, packed)
+            Simd.storeLow8(out, packed)
+        s0 = s1
+        s1 = s2
+        s2 = s3
+        s3 = s4
+        s4 = s5
+        line += srcStride
+        out += dstStride
     }
 }
 

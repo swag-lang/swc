@@ -163,8 +163,10 @@ private func edgeStrength(dec: *Decoder, pMbIndex, pIndex, qMbIndex, qIndex: u64
 // whether any segment is filtered.
 //
 // The macroblock-level answers - an intra side, where the motion of each side is read - are
-// taken once for the edge rather than once per segment, and each segment then reads two coded
-// flags and, when neither is set, compares two motion vectors of lanes.
+// taken once for the edge rather than once per segment. Each segment then decides without a
+// branch, as FFmpeg's strength loop does: both motion comparisons run whether or not a coded
+// flag makes them moot, and the flags pick between the answers, because which segments carry
+// coefficients follows the picture and no predictor learns it.
 private func edgeStrengths(dec: *Decoder, pMbIndex, qMbIndex, pFirst, qFirst, step: u64, mbEdge, pIntra, qIntra: bool, strengths: *EdgeStrength)->bool
 {
     if pIntra or qIntra
@@ -181,28 +183,32 @@ private func edgeStrengths(dec: *Decoder, pMbIndex, qMbIndex, pFirst, qFirst, st
     let qFromJob = deblockMotionFromJob(dec, qMbIndex)
     let pJob     = pFromJob ? deblockJobMotion(dec, pMbIndex) : Simd.splat(0's16)
     let qJob     = qFromJob ? deblockJobMotion(dec, qMbIndex) : Simd.splat(0's16)
-    var filtered = false
+    var filtered = 0'u32
     for segment in 4'u64
     {
-        let pIndex = pFirst + segment * step
-        let qIndex = qFirst + segment * step
-        var bs     = 2'u32
-        if coded[pIndex] == 0 and coded[qIndex] == 0
-        {
-            let p = pFromJob ? pJob : deblockGridMotion(grid0, grid1, pIndex)
-            let q = qFromJob ? qJob : deblockGridMotion(grid0, grid1, qIndex)
-            bs = 1
-            if deblockMotionMatches(p, q) do
-                bs = 0
-            elif deblockMotionMatches(p, cast #bit(Simd.S16x8) Simd.permute(cast #bit(Simd.U64x2) q, cast(Simd.U64x2) [1'u64, 0])) do
-                bs = 0
-        }
-
+        let pIndex  = pFirst + segment * step
+        let qIndex  = qFirst + segment * step
+        let p       = pFromJob ? pJob : deblockGridMotion(grid0, grid1, pIndex)
+        let q       = qFromJob ? qJob : deblockGridMotion(grid0, grid1, qIndex)
+        let swapped = cast #bit(Simd.S16x8) Simd.permute(cast #bit(Simd.U64x2) q, cast(Simd.U64x2) [1'u64, 0])
+        let moved   = deblockMotionDiffers(p, q) & deblockMotionDiffers(p, swapped)
+        let bs      = (coded[pIndex] | coded[qIndex]) != 0 ? 2'u32 : moved
         strengths.bs[segment] = bs
-        filtered = filtered or bs != 0
+        filtered |= bs
     }
 
-    return filtered
+    return filtered != 0
+}
+
+// One when the motion of two blocks does not match as [[deblockMotionMatches]] reads it, zero
+// when it does, as a value rather than a branch.
+#[Swag.Inline]
+private func deblockMotionDiffers(p, q: Simd.S16x8)->u32
+{
+    const Compared = cast(Simd.U16x8) [0xFFFF'u16, 0xFFFF, 0xFF00, 0, 0xFFFF, 0xFFFF, 0xFF00, 0]
+    let difference = (cast #bit(Simd.U16x8) q & Compared) - (cast #bit(Simd.U16x8) p & Compared) + 3
+    let within     = Simd.subSaturating(difference, Simd.splat(6'u16)) == Simd.splat(0'u16)
+    return Simd.allTrue(within) ? 0'u32 : 1'u32
 }
 
 // All ones for the strengths the normal filter applies, 1 to 3, as the bytes a strength indexes.

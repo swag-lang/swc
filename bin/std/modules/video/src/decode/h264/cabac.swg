@@ -1051,11 +1051,13 @@ impl Slice
         {
             for plane in 2's32
             {
-                let scale = .dequantRow4(mb, cast(u32) plane + 1)
+                let scale  = .dequantRow4(mb, cast(u32) plane + 1)
+                let counts = plane == 0 ? (mb.nzCb).buffer : (mb.nzCr).buffer
                 for block in 4's32
                 {
-                    let nzA   = .chromaBlockNz(mb, cast(u32) plane, (block & 1) - 1, block >> 1)
-                    let nzB   = .chromaBlockNz(mb, cast(u32) plane, block & 1, (block >> 1) - 1)
+                    // A neighbor inside the macroblock is its own count, decoded just before.
+                    let nzA   = block & 1 ? cast(s32) counts[cast(u64) block - 1] : .chromaBlockNz(mb, cast(u32) plane, -1, block >> 1)
+                    let nzB   = block >> 1 ? cast(s32) counts[cast(u64) block - 2] : .chromaBlockNz(mb, cast(u32) plane, block & 1, -1)
                     let count = .residualCabac'(15, false)(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16, nzA, nzB, scale)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
@@ -1094,8 +1096,9 @@ impl Slice
 
         // One transform size and one quantizer serve the whole macroblock, so its row of
         // dequantization factors is looked up once rather than for every block.
-        let use8x8 = mb.transform8x8 and mb.class != MbClassIntra16x16
-        let scale  = use8x8 ? .dequantRow8(mb, plane) : .dequantRow4(mb, plane)
+        let use8x8       = mb.transform8x8 and mb.class != MbClassIntra16x16
+        let codesFlag8x8 = use8x8 and .dec!.sps!.is444()
+        let scale        = use8x8 ? .dequantRow8(mb, plane) : .dequantRow4(mb, plane)
         for quad in 4's32
         {
             if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
@@ -1104,9 +1107,10 @@ impl Slice
             {
                 // A 4:4:4 8x8 block codes a flag of its own, whose context reads the block left
                 // of and above the quadrant's first cell.
+                // Only a 4:4:4 picture codes that flag; the counts are not asked for otherwise.
                 let first = (quad >> 1) * 8 + (quad & 1) * 2
-                let nzA   = .blockNz8x8(mb, plane, (first & 3) - 1, first >> 2)
-                let nzB   = .blockNz8x8(mb, plane, first & 3, (first >> 2) - 1)
+                let nzA   = codesFlag8x8 ? .blockNz8x8(mb, plane, (first & 3) - 1, first >> 2) : 0
+                let nzB   = codesFlag8x8 ? .blockNz8x8(mb, plane, first & 3, (first >> 2) - 1) : 0
                 let count = .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, nzA, nzB, scale)
 
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern

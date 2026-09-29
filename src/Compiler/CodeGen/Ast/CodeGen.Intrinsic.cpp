@@ -43,6 +43,8 @@ namespace
             return false;
 
         const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias() && !typeInfo.isEnum())
+            return typeInfo.isFloat();
         const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
         return storageTypeRef == typeRef ? typeInfo.isFloat() : codeGen.typeMgr().get(storageTypeRef).isFloat();
     }

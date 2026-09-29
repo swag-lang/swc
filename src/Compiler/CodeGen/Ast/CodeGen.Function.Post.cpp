@@ -245,6 +245,8 @@ namespace
             return MicroOpBits::Zero;
 
         const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias() && !typeInfo.isEnum())
+            return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
         const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeRef   scalarTypeRef  = storageTypeRef.isValid() ? storageTypeRef : typeRef;
         const TypeInfo& scalarType = scalarTypeRef == typeRef ? typeInfo : codeGen.typeMgr().get(scalarTypeRef);

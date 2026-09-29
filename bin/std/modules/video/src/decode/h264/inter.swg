@@ -21,36 +21,41 @@ using Core, Core.Math
 #[Swag.Inline]
 func tap6(a, b, c, d, e, f: s32)->s32 => a - 5 * b + 20 * c + 20 * d - 5 * e + f
 
-// Eight unclipped six-tap sums on widened byte lanes. Every sum fits s16: the
-// positive taps reach 20 * 510 + 510 = 10710 and the negative ones -2550, so
-// the arithmetic never wraps.
+// Eight unclipped six-tap sums on widened byte lanes, as `(4 * inner - outer) * 5
+// + edges`: one multiply where `20 * inner - 5 * outer` takes two. Every sum fits
+// s16: the positive taps reach 20 * 510 + 510 = 10710 and the negative ones
+// -2550, so the arithmetic never wraps.
 #[Swag.Inline]
-private func tap6Raw16(inner, outer, edges: Simd.U16x8)->Simd.S16x8 => cast #bit(Simd.S16x8) edges + cast #bit(Simd.S16x8) inner * 20 - cast #bit(Simd.S16x8) outer * 5
+private func tap6Raw16(inner, outer, edges: Simd.U16x8)->Simd.S16x8
+{
+    let widened = cast #bit(Simd.S16x8) inner
+    return ((widened << 2) - cast #bit(Simd.S16x8) outer) * 5 + cast #bit(Simd.S16x8) edges
+}
 
 // Eight six-tap half-samples on widened byte lanes; the caller's saturating
 // pack is exactly the scalar clamp.
 #[Swag.Inline]
 private func tap6Half16(inner, outer, edges: Simd.U16x8)->Simd.S16x8 => (tap6Raw16(inner, outer, edges) + 16) >> 5
 
-// One vertical six-tap over four widened sums, with the center rounding shift.
-// The 32-bit intermediates stay far inside the lane range: the sums reach
-// ±10710, so the filtered value reaches about ±470000.
-#[Swag.Inline]
-private func tap6CenterQuad(inner, outer, edges: Simd.S32x4)->Simd.S32x4
-{
-    let sum = edges + inner * 20 - outer * 5
-    return (sum + 512) >> 10
-}
+// The rounding term of the center half-sample, added once to the edge pair.
+const CenterBias = 512's16
 
-// One vertical six-tap over eight 16-bit sums, back to 16-bit lanes; the
-// shifted result reaches about ±460, so the signed pack never saturates and
-// the caller's unsigned pack is exactly the scalar clamp.
+// One vertical six-tap over eight 16-bit horizontal sums, with the center
+// rounding shift, without leaving 16-bit lanes.
+//
+// With `x` the edge pair plus the rounding term, `y` the outer pair and `z` the
+// inner one, `(x - 5y + 20z) >> 10` is `((((x - y) >> 2) - y + z) >> 2) + z) >> 6`:
+// each floored shift drops only low bits the later ones would drop too, so the
+// chain is exact. Its intermediates stay in 16 bits: the sums reach -2550 to
+// 10710, so `x - y` is at most 27032 and every later step is smaller, except
+// the one adding `z`, which saturates. That clamp only fires when the exact
+// result lies beyond a byte either way, where it keeps the sign and the
+// magnitude past 255, so the caller's unsigned pack is still the scalar clamp.
 #[Swag.Inline]
-private func tap6Center8(inner, outer, edges: Simd.S16x8)->Simd.S16x8
+private func tap6Center16(inner, outer, edges: Simd.S16x8)->Simd.S16x8
 {
-    let lo = tap6CenterQuad(Simd.widenLow(inner), Simd.widenLow(outer), Simd.widenLow(edges))
-    let hi = tap6CenterQuad(Simd.widenHigh(inner), Simd.widenHigh(outer), Simd.widenHigh(edges))
-    return Simd.packSigned(lo, hi)
+    let partial = Simd.addSaturating(((edges - outer) >> 2) - outer, inner)
+    return ((partial >> 2) + inner) >> 6
 }
 
 // Sixteen six-tap half-samples in one pass: rows spaced by `stride` widen to
@@ -184,27 +189,95 @@ private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
     }
 }
 
-// Produces the clipped vertical half-sample plane at integer columns.
-private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
+// Vertical six-tap half-samples of a 4, 8, or 16 wide block, optionally averaged
+// with `anchor`. The six source rows the filter reads slide down the block in
+// registers, so each output row loads and widens one new source row instead of
+// all six.
+#[Swag.Inline]
+private func halfVerticalRows(dst: [*] u8, dstStride: u64, src: const [*] u8, srcStride: u64, anchor: const [*] u8, anchorStride: u64, averaged: bool, width, height: s32)
 {
+    var line  = src - 2 * srcStride
+    var out   = dst
+    var other = anchor
     if width == 16
     {
-        for row in cast(u64) height do
-            Simd.store(dst + row * dstStride, tap6Row16(src + row * srcStride - 2 * srcStride, srcStride))
+        let b0 = Simd.load(line)
+        let b1 = Simd.load(line + srcStride)
+        let b2 = Simd.load(line + 2 * srcStride)
+        let b3 = Simd.load(line + 3 * srcStride)
+        let b4 = Simd.load(line + 4 * srcStride)
+        var l0 = Simd.widenLow(b0)
+        var l1 = Simd.widenLow(b1)
+        var l2 = Simd.widenLow(b2)
+        var l3 = Simd.widenLow(b3)
+        var l4 = Simd.widenLow(b4)
+        var h0 = Simd.widenHigh(b0)
+        var h1 = Simd.widenHigh(b1)
+        var h2 = Simd.widenHigh(b2)
+        var h3 = Simd.widenHigh(b3)
+        var h4 = Simd.widenHigh(b4)
+        line += 5 * srcStride
+        for cast(u64) height
+        {
+            let b5   = Simd.load(line)
+            let l5   = Simd.widenLow(b5)
+            let h5   = Simd.widenHigh(b5)
+            var half = Simd.packUnsigned(tap6Half16(l2 + l3, l1 + l4, l0 + l5), tap6Half16(h2 + h3, h1 + h4, h0 + h5))
+            if averaged do
+                half = Simd.average(half, Simd.load(other))
+            Simd.store(out, half)
+            l0 = l1
+            l1 = l2
+            l2 = l3
+            l3 = l4
+            l4 = l5
+            h0 = h1
+            h1 = h2
+            h2 = h3
+            h3 = h4
+            h4 = h5
+            line  += srcStride
+            out   += dstStride
+            other += anchorStride
+        }
+
         return
     }
 
-    if width == 8 or width == 4
+    var r0 = Simd.widenLow(Simd.load(line))
+    var r1 = Simd.widenLow(Simd.load(line + srcStride))
+    var r2 = Simd.widenLow(Simd.load(line + 2 * srcStride))
+    var r3 = Simd.widenLow(Simd.load(line + 3 * srcStride))
+    var r4 = Simd.widenLow(Simd.load(line + 4 * srcStride))
+    line += 5 * srcStride
+    for cast(u64) height
     {
-        for row in cast(u64) height
-        {
-            let half = tap6Row8(src + row * srcStride - 2 * srcStride, srcStride)
-            if width == 8 do
-                Simd.storeLow8(dst + row * dstStride, half)
-            else do
-                Simd.storeLow4(dst + row * dstStride, half)
-        }
+        let r5   = Simd.widenLow(Simd.load(line))
+        let sum  = tap6Half16(r2 + r3, r1 + r4, r0 + r5)
+        var half = Simd.packUnsigned(sum, sum)
+        if averaged do
+            half = Simd.average(half, Simd.load(other))
+        if width == 8 do
+            Simd.storeLow8(out, half)
+        else do
+            Simd.storeLow4(out, half)
+        r0 = r1
+        r1 = r2
+        r2 = r3
+        r3 = r4
+        r4 = r5
+        line  += srcStride
+        out   += dstStride
+        other += anchorStride
+    }
+}
 
+// Produces the clipped vertical half-sample plane at integer columns.
+private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
+{
+    if width == 16 or width == 8 or width == 4
+    {
+        halfVerticalRows(dst, dstStride, src, srcStride, src, 0, false, width, height)
         return
     }
 
@@ -223,31 +296,9 @@ private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
 // Produces the vertical half-samples averaged with `anchor`, in one pass.
 private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, anchor: [*] u8, anchorStride: u64, width, height: s32)
 {
-    if width == 16
+    if width == 16 or width == 8 or width == 4
     {
-        for row in cast(u64) height
-        {
-            let half  = tap6Row16(src + row * srcStride - 2 * srcStride, srcStride)
-            let other = Simd.load(anchor + row * anchorStride)
-            Simd.store(dst + row * dstStride, Simd.average(half, other))
-        }
-
-        return
-    }
-
-    if width == 8 or width == 4
-    {
-        for row in cast(u64) height
-        {
-            let half  = tap6Row8(src + row * srcStride - 2 * srcStride, srcStride)
-            let other = Simd.load(anchor + row * anchorStride)
-            let mixed = Simd.average(half, other)
-            if width == 8 do
-                Simd.storeLow8(dst + row * dstStride, mixed)
-            else do
-                Simd.storeLow4(dst + row * dstStride, mixed)
-        }
-
+        halfVerticalRows(dst, dstStride, src, srcStride, anchor, anchorStride, true, width, height)
         return
     }
 
@@ -304,7 +355,7 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
 }
 
 // Sixteen center half-samples per row: the horizontal sums stay in 16-bit
-// lanes, two vectors per row, and the vertical pass widens them on the fly.
+// lanes, two vectors per row, and so does the vertical pass over them.
 private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, height: s32)
 {
     var sums: [21 * 2] Simd.S16x8
@@ -321,10 +372,11 @@ private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
         sums[row * 2 + 1] = tap6Raw16(Simd.widenHigh(r2) + Simd.widenHigh(r3), Simd.widenHigh(r1) + Simd.widenHigh(r4), Simd.widenHigh(r0) + Simd.widenHigh(r5))
     }
 
+    let bias = Simd.splat(CenterBias)
     for row in cast(u64) height
     {
-        let lo = tap6Center8(sums[row * 2 + 4] + sums[row * 2 + 6], sums[row * 2 + 2] + sums[row * 2 + 8], sums[row * 2] + sums[row * 2 + 10])
-        let hi = tap6Center8(sums[row * 2 + 5] + sums[row * 2 + 7], sums[row * 2 + 3] + sums[row * 2 + 9], sums[row * 2 + 1] + sums[row * 2 + 11])
+        let lo = tap6Center16(sums[row * 2 + 4] + sums[row * 2 + 6], sums[row * 2 + 2] + sums[row * 2 + 8], sums[row * 2] + sums[row * 2 + 10] + bias)
+        let hi = tap6Center16(sums[row * 2 + 5] + sums[row * 2 + 7], sums[row * 2 + 3] + sums[row * 2 + 9], sums[row * 2 + 1] + sums[row * 2 + 11] + bias)
         Simd.store(dst + row * dstStride, Simd.packUnsigned(lo, hi))
     }
 }
@@ -346,9 +398,10 @@ private func halfCenter8(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u6
         sums[row] = tap6Raw16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
     }
 
+    let bias = Simd.splat(CenterBias)
     for row in cast(u64) height
     {
-        let half   = tap6Center8(sums[row + 2] + sums[row + 3], sums[row + 1] + sums[row + 4], sums[row] + sums[row + 5])
+        let half   = tap6Center16(sums[row + 2] + sums[row + 3], sums[row + 1] + sums[row + 4], sums[row] + sums[row + 5] + bias)
         let packed = Simd.packUnsigned(half, half)
         if width == 8 do
             Simd.storeLow8(dst + row * dstStride, packed)

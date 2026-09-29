@@ -25,7 +25,9 @@ const Zigzag8: [64] u8 = [
 // The entropy decoders store every level at its raster position, already dequantized, so the
 // inverse transform reads the block as it is. A DC block keeps its own order, since it goes
 // through a transform of its own before it is scaled. An AC block codes the zigzag scan from
-// its second position, the first being the DC that reconstruction adds.
+// its second position, the first being the DC that reconstruction adds. An 8x8 block is stored
+// transposed, column after column, as FFmpeg stores it: the packed transform then finds the
+// columns its row pass needs already in its vectors, and transposes once instead of twice.
 const ResidualOrderDc         = 0'u64
 const ResidualOrder4x4        = 16'u64
 const ResidualOrderAc         = 32'u64
@@ -34,11 +36,11 @@ const ResidualOrder: [112] u8 = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15,
     1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15, 0,
-    0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5,
-    12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21,
-    28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37,
-    44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47,
-    55, 62, 63]
+    0, 8, 1, 2, 9, 16, 24, 17, 10, 3, 4, 11, 18, 25, 32, 40,
+    33, 26, 19, 12, 5, 6, 13, 20, 27, 34, 41, 48, 56, 49, 42,
+    35, 28, 21, 14, 7, 15, 22, 29, 36, 43, 50, 57, 58, 51, 44,
+    37, 30, 23, 31, 38, 45, 52, 59, 60, 53, 46, 39, 47, 54, 61,
+    62, 55, 63]
 
 // Scales one coefficient level by its factor, sections 8.5.12.1 and 8.5.13.1: `shift` is 4
 // for a 4x4 block and 6 for an 8x8 one.
@@ -438,7 +440,7 @@ impl Pps
                     let x        = raster & 7
                     let y        = raster >> 3
                     let posClass = cast(u64) Dequant8ScaleClass[(x & 3) + (y & 3) * 4]
-                    .dequant8[list, qp, raster] = (cast(u32) scaling8[list * 64 + scan] * cast(u32) Dequant8Scale[mod6 * 6 + posClass]) << shift
+                    .dequant8[list, qp, x * 8 + y] = (cast(u32) scaling8[list * 64 + scan] * cast(u32) Dequant8Scale[mod6 * 6 + posClass]) << shift
                 }
             }
         }

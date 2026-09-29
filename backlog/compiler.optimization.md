@@ -18,6 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.101 — Retain one floating zero across unrolled arms
 
 - Recorded: 2026-09-29 15:48
+- Updated: 2026-09-29 16:02 — Reject branched-body renaming without zero reuse.
 - Area: compiler/backend, value numbering and register allocation
 - Evidence: the accepted raytrace winner is C++/MSVC. Its unrolled four-sphere `intersect` clears
   XMM5 once and compares each discriminant against that retained zero. Swag's corresponding
@@ -33,6 +34,12 @@ block, and the hot path keeps the register.
   `intersect` has conditional branches and `continue`, so the copies reuse the original virtual
   zero register. Value numbering requires the earlier result still held in its register, which
   each copy has overwritten before the next clear.
+- A second scratch trial renamed private virtual values in a branched unrolled body only when
+  each had one definition dominating all in-body uses and no outside reader. On its own it made
+  `intersect` 209 instructions, up four, with all four clears intact. Combining it with the
+  `ClearReg` value-numbering change also produced 209 instructions and four clears. The wider
+  renaming perturbed XMM allocation and inserted extra copies; no executed path improved. Both
+  trial edits were reverted without timing or broad correctness tests.
 - Next: inspect a control-flow-aware way to split a private zero definition across cloned arms. A candidate should
   retain a single zero only where that saves executed clears without adding copies, spills, or
   saved registers. Compare an unrelated unrolled floating loop and a case with intervening calls

@@ -15,7 +15,7 @@ namespace CodeGenTypeHelpers
     {
         if (typeRef.isInvalid())
             return typeRef;
-        return typeMgr.get(typeRef).unwrapAliasEnum(ctx, typeRef);
+        return typeMgr.unwrapAliasEnum(ctx, typeRef);
     }
 
     inline MicroOpBits bitsFromStorageSize(uint64_t size)

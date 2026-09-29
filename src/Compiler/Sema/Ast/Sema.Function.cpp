@@ -310,6 +310,21 @@ namespace
         return run->sema.get() == &sema;
     }
 
+    // Whether the body of 'symbol' was handed to a lazy run that 'sema' is not driving.
+    //
+    // The runner clears 'LazyBody' just before it marks the function completed, and drops the run
+    // state only after that. Reading the flag first, then the run state, closes every window: a
+    // cleared flag seen here means the run state is either still present, or already dropped, in
+    // which case the completion is visible to the caller's next read.
+    bool isLazyBodyOwnedByAnotherWalk(const Sema& sema, const SymbolFunction& symbol)
+    {
+        const bool             lazyBody = symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyBody);
+        const std::scoped_lock lock(symbol.lazyBodyRunMutex());
+        if (const auto* run = lazyBodyRun(symbol))
+            return run->sema.get() != &sema;
+        return lazyBody;
+    }
+
     Result waitForOtherLazyBodyRunner(Sema& sema, const SymbolFunction& symbol)
     {
         if (!symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
@@ -1873,11 +1888,12 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     if (sym.isSemaCompleted())
         return Result::Continue;
 
-    const Result waitResult = waitForOtherLazyBodyRunner(sema, sym);
-    if (waitResult != Result::Continue)
-        return waitResult;
-
-    if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBody) && !sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
+    // A body handed to the lazy runner is completed by that runner and by nothing else. This walk
+    // skipped the body, so completing the function here would publish it (and schedule its code
+    // generation) while the runner may still be resolving the body on another thread.
+    if (isLazyBodyOwnedByAnotherWalk(sema, sym))
+        return Result::Continue;
+    if (sym.isSemaCompleted())
         return Result::Continue;
 
     if (sym.isForeign() && !sym.isEmpty())

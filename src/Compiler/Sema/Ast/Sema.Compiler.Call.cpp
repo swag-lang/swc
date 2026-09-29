@@ -1113,10 +1113,14 @@ namespace
         TypeRef declaredTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), path.back()->typeRef());
         if (declaredTypeRef.isInvalid())
             declaredTypeRef = path.back()->typeRef();
-        if (!declaredTypeRef.isValid() || !sema.typeMgr().get(declaredTypeRef).isNullable())
+        if (!declaredTypeRef.isValid())
             return;
 
-        TypeInfo nonNullType = sema.typeMgr().get(declaredTypeRef);
+        const TypeInfo& declaredType = sema.typeMgr().get(declaredTypeRef);
+        if (!declaredType.isNullable())
+            return;
+
+        TypeInfo nonNullType = declaredType;
         nonNullType.removeFlag(TypeInfoFlagsE::Nullable);
         if (sema.typeMgr().addType(nonNullType) != view.typeRef())
             return;

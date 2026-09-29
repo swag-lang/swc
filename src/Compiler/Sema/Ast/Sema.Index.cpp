@@ -32,10 +32,15 @@ namespace
         if (indexType->isReference())
         {
             outTypeRef                           = indexType->payloadTypeRef();
-            const TypeRef referencedAliasTypeRef = sema.typeMgr().get(outTypeRef).unwrap(sema.ctx(), outTypeRef, TypeExpandE::Alias);
-            if (referencedAliasTypeRef.isValid())
+            const TypeInfo* referencedType       = &sema.typeMgr().get(outTypeRef);
+            const TypeRef referencedAliasTypeRef = referencedType->unwrap(sema.ctx(), outTypeRef, TypeExpandE::Alias);
+            if (referencedAliasTypeRef.isValid() && referencedAliasTypeRef != outTypeRef)
+            {
                 outTypeRef = referencedAliasTypeRef;
-            indexType = &sema.typeMgr().get(outTypeRef);
+                indexType  = &sema.typeMgr().get(outTypeRef);
+            }
+            else
+                indexType = referencedType;
         }
 
         if (indexType->isEnum())

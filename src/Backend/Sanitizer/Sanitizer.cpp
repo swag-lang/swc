@@ -274,6 +274,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     // get a stored state. Intermediate instructions need only the invalid index.
     inState_.clear();
     inState_.resize(numStates);
+    computeChainLiveness();
 
     reached_[0]    = 1;
     inWorklist_[0] = 1;
@@ -316,6 +317,153 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     }
 
     return reported_;
+}
+
+void Sanitizer::computeChainLiveness()
+{
+    const MicroControlFlowGraph& cfg       = *cfg_;
+    const uint32_t               n         = cfg.instructionCount();
+    const size_t                 numStates = inState_.size();
+
+    liveRegIndex_.clear();
+    liveWords_ = 0;
+
+    // One pass over every chain, in the shape 'walkChain' follows: the virtual registers
+    // a chain reads before writing them, the ones it writes, and the heads it reaches.
+    // Where 'walkChain' stops early (a call that never returns), the chain here goes on;
+    // that only keeps more registers live.
+    struct ChainFacts
+    {
+        std::vector<uint32_t> uses;
+        std::vector<uint32_t> defs;
+        std::vector<uint32_t> succStates;
+    };
+
+    std::vector<ChainFacts> chains(numStates);
+    std::vector<uint32_t>   defStamp;
+    for (uint32_t head = 0; head < n; head++)
+    {
+        const uint32_t stateIndex = headStateIndex_[head];
+        if (stateIndex == K_NO_STATE)
+            continue;
+
+        ChainFacts& chain = chains[stateIndex];
+        const auto  stamp = stateIndex + 1;
+        uint32_t    index = head;
+        for (;;)
+        {
+            const MicroInstr&      inst   = *context_.instructions->ptr(cfg.instructionRefs()[index]);
+            const MicroInstrDef&   def    = MicroInstr::info(inst.op);
+            const MicroInstrUseDef useDef = inst.collectUseDef(*context_.operands, context_.encoder);
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (!reg.isVirtual())
+                    continue;
+                const uint32_t dense = liveRegIndex_.ensure(reg);
+                if (dense >= defStamp.size())
+                    defStamp.resize(dense + 1, 0);
+                if (defStamp[dense] != stamp)
+                    chain.uses.push_back(dense);
+            }
+
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (!reg.isVirtual())
+                    continue;
+                const uint32_t dense = liveRegIndex_.ensure(reg);
+                if (dense >= defStamp.size())
+                    defStamp.resize(dense + 1, 0);
+                if (defStamp[dense] != stamp)
+                {
+                    defStamp[dense] = stamp;
+                    chain.defs.push_back(dense);
+                }
+            }
+
+            const MicroControlFlowGraph::EdgeList& succs = cfg.successors(index);
+            if (def.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !def.flags.has(MicroInstrFlagsE::JumpInstruction))
+                break;
+            if (isModelledSingleEdge(def, succs) && headStateIndex_[succs[0]] == K_NO_STATE)
+            {
+                index = succs[0];
+                continue;
+            }
+
+            for (const uint32_t succ : succs)
+            {
+                if (headStateIndex_[succ] != K_NO_STATE)
+                    chain.succStates.push_back(headStateIndex_[succ]);
+            }
+            break;
+        }
+    }
+
+    liveWords_ = static_cast<uint32_t>(liveRegIndex_.wordCount());
+    if (!liveWords_)
+        return;
+
+    const size_t          words = static_cast<size_t>(numStates) * liveWords_;
+    std::vector<uint64_t> useBits(words, 0);
+    std::vector<uint64_t> defBits(words, 0);
+    for (size_t s = 0; s < numStates; s++)
+    {
+        uint64_t* use = useBits.data() + s * liveWords_;
+        uint64_t* def = defBits.data() + s * liveWords_;
+        for (const uint32_t dense : chains[s].uses)
+            use[dense / 64] |= 1ull << (dense % 64);
+        for (const uint32_t dense : chains[s].defs)
+            def[dense / 64] |= 1ull << (dense % 64);
+    }
+
+    // Backward fixpoint over the chains. State indices were handed out in instruction
+    // order, so walking them in reverse visits most successors first.
+    chainLiveIn_.assign(words, 0);
+    chainLiveOut_.assign(words, 0);
+    bool changed = true;
+    while (changed)
+    {
+        changed = false;
+        for (size_t s = numStates; s-- > 0;)
+        {
+            uint64_t*       in  = chainLiveIn_.data() + s * liveWords_;
+            uint64_t*       out = chainLiveOut_.data() + s * liveWords_;
+            const uint64_t* use = useBits.data() + s * liveWords_;
+            const uint64_t* def = defBits.data() + s * liveWords_;
+            for (const uint32_t succ : chains[s].succStates)
+            {
+                const uint64_t* succIn = chainLiveIn_.data() + static_cast<size_t>(succ) * liveWords_;
+                for (uint32_t w = 0; w < liveWords_; w++)
+                    out[w] |= succIn[w];
+            }
+
+            for (uint32_t w = 0; w < liveWords_; w++)
+            {
+                const uint64_t newIn = use[w] | (out[w] & ~def[w]);
+                if (newIn != in[w])
+                {
+                    in[w]   = newIn;
+                    changed = true;
+                }
+            }
+        }
+    }
+}
+
+void Sanitizer::pruneDeadRegs(SanitizerState& state, const uint64_t* live) const
+{
+    if (!live)
+        return;
+
+    const auto isDead = [&](const uint32_t packed) {
+        const MicroReg reg = MicroReg::fromPacked(packed);
+        if (!reg.isVirtual() || reg == state.flagsSubject || reg == stackBaseReg_)
+            return false;
+        const uint32_t dense = liveRegIndex_.find(reg);
+        return dense == MicroDenseRegIndex::K_INVALID_INDEX || !(live[dense / 64] & (1ull << (dense % 64)));
+    };
+
+    std::erase_if(state.regs, [&](const auto& entry) { return isDead(entry.first); });
+    std::erase_if(state.upperRegValues, [&](const auto& entry) { return isDead(entry.first); });
 }
 
 void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<const EnabledCheck> checks, SmallVector<uint32_t, 32>* worklist, uint64_t& steps)
@@ -367,7 +515,10 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
         if (def.flags.has(MicroInstrFlagsE::ConditionalJump) && succs.size() == 2 && ops)
         {
             if (worklist)
+            {
+                pruneDeadRegs(cur, chainLiveOut(headStateIndex_[head]));
                 propagateConditionalBranch(std::move(cur), ops, succs, *worklist);
+            }
             return;
         }
 
@@ -388,6 +539,7 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
             return;
 
         SanitizerState edge = std::move(cur);
+        pruneDeadRegs(edge, chainLiveOut(headStateIndex_[head]));
         dropZeros(edge);
         edge.flagsSubject = MicroReg::invalid();
         for (size_t i = 0; i + 1 < succs.size(); ++i)
@@ -628,7 +780,8 @@ void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, SmallVecto
     {
         reached_[index]      = 1;
         inState_[stateIndex] = edge;
-        changed              = true;
+        pruneDeadRegs(inState_[stateIndex], chainLiveIn(stateIndex));
+        changed = true;
     }
     else
     {
@@ -656,6 +809,7 @@ void Sanitizer::propagate(SanitizerState&& edge, uint32_t index, SmallVector<uin
 
     reached_[index]      = 1;
     inState_[stateIndex] = std::move(edge);
+    pruneDeadRegs(inState_[stateIndex], chainLiveIn(stateIndex));
     if (!inWorklist_[index])
     {
         inWorklist_[index] = 1;

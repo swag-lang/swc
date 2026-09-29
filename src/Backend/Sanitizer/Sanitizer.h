@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Sanitizer/SanitizerState.h"
 #include "Support/Core/SmallVector.h"
 
@@ -163,6 +164,16 @@ private:
     // it applies them to each instruction's pre-state.
     void walkChain(uint32_t head, SanitizerState cur, std::span<const EnabledCheck> checks, SmallVector<uint32_t, 32>* worklist, uint64_t& steps);
 
+    // Virtual registers live on entry to each chain head and on exit from each chain.
+    // A fact about a virtual register nothing reads again cannot reach a check, so a
+    // stored state keeps only the live ones: without this every head held every register
+    // the function had defined so far, which made the stored states grow with the
+    // square of a function's length.
+    void computeChainLiveness();
+    void pruneDeadRegs(SanitizerState& state, const uint64_t* live) const;
+    const uint64_t* chainLiveIn(uint32_t stateIndex) const { return liveWords_ ? chainLiveIn_.data() + static_cast<size_t>(stateIndex) * liveWords_ : nullptr; }
+    const uint64_t* chainLiveOut(uint32_t stateIndex) const { return liveWords_ ? chainLiveOut_.data() + static_cast<size_t>(stateIndex) * liveWords_ : nullptr; }
+
     // Instruction effects (the transfer function).
     void        applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
     static void invalidateDefs(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops);
@@ -203,6 +214,10 @@ private:
     bool                                        converged_          = true;
     std::vector<SanitizerState>                 inState_; // populated only at chain heads
     std::vector<uint32_t>                       headStateIndex_;
+    MicroDenseRegIndex                          liveRegIndex_;
+    std::vector<uint64_t>                       chainLiveIn_;  // liveWords_ words per stored state
+    std::vector<uint64_t>                       chainLiveOut_; // liveWords_ words per stored state
+    uint32_t                                    liveWords_ = 0;
     std::vector<char>                           reached_;
     std::vector<char>                           inWorklist_;
     std::optional<std::unordered_set<uint64_t>> reportedLocations_;

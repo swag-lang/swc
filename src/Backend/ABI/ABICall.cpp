@@ -31,6 +31,13 @@ namespace
         return laneIndex < laneCount ? laneIndex : K_NO_ARG_REGISTER;
     }
 
+    uint32_t nextArgRegisterIndex(const CallConv& conv, const ABICall::ArgLayout& arg, uint32_t argIndex, uint32_t& intLane, uint32_t& floatLane)
+    {
+        if (conv.independentArgBanks)
+            return takeIndependentArgRegisterIndex(conv, arg, intLane, floatLane);
+        return conv.canPassArgInRegister(argIndex, arg.isFloat) ? argIndex : K_NO_ARG_REGISTER;
+    }
+
     struct CallArgMasks
     {
         uint8_t ints                = 0;
@@ -47,8 +54,7 @@ namespace
         for (uint32_t i = 0; i < argLayouts.size(); ++i)
         {
             const ABICall::ArgLayout& arg = argLayouts[i];
-            const uint32_t regIndex = conv.independentArgBanks ? takeIndependentArgRegisterIndex(conv, arg, intLane, floatLane) :
-                                                                  (conv.canPassArgInRegister(i, arg.isFloat) ? i : K_NO_ARG_REGISTER);
+            const uint32_t regIndex = nextArgRegisterIndex(conv, arg, i, intLane, floatLane);
             if (regIndex == K_NO_ARG_REGISTER)
             {
                 result.hasStackArgs = true;
@@ -107,10 +113,12 @@ namespace
         const auto argLayouts = collectArgLayouts(args);
         builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
 
+        uint32_t intLane   = 0;
+        uint32_t floatLane = 0;
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg = args[i];
-            if (ABICall::argumentRegisterIndex(conv, argLayouts, i) != K_NO_ARG_REGISTER)
+            if (nextArgRegisterIndex(conv, argLayouts[i], i, intLane, floatLane) != K_NO_ARG_REGISTER)
                 continue;
 
             const uint64_t    argAddr     = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
@@ -127,10 +135,12 @@ namespace
             builder.emitLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
         }
 
+        intLane   = 0;
+        floatLane = 0;
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg      = args[i];
-            const uint32_t      regIndex = ABICall::argumentRegisterIndex(conv, argLayouts, i);
+            const uint32_t      regIndex = nextArgRegisterIndex(conv, argLayouts[i], i, intLane, floatLane);
             if (regIndex == K_NO_ARG_REGISTER)
                 continue;
 
@@ -527,11 +537,13 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         if (stackAdjust)
             builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(stackAdjust, 64), MicroOp::Subtract, MicroOpBits::B64);
 
+        uint32_t intLane   = 0;
+        uint32_t floatLane = 0;
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
             const PreparedArg& arg      = args[i];
             const MicroOpBits  argBits  = preparedArgBits(arg);
-            const uint32_t     regIndex = argumentRegisterIndex(conv, argLayouts, i);
+            const uint32_t     regIndex = nextArgRegisterIndex(conv, argLayouts[i], i, intLane, floatLane);
             const bool         isRegArg = regIndex != K_NO_ARG_REGISTER;
 
             if (isRegArg)
@@ -603,10 +615,12 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             }
         }
 
+        intLane   = 0;
+        floatLane = 0;
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
             const PreparedArg& arg      = args[i];
-            const uint32_t     regIndex = argumentRegisterIndex(conv, argLayouts, i);
+            const uint32_t     regIndex = nextArgRegisterIndex(conv, argLayouts[i], i, intLane, floatLane);
             if (regIndex == K_NO_ARG_REGISTER)
                 continue;
 
@@ -662,10 +676,12 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         return preparedCall;
     }
 
+    uint32_t intLane   = 0;
+    uint32_t floatLane = 0;
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
         const PreparedArg& arg      = args[i];
-        const uint32_t     regIndex = argumentRegisterIndex(conv, argLayouts, i);
+        const uint32_t     regIndex = nextArgRegisterIndex(conv, argLayouts[i], i, intLane, floatLane);
         SWC_ASSERT(regIndex != K_NO_ARG_REGISTER);
         forbidFloatBitCarrierIntArgRegs(builder, conv, arg);
 

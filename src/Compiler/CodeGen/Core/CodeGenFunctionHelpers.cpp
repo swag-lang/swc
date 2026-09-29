@@ -443,8 +443,7 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     if (!typeRef.isValid())
         return false;
 
-    const TypeRef   expandedTypeRef = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    const TypeRef   storageTypeRef  = expandedTypeRef.isValid() ? expandedTypeRef : typeRef;
+    const TypeRef   storageTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, typeRef);
     const TypeInfo& storageType     = ctx.typeMgr().get(storageTypeRef);
     if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregate())
         return false;
@@ -624,14 +623,6 @@ bool CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(CodeGen& codeGe
 
 namespace
 {
-    TypeRef unwrapDefaultStorageTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (rawTypeRef.isValid())
-            return rawTypeRef;
-        return typeRef;
-    }
-
     MicroReg addressWithOffset(CodeGen& codeGen, MicroReg baseReg, uint32_t offset)
     {
         if (!offset)
@@ -645,7 +636,7 @@ namespace
 
     bool canEmitDefaultPayloadBytesInline(CodeGen& codeGen, TypeRef typeRef)
     {
-        typeRef                  = unwrapDefaultStorageTypeRef(codeGen, typeRef);
+        typeRef                  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
 
         if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
@@ -756,7 +747,7 @@ namespace
 
     Result emitImplicitDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
     {
-        typeRef                  = unwrapDefaultStorageTypeRef(codeGen, typeRef);
+        typeRef                  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (typeInfo.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
@@ -785,7 +776,7 @@ namespace
             return Result::Continue;
 
         SWC_ASSERT(elemCount <= std::numeric_limits<uint32_t>::max());
-        const TypeRef   storageElemTypeRef = unwrapDefaultStorageTypeRef(codeGen, elemTypeRef);
+        const TypeRef   storageElemTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), elemTypeRef);
         const TypeInfo& storageElemType    = codeGen.typeMgr().get(storageElemTypeRef);
         if (storageElemType.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageElemTypeRef, dstAddressReg, static_cast<uint32_t>(elemCount));
@@ -958,7 +949,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, const Type
 
 Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
 {
-    typeRef              = unwrapDefaultStorageTypeRef(codeGen, typeRef);
+    typeRef              = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
     const TypeInfo& type = codeGen.typeMgr().get(typeRef);
     if (!type.isStruct() || !type.payloadSymStruct().isDynamic())
         return emitTypeDefaultValue(codeGen, typeRef, dstAddressReg);

@@ -120,6 +120,8 @@ namespace
             return TypeRef::invalid();
 
         const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias() && !typeInfo.isEnum())
+            return typeRef;
         const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
         return storageTypeRef.isValid() ? storageTypeRef : typeRef;
     }

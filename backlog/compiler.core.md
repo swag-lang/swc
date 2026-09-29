@@ -6,26 +6,30 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
-### compiler.core.057 — A parallel core rebuild intermittently loses a bound generic call
+### compiler.core.057 — The lazy-body completion race has no deterministic regression
 
 - Recorded: 2026-09-24 14:07
-- Area: compiler/semantic analysis and code generation, parallel generic instances.
-- Evidence: an alternating six-worker `std/core --rebuild` speed comparison failed once
-  in the unchanged build 1110 reference compiler after thirteen successful rebuilds.
-  `Core.HashTable.find` at `hashtable.swg:594` (`.tryFind(key)`) reached
-  `resolveSelectedCallFunction` with no bound function symbol and emitted the
-  internal error `missing bound function symbol for call expression`. The next ten
-  isolated rebuilds with the same executable and source passed. The candidate
-  change only reused post-register-allocation liveness vectors, so it cannot
-  explain this failure in the reference process. The full log is recorded in
-  `bench/results/compilation/20260924-speed/README.md`.
-- Next: obtain a bounded six-worker reproducer and capture the call, callee and
-  resolved-node semantic views at the failing specialization. Identify whether
-  a generic-instance publication or semantic restart leaves the selected call
-  function unavailable to code generation. Compare the concurrency history
-  with `compiler.core.047` without assuming the two symptoms share a cause.
-- Complete when: repeated parallel core rebuilds preserve the bound symbol,
-  with a regression at the semantic/code-generation boundary.
+- Updated: 2026-09-29 14:26 — Root cause fixed; only the regression seam remains.
+- Area: compiler/semantic analysis, lazy bodies of generic-instance, imported and runtime functions.
+- Evidence: `Core.HashTable.find` (`hashtable.swg:594`, `.tryFind(key)`) intermittently reached
+  `resolveSelectedCallFunction` with no bound function symbol, once in a six-worker
+  `std/core --rebuild` comparison on 2026-09-24 and once in
+  `tools/std.swgs dm test core -bc release` on 2026-09-29. The declaration walk that hands a
+  body to the lazy runner could still complete the function in `AstFunctionDecl::semaPostNode`:
+  it read `LazyBodyRunning` twice, and a runner starting between the two reads made the walk
+  publish the function and schedule its code generation while the runner was still resolving
+  the body. `semaPostNode` now leaves a delegated body to its runner. A temporary 3 ms delay
+  between the two reads made one core release test report six premature completions
+  (`Core.Array.grow`, `Swag.panic`, `Core.HashTable.tablePtr`, `__ftoa`) and stop on a missing
+  identifier symbol in code generation; with the fix, three delayed runs and ten undelayed runs
+  passed with none.
+- Why no suite test: the failure needs another task to start the lazy run inside a window of a
+  few instructions in the declaration walk. No suite source or C++ test can place a thread there.
+- Next: add a DevMode scheduling-stress option that delays the declaration walk's post-node
+  when its function has a lazy body, and run `tools/std.swgs dm test core -bc release` with it
+  from the `cpp` or `workspace` campaign. Check whether `compiler.core.047` (a generic local
+  defined twice in `HashTable`) reproduces under the same stress before attributing it here.
+- Complete when: a repeatable test fails without the post-node ownership check and passes with it.
 
 ### compiler.core.056 — Every compilation lowers the equality operator no program calls
 

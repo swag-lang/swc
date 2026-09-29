@@ -485,31 +485,33 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
 
     // A window outside the replicated padding goes through a clamped copy first. The
     // right bound uses the sixteen-byte span of the packed row loads whatever the
-    // block width, so the narrow filters may read wide.
-    var window:    [21 * 24] u8
-    var src:       [*] u8
-    var srcStride: u64
+    // block width, so the narrow filters may read wide. The window lives in this branch
+    // only: a local array is cleared where it is declared, and the vectors that stay
+    // inside the padding, nearly all of them, have no use for one.
     if x - 2 < -FramePadding or y - 2 < -FramePadding or x + 19 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
     {
+        var window: [21 * 24] u8
         copyClamped(window.buffer, 21, planeBase, planePitch, x - 2, y - 2, width + 5, height + 5, planeWidth, planeHeight)
-        src       = window.buffer + 2 * 21 + 2
-        srcStride = 21
-    }
-    else
-    {
-        src       = planeBase + cast(u64) (y + FramePadding) * planePitch + cast(u64) (x + FramePadding)
-        srcStride = planePitch
+        interpolateLuma(dst, dstStride, window.buffer + 2 * 21 + 2, 21, fracX, fracY, width, height)
+        return
     }
 
+    interpolateLuma(dst, dstStride, planeBase + cast(u64) (y + FramePadding) * planePitch + cast(u64) (x + FramePadding), planePitch, fracX, fracY, width, height)
+}
+
+// Interpolates one block from the full-sample position `src` at quarter-sample phase
+// `fracX`, `fracY`, section 8.4.2.2.1.
+private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, fracX, fracY, width, height: s32)
+{
     if fracX == 0 and fracY == 0
     {
         copyPlane(dst, dstStride, src, srcStride, width, height)
         return
     }
 
-    // Each remaining position needs at most one intermediate plane: the averaging half of
-    // section 8.4.2.2.1 rides in the last filter pass instead of a pass of its own.
-    var planeA: [16 * 16] u8
+    // Each remaining position needs at most one intermediate plane, declared by the
+    // positions that use it: the averaging half of section 8.4.2.2.1 rides in the last
+    // filter pass instead of a pass of its own.
     if fracY == 0
     {
         if fracX == 2 do
@@ -537,6 +539,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
     if fracX == 2
     {
         // Positions f and q: the center half against the nearest horizontal half row.
+        var planeA: [16 * 16] u8
         halfCenter(planeA.buffer, 16, src, srcStride, width, height)
         halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, planeA.buffer, 16, width, height)
         return
@@ -545,6 +548,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
     if fracY == 2
     {
         // Positions i and k: the center half against the nearest vertical half column.
+        var planeA: [16 * 16] u8
         halfCenter(planeA.buffer, 16, src, srcStride, width, height)
         halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
         return
@@ -552,6 +556,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
 
     // Diagonal quarter positions e, g, p, r: nearest horizontal half against nearest
     // vertical half.
+    var planeA: [16 * 16] u8
     halfHorizontal(planeA.buffer, 16, fracY == 1 ? src : src + srcStride, srcStride, width, height)
     halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
 }
@@ -609,22 +614,23 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     let base        = plane == 0 ? reference.cb.storage() : reference.cr.storage()
 
     // The right bound uses the sixteen-byte span of the packed row loads whatever the
-    // block width, so the narrow blends may read wide.
-    var window:    [9 * 12] u8
-    var src:       [*] u8
-    var srcStride: u64
+    // block width, so the narrow blends may read wide. As for luma, the window is declared
+    // only where it is used.
     if x < -FramePadding or y < -FramePadding or x + 17 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
     {
+        var window: [9 * 12] u8
         copyClamped(window.buffer, 9, base, reference.strideChroma, x, y, width + 1, height + 1, planeWidth, planeHeight)
-        src       = window.buffer
-        srcStride = 9
-    }
-    else
-    {
-        src       = base + cast(u64) (y + FramePadding) * reference.strideChroma + cast(u64) (x + FramePadding)
-        srcStride = reference.strideChroma
+        interpolateChroma(dst, dstStride, window.buffer, 9, fracX, fracY, width, height)
+        return
     }
 
+    interpolateChroma(dst, dstStride, base + cast(u64) (y + FramePadding) * reference.strideChroma + cast(u64) (x + FramePadding), reference.strideChroma, fracX, fracY, width, height)
+}
+
+// Blends one chroma block from the full-sample position `src` at eighth-sample phase
+// `fracX`, `fracY`, section 8.4.2.2.2.
+private func interpolateChroma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, fracX, fracY, width, height: s32)
+{
     // A zero phase on both axes is a plain copy, and a zero phase on one axis collapses the
     // bilinear blend to a two-tap filter; the skipped macroblocks of a still scene all take
     // the copy path.
@@ -670,12 +676,17 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         let wb = fracY * 8
         if width == 8 or width == 4
         {
+            // Each source row is the lower row of one output and the upper row of the next,
+            // so it is loaded once.
             let weights = chromaWeights(wt, wb)
+            var upper   = Simd.load(line)
             for cast(u64) height
             {
-                storeChromaBlend(out, width, chromaPairs(Simd.load(line), Simd.load(line + srcStride), weights))
-                out  += dstStride
                 line += srcStride
+                let lower = Simd.load(line)
+                storeChromaBlend(out, width, chromaPairs(upper, lower, weights))
+                upper = lower
+                out += dstStride
             }
 
             return
@@ -699,17 +710,19 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     if width == 8 or width == 4
     {
         // Each row carries its own vertical weight folded into its horizontal pair, so the two
-        // rows are two multiplies and one sum rather than four multiplies and three sums.
+        // rows are two multiplies and one sum rather than four multiplies and three sums. The
+        // interleaved pairs of a source row serve as the lower row of one output and the upper
+        // row of the next, so each row is loaded and interleaved once, as FFmpeg's kernel does.
         let topWeights    = chromaWeights(wlt, wrt)
         let bottomWeights = chromaWeights(wlb, wrb)
+        var upper         = Simd.interleaveLow(Simd.load(line), Simd.load(line + 1))
         for cast(u64) height
         {
-            let below = line + srcStride
-            let top   = chromaPairs(Simd.load(line), Simd.load(line + 1), topWeights)
-            let lower = chromaPairs(Simd.load(below), Simd.load(below + 1), bottomWeights)
-            storeChromaBlend(out, width, top + lower)
-            out  += dstStride
             line += srcStride
+            let lower = Simd.interleaveLow(Simd.load(line), Simd.load(line + 1))
+            storeChromaBlend(out, width, Simd.mulAddPairs(upper, topWeights) + Simd.mulAddPairs(lower, bottomWeights))
+            upper = lower
+            out += dstStride
         }
 
         return

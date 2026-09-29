@@ -116,3 +116,80 @@ impl InterReference
         }
     }
 }
+
+struct ChromaReference
+{
+    frame: *H264.Frame
+    plane: u32
+}
+
+impl ChromaReference
+{
+    // The chroma sample at `x`, `y`, clamped to the padded plane like the window copy.
+    mtd sample(x, y: s32)->s32
+    {
+        let clampedX = Math.clamp(x, -H264.FramePadding, .frame.mbWidth * 8 + H264.FramePadding - 1)
+        let clampedY = Math.clamp(y, -H264.FramePadding, .frame.mbHeight * 8 + H264.FramePadding - 1)
+        return cast(s32) .frame.pixChroma(.plane, clampedX, clampedY)[0]
+    }
+}
+
+// Chroma motion compensation against section 8.4.2.2.2: every eighth-sample phase and block
+// shape, in place and through the clamped window, on both chroma planes.
+#test
+{
+    var frame: H264.Frame
+    frame.prepare(4, 4, 1)
+
+    var seed = 0x9E3779B9'u32
+    for index in frame.cb.count
+    {
+        seed = seed * #wrap 1664525 + #wrap 1013904223
+        frame.cb[index] = cast(u8) (seed >> 24)
+        seed = seed * #wrap 1664525 + #wrap 1013904223
+        frame.cr[index] = (index / 5) % 2 == 0 ? (((seed >> 21) & 1) == 0 ? 0 : 255) : cast(u8) (seed >> 24)
+    }
+
+    const Shapes  = [8's32, 8, 8, 4, 4, 8, 4, 4, 4, 2, 2, 4, 2, 2]
+    const Origins = [0's32, 0, 3, 5, 11, 9, 27, 20, -2, -30, 31, 25, -40, 50]
+    var predicted: [16 * 8] u8
+    for plane in 2'u32
+    {
+        var reference = ChromaReference{frame: &frame, plane: plane}
+        for shape in Shapes.count / 2
+        {
+            let width  = Shapes[shape * 2]
+            let height = Shapes[shape * 2 + 1]
+            for origin in Origins.count / 2
+            {
+                let x = Origins[origin * 2]
+                let y = Origins[origin * 2 + 1]
+                for phase in 64's32
+                {
+                    let fracX = phase & 7
+                    let fracY = phase >> 3
+                    Memory.set(predicted.buffer, 0x5A, predicted.count)
+                    H264.mcChroma(predicted.buffer, 16, &frame, plane, x, y, fracX, fracY, width, height)
+                    for row in height
+                    {
+                        for column in 16's32
+                        {
+                            let got = predicted[cast(u64) (row * 16 + column)]
+                            if column >= width
+                            {
+                                Swag.assert(got == 0x5A)
+                                continue
+                            }
+
+                            let px    = x + column
+                            let py    = y + row
+                            let value = (8 - fracX) * (8 - fracY) * reference.sample(px, py) + fracX * (8 - fracY) * reference.sample(px + 1, py) +
+                                        (8 - fracX) * fracY * reference.sample(px, py + 1) + fracX * fracY * reference.sample(px + 1, py + 1)
+                            Swag.assert(got == cast(u8) ((value + 32) >> 6))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

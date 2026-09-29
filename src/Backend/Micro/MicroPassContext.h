@@ -51,6 +51,13 @@ struct MicroPassContext
     MicroReg debugStackBaseVirtualReg = MicroReg::invalid();
     MicroReg debugStackBasePhysReg    = MicroReg::invalid();
 
+    // The local-stack base only has to live in a register of its own when debug records name
+    // it. Otherwise register allocation reads the locals through the stack pointer when that
+    // pointer never moves in the body (see foldLocalStackBaseIntoStackPointer), and records it
+    // here: the frame then holds locals the stack pointer addresses directly.
+    bool keepLocalStackBase   = false;
+    bool localStackBaseFolded = false;
+
     // The byte range of the frame register allocation gave its own spill slots, as the emitted
     // code addresses it. Those slots are the compiler's: no source object overlaps one and no
     // pointer can be made to reach one, which is what lets a post-RA pass reason about them in a

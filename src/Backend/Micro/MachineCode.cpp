@@ -54,6 +54,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     passContext.preservePersistentRegs   = true;
     passContext.forceFramePointer        = computeUnwindInfo;
     passContext.debugStackBaseVirtualReg = debugStackBaseVirtualReg;
+    passContext.keepLocalStackBase       = backendBuildCfg.debugInfo;
     passContext.sanitizerSafetyMask      = sanitizerSafetyMask;
     passContext.sanitizerFunction        = sanitizerFunction;
 

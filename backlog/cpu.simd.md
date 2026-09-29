@@ -52,7 +52,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 - Recorded: 2026-09-12 18:05
 - Updated: 2026-09-29 15:15 — Deblocking skips macroblocks under the QP threshold; strengths decide without branches.
-- Updated: 2026-09-29 11:28 — Luma, chroma, strength and intra kernels now take FFmpeg's shapes.
 - Evidence: forcing FFmpeg's dispatch down one instruction set at a time on a 3840x2160 one-slice
   High/CABAC clip gives the ladder its assembly climbs, in millions of decode-thread cycles per
   picture: compiled code 179, with SSE2 111, with SSSE3 82. Its SSE2 step covers the deblocking

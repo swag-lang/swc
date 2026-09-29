@@ -356,8 +356,6 @@ impl Slice
     mtd compensate(mb: *Mb, frame: *Frame) fail
     {
         let dec = .dec!
-        var tempA: [16 * 16] u8
-        var tempB: [16 * 16] u8
 
         // Skip and direct derivations partition uniformly: when every job carries the same
         // references and motion, one 16x16 job compensates the whole macroblock. The jobs of
@@ -408,8 +406,13 @@ impl Slice
                 let y         = mb.mbY * 16 + job.y
                 let dst       = frame.pixPlane(plane, x, y)
                 let dstStride = frame.planeStride(plane)
+                // The two predictions of a pair, and a weighted one, go through scratch planes
+                // declared where they are used: a local array is cleared where it is declared,
+                // and a plain single prediction writes straight into the picture.
                 if ref0 and ref1
                 {
+                    var tempA: [16 * 16] u8
+                    var tempB: [16 * 16] u8
                     .mcPlaneList(mb, job, 0, ref0, plane, tempA.buffer, 16)
                     .mcPlaneList(mb, job, 1, ref1, plane, tempB.buffer, 16)
                     .combineBi(mb, job, tempA.buffer, tempB.buffer, dst, dstStride, job.width, job.height, luma: plane == 0, plane: plane == 0 ? 0 : plane - 1)
@@ -420,6 +423,7 @@ impl Slice
                     let reference = ref0 ? ref0 : ref1!
                     if .useWeights
                     {
+                        var tempA: [16 * 16] u8
                         .mcPlaneList(mb, job, list, reference, plane, tempA.buffer, 16)
                         let entry  = &.refs[list, cast(u64) job.refIdx[list]]
                         let denom  = plane == 0 ? cast(s32) .lumaLog2Denom : cast(s32) .chromaLog2Denom
@@ -456,6 +460,8 @@ impl Slice
                 let chromaDst = frame.pixChroma(plane, chromaX, chromaY)
                 if ref0 and ref1
                 {
+                    var tempA: [8 * 16] u8
+                    var tempB: [8 * 16] u8
                     .mcChromaList(mb, job, 0, ref0, plane, tempA.buffer, 16)
                     .mcChromaList(mb, job, 1, ref1, plane, tempB.buffer, 16)
                     .combineBi(mb, job, tempA.buffer, tempB.buffer, chromaDst, frame.strideChroma, job.width / 2, job.height / 2, luma: false, plane: plane)
@@ -466,6 +472,7 @@ impl Slice
                     let reference = ref0 ? ref0 : ref1!
                     if .useWeights
                     {
+                        var tempA: [8 * 16] u8
                         .mcChromaList(mb, job, list, reference, plane, tempA.buffer, 16)
                         let entry  = &.refs[list, cast(u64) job.refIdx[list]]
                         let weight = plane == 0 ? entry.cbWeight : entry.crWeight

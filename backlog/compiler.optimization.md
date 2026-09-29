@@ -15,6 +15,14 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.098 — Feed adjacent array updates from a packed state
+
+- Recorded: 2026-09-29 08:04
+- Area: compiler/backend, SIMD dataflow and memory aliasing
+- Evidence: after ChaCha's packed round loop, Swag stores four vectors to the local state array, then emits 16 repetitions of a scalar state load, an add from the initial array, and an indexed XOR into the output array: four vector stores and 48 scalar Micro instructions per output block. The latest accepted campaign names C++/clang-cl as the fastest other runtime. Its emitted code packs one four-word slice for a vector add, XOR, and store while updating the remaining words individually. This identifies an output path left scalar after Swag's round vectorization, not a measured cost for a compiler edit.
+- Constraint: packing several output updates changes when later state and initial elements are read relative to earlier output writes. The output comes from `benchAlloc`, a wrapper around the runtime allocator; the current Micro pass does not carry a freshness or no-alias proof from that call. A rewrite based only on adjacent addresses could change programs whose output overlaps an input array.
+- Next: establish the allocator result's usable provenance and the exact stack/heap disjointness contract, or guard the overlap case at run time. Then vectorize four contiguous add/XOR/update lanes under that proof, test overlapping and disjoint arrays, and compare the output path's instructions, memory operations, and spills with clang-cl. Keep the benchmark's computation unchanged.
+
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 
 - Recorded: 2026-09-28 16:35

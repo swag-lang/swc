@@ -665,8 +665,8 @@ impl Slice
     // stores them.
     mtd mvdCabac(mb: *Mb, list: u32, x4, y4: s32)->[2] s16
     {
-        let a = .motionAt(mb, list, x4 - 1, y4)
-        let b = .motionAt(mb, list, x4, y4 - 1)
+        let a = .neighborMvd(mb, list, x4 - 1, y4)
+        let b = .neighborMvd(mb, list, x4, y4 - 1)
 
         var range = .cabac.range
         var low   = .cabac.low
@@ -676,8 +676,8 @@ impl Slice
         var result: retval
         for component in 2'u32
         {
-            let sumA    = component == 0 ? absS32(cast(s32) a.mvdX) : absS32(cast(s32) a.mvdY)
-            let sumB    = component == 0 ? absS32(cast(s32) b.mvdX) : absS32(cast(s32) b.mvdY)
+            let sumA    = absS32(cast(s32) a[component])
+            let sumB    = absS32(cast(s32) b[component])
             let amvd    = sumA + sumB
             var ctxBase = component == 0 ? 40'u32 : 47'u32
             var ctx     = 0'u32

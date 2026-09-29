@@ -320,6 +320,38 @@ impl Slice
         return result
     }
 
+    // Returns the motion vector difference of the block left of (`rx` = -1) or above (`ry` = -1)
+    // a block of the current macroblock, as [[motionAt]] reports it: zero for a block with no
+    // coded motion of this list. The CABAC contexts of a difference read nothing else, so they
+    // skip the record the prediction needs.
+    mtd const neighborMvd(mb: *Mb, list: u32, rx, ry: s32)->[2] s16
+    {
+        var result: retval
+        let dec = .dec!
+        var index: u64
+        if rx >= 0 and ry >= 0
+        {
+            if (mb.motionMask[list] & (1'u32 << cast(u32) (ry * 4 + rx))) == 0 do
+                return result
+            index = .neighbors.blockBase + cast(u64) (ry * (dec.sps!.mbWidth * 4) + rx)
+        }
+        else
+        {
+            let other = rx < 0 ? &.neighbors.a : &.neighbors.b
+            if not other.available do
+                return result
+            let info = other.info!
+            if info.class != MbClassInter or (.header.type == SliceTypeP and info.skipped) do
+                return result
+            index = other.blockBase + cast(u64) ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3))
+        }
+
+        let diffs = list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage()
+        result[0] = diffs[index * 2]
+        result[1] = diffs[index * 2 + 1]
+        return result
+    }
+
     // Median motion-vector prediction for one partition, section 8.4.1.3.
     //
     // `x4`, `y4` are macroblock-relative block coordinates, `w4`, `h4` the partition size in

@@ -693,15 +693,16 @@ impl Slice
                 continue
             }
 
-            var value    = 1'u32
-            var unaryCtx = ctxBase + 3
+            // The unary prefix walks its contexts through one state pointer.
+            var value = 1'u32
+            var unary = .cabac.contexts.buffer + cast(u64) (ctxBase + 3)
             while value < 9
             {
-                .binDecision(unaryCtx)
+                .binDecisionAt(unary)
                 if (binState & 1) == 0 do
                     break
                 if value < 4 do
-                    unaryCtx += 1
+                    unary += 1
                 value += 1
             }
 

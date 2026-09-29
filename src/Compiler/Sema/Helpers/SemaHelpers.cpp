@@ -81,12 +81,15 @@ TypeRef SemaHelpers::unwrapBindingType(TaskContext& ctx, TypeRef typeRef)
 {
     while (typeRef.isValid())
     {
-        const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
-        const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
-        if (unwrapped.isValid())
+        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+        if (typeInfo.isAlias() || typeInfo.isEnum())
         {
-            typeRef = unwrapped;
-            continue;
+            const TypeRef unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
+            if (unwrapped.isValid())
+            {
+                typeRef = unwrapped;
+                continue;
+            }
         }
 
         if (typeInfo.isReference())
@@ -117,12 +120,15 @@ TypeRef SemaHelpers::unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef)
 {
     while (typeRef.isValid())
     {
-        const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
-        const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias);
-        if (unwrapped.isValid())
+        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+        if (typeInfo.isAlias())
         {
-            typeRef = unwrapped;
-            continue;
+            const TypeRef unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias);
+            if (unwrapped.isValid())
+            {
+                typeRef = unwrapped;
+                continue;
+            }
         }
 
         if (typeInfo.isReference())

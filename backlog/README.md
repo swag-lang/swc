@@ -36,6 +36,7 @@ the latest entry was removed. The removal itself lives in Git.
 | File | Area | Updated |
 | --- | --- | --- |
 | [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-29 15:08 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-29 14:26 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-29 13:48 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-29 11:28 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-29 11:03 |
@@ -49,7 +50,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-27 17:50 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-27 17:49 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-27 17:45 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-24 14:07 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-18 14:05 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |

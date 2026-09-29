@@ -201,16 +201,6 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
 
 namespace
 {
-    TypeRef unwrapAliasTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& typeInfo         = sema.typeMgr().get(typeRef);
-        const TypeRef   unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-    }
-
     Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         outCstRef          = ConstantRef::invalid();
@@ -261,7 +251,7 @@ namespace
     {
         outCstRef                = ConstantRef::invalid();
         TaskContext&    ctx      = sema.ctx();
-        const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
+        const TypeRef   typeRef  = sema.typeMgr().unwrapAlias(sema.ctx(), cst.typeRef());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isArray());
         const auto&    dims  = typeInfo.payloadArrayDims();
@@ -288,7 +278,7 @@ namespace
 
     Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
+        const TypeRef   typeRef  = sema.typeMgr().unwrapAlias(sema.ctx(), cst.typeRef());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isSlice());
         const std::span<const std::byte> bytes     = cst.getSlice();
@@ -299,7 +289,7 @@ namespace
     Result extractAtIndexBlockPointer(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         TaskContext&    ctx      = sema.ctx();
-        const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
+        const TypeRef   typeRef  = sema.typeMgr().unwrapAlias(sema.ctx(), cst.typeRef());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         const uint64_t  ptrValue = cst.getBlockPointer();
         SWC_ASSERT(ptrValue);

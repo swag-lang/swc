@@ -508,7 +508,7 @@ namespace
             return Result::Continue;
 
         const TypeRef   pointeeTypeRef   = normalizedType.payloadTypeRef();
-        const TypeRef   unwrappedTypeRef = ctx.typeMgr().get(pointeeTypeRef).unwrap(ctx, pointeeTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   unwrappedTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, pointeeTypeRef);
         const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : pointeeTypeRef;
         const TypeInfo& storageType      = ctx.typeMgr().get(storageTypeRef);
         if (!storageType.isStruct())
@@ -882,7 +882,7 @@ namespace
             return Result::Continue;
 
         TaskContext&    ctx              = codeGen.ctx();
-        const TypeRef   unwrappedTypeRef = ctx.typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   unwrappedTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, normalizedTypeRef);
         const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : normalizedTypeRef;
         const TypeInfo& storageType      = ctx.typeMgr().get(storageTypeRef);
         if (!storageType.isStruct() && !storageType.isArray())
@@ -959,8 +959,8 @@ namespace
                 if (!arg.passUfcsAddressAsPointer && !requiresTypedConstMaterialization && constantTypeRef.isValid())
                 {
                     const TaskContext& ctx             = codeGen.ctx();
-                    const TypeRef      expectedTypeRef = ctx.typeMgr().get(constantTypeRef).unwrap(ctx, constantTypeRef, TypeExpandE::Alias);
-                    const TypeRef      payloadTypeRef  = argPayload.typeRef.isValid() ? ctx.typeMgr().get(argPayload.typeRef).unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias) : TypeRef::invalid();
+                    const TypeRef      expectedTypeRef = ctx.typeMgr().unwrapAlias(ctx, constantTypeRef);
+                    const TypeRef      payloadTypeRef  = ctx.typeMgr().unwrapAlias(ctx, argPayload.typeRef);
                     requiresTypedConstMaterialization  = expectedTypeRef.isValid() && (payloadTypeRef.isInvalid() || expectedTypeRef != payloadTypeRef);
                 }
 
@@ -1037,7 +1037,7 @@ namespace
                 normalizedArg.needsIndirectCopy = false;
             else if (out.copyIndirectValueAggregates && normalizedArg.isIndirect)
             {
-                const TypeRef   expandedTypeRef = codeGen.typeMgr().get(normalizedTypeRef).unwrap(codeGen.ctx(), normalizedTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+                const TypeRef   expandedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), normalizedTypeRef);
                 const TypeInfo& expandedType    = codeGen.typeMgr().get(expandedTypeRef);
                 if (expandedType.isStruct() || expandedType.isAggregateStruct())
                     normalizedArg.needsIndirectCopy = true;

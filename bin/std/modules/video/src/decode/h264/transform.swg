@@ -170,6 +170,34 @@ func addDc4x4(destination: [*] u8, stride: u64, dc: s32)
     storeRows4(rows, destination, destination + stride, destination + 2 * stride, destination + 3 * stride)
 }
 
+// Adds four flat DC-only 4x4 blocks that tile one 8x8 block, `dc0` `dc1` on the top pair and
+// `dc2` `dc3` on the bottom pair, as FFmpeg's chroma DC-only add does: each row of eight takes
+// the two values of its pair in one vector, so the whole block is eight widen, add, pack and
+// store sequences instead of four separate 4x4 adds. A zero value leaves its samples as they are.
+func addDc8x8Quad(destination: [*] u8, stride: u64, dc0, dc1, dc2, dc3: s32)
+{
+    let top    = cast #bit(Simd.S16x8) Simd.interleaveLow(cast #bit(Simd.U64x2) dcLanes(dc0), cast #bit(Simd.U64x2) dcLanes(dc1))
+    let bottom = cast #bit(Simd.S16x8) Simd.interleaveLow(cast #bit(Simd.U64x2) dcLanes(dc2), cast #bit(Simd.U64x2) dcLanes(dc3))
+    var row    = destination
+    for 4
+    {
+        let sum = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(row)) + top
+        Simd.storeLow8(row, Simd.packUnsigned(sum, sum))
+        row += stride
+    }
+
+    for 4
+    {
+        let sum = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(row)) + bottom
+        Simd.storeLow8(row, Simd.packUnsigned(sum, sum))
+        row += stride
+    }
+}
+
+// The rounded DC of one flat block on every lane, held within one byte either way.
+#[Swag.Inline]
+private func dcLanes(dc: s32)->Simd.S16x8 => Simd.splat(cast(s16) Math.clamp((dc + 32) >> 6, -256, 256))
+
 // The flat DC-only add in scalar form: the reference [[addDc4x4]] is checked against.
 func addDc4x4Scalar(destination: [*] u8, stride: u64, dc: s32)
 {

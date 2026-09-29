@@ -641,7 +641,7 @@ namespace
     // layout analysis, so neither participates in this conservative rewrite.
     bool compactUnusedStackPrefix(const MicroPassContext& context, const CallConv& conv)
     {
-        if (context.forceFramePointer || context.debugStackBasePhysReg.isValid() ||
+        if (context.forceFramePointer || context.debugStackBasePhysReg.isValid() || context.localStackBaseFolded ||
             !conv.stackShadowSpace || !conv.stackAlignment)
             return false;
 

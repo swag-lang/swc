@@ -731,10 +731,52 @@ SWC_TEST_BEGIN(RegAlloc_UsesDedicatedLocalStackBaseRegister)
         MicroPassContext passCtx;
         passCtx.callConvKind             = callConvKind;
         passCtx.debugStackBaseVirtualReg = stackBase;
+        passCtx.keepLocalStackBase       = true;
         SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
 
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
         if (passCtx.debugStackBasePhysReg != preferredStackBaseReg)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+// Without debug records, a local-stack base whose stack pointer never moves again is read
+// through the stack pointer itself; a base the body outlives a stack adjustment keeps it.
+SWC_TEST_BEGIN(RegAlloc_FoldsLocalStackBaseIntoStackPointer)
+{
+    const CallConv&    conv      = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg stackBase = MicroReg::virtualIntReg(7700);
+    for (const bool movesStack : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(0x40, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegReg(stackBase, conv.stackPointer, MicroOpBits::B64);
+        if (movesStack)
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegMem(conv.intReturn, stackBase, 0x18, MicroOpBits::B64);
+        if (movesStack)
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(0x20, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(0x40, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+        MicroPassContext passCtx;
+        passCtx.callConvKind             = CallConvKind::Swag;
+        passCtx.debugStackBaseVirtualReg = stackBase;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+
+        bool readsThroughStack = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            readsThroughStack |= inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[0].reg == conv.intReturn &&
+                                 ops[1].reg == conv.stackPointer && ops[3].valueU64 == 0x18;
+        }
+        if (readsThroughStack == movesStack || passCtx.localStackBaseFolded == movesStack)
             return Result::Error;
     }
 }

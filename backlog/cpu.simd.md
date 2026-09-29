@@ -112,8 +112,8 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   in calling loops, 16-bit any/all read the byte movemask directly, and a vector read lane by
   lane is split into shuffles instead of a stack round trip. Every change is byte-exact against
   PyAV on the 60-frame 3840x2160 extract; with the same compiler, the decoder sources alone read
-  88.5 against 95.0 million lane cycles per picture (medians of four interleaved runs; FFmpeg
-  with its assembly reads about 41 on the same machine).
+  88.1 against 98.2 million lane cycles per picture (medians of six interleaved runs, minimums
+  77.4 against 89.9; FFmpeg with its assembly reads about 41 on the same machine).
 - Tried and reverted: computing the inner-edge thresholds once per macroblock in `deblockMb`
   through a small struct. The struct travelled through the frame and kept six more values live
   across the filter calls: the function grew from 1633 to 1780 instructions and its edge loops

@@ -1069,12 +1069,15 @@ namespace
     {
         while (typeRef.isValid())
         {
-            const TypeInfo& typeInfo         = codeGen.typeMgr().get(typeRef);
-            const TypeRef   unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
+            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+            if (typeInfo.isAlias())
             {
-                typeRef = unwrappedTypeRef;
-                continue;
+                const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
+                if (unwrappedTypeRef.isValid())
+                {
+                    typeRef = unwrappedTypeRef;
+                    continue;
+                }
             }
 
             if (!typeInfo.isReference())

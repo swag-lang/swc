@@ -90,48 +90,47 @@ struct EdgeStrength
     bs: [4] u32
 }
 
-// Reference and motion state needed to compare one 4x4 block edge.
-private struct DeblockMotion
-{
-    refId: [2] s8
-    mv:    [2, 2] s16
-}
-
-// Reads motion from the compact macroblock job when a P-skip never published a 4x4 grid.
+// The motion of one 4x4 block on both lists as the eight 16-bit lanes the strength test
+// compares: list 0's vector, its reference record, and a spare lane, then the same for list 1.
+// A grid block is exactly two `BlockMotion` records, whose third lane carries the reference
+// index in its low byte and the reference identity in its high one.
 //
-// `mbIndex` addresses the macroblock the block belongs to. Every caller walks a macroblock and
-// its left or top neighbor, so it knows that address; deriving it back from the block index
-// costs an integer division and a modulo, and this runs for both sides of every edge segment.
-private func deblockMotion(dec: *Decoder, mbIndex, blockIndex: u64)->DeblockMotion
+// A P-skip never published its 4x4 grid, so its lanes come from the compact macroblock job.
+// `mbIndex` addresses the macroblock the block belongs to: every caller walks a macroblock and
+// its left or top neighbor, so it knows that address without dividing the block index back.
+#[Swag.Inline]
+private func deblockMotion(dec: *Decoder, mbIndex, blockIndex: u64)->Simd.S16x8
 {
     let info = &dec.mbInfo[mbIndex]
-
-    var result: retval
     if info.skipped and not info.direct
     {
         let mb    = &dec.parsedMbs[mbIndex]
         let job   = &mb.firstJob
         let slice = &dec.pictureSlices[mb.sliceIndex]
-        for list in 2'u32
-        {
-            let ref = job.refIdx[list]
-            result.refId[list] = ref >= 0 ? slice.refs[list, cast(u64) ref].identity : NoReferenceIdentity
-            result.mv[list, 0] = job.mv[list, 0]
-            result.mv[list, 1] = job.mv[list, 1]
-        }
-
-        return result
+        let ref0  = job.refIdx[0]
+        let ref1  = job.refIdx[1]
+        let id0   = ref0 >= 0 ? slice.refs[0, cast(u64) ref0].identity : NoReferenceIdentity
+        let id1   = ref1 >= 0 ? slice.refs[1, cast(u64) ref1].identity : NoReferenceIdentity
+        return cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], cast(s16) (cast(s32) id0 << 8), 0, job.mv[1, 0], job.mv[1, 1], cast(s16) (cast(s32) id1 << 8), 0]
     }
 
-    let motion0 = &dec.motionL0[blockIndex]
-    let motion1 = &dec.motionL1[blockIndex]
-    result.refId[0] = motion0.refId
-    result.refId[1] = motion1.refId
-    result.mv[0, 0] = motion0.mvX
-    result.mv[0, 1] = motion0.mvY
-    result.mv[1, 0] = motion1.mvX
-    result.mv[1, 1] = motion1.mvY
-    return result
+    let list0 = (cast(const [*] u64) dec.motionL0.storage())[blockIndex]
+    let list1 = (cast(const [*] u64) dec.motionL1.storage())[blockIndex]
+    return cast #bit(Simd.S16x8) Simd.interleaveLow(Simd.splat(list0), Simd.splat(list1))
+}
+
+// Reports whether two blocks reference the same picture on each list and every vector pair
+// differs by less than one full sample, section 8.7.2.1.
+//
+// Only the identity byte of each reference record takes part, and a difference `d` is within
+// three exactly when `d + 3`, read unsigned, is at most six: one saturating subtraction leaves
+// zero in every lane that passes.
+#[Swag.Inline]
+private func deblockMotionMatches(p, q: Simd.S16x8)->bool
+{
+    const Compared = cast(Simd.U16x8) [0xFFFF'u16, 0xFFFF, 0xFF00, 0, 0xFFFF, 0xFFFF, 0xFF00, 0]
+    let difference = (cast #bit(Simd.U16x8) q & Compared) - (cast #bit(Simd.U16x8) p & Compared) + 3
+    return Simd.allTrue(Simd.subSaturating(difference, Simd.splat(6'u16)) == Simd.splat(0'u16))
 }
 
 // Computes the strength of one 4x4 block edge between blocks `p` and `q`, section 8.7.2.1.
@@ -142,48 +141,14 @@ private func edgeStrength(dec: *Decoder, pMbIndex, pIndex, qMbIndex, qIndex: u64
     if pCoded or qCoded do
         return 2
 
-    // Reference and motion comparison.
+    // The same references with close vectors on each list, or each list's reference found on
+    // the other list with close vectors, which in lanes is `q` with its two halves swapped.
     let p = deblockMotion(dec, pMbIndex, pIndex)
     let q = deblockMotion(dec, qMbIndex, qIndex)
-
-    let straight = p.refId[0] == q.refId[0] and p.refId[1] == q.refId[1]
-    let crossed  = p.refId[0] == q.refId[1] and p.refId[1] == q.refId[0]
-    if not straight and not crossed do
-        return 1
-
-    if straight and mvClose(&p, &q, false) do
+    if deblockMotionMatches(p, q) do
         return 0
-    if crossed and mvClose(&p, &q, true) do
-        return 0
-    return 1
-}
-
-// Reports whether every motion vector pair differs by less than one full sample.
-private func mvClose(p, q: const *DeblockMotion, crossed: bool)->bool
-{
-    let pL0x = cast(s32) p.mv[0, 0]
-    let pL0y = cast(s32) p.mv[0, 1]
-    let pL1x = cast(s32) p.mv[1, 0]
-    let pL1y = cast(s32) p.mv[1, 1]
-    var qL0x, qL0y, qL1x, qL1y: s32
-    if crossed
-    {
-        qL0x = cast(s32) q.mv[1, 0]
-        qL0y = cast(s32) q.mv[1, 1]
-        qL1x = cast(s32) q.mv[0, 0]
-        qL1y = cast(s32) q.mv[0, 1]
-    }
-    else
-    {
-        qL0x = cast(s32) q.mv[0, 0]
-        qL0y = cast(s32) q.mv[0, 1]
-        qL1x = cast(s32) q.mv[1, 0]
-        qL1y = cast(s32) q.mv[1, 1]
-    }
-
-    // All four differences must stay below one full sample; OR-ing `3 - abs` keeps the test
-    // branchless: any excursion sets the sign bit of the combined word.
-    return ((3 - absS32(pL0x - qL0x)) | (3 - absS32(pL0y - qL0y)) | (3 - absS32(pL1x - qL1x)) | (3 - absS32(pL1y - qL1y))) >= 0
+    let swapped = cast #bit(Simd.S16x8) Simd.permute(cast #bit(Simd.U64x2) q, cast(Simd.U64x2) [1'u64, 0])
+    return deblockMotionMatches(p, swapped) ? 0'u32 : 1'u32
 }
 
 // Filters every edge of one macroblock.

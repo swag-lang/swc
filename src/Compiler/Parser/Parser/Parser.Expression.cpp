@@ -591,15 +591,13 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
     while (true)
     {
         const TokenId opId = id();
-        if (!Token::isOpLogical(opId))
-            break;
-
-        if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
-            raiseError(DiagnosticId::parser_err_cstyle_logical_op, ref());
-
         const int precedence = getLogicalPrecedence(opId);
         if (precedence < minPrecedence)
+        {
+            if (opId == TokenId::SymAmpersandAmpersand || opId == TokenId::SymPipePipe)
+                raiseError(DiagnosticId::parser_err_cstyle_logical_op, ref());
             break;
+        }
 
         const TokenRef tokOp             = consume();
         const int      nextMinPrecedence = precedence + 1;
@@ -1054,9 +1052,6 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
     while (true)
     {
         const TokenId opId = id();
-        if (!Token::isOpRelational(opId))
-            break;
-
         const int precedence = getRelationalPrecedence(opId);
         if (precedence < minPrecedence)
             break;

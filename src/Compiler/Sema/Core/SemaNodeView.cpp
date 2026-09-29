@@ -126,17 +126,7 @@ void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart par
         return;
 
     if (queryNodeRef_.isValid() && queryNodeRef_ != nodeRef_)
-    {
-        if (sema.hasSymbolListRaw(queryNodeRef_))
-        {
-            assignSymbolList(sema.getSymbolListRaw(queryNodeRef_));
-        }
-        else if (sema.hasSymbolRaw(queryNodeRef_))
-        {
-            hasSymbol_ = true;
-            sym_       = &sema.symbolOfRaw(queryNodeRef_);
-        }
-    }
+        loadResolvedSymbols(sema, queryNodeRef_, SemaNodeViewResolveE::Stored);
 
     trySetTypeFromResolvedSymbol();
 }

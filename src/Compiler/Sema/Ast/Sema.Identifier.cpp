@@ -605,8 +605,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     }
 
     const AstNodeRef parentRef = sema.visit().parentNodeRef();
-    if (!sema.curViewSymbol().sym() &&
-        !sema.curViewSymbolList().hasSymbolList() &&
+    const SemaNodeView symbolView = sema.curViewSymbol();
+    if (!symbolView.sym() &&
+        !symbolView.hasSymbolList() &&
         codeRef().isValid() &&
         sema.token(codeRef()).id == TokenId::SymSingleQuote &&
         parentRef.isValid() &&
@@ -618,7 +619,6 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     if (codeRef().isValid() && sema.token(codeRef()).id == TokenId::SymDot)
     {
-        const SemaNodeView symbolView = sema.curViewSymbol();
         if (symbolView.sym() || symbolView.hasSymbolList())
             return Result::Continue;
     }
@@ -644,9 +644,10 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
                 structInit && structInit->nodeWhatRef == sema.curNodeRef())
                 return Result::Continue;
 
+            const SemaNodeView typedSymbolView = sema.curViewSymbol();
             if (parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
             {
-                if (sema.curViewSymbol().sym() || sema.curViewSymbolList().hasSymbolList())
+                if (typedSymbolView.sym() || typedSymbolView.hasSymbolList())
                     return Result::Continue;
             }
 
@@ -654,7 +655,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             // pre-seed its resolved type (for example in `#sizeof(T)`). Only skip lookup in
             // compiler intrinsics that accept a type-only operand; declaration identifiers
             // still need normal symbol binding even if their final type has already been set.
-            if (!sema.curViewSymbol().sym() && !sema.curViewSymbolList().hasSymbolList())
+            if (!typedSymbolView.sym() && !typedSymbolView.hasSymbolList())
             {
                 if (hasFlag(AstIdentifierFlagsE::GenericTypeBinding))
                     return Result::Continue;

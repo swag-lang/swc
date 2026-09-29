@@ -1227,8 +1227,7 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
         SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef, forcedIdentRef);
     else
     {
-        SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef, forcedIdentRef);
-        auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
+        auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef, forcedIdentRef);
         if (hasFlag(AstVarDeclFlagsE::Let))
             symVar.addExtraFlag(SymbolVariableFlagsE::Let);
         if (hasStorageFlag(AstVarStorageFlagsE::Late))
@@ -1342,9 +1341,8 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
         }
         else
         {
-            const Symbol& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
-            symbols.push_back(&sym);
-            auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
+            auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+            symbols.push_back(&symVar);
             if (hasFlag(AstVarDeclFlagsE::Let))
                 symVar.addExtraFlag(SymbolVariableFlagsE::Let);
             if (hasStorageFlag(AstVarStorageFlagsE::Late))

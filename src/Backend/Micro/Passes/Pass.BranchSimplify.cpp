@@ -385,11 +385,12 @@ namespace
                     break;
                 }
 
+                const MicroInstrOperand* ops = inst->ops(operands);
                 uint32_t labelId = 0;
-                if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, ops))
                     ++scan.labelReferences[labelId];
 
-                if (const MicroInstrOperand* ops = inst->ops(operands))
+                if (ops)
                 {
                     const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                     for (size_t i = 0; i < modes.size(); ++i)

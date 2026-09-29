@@ -313,7 +313,9 @@ void Lexer::pushToken()
 {
     token_.byteLength = static_cast<uint32_t>(buffer_ - startToken_);
 
-    const TokenId tokenId = token_.id;
+    const TokenId tokenId      = token_.id;
+    const bool    isTrivia     = Token::isTrivia(tokenId);
+    const bool    hasEolInside = token_.hasFlag(TokenFlagsE::EolInside);
 
     // Update previous token's flags before filtering
     // This must happen even for tokens that will be filtered out
@@ -322,7 +324,7 @@ void Lexer::pushToken()
         auto& back = srcView_->tokens().back();
         if (tokenId == TokenId::Whitespace)
             back.flags.add(TokenFlagsE::BlankAfter);
-        if (token_.hasFlag(TokenFlagsE::EolInside))
+        if (hasEolInside)
             back.flags.add(TokenFlagsE::EolAfter);
     }
 
@@ -334,16 +336,16 @@ void Lexer::pushToken()
 
     // Always update prevToken, even for filtered tokens
     prevToken_ = token_;
-    if (!Token::isTrivia(tokenId))
+    if (!isTrivia)
         prevCodeTokenId_ = tokenId;
-    else if (token_.hasFlag(TokenFlagsE::EolInside))
+    else if (hasEolInside)
         prevCodeTokenId_ = TokenId::Invalid;
 
     // '#raw' arms the next string literal. Trivia between the modifier and the literal is
     // transparent, so a comment or a blank does not disarm it.
     if (tokenId == TokenId::ModifierRaw)
         pendingRawStringLiteral_ = true;
-    else if (!Token::isTrivia(tokenId))
+    else if (!isTrivia)
         pendingRawStringLiteral_ = false;
 
     // Use switch for better branch prediction and consolidate similar checks
@@ -920,7 +922,7 @@ void Lexer::lexIdentifier()
     {
         // Is this a keyword?
         const uint32_t hash32 = Math::hash(name);
-        token_.id             = ctx_->global().langSpec().keyword(name, hash32);
+        token_.id             = langSpec_->keyword(name, hash32);
         if (token_.id == TokenId::Identifier)
         {
             if (name[0] == '#')

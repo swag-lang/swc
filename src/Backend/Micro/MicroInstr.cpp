@@ -30,9 +30,6 @@ namespace
 
     void collectRegUseDefFromModes(MicroInstrUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
     {
-        if (!ops)
-            return;
-
         for (size_t i = 0; i < modes.size(); ++i)
         {
             switch (modes[i])
@@ -116,8 +113,11 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
             useDef.addDef(reg);
     }
 
-    const auto modes = opcodeInfo.resolvedRegModes(ops);
-    collectRegUseDefFromModes(useDef, ops, modes);
+    if (ops)
+    {
+        const auto modes = opcodeInfo.resolvedRegModes(ops);
+        collectRegUseDefFromModes(useDef, ops, modes);
+    }
 
     if (encoder && opcodeInfo.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
         encoder->updateRegUseDef(*this, ops, useDef);

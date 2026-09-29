@@ -68,19 +68,24 @@ namespace
         if (!whatTypeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeInfo& whatType = codeGen.typeMgr().get(whatTypeRef);
-        if (whatType.isReference() || whatType.isAnyPointer())
-            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatType.payloadTypeRef());
+        const TypeInfo* currentType = &codeGen.typeMgr().get(whatTypeRef);
+        if (currentType->isReference() || currentType->isAnyPointer())
+        {
+            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType->payloadTypeRef());
+            if (hasExplicitCount && whatTypeRef.isValid())
+                currentType = &codeGen.typeMgr().get(whatTypeRef);
+        }
 
         if (!hasExplicitCount)
             return whatTypeRef;
 
         while (whatTypeRef.isValid())
         {
-            const TypeInfo& currentType = codeGen.typeMgr().get(whatTypeRef);
-            if (!currentType.isArray())
+            if (!currentType->isArray())
                 break;
-            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType.payloadArrayElemTypeRef());
+            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType->payloadArrayElemTypeRef());
+            if (whatTypeRef.isValid())
+                currentType = &codeGen.typeMgr().get(whatTypeRef);
         }
 
         return whatTypeRef;

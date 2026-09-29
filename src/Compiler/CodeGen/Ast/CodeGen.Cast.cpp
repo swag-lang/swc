@@ -597,7 +597,7 @@ namespace
             return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
         }
 
-        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
         builder.emitClearReg(dstReg, dstBits);
         builder.emitConvertIntToFloat(dstReg, convertReg, dstBits, convertBits);
         return dstReg;
@@ -1788,7 +1788,7 @@ namespace
             MicroReg srcReg = srcPayload.reg;
             if (srcPayload.isAddress())
             {
-                srcReg = codeGen.nextVirtualRegisterForType(enumSourceTypeRef);
+                srcReg = codeGen.nextVirtualRegisterForType(enumSourceTypeRef, enumSourceType);
                 builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
             }
 
@@ -1835,12 +1835,12 @@ namespace
             MicroReg srcReg = srcPayload.reg;
             if (srcPayload.isAddress())
             {
-                srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef);
+                srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef, resolvedSrcType);
                 builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
             }
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(resolvedDstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(resolvedDstTypeRef, resolvedDstType);
 
             const uint32_t srcWidth = getNumBits(srcOpBits);
             const uint32_t dstWidth = getNumBits(dstOpBits);
@@ -1920,7 +1920,7 @@ namespace
             MicroReg          scalarReg = srcPayload.reg;
             if (srcPayload.isAddress())
             {
-                scalarReg = codeGen.nextVirtualRegisterForType(resolvedDstType.payloadSimdLaneTypeRef());
+                scalarReg = codeGen.nextVirtualRegisterForType(resolvedDstType.payloadSimdLaneTypeRef(), laneType);
                 builder.emitLoadRegMem(scalarReg, srcPayload.reg, 0, laneBits);
             }
 
@@ -1957,7 +1957,7 @@ namespace
         MicroReg srcReg = srcPayload.reg;
         if (srcPayload.isAddress())
         {
-            srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef);
+            srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef, resolvedSrcType);
             builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
         }
 

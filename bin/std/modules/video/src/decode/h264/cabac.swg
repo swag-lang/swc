@@ -1127,8 +1127,11 @@ impl Slice
                 let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
                 let bx     = raster & 3
                 let by     = raster >> 2
-                let nzA    = .blockNz(mb, plane, bx - 1, by)
-                let nzB    = .blockNz(mb, plane, bx, by - 1)
+
+                // A neighbor inside this macroblock is its own count, already decoded in the
+                // block order; only the edge blocks ask about the neighboring macroblocks.
+                let nzA    = bx > 0 ? cast(s32) storage.nz[cast(u64) raster - 1] : .blockNz(mb, plane, bx - 1, by)
+                let nzB    = by > 0 ? cast(s32) storage.nz[cast(u64) raster - 4] : .blockNz(mb, plane, bx, by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
                     count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, scale)

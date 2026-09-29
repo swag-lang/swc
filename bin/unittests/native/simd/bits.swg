@@ -86,6 +86,22 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
     r32 = cast([4] u32) Swag.ror(quads, 4)
     Swag.assert(r32[1] == 0x1000_0000 and r32[2] == 0x8123_4567)
 
+    let words = cast(#simd [8] u16) Words
+    let pairs = cast(#simd [2] u64) Pairs
+    let rotatedWords = cast([8] u16) Swag.rol(words, 8)
+    let rotatedQuads = cast([4] u32) Swag.rol(quads, 16)
+    let rotatedPairs = cast([2] u64) Swag.ror(pairs, 16)
+    let halfPairs = cast([2] u64) Swag.rol(pairs, 32)
+    for i in 8 do
+        Swag.assert(rotatedWords[i] == Swag.rol(Words[i], 8))
+    for i in 4 do
+        Swag.assert(rotatedQuads[i] == Swag.rol(Quads[i], 16))
+    for i in 2
+    {
+        Swag.assert(rotatedPairs[i] == Swag.ror(Pairs[i], 16))
+        Swag.assert(halfPairs[i] == Swag.rol(Pairs[i], 32))
+    }
+
     // A live count reaches the register lowering instead.
     var live: u8 = 3
     let liveRol  = cast([16] u8) rolLive(bytes, live)

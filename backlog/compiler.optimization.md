@@ -18,6 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.101 — Small records are assembled in the frame and read back whole
 
 - Recorded: 2026-09-29 14:46
+- Updated: 2026-09-29 16:10 — The NeighborMotion record shrink was kept.
 - Area: compiler/backend, instruction combining (aggregate and vector literals)
 - Evidence (H.264 decoder, 2026-09-29, prompt 2): a value built field by field and then read as
   one register or one vector is stored lane by lane into a frame temporary and loaded whole, so

@@ -993,18 +993,25 @@ impl Slice
             }
         }
 
+        if mb.cbpLuma == 0 do
+            return
+
+        // One transform size and one quantizer serve the whole macroblock, so its row of
+        // dequantization factors is looked up once rather than for every block.
+        let use8x8 = mb.transform8x8 and mb.class != MbClassIntra16x16
+        let scale  = use8x8 ? .dequantRow8(mb, plane) : .dequantRow4(mb, plane)
         for quad in 4's32
         {
             if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
                 continue
-            if mb.transform8x8 and mb.class != MbClassIntra16x16
+            if use8x8
             {
                 // A 4:4:4 8x8 block codes a flag of its own, whose context reads the block left
                 // of and above the quadrant's first cell.
                 let first = (quad >> 1) * 8 + (quad & 1) * 2
                 let nzA   = .blockNz8x8(mb, plane, (first & 3) - 1, first >> 2)
                 let nzB   = .blockNz8x8(mb, plane, first & 3, (first >> 2) - 1)
-                let count = .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, nzA, nzB, .dequantRow8(mb, plane))
+                let count = .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, nzA, nzB, scale)
 
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
                 // named can still hold nothing.
@@ -1028,9 +1035,9 @@ impl Slice
                 let nzB    = .blockNz(mb, plane, bx, by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
-                    count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, .dequantRow4(mb, plane))
+                    count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, scale)
                 else do
-                    count = .residualCabac'(16, false)(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, .dequantRow4(mb, plane))
+                    count = .residualCabac'(16, false)(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, scale)
                 storage.nz[cast(u64) raster] = cast(u8) count
                 if isLuma do
                     mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0

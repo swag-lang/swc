@@ -110,6 +110,48 @@ namespace InstructionCombine
             return ops && ops[1].opBits == MicroOpBits::B128;
         }
 
+        // A store through an address the function formed from the slot's own
+        // base - `%a = &[base + k]`, then `[%a + d] = x` - writes at base
+        // offset `k + d`. A local's default is written that way: the front
+        // end takes the local's address, then clears through it.
+        bool resolveBaseAlias(const Context& ctx, const MicroReg reg, const MicroReg base, const MicroInstrRef atRef, const MicroInstrRef loadRef, uint64_t& outOffset)
+        {
+            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadAddrRegMem)
+                return false;
+            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+            if (!ops || ops[1].reg != base)
+                return false;
+            const MicroSsaState::ReachingDef baseAtDef  = ctx.ssa->reachingDef(base, def.instRef);
+            const MicroSsaState::ReachingDef baseAtLoad = ctx.ssa->reachingDef(base, loadRef);
+            if (!baseAtDef.valid() || !baseAtLoad.valid() || baseAtDef.valueId != baseAtLoad.valueId)
+                return false;
+            outOffset = ops[3].valueU64;
+            return true;
+        }
+
+        // Whether every use of the address `lea` defines is the base of one of
+        // the stores the rewrite removes, never the value one of them stores.
+        bool addressFeedsOnlyStores(const Context& ctx, const MicroInstrRef leaRef, const MicroReg dst, const SmallVector<MicroInstrRef, 16>& storeRefs)
+        {
+            uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+            if (!ctx.ssa->defValue(dst, leaRef, valueId))
+                return false;
+            const MicroSsaState::ValueInfo* info = ctx.ssa->valueInfo(valueId);
+            if (!info || info->uses.empty())
+                return false;
+            for (const MicroSsaState::UseSite& use : info->uses)
+            {
+                if (use.kind != MicroSsaState::UseSite::Kind::Instruction || std::ranges::find(storeRefs, use.instRef) == storeRefs.end())
+                    return false;
+                const MicroInstr*        store = ctx.storage->ptr(use.instRef);
+                const MicroInstrOperand* ops   = store ? store->ops(*ctx.operands) : nullptr;
+                if (!ops || ops[0].reg != dst || (store->op != MicroInstrOpcode::LoadMemImm && ops[1].reg == dst))
+                    return false;
+            }
+            return true;
+        }
+
         // Whether any instruction other than the load and its stores reads
         // the slot's bytes, or could: a read through the base at an
         // overlapping offset, an indexed read through the base at an unknown
@@ -166,19 +208,27 @@ namespace InstructionCombine
                 if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
                 {
                     // ops: [0] dst, [1] base, [2] opBits, [3] offset
+                    if (ops[1].reg == base && addressFeedsOnlyStores(ctx, ref, ops[0].reg, storeRefs))
+                        continue;
                     if (ops[1].reg != base || (ops[3].valueU64 < slotOffset + slotBytes && reachesSlot(ops[3].valueU64)))
                         return true;
                     continue;
                 }
 
                 // The base read anywhere but as the memory base - copied,
-                // compared, stored, added to - is its address escaping.
+                // compared, stored, added to - is the address of the frame's
+                // first local escaping.
                 const bool asMemBase = info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops[info.memBaseOperandIndex].reg == base;
                 uint32_t   baseReads = 0;
                 for (const MicroReg use : useDef->uses)
                     baseReads += use == base ? 1 : 0;
                 if (!asMemBase || baseReads > 1)
-                    return true;
+                {
+                    if (reachesSlot(0))
+                        return true;
+                    if (!asMemBase)
+                        continue;
+                }
                 if (isPureStore(inst.op))
                     continue;
                 if (rangesOverlap(ops[info.memOffsetOperandIndex].valueU64, accessBytes(inst, ops), slotOffset, slotBytes))
@@ -223,9 +273,12 @@ namespace InstructionCombine
                 // LoadMemImm:                [0] base, [1] opBits, [2] offset, [3] imm
                 const MicroReg    storeBase = ops[0].reg;
                 const MicroOpBits bits      = storeReg ? ops[2].opBits : ops[1].opBits;
-                const uint64_t    offset    = storeReg ? ops[3].valueU64 : ops[2].valueU64;
+                uint64_t          offset    = storeReg ? ops[3].valueU64 : ops[2].valueU64;
                 const uint32_t    bytes     = static_cast<uint32_t>(bits) / 8;
-                if (storeBase != base)
+                uint64_t          aliasAt   = 0;
+                if (storeBase != base && resolveBaseAlias(ctx, storeBase, base, ref, loadRef, aliasAt))
+                    offset += aliasAt;
+                else if (storeBase != base)
                 {
                     // Another frame object, or memory this store may alias:
                     // only a store into the frame elsewhere is harmless.
@@ -639,9 +692,12 @@ namespace InstructionCombine
                 // LoadMemImm: [0] base, [1] opBits, [2] offset, [3] imm
                 const MicroReg    storeBase = ops[0].reg;
                 const MicroOpBits bits      = storeReg ? ops[2].opBits : ops[1].opBits;
-                const uint64_t    offset    = storeReg ? ops[3].valueU64 : ops[2].valueU64;
+                uint64_t          offset    = storeReg ? ops[3].valueU64 : ops[2].valueU64;
                 const uint32_t    bytes     = static_cast<uint32_t>(bits) / 8;
-                if (storeBase != base)
+                uint64_t          aliasAt   = 0;
+                if (storeBase != base && resolveBaseAlias(ctx, storeBase, base, ref, loadRef, aliasAt))
+                    offset += aliasAt;
+                else if (storeBase != base)
                 {
                     if (!isFrameDerivedAddress(ctx, storeBase, ref))
                         return trailing;

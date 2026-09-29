@@ -15,23 +15,6 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.101 — A vector literal cleared through an address stays in the frame
-
-- Recorded: 2026-09-29 14:46
-- Updated: 2026-09-29 18:38 — Records and bounded literals now stay in registers; one literal shape remains.
-- Area: compiler/backend, instruction combining (vector literals)
-- Evidence: a word-sized record written field by field and a runtime-lane literal whose slot
-  lies past an escaped local are now built in registers. The vector-literal rule still skips a
-  lane store made through an address the function formed from the slot's own base
-  (`%a = &[base + k]`, then `[%a] = 0`), the way `bookkeepMb` first cleared its literal's local
-  before the decoder switched to a broadcast; the lanes that store covered are then unknown and
-  the literal stays in the frame. The lea itself also fails the escape check.
-- Next: resolve such a store to its base offset in the store walk, and let the `lea` pass the
-  escape check only when every use of it is the base of one of the removed stores.
-- Complete when: a runtime-lane literal whose local was cleared through such an address is built
-  in registers, with a C++ test beside the existing literal cases.
-- Related: compiler.optimization.099, std.video.001
-
 ### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
 
 - Recorded: 2026-09-24 10:33

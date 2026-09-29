@@ -63,9 +63,8 @@ namespace
         }
     }
 
-    // A flag-neutral connector around the test. Address calculations are
-    // duplicated with the compare so that the next iteration sees the new
-    // loop index before deciding whether to enter the body.
+    // A connector the allocator places around the test: a register move or
+    // frame traffic, flag-neutral, so the compare still feeds the jump.
     bool isDuplicableConnector(const MicroInstr& inst)
     {
         switch (inst.op)
@@ -73,12 +72,18 @@ namespace
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadMemReg:
-            case MicroInstrOpcode::LoadAddrRegMem:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
                 return true;
             default:
                 return false;
         }
+    }
+
+    // Address calculations in a header can be copied with its test: the
+    // next iteration sees the updated index before entering the body.
+    bool isDuplicableHeaderConnector(const MicroInstr& inst)
+    {
+        return isDuplicableConnector(inst) || inst.op == MicroInstrOpcode::LoadAddrRegMem ||
+               inst.op == MicroInstrOpcode::LoadAddrAmcRegMem;
     }
 
     // A header carrying more than this around its compare is not worth
@@ -714,7 +719,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
                     break;
                 haveTest = true;
             }
-            else if (!isDuplicableConnector(*testInst))
+            else if (!isDuplicableHeaderConnector(*testInst))
             {
                 break;
             }

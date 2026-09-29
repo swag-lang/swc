@@ -137,6 +137,21 @@ func lanesRotate24(values: *[8] u32)
     values[][7] = Swag.rol(values[][3], 24)
 }
 
+// The second store group builds a rotate subtree, then cannot pack its popcount.
+// Its abandoned rotate must not make the first group's mask look shared.
+#[Swag.Optimize(true)]
+func lanesRotate16WithRejectedGroup(values: *[16] u32)
+{
+    values[][4] = Swag.rol(values[][0], 16)
+    values[][5] = Swag.rol(values[][1], 16)
+    values[][6] = Swag.rol(values[][2], 16)
+    values[][7] = Swag.rol(values[][3], 16)
+    values[][8]  = Swag.rol(values[][12], 16) - Swag.bitCountNz(values[][12])
+    values[][9]  = Swag.rol(values[][13], 16) - Swag.bitCountNz(values[][13])
+    values[][10] = Swag.rol(values[][14], 16) - Swag.bitCountNz(values[][14])
+    values[][11] = Swag.rol(values[][15], 16) - Swag.bitCountNz(values[][15])
+}
+
 // An incomplete chunk: three adjacent stores never form a packed group and
 // must stay scalar.
 #[Swag.Optimize(true)]
@@ -198,6 +213,19 @@ func threeLanes(values: *[8] u32)
     lanesRotate24(&values)
     Swag.assert(values[4] == 0x67012345 and values[5] == 0xEF89ABCD)
     Swag.assert(values[6] == 0x40102030 and values[7] == 0xCCFFEEDD)
+}
+
+#test
+{
+    var values: [16] u32 = [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC,
+                            0, 0, 0, 0, 0, 0, 0, 0,
+                            0xAABBCCDD, 0x11223344, 0x55667788, 0x99AABBCC]
+    lanesRotate16WithRejectedGroup(&values)
+    for i in 4
+    {
+        Swag.assert(values[4 + i] == Swag.rol(values[i], 16))
+        Swag.assert(values[8 + i] == Swag.rol(values[12 + i], 16) - Swag.bitCountNz(values[12 + i]))
+    }
 }
 
 #[Swag.Optimize(true)]

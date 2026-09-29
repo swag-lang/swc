@@ -1830,10 +1830,43 @@ namespace
         }
 
         std::array<uint32_t, 4> rotateUseCounts{};
-        for (const PlanInstr& planInstr : plan.ops)
+        std::vector<uint8_t> livePlanRegs(plan.nextPlanReg);
+        for (const SeedGroup& group : vectorized)
+            livePlanRegs[group.planReg] = true;
+        // A failed seed can leave a partial tree in the plan. Count only the
+        // rotations feeding retained stores when choosing the mask strategy.
+        for (auto it = plan.ops.rbegin(); it != plan.ops.rend(); ++it)
         {
+            const PlanInstr& planInstr = *it;
+            if (!livePlanRegs[planInstr.dst])
+                continue;
             if (planInstr.kind == PlanInstr::Kind::RotateBytes)
                 rotateUseCounts[planInstr.imm / 8]++;
+            livePlanRegs[planInstr.dst] = false;
+            switch (planInstr.kind)
+            {
+                case PlanInstr::Kind::BinaryRegReg:
+                    livePlanRegs[planInstr.dst] = true;
+                    [[fallthrough]];
+                case PlanInstr::Kind::Copy:
+                case PlanInstr::Kind::RotateBytes:
+                case PlanInstr::Kind::BinaryRegRegImm:
+                case PlanInstr::Kind::VecUnary:
+                case PlanInstr::Kind::Shuffle:
+                    livePlanRegs[planInstr.src] = true;
+                    break;
+                case PlanInstr::Kind::BinaryRegImm:
+                    livePlanRegs[planInstr.dst] = true;
+                    break;
+                case PlanInstr::Kind::BinaryRegRegReg:
+                    livePlanRegs[planInstr.src]  = true;
+                    livePlanRegs[planInstr.src2] = true;
+                    break;
+                case PlanInstr::Kind::LoadVec:
+                case PlanInstr::Kind::StoreVec:
+                case PlanInstr::Kind::LoadSplat32:
+                    break;
+            }
         }
         std::array<MicroReg, 4> rotateMaskRegs;
         rotateMaskRegs.fill(MicroReg::invalid());

@@ -18,11 +18,11 @@ block, and the hot path keeps the register.
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 
 - Recorded: 2026-09-28 16:35
-- Updated: 2026-09-28 17:36 — Archived a rejected full campaign; retained the last clean baseline.
+- Updated: 2026-09-29 07:16 — Recorded the next accepted full campaign and its revised runtime winners.
 - Area: compiler/backend, post-allocation loop layout
 - Audit: `placeShortLoopStep` searched only 80 Micro instructions ahead for the step label. That distance did not participate in the branch or register proof; it excluded otherwise identical loops with a longer cold arm. A label-to-ordinal map now resolves the target in constant expected time and allows the same structural rewrite at any distance. The test covers a 96-instruction cold arm, the original short arm, and a non-unit step that must remain unchanged.
 - Evidence: the long-arm case removes one executed unconditional jump from its advancing path without adding an instruction there. All seven benchmark tasks retain their selected function counts and checksums, so this batch has no claimed benchmark gain. C++ (1,156), native Release (3,483), and JIT Release (1,500) pass.
-- Milestone: the full campaign `20260928-153255` was archived under `bench/results/rejected/`: every task and runtime passed its checksum, but the reference workload moved 101.8% between neighbouring probes (40% limit). Its build-control spread was 10.7%. No runtime conclusion comes from this run; `20260928-105618` remains the latest accepted full campaign.
+- Milestone: the full campaign `20260928-153255` was archived under `bench/results/rejected/`: every task and runtime passed its checksum, but the reference workload moved 101.8% between neighbouring probes (40% limit). Its build-control spread was 10.7%. No runtime conclusion comes from that run. The later `20260928-170009` campaign passed every checksum with 10.48% reference spread and 2.7% build-control spread. It is the latest accepted full campaign; its per-task winners are in `repo.prompts.md`.
 - Follow-up: a partial execution-only sweep of wordfreq and raytrace passed every runtime checksum and had 24.1% worst reference departure, but individual runtime samples varied by more than 900% in several cases. The partial sweep recorded nothing and cannot establish a runtime change.
 - Next: at the next full campaign milestone, inspect any larger ordinary loop newly reached by this layout rule and check its hot and cold branch balance before closing this lead.
 

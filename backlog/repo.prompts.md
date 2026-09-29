@@ -424,17 +424,17 @@ The runtime ratios are secondary campaign milestones:
 Meeting the runtime milestones does not end the campaign while inspectable hot-loop gaps remain.
 Compile time is secondary to generated-code quality here; see RULES.
 
-Where it stands, clean campaign 20260926-071537 (run ms, lower is better):
+Where it stands, accepted campaign 20260928-170009 (run ms, lower is better):
 
   task      swag    fastest other runtime     other ms   ratio
-  chacha    23.626  C++ / clang-cl             20.654    1.144x
-  csvagg    16.842  Odin                       15.170    1.110x
-  dijkstra  28.934  C++ / MSVC                 26.913    1.075x
-  leven     11.617  Odin                       11.811    0.984x
-  raytrace  11.262  Odin                        9.292    1.212x
-  sha256    32.087  D / LDC                    35.285    0.909x
-  wordfreq  50.270  D / LDC                    43.861    1.146x
-  geometric mean                                     1.078x
+  chacha    22.975  C++ / clang-cl             21.233    1.082x
+  csvagg    15.984  Odin                       15.473    1.033x
+  dijkstra  26.377  C++ / MSVC                 26.093    1.011x
+  leven     11.141  Odin                       11.992    0.929x
+  raytrace  10.119  C++ / MSVC                  9.242    1.095x
+  sha256    31.807  Zig                        35.411    0.898x
+  wordfreq  44.841  D / LDC                    46.072    0.973x
+  geometric mean                                     1.001x
 
 That table is one campaign on one machine, so use it to identify the current comparison languages
 and an initial order, not to rank individual edits. Its runtime milestones are met, but the

@@ -277,14 +277,17 @@ namespace
 
     TypeRef resolveArithmeticOperandPhysicalTypeRef(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef sourceTypeRef)
     {
+        const TypeRef originalSourceTypeRef = sourceTypeRef;
         sourceTypeRef = codeGen.typeMgr().get(sourceTypeRef).unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
-        if (!operandPayload.isValue() || !operandPayload.typeRef.isValid())
+        if (!operandPayload.isValue() || !operandPayload.typeRef.isValid() || operandPayload.typeRef == originalSourceTypeRef)
             return sourceTypeRef;
 
         TypeRef payloadTypeRef = codeGen.typeMgr().get(operandPayload.typeRef).unwrapAliasEnum(codeGen.ctx(), operandPayload.typeRef);
         if (!payloadTypeRef.isValid())
             payloadTypeRef = operandPayload.typeRef;
         if (!payloadTypeRef.isValid())
+            return sourceTypeRef;
+        if (payloadTypeRef == sourceTypeRef)
             return sourceTypeRef;
 
         const TypeInfo& sourceType  = codeGen.typeMgr().get(sourceTypeRef);

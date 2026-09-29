@@ -773,17 +773,24 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         uint64_t         defMask = 0;
         for (const MicroReg reg : useDef.uses)
             useMask |= maskOf(reg);
-        for (const MicroReg reg : useDef.defs)
-            defMask |= maskOf(reg);
-        scratch.useMasks[i] = useMask;
-        scratch.defMasks[i] = defMask;
         if (recordDeadDefs)
         {
             bool hasUnknownDef = false;
             for (const MicroReg reg : useDef.defs)
-                hasUnknownDef |= maskOf(reg) == 0;
+            {
+                const uint64_t bit = maskOf(reg);
+                defMask |= bit;
+                hasUnknownDef |= bit == 0;
+            }
             out.deadDefs[i] = !useDef.defs.empty() && !hasUnknownDef;
         }
+        else
+        {
+            for (const MicroReg reg : useDef.defs)
+                defMask |= maskOf(reg);
+        }
+        scratch.useMasks[i] = useMask;
+        scratch.defMasks[i] = defMask;
         if (retainUseDefs)
             out.useDefs[i] = std::move(useDef);
     }

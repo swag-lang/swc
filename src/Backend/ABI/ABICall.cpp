@@ -517,10 +517,9 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     if (args.empty())
         return preparedCall;
 
-    const uint32_t stackAdjust = computeCallStackAdjust(callConvKind, argLayouts);
-
     if (argMasks.hasStackArgs || argMasks.hasRegisterHomeSlot)
     {
+        const uint32_t stackAdjust = computeCallStackAdjust(callConvKind, argLayouts);
         MicroReg   regBase, regTmp;
         const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
         SWC_INTERNAL_CHECK(hasScratchRegs);

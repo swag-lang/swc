@@ -135,17 +135,15 @@ struct Mb
     codedBlocks: [16] u8     // Any coefficient in the block, for deblocking.
 }
 
-// One neighbor's motion state.
+// One neighbor's motion state, as the motion vector prediction reads it. The differences and
+// the direct flag the CABAC contexts need are read by `neighborMvd` and `refCtxFlag`.
 struct NeighborMotion
 {
     available: bool
     intra:     bool
-    isDirect:  bool
     refIdx:    s8
     mvX:       s16
     mvY:       s16
-    mvdX:      s16
-    mvdY:      s16
 }
 
 // One macroblock next to the one being parsed: whether this slice decoded it, its summary, and
@@ -300,27 +298,11 @@ impl Slice
             index = other.blockBase + cast(u64) ((ry & 3) * gw + (rx & 3))
         }
 
+        let motion = list == 0 ? &dec.motionL0[index] : &dec.motionL1[index]
         result.available = true
-        if list == 0
-        {
-            let motion = &dec.motionL0[index]
-            result.refIdx = motion.refIdx
-            result.mvX    = motion.mvX
-            result.mvY    = motion.mvY
-            result.mvdX   = dec.mvdL0[index * 2]
-            result.mvdY   = dec.mvdL0[index * 2 + 1]
-        }
-        else
-        {
-            let motion = &dec.motionL1[index]
-            result.refIdx = motion.refIdx
-            result.mvX    = motion.mvX
-            result.mvY    = motion.mvY
-            result.mvdX   = dec.mvdL1[index * 2]
-            result.mvdY   = dec.mvdL1[index * 2 + 1]
-        }
-
-        result.isDirect = dec.directFlags[index] != 0
+        result.refIdx    = motion.refIdx
+        result.mvX       = motion.mvX
+        result.mvY       = motion.mvY
         return result
     }
 

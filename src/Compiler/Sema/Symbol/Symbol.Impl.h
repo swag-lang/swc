@@ -62,7 +62,7 @@ public:
 
 private:
     std::vector<SymbolFunction*>  specOps_;
-    mutable std::mutex            interfaceMethodTableMutex_;
+    mutable std::shared_mutex     interfaceMethodTableMutex_;
     mutable ConstantRef           interfaceMethodTableRef_          = ConstantRef::invalid();
     mutable std::atomic<uint32_t> interfaceMethodTablePublishedRef_ = ConstantRef::invalid().get();
 

@@ -1886,13 +1886,17 @@ impl Slice
         }
         else
         {
-            let cw = dec.sps.mbWidth * 2
-            for block in 4's32
-            {
-                let index = cast(u64) ((mb.mbY * 2 + (block >> 1)) * cw + mb.mbX * 2 + (block & 1))
-                dec.nonZeroCb[index] = mb.nzCb[cast(u64) block]
-                dec.nonZeroCr[index] = mb.nzCr[cast(u64) block]
-            }
+            // Two chroma blocks of a row are adjacent in both grids: one 16-bit word each.
+            let cw        = cast(u64) (dec.sps.mbWidth * 2)
+            let index     = cast(u64) (mb.mbY * 2) * cw + cast(u64) (mb.mbX * 2)
+            let countsCb  = cast([*] u16) &mb.nzCb[0]
+            let countsCr  = cast([*] u16) &mb.nzCr[0]
+            let targetCb  = dec.nonZeroCb.storage()
+            let targetCr  = dec.nonZeroCr.storage()
+            (cast([*] u16) (targetCb + index))[0]      = countsCb[0]
+            (cast([*] u16) (targetCb + index + cw))[0] = countsCb[1]
+            (cast([*] u16) (targetCr + index))[0]      = countsCr[0]
+            (cast([*] u16) (targetCr + index + cw))[0] = countsCr[1]
         }
 
         dec.dcFlags[mbIdx * 3]     = mb.dcFlags[0]
@@ -1973,29 +1977,45 @@ impl Slice
             return
         }
 
-        for block in 16's32
+        // Row by row from the first block of each grid row, the arrays read and written through
+        // local pointers; a block's vector goes out as one word.
+        let motions0 = dec.motionL0.storage()
+        let motions1 = dec.motionL1.storage()
+        let colRef   = frame.colRef.storage()
+        let colMv    = cast([*] u32) frame.colMv.storage()
+        let colPoc   = frame.colPoc.storage()
+        let colShort = frame.colShort.storage()
+        var rowIndex = cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
+        for 4
         {
-            let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
-            let motion0 = &dec.motionL0[index]
-            let ref0    = motion0.refIdx
-            if ref0 >= 0
+            for column in 4'u64
             {
-                frame.colRef[index]        = ref0
-                frame.colMv[index * 2]     = motion0.mvX
-                frame.colMv[index * 2 + 1] = motion0.mvY
-                frame.colPoc[index]        = .refs[0, ref0].poc
-                frame.colShort[index]      = .refs[0, ref0].isLong ? 0 : 1
+                let index = rowIndex + column
+                var list  = 0'u64
+                var entry = &motions0[index]
+                if entry.refIdx < 0
+                {
+                    list  = 1
+                    entry = &motions1[index]
+                }
+
+                let ref = entry.refIdx
+                colRef[index] = ref
+                colMv[index]  = cast(u32) cast #bit (u16) entry.mvX | (cast(u32) cast #bit (u16) entry.mvY << 16)
+                if ref >= 0
+                {
+                    let picture = &.refs[list, cast(u64) ref]
+                    colPoc[index]   = picture.poc
+                    colShort[index] = picture.isLong ? 0 : 1
+                }
+                else
+                {
+                    colPoc[index]   = 0
+                    colShort[index] = 0
+                }
             }
-            else
-            {
-                let motion1 = &dec.motionL1[index]
-                let ref1    = motion1.refIdx
-                frame.colRef[index]        = ref1
-                frame.colMv[index * 2]     = motion1.mvX
-                frame.colMv[index * 2 + 1] = motion1.mvY
-                frame.colPoc[index]        = ref1 >= 0 ? .refs[1, ref1].poc : 0
-                frame.colShort[index]      = ref1 >= 0 and not .refs[1, ref1].isLong ? 1 : 0
-            }
+
+            rowIndex += cast(u64) gw
         }
     }
 

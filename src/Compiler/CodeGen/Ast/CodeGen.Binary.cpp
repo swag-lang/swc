@@ -323,7 +323,7 @@ namespace
             if (srcBits == dstBits)
                 return;
 
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             if (getNumBits(srcBits) > getNumBits(dstBits))
             {
                 builder.emitLoadRegReg(dstReg, outReg, dstBits);
@@ -341,7 +341,7 @@ namespace
 
         if (srcType.isNumericIntLike() && dstType.isFloat())
         {
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstReg, outReg, srcBits, dstBits, srcType.isBoolOrIntLikeUnsigned());
             outReg = dstReg;
             return;
@@ -352,7 +352,7 @@ namespace
             if (srcBits == dstBits)
                 return;
 
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             builder.emitClearReg(dstReg, dstBits);
             builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
             outReg = dstReg;
@@ -361,7 +361,7 @@ namespace
 
         if (srcType.isFloat() && dstType.isNumericIntLike())
         {
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             CodeGenMemoryHelpers::emitConvertFloatToInt(codeGen, dstReg, outReg, srcType, dstType);
             outReg = dstReg;
             return;

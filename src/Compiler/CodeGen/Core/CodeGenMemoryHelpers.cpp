@@ -794,7 +794,7 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
 
     if (srcIntLikeType && dstFloatType)
     {
-        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
+        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef, dstType);
         emitConvertIntToFloat(codeGen, dstReg, srcReg, srcOpBits, dstOpBits, !srcType.isIntSigned());
         return dstReg;
     }
@@ -804,7 +804,7 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
         if (srcOpBits == dstOpBits)
             return srcReg;
 
-        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
+        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef, dstType);
         builder.emitClearReg(dstReg, dstOpBits);
         builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
         return dstReg;
@@ -819,7 +819,7 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
             return dstReg;
         }
 
-        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
+        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef, dstType);
         emitConvertFloatToInt(codeGen, dstReg, srcReg, srcType, dstType);
         return dstReg;
     }

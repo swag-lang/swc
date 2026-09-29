@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget
 
 - Recorded: 2026-09-24 11:53
-- Updated: 2026-09-29 11:56 — Identified a collision-loop exit trampoline outside the current rotation shape.
+- Updated: 2026-09-29 13:49 — Rotated a collision loop through its direct exit trampoline.
 - Area: compiler/backend, post-RA loop rotation
 - Evidence: `PostRALoopRotate` duplicates a flag-only test and the allocator's flag-neutral
   connectors at the back edge, replacing one unconditional jump per iteration. The unrelated
@@ -47,19 +47,24 @@ block, and the hot path keeps the register.
   command subsequently completed all twelve modules in both DevMode and Release with six workers;
   the exception was not reproduced. The driver left `history.json` and the latest accepted
   campaign (`20260928-170009`) unchanged. Do not infer a runtime ranking from this sweep.
-- Remaining static case: csvagg's first inlined collision loop has a single unconditional jump
-  back to a one-instruction indexed-byte compare. The compare branches to the common exit;
-  immediately after the back edge, an adjacent label and unconditional jump also reach that
-  exit. The current rotation requires the exit label itself after the back edge, so it leaves
-  this loop unchanged. A copied compare followed by a conditional back edge could fall through
-  to the existing exit jump, removing one executed unconditional jump per collision step.
-  This is a code-shape hypothesis only: the exit trampoline and any other incoming edges need
-  explicit proof before rewriting, and Odin's winning collision path still needs comparison.
+- Exit-trampoline batch: a copied test can now fall through adjacent labels to an unconditional
+  jump to the same exit, provided no instruction executes between the back edge and that jump.
+  The first inlined csvagg probe changes from 1,001 to 1,003 static Micro instructions. A
+  collision that fails its key-length comparison now executes six instructions, two branches,
+  and three memory operations until the next key-length comparison, down from seven, three,
+  and three. The newly accepted `20260929-105508` campaign names Zig as csvagg's fastest other
+  runtime; its comparable path uses seven instructions, two branches, and three memory operations.
+  Zig encodes the mask as an immediate but reloads the key-length pointer after testing the used
+  slot; Swag keeps that pointer but reads the mask from memory. That mask lead belongs to .083.
+  The C++ regression rejects a different trampoline target and an intervening instruction. All 1,172
+  C++ tests, 3,488 native Release tests, 1,502 JIT Release tests, and seven task checksums pass.
+  This is static code evidence; no timing sample was taken for the batch.
 - Next: compare code size and executed jumps for unrelated loops with short and long connector
-  runs, including the csvagg exit trampoline; then derive a header budget from code growth and
-  work saved instead of the fixed cutoff.
+  runs, including other direct exit trampolines; then derive a header budget from code growth
+  and work saved instead of the fixed cutoff.
 - Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests
   around the chosen boundary.
+- Related: compiler.optimization.083
 
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 

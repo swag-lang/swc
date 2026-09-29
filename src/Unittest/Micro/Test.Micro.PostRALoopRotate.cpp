@@ -151,6 +151,47 @@ SWC_TEST_BEGIN(PostRALoopRotate_RotatesAcrossAdjacentExitLabelsOnly)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopRotate_RotatesThroughExitTrampoline)
+{
+    constexpr MicroReg counter = MicroReg::intReg(10);
+    constexpr MicroReg value   = MicroReg::intReg(11);
+    for (const uint32_t kind : {0u, 1u, 2u})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef top   = builder.createLabel();
+        const MicroLabelRef alias = builder.createLabel();
+        const MicroLabelRef other = builder.createLabel();
+        const MicroLabelRef done  = builder.createLabel();
+        builder.placeLabel(top);
+        builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        const MicroInstrRef backRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(alias);
+        if (kind == 2)
+            builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, kind == 1 ? other : done);
+        builder.placeLabel(other);
+        builder.emitLoadRegImm(value, ApInt(8, 64), MicroOpBits::B64);
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        const MicroInstr* back = builder.instructions().ptr(backRef);
+        if (!back || back->op != MicroInstrOpcode::JumpCond)
+            return Result::Error;
+        const auto* ops = back->ops(builder.operands());
+        const bool  rotates = kind == 0;
+        if (ops[0].cpuCond != (rotates ? MicroCond::Less : MicroCond::Unconditional) ||
+            (ops[2].valueU64 == top.get()) == rotates ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != (rotates ? 2 : 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRALoopRotate_RotatesLatchConnectors)
 {
     constexpr MicroReg counter = MicroReg::intReg(10);

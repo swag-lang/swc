@@ -751,9 +751,9 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         if (backOps[0].cpuCond != MicroCond::Unconditional)
             continue;
 
-        // Falling out of the rotated back edge must land where the header test
-        // used to send control. Adjacent labels name the same instruction, so
-        // the exit label may follow other labels without changing that path.
+        // Falling out of the rotated back edge must reach the same exit as the
+        // header test. Adjacent labels may name that exit, or an unconditional
+        // jump may forward to it without doing any work on the fallthrough.
         if (backOrdinal + 1 >= order.size())
             continue;
         bool exitsAfterBack = false;
@@ -761,10 +761,20 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         {
             const MicroInstr* afterInst = storage.ptr(order[after]);
             uint32_t          afterId   = 0;
-            if (!afterInst || !tryGetLabelId(afterId, *afterInst, afterInst->ops(operands)))
+            if (!afterInst)
                 break;
-            if (afterId == exitLabelId)
+            const MicroInstrOperand* afterOps = afterInst->ops(operands);
+            if (tryGetLabelId(afterId, *afterInst, afterOps))
+            {
+                if (afterId == exitLabelId)
+                    exitsAfterBack = true;
+                continue;
+            }
+            if (!exitsAfterBack && afterInst->op == MicroInstrOpcode::JumpCond && afterOps &&
+                afterOps[0].cpuCond == MicroCond::Unconditional &&
+                tryGetJumpTargetLabelId(afterId, *afterInst, afterOps) && afterId == exitLabelId)
                 exitsAfterBack = true;
+            break;
         }
         if (!exitsAfterBack)
             continue;

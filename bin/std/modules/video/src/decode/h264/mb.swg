@@ -899,7 +899,7 @@ impl Slice
                     if .mbAddr >= mbCount do
                         fail InvalidFormatError{"H.264 skip run passes the end of the picture"}
                     .resolveNeighbors()
-                    try .decodeSkipMb(&dec.parsedMbs[.mbAddr])
+                    try .decodeSkipMb(dec.inlineRecon ? &.scratchMb : &dec.parsedMbs[.mbAddr])
                     skipRun -= 1
                 }
 
@@ -910,7 +910,7 @@ impl Slice
             }
 
             .resolveNeighbors()
-            let mb = &dec.parsedMbs[.mbAddr]
+            let mb = dec.inlineRecon ? &.scratchMb : &dec.parsedMbs[.mbAddr]
             if inter and .isCabac and .decodeSkipFlagCabac()
             {
                 try .decodeSkipMb(mb)

@@ -1281,28 +1281,32 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
     if (childRef == nodeTypeRef)
     {
         const bool isRetVal = isRetValTypeNode(sema, nodeTypeRef);
+        SymbolVariable* retValSym = nullptr;
         if (isRetVal)
-            sema.curViewSymbol().sym()->cast<SymbolVariable>().addExtraFlag(SymbolVariableFlagsE::RetVal);
+        {
+            retValSym = &sema.curViewSymbol().sym()->cast<SymbolVariable>();
+            retValSym->addExtraFlag(SymbolVariableFlagsE::RetVal);
+        }
 
         if (nodeInitRef.isValid())
         {
             const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
             SemaFrame          frame        = sema.frame();
-            frame.pushBindingType(nodeTypeView.typeRef());
+            const TypeRef    initTypeRef = nodeTypeView.typeRef();
+            frame.pushBindingType(initTypeRef);
+            const TypeInfo* initType = initTypeRef.isValid() ? &sema.typeMgr().get(initTypeRef) : nullptr;
             const bool bindArrayRuntimeStorage =
                 !hasFlag(AstVarDeclFlagsE::Const) &&
                 sema.curScope().isLocal() &&
-                nodeTypeView.typeRef().isValid() &&
-                sema.typeMgr().get(nodeTypeView.typeRef()).isArray();
-            const bool bindClosureRuntimeStorage = nodeTypeView.typeRef().isValid() && sema.typeMgr().get(nodeTypeView.typeRef()).isLambdaClosure();
+                initType && initType->isArray();
+            const bool bindClosureRuntimeStorage = initType && initType->isLambdaClosure();
             bool       bindRetValRuntimeStorage  = false;
             if (isRetVal)
             {
-                const auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
                 SWC_RESULT(SemaHelpers::currentFunctionUsesIndirectReturnStorage(bindRetValRuntimeStorage, sema));
                 // An earlier 'retval' local already named the slot, so this initializer must not
                 // be evaluated into it: it could read what it is overwriting.
-                if (bindRetValRuntimeStorage && sema.isCurrentFunction() && SemaHelpers::functionExposesReturnSlot(*sema.currentFunction(), &symVar))
+                if (bindRetValRuntimeStorage && sema.isCurrentFunction() && SemaHelpers::functionExposesReturnSlot(*sema.currentFunction(), retValSym))
                     bindRetValRuntimeStorage = false;
             }
             if (bindArrayRuntimeStorage ||

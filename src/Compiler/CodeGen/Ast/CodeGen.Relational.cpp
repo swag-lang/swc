@@ -44,17 +44,18 @@ namespace
         return idRef.isValid() ? codeGen.compiler().runtimeFunctionSymbol(idRef) : nullptr;
     }
 
-    bool shouldReadScalarReference(CodeGen& codeGen, TypeRef typeRef)
+    TypeRef compareOperandTypeRef(CodeGen& codeGen, TypeRef typeRef)
     {
         const TypeRef normalizedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         if (!normalizedTypeRef.isValid())
-            return false;
+            return normalizedTypeRef;
 
         const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
         if (!normalizedType.isReference())
-            return false;
+            return normalizedTypeRef;
 
-        return codeGen.typeMgr().get(normalizedType.payloadTypeRef()).isScalarNumeric();
+        const TypeRef referencedTypeRef = normalizedType.payloadTypeRef();
+        return codeGen.typeMgr().get(referencedTypeRef).isScalarNumeric() ? referencedTypeRef : normalizedTypeRef;
     }
 
     void normalizeScalarReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
@@ -112,15 +113,8 @@ namespace
 
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
-        if (shouldReadScalarReference(codeGen, leftTypeRef))
-            leftTypeRef = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftTypeRef)).payloadTypeRef();
-        else
-            leftTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftTypeRef);
-
-        if (shouldReadScalarReference(codeGen, rightTypeRef))
-            rightTypeRef = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), rightTypeRef)).payloadTypeRef();
-        else
-            rightTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), rightTypeRef);
+        leftTypeRef  = compareOperandTypeRef(codeGen, leftTypeRef);
+        rightTypeRef = compareOperandTypeRef(codeGen, rightTypeRef);
 
         const TypeInfo& leftType  = codeGen.typeMgr().get(leftTypeRef);
         const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);

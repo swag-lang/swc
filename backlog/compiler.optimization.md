@@ -15,10 +15,35 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.101 — Retain one floating zero across unrolled arms
+
+- Recorded: 2026-09-29 15:48
+- Area: compiler/backend, value numbering and register allocation
+- Evidence: the accepted raytrace winner is C++/MSVC. Its unrolled four-sphere `intersect` clears
+  XMM5 once and compares each discriminant against that retained zero. Swag's corresponding
+  205-instruction function clears XMM9 immediately before each of the four comparisons, adding
+  three executed zeroing instructions to this path. Both implementations fully unroll the sphere
+  loop, so loop rotation is not the missing mechanism.
+- A scratch source copy named the zero explicitly before the loop; Release `intersect` remained
+  205 instructions with four clears. A scratch value-numbering trial admitted `ClearReg` on virtual
+  floating registers to share dominating definitions, with a C++ dominance test. It also left
+  `intersect` at 205 instructions with four clears, and left `trace` and `main` at 172 and 136.
+  The trial was reverted because it made no generated-code improvement; no runtime timing was
+  taken. The full unroller renames private temporaries only when its body has no internal labels;
+  `intersect` has conditional branches and `continue`, so the copies reuse the original virtual
+  zero register. Value numbering requires the earlier result still held in its register, which
+  each copy has overwritten before the next clear.
+- Next: inspect a control-flow-aware way to split a private zero definition across cloned arms. A candidate should
+  retain a single zero only where that saves executed clears without adding copies, spills, or
+  saved registers. Compare an unrelated unrolled floating loop and a case with intervening calls
+  before changing general value numbering or allocation.
+- Complete when the repeated clears disappear with no new spill traffic in `intersect`, an
+  unrelated case improves under the same rule, and native/JIT behavior remains correct.
+
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
 - Recorded: 2026-09-26 12:46
-- Updated: 2026-09-29 15:08 — Reject mask retention on csvagg's never-taken collision path.
+- Updated: 2026-09-29 15:37 — Inspect csvagg's executed hash and digit loops.
 - Area: compiler/backend, LICM and register allocation
 - Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
 - Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
@@ -43,8 +68,17 @@ block, and the hot path keeps the register.
   csvagg checksum remained 24828641 and the six other task checksums passed. The refinement
   was rejected on this executed-path evidence without a timing sample; no compiler rule was
   retained from the trial.
+- The Release hash loop already reads four key bytes per iteration through the partial indexed-read
+  unroller. Manually grouping four reads in a scratch source copy preserves checksum 24828641 but
+  grows `main` from 1,003 to 1,007 Micro instructions, adding four address calculations before
+  the grouped loop. This does not close a hot-path gap. The quantity and integer-price scans
+  already reuse the delimiter-tested byte in the digit calculation. Their dynamic starting index,
+  delimiter branch, and accumulator updates do not fit the current indexed-read unroller's
+  zero-based, branch-free body; Zig's extra four-byte grouping applies to the two-digit fractional
+  scan and needs its own setup and scalar tail. No compiler edit was retained from these probes.
 - Next: compare wordfreq's complete probe paths and measure its retained mask at a clean paired
-  campaign milestone. For csvagg, inspect the hash and matching-key paths that actually run.
+  campaign milestone. For csvagg, compare the successful `memcmp` and occupied-slot update with
+  Zig's executed path; focus on register and frame traffic rather than its absent collisions.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget

@@ -130,14 +130,18 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   reuses its chroma QP. Four flat DC-only chroma blocks, and each flat 8x8 quarter of an intra
   16x16 macroblock, add their DCs in one 8x8 pass (99 instructions against four calls of 38).
   A single-list, unweighted chroma prediction serves both planes in one pass, the whole-sample
-  8x8 case, a still region's skip, copying both planes in one loop. All byte-exact against PyAV.
+  8x8 case, a still region's skip, copying both planes in one loop; `reconstructMb` no longer
+  calls the residual adders for a macroblock whose coded pattern is empty. All byte-exact against
+  PyAV. Together, against the morning's merge (2a449a021) and pinned to the performance cores,
+  sixteen paired rounds read a median ratio of 0.90 (best runs 83.9 against 72.5 million lane
+  cycles per picture) on a machine still shared with other builds.
 - Next: the decode lane's remaining pixel costs are memory-bound: `copyPlane` (about 5 per
   cent of samples) and the chroma interpolation read reference rows that FFmpeg prefetches a
   macroblock ahead (`prefetch_motion`), and the language has no prefetch intrinsic; adding one
   is a surface change (reference, VSCode extension). Timing A/Bs on the shared machine were
-  unusable this afternoon (paired ratios from 0.8 to 6.8 between identical rounds), so the
-  afternoon batches rest on instruction and memory-operation counts; re-measure them pinned on
-  a quiet machine.
+  unusable for single batches this afternoon (paired ratios from 0.5 to 6.8 between rounds), so
+  each batch rests on instruction and memory-operation counts; re-measure them pinned on a
+  quiet machine.
 - Complete when: the H.264 pixel layer reaches FFmpeg's SSE2 figure on the same fixture with
   unchanged decoded planes.
 - Related: std.video.001, cpu.simd.023, cpu.simd.024

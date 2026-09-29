@@ -184,7 +184,15 @@ impl Slice
             ctx += 1
         if .header.type == SliceTypeB do
             ctx += 13
-        return .decision(11 + ctx) != 0
+
+        // Once per macroblock of an inter slice: decoded here rather than through a call.
+        var range = .cabac.range
+        var low   = .cabac.low
+        var binState: s64
+        .binDecision(11 + ctx)
+        .cabac.range = range
+        .cabac.low   = low
+        return (binState & 1) != 0
     }
 
     // Parses one full macroblock with CABAC entropy coding.

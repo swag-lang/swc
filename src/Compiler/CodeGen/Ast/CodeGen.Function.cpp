@@ -313,12 +313,7 @@ namespace
         const ABITypeNormalize::NormalizedType normalizedRet        = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
         const bool                             hasIndirectReturnArg = normalizedRet.isIndirect;
         const bool                             hasClosureContextArg = symbolFunc.isClosure();
-        for (size_t i = 0; i < params.size(); ++i)
-        {
-            const SymbolVariable* symVar = params[i];
-            SWC_ASSERT(symVar != nullptr);
-            outParamInfos[i] = CodeGenFunctionHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar, hasIndirectReturnArg, hasClosureContextArg);
-        }
+        CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc, hasIndirectReturnArg, hasClosureContextArg);
     }
 
     void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)

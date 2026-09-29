@@ -143,7 +143,9 @@ impl Slice
                 return
         }
 
-        if mb.class != MbClassIntra4x4 and mb.class != MbClassIntra8x8
+        // Without a coded luma block there is no residual to add, except the DC levels an intra
+        // 16x16 macroblock always carries; the chroma planes have their own pattern.
+        if (mb.class == MbClassInter and mb.cbpLuma != 0) or mb.class == MbClassIntra16x16
         {
             for plane in planes do
                 .addPlaneResidual(mb, frame, plane, plane == 0 ? mb.qp : (plane == 1 ? qpCb : qpCr))
@@ -161,8 +163,11 @@ impl Slice
                 intraPredictChroma(mb.chromaMode, frame.pixChroma(plane, mb.mbX * 8, mb.mbY * 8), frame.strideChroma, hasLeft, hasTop)
         }
 
-        for plane in 2'u32 do
-            .addChromaResidual(mb, frame, plane, plane == 0 ? qpCb : qpCr)
+        if mb.cbpChroma != 0
+        {
+            for plane in 2'u32 do
+                .addChromaResidual(mb, frame, plane, plane == 0 ? qpCb : qpCr)
+        }
     }
 
     // Reports whether a macroblock's samples can serve intra prediction.

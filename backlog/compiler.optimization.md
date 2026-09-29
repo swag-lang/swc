@@ -48,6 +48,38 @@ block, and the hot path keeps the register.
 - Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
   both admitted and rejected shapes.
 
+### compiler.optimization.101 — Small records are assembled in the frame and read back whole
+
+- Recorded: 2026-09-29 14:46
+- Updated: 2026-09-29 16:10 — The NeighborMotion record shrink was kept.
+- Area: compiler/backend, instruction combining (aggregate and vector literals)
+- Evidence (H.264 decoder, 2026-09-29, prompt 2): a value built field by field and then read as
+  one register or one vector is stored lane by lane into a frame temporary and loaded whole, so
+  the wide load waits for the narrow stores it cannot forward from. `bookkeepMb` built its
+  co-located vector row `cast(Simd.S16x8) [mvX, mvY, ...]` as eight 16-bit stores and a 128-bit
+  load; the decoder now broadcasts a packed scalar instead (commit 76513b0d1). `Slice.motionAt`,
+  returning an eight-byte `NeighborMotion` (after dropping its unused difference and direct
+  fields), wrote the record with four stores and read it back with one 64-bit load.
+  `tryBuildVectorFromStores` and `tryBuildScalarFromStores` exist for exactly this shape but did
+  not fire. In `bookkeepMb` the slot's local is also given a default through an address register
+  first (`%1003 = &[%1 + 0x7A0]; [%1003] = 0`), a multi-definition local that stays in the frame
+  because mem2reg is disabled. In `motionAt` the record's other return paths also read the slot,
+  so `slotHasOtherReaders` refuses.
+- Tried and reverted: letting the scalar rule replace the load while keeping the stores when the
+  only other readers are loads through the same base (escapes still refuse). It fired on
+  `motionAt` (four stores then one load became the fields shifted and or-ed, 147 -> 160 Micro
+  instructions, since the stores stay for the other returns), no other decoder function or
+  benchmark program changed, and plane digests stayed exact; but more instructions against one
+  forwarded-load stall is not a static win, so the compiler change was reverted; the record
+  shrink itself was kept (commit 5081feef1).
+  Patch kept outside the tree.
+- Next: build the record in registers on every return path (the returns join into one exit
+  whose value is a phi of the per-path records), so the stores disappear too, and make the
+  vector-literal rule accept a slot whose local was first cleared through an address register.
+- Complete when: a small record returned by value and a vector literal of runtime lanes are
+  built in registers with no frame round trip, without growing any benchmark program.
+- Related: compiler.optimization.099, std.video.001
+
 ### compiler.optimization.102 — Retain one floating zero across unrolled arms
 
 - Recorded: 2026-09-29 15:48
@@ -79,6 +111,7 @@ block, and the hot path keeps the register.
   before changing general value numbering or allocation.
 - Complete when the repeated clears disappear with no new spill traffic in `intersect`, an
   unrelated case improves under the same rule, and native/JIT behavior remains correct.
+
 
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
@@ -121,35 +154,6 @@ block, and the hot path keeps the register.
   Zig's executed path; focus on register and frame traffic rather than its absent collisions.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
-### compiler.optimization.101 — Small records are assembled in the frame and read back whole
-
-- Recorded: 2026-09-29 14:46
-- Area: compiler/backend, instruction combining (aggregate and vector literals)
-- Evidence (H.264 decoder, 2026-09-29, prompt 2): a value built field by field and then read as
-  one register or one vector is stored lane by lane into a frame temporary and loaded whole, so
-  the wide load waits for the narrow stores it cannot forward from. `bookkeepMb` built its
-  co-located vector row `cast(Simd.S16x8) [mvX, mvY, ...]` as eight 16-bit stores and a 128-bit
-  load; the decoder now broadcasts a packed scalar instead (commit 76513b0d1). `Slice.motionAt`,
-  returning an eight-byte `NeighborMotion` (after dropping its unused difference and direct
-  fields), wrote the record with four stores and read it back with one 64-bit load.
-  `tryBuildVectorFromStores` and `tryBuildScalarFromStores` exist for exactly this shape but did
-  not fire. In `bookkeepMb` the slot's local is also given a default through an address register
-  first (`%1003 = &[%1 + 0x7A0]; [%1003] = 0`), a multi-definition local that stays in the frame
-  because mem2reg is disabled. In `motionAt` the record's other return paths also read the slot,
-  so `slotHasOtherReaders` refuses.
-- Tried and reverted: letting the scalar rule replace the load while keeping the stores when the
-  only other readers are loads through the same base (escapes still refuse). It fired on
-  `motionAt` (four stores then one load became the fields shifted and or-ed, 147 -> 160 Micro
-  instructions, since the stores stay for the other returns), no other decoder function or
-  benchmark program changed, and plane digests stayed exact; but more instructions against one
-  forwarded-load stall is not a static win, so the change and the record shrink were reverted.
-  Patch kept outside the tree.
-- Next: build the record in registers on every return path (the returns join into one exit
-  whose value is a phi of the per-path records), so the stores disappear too, and make the
-  vector-literal rule accept a slot whose local was first cleared through an address register.
-- Complete when: a small record returned by value and a vector literal of runtime lanes are
-  built in registers with no frame round trip, without growing any benchmark program.
-- Related: compiler.optimization.099, std.video.001
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget
 
 - Recorded: 2026-09-24 11:53
@@ -260,6 +264,7 @@ block, and the hot path keeps the register.
 - Complete when: the significance bin has no register copy after its shifts and no decoder function
   or benchmark program grows.
 - Related: std.video.001, compiler.optimization.037, compiler.optimization.095
+
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 
 - Recorded: 2026-09-07 10:46
@@ -310,6 +315,7 @@ block, and the hot path keeps the register.
 - Complete when: the tile fill of `filterLumaVertical` disappears from its release dump, a fill
   followed by a partial overwrite and a read keeps its stores, and unit tests cover both.
 - Related: compiler.optimization.011
+
 ### compiler.optimization.098 — Feed adjacent array updates from a packed state
 
 - Recorded: 2026-09-29 08:04
@@ -1025,6 +1031,7 @@ block, and the hot path keeps the register.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
+
 ### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
 
 - Recorded: 2026-09-18 19:48

@@ -277,16 +277,27 @@ impl Slice
                 dcBlock[cast(u64) Zigzag4[scan]] = storage.dc[scan]
             hadamard4x4(dcBlock.buffer)
 
-            // The AC levels are already in place, so the DC completes each block.
+            // The AC levels are already in place, so the DC completes each block. A block with
+            // no AC level is flat: its transform is the rounded DC on every sample, and a zero
+            // DC leaves the prediction as it is, as FFmpeg's intra 16x16 residual loop skips.
             let dcList = cast(u64) plane
             for raster in 16's32
             {
-                let bx    = raster & 3
-                let by    = raster >> 2
-                let dc    = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[dcList, cast(u64) qp, 0] + 32) >> 6
+                let bx          = raster & 3
+                let by          = raster >> 2
+                let dc          = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[dcList, cast(u64) qp, 0] + 32) >> 6
+                let clamped     = clampS32(dc, -32768, 32767)
+                let destination = frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4)
+                if storage.nz[cast(u64) raster] == 0
+                {
+                    if clamped != 0 do
+                        addDc4x4(destination, stride, clamped)
+                    continue
+                }
+
                 let block = storage.ac + cast(u64) raster * 16
-                block[0] = cast(s16) clampS32(dc, -32768, 32767)
-                addIdct4x4(frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, block)
+                block[0] = cast(s16) clamped
+                addIdct4x4(destination, stride, block)
             }
 
             return
@@ -346,9 +357,18 @@ impl Slice
             if dcValue == 0 and counts[cast(u64) block] == 0 do
                 continue
 
+            // A block with no AC level is flat, the rounded DC on every sample.
+            let clamped     = clampS32(dcValue, -32768, 32767)
+            let destination = frame.pixChroma(plane, mb.mbX * 8 + bx * 4, mb.mbY * 8 + by * 4)
+            if counts[cast(u64) block] == 0
+            {
+                addDc4x4(destination, stride, clamped)
+                continue
+            }
+
             let coeffs = (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16
-            coeffs[0] = cast(s16) clampS32(dcValue, -32768, 32767)
-            addIdct4x4(frame.pixChroma(plane, mb.mbX * 8 + bx * 4, mb.mbY * 8 + by * 4), stride, coeffs)
+            coeffs[0] = cast(s16) clamped
+            addIdct4x4(destination, stride, coeffs)
         }
     }
 

@@ -351,12 +351,15 @@ bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, 
 {
     while (typeRef.isValid())
     {
-        const TypeInfo& typeInfo   = get(typeRef);
-        const TypeRef   rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid() && rawTypeRef != typeRef)
+        const TypeInfo& typeInfo = get(typeRef);
+        if (typeInfo.isAlias())
         {
-            typeRef = rawTypeRef;
-            continue;
+            const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
+            if (rawTypeRef.isValid() && rawTypeRef != typeRef)
+            {
+                typeRef = rawTypeRef;
+                continue;
+            }
         }
 
         if (typeInfo.isArray())
@@ -392,21 +395,23 @@ bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, 
 
 TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const
 {
-    if (lhs == rhs && !force32BitInts)
-        return lhs;
+    TypeRef result = lhs;
+    if (lhs != rhs)
+    {
+        // Promotion is table-driven over the builtin numeric set. Complex/user types
+        // should be rejected before this point; the assertions below catch violations
+        // close to the caller that forgot to filter them.
+        const auto itL = promoteIndex_.find(lhs.get());
+        const auto itR = promoteIndex_.find(rhs.get());
 
-    // Promotion is table-driven over the builtin numeric set. Complex/user types
-    // should be rejected before this point; the assertions below catch violations
-    // close to the caller that forgot to filter them.
-    const auto itL = promoteIndex_.find(lhs.get());
-    const auto itR = promoteIndex_.find(rhs.get());
+        // If this ever trips, you're trying to promote a type that was not in
+        // the numeric set when buildPromoteTable() was called.
+        SWC_ASSERT(itL != promoteIndex_.end());
+        SWC_ASSERT(itR != promoteIndex_.end());
 
-    // If this ever trips, you're trying to promote a type that was not in
-    // the numeric set when buildPromoteTable() was called.
-    SWC_ASSERT(itL != promoteIndex_.end());
-    SWC_ASSERT(itR != promoteIndex_.end());
+        result = promoteTable_[itL->second][itR->second];
+    }
 
-    const TypeRef result = promoteTable_[itL->second][itR->second];
     if (!force32BitInts)
         return result;
 

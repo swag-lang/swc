@@ -919,10 +919,6 @@ namespace
         outStorage.clear();
         outPayloadBytes = {};
 
-        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid())
-            typeRef = rawTypeRef;
-
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isStruct());
         const uint32_t size = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
@@ -985,9 +981,7 @@ Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeR
 
 Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
 {
-    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-    if (rawTypeRef.isValid())
-        typeRef = rawTypeRef;
+    typeRef = codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
 
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (!typeInfo.isStruct())
@@ -1029,9 +1023,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (count == 1)
         return emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
 
-    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-    if (rawTypeRef.isValid())
-        typeRef = rawTypeRef;
+    typeRef = codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
 
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (!typeInfo.isStruct())
@@ -1072,9 +1064,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
 
 Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg)
 {
-    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-    if (rawTypeRef.isValid())
-        typeRef = rawTypeRef;
+    typeRef = codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
 
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (!typeInfo.isStruct())
@@ -1111,9 +1101,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
     if (!count)
         return Result::Continue;
 
-    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-    if (rawTypeRef.isValid())
-        typeRef = rawTypeRef;
+    typeRef = codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
 
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (typeInfo.isStruct())
@@ -1150,9 +1138,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
 
 Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, const MicroReg dstAddressReg, const MicroReg countReg)
 {
-    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-    if (rawTypeRef.isValid())
-        typeRef = rawTypeRef;
+    typeRef = codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
 
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (typeInfo.isStruct())

@@ -92,6 +92,8 @@ using Swag, Core, Pixel
     Swag.assert(dlg.identityView.position.width > 0)
     Swag.assert(dlg.identityAccent.form == .Accent and dlg.identityAccent.dockStyle == .Top)
     Swag.assert(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
+    Swag.assert(dlg.labelMessage.dockStyle == .None)
+    Swag.assert(dlg.identityView.position.bottom() <= dlg.labelMessage.position.y)
 }
 
 // The application form supplies the common version, build, source, copyright, and icon shape.
@@ -118,7 +120,7 @@ using Swag, Core, Pixel
 }
 
 // Pins the application identity hierarchy: one accent, one raised product block, and quieter
-// provenance above the ordinary dialog action bar.
+// provenance below it.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -140,7 +142,8 @@ using Swag, Core, Pixel
     let surface = dlg.surface!
     surface.invalidate()
     surface.paint()
-    var image = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+    let rendered = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+    var image    = rendered.cropped(25, 60, cast(s32) surface.position.width - 50, cast(s32) surface.position.height - cast(s32) dlg.buttonBar.position.height - 60)
     Pixel.Testing.assertImageGolden(&image, "aboutdlg.identity.dark")
 }
 

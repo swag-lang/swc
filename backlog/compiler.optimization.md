@@ -18,6 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.098 — The CABAC significance loop still holds one value in two registers
 
 - Recorded: 2026-09-29 09:34
+- Updated: 2026-09-29 10:47 — Record the post-allocation coalescing trial.
 - Area: compiler/backend, copy forwarding and register allocation
 - Evidence: after the 2026-09-29 prompt-2 batches on `std/video` (see std.video.001), a no-hit
   iteration of the 4x4 luma significance loop of `Slice.residualCabac` is 35 Micro instructions with
@@ -45,6 +46,12 @@ block, and the hot path keeps the register.
   4. A write pointer instead of `indices[count]` (618 -> 625, frame accesses 6 -> 9) and walking the
      significance states by pointer as FFmpeg does (618 -> 631, 6 -> 10): each frees a value in the
      source and costs more spills after allocation.
+  5. After allocation, computing a copied result into the copy's destination when every later read
+     of the result sees the copy, tracking a spill-and-reload of the destination through the refill
+     path: it never reaches the target, because the last-coefficient bin updates the range in place
+     in the copy's source (`sub rdx, r8`), so the value continues there. Elsewhere the decoder
+     functions outside `cabac.swg` lost 15 instructions (CAVLC residual parsing -16), but csvagg's
+     record loop grew by four instructions and one frame access, so the rule was reverted.
 - Next: give the interval allocator value-aware interference, as LLVM's coalescer joins a copy's
   source and destination where they overlap holding the same value, or rewrite after allocation the
   reads of a copy's source that its destination reaches, tracking the spill-slot round trip of the

@@ -478,7 +478,7 @@ namespace
         if (cstRef.isValid())
             storageTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(codeGen.sema(), storageTypeRef, cstRef);
 
-        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
+        const TypeInfo& storageType = storageTypeRef == typeRef ? typeInfo : codeGen.typeMgr().get(storageTypeRef);
         if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregateStruct() && !storageType.isAggregateArray() && !storageType.isSimd())
             return ConstantRef::invalid();
 

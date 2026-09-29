@@ -1701,10 +1701,11 @@ namespace
 
         const TypeInfo& contextType = codeGen.typeMgr().get(contextTypeRef);
         const TypeRef   rawTypeRef  = contextType.unwrap(codeGen.ctx(), contextTypeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid())
+        const bool      resolvedAlias = rawTypeRef.isValid() && rawTypeRef != contextTypeRef;
+        if (resolvedAlias)
             contextTypeRef = rawTypeRef;
 
-        const TypeInfo& rawContextType = codeGen.typeMgr().get(contextTypeRef);
+        const TypeInfo& rawContextType = resolvedAlias ? codeGen.typeMgr().get(contextTypeRef) : contextType;
         if (rawContextType.isReference() || rawContextType.isAnyPointer())
         {
             if (!contextPayload.isAddress())

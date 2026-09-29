@@ -303,11 +303,8 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         storeIntra8Vertical(dst, stride, tp.buffer + 2)
 
     case IntraHorizontal:
-        for row in 8'u64
-        {
-            for column in 8'u64 do
-                dst[row * stride + column] = cast(u8) lp[2 + row]
-        }
+        for row in 8'u64 do
+            Simd.storeLow8(dst + row * stride, Simd.splat(cast(u8) lp[2 + row]))
 
     case IntraDc:
         var sum   = 0's32
@@ -326,12 +323,9 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
             count += 8
         }
 
-        let value = count == 16 ? (sum + 8) >> 4 : (count == 8 ? (sum + 4) >> 3 : 128)
-        for row in 8'u64
-        {
-            for column in 8'u64 do
-                dst[row * stride + column] = cast(u8) value
-        }
+        let value = Simd.splat(cast(u8) (count == 16 ? (sum + 8) >> 4 : (count == 8 ? (sum + 4) >> 3 : 128)))
+        for row in 8'u64 do
+            Simd.storeLow8(dst + row * stride, value)
 
     case IntraDownLeft:
         for row in 8'u64
@@ -341,76 +335,65 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
             storeIntra8Filtered(dst + row * stride, low, high)
         }
 
+    // The three diagonal modes take each row as an eight-sample window of one short line of
+    // filtered edge values, so a block costs one pass over the edge and eight row copies
+    // instead of a per-sample choice between three formulas.
     case IntraDownRight:
-        for row in 8's64
-        {
-            for column in 8's64
-            {
-                let diag = column - row
-                var value: s32
-                if diag >= 1 do
-                    value = (tp[cast(u64) diag] + 2 * tp[cast(u64) diag + 1] + tp[cast(u64) diag + 2] + 2) >> 2
-                elif diag == 0 do
-                    value = (lp[2] + 2 * lp[1] + tp[2] + 2) >> 2
-                else do
-                    value = (lp[cast(u64) (2 - diag)] + 2 * lp[cast(u64) (1 - diag)] + lp[cast(u64) (0 - diag)] + 2) >> 2
-                dst[cast(u64) row * stride + cast(u64) column] = cast(u8) value
-            }
-        }
+        // Sample (x, y) is the three-tap filter of the edge centered on its diagonal: the
+        // edge runs up the left column, through the corner, and along the top row, so row y
+        // starts 7 - y values into it.
+        var edge: [17] s32
+        for index in 8'u64 do
+            edge[index] = lp[9 - index]
+        for index in 8'u64 do
+            edge[9 + index] = tp[2 + index]
+        edge[8] = lp[1]
+        var line: [15] u8
+        for index in 15'u64 do
+            line[index] = cast(u8) ((edge[index] + 2 * edge[index + 1] + edge[index + 2] + 2) >> 2)
+        for row in 8'u64 do
+            Simd.storeLow8(dst + row * stride, Simd.load(line.buffer + 7 - row))
 
     case IntraVerticalRight:
-        for row in 8's64
+        // Rows of one parity shift right by one sample every two rows: the even rows read the
+        // two-tap averages of the top row, the odd rows its three-tap filter, and the samples
+        // shifted in from the left are the filtered left column, every other one.
+        var even: [11] u8
+        var odd:  [11] u8
+        for index in 3'u64
         {
-            for column in 8's64
-            {
-                let z = 2 * column - row
-                var value: s32
-                if z >= 0 and z & 1 == 0
-                {
-                    let k = cast(u64) (column - (row >> 1))
-                    value = (tp[k + 1] + tp[k + 2] + 1) >> 1
-                }
-                elif z >= -1
-                {
-                    let k = cast(u64) (column - (row >> 1))
-                    value = (tp[k] + 2 * tp[k + 1] + tp[k + 2] + 2) >> 2
-                }
-                else
-                {
-                    let e = cast(u64) (row - 2 * column)
-                    value = (lp[e + 1] + 2 * lp[e] + lp[e - 1] + 2) >> 2
-                }
+            let e = 6 - 2 * index
+            even[index] = cast(u8) ((lp[e + 1] + 2 * lp[e] + lp[e - 1] + 2) >> 2)
+            odd[index]  = cast(u8) ((lp[e + 2] + 2 * lp[e + 1] + lp[e] + 2) >> 2)
+        }
 
-                dst[cast(u64) row * stride + cast(u64) column] = cast(u8) value
-            }
+        for k in 8'u64
+        {
+            even[3 + k] = cast(u8) ((tp[k + 1] + tp[k + 2] + 1) >> 1)
+            odd[3 + k]  = cast(u8) ((tp[k] + 2 * tp[k + 1] + tp[k + 2] + 2) >> 2)
+        }
+
+        for row in 8'u64
+        {
+            let line = row & 1 == 0 ? even.buffer : odd.buffer
+            Simd.storeLow8(dst + row * stride, Simd.load(line + 3 - (row >> 1)))
         }
 
     case IntraHorizontalDown:
-        for row in 8's64
+        // Row y reads, from 14 - 2y on, the left column's two-tap averages and three-tap
+        // filters interleaved from the bottom up, then the filtered top row.
+        var line: [22] u8
+        for index in 8'u64
         {
-            for column in 8's64
-            {
-                let z = 2 * row - column
-                var value: s32
-                if z >= 0 and z & 1 == 0
-                {
-                    let k = cast(u64) (row - (column >> 1))
-                    value = (lp[k + 1] + lp[k + 2] + 1) >> 1
-                }
-                elif z >= -1
-                {
-                    let k = cast(u64) (row - (column >> 1))
-                    value = (lp[k] + 2 * lp[k + 1] + lp[k + 2] + 2) >> 2
-                }
-                else
-                {
-                    let e = cast(u64) (column - 2 * row)
-                    value = (tp[e + 1] + 2 * tp[e] + tp[e - 1] + 2) >> 2
-                }
-
-                dst[cast(u64) row * stride + cast(u64) column] = cast(u8) value
-            }
+            let k = 7 - index
+            line[2 * index]     = cast(u8) ((lp[k + 1] + lp[k + 2] + 1) >> 1)
+            line[2 * index + 1] = cast(u8) ((lp[k] + 2 * lp[k + 1] + lp[k + 2] + 2) >> 2)
         }
+
+        for e in 2'u64 until 8 do
+            line[14 + e] = cast(u8) ((tp[e + 1] + 2 * tp[e] + tp[e - 1] + 2) >> 2)
+        for row in 8'u64 do
+            Simd.storeLow8(dst + row * stride, Simd.load(line.buffer + 14 - 2 * row))
 
     case IntraVerticalLeft:
         for row in 8'u64

@@ -524,9 +524,6 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             forbidFloatBitCarrierIntArgRegs(builder, conv, arg);
         }
 
-        SmallVector<uint8_t> regArgsUseHomeSlot;
-        regArgsUseHomeSlot.resize(numPreparedArgs, 0);
-
         if (stackAdjust)
             builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(stackAdjust, 64), MicroOp::Subtract, MicroOpBits::B64);
 
@@ -540,10 +537,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             if (isRegArg)
             {
                 // Only values that cannot be moved directly into their ABI lane need register home slots.
-                const bool useHomeSlot = requiresRegisterArgHomeSlot(arg);
-                regArgsUseHomeSlot[i]  = useHomeSlot ? 1 : 0;
-
-                if (!useHomeSlot)
+                if (!argLayouts[i].needsHome)
                 {
                     if (arg.constrainToArgLane)
                     {
@@ -616,7 +610,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             if (regIndex == K_NO_ARG_REGISTER)
                 continue;
 
-            if (regArgsUseHomeSlot[i])
+            if (argLayouts[i].needsHome)
             {
                 const MicroOpBits argBits    = preparedArgBits(arg);
                 const uint64_t    homeOffset = callArgStackOffset(conv, argLayouts, i);

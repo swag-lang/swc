@@ -33,9 +33,10 @@ namespace
 
     struct CallArgMasks
     {
-        uint8_t ints         = 0;
-        uint8_t floats       = 0;
-        bool    hasStackArgs = false;
+        uint8_t ints                = 0;
+        uint8_t floats              = 0;
+        bool    hasStackArgs        = false;
+        bool    hasRegisterHomeSlot = false;
     };
 
     CallArgMasks computeCallArgMasks(const CallConv& conv, std::span<const ABICall::ArgLayout> argLayouts)
@@ -53,6 +54,8 @@ namespace
                 result.hasStackArgs = true;
                 continue;
             }
+            if (arg.needsHome)
+                result.hasRegisterHomeSlot = true;
             if (regIndex >= 8)
                 continue;
 
@@ -270,20 +273,6 @@ namespace
         if (arg.isFloat)
             return !arg.srcReg.isVirtualFloat();
         return !arg.srcReg.isVirtualInt();
-    }
-
-    bool hasRegisterArgHomeSlot(const CallConv& conv, std::span<const ABICall::PreparedArg> args)
-    {
-        const auto argLayouts = collectArgLayouts(args);
-        for (uint32_t i = 0; i < args.size(); ++i)
-        {
-            if (ABICall::argumentRegisterIndex(conv, argLayouts, i) == K_NO_ARG_REGISTER)
-                continue;
-            if (requiresRegisterArgHomeSlot(args[i]))
-                return true;
-        }
-
-        return false;
     }
 
     void emitReturnWriteBackIfNeeded(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret)
@@ -520,7 +509,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
     const uint32_t stackAdjust = computeCallStackAdjust(callConvKind, argLayouts);
 
-    if (argMasks.hasStackArgs || hasRegisterArgHomeSlot(conv, args))
+    if (argMasks.hasStackArgs || argMasks.hasRegisterHomeSlot)
     {
         MicroReg   regBase, regTmp;
         const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);

@@ -15,6 +15,38 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
+
+- Recorded: 2026-09-07 10:46
+- Updated: 2026-09-29 11:50 — Recounted the current heap loop after header rotation.
+- Area: compiler/backend, memory optimization
+- Found while: the generated-code campaign, comparing Dijkstra's heap loops with current
+  clang-cl and MSVC output at `8d3f0498b` on 2026-09-07.
+- Evidence: after local identical-target load forwarding, Swag release's sift-up loop has
+  26 instructions / 15 explicit memory operations, against clang-cl's 16 / eight and MSVC's
+  15 / eight. Five Swag accesses reload global pointer cells; ten access heap elements,
+  including the values read again after the comparison branch. These are program-memory
+  accesses, not allocator spill slots. The sift-down loop still has 39 / 20.
+- Current static comparison: in the Release `push` sift-up loop, Swag executes 19 Micro
+  instructions and 12 explicit memory operations on a swapping iteration, versus 15 instructions
+  and eight memory operations in the accepted winner's MSVC object. Swag reloads `g_HeapD` and
+  `g_HeapN` after stores through those pointers; MSVC retains both pointer values in registers.
+  Swag's `pop` and its inlined copy now place their address calculation and relocated heap-size
+  load at the back edge, removing one executed unconditional jump per sift-down step. These
+  current counts supersede the September 7 loop counts above; they are static code evidence,
+  not a timing claim. The Dijkstra checksum remains `4431000`.
+- Boundary: the local forwarding cache is flushed by control flow and potentially aliasing
+  stores. Reusing a global pointer across an arbitrary heap write needs a provenance proof;
+  keeping the heap elements already read by a comparison needs control-flow-aware memory
+  availability. An exact relocation identity alone proves neither.
+- Next: establish which heap stores cannot reach the global pointer cells, and propagate a
+  compared element only along paths with no intervening aliasing write. Preserve the global
+  reload when a pointer can address that global, and exercise both branch outcomes, calls,
+  and zero-trip loops. Check `pop` and register pressure across every benchmark task before
+  broadening the alias analysis.
+- Complete when: the remaining repeated pointer/element reads disappear with sound alias and
+  control-flow proofs, or a focused experiment identifies the register-residency constraint.
+
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget
 
 - Recorded: 2026-09-24 11:53
@@ -1143,30 +1175,6 @@ block, and the hot path keeps the register.
 - Complete when: the current emitted loop and alternating timing decide whether an allocator gap
   remains, with any surviving cause reduced to one actionable change.
 - Related: compiler.optimization.005, compiler.optimization.024.
-
-### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
-
-- Recorded: 2026-09-07 10:46
-- Updated: 2026-09-07 11:12 — Narrow the remaining gap to aliasing and control-flow reuse
-- Area: compiler/backend, memory optimization
-- Found while: the generated-code campaign, comparing Dijkstra's heap loops with current
-  clang-cl and MSVC output at `8d3f0498b` on 2026-09-07.
-- Evidence: after local identical-target load forwarding, Swag release's sift-up loop has
-  26 instructions / 15 explicit memory operations, against clang-cl's 16 / eight and MSVC's
-  15 / eight. Five Swag accesses reload global pointer cells; ten access heap elements,
-  including the values read again after the comparison branch. These are program-memory
-  accesses, not allocator spill slots. The sift-down loop still has 39 / 20.
-- Boundary: the local forwarding cache is flushed by control flow and potentially aliasing
-  stores. Reusing a global pointer across an arbitrary heap write needs a provenance proof;
-  keeping the heap elements already read by a comparison needs control-flow-aware memory
-  availability. An exact relocation identity alone proves neither.
-- Next: establish which heap stores cannot reach the global pointer cells, and propagate a
-  compared element only along paths with no intervening aliasing write. Preserve the global
-  reload when a pointer can address that global, and exercise both branch outcomes, calls,
-  and zero-trip loops. Recount the individual heap loops and check register pressure across
-  every benchmark task before broadening the alias analysis.
-- Complete when: the remaining repeated pointer/element reads disappear with sound alias and
-  control-flow proofs, or a focused experiment identifies the register-residency constraint.
 
 ### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
 

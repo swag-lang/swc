@@ -101,22 +101,38 @@ struct EdgeStrength
 #[Swag.Inline]
 private func deblockMotion(dec: *Decoder, mbIndex, blockIndex: u64)->Simd.S16x8
 {
-    let info = &dec.mbInfo[mbIndex]
-    if info.skipped and not info.direct
-    {
-        let mb    = &dec.parsedMbs[mbIndex]
-        let job   = &mb.firstJob
-        let slice = &dec.pictureSlices[mb.sliceIndex]
-        let ref0  = job.refIdx[0]
-        let ref1  = job.refIdx[1]
-        let id0   = ref0 >= 0 ? slice.refs[0, cast(u64) ref0].identity : NoReferenceIdentity
-        let id1   = ref1 >= 0 ? slice.refs[1, cast(u64) ref1].identity : NoReferenceIdentity
-        return cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], cast(s16) (cast(s32) id0 << 8), 0, job.mv[1, 0], job.mv[1, 1], cast(s16) (cast(s32) id1 << 8), 0]
-    }
+    if deblockMotionFromJob(dec, mbIndex) do
+        return deblockJobMotion(dec, mbIndex)
+    return deblockGridMotion(cast(const [*] u64) dec.motionL0.storage(), cast(const [*] u64) dec.motionL1.storage(), blockIndex)
+}
 
-    let list0 = (cast(const [*] u64) dec.motionL0.storage())[blockIndex]
-    let list1 = (cast(const [*] u64) dec.motionL1.storage())[blockIndex]
-    return cast #bit(Simd.S16x8) Simd.interleaveLow(Simd.splat(list0), Simd.splat(list1))
+// Reports whether a macroblock's motion lives in its compact job rather than in the grid.
+#[Swag.Inline]
+private func deblockMotionFromJob(dec: *Decoder, mbIndex: u64)->bool
+{
+    let info = &dec.mbInfo[mbIndex]
+    return info.skipped and not info.direct
+}
+
+// The lanes every block of a P-skip carries, read from its compact job.
+private func deblockJobMotion(dec: *Decoder, mbIndex: u64)->Simd.S16x8
+{
+    let mb    = &dec.parsedMbs[mbIndex]
+    let job   = &mb.firstJob
+    let slice = &dec.pictureSlices[mb.sliceIndex]
+    let ref0  = job.refIdx[0]
+    let ref1  = job.refIdx[1]
+    let id0   = ref0 >= 0 ? slice.refs[0, cast(u64) ref0].identity : NoReferenceIdentity
+    let id1   = ref1 >= 0 ? slice.refs[1, cast(u64) ref1].identity : NoReferenceIdentity
+    return cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], cast(s16) (cast(s32) id0 << 8), 0, job.mv[1, 0], job.mv[1, 1], cast(s16) (cast(s32) id1 << 8), 0]
+}
+
+// The lanes of one block published in the grid, whose two lists `grid0` and `grid1` hold one
+// `BlockMotion` record per block.
+#[Swag.Inline]
+private func deblockGridMotion(grid0, grid1: const [*] u64, blockIndex: u64)->Simd.S16x8
+{
+    return cast #bit(Simd.S16x8) Simd.interleaveLow(Simd.splat(grid0[blockIndex]), Simd.splat(grid1[blockIndex]))
 }
 
 // Reports whether two blocks reference the same picture on each list and every vector pair
@@ -149,6 +165,53 @@ private func edgeStrength(dec: *Decoder, pMbIndex, pIndex, qMbIndex, qIndex: u64
         return 0
     let swapped = cast #bit(Simd.S16x8) Simd.permute(cast #bit(Simd.U64x2) q, cast(Simd.U64x2) [1'u64, 0])
     return deblockMotionMatches(p, swapped) ? 0'u32 : 1'u32
+}
+
+// Computes the four segment strengths of one edge, section 8.7.2.1: `pFirst` and `qFirst` are
+// the blocks of the first segment on each side and `step` walks to the next segment. Returns
+// whether any segment is filtered.
+//
+// The macroblock-level answers - an intra side, where the motion of each side is read - are
+// taken once for the edge rather than once per segment, and each segment then reads two coded
+// flags and, when neither is set, compares two motion vectors of lanes.
+private func edgeStrengths(dec: *Decoder, pMbIndex, qMbIndex, pFirst, qFirst, step: u64, mbEdge, pIntra, qIntra: bool, strengths: *EdgeStrength)->bool
+{
+    if pIntra or qIntra
+    {
+        let bs = mbEdge ? 4'u32 : 3'u32
+        strengths.bs = [bs, bs, bs, bs]
+        return true
+    }
+
+    let coded    = dec.codedLuma.storage()
+    let grid0    = cast(const [*] u64) dec.motionL0.storage()
+    let grid1    = cast(const [*] u64) dec.motionL1.storage()
+    let pFromJob = deblockMotionFromJob(dec, pMbIndex)
+    let qFromJob = deblockMotionFromJob(dec, qMbIndex)
+    let pJob     = pFromJob ? deblockJobMotion(dec, pMbIndex) : Simd.splat(0's16)
+    let qJob     = qFromJob ? deblockJobMotion(dec, qMbIndex) : Simd.splat(0's16)
+    var filtered = false
+    for segment in 4'u64
+    {
+        let pIndex = pFirst + segment * step
+        let qIndex = qFirst + segment * step
+        var bs     = 2'u32
+        if coded[pIndex] == 0 and coded[qIndex] == 0
+        {
+            let p = pFromJob ? pJob : deblockGridMotion(grid0, grid1, pIndex)
+            let q = qFromJob ? qJob : deblockGridMotion(grid0, grid1, qIndex)
+            bs = 1
+            if deblockMotionMatches(p, q) do
+                bs = 0
+            elif deblockMotionMatches(p, cast #bit(Simd.S16x8) Simd.permute(cast #bit(Simd.U64x2) q, cast(Simd.U64x2) [1'u64, 0])) do
+                bs = 0
+        }
+
+        strengths.bs[segment] = bs
+        filtered = filtered or bs != 0
+    }
+
+    return filtered
 }
 
 // All ones for the strengths the normal filter applies, 1 to 3, as the bytes a strength indexes.
@@ -222,26 +285,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         }
         else
         {
-            for segment in 4's32
-            {
-                let qx       = mbX * 4 + edge
-                let qy       = mbY * 4 + segment
-                let qIndex   = cast(u64) (qy * gw + qx)
-                let pIndex   = cast(u64) (qy * gw + qx - 1)
-                var pIntra   = qIntra
-                var pCoded   = dec.codedLuma[pIndex] != 0
-                var pMbIndex = mbIndex
-                if edge == 0
-                {
-                    pMbIndex = mbIndex - 1
-                    pIntra   = dec.mbInfo[pMbIndex].class != MbClassInter
-                }
-
-                let bs = edgeStrength(dec, pMbIndex, pIndex, mbIndex, qIndex, edge == 0, pIntra, qIntra, pCoded, dec.codedLuma[qIndex] != 0)
-                strengths.bs[cast(u64) segment] = bs
-                if bs != 0 do
-                    hasAny = true
-            }
+            let qFirst   = cast(u64) (mbY * 4 * gw + mbX * 4 + edge)
+            let pMbIndex = edge == 0 ? mbIndex - 1 : mbIndex
+            let pIntra   = edge == 0 ? dec.mbInfo[pMbIndex].class != MbClassInter : qIntra
+            hasAny = edgeStrengths(dec, pMbIndex, mbIndex, qFirst - 1, qFirst, cast(u64) gw, edge == 0, pIntra, qIntra, &strengths)
         }
 
         if not hasAny do
@@ -362,25 +409,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         }
         else
         {
-            for segment in 4's32
-            {
-                let qx       = mbX * 4 + segment
-                let qy       = mbY * 4 + edge
-                let qIndex   = cast(u64) (qy * gw + qx)
-                let pIndex   = cast(u64) ((qy - 1) * gw + qx)
-                var pIntra   = qIntra
-                var pMbIndex = mbIndex
-                if edge == 0
-                {
-                    pMbIndex = mbIndex - cast(u64) sps.mbWidth
-                    pIntra   = dec.mbInfo[pMbIndex].class != MbClassInter
-                }
-
-                let bs = edgeStrength(dec, pMbIndex, pIndex, mbIndex, qIndex, edge == 0, pIntra, qIntra, dec.codedLuma[pIndex] != 0, dec.codedLuma[qIndex] != 0)
-                strengths.bs[cast(u64) segment] = bs
-                if bs != 0 do
-                    hasAny = true
-            }
+            let qFirst   = cast(u64) ((mbY * 4 + edge) * gw + mbX * 4)
+            let pMbIndex = edge == 0 ? mbIndex - cast(u64) sps.mbWidth : mbIndex
+            let pIntra   = edge == 0 ? dec.mbInfo[pMbIndex].class != MbClassInter : qIntra
+            hasAny = edgeStrengths(dec, pMbIndex, mbIndex, qFirst - cast(u64) gw, qFirst, 1, edge == 0, pIntra, qIntra, &strengths)
         }
 
         if not hasAny do

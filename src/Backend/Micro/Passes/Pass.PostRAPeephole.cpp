@@ -893,6 +893,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldIndexedAddressIntoNextLoad);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldMaskedDoubleIntoAddress);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldPointerAddIntoNextLoad);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldAddIntoFieldAddress);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanOrSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldCarrySelectOfConstants);

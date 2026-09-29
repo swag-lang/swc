@@ -2019,6 +2019,80 @@ namespace PostRaPeephole
         return foldAddressIntoNextLoad(ctx, addRef, add[0].reg, add[0].reg, add[1].reg, 1, 0);
     }
 
+    // A field address advanced by a register is one indexed address:
+    //
+    //     lea X, [B + d]
+    //     (one instruction that leaves X and B alone)
+    //     add X, R   (64-bit)      ->   lea X, [B + R + d]
+    //
+    // The address then reads B and R where the add stood. LEA writes no flags,
+    // so the flags the add wrote must be unobserved.
+    bool tryFoldAddIntoFieldAddress(Context& ctx, const MicroInstrRef addRef, const MicroInstr& addInst)
+    {
+        if (ctx.isClaimed(addRef) || !ctx.encoder)
+            return false;
+        const auto* add = addInst.ops(*ctx.operands);
+        if (!add || add[3].microOp != MicroOp::Add || add[2].opBits != MicroOpBits::B64 || !add[0].reg.isInt() ||
+            !add[1].reg.isInt() || add[0].reg == add[1].reg || ctx.isPrivateFrameBase(add[0].reg))
+            return false;
+        const MicroReg address = add[0].reg;
+
+        MicroInstrRef     leaRef = ctx.previousRef(addRef);
+        const MicroInstr* lea    = ctx.instruction(leaRef);
+        MicroInstrRef     between = MicroInstrRef::invalid();
+        if (lea && lea->op != MicroInstrOpcode::LoadAddrRegMem)
+        {
+            between = leaRef;
+            leaRef  = ctx.previousRef(between);
+            lea     = ctx.instruction(leaRef);
+        }
+        const auto* leaOps = lea && lea->op == MicroInstrOpcode::LoadAddrRegMem ? lea->ops(*ctx.operands) : nullptr;
+        if (!leaOps || leaOps[0].reg != address || !leaOps[1].reg.isInt() || leaOps[2].opBits != MicroOpBits::B64 ||
+            ctx.isClaimed(leaRef) || leaOps[1].reg.isInstructionPointer())
+            return false;
+        const MicroReg base = leaOps[1].reg;
+        const uint64_t disp = leaOps[3].valueU64;
+        if (static_cast<int64_t>(disp) != static_cast<int64_t>(static_cast<int32_t>(disp)))
+            return false;
+
+        if (between.isValid())
+        {
+            const MicroInstr* middle = ctx.instruction(between);
+            if (!middle || ctx.isClaimed(between))
+                return false;
+            const auto& info = MicroInstr::info(middle->op);
+            if (middle->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const MicroInstrUseDef useDef = middle->collectUseDef(*ctx.operands, ctx.encoder);
+            if (std::ranges::find(useDef.uses, address) != useDef.uses.end() ||
+                std::ranges::find(useDef.defs, address) != useDef.defs.end() ||
+                std::ranges::find(useDef.defs, base) != useDef.defs.end())
+                return false;
+        }
+
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand indexed[8] = {};
+        indexed[0].reg               = address;
+        indexed[1].reg               = base;
+        indexed[2].reg               = add[1].reg;
+        indexed[3].opBits            = MicroOpBits::B64;
+        indexed[4].opBits            = MicroOpBits::B64;
+        indexed[5].valueU64          = 1;
+        indexed[6].valueU64          = disp;
+        MicroInstr probe;
+        probe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+        probe.numOperands = 8;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, indexed) || !ctx.claimAll({leaRef, addRef}))
+            return false;
+        ctx.emitRewrite(addRef, probe.op, indexed, true);
+        ctx.emitErase(leaRef);
+        return true;
+    }
+
     // A masked value doubled in place and then added to a pointer is one
     // scaled address:
     //

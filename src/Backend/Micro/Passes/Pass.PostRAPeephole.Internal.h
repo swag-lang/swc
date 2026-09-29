@@ -132,6 +132,7 @@ namespace PostRaPeephole
     bool tryFoldIndexedAddressIntoNextLoad(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMaskedDoubleIntoAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldPointerAddIntoNextLoad(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldAddIntoFieldAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryReuseNegationForSignSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldBooleanOrSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

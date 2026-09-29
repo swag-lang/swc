@@ -109,11 +109,6 @@ namespace
         }
     }
 
-    bool isBinaryOperator(TokenId id)
-    {
-        return Token::isOpArithmeticOrBitwise(id);
-    }
-
     int getRelationalPrecedence(TokenId id)
     {
         switch (id)
@@ -310,9 +305,6 @@ AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
     {
         const TokenId opId = id();
         if (isClosureCaptureEndPipe())
-            break;
-
-        if (!isBinaryOperator(opId))
             break;
 
         const int precedence = getBinaryPrecedence(opId);

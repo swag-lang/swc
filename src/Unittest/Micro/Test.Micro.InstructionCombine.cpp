@@ -4911,6 +4911,109 @@ SWC_TEST_BEGIN(InstCombine_FullWidthVecUnary_KeepsSharedLoad)
 }
 SWC_TEST_END()
 
+// An address scaled by a power of two past eight has no machine form. The index is scaled up to
+// the last factor of eight in a register of its own, so the subscripts of one array share it.
+SWC_TEST_BEGIN(InstCombine_WideAddressScaleSplitsIntoShiftedIndex)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg address = MicroReg::virtualIntReg(3);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+    builder.emitLoadRegReg(index, MicroReg::intReg(3), MicroOpBits::B64);
+    builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, base, index, 32, 8, MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::intReg(0), address, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runInstCombinePass(builder));
+
+    bool shifted = false;
+    bool scaled  = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == MicroOp::ShiftLeft && ops[3].valueU64 == 2)
+            shifted = true;
+        if (inst.op == MicroInstrOpcode::LoadAddrAmcRegMem && ops[0].reg == address)
+            scaled = ops[1].reg == base && ops[2].reg != index && ops[5].valueU64 == 8 && ops[6].valueU64 == 8;
+    }
+    if (!shifted || !scaled)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The constant a single-use index adds moves into the displacement of the address that scales
+// it, so `row[j + 1]` and `row[j + 2]` compute one index.
+SWC_TEST_BEGIN(InstCombine_AddressIndexConstantMovesIntoDisplacement)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg source  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg index   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg address = MicroReg::virtualIntReg(4);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+    builder.emitLoadRegReg(source, MicroReg::intReg(3), MicroOpBits::B64);
+    builder.emitLoadAddressAmcRegMem(index, MicroOpBits::B64, source, source, 1, 4, MicroOpBits::B64);
+    builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, base, index, 8, 0x10, MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::intReg(0), address, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runInstCombinePass(builder));
+
+    bool indexPeeled = false;
+    bool moved       = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op != MicroInstrOpcode::LoadAddrAmcRegMem)
+            continue;
+        if (ops[0].reg == index)
+            indexPeeled = ops[6].valueU64 == 0;
+        if (ops[0].reg == address)
+            moved = ops[2].reg == index && ops[6].valueU64 == 0x10 + 4 * 8;
+    }
+    if (!indexPeeled || !moved)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Two loads through two equal addresses keep them: rebasing one on the other is value
+// numbering's merge, and done here both loads traded addresses on every sweep.
+SWC_TEST_BEGIN(InstCombine_EqualIndexedAddressesAreNotTraded)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg source = MicroReg::virtualIntReg(2);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg second = MicroReg::virtualIntReg(4);
+    constexpr MicroReg low    = MicroReg::virtualIntReg(5);
+    constexpr MicroReg high   = MicroReg::virtualIntReg(6);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+    builder.emitLoadRegReg(source, MicroReg::intReg(3), MicroOpBits::B64);
+    builder.emitLoadAddressAmcRegMem(first, MicroOpBits::B64, source, source, 1, 0, MicroOpBits::B64);
+    builder.emitLoadAddressAmcRegMem(second, MicroOpBits::B64, source, source, 1, 0, MicroOpBits::B64);
+    builder.emitLoadAmcRegMem(low, MicroOpBits::B64, base, first, 8, 0, MicroOpBits::B64);
+    builder.emitLoadAmcRegMem(high, MicroOpBits::B64, base, second, 8, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(low, high, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::intReg(0), low, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runInstCombinePass(builder));
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op != MicroInstrOpcode::LoadAmcRegMem)
+            continue;
+        if ((ops[0].reg == low && ops[2].reg != first) || (ops[0].reg == high && ops[2].reg != second))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

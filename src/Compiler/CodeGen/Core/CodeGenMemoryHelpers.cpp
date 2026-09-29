@@ -89,9 +89,9 @@ namespace
         }
     }
 
-    void emitMemCopyUnrolled(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid())
+    void emitMemCopyUnrolled(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid(), uint64_t startOffset = 0)
     {
-        uint32_t offset = 0;
+        uint64_t offset = startOffset;
         uint32_t remain = sizeInBytes;
 
         if (allow128)
@@ -137,17 +137,29 @@ namespace
 
         const MicroLabelRef loopLabel = builder.createLabel();
 
-        builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
+        // The loop walks a byte offset and indexes both objects with it, so the two base
+        // registers keep the addresses they were given: an optimizer that follows a frame
+        // object through its address sees one indexed access into that object, not a
+        // pointer that moves.
+        const MicroReg     tmpReg     = chunkSize == 16 ? tmpFloatReg : tmpIntReg;
+        const MicroOpBits  chunkBits  = chunkSize == 16 ? MicroOpBits::B128 : microOpBitsFromChunkSize(chunkSize);
+        const uint64_t     loopBytes  = static_cast<uint64_t>(chunkCount) * chunkSize;
+        builder.emitLoadRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
-        emitMemCopyChunk(builder, dstReg, srcReg, 0, chunkSize, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
-        builder.emitOpBinaryRegImm(srcReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(dstReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+        {
+            const ScopedDebugSource debugSource(builder, sourceCodeRef);
+            builder.emitLoadAmcRegMem(tmpReg, chunkBits, srcReg, countReg, 1, 0, MicroOpBits::B64);
+        }
+        {
+            const ScopedDebugSource debugSource(builder, destinationCodeRef);
+            builder.emitLoadAmcMemReg(dstReg, countReg, 1, 0, MicroOpBits::B64, tmpReg, chunkBits);
+        }
+        builder.emitOpBinaryRegImm(countReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(loopBytes, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
 
         if (tailSize)
-            emitMemCopyUnrolled(builder, dstReg, srcReg, tailSize, false, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
+            emitMemCopyUnrolled(builder, dstReg, srcReg, tailSize, false, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, loopBytes);
     }
 
     void emitMemCopyUnrolledBackward(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg)
@@ -403,9 +415,9 @@ namespace
         builder.emitLoadMemReg(dstReg, offset, zeroReg, microOpBitsFromChunkSize(chunkSize));
     }
 
-    void emitMemZeroUnrolled(MicroBuilder& builder, MicroReg dstReg, uint32_t sizeInBytes, bool allow128, MicroReg zeroReg, MicroReg zero128Reg)
+    void emitMemZeroUnrolled(MicroBuilder& builder, MicroReg dstReg, uint32_t sizeInBytes, bool allow128, MicroReg zeroReg, MicroReg zero128Reg, uint64_t startOffset = 0)
     {
-        uint32_t offset = 0;
+        uint64_t offset = startOffset;
         uint32_t remain = sizeInBytes;
 
         if (allow128)
@@ -451,16 +463,22 @@ namespace
 
         const MicroLabelRef loopLabel = builder.createLabel();
 
-        builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
+        // Indexed by a byte offset, like the copy loop: the base register keeps the
+        // object's address, so the zero fill of a local array does not turn that
+        // address into a moving pointer the optimizer can no longer bound.
+        const uint64_t loopBytes = static_cast<uint64_t>(chunkCount) * chunkSize;
+        builder.emitLoadRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
-        emitMemZeroChunk(builder, dstReg, 0, chunkSize, zeroReg, zero128Reg);
-        builder.emitOpBinaryRegImm(dstReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+        if (chunkSize == 16)
+            builder.emitLoadAmcMemReg(dstReg, countReg, 1, 0, MicroOpBits::B64, zero128Reg, MicroOpBits::B128);
+        else
+            builder.emitLoadAmcMemReg(dstReg, countReg, 1, 0, MicroOpBits::B64, zeroReg, microOpBitsFromChunkSize(chunkSize));
+        builder.emitOpBinaryRegImm(countReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(loopBytes, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
 
         if (tailSize)
-            emitMemZeroUnrolled(builder, dstReg, tailSize, false, zeroReg, zero128Reg);
+            emitMemZeroUnrolled(builder, dstReg, tailSize, false, zeroReg, zero128Reg, loopBytes);
     }
 
     // One block of a memory comparison. A block only ever answers "these bytes are all equal" or

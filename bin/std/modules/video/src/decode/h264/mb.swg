@@ -174,40 +174,51 @@ struct MbNeighbors
 impl Slice
 {
     // Resolves the macroblocks around the one at the current address, once per macroblock.
+    //
+    // The four answers are written in place from one read of the picture geometry, rather than
+    // four calls that each reload it and return a record to copy.
     mtd resolveNeighbors()
     {
-        let dec = .dec!
-        let sps = dec.sps!
-        let mbX = .mbX
-        let mbY = .mbY
-        .neighbors.blockBase = cast(u64) (mbY * 4 * (sps.mbWidth * 4) + mbX * 4)
-        .neighbors.a         = .resolveNeighbor(mbX - 1, mbY, mbX > 0)
-        .neighbors.b         = .resolveNeighbor(mbX, mbY - 1, mbY > 0)
-        .neighbors.c         = .resolveNeighbor(mbX + 1, mbY - 1, mbY > 0 and mbX + 1 < sps.mbWidth)
-        .neighbors.d         = .resolveNeighbor(mbX - 1, mbY - 1, mbX > 0 and mbY > 0)
+        let dec     = .dec!
+        let mbWidth = dec.sps!.mbWidth
+        let mbInfo  = dec.mbInfo.storage()
+        let mbX     = .mbX
+        let mbY     = .mbY
+        let sliceId = .sliceId
+        let index   = cast(u64) (mbY * mbWidth + mbX)
+        let block   = cast(u64) (mbY * 4 * (mbWidth * 4) + mbX * 4)
+        let chroma  = cast(u64) (mbY * 2 * (mbWidth * 2) + mbX * 2)
+        let row     = cast(u64) mbWidth
+        .neighbors.blockBase = block
+        // An unavailable neighbor's indexes wrap below zero and are never read.
+        fillNeighbor(&.neighbors.a, mbX > 0, mbInfo, sliceId, index - #wrap 1, block - #wrap 4, chroma - #wrap 2)
+        fillNeighbor(&.neighbors.b, mbY > 0, mbInfo, sliceId, index - #wrap row, block - #wrap row * 16, chroma - #wrap row * 4)
+        fillNeighbor(&.neighbors.c, mbY > 0 and mbX + 1 < mbWidth, mbInfo, sliceId, index - #wrap row + #wrap 1, block - #wrap row * 16 + #wrap 4, chroma - #wrap row * 4 + #wrap 2)
+        fillNeighbor(&.neighbors.d, mbX > 0 and mbY > 0, mbInfo, sliceId, index - #wrap row - #wrap 1, block - #wrap row * 16 - #wrap 4, chroma - #wrap row * 4 - #wrap 2)
     }
 
-    // Resolves one neighbor macroblock, available when it lies in the picture and this slice
-    // decoded it.
-    mtd const resolveNeighbor(mbX, mbY: s32, inPicture: bool)->MbNeighbor
+    // Fills one neighbor macroblock, available when it lies in the picture and this slice
+    // decoded it; the indexes are those of its macroblock record, its top-left 4x4 block and
+    // its top-left chroma block.
+    #[Swag.Inline]
+    func fillNeighbor(result: *MbNeighbor, inPicture: bool, mbInfo: [*] MbInfo, sliceId: u16, index, block, chroma: u64)
     {
-        var result: retval
+        result.available  = false
+        result.info       = null
+        result.mbIndex    = 0
+        result.blockBase  = 0
+        result.chromaBase = 0
         if not inPicture do
-            return result
-
-        let dec   = .dec!
-        let sps   = dec.sps!
-        let index = cast(u64) (mbY * sps.mbWidth + mbX)
-        let info  = &dec.mbInfo[index]
-        if info.sliceId != .sliceId do
-            return result
+            return
+        let info = &mbInfo[index]
+        if info.sliceId != sliceId do
+            return
 
         result.available  = true
         result.info       = info
         result.mbIndex    = index
-        result.blockBase  = cast(u64) (mbY * 4 * (sps.mbWidth * 4) + mbX * 4)
-        result.chromaBase = cast(u64) (mbY * 2 * (sps.mbWidth * 2) + mbX * 2)
-        return result
+        result.blockBase  = block
+        result.chromaBase = chroma
     }
 
     // Reports whether the macroblock at `mbX`, `mbY` belongs to this slice's decoded region.
@@ -366,24 +377,43 @@ impl Slice
     }
 
     // Stores the final motion of one partition into the picture grid and the parse state.
+    //
+    // As FFmpeg's `fill_rectangle` does, a block's record goes out as one eight-byte word and its
+    // difference pair as one four-byte word, row after row from a pointer, and a whole row of four
+    // direct flags as one word.
     mtd assignMotion(mb: *Mb, list: u32, x4, y4, w4, h4: s32, refIdx: s32, mv: [2] s16, mvd: [2] s16, isDirect: bool)
     {
         let dec   = .dec!
-        let gw    = dec.sps!.mbWidth * 4
+        let gw    = cast(u64) (dec.sps!.mbWidth * 4)
         let refId = refIdx >= 0 ? .refs[list, refIdx].identity : NoReferenceIdentity
-        let entry = BlockMotion{mvX: mv[0], mvY: mv[1], refIdx: cast(s8) refIdx, refId: refId}
-        let grid  = list == 0 ? dec.motionL0.storage() : dec.motionL1.storage()
-        let diffs = list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage()
-        for row in cast(u64) h4
+        let entry = cast(u64) cast #bit (u16) mv[0] | (cast(u64) cast #bit (u16) mv[1] << 16) |
+                    (cast(u64) cast #bit (u16) packedReferences(cast(s8) refIdx, refId) << 32)
+        let diff  = cast(u32) cast #bit (u16) mvd[0] | (cast(u32) cast #bit (u16) mvd[1] << 16)
+        let flag  = isDirect ? 1'u8 : 0'u8
+        let grid  = cast([*] u64) (list == 0 ? dec.motionL0.storage() : dec.motionL1.storage())
+        let diffs = cast([*] u32) (list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage())
+        let flags = dec.directFlags.storage()
+        let width = cast(u64) w4
+        var index = cast(u64) ((mb.mbY * 4 + y4) * cast(s32) gw + mb.mbX * 4 + x4)
+        for cast(u64) h4
         {
-            for column in cast(u64) w4
+            for column in width
             {
-                let index = cast(u64) ((mb.mbY * 4 + y4 + cast(s32) row) * gw + mb.mbX * 4 + x4 + cast(s32) column)
-                grid[index]            = entry
-                diffs[index * 2]       = mvd[0]
-                diffs[index * 2 + 1]   = mvd[1]
-                dec.directFlags[index] = isDirect ? 1 : 0
+                grid[index + column]  = entry
+                diffs[index + column] = diff
             }
+
+            if width == 4
+            {
+                (cast([*] u32) (flags + index))[0] = cast(u32) flag * 0x01010101
+            }
+            else
+            {
+                for column in width do
+                    flags[index + column] = flag
+            }
+
+            index += gw
         }
 
         let rowMask = ((1'u32 << cast(u32) w4) - 1) << cast(u32) x4

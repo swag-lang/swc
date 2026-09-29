@@ -436,21 +436,27 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
     const CallConv& conv = CallConv::get(callConvKind);
     if (conv.independentArgBanks)
     {
-        uint64_t frameBaseSize = 0;
-        for (uint32_t i = 0; i < argLayouts.size(); ++i)
+        const uint32_t stackSlotSize = conv.stackSlotSize();
+        uint64_t       frameBaseSize = 0;
+        uint64_t       homeBytes     = 0;
+        uint32_t       intLane       = 0;
+        uint32_t       floatLane     = 0;
+        for (const ArgLayout& arg : argLayouts)
         {
-            if (argumentRegisterIndex(conv, argLayouts, i) != K_NO_ARG_REGISTER)
+            const bool inRegister = arg.isFloat ? floatLane++ < conv.floatArgRegs.size() : intLane++ < conv.intArgRegs.size();
+            if (inRegister)
+            {
+                if (arg.needsHome)
+                    homeBytes += stackSlotSize;
                 continue;
-            const uint32_t argBytes = std::max(conv.stackSlotSize(), static_cast<uint32_t>(argLayouts[i].numBits) / 8);
-            if (argBytes > conv.stackSlotSize())
+            }
+
+            const uint32_t argBytes = std::max(stackSlotSize, static_cast<uint32_t>(arg.numBits) / 8);
+            if (argBytes > stackSlotSize)
                 frameBaseSize = (frameBaseSize + argBytes - 1) & ~static_cast<uint64_t>(argBytes - 1);
             frameBaseSize += argBytes;
         }
-        for (uint32_t i = 0; i < argLayouts.size(); ++i)
-        {
-            if (argLayouts[i].needsHome && argumentRegisterIndex(conv, argLayouts, i) != K_NO_ARG_REGISTER)
-                frameBaseSize += conv.stackSlotSize();
-        }
+        frameBaseSize += homeBytes;
         const uint32_t stackAlign = conv.stackAlignment;
         const uint32_t alignPad   = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
         SWC_ASSERT(frameBaseSize + alignPad <= UINT32_MAX);

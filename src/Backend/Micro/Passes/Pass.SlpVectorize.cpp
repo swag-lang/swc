@@ -1225,6 +1225,7 @@ namespace
         {
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Breakpoint:
+            case MicroInstrOpcode::Prefetch:
             case MicroInstrOpcode::SanityInvalidate:
             case MicroInstrOpcode::CmpRegReg:
             case MicroInstrOpcode::CmpRegImm:

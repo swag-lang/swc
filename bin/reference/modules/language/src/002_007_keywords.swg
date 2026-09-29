@@ -123,7 +123,7 @@ Memory and atomic intrinsics:
 
 ```swag
 Swag.atomadd  Swag.atomand  Swag.atomcmpxchg  Swag.atomget  Swag.atomor  Swag.atomxchg  Swag.atomxor
-Swag.memcmp  Swag.memcpy  Swag.memmove  Swag.memset
+Swag.memcmp  Swag.memcpy  Swag.memmove  Swag.memset  Swag.prefetch
 ```
 
 Packed vector intrinsics:

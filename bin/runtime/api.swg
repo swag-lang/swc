@@ -1302,6 +1302,12 @@ func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 #[Swag.ReadOnly]
 func memcmp(dst, src: const [*] void?, size: u64)->s32
 
+// Hints that the bytes at `addr` will be read soon, so the processor can start moving
+// their cache line closer. It never faults and changes nothing the program can observe:
+// `addr` may be null, dangling, or one past the end of a buffer, and a target without a
+// prefetch instruction treats the call as a no-op.
+func prefetch(addr: const [*] void?)
+
 // Atomic read-modify-write operations. Each one returns the value `addr` held before it.
 #[Swag.Discardable]
 {

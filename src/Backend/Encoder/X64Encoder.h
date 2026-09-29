@@ -46,6 +46,7 @@ protected:
     void encodePop(MicroReg reg) override;
     void encodeNop() override;
     void encodeBreakpoint() override;
+    void encodePrefetch(MicroReg memReg) override;
     void encodeRet() override;
     void setUnwindFrameRegister(MicroReg reg) override;
     void encodeCallRelative(Symbol* targetSymbol, CallConvKind callConv) override;

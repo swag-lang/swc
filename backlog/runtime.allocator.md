@@ -62,10 +62,11 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.017 — Medium pages commit all eight units for their first block
 
 - Recorded: 2026-09-29 16:26
+- Updated: 2026-09-29 21:24 — Loop headers are now 16-byte aligned; csvagg no longer depends on placement
 
 **Evidence.** `acquirePage` commits a whole page before carving it: 64 KiB for a small class, 512 KiB for a medium one. A program holding two 48 KB blocks therefore pays for 512 KiB. On the bench, Swag leven commits 2.5 MB against 2.1 MB for C++ and wordfreq 26.2 MB against 25.7 MB. A candidate that commits a medium page one 64 KiB unit at a time — a carving limit set to the committed part, raised by the allocation slow path when the page looks exhausted, so the inlined fast path stays unchanged — brought leven to 2.1 MB and wordfreq to 25.5 MB. It was not landed: pinned, order-alternated runs showed csvagg 12-28% slower, although csvagg's timed section only makes eight small allocations. A control that only added dead code to `acquireBlockSlow` slowed csvagg by 12% too, and an A/A run gives 1.000, so csvagg's hot loop is sensitive to where the runtime code places it rather than to the allocator.
 
-**Next.** Make csvagg's loop timing independent of the size of the runtime linked before it (loop-head alignment in the backend, see compiler.optimization.md), then re-measure the medium-page design described above.
+**Next.** The optimizing backend now starts every loop header on a 16-byte boundary, as LLVM does, so csvagg's scan loops no longer straddle a cache line when the code before them grows: its time is the same for every function order the compiler produces. Re-measure the medium-page design described above against that compiler.
 
 **Complete when.** Every bench task commits no more than its C++ port, with pinned execution-time ratios within noise.
 

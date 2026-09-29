@@ -4788,6 +4788,33 @@ void X64Encoder::encodeNop()
     emitCpuOp(store_, 0x90);
 }
 
+// Fills numBytes with the fewest long NOPs, from the sequences the Intel optimization
+// manual recommends. Ten bytes is the longest form every x86-64 decodes at full speed,
+// which is also the cap LLVM uses for a generic 64-bit target.
+void X64Encoder::encodeNopPadding(uint32_t numBytes)
+{
+    static constexpr uint8_t NOPS[10][10] = {
+        {0x90},
+        {0x66, 0x90},
+        {0x0F, 0x1F, 0x00},
+        {0x0F, 0x1F, 0x40, 0x00},
+        {0x0F, 0x1F, 0x44, 0x00, 0x00},
+        {0x66, 0x0F, 0x1F, 0x44, 0x00, 0x00},
+        {0x0F, 0x1F, 0x80, 0x00, 0x00, 0x00, 0x00},
+        {0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00},
+        {0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00},
+        {0x66, 0x2E, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00},
+    };
+
+    while (numBytes)
+    {
+        const uint32_t length = std::min(numBytes, 10u);
+        for (uint32_t i = 0; i < length; ++i)
+            emitCpuOp(store_, NOPS[length - 1][i]);
+        numBytes -= length;
+    }
+}
+
 void X64Encoder::encodeBreakpoint()
 {
     emitCpuOp(store_, 0xCC);

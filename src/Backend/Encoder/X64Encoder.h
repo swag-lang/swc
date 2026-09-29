@@ -45,6 +45,7 @@ protected:
     void encodePush(MicroReg reg) override;
     void encodePop(MicroReg reg) override;
     void encodeNop() override;
+    void encodeNopPadding(uint32_t numBytes) override;
     void encodeBreakpoint() override;
     void encodePrefetch(MicroReg memReg) override;
     void encodeRet() override;

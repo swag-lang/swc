@@ -654,6 +654,7 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         addPostRaOptimPass(*postRaLoopRotatePass_);
     }
     addFinalPass(*prologEpilogSanitizePass_);
+    emitPass_->setAlignLoopHeaders(optimize);
     addFinalPass(*emitPass_);
 }
 

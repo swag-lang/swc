@@ -39,13 +39,16 @@ struct CabacReader
 // rebuilt one address for every table it touched, on every bin. Behind a single base they are
 // one address and a displacement, which the addressing of a memory operand already carries at no
 // cost, and the two registers this frees are two the loop no longer spills.
-const CabacLpsAt   = 0'u64       // Table 9-44, read as `2 * (range & 0xC0) + state`.
-const CabacStateAt = 512'u64     // The state after a bin, read as `128 + state`.
-const CabacSigAt   = 768'u64     // Table 9-43 frame coding, significance context per 8x8 scan position.
-const CabacLastAt  = 832'u64     // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
-const CabacTables: [896] u8 = #run buildCabacTables()
+const CabacLpsAt     = 0'u64      // Table 9-44, read as `2 * (range & 0xC0) + state`.
+const CabacStateAt   = 512'u64    // The state after a bin, read as `128 + state`.
+const CabacSigAt     = 768'u64    // Table 9-43 frame coding, significance context per 8x8 scan position.
+const CabacLastAt    = 832'u64    // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
+const CabacLevel1At  = 896'u64    // Context of a level's first bin, per level node.
+const CabacLevelGtAt = 904'u64    // Context of a level's later bins, per level node.
+const CabacNodeAt    = 912'u64    // The level node after a level of one, then after a larger level.
+const CabacTables: [928] u8 = #run buildCabacTables()
 
-func buildCabacTables()->[896] u8
+func buildCabacTables()->[928] u8
 {
     var result: retval
 
@@ -72,6 +75,15 @@ func buildCabacTables()->[896] u8
         result[CabacSigAt + scan]  = SigCoeffCtx8x8[scan]
         result[CabacLastAt + scan] = LastCoeffCtx8x8[scan]
     }
+
+    for node in 8'u64
+    {
+        result[CabacLevel1At + node]  = CoeffAbsLevel1Ctx[node]
+        result[CabacLevelGtAt + node] = CoeffAbsLevelGt1Ctx[node]
+    }
+
+    for index in 16'u64 do
+        result[CabacNodeAt + index] = CoeffAbsLevelTransition[index]
 
     return result
 }
@@ -579,10 +591,14 @@ impl Slice
     // the significance loops spent a fifth of their time on those round trips. The two outcomes
     // are selected without a branch, since a bin's value is close to unpredictable by design.
     // The decoded bin lands in `bin`.
+    //
+    // The packed state is held at full register width, as FFmpeg's `get_cabac` holds it: its
+    // complement then indexes the transition table directly, where a 32-bit complement had to be
+    // sign-extended into an address on every bin.
     #[Swag.Mixin]
     private mtd binDecision(binCtx: u32)
     {
-        var #uniq0 = cast(s32) .cabac.contexts[binCtx]
+        var #uniq0 = cast(s64) .cabac.contexts[binCtx]
         let #uniq1 = cast(u32) CabacTables[CabacLpsAt + cast(u64) (2 * (range & 0xC0)) + cast(u64) #uniq0]
         range -= #uniq1
 
@@ -766,7 +782,7 @@ impl Slice
 
         // Levels, last significant coefficient first.
         let absBase   = CabacAbsBase[cat]
-        var node      = 0'u32
+        var node      = 0'u64
         var remaining = count
         var level: s32
         while remaining > 0
@@ -774,16 +790,16 @@ impl Slice
             remaining -= 1
             let position  = cast(u64) indices[remaining]
             var magnitude = 1's32
-            .binDecision(absBase + cast(u32) CoeffAbsLevel1Ctx[node])
+            .binDecision(absBase + cast(u32) CabacTables[CabacLevel1At + node])
             if bin == 0
             {
-                node = cast(u32) CoeffAbsLevelTransition[node]
+                node = cast(u64) CabacTables[CabacNodeAt + node]
             }
             else
             {
                 magnitude = 2
-                let gt1Ctx = absBase + cast(u32) CoeffAbsLevelGt1Ctx[node]
-                node = cast(u32) CoeffAbsLevelTransition[8 + node]
+                let gt1Ctx = absBase + cast(u32) CabacTables[CabacLevelGtAt + node]
+                node = cast(u64) CabacTables[CabacNodeAt + 8 + node]
                 while magnitude < 15
                 {
                     .binDecision(gt1Ctx)

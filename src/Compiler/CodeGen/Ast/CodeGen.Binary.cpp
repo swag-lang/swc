@@ -124,16 +124,15 @@ namespace
 
     SemaNodeView resolveBinaryOperandSemanticView(CodeGen& codeGen, AstNodeRef operandRef)
     {
-        const SemaNodeView semanticView = codeGen.viewType(operandRef);
-        const AstNode&     operand      = codeGen.node(operandRef);
-        if (operand.isNot(AstNodeId::CastExpr) && operand.isNot(AstNodeId::AutoCastExpr) && operand.isNot(AstNodeId::AsCastExpr))
-            return semanticView;
+        const AstNode& operand = codeGen.node(operandRef);
+        if (operand.is(AstNodeId::CastExpr) || operand.is(AstNodeId::AutoCastExpr) || operand.is(AstNodeId::AsCastExpr))
+        {
+            const SemaNodeView storedView = codeGen.sema().viewStored(operandRef, SemaNodeViewPartE::Type);
+            if (storedView.typeRef().isValid())
+                return storedView;
+        }
 
-        const SemaNodeView storedView = codeGen.sema().viewStored(operandRef, SemaNodeViewPartE::Type);
-        if (storedView.typeRef().isValid())
-            return storedView;
-
-        return semanticView;
+        return codeGen.viewType(operandRef);
     }
 
     TypeRef resolveBinaryOperandSourceTypeRef(CodeGen& codeGen, AstNodeRef operandRef, const SemaNodeView& operandView, const CodeGenNodePayload& operandPayload)

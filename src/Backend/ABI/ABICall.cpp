@@ -33,8 +33,9 @@ namespace
 
     struct CallArgMasks
     {
-        uint8_t ints   = 0;
-        uint8_t floats = 0;
+        uint8_t ints         = 0;
+        uint8_t floats       = 0;
+        bool    hasStackArgs = false;
     };
 
     CallArgMasks computeCallArgMasks(const CallConv& conv, std::span<const ABICall::ArgLayout> argLayouts)
@@ -47,6 +48,11 @@ namespace
             const ABICall::ArgLayout& arg = argLayouts[i];
             const uint32_t regIndex = conv.independentArgBanks ? takeIndependentArgRegisterIndex(conv, arg, intLane, floatLane) :
                                                                   (conv.canPassArgInRegister(i, arg.isFloat) ? i : K_NO_ARG_REGISTER);
+            if (regIndex == K_NO_ARG_REGISTER)
+            {
+                result.hasStackArgs = true;
+                continue;
+            }
             if (regIndex >= 8)
                 continue;
 
@@ -512,18 +518,9 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     if (args.empty())
         return preparedCall;
 
-    const uint32_t stackAdjust  = computeCallStackAdjust(callConvKind, argLayouts);
-    bool           hasStackArgs = false;
-    for (uint32_t i = 0; i < numPreparedArgs; ++i)
-    {
-        if (argumentRegisterIndex(conv, argLayouts, i) == K_NO_ARG_REGISTER)
-        {
-            hasStackArgs = true;
-            break;
-        }
-    }
+    const uint32_t stackAdjust = computeCallStackAdjust(callConvKind, argLayouts);
 
-    if (hasStackArgs || hasRegisterArgHomeSlot(conv, args))
+    if (argMasks.hasStackArgs || hasRegisterArgHomeSlot(conv, args))
     {
         MicroReg   regBase, regTmp;
         const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);

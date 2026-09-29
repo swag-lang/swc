@@ -281,8 +281,9 @@ public:
     void                setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
     CallConvKind        callConvKind() const noexcept { return callConvKind_; }
     void                setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
-    MicroBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
-    const MicroBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    MicroBuilder&       microInstrBuilder(TaskContext& ctx);
+    const MicroBuilder* microInstrBuilder() const noexcept { return microInstrBuilder_.load(std::memory_order_acquire); }
+    void                releaseMicroInstrBuilder() noexcept;
     AstNodeRef          declNodeRef() const noexcept { return declNodeRef_; }
     const NodePayload*  declNodePayloadContext() const noexcept { return declNodePayloadCtx_; }
     void                setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
@@ -476,7 +477,9 @@ private:
     uint32_t                                      debugStackFrameSize_        = 0;
     MicroReg                                      debugStackBaseReg_          = MicroReg::invalid();
 
-    MicroBuilder                         microInstrBuilder_;
+    // Created when code generation starts and dropped once the function is lowered: most
+    // functions a program imports are never generated, and a lowered one keeps its machine code.
+    std::atomic<MicroBuilder*>           microInstrBuilder_ = nullptr;
     MachineCode                          loweredMicroCode_;
     mutable std::shared_mutex            callDependenciesMutex_;
     mutable std::shared_mutex            closureAdapterMutex_;

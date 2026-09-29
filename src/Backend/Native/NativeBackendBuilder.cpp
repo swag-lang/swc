@@ -108,8 +108,8 @@ namespace
 
     Utf8 functionCacheFingerprint(const NativeBackendBuilder& builder, const SymbolFunction& function)
     {
-        const MicroBuilder& microBuilder = function.microInstrBuilder();
-        if (microBuilder.instructions().count() < K_FUNCTION_CACHE_MIN_INSTRUCTIONS || !microBuilder.codeRelocations().empty())
+        const MicroBuilder* microBuilder = function.microInstrBuilder();
+        if (!microBuilder || microBuilder->instructions().count() < K_FUNCTION_CACHE_MIN_INSTRUCTIONS || !microBuilder->codeRelocations().empty())
             return {};
 
         ByteArray identity;
@@ -120,14 +120,14 @@ namespace
         identity.appendLe32(builder.ctx().typeMgr().get(function.typeRef()).runtimeHash(builder.ctx()));
         identity.appendLe32(function.returnTypeRef().isValid() ? builder.ctx().typeMgr().get(function.returnTypeRef()).runtimeHash(builder.ctx()) : 0);
 
-        for (const MicroInstr& instruction : microBuilder.instructions().view())
+        for (const MicroInstr& instruction : microBuilder->instructions().view())
         {
             if (instruction.op == MicroInstrOpcode::LoadRegPtrImm)
                 return {};
 
             identity.pushBack(static_cast<std::byte>(instruction.op));
             identity.pushBack(static_cast<std::byte>(instruction.numOperands));
-            const MicroInstrOperand* operands = instruction.ops(microBuilder.operands());
+            const MicroInstrOperand* operands = instruction.ops(microBuilder->operands());
             for (uint32_t i = 0; i < instruction.numOperands; ++i)
             {
                 identity.appendLe64(operands[i].valueU64);
@@ -142,7 +142,7 @@ namespace
         }
 
         std::vector<std::pair<uint32_t, uint32_t>> forbiddenRegs;
-        for (const auto& [virtualReg, physicalRegs] : microBuilder.virtualRegForbiddenPhysRegs())
+        for (const auto& [virtualReg, physicalRegs] : microBuilder->virtualRegForbiddenPhysRegs())
             for (const MicroReg physicalReg : physicalRegs)
                 forbiddenRegs.emplace_back(virtualReg.packed, physicalReg.packed);
         std::ranges::sort(forbiddenRegs);
@@ -154,8 +154,8 @@ namespace
         }
 
         std::vector<uint32_t> preservedRegs;
-        preservedRegs.reserve(microBuilder.preservedVirtualCopyRegs().size());
-        for (const MicroReg reg : microBuilder.preservedVirtualCopyRegs())
+        preservedRegs.reserve(microBuilder->preservedVirtualCopyRegs().size());
+        for (const MicroReg reg : microBuilder->preservedVirtualCopyRegs())
             preservedRegs.push_back(reg.packed);
         std::ranges::sort(preservedRegs);
         identity.appendLe32(static_cast<uint32_t>(preservedRegs.size()));
@@ -888,7 +888,7 @@ Result NativeBackendBuilder::finalizeFunctionCacheHit(bool& outHit, SymbolFuncti
         return function.emit(ctx_);
     }
 
-    function.microInstrBuilder(ctx_).releaseMemory();
+    function.releaseMicroInstrBuilder();
     outHit = true;
     return Result::Continue;
 }

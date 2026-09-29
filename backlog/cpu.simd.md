@@ -48,29 +48,10 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
-### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-09-27 23:45 — widen the exact XOR reduction to eight words when profitable.
-- Evidence: the registered pass is basic-block SLP (`Pass.SlpVectorize`), with no general
-  loop-reduction vectorizer or runtime-versioned alias/tail pipeline. `Pass.LoopUnroll` now recognizes
-  a straight-line, fixed-bound indexed 32-bit load plus index and XOR reduction when the bound is
-  divisible by four. For a bound of at least 128 divisible by eight, it uses two packed loads and
-  independent XOR accumulators. The 4,194,304-word ChaCha checksum loop changes from seven issued
-  instructions per four words to eleven per eight, with no loop spills; its checksum remains
-  633277775 under `--validate-micro`. C++ regression covers four- and eight-word groups, a
-  nondivisible bound, and a scalar temporary read after the loop. The 1,148 C++, 3,483 native
-  Release, and 1,500 JIT Release tests pass. The other six benchmark tasks retain their selected
-  optimized function counts under `--validate-micro`.
-- Intent: add loop vectorization that recognizes associative reductions, versions alias/alignment
-  checks, and generate masked or peeled tails using the explicit SIMD operation set.
-- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
-  supported target policy with scalar-equivalent results and profitable cost decisions.
-- Related: cpu.simd.006, cpu.simd.015.
-
 ### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
 
 - Recorded: 2026-09-12 18:05
+- Updated: 2026-09-29 11:28 — Luma, chroma, strength and intra kernels now take FFmpeg's shapes.
 - Evidence: forcing FFmpeg's dispatch down one instruction set at a time on a 3840x2160 one-slice
   High/CABAC clip gives the ladder its assembly climbs, in millions of decode-thread cycles per
   picture: compiled code 179, with SSE2 111, with SSSE3 82. Its SSE2 step covers the deblocking
@@ -112,12 +93,61 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   instructions instead of saving any, and was reverted. That edge is eight samples, which already
   fit one register once widened, so widening buys nothing back. The byte domain pays where it
   doubles the samples a register carries, which is the sixteen-sample luma edge, and not otherwise.
-- Next: the vertical weak luma filter, which reads columns rather than rows and needs the
-  reference's transpose before the same body applies, then the clip-and-add of the inverse
-  transform. Keep the existing scalar reference beside each one and the plane digests byte-exact.
+- Done (2026-09-29, prompt 2): the vertical six-tap filter slides its six widened rows down the
+  block, one load and one widen per output row (FFmpeg's FILT_V), loop 43 -> 37 instructions and
+  17 -> 3 memory operations; the centre half-sample stays in 16-bit lanes with the hv2 shift chain
+  `((((x - y) >> 2) - y +sat z) >> 2 + z) >> 6`, exact, and runs as strips of eight over sums
+  kept in registers, a 16x16 block about 1960 -> 1480 instructions; the bilinear chroma rows are
+  loaded and interleaved once (2D loop 23 -> 21, 7 -> 5 memory operations); the edge strength
+  compares both lists' references and vectors as eight 16-bit lanes (edgeStrength with its two
+  motion loads and mvClose, about 350 executed instructions, becomes one 246-instruction body
+  with no call); the luma and chroma weak filters take tC0 and the strength mask from one byte
+  shuffle of a per-indexA row instead of four branchy table reads; intra 8x8 diagonal modes are
+  eight-byte windows of one filtered edge line; the inverse transform writes its rows with
+  shuffles instead of reading lanes back through the stack. Scratch planes and clamp windows are
+  declared only in the branches that use them, since a local array is cleared where it is
+  declared. Backend changes found on the way: local-array fills and copies index an unchanged
+  base so mem2reg keeps promoting the frame, a 16-byte-element subscript splits its scale so
+  one index serves a row, read-only vector constants leave conditional arms, zeroing clears stay
+  in calling loops, 16-bit any/all read the byte movemask directly, and a vector read lane by
+  lane is split into shuffles instead of a stack round trip. Every change is byte-exact against
+  PyAV on the 60-frame 3840x2160 extract; with the same compiler, the decoder sources alone read
+  88.5 against 95.0 million lane cycles per picture (medians of four interleaved runs; FFmpeg
+  with its assembly reads about 41 on the same machine).
+- Tried and reverted: computing the inner-edge thresholds once per macroblock in `deblockMb`
+  through a small struct. The struct travelled through the frame and kept six more values live
+  across the filter calls: the function grew from 1633 to 1780 instructions and its edge loops
+  gained about 40 memory operations.
+- Next: in a symbol-bearing profile of the extract (a `--debug` build, which keeps parameters in
+  stack slots and inflates small functions), the pixel layer's largest remaining costs are the
+  deblocking driver (`deblockMb` about 6 per cent, `edgeStrengths` about 4), full-sample copies
+  (`copyPlane` about 5, bound on reference-frame reads that FFmpeg prefetches a macroblock
+  ahead), and the inter driver (`compensate` about 3). Derive the strengths of a whole edge
+  direction in one vector pass, as FFmpeg's `h264_loop_filter_strength` does, and measure a
+  prefetch of the next macroblock's reference rows once the language has a prefetch intrinsic.
 - Complete when: the H.264 pixel layer reaches FFmpeg's SSE2 figure on the same fixture with
   unchanged decoded planes.
 - Related: std.video.001, cpu.simd.023, cpu.simd.024
+
+### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-27 23:45 — widen the exact XOR reduction to eight words when profitable.
+- Evidence: the registered pass is basic-block SLP (`Pass.SlpVectorize`), with no general
+  loop-reduction vectorizer or runtime-versioned alias/tail pipeline. `Pass.LoopUnroll` now recognizes
+  a straight-line, fixed-bound indexed 32-bit load plus index and XOR reduction when the bound is
+  divisible by four. For a bound of at least 128 divisible by eight, it uses two packed loads and
+  independent XOR accumulators. The 4,194,304-word ChaCha checksum loop changes from seven issued
+  instructions per four words to eleven per eight, with no loop spills; its checksum remains
+  633277775 under `--validate-micro`. C++ regression covers four- and eight-word groups, a
+  nondivisible bound, and a scalar temporary read after the loop. The 1,148 C++, 3,483 native
+  Release, and 1,500 JIT Release tests pass. The other six benchmark tasks retain their selected
+  optimized function counts under `--validate-micro`.
+- Intent: add loop vectorization that recognizes associative reductions, versions alias/alignment
+  checks, and generate masked or peeled tails using the explicit SIMD operation set.
+- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
+  supported target policy with scalar-equivalent results and profitable cost decisions.
+- Related: cpu.simd.006, cpu.simd.015.
 
 ### cpu.simd.028 — PNG Sub stride 6 and remaining sample conversion need a current profile
 

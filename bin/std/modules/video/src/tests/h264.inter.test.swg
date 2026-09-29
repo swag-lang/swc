@@ -193,3 +193,51 @@ impl ChromaReference
         }
     }
 }
+
+// The paired chroma prediction against two single-plane ones: every phase and block shape, in
+// place and through the clamped window, each plane written only inside its block.
+#test
+{
+    var frame: H264.Frame
+    frame.prepare(4, 4, 1)
+
+    var seed = 0x2545F491'u32
+    for index in frame.cb.count
+    {
+        seed = seed * #wrap 1664525 + #wrap 1013904223
+        frame.cb[index] = cast(u8) (seed >> 24)
+        seed = seed * #wrap 1664525 + #wrap 1013904223
+        frame.cr[index] = cast #wrap(u8) (seed >> 16)
+    }
+
+    const Shapes  = [8's32, 8, 8, 4, 4, 8, 4, 4, 4, 2, 2, 4, 2, 2]
+    const Origins = [0's32, 0, 3, 5, 11, 9, 27, 20, -2, -30, 31, 25, -40, 50]
+    var expectedB: [16 * 8] u8
+    var expectedR: [16 * 8] u8
+    var pairB:     [16 * 8] u8
+    var pairR:     [16 * 8] u8
+    for shape in Shapes.count / 2
+    {
+        let width  = Shapes[shape * 2]
+        let height = Shapes[shape * 2 + 1]
+        for origin in Origins.count / 2
+        {
+            let x = Origins[origin * 2]
+            let y = Origins[origin * 2 + 1]
+            for phase in 64's32
+            {
+                let fracX = phase & 7
+                let fracY = phase >> 3
+                Memory.set(expectedB.buffer, 0x5A, expectedB.count)
+                Memory.set(expectedR.buffer, 0x5A, expectedR.count)
+                Memory.set(pairB.buffer, 0x5A, pairB.count)
+                Memory.set(pairR.buffer, 0x5A, pairR.count)
+                H264.mcChroma(expectedB.buffer, 16, &frame, 0, x, y, fracX, fracY, width, height)
+                H264.mcChroma(expectedR.buffer, 16, &frame, 1, x, y, fracX, fracY, width, height)
+                H264.mcChromaPair(pairB.buffer, pairR.buffer, 16, &frame, x, y, fracX, fracY, width, height)
+                Swag.assert(Memory.compare(expectedB.buffer, pairB.buffer, pairB.count) == 0)
+                Swag.assert(Memory.compare(expectedR.buffer, pairR.buffer, pairR.count) == 0)
+            }
+        }
+    }
+}

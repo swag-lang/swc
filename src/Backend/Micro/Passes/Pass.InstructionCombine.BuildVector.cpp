@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -118,10 +119,30 @@ namespace InstructionCombine
         // escapes (the fourth vector of a cipher state, passed as a whole to
         // the rounds); the base as a plain value is the address of the first
         // local. An address computed after the slot cannot reach back into
-        // it. Stores elsewhere do not matter - the walk already refused any
-        // between the lane stores and the load.
+        // it, and neither can the address of a frame local the lowered
+        // function says ends before the slot starts. Stores elsewhere do not
+        // matter - the walk already refused any between the lane stores and
+        // the load.
         bool slotHasOtherReaders(const Context& ctx, const MicroReg base, const uint64_t slotOffset, const uint64_t slotBytes, const MicroInstrRef loadRef, const SmallVector<MicroInstrRef, 16>& storeRefs)
         {
+            thread_local std::vector<std::pair<uint64_t, uint64_t>> extents;
+            bool                                                    extentsReady = false;
+            const auto                                              reachesSlot  = [&](const uint64_t offset) {
+                if (!ctx.passContext || ctx.passContext->debugStackBaseVirtualReg != base)
+                    return true;
+                if (!extentsReady)
+                {
+                    MicroPassHelpers::collectFrameVariableExtents(extents, *ctx.passContext, base);
+                    extentsReady = true;
+                }
+                for (const auto& [lo, hi] : extents)
+                {
+                    if (offset >= lo && offset < hi)
+                        return !(hi <= slotOffset || slotOffset + slotBytes <= lo);
+                }
+                return true;
+            };
+
             const auto view  = ctx.storage->view();
             const auto endIt = view.end();
             for (auto it = view.begin(); it != endIt; ++it)
@@ -145,7 +166,7 @@ namespace InstructionCombine
                 if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
                 {
                     // ops: [0] dst, [1] base, [2] opBits, [3] offset
-                    if (ops[1].reg != base || ops[3].valueU64 < slotOffset + slotBytes)
+                    if (ops[1].reg != base || (ops[3].valueU64 < slotOffset + slotBytes && reachesSlot(ops[3].valueU64)))
                         return true;
                     continue;
                 }

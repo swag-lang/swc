@@ -15,6 +15,23 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.101 — A vector literal cleared through an address stays in the frame
+
+- Recorded: 2026-09-29 14:46
+- Updated: 2026-09-29 18:38 — Records and bounded literals now stay in registers; one literal shape remains.
+- Area: compiler/backend, instruction combining (vector literals)
+- Evidence: a word-sized record written field by field and a runtime-lane literal whose slot
+  lies past an escaped local are now built in registers. The vector-literal rule still skips a
+  lane store made through an address the function formed from the slot's own base
+  (`%a = &[base + k]`, then `[%a] = 0`), the way `bookkeepMb` first cleared its literal's local
+  before the decoder switched to a broadcast; the lanes that store covered are then unknown and
+  the literal stays in the frame. The lea itself also fails the escape check.
+- Next: resolve such a store to its base offset in the store walk, and let the `lea` pass the
+  escape check only when every use of it is the base of one of the removed stores.
+- Complete when: a runtime-lane literal whose local was cleared through such an address is built
+  in registers, with a C++ test beside the existing literal cases.
+- Related: compiler.optimization.099, std.video.001
+
 ### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
 
 - Recorded: 2026-09-24 10:33
@@ -54,38 +71,6 @@ block, and the hot path keeps the register.
   whose bodies retain their per-trip work.
 - Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
   both admitted and rejected shapes.
-
-### compiler.optimization.101 — Small records are assembled in the frame and read back whole
-
-- Recorded: 2026-09-29 14:46
-- Updated: 2026-09-29 16:10 — The NeighborMotion record shrink was kept.
-- Area: compiler/backend, instruction combining (aggregate and vector literals)
-- Evidence (H.264 decoder, 2026-09-29, prompt 2): a value built field by field and then read as
-  one register or one vector is stored lane by lane into a frame temporary and loaded whole, so
-  the wide load waits for the narrow stores it cannot forward from. `bookkeepMb` built its
-  co-located vector row `cast(Simd.S16x8) [mvX, mvY, ...]` as eight 16-bit stores and a 128-bit
-  load; the decoder now broadcasts a packed scalar instead (commit 76513b0d1). `Slice.motionAt`,
-  returning an eight-byte `NeighborMotion` (after dropping its unused difference and direct
-  fields), wrote the record with four stores and read it back with one 64-bit load.
-  `tryBuildVectorFromStores` and `tryBuildScalarFromStores` exist for exactly this shape but did
-  not fire. In `bookkeepMb` the slot's local is also given a default through an address register
-  first (`%1003 = &[%1 + 0x7A0]; [%1003] = 0`), a multi-definition local that stays in the frame
-  because mem2reg is disabled. In `motionAt` the record's other return paths also read the slot,
-  so `slotHasOtherReaders` refuses.
-- Tried and reverted: letting the scalar rule replace the load while keeping the stores when the
-  only other readers are loads through the same base (escapes still refuse). It fired on
-  `motionAt` (four stores then one load became the fields shifted and or-ed, 147 -> 160 Micro
-  instructions, since the stores stay for the other returns), no other decoder function or
-  benchmark program changed, and plane digests stayed exact; but more instructions against one
-  forwarded-load stall is not a static win, so the compiler change was reverted; the record
-  shrink itself was kept (commit 5081feef1).
-  Patch kept outside the tree.
-- Next: build the record in registers on every return path (the returns join into one exit
-  whose value is a phi of the per-path records), so the stores disappear too, and make the
-  vector-literal rule accept a slot whose local was first cleared through an address register.
-- Complete when: a small record returned by value and a vector literal of runtime lanes are
-  built in registers with no frame round trip, without growing any benchmark program.
-- Related: compiler.optimization.099, std.video.001
 
 ### compiler.optimization.102 — Retain one floating zero across unrolled arms
 
@@ -303,25 +288,6 @@ block, and the hot path keeps the register.
   broadening the alias analysis.
 - Complete when: the remaining repeated pointer/element reads disappear with sound alias and
   control-flow proofs, or a focused experiment identifies the register-residency constraint.
-
-### compiler.optimization.100 — A local array's declaration fill survives its complete overwrite
-
-- Recorded: 2026-09-29 11:28
-- Area: compiler/backend, memory optimization
-- Evidence: a local array is cleared where it is declared, and nothing removes the fill when the
-  program overwrites every byte before reading one. `Video.H264.filterLumaVertical` clears its
-  128-byte transpose tile (eight 16-byte stores) and then stores all eight rows; the H.264 luma
-  prediction cleared a 504-byte clamp window and a 256-byte plane on every call, 47 stores for a
-  path that nearly never reads them (moved into their branches in source on
-  perf/mp4-pixel-20260929, where the zero loop now indexes an unchanged base so mem2reg keeps the
-  rest of the frame promotable). No micro pass eliminates a store killed by a later store.
-- Next: a block-local dead-store pass over frame slots: a store is dead when a later store in the
-  same block covers its bytes and nothing between them reads memory the object can reach. At the
-  declaration fill the object has not escaped yet in this activation, so reads through other
-  pointers cannot see it; calls, and reads through frame-derived registers that overlap, keep it.
-- Complete when: the tile fill of `filterLumaVertical` disappears from its release dump, a fill
-  followed by a partial overwrite and a read keeps its stores, and unit tests cover both.
-- Related: compiler.optimization.011
 
 ### compiler.optimization.098 — Feed adjacent array updates from a packed state
 

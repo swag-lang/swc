@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/ApsInt.h"
 
@@ -266,6 +267,21 @@ uint32_t MicroPassHelpers::computeNextVirtualIntRegIndex(const MicroPassContext&
 uint32_t MicroPassHelpers::computeNextVirtualFloatRegIndex(const MicroPassContext& context)
 {
     return computeNextVirtualRegIndex(context, true, 1);
+}
+
+void MicroPassHelpers::collectFrameVariableExtents(std::vector<std::pair<uint64_t, uint64_t>>& out, const MicroPassContext& context, const MicroReg frameBase)
+{
+    out.clear();
+    if (!context.sanitizerFunction || (context.debugStackBaseVirtualReg.isValid() && context.debugStackBaseVirtualReg != frameBase))
+        return;
+    for (const SymbolVariable* localVar : context.sanitizerFunction->localVariables())
+    {
+        if (!localVar || !localVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            continue;
+        const uint64_t size = localVar->codeGenLocalSize();
+        if (size)
+            out.emplace_back(localVar->offset(), localVar->offset() + size);
+    }
 }
 
 void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& context, uint32_t& outIntIndex, uint32_t& outFloatIndex)

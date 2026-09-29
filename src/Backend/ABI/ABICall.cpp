@@ -24,21 +24,40 @@ namespace
         return requiresRegisterArgHomeSlot(arg);
     }
 
-    template<typename TA, typename TP>
-    uint8_t computeCallArgMask(const CallConv& conv, std::span<const TA> args, std::span<const ABICall::ArgLayout> argLayouts, const TP& predicate)
+    uint32_t takeIndependentArgRegisterIndex(const CallConv& conv, const ABICall::ArgLayout& arg, uint32_t& intLane, uint32_t& floatLane)
     {
-        uint8_t mask = 0;
-        for (uint32_t i = 0; i < args.size(); ++i)
+        const uint32_t laneIndex = arg.isFloat ? floatLane++ : intLane++;
+        const size_t   laneCount = arg.isFloat ? conv.floatArgRegs.size() : conv.intArgRegs.size();
+        return laneIndex < laneCount ? laneIndex : K_NO_ARG_REGISTER;
+    }
+
+    struct CallArgMasks
+    {
+        uint8_t ints   = 0;
+        uint8_t floats = 0;
+    };
+
+    CallArgMasks computeCallArgMasks(const CallConv& conv, std::span<const ABICall::ArgLayout> argLayouts)
+    {
+        CallArgMasks result;
+        uint32_t     intLane   = 0;
+        uint32_t     floatLane = 0;
+        for (uint32_t i = 0; i < argLayouts.size(); ++i)
         {
-            const TA& arg = args[i];
-            if (!predicate(arg))
+            const ABICall::ArgLayout& arg = argLayouts[i];
+            const uint32_t regIndex = conv.independentArgBanks ? takeIndependentArgRegisterIndex(conv, arg, intLane, floatLane) :
+                                                                  (conv.canPassArgInRegister(i, arg.isFloat) ? i : K_NO_ARG_REGISTER);
+            if (regIndex >= 8)
                 continue;
-            const uint32_t regIndex = ABICall::argumentRegisterIndex(conv, argLayouts, i);
-            if (regIndex < 8)
-                mask |= static_cast<uint8_t>(1u << regIndex);
+
+            const uint8_t mask = static_cast<uint8_t>(1u << regIndex);
+            if (arg.isFloat)
+                result.floats |= mask;
+            else
+                result.ints |= mask;
         }
 
-        return mask;
+        return result;
     }
 
     struct PreparedCallStackAdjust
@@ -67,13 +86,6 @@ namespace
         }
 
         return false;
-    }
-
-    bool takeIndependentArgRegister(const CallConv& conv, const ABICall::ArgLayout& arg, uint32_t& intLane, uint32_t& floatLane)
-    {
-        if (arg.isFloat)
-            return floatLane++ < conv.floatArgRegs.size();
-        return intLane++ < conv.intArgRegs.size();
     }
 
     void emitCallArgs(MicroBuilder& builder, const CallConv& conv, std::span<const ABICall::Arg> args, MicroReg regBase, MicroReg regTmp)
@@ -360,7 +372,7 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
         for (uint32_t i = 0; i < argLayouts.size(); ++i)
         {
             const ArgLayout& arg = argLayouts[i];
-            if (takeIndependentArgRegister(conv, arg, intLane, floatLane))
+            if (takeIndependentArgRegisterIndex(conv, arg, intLane, floatLane) != K_NO_ARG_REGISTER)
             {
                 if (i < argIndex && arg.needsHome)
                     homeBytes += stackSlotSize;
@@ -447,7 +459,7 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
         uint32_t       floatLane     = 0;
         for (const ArgLayout& arg : argLayouts)
         {
-            const bool inRegister = takeIndependentArgRegister(conv, arg, intLane, floatLane);
+            const bool inRegister = takeIndependentArgRegisterIndex(conv, arg, intLane, floatLane) != K_NO_ARG_REGISTER;
             if (inRegister)
             {
                 if (arg.needsHome)
@@ -494,8 +506,9 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
     const auto      argLayouts      = collectArgLayouts(args);
     preparedCall.numPreparedArgs    = numPreparedArgs;
-    preparedCall.intArgMask         = computeCallArgMask(conv, args, argLayouts.span(), [](const PreparedArg& arg) { return !arg.isFloat; });
-    preparedCall.floatArgMask       = computeCallArgMask(conv, args, argLayouts.span(), [](const PreparedArg& arg) { return arg.isFloat; });
+    const CallArgMasks argMasks     = computeCallArgMasks(conv, argLayouts.span());
+    preparedCall.intArgMask         = argMasks.ints;
+    preparedCall.floatArgMask       = argMasks.floats;
     if (args.empty())
         return preparedCall;
 
@@ -852,9 +865,8 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
     // Fully self-contained call helper for runtime/JIT address calls.
     const CallConv& conv         = CallConv::get(callConvKind);
     const auto      argLayouts   = collectArgLayouts(args);
-    const uint8_t   intArgMask   = computeCallArgMask(conv, args, argLayouts.span(), [](const Arg& arg) { return !arg.isFloat; });
-    const uint8_t   floatArgMask = computeCallArgMask(conv, args, argLayouts.span(), [](const Arg& arg) { return arg.isFloat; });
-    const uint32_t  stackAdjust  = computeCallStackAdjust(callConvKind, argLayouts);
+    const CallArgMasks argMasks    = computeCallArgMasks(conv, argLayouts.span());
+    const uint32_t     stackAdjust = computeCallStackAdjust(callConvKind, argLayouts);
 
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Subtract);
     MicroReg   regBase, regTmp;
@@ -863,7 +875,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 
     emitCallArgs(builder, conv, args, regBase, regTmp);
     builder.emitLoadRegPtrImm(regTmp, targetAddress);
-    builder.emitCallReg(regTmp, callConvKind, intArgMask, floatArgMask);
+    builder.emitCallReg(regTmp, callConvKind, argMasks.ints, argMasks.floats);
     emitReturnWriteBack(builder, conv, ret, regBase);
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Add);
 }

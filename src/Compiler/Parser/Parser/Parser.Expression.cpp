@@ -140,6 +140,9 @@ namespace
                 return 1;
             case TokenId::KwdAnd:
                 return 2;
+            case TokenId::SymAmpersandAmpersand:
+            case TokenId::SymPipePipe:
+                return -2; // C-style logical operator, diagnosed by the parser
             default:
                 return -1;
         }
@@ -594,7 +597,7 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
         const int precedence = getLogicalPrecedence(opId);
         if (precedence < minPrecedence)
         {
-            if (opId == TokenId::SymAmpersandAmpersand || opId == TokenId::SymPipePipe)
+            if (precedence == -2)
                 raiseError(DiagnosticId::parser_err_cstyle_logical_op, ref());
             break;
         }

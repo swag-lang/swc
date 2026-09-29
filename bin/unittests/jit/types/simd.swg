@@ -139,6 +139,33 @@ func jitRotateByteLanes()->bool
 
 #assert(#run jitRotateByteLanes())
 
+#[Swag.NoInline, Swag.Optimize(true)]
+func xorFourFromFrame(output: *[4] u32, seed: u32)
+{
+    var input: [4] u32
+    if seed != 0
+    {
+        input = [seed + 1, seed + 10, seed + 20, seed + 30]
+    }
+    else
+    {
+        input = [1, 10, 20, 30]
+    }
+    output[][0] ^= input[0] + 7
+    output[][1] ^= input[1] + 7
+    output[][2] ^= input[2] + 7
+    output[][3] ^= input[3] + 7
+}
+
+func jitGroupedXor()->bool
+{
+    var output: [4] u32 = [100, 200, 300, 400]
+    xorFourFromFrame(&output, 10)
+    return output == [100 ^ 18, 200 ^ 27, 300 ^ 37, 400 ^ 47]
+}
+
+#assert(#run jitGroupedXor())
+
 #[Swag.NoInline]
 func floatMagnitude()->f32
 {

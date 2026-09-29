@@ -152,6 +152,36 @@ func lanesRotate16WithRejectedGroup(values: *[16] u32)
     values[][11] = Swag.rol(values[][15], 16) - Swag.bitCountNz(values[][15])
 }
 
+// The output parameter cannot alias this function's own frame. Keep the four
+// load/XOR/store triples visible until the vectorizer has checked the group.
+#[Swag.Optimize(true)]
+func lanesXorOutputFromFrame(output: *[4] u32, seed: u32)
+{
+    var state: [4] u32
+    if seed != 0
+    {
+        state = [seed + 1, seed + 10, seed + 20, seed + 30]
+    }
+    else
+    {
+        state = [1, 10, 20, 30]
+    }
+    output[][0] ^= state[0] + 7
+    output[][1] ^= state[1] + 7
+    output[][2] ^= state[2] + 7
+    output[][3] ^= state[3] + 7
+}
+
+// Two incoming pointers can overlap. Later reads must observe earlier writes.
+#[Swag.Optimize(true)]
+func lanesXorOverlappingOutput(output: [*] u32, source: [*] u32)
+{
+    output[0] ^= source[0] + 7
+    output[1] ^= source[1] + 7
+    output[2] ^= source[2] + 7
+    output[3] ^= source[3] + 7
+}
+
 // An incomplete chunk: three adjacent stores never form a packed group and
 // must stay scalar.
 #[Swag.Optimize(true)]
@@ -226,6 +256,17 @@ func threeLanes(values: *[8] u32)
         Swag.assert(values[4 + i] == Swag.rol(values[i], 16))
         Swag.assert(values[8 + i] == Swag.rol(values[12 + i], 16) - Swag.bitCountNz(values[12 + i]))
     }
+}
+
+#test
+{
+    var output: [4] u32 = [100, 200, 300, 400]
+    lanesXorOutputFromFrame(&output, 10)
+    Swag.assert(output == [100 ^ 18, 200 ^ 27, 300 ^ 37, 400 ^ 47])
+
+    var overlapping: [5] u32 = [1, 2, 3, 4, 5]
+    lanesXorOverlappingOutput(cast([*] u32) &overlapping[1], cast([*] u32) &overlapping[0])
+    Swag.assert(overlapping == [1, 10, 18, 29, 33])
 }
 
 #[Swag.Optimize(true)]

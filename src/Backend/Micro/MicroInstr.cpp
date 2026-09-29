@@ -20,8 +20,11 @@ void MicroInstrUseDef::addDef(MicroReg reg)
 
 void MicroInstrUseDef::addUseDef(MicroReg reg)
 {
-    addUse(reg);
-    addDef(reg);
+    if (reg.isValid() && !reg.isNoBase())
+    {
+        uses.push_back(reg);
+        defs.push_back(reg);
+    }
 }
 
 namespace

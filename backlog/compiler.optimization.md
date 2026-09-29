@@ -15,7 +15,40 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.101 — Retain one floating zero across unrolled arms
+### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
+
+- Recorded: 2026-09-24 10:33
+- Updated: 2026-09-29 16:26 — Folded pure counted index sums without widening the ordinary-loop cap.
+- Area: compiler/backend, loop unrolling
+- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
+  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
+  branch, and constant-table guards already describe general costs and benefits. The unrelated
+  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
+  indices and branches; it benefits from constant-index folding. Conversely,
+  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
+  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
+- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
+  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
+  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
+  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
+  flattens, while the otherwise identical plain loop still keeps its latch.
+- Audit: temporarily raising the ordinary cap to 32 made an unrelated 17-trip arithmetic sum fold from a nine-instruction loop to three straight-line instructions. A 17-word XOR update instead grew from an eight-instruction loop to 35 instructions: the index became constant, but its already-folded memory XOR was outside the constant-index rule. Extending that rule to indexed compares, register-memory operations, and unary/binary memory updates reduces the unrolled XOR case from 35 to 19 instructions, with 17 direct-offset XORs and no indexed reads or per-element index materializations. The production 16-trip cap remains: even after this repair, the 17-word update grows from eight to 19 static instructions and retains all 17 memory updates, so a general profitability rule needs more than a trip count. The C++ test covers five operation forms and rejects dynamic and 32-bit addresses; a native test covers indexed XOR, increment, decrement and dynamic indexing, and a JIT test covers the constant-index updates. All 1,157 C++ tests and seven benchmark checksums pass; the seven selected benchmark functions have identical normalized Micro instructions before and after. No runtime timing was used.
+- A pure unsigned 64-bit counted loop whose only body instruction adds its induction index to a
+  constant-initialized accumulator now computes the arithmetic progression directly. The rule
+  keeps the exact start, step, and bound checks, requires dead post-loop flags, and leaves
+  parameter sums and loops with other body work unchanged. In the 17-trip scratch program,
+  `sum17` falls from eight Release Micro instructions to two; `dynamicSum17` stays at eight,
+  and both builds return `CHECK=391`. C++ tests cover nonzero start and step, modular accumulator
+  wraparound, a runtime operand, and live flags. The DevMode compiler's 1,175 C++ tests, 3,488
+  native DevMode tests, and 1,502 JIT DevMode tests pass. All seven benchmark task checksums
+  pass; no individual task timing was used.
+- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
+  only when a general work-saved versus code-growth rule improves them without expanding loops
+  whose bodies retain their per-trip work.
+- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
+  both admitted and rejected shapes.
+
+### compiler.optimization.102 — Retain one floating zero across unrolled arms
 
 - Recorded: 2026-09-29 15:48
 - Updated: 2026-09-29 16:02 — Reject branched-body renaming without zero reuse.
@@ -289,30 +322,6 @@ block, and the hot path keeps the register.
 - Validation: native Release and DevMode tests for the packed and overlapping cases, JIT Release, 1,156 C++ tests, and all seven benchmark checksums pass. The selected functions of all seven benchmarks have unchanged normalized Micro instructions, including ChaCha's 51-instruction packed round and 457-instruction main. No individual runtime timing informed the decision.
 - Milestone: the full campaign `20260929-082219` passed every checksum but was archived under `bench/results/rejected/`. Its reference workload moved 65.9% between neighbouring probes (40% limit), and unchanged build controls spread by 30.7% (25% limit). Other compiler builds and test suites were active on the shared machine during the sweep. The accepted baseline and runtime winners remain `20260928-170009`; no speedup or regression is inferred from the rejected timings.
 - Next: establish the allocator result's usable provenance and the exact stack/heap disjointness contract, or guard the overlap case at run time. Extend the deferral and SLP proof to four indexed output updates only when their stable base and adjacent offsets are known. Test overlapping and disjoint indexed arrays, then compare the output path's instructions, memory operations, and spills with clang-cl. Keep the benchmark's computation unchanged.
-
-### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
-
-- Recorded: 2026-09-24 10:33
-- Updated: 2026-09-29 09:25 — Audited the ordinary-loop cap and repaired constant-index folding after memory operations.
-- Area: compiler/backend, loop unrolling
-- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
-  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
-  branch, and constant-table guards already describe general costs and benefits. The unrelated
-  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
-  indices and branches; it benefits from constant-index folding. Conversely,
-  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
-  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
-- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
-  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
-  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
-  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
-  flattens, while the otherwise identical plain loop still keeps its latch.
-- Audit: temporarily raising the ordinary cap to 32 made an unrelated 17-trip arithmetic sum fold from a nine-instruction loop to three straight-line instructions. A 17-word XOR update instead grew from an eight-instruction loop to 35 instructions: the index became constant, but its already-folded memory XOR was outside the constant-index rule. Extending that rule to indexed compares, register-memory operations, and unary/binary memory updates reduces the unrolled XOR case from 35 to 19 instructions, with 17 direct-offset XORs and no indexed reads or per-element index materializations. The production 16-trip cap remains: even after this repair, the 17-word update grows from eight to 19 static instructions and retains all 17 memory updates, so a general profitability rule needs more than a trip count. The C++ test covers five operation forms and rejects dynamic and 32-bit addresses; a native test covers indexed XOR, increment, decrement and dynamic indexing, and a JIT test covers the constant-index updates. All 1,157 C++ tests and seven benchmark checksums pass; the seven selected benchmark functions have identical normalized Micro instructions before and after. No runtime timing was used.
-- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
-  only when a general work-saved versus code-growth rule improves them without expanding loops
-  whose bodies retain their per-trip work.
-- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
-  both admitted and rejected shapes.
 
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 

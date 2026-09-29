@@ -40,8 +40,8 @@ namespace
     }
 }
 
-// Sixteen trips is the cipher-state shape the trip cap is set for; seventeen
-// is past it and stays a loop.
+// Ordinary loops stop at sixteen trips; an unrelated seventeen-trip copy
+// remains a loop.
 SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
 {
     for (const uint64_t bound : {uint64_t{16}, uint64_t{17}})
@@ -65,6 +65,89 @@ SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
         if (jumps != (flattened ? 0u : 1u))
             return Result::Error;
         if (flattened && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 16)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
+{
+    struct Case
+    {
+        uint64_t start;
+        uint64_t step;
+        uint64_t bound;
+        uint64_t initialSum;
+        uint64_t expectedSum;
+    };
+    constexpr Case cases[] = {
+        {0, 1, 17, 0, 136},
+        {2, 3, 17, 7, 47},
+        {0, 1, 17, UINT64_MAX, 135},
+    };
+    for (const Case& test : cases)
+    {
+        constexpr MicroReg counter     = MicroReg::virtualIntReg(1);
+        constexpr MicroReg accumulator = MicroReg::virtualIntReg(2);
+        MicroBuilder       builder(ctx);
+        const auto         header = builder.createLabel();
+        builder.emitLoadRegImm(accumulator, ApInt(test.initialSum, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(counter, ApInt(test.start, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitOpBinaryRegReg(accumulator, counter, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(test.step, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(test.bound, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
+        builder.emitLoadMemReg(CallConv::get(CallConvKind::Swag).stackPointer, 0x20, accumulator, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runLoopUnrollPass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
+            Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 0)
+            return Result::Error;
+        bool foundResult = false;
+        bool foundExit   = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadRegImm)
+                continue;
+            const auto* ops = inst.ops(builder.operands());
+            foundResult = foundResult || (ops[0].reg == accumulator && ops[2].valueU64 == test.expectedSum);
+            foundExit   = foundExit || (ops[0].reg == counter && ops[2].valueU64 == test.bound);
+        }
+        if (!foundResult || !foundExit)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumRejectsDynamicInputAndLiveFlags)
+{
+    for (const bool liveFlags : {false, true})
+    {
+        constexpr MicroReg counter     = MicroReg::virtualIntReg(1);
+        constexpr MicroReg accumulator = MicroReg::virtualIntReg(2);
+        constexpr MicroReg input       = MicroReg::virtualIntReg(3);
+        MicroBuilder       builder(ctx);
+        const auto         header = builder.createLabel();
+        const auto         done   = builder.createLabel();
+        builder.emitLoadRegReg(input, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegImm(accumulator, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitOpBinaryRegReg(accumulator, liveFlags ? counter : input, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(17, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
+        if (liveFlags)
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, done);
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        SWC_RESULT(runLoopUnrollPass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != (liveFlags ? 2u : 1u))
             return Result::Error;
     }
     return Result::Continue;

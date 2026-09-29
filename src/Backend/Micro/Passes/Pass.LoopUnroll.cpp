@@ -638,7 +638,80 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             const uint32_t bodyBegin = h + 1;
             const uint32_t bodyEnd   = jccOrdinal - 2;
             const uint32_t bodyCount = bodyEnd - bodyBegin;
-            if (!bodyCount || bodyCount > K_MAX_BODY_INSTR || trips > K_MAX_TOTAL_INSTR / bodyCount)
+            if (!bodyCount || bodyCount > K_MAX_BODY_INSTR)
+                continue;
+
+            // A pure sum of the induction values has a closed form. Folding
+            // it avoids both the loop and the code growth of full unrolling.
+            // The bound limits each term to one million, so the progression
+            // calculation below fits in 64 bits before the accumulator's
+            // intentional modular addition.
+            if (bodyCount == 1 && cond == MicroCond::Below && counterBits == MicroOpBits::B64)
+            {
+                const MicroInstrRef bodyRef = order[bodyBegin];
+                const MicroInstr*   body    = storage.ptr(bodyRef);
+                const auto*         bodyOps = body ? body->ops(operands) : nullptr;
+                if (body && body->op == MicroInstrOpcode::OpBinaryRegReg && bodyOps &&
+                    bodyOps[3].microOp == MicroOp::Add && bodyOps[2].opBits == MicroOpBits::B64 &&
+                    bodyOps[0].reg.isVirtualInt() && bodyOps[0].reg != counter && bodyOps[1].reg == counter &&
+                    !relocsBySlot.contains(bodyRef.get()) &&
+                    MicroPassHelpers::areCpuFlagsDeadAfterInCfg(builder, order[jccOrdinal]))
+                {
+                    const MicroReg accumulator = bodyOps[0].reg;
+                    uint64_t       initialSum  = 0;
+                    bool           haveSumInit = false;
+                    for (uint32_t back = 1; back <= 16 && back <= h; ++back)
+                    {
+                        const MicroInstr* init = storage.ptr(order[h - back]);
+                        if (!init)
+                            break;
+                        const MicroInstrDef& info = MicroInstr::info(init->op);
+                        if (init->op == MicroInstrOpcode::Label ||
+                            info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                            info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                            info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                            break;
+                        if (!defsRegister(*init, operands, context.encoder, accumulator))
+                            continue;
+                        const auto* initOps = init->ops(operands);
+                        if (initOps && initOps[1].opBits == MicroOpBits::B64)
+                        {
+                            if (init->op == MicroInstrOpcode::ClearReg)
+                                haveSumInit = true;
+                            else if (init->op == MicroInstrOpcode::LoadRegImm && !initOps[2].hasWideImmediateValue())
+                            {
+                                initialSum = initOps[2].valueU64;
+                                haveSumInit = true;
+                            }
+                        }
+                        break;
+                    }
+                    if (haveSumInit)
+                    {
+                        const uint64_t progression = trips * (2 * initValue + (trips - 1) * step) / 2;
+                        MicroInstrOperand resultOps[3] = {};
+                        resultOps[0].reg               = accumulator;
+                        resultOps[1].opBits            = MicroOpBits::B64;
+                        resultOps[2].setImmediateValue(ApInt(initialSum + progression, 64));
+                        storage.insertDerivedBefore(operands, bodyRef, MicroInstrOpcode::LoadRegImm, resultOps);
+
+                        MicroInstrOperand exitOps[3] = {};
+                        exitOps[0].reg               = counter;
+                        exitOps[1].opBits            = MicroOpBits::B64;
+                        exitOps[2].setImmediateValue(ApInt(initValue + trips * step, 64));
+                        storage.insertDerivedBefore(operands, order[jccOrdinal - 2], MicroInstrOpcode::LoadRegImm, exitOps);
+                        storage.erase(bodyRef);
+                        storage.erase(order[jccOrdinal - 2]);
+                        storage.erase(order[jccOrdinal - 1]);
+                        storage.erase(order[jccOrdinal]);
+                        builder.invalidateControlFlowGraph();
+                        context.passChanged = true;
+                        unrolledOne = true;
+                        break;
+                    }
+                }
+            }
+            if (trips > K_MAX_TOTAL_INSTR / bodyCount)
                 continue;
 
             // Body scan: collect internal labels, verify every branch is either

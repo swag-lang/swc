@@ -1065,7 +1065,7 @@ namespace
         return nullptr;
     }
 
-    TypeRef resolveCallableValueTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    bool typeIsCallableValue(CodeGen& codeGen, TypeRef typeRef)
     {
         while (typeRef.isValid())
         {
@@ -1081,11 +1081,11 @@ namespace
             }
 
             if (!typeInfo.isReference())
-                break;
+                return typeInfo.isFunction();
             typeRef = typeInfo.payloadTypeRef();
         }
 
-        return typeRef;
+        return false;
     }
 
     bool calleeTypeIsCallableValue(CodeGen& codeGen, AstNodeRef calleeRef)
@@ -1093,9 +1093,8 @@ namespace
         if (calleeRef.isInvalid())
             return false;
 
-        const SemaNodeView calleeTypeView  = codeGen.viewType(calleeRef);
-        const TypeRef      callableTypeRef = resolveCallableValueTypeRef(codeGen, calleeTypeView.typeRef());
-        return callableTypeRef.isValid() && codeGen.typeMgr().get(callableTypeRef).isFunction();
+        const SemaNodeView calleeTypeView = codeGen.viewType(calleeRef);
+        return typeIsCallableValue(codeGen, calleeTypeView.typeRef());
     }
 
     bool callRequiresRuntimeTarget(CodeGen& codeGen, AstNodeRef calleeRef, const SymbolFunction& calledFunction)

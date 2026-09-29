@@ -345,9 +345,11 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
     SWC_ASSERT(argIndex < argLayouts.size());
     if (conv.independentArgBanks)
     {
+        const bool targetInRegister = argumentRegisterIndex(conv, argLayouts, argIndex) != K_NO_ARG_REGISTER;
         uint64_t stackBytes  = 0;
         uint64_t stackOffset = 0;
-        for (uint32_t i = 0; i < argLayouts.size(); ++i)
+        const uint32_t endIndex = targetInRegister ? static_cast<uint32_t>(argLayouts.size()) : argIndex + 1;
+        for (uint32_t i = 0; i < endIndex; ++i)
         {
             if (argumentRegisterIndex(conv, argLayouts, i) != K_NO_ARG_REGISTER)
                 continue;
@@ -360,7 +362,7 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
             stackBytes += argBytes;
         }
 
-        if (argumentRegisterIndex(conv, argLayouts, argIndex) == K_NO_ARG_REGISTER)
+        if (!targetInRegister)
             return stackOffset;
 
         uint64_t homeOffset = stackBytes;

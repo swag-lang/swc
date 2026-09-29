@@ -214,7 +214,7 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
     // coalesced. Claim positions already include call clobbers and concrete
     // liveness between touches.
     outPoolRegs.clear();
-    const MicroReg excludedBase = conv_->preferredLocalStackBaseReg();
+    const MicroReg excludedBase = context_->debugStackBaseVirtualReg.isValid() || context_->keepLocalStackBase ? conv_->preferredLocalStackBaseReg() : MicroReg::invalid();
 
     // One callee-saved integer register is kept out of the walk entirely. What
     // needs it is the legalization that runs on this pass's own output: it

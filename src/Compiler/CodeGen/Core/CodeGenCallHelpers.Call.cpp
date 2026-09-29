@@ -738,14 +738,10 @@ namespace
         argPayload.markMaterializedPointerLikeValue();
     }
 
-    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg)
+    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, const ResolvedCallArgument& resolvedArg)
     {
-        if (normalizedTypeRef.isInvalid())
-            return;
-
         TaskContext&                           ctx            = codeGen.ctx();
         const TypeInfo&                        normalizedType = ctx.typeMgr().get(normalizedTypeRef);
-        const ABITypeNormalize::NormalizedType normalizedArg  = ABITypeNormalize::normalize(ctx, callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
         SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect, normalizedArg.isFloat, normalizedArg.numBits));
         const bool passAddressRef = normalizedType.isReference() && resolvedArg.bindsReferenceToValue;
 
@@ -1045,10 +1041,10 @@ namespace
             SWC_RESULT(materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize));
             materializePreparedBorrowedAggregateArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
+            fillPreparedDirectArgType(preparedArg, codeGen, argPayload, normalizedTypeRef, normalizedArg, arg);
         }
 
         preparedArg.srcReg = argPayload.reg;
-        fillPreparedDirectArgType(preparedArg, codeGen, callConv, argPayload, normalizedTypeRef, arg);
         preparedArg.kind = abiPreparedArgKind(arg.passKind);
         out.args.push_back(preparedArg);
         return Result::Continue;

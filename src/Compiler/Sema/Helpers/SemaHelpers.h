@@ -264,7 +264,12 @@ namespace SemaHelpers
 
     inline const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
     {
-        return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
+        const TypeInfo& typeInfo = sema.typeMgr().get(view.typeRef());
+        if (!typeInfo.isAlias() && !typeInfo.isEnum())
+            return typeInfo;
+        const TypeRef typeRef = typeInfo.unwrapAliasEnum(sema.ctx(), view.typeRef());
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
     }
 
     inline bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)

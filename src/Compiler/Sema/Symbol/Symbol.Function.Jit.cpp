@@ -262,10 +262,25 @@ namespace
     }
 }
 
-MicroBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept
+MicroBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx)
 {
-    microInstrBuilder_.setContext(ctx);
-    return microInstrBuilder_;
+    MicroBuilder* builder = microInstrBuilder_.load(std::memory_order_acquire);
+    if (!builder)
+    {
+        auto* created = new MicroBuilder();
+        if (microInstrBuilder_.compare_exchange_strong(builder, created, std::memory_order_acq_rel, std::memory_order_acquire))
+            builder = created;
+        else
+            delete created;
+    }
+
+    builder->setContext(ctx);
+    return *builder;
+}
+
+void SymbolFunction::releaseMicroInstrBuilder() noexcept
+{
+    delete microInstrBuilder_.exchange(nullptr, std::memory_order_acq_rel);
 }
 
 bool SymbolFunction::tryMarkCodeGenJobScheduled() noexcept
@@ -358,7 +373,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
 
     // Lowered machine code keeps the emitted bytes/debug info/relocations.
     // The micro builder itself is transient and otherwise retains per-function IR memory.
-    builder.releaseMemory();
+    releaseMicroInstrBuilder();
 
     ctx.compiler().notifyAlive();
     return Result::Continue;

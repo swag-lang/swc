@@ -36,9 +36,10 @@ the latest entry was removed. The removal itself lives in Git.
 | File | Area | Updated |
 | --- | --- | --- |
 | [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-29 17:23 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-29 16:26 |
+| [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-29 16:26 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-29 16:10 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-29 15:15 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-29 14:26 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-29 13:48 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-28 16:00 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-27 18:13 |
@@ -46,7 +47,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-27 18:09 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:06 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-27 17:52 |
-| [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-27 17:52 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-27 17:50 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-27 17:49 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-27 17:45 |

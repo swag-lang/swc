@@ -151,7 +151,7 @@ bool SymbolMap::empty() const noexcept
     if (isSharded())
         return false;
     const std::shared_lock lk(mutex_);
-    return smallSize_ == 0 && bigMap_.empty();
+    return smallSize_ == 0 && (!bigMap_ || bigMap_->empty());
 }
 
 SymbolMap::Entry* SymbolMap::smallFind(IdentifierRef key)
@@ -177,7 +177,7 @@ void SymbolMap::maybeUpgradeToSharded(TaskContext& ctx)
         return;
 
     // Not enough keys yet - stay unsharded.
-    if (bigMap_.size() < SHARD_AFTER_KEYS)
+    if (!bigMap_ || bigMap_->size() < SHARD_AFTER_KEYS)
         return;
 
     // Large symbol maps are read by many sema jobs. Publish immutable shard storage
@@ -185,15 +185,15 @@ void SymbolMap::maybeUpgradeToSharded(TaskContext& ctx)
     // without holding the original mutex forever.
     auto* newShards = ctx.compiler().allocateArray<Shard>(SHARD_COUNT);
 
-    const size_t totalKeys = bigMap_.size();
+    const size_t totalKeys = bigMap_->size();
     const size_t perShard  = (totalKeys / SHARD_COUNT) + 1;
     for (uint32_t i = 0; i < SHARD_COUNT; ++i)
         newShards[i].map.reserve(perShard);
 
-    for (const auto& [id, head] : bigMap_)
+    for (const auto& [id, head] : *bigMap_)
         newShards[shardIndex(id)].map.emplace(id, head);
 
-    std::unordered_map<IdentifierRef, Symbol*>().swap(bigMap_);
+    bigMap_.reset();
     shards_.store(newShards, std::memory_order_release);
 }
 
@@ -272,9 +272,12 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
     const Symbol* head = nullptr;
     if (isBig())
     {
-        const auto it = bigMap_.find(idRef);
-        if (it != bigMap_.end())
-            head = it->second;
+        if (bigMap_)
+        {
+            const auto it = bigMap_->find(idRef);
+            if (it != bigMap_->end())
+                head = it->second;
+        }
     }
     else if (const Entry* e = smallFind(idRef))
     {
@@ -323,9 +326,12 @@ const Symbol* SymbolMap::findFirstSymbol(IdentifierRef idRef, bool includeIgnore
     const Symbol* head = nullptr;
     if (isBig())
     {
-        const auto it = bigMap_.find(idRef);
-        if (it != bigMap_.end())
-            head = it->second;
+        if (bigMap_)
+        {
+            const auto it = bigMap_->find(idRef);
+            if (it != bigMap_->end())
+                head = it->second;
+        }
     }
     else if (const Entry* e = smallFind(idRef))
     {
@@ -386,7 +392,8 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
 
     if (isBig())
     {
-        for (const auto& val : bigMap_ | std::views::values)
+        if (bigMap_)
+            for (const auto& val : *bigMap_ | std::views::values)
             appendSymbolsForSort(ordered, val, includeIgnored);
     }
     else
@@ -457,9 +464,10 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         }
 
         // Transition to big
-        bigMap_.reserve(SMALL_CAP * 2ull);
+        bigMap_.emplace();
+        bigMap_->reserve(SMALL_CAP * 2ull);
         for (uint32_t i = 0; i < smallSize_; ++i)
-            bigMap_.emplace(small_[i].key, small_[i].head);
+            bigMap_->emplace(small_[i].key, small_[i].head);
         smallSize_ = SMALL_CAP + 1; // Mark as big
     }
 
@@ -480,7 +488,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     }
 
     // Still unsharded big map.
-    const auto [it, inserted] = bigMap_.try_emplace(idRef, nullptr);
+    const auto [it, inserted] = bigMap_->try_emplace(idRef, nullptr);
     if (!acceptHomonyms && !inserted)
         return it->second;
 

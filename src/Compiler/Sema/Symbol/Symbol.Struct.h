@@ -153,9 +153,9 @@ public:
     void                          finishGenericCompletion() const noexcept;
     bool                          isGenericNodeCompleted() const noexcept;
     void                          setGenericNodeCompleted() const noexcept;
-    std::mutex&                   generatedLifecycleMutex() const noexcept { return generatedLifecycleMutex_; }
-    std::mutex&                   generatedOperatorsMutex() const noexcept { return generatedOperatorsMutex_; }
-    std::mutex&                   generatedEqualityMutex() const noexcept { return generatedEqualityMutex_; }
+    std::shared_mutex&            generatedLifecycleMutex() const noexcept { return generatedLifecycleMutex_; }
+    std::shared_mutex&            generatedOperatorsMutex() const noexcept { return generatedOperatorsMutex_; }
+    std::shared_mutex&            generatedEqualityMutex() const noexcept { return generatedEqualityMutex_; }
     bool                          generatedLifecyclePublished() const noexcept { return generatedLifecyclePublished_.load(std::memory_order_acquire); }
     bool                          generatedOperatorsPublished() const noexcept { return generatedOperatorsPublished_.load(std::memory_order_acquire); }
     bool                          generatedEqualityPublished() const noexcept { return generatedEqualityPublished_.load(std::memory_order_acquire); }
@@ -191,9 +191,9 @@ private:
     std::atomic<SymbolFunction*>                      opDrop_     = nullptr;
     std::atomic<SymbolFunction*>                      opPostCopy_ = nullptr;
     std::atomic<SymbolFunction*>                      opPostMove_ = nullptr;
-    mutable std::mutex                                generatedLifecycleMutex_;
-    mutable std::mutex                                generatedOperatorsMutex_;
-    mutable std::mutex                                generatedEqualityMutex_;
+    mutable std::shared_mutex                         generatedLifecycleMutex_;
+    mutable std::shared_mutex                         generatedOperatorsMutex_;
+    mutable std::shared_mutex                         generatedEqualityMutex_;
     mutable std::atomic<GenericData*>                 genericData_                 = nullptr;
     mutable std::atomic_bool                          generatedLifecycleDone_      = false;
     mutable std::atomic_bool                          generatedOperatorsDone_      = false;

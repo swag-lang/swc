@@ -281,8 +281,9 @@ public:
     void                setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
     CallConvKind        callConvKind() const noexcept { return callConvKind_; }
     void                setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
-    MicroBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
-    const MicroBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    MicroBuilder&       microInstrBuilder(TaskContext& ctx);
+    const MicroBuilder* microInstrBuilder() const noexcept { return microInstrBuilder_.load(std::memory_order_acquire); }
+    void                releaseMicroInstrBuilder() noexcept;
     AstNodeRef          declNodeRef() const noexcept { return declNodeRef_; }
     const NodePayload*  declNodePayloadContext() const noexcept { return declNodePayloadCtx_; }
     void                setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
@@ -356,7 +357,7 @@ public:
     };
 
     ConstantJitTargets&     constantJitTargets() const noexcept { return constantJitTargets_; }
-    std::mutex&             constantJitTargetsMutex() const noexcept { return constantJitTargetsMutex_; }
+    std::shared_mutex&      constantJitTargetsMutex() const noexcept { return constantJitTargetsMutex_; }
     void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     void*                   jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
@@ -371,7 +372,7 @@ public:
     AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
     void                    cacheGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     std::recursive_mutex&   genericEvalRunMutex(const TaskContext& ctx) const noexcept;
-    std::mutex&             lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
+    std::shared_mutex&      lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
     std::shared_ptr<void>*  lazyBodyRunState() const noexcept;
     std::shared_ptr<void>&  ensureLazyBodyRunState(const TaskContext& ctx) const noexcept;
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions, const Symbol* waiterSymbol = nullptr);
@@ -446,9 +447,9 @@ private:
     mutable std::shared_mutex                     jitOrderCacheMutex_;
     mutable std::vector<uint64_t>                 globalInitOffsetsCache_;
     mutable bool                                  globalInitOffsetsComputed_ = false;
-    mutable std::mutex                            globalInitOffsetsMutex_;
+    mutable std::shared_mutex                     globalInitOffsetsMutex_;
     mutable ConstantJitTargets                    constantJitTargets_;
-    mutable std::mutex                            constantJitTargetsMutex_;
+    mutable std::shared_mutex                     constantJitTargetsMutex_;
     std::vector<SymbolFunction*>                  callDependencies_;
     PointerSet<SymbolFunction>                    callDependencySet_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;
@@ -476,13 +477,15 @@ private:
     uint32_t                                      debugStackFrameSize_        = 0;
     MicroReg                                      debugStackBaseReg_          = MicroReg::invalid();
 
-    MicroBuilder                         microInstrBuilder_;
+    // Created when code generation starts and dropped once the function is lowered: most
+    // functions a program imports are never generated, and a lowered one keeps its machine code.
+    std::atomic<MicroBuilder*>           microInstrBuilder_ = nullptr;
     MachineCode                          loweredMicroCode_;
     mutable std::shared_mutex            callDependenciesMutex_;
-    mutable std::mutex                   closureAdapterMutex_;
-    mutable std::mutex                   lazyBodyRunMutex_;
+    mutable std::shared_mutex            closureAdapterMutex_;
+    mutable std::shared_mutex            lazyBodyRunMutex_;
     mutable std::atomic<SymbolFunction*> closureAdapterPublished_ = nullptr;
-    std::mutex                           emitMutex_;
+    std::shared_mutex                    emitMutex_;
     JITMemory                            jitExecMemory_;
     std::atomic<void*>                   jitPatchedAddress_ = nullptr;
     std::atomic<void*>                   jitEntryAddress_   = nullptr;

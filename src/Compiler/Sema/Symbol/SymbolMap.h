@@ -43,12 +43,15 @@ protected:
     static constexpr uint32_t SHARD_COUNT      = 1u << SHARD_BITS;
     static constexpr uint32_t SHARD_AFTER_KEYS = 64;
 
-    std::array<Entry, SMALL_CAP>               small_;
-    std::unordered_map<IdentifierRef, Symbol*> bigMap_;
-    std::atomic<Shard*>                        shards_ = nullptr;
-    mutable std::shared_mutex                  mutex_;
-    SmallVector<SymbolMap*>                    usingSymMaps_;
-    uint32_t                                   smallSize_ = 0;
+    std::array<Entry, SMALL_CAP> small_;
+    // Every function, struct and namespace owns a map, and most never outgrow 'small_'.
+    // MSVC's empty hash map still allocates buckets and a sentinel, so it is created
+    // only when the map turns big.
+    std::optional<std::unordered_map<IdentifierRef, Symbol*>> bigMap_;
+    std::atomic<Shard*>                                       shards_ = nullptr;
+    mutable std::shared_mutex                                 mutex_;
+    SmallVector<SymbolMap*>                                   usingSymMaps_;
+    uint32_t                                                  smallSize_ = 0;
     // Different shards publish symbols concurrently; their locks do not protect this total.
     std::atomic<uint32_t> count_ = 0;
 

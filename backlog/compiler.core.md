@@ -6,6 +6,30 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.005 — Compiler memory has no attributed, enforced budget
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-29 16:26 — commit-on-demand allocator pages, live-only sanitizer states, lighter symbols; per-worker fragmentation attributed
+
+**Evidence (2026-09-29, Release `swc.exe`, peak committed memory of the job, order-alternated A/B against master `d748642a5`).** Four changes landed on `perf/memory-footprint-20260929`: mimalloc small pages commit in 16 KiB steps instead of whole 64 KiB pages; the sanitizer keeps only registers live on entry to a chain head in its stored states (chain liveness computed once per function); per-symbol `std::mutex` become `std::shared_mutex` and the symbol map's big hash map is created only past eight keys; a function's `MicroBuilder` is created at code generation and deleted once lowered. Bench JIT tasks at the default worker count: hello 97 -> 65 MB, wordfreq 131 -> 96, chacha release 132 -> 95, chacha devmode 216 -> 99 (0.62x wall: the sanitizer copies far smaller states), raytrace 107 -> 74, dijkstra 157 -> 123; hello build 112 -> 78 MB; core devmode rebuild (`--num-cores 6`) 579 -> 389 MB with wall min 3.30 -> 2.86 s. Wall-time median ratios stay 0.92-1.00 on every workload. The native programs themselves were already at parity with C++ and are unchanged.
+
+**Attribution after these changes (hello JIT, mimalloc statistics).** Live allocated bytes peak at 16-17 MiB whatever the worker count, but committed memory is 25 MiB with one worker, 42 MiB with six and 61 MiB with 22 (164 -> 238 -> 418 pages): the rest of the JIT overhead is fragmentation across the per-thread heaps, each holding the high-water mark of its own transient allocations. About 10 MiB of it follows the Micro pipeline's `thread_local` scratch (`-O 0` 54 MiB vs `-O 2` 64 MiB at 22 workers), the rest the semantic analysis of the runtime prelude spread over the workers. Measured and rejected: a 4 KiB commit step (-5 MiB, but about +11% median wall on hello JIT); mimalloc purge delay, page retention and reclaim options (no effect). A function's JIT code occupies at least one 4 KiB page because protection is flipped per allocation. `PagedStore::publishPages` copies the whole page table, and keeps every earlier copy for lock-free readers, each time a page is added: 81 KB on hello and 5.3 MB on the core devmode rebuild (61,329 snapshots, largest store 83 pages).
+
+**Evidence (2026-09-05, Release `swc.exe`, `--num-cores 6`, peak working set).** Before: core devmode rebuild 731 MB, core release rebuild 638 MB, hello 73 MB, bench tasks 74-83 MB. After finished jobs release their Sema and CodeGen state, 64 KiB arena blocks, and the api-export index dropped after export: 517 MB, 360 MB, 60 MB, 58-66 MB, with wall time at 0.86x, 0.95x, 1.0x, 0.97x (order-alternated A/B). Attribution by mimalloc statistics and a throwaway sampling probe on the DevMode core rebuild: the largest block still resident at peak is the static sanitizer's flow state (`SanitizerState` copies, ~150 MiB of ~100-byte map nodes, 17M allocations per core rebuild), then paged AST/payload/type stores (~110 MiB), per-thread arenas (~95 MiB, dominated by 2 KB `SymbolFunction` and 1.3 KB `SemaInlinePayload`), the CodeGen objects of sleeping codegen jobs (~23 MiB), and link-time archive buffers (~23 MiB). The compile-time runtime allocator is not a factor.
+
+**Intent.** Use external profiling and the compiler.core.004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
+
+**Next.** Reduce per-worker high-water marks without reducing parallelism: shrink or share the Micro pipeline's retained `thread_local` scratch, and find which transient semantic allocations a prelude job makes (the 20 KiB and 5 KiB bins hold in-flight `CodeGen` (10.5 KB, 5.6 KB of it an inline 32-entry defer-scope vector) and `Sema` (5 KB, 3.5 KB of it `AstVisit`'s inline stack)). Pack JIT functions into shared pages once the patcher no longer relies on page-sized allocations.
+
+**Complete when.**
+
+- A full core DevMode build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
+- Every campaign workload stays within twice the best comparable compiled-language implementation measured by the same harness, or records a reviewed exception.
+- Thresholds, host normalization, and variance policy are stored with the campaign.
+- External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.
+
+**Related:** compiler.core.004, compiler.core.007, runtime.allocator.017.
+
 ### compiler.core.057 — The lazy-body completion race has no deterministic regression
 
 - Recorded: 2026-09-24 14:07
@@ -650,28 +674,6 @@ Handing the walk the payload state its caller had just read — so a two-link ch
 - One snippet compilation that imports `core` no longer spends its time in the front end of that import.
 
 **Related:** compiler.core.002, compiler.core.006, compiler.core.008, compiler.core.011, compiler.core.030.
-
-### compiler.core.005 — Compiler memory has no attributed, enforced budget
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-06 16:06 — git: Integrate master fixes before merging sanitizer memory changes
-
-**Evidence (2026-09-05, Release `swc.exe`, `--num-cores 6`, peak working set).** Before: core devmode rebuild 731 MB, core release rebuild 638 MB, hello 73 MB, bench tasks 74-83 MB. After finished jobs release their Sema and CodeGen state, 64 KiB arena blocks, and the api-export index dropped after export: 517 MB, 360 MB, 60 MB, 58-66 MB, with wall time at 0.86x, 0.95x, 1.0x, 0.97x (order-alternated A/B). Attribution by mimalloc statistics and a throwaway sampling probe on the DevMode core rebuild: the largest block still resident at peak is the static sanitizer's flow state (`SanitizerState` copies, ~150 MiB of ~100-byte map nodes, 17M allocations per core rebuild), then paged AST/payload/type stores (~110 MiB), per-thread arenas (~95 MiB, dominated by 2 KB `SymbolFunction` and 1.3 KB `SemaInlinePayload`), the CodeGen objects of sleeping codegen jobs (~23 MiB), and link-time archive buffers (~23 MiB). The compile-time runtime allocator is not a factor.
-
-**Intent.** Use external profiling and the compiler.core.004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
-
-**Current investigation (2026-09-06).** The isolated candidate `717ec4db6` stores flow state only at chain heads and omits Unknown stack values and default register facts. The changes are merged into `master` at the owner's request; repeated low-load A/B time and working-set validation remains pending, and loaded observations are not proof of unchanged compile time. External native-stack heap sampling on the core devmode rebuild observes 57.7 MiB of live requested sanitizer memory before and 35.8 MiB after, with mixed semantic/symbol arenas at 50.5/50.7 MiB. Unknown values account for about 74.5% of sampled baseline stack-map node bytes and none in the candidate snapshot. These are sampled live allocation estimates, not a complete resident-set split: proximity pages and retained freed allocator pages remain partly unattributed. Finished CodeGen jobs already release Sema/CodeGen state, and emitted functions already release their Micro builder. The four full baseline/candidate compiler campaigns stopped at the same pre-existing GUI5 failure, later fixed separately in `7f00d9f26`; their later smoke stages remain unrun. The [campaign report](../bench/results/memory/20260906/README.md) keeps raw samples, profiling coverage limits, validation and the reduced failure.
-
-**Next.** Finish repeated order-alternated measurements for every campaign workload on a quiet host to validate the performance of the merged changes. Then extend external accounting to proximity allocations and allocator-retained pages so the remaining AST, types, symbols, constants and Micro footprint is attributable before choosing the next lifetime change. Revisit dense sanitizer storage only if that trace still makes it the leading retained block: the earlier sorted flat-array attempt raised CPU time by 60%, so any replacement must avoid sorted-insert shifts. Shrinking `SymbolFunction` and releasing file text/tokens remain leads, not measured wins.
-
-**Complete when.**
-
-- A full core DevMode build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
-- Every campaign workload stays within twice the best comparable compiled-language implementation measured by the same harness, or records a reviewed exception.
-- Thresholds, host normalization, and variance policy are stored with the campaign.
-- External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.
-
-**Related:** compiler.core.004, compiler.core.007.
 
 ### compiler.core.011 — The editor has no semantic definition navigation
 

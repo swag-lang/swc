@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-29 11:03 — Record the entropy-layer instruction counts after the prompt-2 CABAC batches.
+- Updated: 2026-09-29 16:10 — Record the syntax-layer profile and its batches.
 - Evidence: on 2026-09-12, decoding the same 3840x2160 one-slice High/CABAC clip and alternating
   the two decoders inside one measurement window, this decoder and FFmpeg's own build with its
   hand-written assembly disabled read within a tenth of each other, while FFmpeg with its
@@ -55,6 +55,18 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   decoding-thread cycle measurements on this shared machine could not resolve the change
   (paired-ratio medians 0.88 to 1.13 across four sessions, single runs spreading by more than
   30 per cent).
+- Syntax layer, 2026-09-29 (prompt 2): a sampling profile of the decoding thread on the same extract
+  (a script that suspends the thread and symbolizes its instruction pointer through the PDB of a
+  `--debug` release build) put `residualCabac` at 15-18%, `bookkeepMb` 3-5%, `assignMotion` 3.9%,
+  `resolveNeighbors` 4.1%, `motionAt` 2.9%, `mvdCabac` 2.6% and `prepareMb` 2.1%. Motion records
+  are now written as words, neighbour records filled in place, the difference contexts read only
+  the differences, the coefficient scratch record cleared only where the macroblock wrote, grid
+  storage read once per macroblock, a P-skip neighbour's motion read from its compact lanes, and
+  one scratch macroblock record serves the inline path; `assignMotion` fell to 1.2% and
+  `resolveNeighbors` to 1.1%, and `prepareMb` left the top of the profile. Plane digests stay
+  exact on this extract and on the Baseline, High, pyramid, temporal, 4:4:4 and cropped fixtures
+  through the frame-threaded path. The remaining FFmpeg-shaped step is a per-macroblock
+  neighbour cache (`fill_decode_caches`) that replaces `motionAt`, `blockNz` and `refCtxFlag`.
 - Current source: `Slice.resolveNeighbors` caches the four neighboring macroblocks;
   `bookkeepMb` writes grid rows and reference-picture co-located motion in words/vectors;
   `Frame.colMotion` receives the macroblock index. The old next step to build those paths is done.

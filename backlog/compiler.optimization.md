@@ -36,7 +36,8 @@ block, and the hot path keeps the register.
   `motionAt` (four stores then one load became the fields shifted and or-ed, 147 -> 160 Micro
   instructions, since the stores stay for the other returns), no other decoder function or
   benchmark program changed, and plane digests stayed exact; but more instructions against one
-  forwarded-load stall is not a static win, so the change and the record shrink were reverted.
+  forwarded-load stall is not a static win, so the compiler change was reverted; the record
+  shrink itself was kept (commit 5081feef1).
   Patch kept outside the tree.
 - Next: build the record in registers on every return path (the returns join into one exit
   whose value is a phi of the per-path records), so the stores disappear too, and make the

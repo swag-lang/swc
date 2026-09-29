@@ -31,7 +31,10 @@ namespace
         if (!typeRef.isValid())
             return typeRef;
 
-        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias())
+            return typeRef;
+        const TypeRef rawTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         if (rawTypeRef.isValid())
             return rawTypeRef;
         return typeRef;

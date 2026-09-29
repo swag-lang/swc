@@ -258,7 +258,10 @@ namespace
         if (!typeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias())
+            return typeRef;
+        const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
     }
 

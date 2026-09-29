@@ -111,7 +111,10 @@ public:
     {
         if (typeRef.isInvalid())
             return typeRef;
-        return get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias);
+        const TypeInfo& typeInfo = get(typeRef);
+        if (!typeInfo.isAlias())
+            return typeRef;
+        return typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
     }
 
     // Like unwrapAliasEnum, but keeps the type itself when it is neither an alias nor an enum.

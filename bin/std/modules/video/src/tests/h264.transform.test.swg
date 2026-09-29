@@ -36,6 +36,37 @@ func assertIdct4x4Case(seed: u64)
     Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
+// The four-block flat add against four scalar 4x4 adds on an 8x8 block, one of the values
+// zero and the others over the whole range, the neighbouring samples untouched.
+func assertDc8x8QuadCase(seed: u64)
+{
+    const Stride = 16'u64
+    var expected: [8 * Stride + 16] u8
+    var actual:   [8 * Stride + 16] u8
+    for index in expected.count
+    {
+        let value = cast(u8) ((index * (seed * 23 + 5) + seed * 17) & 255)
+        expected[index] = value
+        actual[index]   = value
+    }
+
+    var dcs: [4] s32
+    for index in 4'u64
+    {
+        dcs[index] = cast(s32) (cast(s64) (((seed + index) * 8191 + 17 * index) & 0x3FFF) - 0x2000)
+        if (seed + index) % 7 == 0 do
+            dcs[index] *= 4
+    }
+    dcs[seed % 4] = 0
+
+    H264.addDc4x4Scalar(expected.buffer + 4, Stride, dcs[0])
+    H264.addDc4x4Scalar(expected.buffer + 8, Stride, dcs[1])
+    H264.addDc4x4Scalar(expected.buffer + 4 + 4 * Stride, Stride, dcs[2])
+    H264.addDc4x4Scalar(expected.buffer + 8 + 4 * Stride, Stride, dcs[3])
+    H264.addDc8x8Quad(actual.buffer + 4, Stride, dcs[0], dcs[1], dcs[2], dcs[3])
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+}
+
 // The packed inverse 8x8 transform against its scalar form, same conventions.
 func assertIdct8x8Case(seed: u64)
 {
@@ -85,6 +116,7 @@ func assertHadamard4x4Case(seed: u64)
     for seed in 512'u64
     {
         assertIdct4x4Case(seed)
+        assertDc8x8QuadCase(seed)
         assertIdct8x8Case(seed)
         assertHadamard4x4Case(seed)
     }

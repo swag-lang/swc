@@ -349,6 +349,19 @@ impl Slice
 
         // The AC levels are already dequantized in place, so the DC completes each block.
         let counts = plane == 0 ? (mb.nzCb).buffer : (mb.nzCr).buffer
+
+        // Four flat blocks, the common case, take one pass over the 8x8 block.
+        if counts[0] == 0 and counts[1] == 0 and counts[2] == 0 and counts[3] == 0
+        {
+            let dc0 = clampS32((cast(s32) dc[0] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc1 = clampS32((cast(s32) dc[1] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc2 = clampS32((cast(s32) dc[2] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc3 = clampS32((cast(s32) dc[3] * cast(s32) table[0]) >> 5, -32768, 32767)
+            if dc0 != 0 or dc1 != 0 or dc2 != 0 or dc3 != 0 do
+                addDc8x8Quad(frame.pixChroma(plane, mb.mbX * 8, mb.mbY * 8), stride, dc0, dc1, dc2, dc3)
+            return
+        }
+
         for block in 4's32
         {
             let bx      = block & 1

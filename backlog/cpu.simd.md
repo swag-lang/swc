@@ -51,7 +51,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 ### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
 
 - Recorded: 2026-09-12 18:05
-- Updated: 2026-09-29 19:50 — Prefetch pays once inlined; 8x8 transform transposes once; the goal needs the entropy layer too.
+- Updated: 2026-09-29 20:03 — Prefetch pays once inlined; 4x4 and 8x8 blocks stored transposed; the goal needs the entropy layer too.
 - Evidence: forcing FFmpeg's dispatch down one instruction set at a time on a 3840x2160 one-slice
   High/CABAC clip gives the ladder its assembly climbs, in millions of decode-thread cycles per
   picture: compiled code 179, with SSE2 111, with SSSE3 82. Its SSE2 step covers the deblocking
@@ -145,7 +145,9 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   chroma plane, the motion group falls from 17.0 to 14.9 per cent of the lane. Eight chroma rows
   read 14.9 against 15.1, inside the noise, and were not kept. The 8x8 coefficients are now
   stored transposed, as FFmpeg stores them, so `addIdct8x8` transposes once (1.68 -> 1.30 per
-  cent). Every change is byte-exact (hash 10215554823036995501).
+  cent), and so are the 4x4 blocks, whose transform loads its column pairs without the four
+  interleaves (`addIdct4x4` 0.77 -> 0.72). Every change is byte-exact (hash
+  10215554823036995501).
 - Where the lane goes (2026-09-29 19:50, release with debug information, 60 s of samples of
   the one-lane decode of the 60-picture extract): entropy decoding and macroblock syntax 59 per
   cent (`residualCabac` alone 21), prediction, residual and reconstruction 26, deblocking 1.6,
@@ -160,9 +162,8 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Next: the pixel layer's remaining costs are spread thin: `compensate` 3.6 per cent with the
   inlined prefetch, `addChromaResidual` 2.1, `mcChromaPair` 1.9, `addPlaneResidual` 1.8,
   `intraPredict8x8` 1.6, `interpolateChroma` 1.6, `addIdct8x8` 1.3, `copyPlane` 1.3,
-  `interpolateLuma` 1.2. Store 4x4 blocks transposed as well (FFmpeg does, and `addIdct4x4`
-  opens with a four-shuffle transpose); take the chroma DC path of `addChromaResidual` to
-  FFmpeg's `chroma_dc_dequant_idct` shape; the luma six-tap byte rewrite waits on
+  `interpolateLuma` 1.2. Take the chroma DC path of `addChromaResidual` to FFmpeg's
+  `chroma_dc_dequant_idct` shape; the luma six-tap byte rewrite waits on
   compiler.optimization.037. Measure each by sampling the lane, not by timing it.
 - Complete when: the decode lane's prediction, residual, reconstruction and deblocking
   functions together take no more than 10 million cycles per picture on the same fixture (their

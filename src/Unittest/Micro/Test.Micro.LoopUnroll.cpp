@@ -75,6 +75,8 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
 {
     struct Case
     {
+        MicroOpBits counterBits;
+        MicroOpBits sumBits;
         uint64_t start;
         uint64_t step;
         uint64_t bound;
@@ -82,9 +84,13 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
         uint64_t expectedSum;
     };
     constexpr Case cases[] = {
-        {0, 1, 17, 0, 136},
-        {2, 3, 17, 7, 47},
-        {0, 1, 17, UINT64_MAX, 135},
+        {MicroOpBits::B64, MicroOpBits::B64, 0, 1, 17, 0, 136},
+        {MicroOpBits::B64, MicroOpBits::B64, 2, 3, 17, 7, 47},
+        {MicroOpBits::B64, MicroOpBits::B64, 0, 1, 17, UINT64_MAX, 135},
+        {MicroOpBits::B64, MicroOpBits::B32, 0, 1, 17, 0, 136},
+        {MicroOpBits::B64, MicroOpBits::B32, 2, 3, 17, 7, 47},
+        {MicroOpBits::B64, MicroOpBits::B32, 0, 1, 17, UINT32_MAX, 135},
+        {MicroOpBits::B32, MicroOpBits::B32, 0, 1, 17, 0, 136},
     };
     for (const Case& test : cases)
     {
@@ -92,14 +98,16 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
         constexpr MicroReg accumulator = MicroReg::virtualIntReg(2);
         MicroBuilder       builder(ctx);
         const auto         header = builder.createLabel();
-        builder.emitLoadRegImm(accumulator, ApInt(test.initialSum, 64), MicroOpBits::B64);
-        builder.emitLoadRegImm(counter, ApInt(test.start, 64), MicroOpBits::B64);
+        const uint32_t counterWidth = test.counterBits == MicroOpBits::B32 ? 32 : 64;
+        const uint32_t sumWidth     = test.sumBits == MicroOpBits::B32 ? 32 : 64;
+        builder.emitLoadRegImm(accumulator, ApInt(test.initialSum, sumWidth), test.sumBits);
+        builder.emitLoadRegImm(counter, ApInt(test.start, counterWidth), test.counterBits);
         builder.placeLabel(header);
-        builder.emitOpBinaryRegReg(accumulator, counter, MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(counter, ApInt(test.step, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitCmpRegImm(counter, ApInt(test.bound, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
-        builder.emitLoadMemReg(CallConv::get(CallConvKind::Swag).stackPointer, 0x20, accumulator, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(accumulator, counter, MicroOp::Add, test.sumBits);
+        builder.emitOpBinaryRegImm(counter, ApInt(test.step, counterWidth), MicroOp::Add, test.counterBits);
+        builder.emitCmpRegImm(counter, ApInt(test.bound, counterWidth), test.counterBits);
+        builder.emitJumpToLabel(MicroCond::Below, test.counterBits, header);
+        builder.emitLoadMemReg(CallConv::get(CallConvKind::Swag).stackPointer, 0x20, accumulator, test.sumBits);
         builder.emitRet();
 
         SWC_RESULT(runLoopUnrollPass(builder));

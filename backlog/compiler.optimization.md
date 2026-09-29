@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
 
 - Recorded: 2026-09-24 10:33
-- Updated: 2026-09-29 16:26 — Folded pure counted index sums without widening the ordinary-loop cap.
+- Updated: 2026-09-29 17:04 — Extended the counted-sum fold to 32-bit accumulators.
 - Area: compiler/backend, loop unrolling
 - Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
   16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
@@ -42,6 +42,13 @@ block, and the hot path keeps the register.
   wraparound, a runtime operand, and live flags. The DevMode compiler's 1,175 C++ tests, 3,488
   native DevMode tests, and 1,502 JIT DevMode tests pass. All seven benchmark task checksums
   pass; no individual task timing was used.
+- Follow-up: `for i in 17'u32` lowers its induction register at 64 bits but adds its low 32 bits
+  to a 32-bit accumulator. The fold now recognizes this mixed-width shape and truncates only
+  the final sum to the accumulator width. The independent Release `sum17u32` falls from eight
+  to two Micro instructions; a runtime-parameter sum remains at eight. Both native and JIT runs
+  return `CHECK=391`; a C++ case also starts the accumulator at `UINT32_MAX`. All 1,175 C++ tests and
+  1,502 JIT DevMode tests pass. The seven benchmark task checksums and selected function sizes
+  are unchanged. No task timing was taken.
 - Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
   only when a general work-saved versus code-growth rule improves them without expanding loops
   whose bodies retain their per-trip work.

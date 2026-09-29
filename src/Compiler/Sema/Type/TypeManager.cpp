@@ -351,12 +351,15 @@ bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, 
 {
     while (typeRef.isValid())
     {
-        const TypeInfo& typeInfo   = get(typeRef);
-        const TypeRef   rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid() && rawTypeRef != typeRef)
+        const TypeInfo& typeInfo = get(typeRef);
+        if (typeInfo.isAlias())
         {
-            typeRef = rawTypeRef;
-            continue;
+            const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
+            if (rawTypeRef.isValid() && rawTypeRef != typeRef)
+            {
+                typeRef = rawTypeRef;
+                continue;
+            }
         }
 
         if (typeInfo.isArray())

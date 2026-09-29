@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-29 10:13 — Record the entropy-layer instruction counts after the prompt-2 CABAC batches.
+- Updated: 2026-09-29 11:03 — Record the entropy-layer instruction counts after the prompt-2 CABAC batches.
 - Evidence: on 2026-09-12, decoding the same 3840x2160 one-slice High/CABAC clip and alternating
   the two decoders inside one measurement window, this decoder and FFmpeg's own build with its
   hand-written assembly disabled read within a tenth of each other, while FFmpeg with its

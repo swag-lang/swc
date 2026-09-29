@@ -517,7 +517,16 @@ impl Slice
                 {
                     let list      = ref0 ? 0'u32 : 1'u32
                     let reference = ref0 ? ref0 : ref1!
-                    if .useWeights
+                    if not .useWeights
+                    {
+                        // Both planes share the vector, the phase and the window, and a plain
+                        // prediction writes straight into the picture: one pass predicts them.
+                        let mvX = cast(s32) job.mv[list, 0]
+                        let mvY = cast(s32) job.mv[list, 1]
+                        mcChromaPair(chromaDst, frame.pixChroma(1, chromaX, chromaY), frame.strideChroma, reference, chromaX + (mvX >> 3), chromaY + (mvY >> 3), mvX & 7, mvY & 7, job.width / 2, job.height / 2)
+                        break
+                    }
+                    else
                     {
                         var tempA: [8 * 16] u8
                         .mcChromaList(mb, job, list, reference, plane, tempA.buffer, 16)
@@ -525,10 +534,6 @@ impl Slice
                         let weight = plane == 0 ? entry.cbWeight : entry.crWeight
                         let offset = plane == 0 ? entry.cbOffset : entry.crOffset
                         weightUni(chromaDst, frame.strideChroma, tempA.buffer, 16, job.width / 2, job.height / 2, cast(s32) .chromaLog2Denom, weight, offset)
-                    }
-                    else
-                    {
-                        .mcChromaList(mb, job, list, reference, plane, chromaDst, frame.strideChroma)
                     }
                 }
             }

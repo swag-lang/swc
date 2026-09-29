@@ -51,6 +51,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 ### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
 
 - Recorded: 2026-09-12 18:05
+- Updated: 2026-09-29 15:15 — Deblocking skips macroblocks under the QP threshold; strengths decide without branches.
 - Updated: 2026-09-29 11:28 — Luma, chroma, strength and intra kernels now take FFmpeg's shapes.
 - Evidence: forcing FFmpeg's dispatch down one instruction set at a time on a 3840x2160 one-slice
   High/CABAC clip gives the ladder its assembly climbs, in millions of decode-thread cycles per
@@ -118,13 +119,26 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   through a small struct. The struct travelled through the frame and kept six more values live
   across the filter calls: the function grew from 1633 to 1780 instructions and its edge loops
   gained about 40 memory operations.
-- Next: in a symbol-bearing profile of the extract (a `--debug` build, which keeps parameters in
-  stack slots and inflates small functions), the pixel layer's largest remaining costs are the
-  deblocking driver (`deblockMb` about 6 per cent, `edgeStrengths` about 4), full-sample copies
-  (`copyPlane` about 5, bound on reference-frame reads that FFmpeg prefetches a macroblock
-  ahead), and the inter driver (`compensate` about 3). Derive the strengths of a whole edge
-  direction in one vector pass, as FFmpeg's `h264_loop_filter_strength` does, and measure a
-  prefetch of the next macroblock's reference rows once the language has a prefetch intrinsic.
+- Done (2026-09-29 afternoon, prompt 2): `deblockMb` returns before deriving any strength when
+  the quantizers its edges can average keep both planes under index 16 on either threshold
+  (FFmpeg's `qp_thresh`): 86 per cent of the extract's macroblocks take that return, and the
+  deblocking driver falls from about 10 per cent of the decode lane's samples (`deblockMb`,
+  `edgeStrengths`, `edgeStrength`) to about 1. The four segment strengths of an edge are chosen
+  without a branch (both motion comparisons always run and the coded flags pick through a
+  cmov); the vertical weak chroma edge is transposed in registers, as FFmpeg's TRANSPOSE_8x4B
+  does, instead of through a cleared tile and a call; the per-segment strong chroma filter left
+  the edge loop (`deblockMb` 1590 -> 1491 instructions); a chroma edge inside the macroblock
+  reuses its chroma QP. Four flat DC-only chroma blocks, and each flat 8x8 quarter of an intra
+  16x16 macroblock, add their DCs in one 8x8 pass (99 instructions against four calls of 38).
+  A single-list, unweighted chroma prediction serves both planes in one pass, the whole-sample
+  8x8 case, a still region's skip, copying both planes in one loop. All byte-exact against PyAV.
+- Next: the decode lane's remaining pixel costs are memory-bound: `copyPlane` (about 5 per
+  cent of samples) and the chroma interpolation read reference rows that FFmpeg prefetches a
+  macroblock ahead (`prefetch_motion`), and the language has no prefetch intrinsic; adding one
+  is a surface change (reference, VSCode extension). Timing A/Bs on the shared machine were
+  unusable this afternoon (paired ratios from 0.8 to 6.8 between identical rounds), so the
+  afternoon batches rest on instruction and memory-operation counts; re-measure them pinned on
+  a quiet machine.
 - Complete when: the H.264 pixel layer reaches FFmpeg's SSE2 figure on the same fixture with
   unchanged decoded planes.
 - Related: std.video.001, cpu.simd.023, cpu.simd.024

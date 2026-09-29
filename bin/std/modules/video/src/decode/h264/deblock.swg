@@ -163,8 +163,10 @@ private func edgeStrength(dec: *Decoder, pMbIndex, pIndex, qMbIndex, qIndex: u64
 // whether any segment is filtered.
 //
 // The macroblock-level answers - an intra side, where the motion of each side is read - are
-// taken once for the edge rather than once per segment, and each segment then reads two coded
-// flags and, when neither is set, compares two motion vectors of lanes.
+// taken once for the edge rather than once per segment. Each segment then decides without a
+// branch, as FFmpeg's strength loop does: both motion comparisons run whether or not a coded
+// flag makes them moot, and the flags pick between the answers, because which segments carry
+// coefficients follows the picture and no predictor learns it.
 private func edgeStrengths(dec: *Decoder, pMbIndex, qMbIndex, pFirst, qFirst, step: u64, mbEdge, pIntra, qIntra: bool, strengths: *EdgeStrength)->bool
 {
     if pIntra or qIntra
@@ -181,28 +183,32 @@ private func edgeStrengths(dec: *Decoder, pMbIndex, qMbIndex, pFirst, qFirst, st
     let qFromJob = deblockMotionFromJob(dec, qMbIndex)
     let pJob     = pFromJob ? deblockJobMotion(dec, pMbIndex) : Simd.splat(0's16)
     let qJob     = qFromJob ? deblockJobMotion(dec, qMbIndex) : Simd.splat(0's16)
-    var filtered = false
+    var filtered = 0'u32
     for segment in 4'u64
     {
-        let pIndex = pFirst + segment * step
-        let qIndex = qFirst + segment * step
-        var bs     = 2'u32
-        if coded[pIndex] == 0 and coded[qIndex] == 0
-        {
-            let p = pFromJob ? pJob : deblockGridMotion(grid0, grid1, pIndex)
-            let q = qFromJob ? qJob : deblockGridMotion(grid0, grid1, qIndex)
-            bs = 1
-            if deblockMotionMatches(p, q) do
-                bs = 0
-            elif deblockMotionMatches(p, cast #bit(Simd.S16x8) Simd.permute(cast #bit(Simd.U64x2) q, cast(Simd.U64x2) [1'u64, 0])) do
-                bs = 0
-        }
-
+        let pIndex  = pFirst + segment * step
+        let qIndex  = qFirst + segment * step
+        let p       = pFromJob ? pJob : deblockGridMotion(grid0, grid1, pIndex)
+        let q       = qFromJob ? qJob : deblockGridMotion(grid0, grid1, qIndex)
+        let swapped = cast #bit(Simd.S16x8) Simd.permute(cast #bit(Simd.U64x2) q, cast(Simd.U64x2) [1'u64, 0])
+        let moved   = deblockMotionDiffers(p, q) & deblockMotionDiffers(p, swapped)
+        let bs      = (coded[pIndex] | coded[qIndex]) != 0 ? 2'u32 : moved
         strengths.bs[segment] = bs
-        filtered = filtered or bs != 0
+        filtered |= bs
     }
 
-    return filtered
+    return filtered != 0
+}
+
+// One when the motion of two blocks does not match as [[deblockMotionMatches]] reads it, zero
+// when it does, as a value rather than a branch.
+#[Swag.Inline]
+private func deblockMotionDiffers(p, q: Simd.S16x8)->u32
+{
+    const Compared = cast(Simd.U16x8) [0xFFFF'u16, 0xFFFF, 0xFF00, 0, 0xFFFF, 0xFFFF, 0xFF00, 0]
+    let difference = (cast #bit(Simd.U16x8) q & Compared) - (cast #bit(Simd.U16x8) p & Compared) + 3
+    let within     = Simd.subSaturating(difference, Simd.splat(6'u16)) == Simd.splat(0'u16)
+    return Simd.allTrue(within) ? 0'u32 : 1'u32
 }
 
 // All ones for the strengths the normal filter applies, 1 to 3, as the bytes a strength indexes.
@@ -234,6 +240,19 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
     let mbIndex = cast(u64) (mbY * sps.mbWidth + mbX)
     let info    = &dec.mbInfo[mbIndex]
     if info.deblockIdc == 1 do
+        return
+
+    // Below index 16 either threshold is zero and no edge is filtered. When the quantizers of
+    // this macroblock and of the neighbours its outer edges average with keep every edge of both
+    // planes there, the strengths are not worth deriving, which is FFmpeg's `qp_thresh` test.
+    // The chroma quantizer only grows with the luma one, so the largest luma one bounds both.
+    var maxQp = cast(s32) info.qp
+    if mbX > 0 do
+        maxQp = Math.max(maxQp, cast(s32) dec.mbInfo[mbIndex - 1].qp)
+    if mbY > 0 do
+        maxQp = Math.max(maxQp, cast(s32) dec.mbInfo[mbIndex - cast(u64) sps.mbWidth].qp)
+    let thresholdOffset = Math.min(cast(s32) info.alphaOffset, cast(s32) info.betaOffset)
+    if maxQp + thresholdOffset < 16 and chromaQpAtLevel(dec, maxQp) + thresholdOffset < 16 do
         return
 
     let gw     = sps.mbWidth * 4
@@ -308,8 +327,8 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         // the strengths of the luma edge and the quantizer of the plane.
         if sps.is444()
         {
-            let qpcP    = chromaQpAt(dec, edge == 0 ? mbX - 1 : mbX, mbY)
             let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcP    = edge == 0 ? chromaQpAt(dec, mbX - 1, mbY) : qpcQ
             let qpcAvg  = (qpcP + qpcQ + 1) >> 1
             let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
             let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
@@ -327,8 +346,8 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         // The matching chroma edges sit at chroma columns 0 and 4.
         if edge == 0 or edge == 2
         {
-            let qpcP    = chromaQpAt(dec, edge == 0 ? mbX - 1 : mbX, mbY)
             let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcP    = edge == 0 ? chromaQpAt(dec, mbX - 1, mbY) : qpcQ
             let qpcAvg  = (qpcP + qpcQ + 1) >> 1
             let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
             let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
@@ -419,8 +438,8 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
 
         if sps.is444()
         {
-            let qpcP    = chromaQpAt(dec, mbX, edge == 0 ? mbY - 1 : mbY)
             let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcP    = edge == 0 ? chromaQpAt(dec, mbX, mbY - 1) : qpcQ
             let qpcAvg  = (qpcP + qpcQ + 1) >> 1
             let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
             let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
@@ -444,8 +463,8 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
 
         if edge == 0 or edge == 2
         {
-            let qpcP    = chromaQpAt(dec, mbX, edge == 0 ? mbY - 1 : mbY)
             let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcP    = edge == 0 ? chromaQpAt(dec, mbX, mbY - 1) : qpcQ
             let qpcAvg  = (qpcP + qpcQ + 1) >> 1
             let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
             let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
@@ -567,21 +586,30 @@ func filterLumaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeSt
 // to two chroma lanes; strong edges retain their separate scalar formula.
 func filterChromaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
-    let p0         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - stride))
-    let q0         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix))
-    let p1         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - 2 * stride))
-    let q1         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix + stride))
+    let p0    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - stride))
+    let q0    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix))
+    let p1    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - 2 * stride))
+    let q1    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix + stride))
+    let delta = chromaWeakDelta(p1, p0, q0, q1, strengths, indexA, alpha, beta)
+    let zeros = Simd.splat(0's16)
+    Simd.storeLow8(pix - stride, Simd.packUnsigned(p0 + delta, zeros))
+    Simd.storeLow8(pix, Simd.packUnsigned(q0 - delta, zeros))
+}
+
+// The amount the weak chroma filter adds to p0 and takes from q0 on eight lines of an edge,
+// zero on the lines it leaves alone, section 8.7.2.3.
+#[Swag.Inline]
+private func chromaWeakDelta(p1, p0, q0, q1: Simd.S16x8, strengths: const *EdgeStrength, indexA, alpha, beta: s32)->Simd.S16x8
+{
     // Two samples carry one strength. A lane the strength leaves unfiltered is masked off
     // below, so its clip may be anything; a filtered one clips at tC0 + 1.
-    let lanes      = weakStrengthLanes(strengths, 2)
-    let limits     = cast #bit(Simd.S16x8) Simd.widenLow(Simd.shuffle(cast #bit(Simd.U8x16) Simd.splat(DeblockTcRows[cast(u64) indexA]), lanes)) + 1
-    let strengthy  = cast #bit(Simd.U16x8) Simd.widenLow(cast #bit(Simd.S8x16) Simd.shuffle(WeakStrengths, lanes))
-    let zeros      = Simd.splat(0's16)
-    let active     = strengthy & (Math.abs(p0 - q0) < Simd.splat(cast(s16) alpha)) & (Math.abs(p1 - p0) < Simd.splat(cast(s16) beta)) & (Math.abs(q1 - q0) < Simd.splat(cast(s16) beta))
-    var delta      = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
+    let lanes     = weakStrengthLanes(strengths, 2)
+    let limits    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.shuffle(cast #bit(Simd.U8x16) Simd.splat(DeblockTcRows[cast(u64) indexA]), lanes)) + 1
+    let strengthy = cast #bit(Simd.U16x8) Simd.widenLow(cast #bit(Simd.S8x16) Simd.shuffle(WeakStrengths, lanes))
+    let active    = strengthy & (Math.abs(p0 - q0) < Simd.splat(cast(s16) alpha)) & (Math.abs(p1 - p0) < Simd.splat(cast(s16) beta)) & (Math.abs(q1 - q0) < Simd.splat(cast(s16) beta))
+    var delta     = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
     delta = Math.max(Math.min(delta, limits), -limits)
-    Simd.storeLow8(pix - stride, Simd.packUnsigned(Simd.select(active, p0 + delta, p0), zeros))
-    Simd.storeLow8(pix, Simd.packUnsigned(Simd.select(active, q0 - delta, q0), zeros))
+    return Simd.select(active, delta, Simd.splat(0's16))
 }
 
 // Filters every strong luma lane of one horizontal edge. Weak lanes are applied first when
@@ -808,14 +836,11 @@ func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength
 }
 
 // Filters one complete vertical weak chroma edge the same way: eight lines of p1 p0 q0 q1
-// become the four rows of a tile, the horizontal chroma kernel filters it, and the two
-// rows it changed come back as one word per line.
+// are transposed into four registers, one per sample position, as FFmpeg's TRANSPOSE_8x4B
+// does, the weak chroma kernel runs on them, and the two positions it changed come back as
+// one word per line. Nothing goes through memory between the loads and the stores.
 func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
-    const TileStride = 16'u64
-    var tile:  [4 * TileStride] u8
-    var pairs: [8] u16
-
     let r0 = Simd.load(pix - 2)
     let r1 = Simd.load(pix - 2 + stride)
     let r2 = Simd.load(pix - 2 + 2 * stride)
@@ -837,20 +862,26 @@ func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeSt
     let c0 = cast #bit(Simd.U64x2) Simd.interleaveLow(b0, b1)
     let c1 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b0, b1)
 
-    let rows = tile.buffer
-    Simd.store(rows, cast #bit(Simd.U8x16) c0)
-    Simd.store(rows + TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c0, c0))
-    Simd.store(rows + 2 * TileStride, cast #bit(Simd.U8x16) c1)
-    Simd.store(rows + 3 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c1, c1))
+    let p1    = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) c0)
+    let p0    = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) Simd.interleaveHigh(c0, c0))
+    let q0    = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) c1)
+    let q1    = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) Simd.interleaveHigh(c1, c1))
+    let delta = chromaWeakDelta(p1, p0, q0, q1, strengths, indexA, alpha, beta)
 
-    filterChromaWeakHorizontal(rows + 2 * TileStride, TileStride, strengths, indexA, alpha, beta)
-
-    // Only p0 q0 change: one word per line.
-    let p0 = Simd.load(rows + TileStride)
-    let q0 = Simd.load(rows + 2 * TileStride)
-    Simd.store(cast([*] u8) pairs.buffer, Simd.interleaveLow(p0, q0))
-    for line in 8'u64 do
-        (cast([*] u16) (pix - 1 + line * stride))[0] = pairs[line]
+    // Only p0 q0 change: the new p0 of the eight lines, then their q0, paired into one word
+    // per line, four lines to a quadword.
+    let packed = cast #bit(Simd.U64x2) Simd.packUnsigned(p0 + delta, q0 - delta)
+    let words  = cast #bit(Simd.U64x2) Simd.interleaveLow(cast #bit(Simd.U8x16) packed, cast #bit(Simd.U8x16) Simd.interleaveHigh(packed, packed))
+    let low    = words[0]
+    let high   = words[1]
+    (cast([*] u16) (pix - 1))[0]              = cast #wrap(u16) low
+    (cast([*] u16) (pix - 1 + stride))[0]     = cast #wrap(u16) (low >> 16)
+    (cast([*] u16) (pix - 1 + 2 * stride))[0] = cast #wrap(u16) (low >> 32)
+    (cast([*] u16) (pix - 1 + 3 * stride))[0] = cast #wrap(u16) (low >> 48)
+    (cast([*] u16) (pix - 1 + 4 * stride))[0] = cast #wrap(u16) high
+    (cast([*] u16) (pix - 1 + 5 * stride))[0] = cast #wrap(u16) (high >> 16)
+    (cast([*] u16) (pix - 1 + 6 * stride))[0] = cast #wrap(u16) (high >> 32)
+    (cast([*] u16) (pix - 1 + 7 * stride))[0] = cast #wrap(u16) (high >> 48)
 }
 
 // Filters one vertical chroma edge that carries an intra strength, segment by segment, two lines
@@ -881,9 +912,12 @@ func filterChromaStrongVertical(pix: [*] u8, stride: u64, strengths: const *Edge
 // planes filter with the same strength, so one offset serves both.
 private func chromaQpAt(dec: *Decoder, mbX, mbY: s32)->s32
 {
-    let qp = cast(s32) dec.mbInfo[cast(u64) (mbY * dec.sps!.mbWidth + mbX)].qp
-    return cast(s32) ChromaQp[cast(u64) Math.clamp(qp + dec.pps!.chromaQpOffset[0], 0, 51)]
+    return chromaQpAtLevel(dec, cast(s32) dec.mbInfo[cast(u64) (mbY * dec.sps!.mbWidth + mbX)].qp)
 }
+
+// Returns the chroma QP that goes with the luma QP `qp`, with the same offset as [[chromaQpAt]].
+#[Swag.Inline]
+private func chromaQpAtLevel(dec: *Decoder, qp: s32)->s32 => cast(s32) ChromaQp[cast(u64) Math.clamp(qp + dec.pps!.chromaQpOffset[0], 0, 51)]
 
 // Filters one luma line across an edge; `pix` sits on the first q sample, `step` walks
 // across the edge and `lineStride` along it.

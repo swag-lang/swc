@@ -129,6 +129,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLeaConstIntoMemBase);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldLeaConstIntoMemBase);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);
+        r.add(MicroInstrOpcode::LoadMemReg, tryEraseStoreOfLoadedValue);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldMemoryAddressing);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldRelocatedAddressIntoAccess);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldRelocatedAddressIntoAccess);

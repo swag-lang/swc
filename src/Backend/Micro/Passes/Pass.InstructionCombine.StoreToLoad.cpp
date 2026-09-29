@@ -245,6 +245,58 @@ namespace InstructionCombine
             }
         }
     }
+
+    // A store of the value just loaded from the same place, at the same width:
+    //
+    //     LoadRegMem  v, [b + o], w
+    //     ...                           (no memory write, call or control flow)
+    //     LoadMemReg  [b + o], v, w  -> erased
+    //
+    // writes back the bytes memory already holds. The front end emits the pair
+    // when a value built in a temporary is copied into the variable sharing its
+    // slot; left in place, the whole-width load waits on the narrower stores
+    // that built the value. Erasing the store leaves the load to dead-code
+    // elimination when nothing else reads it. The base must hold the same value
+    // at both ends and nothing between may write memory, so no other store can
+    // have changed those bytes in between; a volatile load has its own opcode.
+    bool tryEraseStoreOfLoadedValue(Context& ctx, const MicroInstrRef storeRef, const MicroInstr& storeInst)
+    {
+        if (ctx.isClaimed(storeRef) || ctx.isRelocated(storeRef) || !ctx.ssa)
+            return false;
+        const MicroInstrOperand* storeOps = storeInst.ops(*ctx.operands);
+        if (!storeOps)
+            return false;
+        const MicroReg base  = storeOps[0].reg;
+        const MicroReg value = storeOps[1].reg;
+        if (!base.isVirtualInt() || !value.isVirtual() || base == value)
+            return false;
+
+        const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(value, storeRef);
+        if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegMem || ctx.isRelocated(def.instRef))
+            return false;
+        const MicroInstrOperand* loadOps = def.inst->ops(*ctx.operands);
+        if (!loadOps || loadOps[0].reg != value || loadOps[1].reg != base || loadOps[2].opBits != storeOps[2].opBits ||
+            loadOps[3].valueU64 != storeOps[3].valueU64)
+            return false;
+        const MicroSsaState::ReachingDef baseAtLoad  = ctx.ssa->reachingDef(base, def.instRef);
+        const MicroSsaState::ReachingDef baseAtStore = ctx.ssa->reachingDef(base, storeRef);
+        if (!baseAtLoad.valid() || !baseAtStore.valid() || baseAtLoad.valueId != baseAtStore.valueId)
+            return false;
+
+        constexpr uint32_t K_MAX_WINDOW = 32;
+        MicroInstrRef      ref          = ctx.storage->findPreviousInstructionRef(storeRef);
+        for (uint32_t step = 0; ref != def.instRef; ++step, ref = ctx.storage->findPreviousInstructionRef(ref))
+        {
+            const MicroInstr* inst = ref.isValid() ? ctx.storage->ptr(ref) : nullptr;
+            if (!inst || step >= K_MAX_WINDOW || isControlOrCall(*inst) || writesMemory(*inst))
+                return false;
+        }
+
+        if (!ctx.claimAll({storeRef}))
+            return false;
+        ctx.emitErase(storeRef);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

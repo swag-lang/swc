@@ -240,6 +240,7 @@ namespace InstructionCombine
     bool tryDivideBoundedByConstant(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryWidenMaskedNarrowValue(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
+    bool tryEraseStoreOfLoadedValue(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryFoldConstCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryFoldConstAmcCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryDropRangeProvedCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);

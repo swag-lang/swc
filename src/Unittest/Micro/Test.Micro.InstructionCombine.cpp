@@ -5144,6 +5144,52 @@ SWC_TEST_BEGIN(InstCombine_VectorLiteralClearedThroughAddressBuildsInRegisters)
 }
 SWC_TEST_END()
 
+// Storing back the value just loaded from the same place, at the same width, writes nothing new:
+// the store goes. A write through another pointer in between may have changed those bytes, and a
+// different width stores other bytes; both keep the store.
+SWC_TEST_BEGIN(InstCombine_StoreOfJustLoadedValueIsErased)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg other = MicroReg::virtualIntReg(2);
+    constexpr MicroReg low   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg whole = MicroReg::virtualIntReg(4);
+
+    enum class Shape : uint8_t
+    {
+        Plain,
+        ForeignWrite,
+        OtherWidth,
+    };
+    for (const Shape shape : {Shape::Plain, Shape::ForeignWrite, Shape::OtherWidth})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(other, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(low, MicroReg::intReg(8), MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 0x34, low, MicroOpBits::B16);
+        builder.emitLoadMemReg(base, 0x36, low, MicroOpBits::B16);
+        builder.emitLoadRegMem(whole, base, 0x34, MicroOpBits::B32);
+        if (shape == Shape::ForeignWrite)
+            builder.emitLoadMemImm(other, 0, ApInt(7, 32), MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 0x34, whole, shape == Shape::OtherWidth ? MicroOpBits::B16 : MicroOpBits::B32);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        uint32_t storesBack = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadMemReg && ops && ops[1].reg == whole)
+                ++storesBack;
+        }
+        if (storesBack != (shape == Shape::Plain ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -87,7 +87,7 @@ namespace
             return false;
         }
 
-        const TypeRef storageTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
+        const TypeRef storageTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         if (!storageTypeRef.isValid())
         {
             outBits = MicroOpBits::Zero;

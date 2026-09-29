@@ -464,8 +464,6 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        const TypeInfo&    compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
-        const TypeInfo&    compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftView.typeRef() == compareRightView.typeRef())
             return Result::Continue;
         if (SemaHelpers::aliasType(sema, compareLeftView).isScalarNumeric() && SemaHelpers::aliasType(sema, compareRightView).isScalarNumeric())
@@ -478,6 +476,8 @@ namespace
             return Result::Continue;
         if (compareLeftView.type()->isPointerLikeAliasAware(sema.ctx()) && compareRightView.type()->isNull())
             return Result::Continue;
+        const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
+        const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
             return Result::Continue;
         if (compareLeftType.isAnyTypeInfo(sema.ctx()) && compareRightType.isAnyTypeInfo(sema.ctx()))
@@ -494,10 +494,10 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        const TypeInfo&    compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
-        const TypeInfo&    compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (SemaHelpers::aliasType(sema, compareLeftView).isScalarNumeric() && SemaHelpers::aliasType(sema, compareRightView).isScalarNumeric())
             return Result::Continue;
+        const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
+        const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
             return Result::Continue;
 

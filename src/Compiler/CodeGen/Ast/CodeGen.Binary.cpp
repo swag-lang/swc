@@ -109,8 +109,8 @@ namespace
         if (!storedSourceTypeRef.isValid())
             return false;
 
-        const TypeRef sourceTypeRef = codeGen.typeMgr().get(storedSourceTypeRef).unwrapAliasEnum(codeGen.ctx(), storedSourceTypeRef);
-        castResultTypeRef           = codeGen.typeMgr().get(castResultTypeRef).unwrapAliasEnum(codeGen.ctx(), castResultTypeRef);
+        const TypeRef sourceTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), storedSourceTypeRef);
+        castResultTypeRef           = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), castResultTypeRef);
         if (!sourceTypeRef.isValid() || !castResultTypeRef.isValid())
             return false;
 
@@ -209,8 +209,8 @@ namespace
         ctx.rightPayload        = &codeGen.payload(node.nodeRightRef);
         ctx.leftOperandTypeRef  = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeLeftRef, leftView, *ctx.leftPayload);
         ctx.rightOperandTypeRef = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
-        ctx.leftOperandTypeRef  = typeMgr.get(ctx.leftOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
-        ctx.rightOperandTypeRef = typeMgr.get(ctx.rightOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
+        ctx.leftOperandTypeRef  = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
+        ctx.rightOperandTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
         ctx.resultTypeRef       = codeGen.curViewType().typeRef();
         if (codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
         {
@@ -218,7 +218,7 @@ namespace
             if (storedResultTypeRef.isValid())
                 ctx.resultTypeRef = storedResultTypeRef;
         }
-        TypeRef leftSemanticTypeRef = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
+        TypeRef leftSemanticTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
         if (!leftSemanticTypeRef.isValid())
             leftSemanticTypeRef = leftView.typeRef().isValid() ? leftView.typeRef() : ctx.leftOperandTypeRef;
         ctx.operationTypeRef = leftSemanticTypeRef;
@@ -241,7 +241,7 @@ namespace
         SWC_ASSERT(ctx.resultTypeRef.isValid());
         SWC_ASSERT(ctx.operationTypeRef.isValid());
 
-        TypeRef rightSemanticTypeRef = typeMgr.get(rightView.typeRef()).unwrapAliasEnum(codeGen.ctx(), rightView.typeRef());
+        TypeRef rightSemanticTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), rightView.typeRef());
         if (!rightSemanticTypeRef.isValid())
             rightSemanticTypeRef = rightView.typeRef().isValid() ? rightView.typeRef() : ctx.rightOperandTypeRef;
 
@@ -276,11 +276,11 @@ namespace
     TypeRef resolveArithmeticOperandPhysicalTypeRef(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef sourceTypeRef)
     {
         const TypeRef originalSourceTypeRef = sourceTypeRef;
-        sourceTypeRef = codeGen.typeMgr().get(sourceTypeRef).unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
+        sourceTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
         if (!operandPayload.isValue() || !operandPayload.typeRef.isValid() || operandPayload.typeRef == originalSourceTypeRef)
             return sourceTypeRef;
 
-        TypeRef payloadTypeRef = codeGen.typeMgr().get(operandPayload.typeRef).unwrapAliasEnum(codeGen.ctx(), operandPayload.typeRef);
+        TypeRef payloadTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), operandPayload.typeRef);
         if (!payloadTypeRef.isValid())
             payloadTypeRef = operandPayload.typeRef;
         if (!payloadTypeRef.isValid())
@@ -307,8 +307,8 @@ namespace
         if (srcTypeRef == dstTypeRef)
             return;
 
-        srcTypeRef                = codeGen.typeMgr().get(srcTypeRef).unwrapAliasEnum(codeGen.ctx(), srcTypeRef);
-        dstTypeRef                = codeGen.typeMgr().get(dstTypeRef).unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
+        srcTypeRef                = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), srcTypeRef);
+        dstTypeRef                = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
         const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
         const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);

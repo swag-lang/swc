@@ -152,7 +152,7 @@ namespace
         if (!codeGen.typeMgr().get(leftTypeRef).isReference())
             SWC_ASSERT(target.payload.isAddress());
 
-        const TypeRef opTypeRef = codeGen.typeMgr().get(targetTypeRef).unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
+        const TypeRef opTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
         target.typeRef          = targetTypeRef;
         target.opTypeRef        = opTypeRef;
         return target;

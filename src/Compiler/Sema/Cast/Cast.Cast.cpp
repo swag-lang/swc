@@ -118,7 +118,7 @@ namespace
         if (!typeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrapAliasEnum(sema.ctx(), typeRef);
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
         if (unwrappedTypeRef.isValid())
             return unwrappedTypeRef;
 

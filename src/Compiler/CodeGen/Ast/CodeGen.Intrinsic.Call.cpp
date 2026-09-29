@@ -371,7 +371,7 @@ namespace
     {
         const SemaNodeView typeView = codeGen.viewTypeConstant(typeRefNode);
         if (typeView.type() && typeView.type()->isTypeValue())
-            return codeGen.typeMgr().get(typeView.type()->payloadTypeRef()).unwrapAliasEnum(codeGen.ctx(), typeView.type()->payloadTypeRef());
+            return codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeView.type()->payloadTypeRef());
 
         if (!typeView.cstRef().isValid())
             return TypeRef::invalid();
@@ -380,7 +380,7 @@ namespace
         if (!resolvedTypeRef.isValid())
             return TypeRef::invalid();
 
-        return codeGen.typeMgr().get(resolvedTypeRef).unwrapAliasEnum(codeGen.ctx(), resolvedTypeRef);
+        return codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), resolvedTypeRef);
     }
 
     using CodeGenInterfaceHelpers::emitLoadInterfaceMethodTableAddress;

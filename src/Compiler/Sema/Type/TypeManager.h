@@ -121,7 +121,11 @@ public:
         if (!typeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeRef unwrappedTypeRef = get(typeRef).unwrapAliasEnum(ctx, typeRef);
+        const TypeInfo& typeInfo = get(typeRef);
+        if (!typeInfo.isAlias() && !typeInfo.isEnum())
+            return typeRef;
+
+        const TypeRef unwrappedTypeRef = typeInfo.unwrapAliasEnum(ctx, typeRef);
         return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
     }
 

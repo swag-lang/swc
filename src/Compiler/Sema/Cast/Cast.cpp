@@ -138,7 +138,7 @@ namespace
         if (!srcType.isAnyPointer() && !srcType.isReference() && !srcType.isMoveReference())
             return false;
 
-        const TypeRef objectTypeRef = sema.typeMgr().get(srcType.payloadTypeRef()).unwrapAliasEnum(sema.ctx(), srcType.payloadTypeRef());
+        const TypeRef objectTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcType.payloadTypeRef());
         if (!objectTypeRef.isValid())
             return false;
 

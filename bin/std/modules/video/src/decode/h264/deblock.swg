@@ -314,8 +314,8 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         // the strengths of the luma edge and the quantizer of the plane.
         if sps.is444()
         {
-            let qpcP    = chromaQpAt(dec, edge == 0 ? mbX - 1 : mbX, mbY)
             let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcP    = edge == 0 ? chromaQpAt(dec, mbX - 1, mbY) : qpcQ
             let qpcAvg  = (qpcP + qpcQ + 1) >> 1
             let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
             let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
@@ -333,8 +333,8 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         // The matching chroma edges sit at chroma columns 0 and 4.
         if edge == 0 or edge == 2
         {
-            let qpcP    = chromaQpAt(dec, edge == 0 ? mbX - 1 : mbX, mbY)
             let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcP    = edge == 0 ? chromaQpAt(dec, mbX - 1, mbY) : qpcQ
             let qpcAvg  = (qpcP + qpcQ + 1) >> 1
             let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
             let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
@@ -425,8 +425,8 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
 
         if sps.is444()
         {
-            let qpcP    = chromaQpAt(dec, mbX, edge == 0 ? mbY - 1 : mbY)
             let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcP    = edge == 0 ? chromaQpAt(dec, mbX, mbY - 1) : qpcQ
             let qpcAvg  = (qpcP + qpcQ + 1) >> 1
             let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
             let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
@@ -450,8 +450,8 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
 
         if edge == 0 or edge == 2
         {
-            let qpcP    = chromaQpAt(dec, mbX, edge == 0 ? mbY - 1 : mbY)
             let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcP    = edge == 0 ? chromaQpAt(dec, mbX, mbY - 1) : qpcQ
             let qpcAvg  = (qpcP + qpcQ + 1) >> 1
             let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
             let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)

@@ -849,13 +849,16 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsDoubledAddressIntoAdd)
     constexpr MicroReg staged = MicroReg::intReg(10);
     const MicroReg     stack  = CallConv::get(CallConvKind::Swag).stackPointer;
 
-    for (uint32_t variant = 0; variant < 4; ++variant)
+    // 4 and 5 double the source in its own register, dead after the add in 4
+    // and stored after it in 5.
+    for (uint32_t variant = 0; variant < 6; ++variant)
     {
-        MicroBuilder builder(ctx);
-        builder.emitLoadAddressAmcRegMem(staged, MicroOpBits::B64, source, source, variant == 3 ? 2 : 1, 0, MicroOpBits::B64);
-        builder.emitOpBinaryRegReg(result, staged, MicroOp::Add, MicroOpBits::B64);
-        if (variant == 1)
-            builder.emitLoadMemReg(stack, 16, staged, MicroOpBits::B64);
+        const MicroReg doubled = variant >= 4 ? source : staged;
+        MicroBuilder   builder(ctx);
+        builder.emitLoadAddressAmcRegMem(doubled, MicroOpBits::B64, source, source, variant == 3 ? 2 : 1, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(result, doubled, MicroOp::Add, MicroOpBits::B64);
+        if (variant == 1 || variant == 5)
+            builder.emitLoadMemReg(stack, 16, doubled, MicroOpBits::B64);
         if (variant == 2)
         {
             const MicroLabelRef exit = builder.createLabel();
@@ -875,8 +878,9 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsDoubledAddressIntoAdd)
             folded |= ops && ops[0].reg == result && ops[1].reg == result &&
                       ops[2].reg == source && ops[5].valueU64 == 2;
         }
-        if (folded != (variant == 0) ||
-            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != (variant == 0 ? 0u : 1u))
+        const bool     foldable = variant == 0 || variant == 4;
+        const uint32_t adds     = foldable ? 0u : variant == 5 ? 2u : 1u;
+        if (folded != foldable || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != adds)
             return Result::Error;
     }
     return Result::Continue;
@@ -966,8 +970,9 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsPointerAddIntoNextLoad)
             folded |= ops && ops[0].reg == table && ops[1].reg == table && ops[2].reg == position &&
                       ops[5].valueU64 == 1 && ops[6].valueU64 == 5;
         }
-        if (folded != (variant == 0) ||
-            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != (variant == 0 ? 0u : 1u))
+        const bool     foldable = variant == 0 || variant == 4;
+        const uint32_t adds     = foldable ? 0u : variant == 5 ? 2u : 1u;
+        if (folded != foldable || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != adds)
             return Result::Error;
     }
     return Result::Continue;

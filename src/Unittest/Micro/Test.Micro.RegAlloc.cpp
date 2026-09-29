@@ -1526,6 +1526,93 @@ SWC_TEST_BEGIN(RegAlloc_CoalescesLinearVirtualCopies)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // `copy = source` with the source still read after a branch, so the two
+    // values overlap and the local coalescing, which stops at the branch, keeps
+    // the copy. With `redefineSource`, the source changes on one path while the
+    // copy is still live: the two hold different contents there.
+    struct SameValueCopyCase
+    {
+        MicroInstrRef sourceStore = MicroInstrRef::invalid();
+        MicroInstrRef copyStore   = MicroInstrRef::invalid();
+    };
+
+    SameValueCopyCase buildSameValueCopy(MicroBuilder& b, const CallConvKind callConvKind, const bool redefineSource)
+    {
+        const CallConv&     conv      = CallConv::get(callConvKind);
+        constexpr MicroReg  source    = MicroReg::virtualIntReg(9100);
+        constexpr MicroReg  copy      = MicroReg::virtualIntReg(9101);
+        const MicroLabelRef skipLabel = b.createLabel();
+
+        b.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+        b.emitLoadRegMem(source, conv.stackPointer, 8, MicroOpBits::B64);
+        b.emitLoadRegReg(copy, source, MicroOpBits::B64);
+        b.emitCmpRegImm(source, ApInt(3, 64), MicroOpBits::B64);
+        b.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skipLabel);
+        if (redefineSource)
+            b.emitOpBinaryRegImm(source, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        else
+            b.emitLoadMemReg(conv.stackPointer, 16, copy, MicroOpBits::B64);
+        b.placeLabel(skipLabel);
+
+        SameValueCopyCase result;
+        b.emitLoadMemReg(conv.stackPointer, 24, source, MicroOpBits::B64);
+        result.sourceStore = b.instructions().lastInstructionRef();
+        b.emitLoadMemReg(conv.stackPointer, 32, copy, MicroOpBits::B64);
+        result.copyStore = b.instructions().lastInstructionRef();
+        b.emitRet();
+        return result;
+    }
+
+    Result runSameValueCopy(TaskContext& ctx, const bool redefineSource)
+    {
+        for (const auto callConvKind : testedCallConvs())
+        {
+            MicroBuilder            builder(ctx);
+            const SameValueCopyCase built = buildSameValueCopy(builder, callConvKind, redefineSource);
+
+            MicroRegisterAllocationPass regAllocPass;
+            MicroPassManager            passes;
+            passes.addStartPass(regAllocPass);
+            MicroPassContext passCtx;
+            passCtx.callConvKind = callConvKind;
+            SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+            SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+            SWC_RESULT(verifyCallConvConformity(builder, CallConv::get(callConvKind)));
+            if (!passCtx.intervalAllocated)
+                return Result::Error;
+
+            const MicroInstr* sourceStore = builder.instructions().ptr(built.sourceStore);
+            const MicroInstr* copyStore   = builder.instructions().ptr(built.copyStore);
+            if (!sourceStore || !copyStore)
+                return Result::Error;
+            const MicroReg sourceReg = sourceStore->ops(builder.operands())[1].reg;
+            const MicroReg copyReg   = copyStore->ops(builder.operands())[1].reg;
+
+            // Joined, both stores read one register and no move is left; kept
+            // apart, the two stores must read two different registers.
+            const uint32_t moves = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
+            if (redefineSource ? sourceReg == copyReg : sourceReg != copyReg || moves != 0)
+                return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+}
+
+SWC_TEST_BEGIN(RegAlloc_JoinsCopyHoldingTheSourceValue)
+{
+    SWC_RESULT(runSameValueCopy(ctx, false));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_KeepsCopyApartFromRedefinedSource)
+{
+    SWC_RESULT(runSameValueCopy(ctx, true));
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_TransfersDeadCopySourcesAcrossBarriers)
 {
     for (const auto callConvKind : testedCallConvs())

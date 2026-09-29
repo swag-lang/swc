@@ -228,6 +228,14 @@ namespace MicroPassHelpers
     // only the per-instruction data they actually consume.
     void computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context, MicroPhysLivenessMode mode = MicroPhysLivenessMode::WithUseDefs);
 
+    // Whether the instruction leaves the top half of its destination register clear.
+    //
+    // A 32-bit write does on x86-64, which is what makes a 32-bit copy forwardable: the copy
+    // itself clears that half, so reading the source instead of the destination is only the same
+    // value when the source has it clear too. Everything not listed here answers no, including
+    // the sign-extending forms and the eight-bit ones that preserve what was already there.
+    bool definesZeroHighBits(const MicroInstr& inst, const MicroInstrOperand* ops);
+
     bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops);
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
     // The opcode table flags every arithmetic form as a flag writer; the

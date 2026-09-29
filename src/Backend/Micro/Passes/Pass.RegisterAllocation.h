@@ -229,6 +229,7 @@ private:
     bool walkIntervals(std::vector<LiveInterval>&& intervals, IntervalWalkResult& out) const;
     bool applyIntervalAllocation(IntervalWalkResult& result);
     bool runIntervalAllocation();
+    bool coalesceSameValueCopies();
 
     void clearState();
     void initState(MicroPassContext& context);

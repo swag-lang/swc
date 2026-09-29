@@ -47,6 +47,35 @@ block, and the hot path keeps the register.
   campaign milestone. For csvagg, inspect the hash and matching-key paths that actually run.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
+### compiler.optimization.101 — Small records are assembled in the frame and read back whole
+
+- Recorded: 2026-09-29 14:46
+- Area: compiler/backend, instruction combining (aggregate and vector literals)
+- Evidence (H.264 decoder, 2026-09-29, prompt 2): a value built field by field and then read as
+  one register or one vector is stored lane by lane into a frame temporary and loaded whole, so
+  the wide load waits for the narrow stores it cannot forward from. `bookkeepMb` built its
+  co-located vector row `cast(Simd.S16x8) [mvX, mvY, ...]` as eight 16-bit stores and a 128-bit
+  load; the decoder now broadcasts a packed scalar instead (commit 76513b0d1). `Slice.motionAt`,
+  returning an eight-byte `NeighborMotion` (after dropping its unused difference and direct
+  fields), wrote the record with four stores and read it back with one 64-bit load.
+  `tryBuildVectorFromStores` and `tryBuildScalarFromStores` exist for exactly this shape but did
+  not fire. In `bookkeepMb` the slot's local is also given a default through an address register
+  first (`%1003 = &[%1 + 0x7A0]; [%1003] = 0`), a multi-definition local that stays in the frame
+  because mem2reg is disabled. In `motionAt` the record's other return paths also read the slot,
+  so `slotHasOtherReaders` refuses.
+- Tried and reverted: letting the scalar rule replace the load while keeping the stores when the
+  only other readers are loads through the same base (escapes still refuse). It fired on
+  `motionAt` (four stores then one load became the fields shifted and or-ed, 147 -> 160 Micro
+  instructions, since the stores stay for the other returns), no other decoder function or
+  benchmark program changed, and plane digests stayed exact; but more instructions against one
+  forwarded-load stall is not a static win, so the change and the record shrink were reverted.
+  Patch kept outside the tree.
+- Next: build the record in registers on every return path (the returns join into one exit
+  whose value is a phi of the per-path records), so the stores disappear too, and make the
+  vector-literal rule accept a slot whose local was first cleared through an address register.
+- Complete when: a small record returned by value and a vector literal of runtime lanes are
+  built in registers with no frame round trip, without growing any benchmark program.
+- Related: compiler.optimization.099, std.video.001
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget
 
 - Recorded: 2026-09-24 11:53

@@ -92,6 +92,11 @@ struct Slice
     // this resolution, and the record stays in cache between the two passes over it.
     scratchResidual: MbResidual
 
+    // Whether every coefficient of `scratchResidual` is zero. A reconstructed 4:2:0 macroblock
+    // zeroes the blocks its coded pattern let it write, as FFmpeg clears a block after adding
+    // it, so the next macroblock starts from a clean record without clearing all of it.
+    scratchClean: bool
+
     // The colour planes of the macroblock a 4:4:4 picture reconstructs inline.
     scratchResidual444: MbResidual444
     scratchExtraJobs:   MbExtraJobs

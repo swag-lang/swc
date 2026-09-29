@@ -230,6 +230,7 @@ impl Slice
     }
 
     // Returns the macroblock info at a position the caller knows is valid.
+    #[Swag.Inline]
     mtd const mbInfoAt(mbX, mbY: s32)->*MbInfo
     {
         let dec = .dec!

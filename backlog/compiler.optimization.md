@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.099 — The CABAC significance loop still holds one value in two registers
 
 - Recorded: 2026-09-29 09:34
-- Updated: 2026-09-29 12:16 — Release the local-stack base register when the stack pointer never moves.
+- Updated: 2026-09-29 12:21 — Record the reverted multi-join reload sinking trial.
 - Area: compiler/backend, copy forwarding and register allocation
 - Evidence: after the 2026-09-29 prompt-2 batches on `std/video` (see std.video.001), a no-hit
   iteration of the 4x4 luma significance loop of `Slice.residualCabac` is 35 Micro instructions with
@@ -60,6 +60,12 @@ block, and the hot path keeps the register.
      in the copy's source (`sub rdx, r8`), so the value continues there. Elsewhere the decoder
      functions outside `cabac.swg` lost 15 instructions (CAVLC residual parsing -16), but csvagg's
      record loop grew by four instructions and one frame access, so the rule was reverted.
+  6. After allocation, sinking a frame reload that stands just after a join into the fallthrough
+     edges of the predecessor regions that clobbered its register, planned with a forward
+     must-analysis of "register equals slot" across up to four planted reloads: the two latch
+     reloads of the 4x4 significance loop stayed (the slice pointer arrives as a copy of the
+     register that was stored, which the analysis does not follow; why the state pointer failed
+     was not diagnosed), while csvagg's main grew by 14 instructions and leven's by 4. Reverted.
 - Next: give the interval allocator value-aware interference, as LLVM's coalescer joins a copy's
   source and destination where they overlap holding the same value, or rewrite after allocation the
   reads of a copy's source that its destination reaches, tracking the spill-slot round trip of the

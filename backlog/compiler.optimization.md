@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget
 
 - Recorded: 2026-09-24 11:53
-- Updated: 2026-09-29 10:45 — Rotated address-producing headers with cloned relocations.
+- Updated: 2026-09-29 11:32 — Recorded the aborted full campaign and checked its documentation failure.
 - Area: compiler/backend, post-RA loop rotation
 - Evidence: `PostRALoopRotate` duplicates a flag-only test and the allocator's flag-neutral
   connectors at the back edge, replacing one unconditional jump per iteration. The unrelated
@@ -40,6 +40,13 @@ block, and the hot path keeps the register.
   rejects a flag-changing arithmetic connector; 1,158 C++ tests, 3,488 native Release tests,
   and 1,502 JIT Release tests pass. The JIT case changes a global bound inside the loop, proving
   the copied load reads the next iteration's value. No timing sample informed this batch.
+- Campaign check: a full sweep after this batch passed all seven task checksums but stopped before
+  recording because the `doc_std` edit-build workload raised a compiler hardware exception.
+  The reference probes moved 78.3% between neighbouring points (40% limit), so its timings would
+  have been rejected even without that error. The exact `doc --workspace bin/std --rebuild`
+  command subsequently completed all twelve modules in both DevMode and Release with six workers;
+  the exception was not reproduced. The driver left `history.json` and the latest accepted
+  campaign (`20260928-170009`) unchanged. Do not infer a runtime ranking from this sweep.
 - Next: compare code size and executed jumps for unrelated loops with short and long connector
   runs, then derive a header budget from code growth and work saved instead of the fixed cutoff.
 - Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests

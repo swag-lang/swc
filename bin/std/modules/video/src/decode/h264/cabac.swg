@@ -519,11 +519,20 @@ impl Slice
     }
 
     // Decodes one motion vector difference pair, section 9.3.3.1.1.7.
+    //
+    // A pair is up to two dozen bins, decoded like a residual block's against local arithmetic
+    // registers that are written back once, rather than one call per bin that reloads and
+    // stores them.
     mtd mvdCabac(mb: *Mb, list: u32, x4, y4: s32)->[2] s16
     {
         let a = .motionAt(mb, list, x4 - 1, y4)
         let b = .motionAt(mb, list, x4, y4 - 1)
 
+        var range = .cabac.range
+        var low   = .cabac.low
+        var bin: u32
+        var binState: s64
+        var level: s32
         var result: retval
         for component in 2'u32
         {
@@ -537,7 +546,8 @@ impl Slice
             if amvd > 32 do
                 ctx += 1
 
-            if .decision(ctxBase + ctx) == 0
+            .binDecision(ctxBase + ctx)
+            if (binState & 1) == 0
             {
                 result[component] = 0
                 continue
@@ -545,8 +555,11 @@ impl Slice
 
             var value    = 1'u32
             var unaryCtx = ctxBase + 3
-            while value < 9 and .decision(unaryCtx) != 0
+            while value < 9
             {
+                .binDecision(unaryCtx)
+                if (binState & 1) == 0 do
+                    break
                 if value < 4 do
                     unaryCtx += 1
                 value += 1
@@ -556,8 +569,11 @@ impl Slice
             {
                 // Exp-Golomb suffix of order three, in bypass bins.
                 var k = 3'u32
-                while .bypass() != 0
+                while true
                 {
+                    .binBypass()
+                    if bin == 0 do
+                        break
                     value += 1'u32 << k
                     k     += 1
                     if k > 24
@@ -569,16 +585,18 @@ impl Slice
 
                 while k > 0
                 {
-                    k     -= 1
-                    value += .bypass() << k
+                    k -= 1
+                    .binBypass()
+                    value += bin << k
                 }
             }
 
-            let sign      = .bypass()
-            let magnitude = cast(s32) value
-            result[component] = cast(s16) clampS32(sign != 0 ? -magnitude : magnitude, -32768, 32767)
+            .binSign(cast(s32) value)
+            result[component] = cast(s16) Math.clamp(level, -32768, 32767)
         }
 
+        .cabac.range = range
+        .cabac.low   = low
         return result
     }
 

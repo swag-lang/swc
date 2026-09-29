@@ -567,21 +567,30 @@ func filterLumaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeSt
 // to two chroma lanes; strong edges retain their separate scalar formula.
 func filterChromaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
-    let p0         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - stride))
-    let q0         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix))
-    let p1         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - 2 * stride))
-    let q1         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix + stride))
+    let p0    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - stride))
+    let q0    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix))
+    let p1    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - 2 * stride))
+    let q1    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix + stride))
+    let delta = chromaWeakDelta(p1, p0, q0, q1, strengths, indexA, alpha, beta)
+    let zeros = Simd.splat(0's16)
+    Simd.storeLow8(pix - stride, Simd.packUnsigned(p0 + delta, zeros))
+    Simd.storeLow8(pix, Simd.packUnsigned(q0 - delta, zeros))
+}
+
+// The amount the weak chroma filter adds to p0 and takes from q0 on eight lines of an edge,
+// zero on the lines it leaves alone, section 8.7.2.3.
+#[Swag.Inline]
+private func chromaWeakDelta(p1, p0, q0, q1: Simd.S16x8, strengths: const *EdgeStrength, indexA, alpha, beta: s32)->Simd.S16x8
+{
     // Two samples carry one strength. A lane the strength leaves unfiltered is masked off
     // below, so its clip may be anything; a filtered one clips at tC0 + 1.
-    let lanes      = weakStrengthLanes(strengths, 2)
-    let limits     = cast #bit(Simd.S16x8) Simd.widenLow(Simd.shuffle(cast #bit(Simd.U8x16) Simd.splat(DeblockTcRows[cast(u64) indexA]), lanes)) + 1
-    let strengthy  = cast #bit(Simd.U16x8) Simd.widenLow(cast #bit(Simd.S8x16) Simd.shuffle(WeakStrengths, lanes))
-    let zeros      = Simd.splat(0's16)
-    let active     = strengthy & (Math.abs(p0 - q0) < Simd.splat(cast(s16) alpha)) & (Math.abs(p1 - p0) < Simd.splat(cast(s16) beta)) & (Math.abs(q1 - q0) < Simd.splat(cast(s16) beta))
-    var delta      = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
+    let lanes     = weakStrengthLanes(strengths, 2)
+    let limits    = cast #bit(Simd.S16x8) Simd.widenLow(Simd.shuffle(cast #bit(Simd.U8x16) Simd.splat(DeblockTcRows[cast(u64) indexA]), lanes)) + 1
+    let strengthy = cast #bit(Simd.U16x8) Simd.widenLow(cast #bit(Simd.S8x16) Simd.shuffle(WeakStrengths, lanes))
+    let active    = strengthy & (Math.abs(p0 - q0) < Simd.splat(cast(s16) alpha)) & (Math.abs(p1 - p0) < Simd.splat(cast(s16) beta)) & (Math.abs(q1 - q0) < Simd.splat(cast(s16) beta))
+    var delta     = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
     delta = Math.max(Math.min(delta, limits), -limits)
-    Simd.storeLow8(pix - stride, Simd.packUnsigned(Simd.select(active, p0 + delta, p0), zeros))
-    Simd.storeLow8(pix, Simd.packUnsigned(Simd.select(active, q0 - delta, q0), zeros))
+    return Simd.select(active, delta, Simd.splat(0's16))
 }
 
 // Filters every strong luma lane of one horizontal edge. Weak lanes are applied first when
@@ -808,14 +817,11 @@ func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength
 }
 
 // Filters one complete vertical weak chroma edge the same way: eight lines of p1 p0 q0 q1
-// become the four rows of a tile, the horizontal chroma kernel filters it, and the two
-// rows it changed come back as one word per line.
+// are transposed into four registers, one per sample position, as FFmpeg's TRANSPOSE_8x4B
+// does, the weak chroma kernel runs on them, and the two positions it changed come back as
+// one word per line. Nothing goes through memory between the loads and the stores.
 func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
-    const TileStride = 16'u64
-    var tile:  [4 * TileStride] u8
-    var pairs: [8] u16
-
     let r0 = Simd.load(pix - 2)
     let r1 = Simd.load(pix - 2 + stride)
     let r2 = Simd.load(pix - 2 + 2 * stride)
@@ -837,20 +843,26 @@ func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeSt
     let c0 = cast #bit(Simd.U64x2) Simd.interleaveLow(b0, b1)
     let c1 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b0, b1)
 
-    let rows = tile.buffer
-    Simd.store(rows, cast #bit(Simd.U8x16) c0)
-    Simd.store(rows + TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c0, c0))
-    Simd.store(rows + 2 * TileStride, cast #bit(Simd.U8x16) c1)
-    Simd.store(rows + 3 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c1, c1))
+    let p1    = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) c0)
+    let p0    = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) Simd.interleaveHigh(c0, c0))
+    let q0    = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) c1)
+    let q1    = cast #bit(Simd.S16x8) Simd.widenLow(cast #bit(Simd.U8x16) Simd.interleaveHigh(c1, c1))
+    let delta = chromaWeakDelta(p1, p0, q0, q1, strengths, indexA, alpha, beta)
 
-    filterChromaWeakHorizontal(rows + 2 * TileStride, TileStride, strengths, indexA, alpha, beta)
-
-    // Only p0 q0 change: one word per line.
-    let p0 = Simd.load(rows + TileStride)
-    let q0 = Simd.load(rows + 2 * TileStride)
-    Simd.store(cast([*] u8) pairs.buffer, Simd.interleaveLow(p0, q0))
-    for line in 8'u64 do
-        (cast([*] u16) (pix - 1 + line * stride))[0] = pairs[line]
+    // Only p0 q0 change: the new p0 of the eight lines, then their q0, paired into one word
+    // per line, four lines to a quadword.
+    let packed = cast #bit(Simd.U64x2) Simd.packUnsigned(p0 + delta, q0 - delta)
+    let words  = cast #bit(Simd.U64x2) Simd.interleaveLow(cast #bit(Simd.U8x16) packed, cast #bit(Simd.U8x16) Simd.interleaveHigh(packed, packed))
+    let low    = words[0]
+    let high   = words[1]
+    (cast([*] u16) (pix - 1))[0]              = cast #wrap(u16) low
+    (cast([*] u16) (pix - 1 + stride))[0]     = cast #wrap(u16) (low >> 16)
+    (cast([*] u16) (pix - 1 + 2 * stride))[0] = cast #wrap(u16) (low >> 32)
+    (cast([*] u16) (pix - 1 + 3 * stride))[0] = cast #wrap(u16) (low >> 48)
+    (cast([*] u16) (pix - 1 + 4 * stride))[0] = cast #wrap(u16) high
+    (cast([*] u16) (pix - 1 + 5 * stride))[0] = cast #wrap(u16) (high >> 16)
+    (cast([*] u16) (pix - 1 + 6 * stride))[0] = cast #wrap(u16) (high >> 32)
+    (cast([*] u16) (pix - 1 + 7 * stride))[0] = cast #wrap(u16) (high >> 48)
 }
 
 // Filters one vertical chroma edge that carries an intra strength, segment by segment, two lines

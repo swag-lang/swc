@@ -114,18 +114,9 @@ private func deblockMotionFromJob(dec: *Decoder, mbIndex: u64)->bool
     return info.skipped and not info.direct
 }
 
-// The lanes every block of a P-skip carries, read from its compact job.
-private func deblockJobMotion(dec: *Decoder, mbIndex: u64)->Simd.S16x8
-{
-    let mb    = &dec.parsedMbs[mbIndex]
-    let job   = &mb.firstJob
-    let slice = &dec.pictureSlices[mb.sliceIndex]
-    let ref0  = job.refIdx[0]
-    let ref1  = job.refIdx[1]
-    let id0   = ref0 >= 0 ? slice.refs[0, cast(u64) ref0].identity : NoReferenceIdentity
-    let id1   = ref1 >= 0 ? slice.refs[1, cast(u64) ref1].identity : NoReferenceIdentity
-    return cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], cast(s16) (cast(s32) id0 << 8), 0, job.mv[1, 0], job.mv[1, 1], cast(s16) (cast(s32) id1 << 8), 0]
-}
+// The lanes every block of a P-skip carries, as its bookkeeping published them.
+#[Swag.Inline]
+private func deblockJobMotion(dec: *Decoder, mbIndex: u64)->Simd.S16x8 => dec.skipMotion[mbIndex]
 
 // The lanes of one block published in the grid, whose two lists `grid0` and `grid1` hold one
 // `BlockMotion` record per block.

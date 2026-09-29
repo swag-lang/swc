@@ -591,14 +591,24 @@ impl Slice
     // the significance loops spent a fifth of their time on those round trips. The two outcomes
     // are selected without a branch, since a bin's value is close to unpredictable by design.
     // The decoded bin lands in `bin`.
+    #[Swag.Mixin]
+    private mtd binDecision(binCtx: u32)
+    {
+        .binDecisionAt(.cabac.contexts.buffer + cast(u64) binCtx)
+    }
+
+    // Decodes one bin against the context state at `state`, as [[binDecision]] does.
+    //
+    // A loop walking consecutive contexts holds one pointer into them, as FFmpeg's significance
+    // loop does, rather than the context array and a base index beside its position.
     //
     // The packed state is held at full register width, as FFmpeg's `get_cabac` holds it: its
     // complement then indexes the transition table directly, where a 32-bit complement had to be
     // sign-extended into an address on every bin.
     #[Swag.Mixin]
-    private mtd binDecision(binCtx: u32)
+    private mtd binDecisionAt(state: [*] u8)
     {
-        var #uniq0 = cast(s64) .cabac.contexts[binCtx]
+        var #uniq0 = cast(s64) state[0]
         let #uniq1 = cast(u32) CabacTables[CabacLpsAt + cast(u64) (2 * (range & 0xC0)) + cast(u64) #uniq0]
         range -= #uniq1
 
@@ -616,7 +626,7 @@ impl Slice
         low    = #uniq5 ? #uniq4 : low
         range  = #uniq5 ? #uniq1 : range
         #uniq0 = #uniq5 ? ~#uniq0 : #uniq0
-        .cabac.contexts[binCtx] = CabacTables[CabacStateAt + cast(u64) (128 + #uniq0)]
+        state[0] = CabacTables[CabacStateAt + cast(u64) (128 + #uniq0)]
         bin    = cast(u32) (#uniq0 & 1)
 
         // The renormalization shift is the distance from the range's highest set bit to bit 8,
@@ -748,21 +758,19 @@ impl Slice
         // categories map every scan position through a table while every other category uses
         // the position itself.
         var indices: [64] u8
-        var count     = 0'u32
-        let sigBase   = CabacSigBase[cat]
-        let lastBase  = CabacLastBase[cat]
-        var scan      = 0'u32
-        var foundLast = false
+        var count      = 0'u32
+        let sigStates  = .cabac.contexts.buffer + cast(u64) CabacSigBase[cat]
+        let lastStates = .cabac.contexts.buffer + cast(u64) CabacLastBase[cat]
+        var scan       = 0'u64
+        var foundLast  = false
         while scan < MaxCoeffs - 1
         {
-            let sigCtx = MaxCoeffs == 64 ? sigBase + cast(u32) CabacTables[CabacSigAt + cast(u64) scan] : sigBase + scan
-            .binDecision(sigCtx)
+            .binDecisionAt(sigStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacSigAt + scan] : scan))
             if bin != 0
             {
                 indices[count] = cast(u8) scan
                 count += 1
-                let lastCtx = MaxCoeffs == 64 ? lastBase + cast(u32) CabacTables[CabacLastAt + cast(u64) scan] : lastBase + scan
-                .binDecision(lastCtx)
+                .binDecisionAt(lastStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacLastAt + scan] : scan))
                 if bin != 0
                 {
                     foundLast = true

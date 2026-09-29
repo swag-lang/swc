@@ -98,20 +98,26 @@ const FoldedBitVocabulary = #run bitVocabulary()
 
 // Auto-vectorized rotations also have to load their byte-control mask in JIT code.
 #[Swag.NoInline, Swag.Optimize(true)]
-func rotateFourWords(values: *[8] u32)
+func rotateFourWords(values: *[12] u32)
 {
     values[][4] = Swag.rol(values[][0], 8)
     values[][5] = Swag.rol(values[][1], 8)
     values[][6] = Swag.rol(values[][2], 8)
     values[][7] = Swag.rol(values[][3], 8)
+    values[][8]  = Swag.rol(values[][0], 16)
+    values[][9]  = Swag.rol(values[][1], 16)
+    values[][10] = Swag.rol(values[][2], 16)
+    values[][11] = Swag.rol(values[][3], 16)
 }
 
 func jitRotateFourWords()->bool
 {
-    var values: [8] u32 = [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC, 0, 0, 0, 0]
+    var values: [12] u32 = [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC, 0, 0, 0, 0, 0, 0, 0, 0]
     rotateFourWords(&values)
     return values[4] == 0x23456701 and values[5] == 0xABCDEF89 and
-           values[6] == 0x20304010 and values[7] == 0xEEDDCCFF
+           values[6] == 0x20304010 and values[7] == 0xEEDDCCFF and
+           values[8] == 0x45670123 and values[9] == 0xCDEF89AB and
+           values[10] == 0x30401020 and values[11] == 0xDDCCFFEE
 }
 
 #assert(#run jitRotateFourWords())

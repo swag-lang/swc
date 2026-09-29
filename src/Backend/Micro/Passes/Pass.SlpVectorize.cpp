@@ -27,8 +27,8 @@
 // binary operations recurse into their operands, four adjacent loads of block
 // -entry memory become one packed load, a lane permutation of an already
 // -vectorized tuple becomes one shuffle, and equal shift or rotate immediates
-// become packed shifts (a 16-bit rotate uses two word shuffles; an 8-bit rotate
-// can use a byte permutation; other rotates expand to shift/shift/or).
+// become packed shifts (byte-aligned rotates can use a byte permutation; other
+// rotates expand to shift/shift/or).
 // Shared subtrees are memoized on the ordered lane tuple, which turns the second half
 // of a ChaCha20 double round into shuffles of the first half's vectors
 // instead of a recomputation.
@@ -259,7 +259,7 @@ namespace
             BinaryRegReg,
             BinaryRegImm,
             LoadSplat32,
-            LoadRotate8Mask,
+            RotateBytes,
             // Non-destructive forms: the destination is a register of its own,
             // so the packed value feeding the operation is not overwritten and
             // needs no copy. Emitted instead of the Copy pairs above wherever
@@ -669,7 +669,6 @@ namespace
 
         uint32_t nextPlanReg   = 0;
         uint32_t arithmeticOps = 0;
-        uint32_t rotate8MaskReg = K_INVALID_ID;
 
         std::unordered_map<TupleKey, uint32_t, TupleKeyHash> tupleRegs;
         // Equal sorted IDs make every permutation reusable from the first tuple.
@@ -941,23 +940,10 @@ namespace
 
                         case LaneOp::RotateLeft:
                         {
-                            if (n0.imm == 8 && canLoadMask_)
+                            if (canLoadMask_ && n0.imm > 0 && n0.imm < 32 && n0.imm % 8 == 0)
                             {
-                                // A byte permutation rotates each word with one instruction.
-                                // The control differs by word, so a repeated scalar splat is invalid.
-                                if (plan_->rotate8MaskReg == K_INVALID_ID)
-                                {
-                                    plan_->rotate8MaskReg = allocReg();
-                                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadRotate8Mask, .dst = plan_->rotate8MaskReg});
-                                }
                                 const uint32_t dstReg = allocReg();
-                                if (nonDestructive_)
-                                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = dstReg, .src = lhsReg, .src2 = plan_->rotate8MaskReg, .op = MicroOp::VecPermB});
-                                else
-                                {
-                                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
-                                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = plan_->rotate8MaskReg, .op = MicroOp::VecPermB});
-                                }
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::RotateBytes, .dst = dstReg, .src = lhsReg, .imm = n0.imm});
                                 plan_->arithmeticOps++;
                                 remember(tuple, sorted, dstReg);
                                 return dstReg;
@@ -1843,6 +1829,15 @@ namespace
             planRegs[planReg] = MicroReg::virtualFloatReg(fn.nextVirtualFloatRegIndex++);
         }
 
+        std::array<uint32_t, 4> rotateUseCounts{};
+        for (const PlanInstr& planInstr : plan.ops)
+        {
+            if (planInstr.kind == PlanInstr::Kind::RotateBytes)
+                rotateUseCounts[planInstr.imm / 8]++;
+        }
+        std::array<MicroReg, 4> rotateMaskRegs;
+        rotateMaskRegs.fill(MicroReg::invalid());
+
         const auto emitPlanInstr = [&](const PlanInstr& planInstr) {
             switch (planInstr.kind)
             {
@@ -1923,30 +1918,82 @@ namespace
                     }
                     break;
                 }
-                case PlanInstr::Kind::LoadRotate8Mask:
+                case PlanInstr::Kind::RotateBytes:
                 {
-                    std::array<char, 16> mask{};
-                    for (uint32_t index = 0; index < 16; ++index)
-                        mask[index] = static_cast<char>((index & ~3u) | ((index + 3) & 3u));
+                    const uint32_t maskIndex = static_cast<uint32_t>(planInstr.imm / 8);
+                    SWC_ASSERT(maskIndex > 0 && maskIndex < rotateUseCounts.size());
+                    if (maskIndex == 2 && rotateUseCounts[maskIndex] == 1)
+                    {
+                        // One 16-bit rotation already costs only two register shuffles.
+                        // A permutation would add a constant-memory read without saving an instruction.
+                        std::array<MicroInstrOperand, 5> ops;
+                        ops[0].reg     = planRegs[planInstr.dst];
+                        ops[1].reg     = planRegs[planInstr.src];
+                        ops[2].opBits  = MicroOpBits::B128;
+                        ops[3].microOp = MicroOp::VecShuffleLow16;
+                        ops[4].setImmediateValue(ApInt(0xB1, 64));
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
+                        ops[1].reg     = planRegs[planInstr.dst];
+                        ops[3].microOp = MicroOp::VecShuffleHigh16;
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
+                        break;
+                    }
 
-                    DataSegmentRef         segmentRef;
-                    const std::string_view stored = fn.context->taskContext->cstMgr().addPayloadBuffer(std::string_view{mask.data(), mask.size()}, &segmentRef, 16);
-                    std::array<MicroInstrOperand, 4> ops;
-                    ops[0].reg      = planRegs[planInstr.dst];
-                    ops[1].reg      = MicroReg::instructionPointer();
-                    ops[2].opBits   = MicroOpBits::B128;
-                    ops[3].valueU64 = 0;
-                    const MicroInstrRef loadRef = fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegMem, ops);
+                    MicroReg& maskReg = rotateMaskRegs[maskIndex];
+                    if (!maskReg.isValid())
+                    {
+                        SWC_ASSERT(fn.nextVirtualFloatRegIndex < MicroReg::K_MAX_INDEX);
+                        maskReg = MicroReg::virtualFloatReg(fn.nextVirtualFloatRegIndex++);
+                        std::array<char, 16> mask{};
+                        // Indices are relative to each word; repeating one four-byte control
+                        // would select every output word's bytes from the first input word.
+                        for (uint32_t index = 0; index < 16; ++index)
+                            mask[index] = static_cast<char>((index & ~3u) | ((index + 4u - maskIndex) & 3u));
 
-                    MicroRelocation relocation;
-                    relocation.kind             = MicroRelocation::Kind::ConstantAddress;
-                    relocation.form             = MicroRelocation::Form::Relative32;
-                    relocation.instructionRef   = loadRef;
-                    relocation.targetAddress    = reinterpret_cast<uint64_t>(stored.data());
-                    relocation.constantShard    = segmentRef.shardIndex;
-                    relocation.constantOffset   = segmentRef.offset;
-                    relocation.constantCopySize = static_cast<uint32_t>(mask.size());
-                    fn.context->builder->addRelocation(relocation);
+                        DataSegmentRef         segmentRef;
+                        const std::string_view stored = fn.context->taskContext->cstMgr().addPayloadBuffer(std::string_view{mask.data(), mask.size()}, &segmentRef, 16);
+                        std::array<MicroInstrOperand, 4> loadOps;
+                        loadOps[0].reg      = maskReg;
+                        loadOps[1].reg      = MicroReg::instructionPointer();
+                        loadOps[2].opBits   = MicroOpBits::B128;
+                        loadOps[3].valueU64 = 0;
+                        const MicroInstrRef loadRef = fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegMem, loadOps);
+
+                        MicroRelocation relocation;
+                        relocation.kind             = MicroRelocation::Kind::ConstantAddress;
+                        relocation.form             = MicroRelocation::Form::Relative32;
+                        relocation.instructionRef   = loadRef;
+                        relocation.targetAddress    = reinterpret_cast<uint64_t>(stored.data());
+                        relocation.constantShard    = segmentRef.shardIndex;
+                        relocation.constantOffset   = segmentRef.offset;
+                        relocation.constantCopySize = static_cast<uint32_t>(mask.size());
+                        fn.context->builder->addRelocation(relocation);
+                    }
+
+                    if (fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary())
+                    {
+                        std::array<MicroInstrOperand, 5> ops;
+                        ops[0].reg     = planRegs[planInstr.dst];
+                        ops[1].reg     = planRegs[planInstr.src];
+                        ops[2].reg     = maskReg;
+                        ops[3].opBits  = MicroOpBits::B128;
+                        ops[4].microOp = MicroOp::VecPermB;
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegReg, ops);
+                    }
+                    else
+                    {
+                        std::array<MicroInstrOperand, 3> copyOps;
+                        copyOps[0].reg    = planRegs[planInstr.dst];
+                        copyOps[1].reg    = planRegs[planInstr.src];
+                        copyOps[2].opBits = MicroOpBits::B128;
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegReg, copyOps);
+                        std::array<MicroInstrOperand, 4> permOps;
+                        permOps[0].reg     = planRegs[planInstr.dst];
+                        permOps[1].reg     = maskReg;
+                        permOps[2].opBits  = MicroOpBits::B128;
+                        permOps[3].microOp = MicroOp::VecPermB;
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegReg, permOps);
+                    }
                     break;
                 }
                 case PlanInstr::Kind::BinaryRegRegReg:

@@ -70,6 +70,11 @@ struct MicroPassContext
     size_t   printInstrCountBefore      = 0;
     bool     passChanged                = false;
 
+    // Keep scalar XOR load/modify/store triples visible until SLP has seen
+    // their adjacent stores. The cleanup sweep folds any triples left scalar.
+    bool deferXorMemoryFoldForSlp = false;
+    bool deferredXorMemoryFold    = false;
+
     // True during the first sweep of a bounded optimization loop. Post-RA
     // forwarding transforms (copy/const forwarding) are only sound on the
     // pristine IR straight out of register allocation, where the spill-reload

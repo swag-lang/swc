@@ -94,10 +94,10 @@ namespace
     {
         const TypeInfo& rawTrueType          = sema.typeMgr().get(trueTypeRef);
         const TypeRef   concreteTrueTypeRef  = rawTrueType.unwrap(sema.ctx(), trueTypeRef, TypeExpandE::Alias);
-        const TypeInfo& trueType             = sema.typeMgr().get(concreteTrueTypeRef);
+        const TypeInfo& trueType             = concreteTrueTypeRef == trueTypeRef ? rawTrueType : sema.typeMgr().get(concreteTrueTypeRef);
         const TypeInfo& rawFalseType         = sema.typeMgr().get(falseTypeRef);
         const TypeRef   concreteFalseTypeRef = rawFalseType.unwrap(sema.ctx(), falseTypeRef, TypeExpandE::Alias);
-        const TypeInfo& falseType            = sema.typeMgr().get(concreteFalseTypeRef);
+        const TypeInfo& falseType            = concreteFalseTypeRef == falseTypeRef ? rawFalseType : sema.typeMgr().get(concreteFalseTypeRef);
 
         if (trueType.isNull() || falseType.isNull())
         {
@@ -188,7 +188,7 @@ namespace
     {
         const TypeInfo& rawLeftType         = sema.typeMgr().get(leftTypeRef);
         const TypeRef   concreteLeftTypeRef = rawLeftType.unwrap(sema.ctx(), leftTypeRef, TypeExpandE::Alias);
-        const TypeInfo& leftType            = sema.typeMgr().get(concreteLeftTypeRef);
+        const TypeInfo& leftType            = concreteLeftTypeRef == leftTypeRef ? rawLeftType : sema.typeMgr().get(concreteLeftTypeRef);
         if (!leftType.isSupportsNullableQualifier() || leftType.isNonNullable())
             return leftTypeRef;
 
@@ -199,7 +199,7 @@ namespace
         // determines the result contract. An explicit non-null lhs remains non-null.
         const TypeInfo& rawRightType         = sema.typeMgr().get(rightTypeRef);
         const TypeRef   concreteRightTypeRef = rawRightType.unwrap(sema.ctx(), rightTypeRef, TypeExpandE::Alias);
-        const TypeInfo& rightType            = sema.typeMgr().get(concreteRightTypeRef);
+        const TypeInfo& rightType            = concreteRightTypeRef == rightTypeRef ? rawRightType : sema.typeMgr().get(concreteRightTypeRef);
         if (rightType.isNull() || rightType.isNullable())
             resultType.addFlag(TypeInfoFlagsE::Nullable);
 
@@ -241,7 +241,7 @@ namespace
 
         const TypeInfo& rawLeftType  = sema.typeMgr().get(leftTypeRef);
         const TypeRef   concreteRef  = rawLeftType.unwrap(sema.ctx(), leftTypeRef, TypeExpandE::Alias);
-        const TypeInfo& concreteType = sema.typeMgr().get(concreteRef);
+        const TypeInfo& concreteType = concreteRef == leftTypeRef ? rawLeftType : sema.typeMgr().get(concreteRef);
         if (concreteType.isSupportsNullableQualifier())
             return Result::Continue;
 

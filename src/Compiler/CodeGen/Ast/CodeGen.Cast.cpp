@@ -471,7 +471,7 @@ namespace
                 return Result::Continue;
             }
 
-            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstPayload.reg, srcReg, srcOpBits, dstOpBits, /*unsignedSource=*/false);
             return Result::Continue;
         }
@@ -484,7 +484,7 @@ namespace
                 return Result::Continue;
             }
 
-            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
             builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
             return Result::Continue;
@@ -497,7 +497,7 @@ namespace
             return Result::Continue;
         }
 
-        dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
         SWC_RESULT(CodeGenSafety::emitFloatToIntCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, readType, dstType));
         CodeGenMemoryHelpers::emitConvertFloatToInt(codeGen, dstPayload.reg, srcReg, readType, dstType);
         return Result::Continue;
@@ -597,7 +597,7 @@ namespace
             return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
         }
 
-        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
         builder.emitClearReg(dstReg, dstBits);
         builder.emitConvertIntToFloat(dstReg, convertReg, dstBits, convertBits);
         return dstReg;
@@ -1311,7 +1311,7 @@ namespace
         if (anyCastAsValueBits(codeGen, dstTypeRef, valueBits))
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
             builder.emitLoadRegMem(dstPayload.reg, finalValueAddrReg, 0, valueBits);
             SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, false, dstTypeRef));
             return Result::Continue;
@@ -1788,7 +1788,7 @@ namespace
             MicroReg srcReg = srcPayload.reg;
             if (srcPayload.isAddress())
             {
-                srcReg = codeGen.nextVirtualRegisterForType(enumSourceTypeRef);
+                srcReg = codeGen.nextVirtualRegisterForType(enumSourceTypeRef, enumSourceType);
                 builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
             }
 
@@ -1801,7 +1801,7 @@ namespace
 
         if (resolvedDstType.isBool() && (resolvedSrcType.isPointerLike() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference() || resolvedSrcType.isNull()))
         {
-            const MicroReg srcReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, srcPayload, resolvedSrcTypeRef, MicroOpBits::B64);
+            const MicroReg srcReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, srcPayload, resolvedSrcTypeRef, resolvedSrcType, MicroOpBits::B64);
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
@@ -1835,12 +1835,12 @@ namespace
             MicroReg srcReg = srcPayload.reg;
             if (srcPayload.isAddress())
             {
-                srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef);
+                srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef, resolvedSrcType);
                 builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
             }
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(resolvedDstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(resolvedDstTypeRef, resolvedDstType);
 
             const uint32_t srcWidth = getNumBits(srcOpBits);
             const uint32_t dstWidth = getNumBits(dstOpBits);
@@ -1920,7 +1920,7 @@ namespace
             MicroReg          scalarReg = srcPayload.reg;
             if (srcPayload.isAddress())
             {
-                scalarReg = codeGen.nextVirtualRegisterForType(resolvedDstType.payloadSimdLaneTypeRef());
+                scalarReg = codeGen.nextVirtualRegisterForType(resolvedDstType.payloadSimdLaneTypeRef(), laneType);
                 builder.emitLoadRegMem(scalarReg, srcPayload.reg, 0, laneBits);
             }
 
@@ -1957,7 +1957,7 @@ namespace
         MicroReg srcReg = srcPayload.reg;
         if (srcPayload.isAddress())
         {
-            srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef);
+            srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef, resolvedSrcType);
             builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
         }
 
@@ -1970,7 +1970,7 @@ namespace
                 return Result::Continue;
             }
 
-            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, resolvedDstType);
             CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstPayload.reg, srcReg, srcOpBits, dstOpBits, /*unsignedSource=*/false);
             return Result::Continue;
         }
@@ -1984,7 +1984,7 @@ namespace
                 return Result::Continue;
             }
 
-            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef, resolvedDstType);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
             builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
             return Result::Continue;
@@ -1999,7 +1999,7 @@ namespace
         }
 
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-        dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef, resolvedDstType);
         SWC_RESULT(CodeGenSafety::emitFloatToIntCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, resolvedSrcType, resolvedDstType));
         CodeGenMemoryHelpers::emitConvertFloatToInt(codeGen, dstPayload.reg, srcReg, resolvedSrcType, resolvedDstType);
 

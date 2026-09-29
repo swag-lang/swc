@@ -44,8 +44,7 @@ namespace
     {
         UnaryOperandInfo info;
         info.childPayload            = &codeGen.payload(nodeExprRef);
-        const SemaNodeView childView = codeGen.viewType(nodeExprRef);
-        info.operandTypeRef          = info.childPayload->effectiveTypeRef(childView.typeRef());
+        info.operandTypeRef          = info.childPayload->typeRef.isValid() ? info.childPayload->typeRef : codeGen.viewType(nodeExprRef).typeRef();
         info.storageTypeRef          = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), info.operandTypeRef);
         info.resultTypeRef           = codeGen.curViewType().typeRef();
         info.storageTypeInfo         = &codeGen.typeMgr().get(info.storageTypeRef);
@@ -116,7 +115,7 @@ namespace
     {
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
-        const MicroReg operandReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
+        const MicroReg operandReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, *info.childPayload, info.storageTypeRef, *info.storageTypeInfo, info.opBits);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         CodeGenCompareHelpers::emitCompareRegZero(codeGen, operandReg, *info.storageTypeInfo, info.opBits);

@@ -28,7 +28,7 @@ namespace
             return;
         }
 
-        outReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, operandBits);
+        outReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, operandType, operandBits);
 
         if (operandType.isBool())
             return;
@@ -52,8 +52,7 @@ namespace
             return false;
 
         const CodeGenNodePayload& rightPayload = codeGen.payload(nodeRightRef);
-        const SemaNodeView        rightView    = codeGen.viewType(nodeRightRef);
-        const TypeRef             rightType    = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        const TypeRef             rightType    = rightPayload.typeRef.isValid() ? rightPayload.typeRef : codeGen.viewType(nodeRightRef).typeRef();
 
         MicroReg rightReg;
         materializeLogicalOperand(rightReg, codeGen, rightPayload, rightType);
@@ -80,8 +79,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     if ((resolvedLeftRef.isValid() && resolvedChildRef == resolvedLeftRef) || logicalState == nullptr)
     {
         const CodeGenNodePayload& leftPayload = codeGen.payload(nodeLeftRef);
-        const SemaNodeView        leftView    = codeGen.viewType(nodeLeftRef);
-        const TypeRef             leftType    = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        const TypeRef             leftType    = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(nodeLeftRef).typeRef();
 
         MicroReg leftReg;
         materializeLogicalOperand(leftReg, codeGen, leftPayload, leftType);

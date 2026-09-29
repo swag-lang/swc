@@ -48,7 +48,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   accesses and three branches, where FFmpeg's asm iteration is about 26 with six as well; the
   function from 669 to 577 instructions, its significance loop span from 139 to 115 and 11 to 6
   frame accesses, its level loop from 326 to 272, 25 to 13 frame accesses and five relocated
-  table addresses to one. What separates the bins is recorded in compiler.optimization.098.
+  table addresses to one. What separates the bins is recorded in compiler.optimization.099.
   The multi-bin macroblock elements (motion vector difference, luma coded block pattern, intra
   mode, QP delta, reference index) now decode against local registers too. Decoded planes of a
   60-picture 3840x2160 High/CABAC extract stay byte-identical to libavcodec. Interleaved

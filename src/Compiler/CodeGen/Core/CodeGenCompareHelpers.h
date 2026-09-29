@@ -147,10 +147,9 @@ namespace CodeGenCompareHelpers
 
     // Presence belongs to the method table of an interface. A null receiver is valid
     // for implementations whose methods do not access instance storage.
-    inline MicroReg materializeConditionOperand(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroOpBits bits)
+    inline MicroReg materializeConditionOperand(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, const TypeInfo& typeInfo, MicroOpBits bits)
     {
-        const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
-        const MicroReg  resultReg = codeGen.nextVirtualRegisterForType(typeRef);
+        const MicroReg resultReg = codeGen.nextVirtualRegisterForType(typeRef, typeInfo);
         if (payload.isAddress() || typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t))
         {
             const uint64_t offset = typeInfo.isInterface() ? offsetof(Runtime::Interface, itable) : 0;
@@ -161,14 +160,19 @@ namespace CodeGenCompareHelpers
         return resultReg;
     }
 
+    inline MicroReg materializeConditionOperand(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroOpBits bits)
+    {
+        return materializeConditionOperand(codeGen, payload, typeRef, codeGen.typeMgr().get(typeRef), bits);
+    }
+
     inline void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
     {
-        if (typeRef.isValid() && payload.typeRef.isValid() && codeGen.typeMgr().get(typeRef).isBool())
+        if (typeRef.isValid() && payload.typeRef.isValid() && typeRef != payload.typeRef && codeGen.typeMgr().get(typeRef).isBool())
             typeRef = payload.typeRef;
 
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits condBits = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
-        const MicroReg    condReg  = materializeConditionOperand(codeGen, payload, typeRef, condBits);
+        const MicroReg    condReg  = materializeConditionOperand(codeGen, payload, typeRef, typeInfo, condBits);
 
         emitCompareRegZero(codeGen, condReg, typeInfo, condBits);
         emitConditionJump(codeGen, typeInfo, falseyCondition(typeInfo), falseLabel);

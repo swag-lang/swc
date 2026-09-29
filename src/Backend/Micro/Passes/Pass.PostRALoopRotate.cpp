@@ -63,8 +63,9 @@ namespace
         }
     }
 
-    // A connector the allocator places around the test: a register move or
-    // frame traffic, flag-neutral, so the compare still feeds the jump.
+    // A flag-neutral connector around the test. Address calculations are
+    // duplicated with the compare so that the next iteration sees the new
+    // loop index before deciding whether to enter the body.
     bool isDuplicableConnector(const MicroInstr& inst)
     {
         switch (inst.op)
@@ -72,6 +73,8 @@ namespace
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::LoadAddrRegMem:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
                 return true;
             default:
                 return false;
@@ -672,11 +675,6 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     if (jumpsByTarget.empty())
         return Result::Continue;
 
-    // Copying an instruction that carries a relocation would need the
-    // relocation cloned onto both copies; no test shape observed here does, so
-    // such a header is left alone rather than handled.
-    std::optional<std::unordered_set<uint32_t>> relocatedInstructions;
-
     SmallVector<Rotation> rotations;
 
     for (uint32_t ordinal = 0; ordinal + 3 < order.size(); ++ordinal)
@@ -770,34 +768,21 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         if (!MicroPassHelpers::invertLayoutBranchCondition(inverted, cond))
             continue;
 
-        // The whole shape is known before a relocation snapshot is needed.
-        // A relocated test or connector cannot be duplicated at the back edge.
-        if (!relocatedInstructions)
-        {
-            relocatedInstructions.emplace();
-            for (const MicroRelocation& reloc : context.builder->codeRelocations())
-            {
-                if (reloc.instructionRef.isValid())
-                    relocatedInstructions->insert(reloc.instructionRef.get());
-            }
-        }
-        bool hasRelocatedTest = false;
-        for (uint32_t testOrdinal = testBegin; testOrdinal < testEnd; ++testOrdinal)
-        {
-            if (relocatedInstructions->contains(order[testOrdinal].get()))
-            {
-                hasRelocatedTest = true;
-                break;
-            }
-        }
-        if (hasRelocatedTest)
-            continue;
-
         rotations.push_back({.testBegin = testBegin, .testEnd = testEnd, .jccRef = jccRef, .bodyFirstRef = order[testEnd + 1], .backRef = backRef, .inverted = inverted});
     }
 
     if (rotations.empty())
         return Result::Continue;
+
+    // A copied RIP-relative connector needs its own relocation. Keep a
+    // snapshot because inserting the copies grows the builder's relocation
+    // vector while rotations are applied.
+    std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>> relocationsByRef;
+    for (const MicroRelocation& reloc : context.builder->codeRelocations())
+    {
+        if (reloc.instructionRef.isValid())
+            relocationsByRef[reloc.instructionRef.get()].push_back(reloc);
+    }
 
     for (const Rotation& rotation : rotations)
     {
@@ -827,7 +812,16 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
             for (uint32_t i = 0; i < testInst->numOperands; ++i)
                 testCopy.push_back(testOps[i]);
             const MicroInstrOpcode testOp = testInst->op;
-            storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
+            const MicroInstrRef copyRef = storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
+            const auto          relocIt = relocationsByRef.find(order[ordinal].get());
+            if (relocIt != relocationsByRef.end())
+            {
+                for (MicroRelocation reloc : relocIt->second)
+                {
+                    reloc.instructionRef = copyRef;
+                    context.builder->addRelocation(reloc);
+                }
+            }
         }
 
         const MicroInstr* backInst = storage.ptr(rotation.backRef);

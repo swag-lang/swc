@@ -109,6 +109,9 @@ namespace
         r.add(MicroInstrOpcode::CmpAmcImm, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::CmpAmcReg, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::OpBinaryRegAmcMem, tryFoldConstIndexAmc);
+        r.add(MicroInstrOpcode::OpBinaryAmcMemReg, tryFoldConstIndexAmc);
+        r.add(MicroInstrOpcode::OpBinaryAmcMemImm, tryFoldConstIndexAmc);
+        r.add(MicroInstrOpcode::OpUnaryAmcMem, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadSignedExtAmcRegMem, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryFoldLeaConstIntoAmcIndex);

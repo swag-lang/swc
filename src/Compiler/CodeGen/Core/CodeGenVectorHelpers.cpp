@@ -588,6 +588,34 @@ MicroReg CodeGenVectorHelpers::emitRotateImm(CodeGen& codeGen, MicroReg valueReg
         return copyReg;
     }
 
+    if (laneBits == 64 && leftCount == 32)
+    {
+        // Exchange the dwords inside each qword without a constant table.
+        const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+        codeGen.builder().emitVecShuffleRegRegImm(resultReg, valueReg, 0xB1, MicroOpBits::B128);
+        return resultReg;
+    }
+
+    if (laneBits == 32 && leftCount == 16)
+    {
+        // The low and high word shuffles each leave the other half intact.
+        const MicroReg lowReg = emitVecBinaryImm(codeGen, valueReg, 0xB1, MicroOp::VecShuffleLow16);
+        return emitVecBinaryImm(codeGen, lowReg, 0xB1, MicroOp::VecShuffleHigh16);
+    }
+
+    if (leftCount % 8 == 0)
+    {
+        const uint32_t laneBytes  = laneBits / 8;
+        const uint32_t shiftBytes = leftCount / 8;
+        std::array<uint8_t, 16> indices{};
+        for (uint32_t index = 0; index < 16; ++index)
+        {
+            const uint32_t lane = index / laneBytes;
+            indices[index]     = static_cast<uint8_t>(lane * laneBytes + (index % laneBytes + laneBytes - shiftBytes) % laneBytes);
+        }
+        return emitVecBinary(codeGen, valueReg, byteTableConstant(codeGen, indices), MicroOp::VecPermB);
+    }
+
     const MicroReg leftReg  = emitLaneShiftImm(codeGen, valueReg, laneType, leftCount, true);
     const MicroReg rightReg = emitLaneShiftImm(codeGen, valueReg, laneType, laneBits - leftCount, false);
     return emitVecBinary(codeGen, leftReg, rightReg, MicroOp::VecOr);

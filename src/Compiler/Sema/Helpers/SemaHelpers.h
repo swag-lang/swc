@@ -233,7 +233,10 @@ namespace SemaHelpers
     // Aliases stripped, an enum wrapper kept.
     inline const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
     {
-        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+        const TypeInfo& typeInfo = sema.typeMgr().get(view.typeRef());
+        if (!typeInfo.isAlias())
+            return typeInfo;
+        const TypeRef typeRef = typeInfo.unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
         SWC_ASSERT(typeRef.isValid());
         return sema.typeMgr().get(typeRef);
     }

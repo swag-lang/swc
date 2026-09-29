@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Immediate.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -19,6 +20,47 @@ namespace InstructionCombine
     namespace
     {
         constexpr uint32_t K_MAX_FOLD_WINDOW = 16;
+        constexpr uint32_t K_MAX_SLP_STORE_WINDOW = K_MAX_FOLD_WINDOW * 4;
+
+        bool hasPotentialWordStoreGroup(Context& ctx, MicroInstrRef loadRef)
+        {
+            // Address-mode folding may not have exposed a common base and
+            // adjacent offsets yet. Four word stores in one straight-line
+            // window are enough to defer this fold until SLP has checked them.
+            uint32_t stores = 0;
+            const auto noteStore = [&](const MicroInstr& inst) {
+                if (inst.op != MicroInstrOpcode::LoadMemReg)
+                    return;
+                const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+                if (ops && ops[2].opBits == MicroOpBits::B32)
+                    ++stores;
+            };
+
+            MicroStorage::Iterator forward{ctx.storage, loadRef};
+            ++forward;
+            const auto end = ctx.storage->view().end();
+            for (uint32_t step = 0; step < K_MAX_SLP_STORE_WINDOW && forward != end; ++step, ++forward)
+            {
+                if (isControlOrCall(*forward))
+                    break;
+                noteStore(*forward);
+                if (stores >= 4)
+                    return true;
+            }
+
+            MicroStorage::Iterator backward{ctx.storage, loadRef};
+            const auto begin = ctx.storage->view().begin();
+            for (uint32_t step = 0; step < K_MAX_SLP_STORE_WINDOW && backward != begin; ++step)
+            {
+                --backward;
+                if (isControlOrCall(*backward))
+                    break;
+                noteStore(*backward);
+                if (stores >= 4)
+                    return true;
+            }
+            return false;
+        }
 
         struct MiddleInfo
         {
@@ -153,6 +195,12 @@ namespace InstructionCombine
                     (tri.middleIsUnary ? (tri.microOp != MicroOp::BitwiseNot && tri.microOp != MicroOp::Negate) : !isMemFoldableOp(tri.microOp)) ||
                     (tri.middleIsRegImm && opOps[3].hasWideImmediateValue()))
                     return false;
+                if (ctx.passContext->deferXorMemoryFoldForSlp && tri.microOp == MicroOp::Xor && loadBits == MicroOpBits::B32 &&
+                    hasPotentialWordStoreGroup(ctx, loadRef))
+                {
+                    ctx.passContext->deferredXorMemoryFold = true;
+                    return false;
+                }
                 if (tri.middleIsRegReg && (tri.rhsReg == base || tri.rhsReg == valueReg || tri.rhsReg == vt))
                     return false;
 

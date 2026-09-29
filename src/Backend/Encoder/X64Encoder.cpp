@@ -3059,7 +3059,17 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     };
 
     ///////////////////////////////////////////
-    if (op == MicroOp::BitwiseNot)
+    if (op == MicroOp::Add || op == MicroOp::Subtract)
+    {
+        // The memory-fold pass emits these as INC/DEC only when CF is dead.
+        emitRex(store_, opBits, MicroReg{}, memReg);
+        emitSpecCpuOp(store_, opBits == MicroOpBits::B8 ? 0xFE : 0xFF, opBits);
+        emitMemoryOperand(op == MicroOp::Add ? MODRM_REG_0 : MODRM_REG_1);
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::BitwiseNot)
     {
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);

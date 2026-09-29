@@ -29,7 +29,7 @@ namespace
         if (!typeInfo.isAlias())
             return typeRef;
 
-        const TypeRef rawTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeRef rawTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
         if (rawTypeRef.isValid() && !IntrinsicInitType::preservesAliasType(sema.typeMgr().get(rawTypeRef)))
             return rawTypeRef;
         return typeRef;

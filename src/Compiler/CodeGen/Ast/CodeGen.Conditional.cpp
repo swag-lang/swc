@@ -37,13 +37,16 @@ namespace
 
     MicroReg materializeTruthyOperand(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        if (operandTypeRef.isValid() && operandPayload.typeRef.isValid() && codeGen.typeMgr().get(operandTypeRef).isBool())
+        const TypeInfo* typeInfo = &codeGen.typeMgr().get(operandTypeRef);
+        if (operandPayload.typeRef.isValid() && operandPayload.typeRef != operandTypeRef && typeInfo->isBool())
+        {
             operandTypeRef = operandPayload.typeRef;
+            typeInfo       = &codeGen.typeMgr().get(operandTypeRef);
+        }
 
-        const TypeInfo&   typeInfo = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits opBits   = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+        const MicroOpBits opBits = CodeGenTypeHelpers::compareBits(*typeInfo, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
-        return CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, opBits);
+        return CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, *typeInfo, opBits);
     }
 
     template<typename T>
@@ -95,9 +98,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     if (state == nullptr)
     {
         // Conditional expressions must short-circuit to preserve branch semantics.
-        const SemaNodeView        condView    = codeGen.viewType(resolvedChildRef);
         const CodeGenNodePayload& condPayload = codeGen.payload(resolvedChildRef);
-        const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : condView.typeRef();
+        const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : codeGen.viewType(resolvedChildRef).typeRef();
         const TypeInfo&           condType    = codeGen.typeMgr().get(condTypeRef);
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(condType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
@@ -166,7 +168,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
             // The join register must match the result type's register class: a float
             // selection materialized in an integer register would turn the branch
             // moves into bit reinterprets and break every float consumer downstream.
-            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
             emitSelectedOperand(codeGen, resultPayload, truePayload, resultBits);
         }
 
@@ -230,7 +232,7 @@ namespace
             // The join register must match the result type's register class: a float
             // selection materialized in an integer register would turn the branch
             // moves into bit reinterprets and break every float consumer downstream.
-            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
             emitSelectedOperand(codeGen, resultPayload, leftPayload, resultBits);
         }
 
@@ -272,9 +274,8 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
             return Result::Continue;
         }
 
-        const SemaNodeView        leftView    = codeGen.viewType(resolvedChildRef);
         const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedChildRef);
-        const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(resolvedChildRef).typeRef();
         const TypeInfo&           leftType    = codeGen.typeMgr().get(leftTypeRef);
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(leftType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
@@ -380,7 +381,7 @@ Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
     {
         const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(chainType, codeGen.ctx());
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), chainTypeRef);
-        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(chainTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(chainTypeRef, chainType);
         emitSelectedOperand(codeGen, resultPayload, childPayload, resultBits);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
         builder.placeLabel(falseLabel);

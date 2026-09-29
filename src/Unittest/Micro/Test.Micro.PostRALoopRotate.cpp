@@ -63,6 +63,58 @@ SWC_TEST_BEGIN(PostRALoopRotate_IndependentHeadersRotate)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopRotate_ClonesRelocatedAddressTest)
+{
+    for (const bool addressConnector : {true, false})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef top   = builder.createLabel();
+        const MicroLabelRef done  = builder.createLabel();
+        constexpr MicroReg  index = MicroReg::intReg(8);
+        constexpr MicroReg  next  = MicroReg::intReg(9);
+        constexpr MicroReg  bound = MicroReg::intReg(10);
+        builder.placeLabel(top);
+        if (addressConnector)
+            builder.emitLoadAddressAmcRegMem(next, MicroOpBits::B64, index, index, 1, 1, MicroOpBits::B64);
+        else
+        {
+            builder.emitLoadRegReg(next, index, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(next, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        }
+        builder.emitLoadRegMem(bound, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        const MicroInstrRef loadRef = builder.instructions().lastInstructionRef();
+        MicroRelocation     relocation;
+        relocation.kind           = MicroRelocation::Kind::GlobalZeroAddress;
+        relocation.form           = MicroRelocation::Form::Relative32;
+        relocation.instructionRef = loadRef;
+        relocation.targetAddress  = 0x1000;
+        builder.addRelocation(relocation);
+        builder.emitCmpRegReg(next, bound, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B64, done);
+        builder.emitLoadRegReg(index, next, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        const MicroInstrRef backRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        const MicroInstr* back = builder.instructions().ptr(backRef);
+        if (!back || back->op != MicroInstrOpcode::JumpCond ||
+            back->ops(builder.operands())[0].cpuCond != (addressConnector ? MicroCond::Below : MicroCond::Unconditional))
+            return Result::Error;
+        const auto& relocations = builder.codeRelocations();
+        if (relocations.size() != (addressConnector ? 2u : 1u))
+            return Result::Error;
+        if (addressConnector &&
+            (relocations[0].instructionRef == relocations[1].instructionRef ||
+             !relocations[0].hasSameTarget(relocations[1]) ||
+             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrAmcRegMem) != 2))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRALoopRotate_RotatesAcrossAdjacentExitLabelsOnly)
 {
     constexpr MicroReg counter = MicroReg::intReg(10);

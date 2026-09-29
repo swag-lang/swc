@@ -30,8 +30,9 @@ public:
     void tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags);
 
 private:
-    Token token_     = {};
-    Token prevToken_ = {};
+    Token token_                  = {};
+    bool  prevTokenWasWhitespace_ = false;
+    bool  prevTokenHadEolInside_  = false;
     // Last token that carries meaning on the current line, blanks and comments excluded.
     // The quote operator is told apart from a character literal by what precedes it, and
     // trivia must not change that reading: '5's32' and '5 's32' are the same suffixed

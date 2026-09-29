@@ -80,7 +80,7 @@ namespace
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits condBits = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
-        const MicroReg    condReg  = codeGen.nextVirtualRegisterForType(typeRef);
+        const MicroReg    condReg  = codeGen.nextVirtualRegisterForType(typeRef, typeInfo);
 
         MicroBuilder& builder = codeGen.builder();
         if (payload.isAddress())
@@ -1307,7 +1307,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         const bool        useStringCompare = CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef);
         MicroBuilder&     builder          = codeGen.builder();
 
-        const MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef);
+        const MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef, compareType);
         if (exprPayload.isAddress())
             builder.emitLoadRegMem(switchValueReg, exprPayload.reg, 0, compareBits);
         else

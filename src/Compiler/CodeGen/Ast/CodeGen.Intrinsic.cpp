@@ -174,7 +174,7 @@ namespace
             MicroReg      srcReg  = srcPayload.reg;
             if (srcPayload.isAddress())
             {
-                srcReg = codeGen.nextVirtualRegisterForType(fillTypeRef);
+                srcReg = codeGen.nextVirtualRegisterForType(fillTypeRef, fillType);
                 builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, storeBits);
             }
 

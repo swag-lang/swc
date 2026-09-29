@@ -98,9 +98,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     if (state == nullptr)
     {
         // Conditional expressions must short-circuit to preserve branch semantics.
-        const SemaNodeView        condView    = codeGen.viewType(resolvedChildRef);
         const CodeGenNodePayload& condPayload = codeGen.payload(resolvedChildRef);
-        const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : condView.typeRef();
+        const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : codeGen.viewType(resolvedChildRef).typeRef();
         const TypeInfo&           condType    = codeGen.typeMgr().get(condTypeRef);
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(condType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
@@ -275,9 +274,8 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
             return Result::Continue;
         }
 
-        const SemaNodeView        leftView    = codeGen.viewType(resolvedChildRef);
         const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedChildRef);
-        const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(resolvedChildRef).typeRef();
         const TypeInfo&           leftType    = codeGen.typeMgr().get(leftTypeRef);
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(leftType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);

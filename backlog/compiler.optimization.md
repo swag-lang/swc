@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.099 — The CABAC significance loop still holds one value in two registers
 
 - Recorded: 2026-09-29 09:34
-- Updated: 2026-09-29 10:47 — Record the post-allocation coalescing trial.
+- Updated: 2026-09-29 12:16 — Release the local-stack base register when the stack pointer never moves.
 - Area: compiler/backend, copy forwarding and register allocation
 - Evidence: after the 2026-09-29 prompt-2 batches on `std/video` (see std.video.001), a no-hit
   iteration of the 4x4 luma significance loop of `Slice.residualCabac` is 35 Micro instructions with
@@ -28,8 +28,16 @@ block, and the hot path keeps the register.
   (`rdx = r8 << cl; r11 = rdx`, the same for the offset). Before allocation the new range is
   computed into `%606` and copied into the loop-carried `%2482`; copy elimination then points the
   last-coefficient bin's reads of `%2482` at `%606`, so the two values overlap and cannot share a
-  register. The local-stack base also keeps `rbx` for the whole function although the body only
-  addresses one 64-byte array through it, and `clear` precedes every `lzcnt`/`tzcnt`.
+  register. `clear` precedes every `lzcnt`/`tzcnt` (the count forms only write their destination,
+  so this is a false-dependency guard for older cores that clang's generic tuning omits).
+- Done 2026-09-29: the local-stack base no longer holds `rbx` when the body never moves the stack
+  pointer and no debug records name it (`foldLocalStackBaseIntoStackPointer`); the interval
+  allocator admits that register whenever no base exists. residualCabac DC 577 -> 555 with its
+  significance loop 126 -> 114 instructions and 9 -> 5 frame accesses, 8x8 597 -> 590, 4x4
+  577 -> 574; no decoder function or benchmark program grew. The 4x4 no-hit iteration still reloads
+  the slice and the significance-state pointer at the loop latch: the refill path and the hit path
+  both reuse those registers, so the reloads would have to move to the end of each of those cold
+  regions, past two joins, which `sinkFrameReloadToFallthrough` does not reach.
 - Tried and reverted, each measured on the seven H.264 decoder files (`#global #[Swag.PrintMicro]`)
   and the seven benchmark programs:
   1. Copy elimination leaving the readers of a copy that feeds a live phi on the copy's
@@ -55,11 +63,12 @@ block, and the hot path keeps the register.
 - Next: give the interval allocator value-aware interference, as LLVM's coalescer joins a copy's
   source and destination where they overlap holding the same value, or rewrite after allocation the
   reads of a copy's source that its destination reaches, tracking the spill-slot round trip of the
-  refill path, then retarget the shift into the destination. Separately, measure releasing the
-  local-stack base register when the body never moves `rsp`.
+  refill path, then retarget the shift into the destination. Separately, sink a latch reload into
+  every cold predecessor region that clobbers its register, across nested joins.
 - Complete when: the significance bin has no register copy after its shifts and no decoder function
   or benchmark program grows.
 - Related: std.video.001, compiler.optimization.037, compiler.optimization.095
+
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget
 
 - Recorded: 2026-09-24 11:53

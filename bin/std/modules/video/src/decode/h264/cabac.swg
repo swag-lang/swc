@@ -799,8 +799,9 @@ impl Slice
             count += 1
         }
 
-        // Levels, last significant coefficient first.
-        let absBase   = CabacAbsBase[cat]
+        // Levels, last significant coefficient first, their contexts reached through one pointer
+        // like the significance ones.
+        let absStates = .cabac.contexts.buffer + cast(u64) CabacAbsBase[cat]
         var node      = 0'u64
         var remaining = count
         var level: s32
@@ -809,7 +810,7 @@ impl Slice
             remaining -= 1
             let position  = cast(u64) indices[remaining]
             var magnitude = 1's32
-            .binDecision(absBase + cast(u32) CabacTables[CabacLevel1At + node])
+            .binDecisionAt(absStates + cast(u64) CabacTables[CabacLevel1At + node])
             if (binState & 1) == 0
             {
                 node = cast(u64) CabacTables[CabacNodeAt + node]
@@ -817,11 +818,11 @@ impl Slice
             else
             {
                 magnitude = 2
-                let gt1Ctx = absBase + cast(u32) CabacTables[CabacLevelGtAt + node]
+                let gt1State = absStates + cast(u64) CabacTables[CabacLevelGtAt + node]
                 node = cast(u64) CabacTables[CabacNodeAt + 8 + node]
                 while magnitude < 15
                 {
-                    .binDecision(gt1Ctx)
+                    .binDecisionAt(gt1State)
                     if (binState & 1) == 0 do
                         break
                     magnitude += 1

@@ -947,7 +947,12 @@ namespace
                 // values recomputed by several in-loop uses. A standalone
                 // single-use address/copy would just add register pressure, so
                 // keep only memory reads and multiply used values, plus the
-                // hoisted webs that feed them.
+                // hoisted webs that feed them. A zeroing clear in a loop that
+                // calls does not pay by itself, however many readers it has:
+                // the register renamer executes it for free, and hoisted it
+                // must survive every call, which takes a callee-saved register
+                // the prologue spills - one per clear once several pile up. It
+                // then moves only with a kept value that reads it.
                 if (!hoistSet.empty())
                 {
                     // Acceptance changes only the hoist plan, not the IR or its uses.
@@ -973,6 +978,8 @@ namespace
                         const bool               multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
                         const MicroInstrOperand* instOps      = inst->ops(operands);
 
+                        if (inst->op == MicroInstrOpcode::ClearReg && loopHasCall)
+                            continue;
                         if (opcodeReadsMemory(inst->op) || multiplyUsed || isCostlyMaterialization(*inst, instOps))
                         {
                             if (keep.insert(i).second)

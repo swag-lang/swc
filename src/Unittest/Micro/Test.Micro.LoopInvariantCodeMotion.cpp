@@ -190,6 +190,44 @@ SWC_TEST_BEGIN(LICM_HoistsVectorConstantAcrossCallAndPointerStore)
 }
 SWC_TEST_END()
 
+// A zeroed vector register read by several stores leaves a call-free loop, but stays in a loop
+// that calls: the clear is free to repeat, and hoisted it would have to survive every call in
+// a callee-saved register.
+SWC_TEST_BEGIN(LICM_KeepsZeroingClearInLoopThatCalls)
+{
+    for (const bool calls : {false, true})
+    {
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg count = MicroReg::virtualIntReg(2);
+        constexpr MicroReg zero  = MicroReg::virtualFloatReg(1);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitClearReg(zero, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(base, 0, zero, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(base, 16, zero, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(base, 32, zero, MicroOpBits::B128);
+        if (calls)
+            builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(base, ApInt(48, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitRet();
+        SWC_RESULT(runLicmPass(builder));
+
+        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
+        const uint32_t clear     = firstPositionOf(builder, MicroInstrOpcode::ClearReg);
+        if (clear == std::numeric_limits<uint32_t>::max() || (clear < loopStart) == calls)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A vector constant read in an arm only some iterations take still leaves the loop: the
 // read-only pool cannot fault or change. A mutable global in the same position stays.
 SWC_TEST_BEGIN(LICM_HoistsVectorConstantOutOfConditionalArm)

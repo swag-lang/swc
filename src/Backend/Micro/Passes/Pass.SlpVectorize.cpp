@@ -4,7 +4,10 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Micro/MicroSsaState.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Assert.h"
 
 // Superword-level vectorization of straight-line blocks.
@@ -24,9 +27,9 @@
 // binary operations recurse into their operands, four adjacent loads of block
 // -entry memory become one packed load, a lane permutation of an already
 // -vectorized tuple becomes one shuffle, and equal shift or rotate immediates
-// become packed shifts (a 16-bit rotate uses two word shuffles; other rotates
-// expand to shift/shift/or). Shared subtrees
-// are memoized on the ordered lane tuple, which is what turns the second half
+// become packed shifts (a 16-bit rotate uses two word shuffles; an 8-bit rotate
+// can use a byte permutation; other rotates expand to shift/shift/or).
+// Shared subtrees are memoized on the ordered lane tuple, which turns the second half
 // of a ChaCha20 double round into shuffles of the first half's vectors
 // instead of a recomputation.
 //
@@ -256,6 +259,7 @@ namespace
             BinaryRegReg,
             BinaryRegImm,
             LoadSplat32,
+            LoadRotate8Mask,
             // Non-destructive forms: the destination is a register of its own,
             // so the packed value feeding the operation is not overwritten and
             // needs no copy. Emitted instead of the Copy pairs above wherever
@@ -665,6 +669,7 @@ namespace
 
         uint32_t nextPlanReg   = 0;
         uint32_t arithmeticOps = 0;
+        uint32_t rotate8MaskReg = K_INVALID_ID;
 
         std::unordered_map<TupleKey, uint32_t, TupleKeyHash> tupleRegs;
         // Equal sorted IDs make every permutation reusable from the first tuple.
@@ -709,10 +714,11 @@ namespace
     class TreeBuilder
     {
     public:
-        TreeBuilder(BlockScan& scan, VectorPlan& plan, bool nonDestructive) :
+        TreeBuilder(BlockScan& scan, VectorPlan& plan, bool nonDestructive, bool canLoadMask) :
             scan_(&scan),
             plan_(&plan),
-            nonDestructive_(nonDestructive)
+            nonDestructive_(nonDestructive),
+            canLoadMask_(canLoadMask)
         {
         }
 
@@ -935,6 +941,27 @@ namespace
 
                         case LaneOp::RotateLeft:
                         {
+                            if (n0.imm == 8 && canLoadMask_)
+                            {
+                                // A byte permutation rotates each word with one instruction.
+                                // The control differs by word, so a repeated scalar splat is invalid.
+                                if (plan_->rotate8MaskReg == K_INVALID_ID)
+                                {
+                                    plan_->rotate8MaskReg = allocReg();
+                                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadRotate8Mask, .dst = plan_->rotate8MaskReg});
+                                }
+                                const uint32_t dstReg = allocReg();
+                                if (nonDestructive_)
+                                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = dstReg, .src = lhsReg, .src2 = plan_->rotate8MaskReg, .op = MicroOp::VecPermB});
+                                else
+                                {
+                                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
+                                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = plan_->rotate8MaskReg, .op = MicroOp::VecPermB});
+                                }
+                                plan_->arithmeticOps++;
+                                remember(tuple, sorted, dstReg);
+                                return dstReg;
+                            }
                             if (n0.imm == 16)
                             {
                                 // Swap the 16-bit halves of each 32-bit lane.
@@ -1082,6 +1109,7 @@ namespace
         BlockScan*  scan_           = nullptr;
         VectorPlan* plan_           = nullptr;
         bool        nonDestructive_ = false;
+        bool        canLoadMask_     = false;
     };
 
     // ------------------------------------------------------------------
@@ -1635,7 +1663,8 @@ namespace
 
         // Build the seed groups: complete 16-byte chunks of candidates.
         VectorPlan             plan;
-        TreeBuilder            builder(scan, plan, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary());
+        const bool             canLoadMask = fn.context->builder && fn.context->taskContext && fn.context->taskContext->hasCompiler();
+        TreeBuilder            builder(scan, plan, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary(), canLoadMask);
         std::vector<SeedGroup> vectorized;
 
         for (auto& [rootKey, candidates] : candidatesByRoot)
@@ -1892,6 +1921,32 @@ namespace
                         ops[3].valueU64 = 0;
                         fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecShuffleRegRegImm, ops);
                     }
+                    break;
+                }
+                case PlanInstr::Kind::LoadRotate8Mask:
+                {
+                    std::array<char, 16> mask{};
+                    for (uint32_t index = 0; index < 16; ++index)
+                        mask[index] = static_cast<char>((index & ~3u) | ((index + 3) & 3u));
+
+                    DataSegmentRef         segmentRef;
+                    const std::string_view stored = fn.context->taskContext->cstMgr().addPayloadBuffer(std::string_view{mask.data(), mask.size()}, &segmentRef, 16);
+                    std::array<MicroInstrOperand, 4> ops;
+                    ops[0].reg      = planRegs[planInstr.dst];
+                    ops[1].reg      = MicroReg::instructionPointer();
+                    ops[2].opBits   = MicroOpBits::B128;
+                    ops[3].valueU64 = 0;
+                    const MicroInstrRef loadRef = fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegMem, ops);
+
+                    MicroRelocation relocation;
+                    relocation.kind             = MicroRelocation::Kind::ConstantAddress;
+                    relocation.form             = MicroRelocation::Form::Relative32;
+                    relocation.instructionRef   = loadRef;
+                    relocation.targetAddress    = reinterpret_cast<uint64_t>(stored.data());
+                    relocation.constantShard    = segmentRef.shardIndex;
+                    relocation.constantOffset   = segmentRef.offset;
+                    relocation.constantCopySize = static_cast<uint32_t>(mask.size());
+                    fn.context->builder->addRelocation(relocation);
                     break;
                 }
                 case PlanInstr::Kind::BinaryRegRegReg:

@@ -118,6 +118,16 @@ func lanesXorMask(values: *[8] u32)
     values[][7] = values[][3] ^ 0x00FF00FF
 }
 
+// Distinct words ensure a byte permutation cannot accidentally reuse another lane.
+#[Swag.Optimize(true)]
+func lanesRotate8(values: *[8] u32)
+{
+    values[][4] = Swag.rol(values[][0], 8)
+    values[][5] = Swag.rol(values[][1], 8)
+    values[][6] = Swag.rol(values[][2], 8)
+    values[][7] = Swag.rol(values[][3], 8)
+}
+
 // An incomplete chunk: three adjacent stores never form a packed group and
 // must stay scalar.
 #[Swag.Optimize(true)]
@@ -163,6 +173,14 @@ func threeLanes(values: *[8] u32)
     var values: [8] u32 = [10, 20, 30, 40, 0, 0, 0, 0]
     lanesAddConstant(&values)
     Swag.assert(values[4] == 15 and values[5] == 25 and values[6] == 35 and values[7] == 45)
+}
+
+#test
+{
+    var values: [8] u32 = [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC, 0, 0, 0, 0]
+    lanesRotate8(&values)
+    Swag.assert(values[4] == 0x23456701 and values[5] == 0xABCDEF89)
+    Swag.assert(values[6] == 0x20304010 and values[7] == 0xEEDDCCFF)
 }
 
 #[Swag.Optimize(true)]

@@ -54,24 +54,29 @@ JIT_ORDER = ["swc-jit-release", "swc-jit-fast-debug", "node20", "luajit2.1",
 
 # A runtime is sampled until it has spent this much measured time on a task, within
 # these bounds. Below the floor a minimum is meaningless; above the ceiling the extra
-# samples stopped paying — measured on this machine, the ratio between two unchanged
-# binaries settles by twenty and does not improve after that.
-RUN_BUDGET_MS = 4500
+# samples stop paying. The Swag runtimes are what the campaign exists to measure and
+# get the full budget. The controls only feed the machine correction, a median over
+# more than a dozen of them, so each one needs far fewer samples.
+RUN_BUDGET_MS = 2000
 RUN_MIN_REPS = 3
-RUN_MAX_REPS = 24
+RUN_MAX_REPS = 16
+CONTROL_RUN_BUDGET_MS = 600
+CONTROL_RUN_MIN_REPS = 2
+CONTROL_RUN_MAX_REPS = 6
 
 # A run this long is already averaging over everything a repetition would average
-# over, and CPython on a rescaled task costs half a minute a sample. Two is enough.
-RUN_SLOW_MS = 20000
+# over: its pilot sample is the measurement.
+RUN_SLOW_MS = 1500
 
 # Builds get the same treatment, on their own budget: swc links a task in 150 ms and
-# NativeAOT takes ten seconds, so a flat repetition count either starves the fast
-# toolchain — the one actually under test — or spends minutes on the slow one. The
-# ceiling is lower than for runs because a build is dominated by file system work,
-# which repetition averages far less well than compute.
-BUILD_BUDGET_MS = 3000
+# NativeAOT takes several seconds, so a flat repetition count either starves the fast
+# toolchain — the one actually under test — or spends minutes on the slow one.
+BUILD_BUDGET_MS = 2000
 BUILD_MIN_REPS = 2
-BUILD_MAX_REPS = 8
+BUILD_MAX_REPS = 6
+CONTROL_BUILD_BUDGET_MS = 800
+CONTROL_BUILD_MAX_REPS = 3
+BUILD_SLOW_MS = 2500
 
 DRIFT_LIMIT_PCT = history.DRIFT_LIMIT_PCT
 
@@ -154,20 +159,28 @@ def run_once(cmd, env):
     return (int(m.group(1)), float(m.group(2))), None, r
 
 
-def plan_reps(wall_ms):
+def plan_reps(wall_ms, tracked=True):
     """How many samples a runtime earns on a task, from one pilot measurement."""
+    budget, low, high = ((RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS) if tracked else
+                         (CONTROL_RUN_BUDGET_MS, CONTROL_RUN_MIN_REPS, CONTROL_RUN_MAX_REPS))
+    low, high = min(low, RUN_MAX_REPS), min(high, RUN_MAX_REPS)
     if not wall_ms:
-        return RUN_MIN_REPS
+        return low
     if wall_ms >= RUN_SLOW_MS:
-        return min(2, RUN_MAX_REPS)
-    return max(RUN_MIN_REPS, min(RUN_MAX_REPS, int(RUN_BUDGET_MS // wall_ms)))
+        return 1
+    return max(low, min(high, int(budget // wall_ms)))
 
 
-def plan_builds(wall_ms):
-    """How many times a toolchain is rebuilt, from its first build."""
+def plan_builds(wall_ms, tracked=True):
+    """How many times a toolchain is built, from its first build."""
+    budget, low, high = ((BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS) if tracked else
+                         (CONTROL_BUILD_BUDGET_MS, 1, CONTROL_BUILD_MAX_REPS))
+    low, high = min(low, BUILD_MAX_REPS), min(high, BUILD_MAX_REPS)
     if not wall_ms:
-        return BUILD_MIN_REPS
-    return max(BUILD_MIN_REPS, min(BUILD_MAX_REPS, int(BUILD_BUDGET_MS // wall_ms)))
+        return low
+    if wall_ms >= BUILD_SLOW_MS:
+        return 1
+    return max(low, min(high, int(budget // wall_ms)))
 
 
 def schedule(reps):
@@ -419,7 +432,7 @@ def main():
                     hello_plan[name] = 0
                 else:
                     keep_build(acc, r, rec)
-                    hello_plan.setdefault(name, plan_builds(r["wall_ms"]))
+                    hello_plan.setdefault(name, plan_builds(r["wall_ms"], name in history.TRACKED))
         for name, acc in results["hello_build"].items():
             if acc.get("error"):
                 print("  %-20s ERROR %s" % (name, acc["error"][:150]))
@@ -510,7 +523,7 @@ def main():
                         build_plan[name] = 0
                     else:
                         keep_build(acc_build[name], r, built[name])
-                        build_plan.setdefault(name, plan_builds(r["wall_ms"]))
+                        build_plan.setdefault(name, plan_builds(r["wall_ms"], name in history.TRACKED))
         elif measure_run:
             print("  preparing AOT programs outside the clock...")
             for name in aot:
@@ -538,7 +551,7 @@ def main():
                     plan[name] = set()
                 else:
                     keep_run(acc_run[name], got, r)
-                    plan[name] = schedule(plan_reps(r["wall_ms"]) - 1)
+                    plan[name] = schedule(plan_reps(r["wall_ms"], name in history.TRACKED) - 1)
 
             names = [n for n in cmds if not acc_run[n].get("error")]
             for cycle in range(RUN_MAX_REPS):
@@ -658,8 +671,9 @@ def main():
     build_controls = None
     if measure_build:
         previous = next((entry for entry in reversed(history.load_results())
-                         if all((entry.get("tasks", {}).get(task, {}).get("swag-release", {}).get("build") or {}).get("wall_ms")
-                                for task in tasks)), None)
+                         if any(task in entry.get("tasks", {}) for task in tasks) and
+                         all((entry["tasks"][task].get("swag-release", {}).get("build") or {}).get("wall_ms")
+                             for task in tasks if task in entry.get("tasks", {}))), None)
         build_controls = history.build_control_spread(results, previous)
         if build_controls:
             results["calibration"]["build_controls"] = build_controls

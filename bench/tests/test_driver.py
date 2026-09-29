@@ -62,13 +62,22 @@ class SampleBudgetTests(unittest.TestCase):
         self.assertEqual(driver.plan_reps(1), driver.RUN_MAX_REPS)
         self.assertEqual(driver.plan_reps(driver.RUN_SLOW_MS - 1), driver.RUN_MIN_REPS)
 
-    def test_a_very_slow_runtime_is_sampled_twice_and_no_more(self):
-        self.assertEqual(driver.plan_reps(driver.RUN_SLOW_MS), 2)
-        self.assertEqual(driver.plan_reps(driver.RUN_SLOW_MS * 4), 2)
+    def test_a_very_slow_runtime_keeps_its_pilot_sample_only(self):
+        for tracked in (True, False):
+            self.assertEqual(driver.plan_reps(driver.RUN_SLOW_MS, tracked), 1)
+            self.assertEqual(driver.plan_reps(driver.RUN_SLOW_MS * 4, tracked), 1)
+        self.assertEqual(driver.plan_builds(driver.BUILD_SLOW_MS, False), 1)
+
+    def test_controls_get_fewer_samples_than_the_compiler_under_test(self):
+        for duration in (1, 10, 100):
+            self.assertLess(driver.plan_reps(duration, False), driver.plan_reps(duration, True))
+            self.assertLess(driver.plan_builds(duration, False), driver.plan_builds(duration, True))
+        self.assertEqual(driver.plan_reps(1, False), driver.CONTROL_RUN_MAX_REPS)
 
     def test_the_count_never_rises_with_the_duration(self):
-        counts = [driver.plan_reps(d) for d in (1, 10, 100, 1000, 5000, 19000)]
-        self.assertEqual(counts, sorted(counts, reverse=True))
+        for tracked in (True, False):
+            counts = [driver.plan_reps(d, tracked) for d in (1, 10, 100, 1000, 5000, 19000)]
+            self.assertEqual(counts, sorted(counts, reverse=True))
 
     def test_a_missing_pilot_falls_back_to_the_floor(self):
         self.assertEqual(driver.plan_reps(None), driver.RUN_MIN_REPS)

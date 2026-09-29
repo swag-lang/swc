@@ -15,7 +15,8 @@ BENCH = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(BENCH, "src")
 OUT = os.path.join(BENCH, "out")
 
-TASKS = ["wordfreq", "csvagg", "sha256", "dijkstra", "raytrace", "leven", "chacha"]
+TASKS = ["wordfreq", "csvagg", "sha256", "dijkstra", "raytrace", "leven", "chacha",
+         "nbody", "fannkuch", "binarytrees", "lz77", "sort"]
 NEEDS_MAP = {"wordfreq", "csvagg"}
 
 def _first(pattern):
@@ -325,7 +326,7 @@ def make_hello_runs(t, swc, cores=0):
 
 
 # ------------------------------------------------------------ compiler workloads
-# The seven tasks and the hello world price a compiler on a small program. None of them
+# The twelve tasks and the hello world price a compiler on a small program. None of them
 # contains what an edit-build loop costs: a real module, a warm no-op, one touched
 # file, the documentation, a formatting pass. These do, and every one is what a person
 # actually types — the standard library's own core module, built in place the way the

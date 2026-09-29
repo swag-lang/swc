@@ -21,15 +21,19 @@ result to `history.json`, and regenerates `bench.html`. Nothing else is needed.
 | `py compile.py --against bin\swc_baseline.exe` | A/B the edit-build loop between two compilers, order alternated; records nothing |
 | `py compile.py --swc-cores 6 --admit` | measure with an explicit worker cap and shared-machine admission before every compiler invocation; records nothing |
 
-A full campaign takes roughly twenty minutes: a ninety-second warm-up, the NativeAOT
-publishes, and CPython on the two rescaled tasks. It will not start while something else
-is using the machine, and it throws itself away if something starts halfway through — so
-run it and leave the machine alone, rather than run it and work beside it.
+Most of a campaign is spent on the controls, not on swc: the NativeAOT, Swift and Zig
+builds, and CPython and Lua on the longer tasks. Those are measured once or a few times; swc
+gets the samples. A campaign will not start while something else is using the machine, and
+it throws itself away if something starts halfway through — so run it and leave the machine
+alone, rather than run it and work beside it.
 
 ## What is measured
 
-Seven equivalent programs in swag, C++, Rust, Zig, D, Odin, Swift, C#, JavaScript, Lua
-and Python. None of them uses a standard library container: each reimplements its own hash
+Twelve equivalent programs in swag, C++, Rust, Zig, D, Odin, Swift, C#, JavaScript, Lua
+and Python: `wordfreq`, `csvagg`, `sha256`, `dijkstra`, `raytrace`, `leven`, `chacha`, and
+since 2026-09-29 `nbody` (f64 physics over an array of structs), `fannkuch` (permutations of
+small arrays), `binarytrees` (one heap allocation per node), `lz77` (hash-chain compression
+and decompression) and `sort` (a specified quicksort on signed indices). None of them uses a standard library container: each reimplements its own hash
 map, heap or matrix, avoiding differences in those container implementations. `chacha` is
 the one written against a published specification rather than invented
 here: the same ChaCha20 rounds every port implements word for word, which is what makes it a
@@ -77,7 +81,7 @@ as the Zig port declares only those native entry points.
 
 ## The edit-build loop
 
-The seven tasks and the hello world price a compiler on a small program. None of them
+The tasks and the hello world price a compiler on a small program. None of them
 contains what an edit-build loop costs a person, so the campaign also measures the compiler
 under test on the repository's own sources — what the tools in `../tools` actually run:
 
@@ -136,13 +140,15 @@ entirely on one language and invents a result. And with a *fixed* order inside t
 runtime listed first is always measured at the same point of the machine's thermal ramp, which
 is a systematic advantage rather than a result — so the cycle rotates.
 
-**Samples are budgeted, not counted.** Each runtime is sampled until it has spent
-`RUN_BUDGET_MS` of measured time on that task, between 3 and 24 samples, and 2 when a single
-sample already runs longer than twenty seconds. A 50 ms task gets 24 samples where CPython
-gets 3. The samples of a runtime are spread evenly over the whole window rather than bunched
-at one end, so every runtime covers the same minutes whatever its sample count. Five fixed
-repetitions gave a ratio spread of 10 %; the budget gives 2 %, and costs less, because the
-five repetitions were being spent on CPython where they bought nothing.
+**Samples are budgeted, not counted.** Each Swag runtime is sampled until it has spent
+`RUN_BUDGET_MS` of measured time on that task, between 3 and 16 samples. A control only
+feeds the machine correction, a median over more than a dozen controls, so it gets
+`CONTROL_RUN_BUDGET_MS`, between 2 and 6 samples. A run longer than `RUN_SLOW_MS` keeps its
+pilot sample alone: CPython and Lua on the long tasks are measured once. Builds follow the
+same split, and a build longer than `BUILD_SLOW_MS` (NativeAOT, Swift, the documentation) is
+done once. The samples of a runtime are spread evenly over the whole window rather than
+bunched at one end, so every runtime covers the same minutes whatever its sample count. Five
+fixed repetitions gave a ratio spread of 10 %; a budget gives 2 %, and costs less.
 
 **Every sample is kept**, including each compiler build, not only the minimum that becomes the
 result. Earlier campaigns recorded only build minima, so their within-campaign build spread
@@ -167,7 +173,7 @@ not published.
 
 That execution probe cannot detect interference limited to compilers. Before publication, the
 driver also compares each unchanged compiler control's geometric build-time movement with the
-previous accepted build campaign, over the same seven tasks. If the upper and lower quartiles
+previous accepted build campaign, over the tasks both campaigns measured. If the upper and lower quartiles
 differ by more than 25 %, the campaign is archived under `results/rejected/`. On 2026-09-25,
 MSVC, clang-cl, Rust, D and Odin slowed by 40–65 % between two unchanged-code campaigns while
 Zig and .NET stayed near their previous times; the old execution probe accepted this split and
@@ -281,18 +287,22 @@ an asterisk in the report, because its commit alone will not reproduce it.
 | `history.py` | the compact, normalised record |
 | `mkpage.py`, `page_template.html` | the report; every figure comes from JSON, never from an edit |
 | `results/` | one raw campaign per file, kept whole so a past number can be re-derived |
-| `src/` | the seven tasks in every language |
+| `src/` | the tasks in every language |
 
 ## After a campaign
 
-The repository [README](../README.md) quotes one campaign in full — both tables and the four
-ratios that follow them. Those numbers are hand-copied, so a campaign that moves them is only
-half recorded until the README is refreshed from the new `results/` file and its stamp updated.
+The repository [README](../README.md) quotes one campaign in full, between its `bench:begin`
+and `bench:end` markers. `mkpage.py` rewrites that block from the same campaign as the page;
+never edit it by hand.
+
+`bench.html` carries measurements, not commentary: one matrix per measure with a task per row,
+charts for the aggregates, and one history row per task. A new task adds a row everywhere and
+nothing else; explanations belong in this file.
 
 ## Extending it
 
 - **A new task**: add it to every language under `src/`, then to `TASKS` in `toolchains.py`
-  and `mkpage.py`. It must print `CHECK=<n> MS=<f>` and exclude data generation from the timed
+  and its one-line description to `TASK_INFO` in `mkpage.py`. It must print `CHECK=<n> MS=<f>` and exclude data generation from the timed
   section. Confirm every port agrees on the checksum before recording anything.
 - **A new language**: add its recipe in `toolchains.py` and its id to the order lists in
   `driver.py` and `mkpage.py`. Give it the release settings its users would ship, document its

@@ -756,6 +756,73 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReservesBodyCallFrame)
 }
 SWC_TEST_END()
 
+// The first call frame can follow the saved stack base directly. That subtract is
+// erased with the other call frames, so the reserve must not be anchored on it.
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReservesBodyCallFrameWhenFirstCallFollowsStackBase)
+{
+    constexpr MicroReg rsp  = MicroReg::intReg(4);
+    constexpr MicroReg rbp  = MicroReg::intReg(5);
+    constexpr MicroReg rbx  = MicroReg::intReg(3);
+    constexpr MicroReg rax  = MicroReg::intReg(0);
+    constexpr MicroReg rcx  = MicroReg::intReg(2);
+    constexpr MicroReg xmm6 = MicroReg::floatReg(6);
+
+    for (const CallConvKind kind : {CallConvKind::WindowsX64, CallConvKind::Swag})
+    {
+        const uint64_t reserve = CallConv::get(kind).stackShadowSpace + 8;
+        MicroBuilder   builder(ctx);
+        builder.emitPush(rbp);
+        builder.emitPush(rbx);
+        builder.emitOpBinaryRegImm(rsp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 0, xmm6, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(rsp, ApInt(256, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegReg(rbx, rsp, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(reserve, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCallReg(rax, kind);
+        builder.emitOpBinaryRegImm(rsp, ApInt(reserve, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(144, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(rcx, rsp, 16, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(reserve, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCallReg(rcx, kind);
+        builder.emitOpBinaryRegImm(rsp, ApInt(400 + reserve, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegMem(xmm6, rsp, 0, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(rsp, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitPop(rbx);
+        builder.emitPop(rbp);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPrologEpilogSanitizePass(builder, false, rbx, UINT64_MAX, 0, &encoder, kind));
+
+        // The reserve sits right after the base copy, directly before the first
+        // call, and the call frame it replaces is gone.
+        const MicroOperandStorage& operands = builder.operands();
+        uint32_t                   index    = 0;
+        uint32_t                   baseAt   = UINT32_MAX;
+        uint32_t                   callAdds = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (baseAt == UINT32_MAX && inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == rbx && ops[1].reg == rsp)
+                baseAt = index;
+            callAdds += Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Add, reserve);
+            ++index;
+        }
+        if (baseAt == UINT32_MAX || callAdds != 0 || index != builder.instructions().count())
+            return Result::Error;
+
+        const MicroInstr* reserved = instructionAt(builder, baseAt + 1);
+        const MicroInstr* call     = instructionAt(builder, baseAt + 2);
+        if (!reserved || !call ||
+            !Backend::Unittest::isStackAdjust(*reserved, reserved->ops(operands), rsp, MicroOp::Subtract, reserve) ||
+            !MicroInstr::info(call->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_HoistsSingleLoopCallFrame)
 {
     constexpr MicroReg rsp = MicroReg::intReg(4);

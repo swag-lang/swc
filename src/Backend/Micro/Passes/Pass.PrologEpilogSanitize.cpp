@@ -981,12 +981,17 @@ namespace
         for (const MicroInstrRef ref : callAdjusts)
             context.instructions->erase(ref);
 
+        // The reserve goes right after the saved stack base. The instruction that
+        // followed the base may be a call-frame subtract erased just above, so the
+        // anchor is taken from the list as it now stands.
+        const MicroInstrRef reserveAnchor = context.instructions->findNextInstructionRef(order[bodyBase]);
+        SWC_ASSERT(reserveAnchor.isValid());
         MicroInstrOperand reserveOps[4];
         reserveOps[0].reg     = conv.stackPointer;
         reserveOps[1].opBits  = MicroOpBits::B64;
         reserveOps[2].microOp = MicroOp::Subtract;
         reserveOps[3].setImmediateValue(ApInt(reserve, 64));
-        context.instructions->insertSyntheticBefore(*context.operands, order[bodyBase + 1], MicroInstrOpcode::OpBinaryRegImm, reserveOps);
+        context.instructions->insertSyntheticBefore(*context.operands, reserveAnchor, MicroInstrOpcode::OpBinaryRegImm, reserveOps);
         return true;
     }
 

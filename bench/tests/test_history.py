@@ -82,6 +82,10 @@ class HistoryAdjustmentTests(unittest.TestCase):
         self.assertAlmostEqual(stable["spread_pct"], 0.0)
         self.assertGreater(unstable["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT)
 
+        # A campaign that adds a task is compared with its predecessor on the shared tasks.
+        extended = history.build_control_spread(add_task(split, "third"), baseline)
+        self.assertEqual(extended["spread_pct"], unstable["spread_pct"])
+
     def test_oldest_clean_campaign_is_the_baseline(self):
         dirty = campaign("run-01", True, run_scale=2.0)
         clean = campaign("run-02", False)

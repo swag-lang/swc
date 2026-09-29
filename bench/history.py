@@ -69,12 +69,16 @@ def build_control_spread(current, reference):
 
     A runtime calibration cannot see a slowdown confined to a group of compilers.
     Compare each control's geometric build-time movement across the same tasks; a
-    wide middle-half spread means one machine factor cannot explain the campaign.
+    wide middle-half spread means one machine factor cannot explain the campaign. Only
+    the tasks both campaigns measured are compared, so a campaign that adds a task is
+    still checked against its predecessor.
     """
-    if not reference or set(current["tasks"]) != set(reference["tasks"]):
+    if not reference:
         return None
 
-    tasks = list(current["tasks"])
+    tasks = [task for task in current["tasks"] if task in reference["tasks"]]
+    if not tasks:
+        return None
     controls = {}
     for runtime in current["tasks"][tasks[0]]:
         if runtime in TRACKED:

@@ -24,16 +24,22 @@ REPO_README = os.path.join(tc.worktree(), "README.md")
 README_BEGIN = "<!-- bench:begin -->"
 README_END = "<!-- bench:end -->"
 
-TASKS = [
-    ("wordfreq", "comptage de mots", "table de hachage maison sur 2 M mots, puis tri"),
-    ("csvagg", "agr&eacute;gation CSV", "400 k lignes, parsing octet &agrave; octet, flottants"),
-    ("sha256", "SHA-256", "8 Mio, ALU enti&egrave;re pure, rotations"),
-    ("dijkstra", "Dijkstra", "grille 800&times;800, tas binaire"),
-    ("raytrace", "lancer de rayons", "480&times;360, f64, r&eacute;cursion"),
-    ("leven", "Levenshtein", "40 requ&ecirc;tes contre 6000 mots"),
-    ("chacha", "ChaCha20", "16 Mio de flot de cl&eacute;, lanes 32 bits, rotations"),
-]
-TASK_IDS = [t[0] for t in TASKS]
+# What each task exercises, shown when hovering its name. The order and the list itself
+# come from toolchains.TASKS; a task missing here is still shown, only without a description.
+TASK_INFO = {
+    "wordfreq": "table de hachage maison sur 2 M mots, puis tri",
+    "csvagg": "400 k lignes, parsing octet &agrave; octet, flottants",
+    "sha256": "8 Mio, ALU enti&egrave;re pure, rotations",
+    "dijkstra": "grille 800&times;800, tas binaire",
+    "raytrace": "480&times;360, f64, r&eacute;cursion",
+    "leven": "40 requ&ecirc;tes contre 6000 mots",
+    "chacha": "16 Mio de flot de cl&eacute;, lanes 32 bits, rotations",
+    "nbody": "5 corps, 500 k pas, f64, sqrt, tableau de structures",
+    "fannkuch": "fannkuch-redux N = 9, permutations et retournements",
+    "binarytrees": "profondeur 12, allocation et lib&eacute;ration n&oelig;ud par n&oelig;ud",
+    "lz77": "1 Mio, compression par cha&icirc;nes de hachage puis d&eacute;compression",
+    "sort": "300 k entiers, quicksort m&eacute;diane de trois",
+}
 
 RUNTIMES = [
     ("swag-release",       "swag release",      "natif",     "swag"),
@@ -55,6 +61,34 @@ RUNTIMES = [
     ("python3.12",         "CPython",           "interpr&eacute;t&eacute;", "dynamic"),
 ]
 META = {r[0]: r for r in RUNTIMES}
+
+# Column headers of the per-task matrices: two short lines, name then mode.
+SHORT = {
+    "swag-release": ("swag", "natif"), "swc-jit-release": ("swag", "JIT"),
+    "swag-fast-debug": ("swag dev", "natif"), "swc-jit-fast-debug": ("swag dev", "JIT"),
+    "cpp-clang-cl": ("clang-cl", "C++"), "cpp-msvc": ("MSVC", "C++"), "rust": ("Rust", ""),
+    "zig": ("Zig", ""), "d-ldc": ("D", "LDC"), "odin": ("Odin", ""), "swift": ("Swift", ""),
+    "csharp-aot": ("C#", "AOT"), "csharp-jit": ("C#", "JIT"), "node20": ("Node", "V8"),
+    "luajit2.1": ("LuaJIT", ""), "lua5.4": ("Lua", "5.4"), "python3.12": ("Python", "3.12"),
+}
+
+# One colour per language, shared by every chart bar and ranking entry; the two compilers of
+# one language share it, and swag devmode is swag with a lighter fill.
+LANG = {
+    "swag-release": "swag", "swc-jit-release": "swag",
+    "swag-fast-debug": "swag dev", "swc-jit-fast-debug": "swag dev",
+    "cpp-clang-cl": "cpp", "cpp-msvc": "cpp", "rust": "rust", "zig": "zig", "d-ldc": "d",
+    "odin": "odin", "swift": "swift", "csharp-aot": "cs", "csharp-jit": "cs", "node20": "js",
+    "luajit2.1": "lua", "lua5.4": "lua", "python3.12": "py",
+}
+
+
+def lang_class(rt):
+    return " ".join("l-" + part for part in LANG.get(rt, "other").split())
+
+
+# The journal shows only the most recent campaigns; the curves carry every one.
+JOURNAL_ROWS = 10
 
 DRIFT_LIMIT = history.DRIFT_LIMIT_PCT
 
@@ -170,49 +204,122 @@ def chart(rows, lo, hi, ticks, unit, scale="log"):
         w = logw(v, lo, hi) if scale == "log" else linw(v, hi)
         m = META[rt]
         out.append(
-            '<div class="row f-%s"><div class="rl">%s <span class="mode">%s</span></div>'
+            '<div class="row %s"><div class="rl">%s <span class="mode">%s</span></div>'
             '<div class="track"><span class="bar" style="width:%.3f%%"></span></div>'
-            '<div class="rv">%s<em>%s</em></div></div>' % (m[3], m[1], m[2], w, printed, unit))
+            '<div class="rv">%s<em>%s</em></div></div>'
+            % (lang_class(rt), m[1], m[2], w, printed, unit))
     out.append("</figure>")
     return "\n".join(out)
 
 
-def table(headers, rows, cls=""):
-    out = ['<div class="table-wrap"><table class="%s">' % cls, "<thead><tr>"]
-    for i, h in enumerate(headers):
-        out.append("<th%s>%s</th>" % (' class="num"' if i else "", h))
+def ms_text(v):
+    """Three significant digits: 21593, 1980, 45.0, 9.23."""
+    if v is None:
+        return "&mdash;"
+    return "%.0f" % v if v >= 100 else ("%.1f" % v if v >= 10 else "%.2f" % v)
+
+
+def simple_table(headers, rows):
+    """rows: [label, cell, ...]; the first column is text, the others numbers."""
+    out = ['<div class="table-wrap"><table><thead><tr>']
+    out += ["<th>%s</th>" % h for h in headers]
     out.append("</tr></thead><tbody>")
     for r in rows:
-        out.append('<tr class="f-%s"><th scope="row">%s</th>' % (r[0], r[1]))
-        for i, c in enumerate(r[2:], 1):
-            label = html.escape(html.unescape(headers[i]), quote=True)
-            out.append('<td class="num" data-label="%s">%s</td>' % (label, c))
-        out.append("</tr>")
+        out.append("<tr><th>%s</th>%s</tr>" % (r[0], "".join("<td>%s</td>" % c for c in r[1:])))
     out.append("</tbody></table></div>")
     return "\n".join(out)
 
 
-def ranked_table(tasks, runtimes, value, display):
-    """Show each task's measured runtimes from the lowest value to the highest."""
-    out = ['<table class="ranked">', '<thead><tr><th scope="col">task</th>'
-           '<th scope="col">ranking: left to right, then down</th></tr></thead><tbody>']
+def _cell_class(rt, previous, *extra):
+    cls = [c for c in extra if c]
+    if rt == "swag-release":
+        cls.append("sw")
+    if previous and META[rt][3] != META[previous][3]:
+        cls.append("gap")
+    return ' class="%s"' % " ".join(cls) if cls else ""
+
+
+def matrix(tasks, runtimes, value, show, footer=None):
+    """One task per row, one runtime per column; the best of each row in bold.
+
+    Tasks grow downwards, so adding one adds a row and moves nothing else."""
+    out = ['<div class="table-wrap"><table class="matrix"><thead><tr><th>t&acirc;che</th>']
+    for i, rt in enumerate(runtimes):
+        name, mode = SHORT.get(rt, (META[rt][1], ""))
+        out.append('<th%s>%s<br><span class="mode">%s</span></th>'
+                   % (_cell_class(rt, runtimes[i - 1] if i else None), name, mode))
+    out.append("</tr></thead><tbody>")
     for task in tasks:
-        out.append('<tr><th scope="row"><code>%s</code></th><td><ol>' % task)
+        values = [value(rt, task) for rt in runtimes]
+        best = min((v for v in values if v is not None), default=None)
+        info = TASK_INFO.get(task)
+        title = ' title="%s"' % html.escape(html.unescape(info), quote=True) if info else ""
+        out.append("<tr><th%s><code>%s</code></th>" % (title, task))
+        for i, (rt, v) in enumerate(zip(runtimes, values)):
+            best_cls = "best" if v is not None and v == best else ""
+            out.append("<td%s>%s</td>"
+                       % (_cell_class(rt, runtimes[i - 1] if i else None, best_cls), show(v)))
+        out.append("</tr>")
+    out.append("</tbody>")
+    if footer:
+        label, values, show_footer = footer
+        out.append("<tfoot><tr><th>%s</th>" % label)
+        for i, rt in enumerate(runtimes):
+            out.append("<td%s>%s</td>" % (_cell_class(rt, runtimes[i - 1] if i else None),
+                                          show_footer(values.get(rt))))
+        out.append("</tr></tfoot>")
+    out.append("</table></div>")
+    return "\n".join(out)
+
+
+def ranked_table(tasks, runtimes, value, display):
+    """One line per task: every runtime from the lowest value to the highest, swag marked.
+
+    The second column gives swag release's place in that line, which is the question the
+    table exists to answer."""
+    lead = next((rt for rt in ("swag-release", "swc-jit-release") if rt in runtimes), None)
+    out = ['<div class="table-wrap"><table class="ranked"><thead><tr><th>t&acirc;che</th>'
+           '<th>swag</th><th>classement</th></tr></thead><tbody>']
+    for task in tasks:
         measured = [(rt, value(rt, task)) for rt in runtimes]
         measured.sort(key=lambda item: (item[1] is None,
                                         item[1] if item[1] is not None else math.inf))
+        ranks = {rt: rank for rank, (rt, _) in enumerate(measured, 1)}
+        info = TASK_INFO.get(task)
+        title = ' title="%s"' % html.escape(html.unescape(info), quote=True) if info else ""
+        place = ("%d<span class=\"mode\">/%d</span>" % (ranks[lead], len(measured))
+                 if lead in ranks else "&mdash;")
+        out.append("<tr><th%s><code>%s</code></th><td>%s</td><td><ol>" % (title, task, place))
         for rank, (rt, result) in enumerate(measured, 1):
-            meta = META[rt]
-            variant = ''
-            if meta[3] == 'swag':
-                variant = ' swag-release' if rt.endswith('release') else ' swag-devmode'
-            out.append('<li class="f-%s%s"><span class="rank-number">%d</span>'
-                       '<span class="rank-label">%s</span><span class="mode">%s</span>'
-                       '<span class="rank-value">%s</span></li>'
-                       % (meta[3], variant, rank, meta[1], meta[2], display(result)))
-        out.append('</ol></td></tr>')
-    out.append('</tbody></table>')
+            name, mode = SHORT.get(rt, (META[rt][1], ""))
+            if META[rt][3] == "swag":
+                mode = ""  # the table already says native or JIT; the colour says swag
+            out.append('<li class="%s"><b>%d</b>%s%s<i>%s</i></li>'
+                       % (lang_class(rt), rank, name,
+                          ' <span class="mode">%s</span>' % mode if mode else "",
+                          display(result)))
+        out.append("</ol></td></tr>")
+    out.append("</tbody></table></div>")
     return "\n".join(out)
+
+
+def spark(values):
+    """A 140x22 trend line, one point per campaign, over a rule at 1.00."""
+    pts = [(i, v) for i, v in enumerate(values) if v is not None]
+    if not pts:
+        return ""
+    lo = min([v for _, v in pts] + [1.0])
+    hi = max([v for _, v in pts] + [1.0])
+    if hi - lo < 1e-9:
+        lo, hi = lo - 0.05, hi + 0.05
+    n = max(1, len(values) - 1)
+    x = lambda i: 2 + i * 136.0 / n
+    y = lambda v: 20 - (v - lo) / (hi - lo) * 18
+    if len(pts) == 1:
+        pts = [(0, pts[0][1]), (n, pts[0][1])]
+    return ('<svg class="spark" viewBox="0 0 140 22" aria-hidden="true">'
+            '<line x1="0" x2="140" y1="%.1f" y2="%.1f"/><polyline points="%s"/></svg>'
+            % (y(1.0), y(1.0), " ".join("%.1f,%.1f" % (x(i), y(v)) for i, v in pts)))
 
 
 # -------------------------------------------------------------- history plots
@@ -228,7 +335,7 @@ def nice_bounds(values):
     return lo - span * 0.25, hi + span * 0.25
 
 
-def svg_lines(labels, series, unit, nd=2, zero=False, compact=False, band=None):
+def svg_lines(labels, series, unit, nd=2, zero=False, compact=False, band=None, width=None):
     """series: list of (css class, legend text, [values, one per campaign]).
 
     `compact` draws at the size it will actually occupy, so the text is not shrunk
@@ -244,6 +351,8 @@ def svg_lines(labels, series, unit, nd=2, zero=False, compact=False, band=None):
         W, H, PAD_L, PAD_R, PAD_T, PAD_B, rows = 300, 104, 40, 12, 12, 20, 2
     else:
         W, H, PAD_L, PAD_R, PAD_T, PAD_B, rows = globals()["W"], globals()["H"], 52, 96, 16, 34, 4
+        if width:
+            W, H = width, 200
 
     lo, hi = nice_bounds(flat)
     if zero:
@@ -273,7 +382,10 @@ def svg_lines(labels, series, unit, nd=2, zero=False, compact=False, band=None):
             pts = " ".join("%.1f,%.1f" % p for p in top + bottom[::-1])
             o.append('<polygon class="hband" points="%s"/>' % pts)
 
-    shown = [0, n - 1] if compact else list(range(n))
+    # A few labels, always the first and the last, so commits never overlap.
+    step = max(1, -(-(n - 1) // (4 if width else 7)))
+    shown = [0, n - 1] if compact else sorted({i for i in range(0, n, step)
+                                               if n - 1 - i >= step} | {n - 1})
     for i, lab in enumerate(labels):
         if i not in shown:
             continue
@@ -293,7 +405,8 @@ def svg_lines(labels, series, unit, nd=2, zero=False, compact=False, band=None):
         else:
             d = " ".join("%.1f,%.1f" % p for p in pts)
             o.append('<polyline class="hline %s" points="%s"/>' % (cls, d))
-            for x, y in pts:
+            # Past a dozen campaigns the dots add weight and no reading.
+            for x, y in (pts if len(pts) <= 12 else []):
                 o.append('<circle class="hdot %s" cx="%.1f" cy="%.1f" r="2.6"/>' % (cls, x, y))
         if name:
             ends.append([pts[-1][1], pts[-1][0], cls, name])
@@ -315,49 +428,17 @@ def svg_lines(labels, series, unit, nd=2, zero=False, compact=False, band=None):
 
 def history_section(entries):
     if not entries:
-        return '<p class="lede">Aucune campagne enregistr&eacute;e.</p>'
+        return '<p class="cap">Aucune campagne enregistr&eacute;e.</p>'
 
-    labels = []
-    for e in entries:
-        m = e["meta"]
-        labels.append(m.get("commit") or m["date"][:10])
+    labels = [e["meta"].get("commit") or e["meta"]["date"][:10] for e in entries]
 
-    def series(field, sub=None):
+    def series(field):
         out = []
         for rt, name, cls in HIST_SERIES:
-            vals = []
-            for e in entries:
-                rec = e["runtimes"].get(rt)
-                if not rec:
-                    vals.append(None)
-                    continue
-                v = rec.get(field)
-                vals.append(v.get(sub) if (sub and isinstance(v, dict)) else v)
+            vals = [(e["runtimes"].get(rt) or {}).get(field) for e in entries]
             if any(v is not None for v in vals):
                 out.append((cls, name, vals))
         return out
-
-    parts = []
-
-    if len(entries) == 1:
-        parts.append(
-            '<div class="note"><p><b>Une seule campagne enregistr&eacute;e.</b> Les courbes '
-            "apparaissent d&egrave;s la deuxi&egrave;me : chaque point ci-dessous est le "
-            "rep&egrave;re de d&eacute;part.</p></div>")
-
-    latest_context = entries[-1].get("context", {})
-    latest_run_context = next((entry.get("context", {}) for entry in reversed(entries)
-                               if entry.get("context", {}).get("run_factor") is not None),
-                              latest_context)
-    latest_build_context = next((entry.get("context", {}) for entry in reversed(entries)
-                                 if entry.get("context", {}).get("build_factor") is not None),
-                                latest_context)
-    run_tasks = latest_run_context.get("run_task_factors", {})
-    build_tasks = latest_build_context.get("build_task_factors", {})
-    run_per_task = (latest_context.get("run_controls", 0) // len(run_tasks)) if run_tasks else 0
-    build_per_task = ((latest_context.get("build_controls", 0) // len(build_tasks))
-                      if build_tasks else 0)
-    baseline = latest_run_context.get("baseline_commit") or latest_run_context.get("baseline") or "?"
 
     def null_band(family, task=None):
         out = []
@@ -369,161 +450,90 @@ def history_section(entries):
     def half_width(bands):
         """Typical distance from 1.00 an unchanged runtime reaches, in percent. The
         reference campaign is exactly 1.00 by construction and is not evidence."""
-        widths = [max(abs(pair[1] - 1.0), abs(1.0 - pair[0])) for pair in bands if pair]
-        widths = sorted(w for w in widths if w > 0)
+        widths = sorted(w for w in (max(abs(pair[1] - 1.0), abs(1.0 - pair[0]))
+                                    for pair in bands if pair) if w > 0)
         return 100.0 * (widths[len(widths) // 2] if widths else 0.0)
 
-    run_band = null_band("run")
-    build_band = null_band("build")
-    controls_run = next((((entry.get("null") or {}).get("run") or {}).get("controls", 0)
-                         for entry in reversed(entries)
-                         if ((entry.get("null") or {}).get("run") or {}).get("controls")), 0)
-
-    parts.append("<h3>Les quatre chiffres de t&ecirc;te, campagne apr&egrave;s campagne</h3>")
-    parts.append('<p class="cap">The two execution ratios compare programs in one accepted '
-                 "campaign. The build ratio compares swc after compiler-control adjustment "
-                 "with a fixed MSVC baseline. Compiler memory is plotted separately below.</p>")
-    parts.append('<div class="small-mult">')
+    parts = ['<div class="small-mult">']
     for field, name, nd, unit in (
             ("exec_vs_best", "ex&eacute;cution vs le meilleur (&times;)", 2, "&times;"),
             ("jit_gap_pct", "JIT swc vs natif swc (%)", 0, "%"),
-            ("build_edge", "complete build vs MSVC (&times;)", 1, "&times;")):
+            ("build_edge", "build MSVC / swc (&times;)", 1, "&times;")):
         vals = [e.get("headline", {}).get(field) for e in entries]
         parts.append('<div class="sm"><b>%s</b>%s</div>'
-                     % (name, svg_lines(labels, [("h-a", "", vals)], unit,
-                                        nd=nd, compact=True)))
+                     % (name, svg_lines(labels, [("h-a", "", vals)], unit, nd=nd, compact=True)))
     parts.append("</div>")
 
-    parts.append("<h3>Ex&eacute;cution &mdash; indice corrig&eacute; du contexte machine</h3>")
-    parts.append('<p class="cap">Pour chaque t&acirc;che, le temps Swag brut est divis&eacute; par '
-                 "le mouvement m&eacute;dian de %d runtimes t&eacute;moins inchang&eacute;s. "
-                 "La campagne <code>%s</code> vaut 1,00 ; une baisse mesure donc un progr&egrave;s "
-                 "du compilateur, apr&egrave;s retrait du contexte machine.</p>" % (run_per_task, baseline))
-    parts.append('<p class="cap">La bande grise est la <b>r&eacute;solution du banc</b> : la m&ecirc;me '
-                 "correction appliqu&eacute;e &agrave; chacun des %d t&eacute;moins, dont le code ne "
-                 "change jamais, corrig&eacute; par la m&eacute;diane des autres. Un t&eacute;moin devrait "
-                 "valoir exactement 1,00 ; l'&eacute;cart qu'il affiche est ce que le banc ne sait pas "
-                 "distinguer de z&eacute;ro. Une variation de la courbe Swag inf&eacute;rieure &agrave; "
-                 "&plusmn;%.0f&nbsp;%% d'une campagne &agrave; la suivante n'a pas &eacute;t&eacute; "
-                 "mesur&eacute;e.</p>" % (controls_run, half_width(run_band)))
-    parts.append(svg_lines(labels, series("run_geo_index"), "&times;", band=run_band))
-
-    parts.append("<h3>Compilation &mdash; indice corrig&eacute; du contexte machine</h3>")
-    parts.append('<p class="cap">M&ecirc;me correction et m&ecirc;me bande de r&eacute;solution, '
-                 "calcul&eacute;es s&eacute;par&eacute;ment avec %d toolchains de compilation par "
-                 "t&acirc;che.</p>" % build_per_task)
-    parts.append(svg_lines(labels, series("build_geo_index"), "&times;", band=build_band))
-
-    parts.append("<h3>Pic m&eacute;moire du compilateur</h3>")
-    parts.append('<p class="cap">En m&eacute;gaoctets bruts : contrairement au temps, '
-                 "la m&eacute;moire ne d&eacute;rive pas avec l'&eacute;tat de la machine.</p>")
+    parts.append('<div class="grid2"><div>')
+    parts.append("<h3>Indice d'ex&eacute;cution</h3>")
+    parts.append(svg_lines(labels, series("run_geo_index"), "&times;", band=null_band("run"),
+                             width=520))
+    parts.append("</div><div>")
+    parts.append("<h3>Indice de compilation</h3>")
+    parts.append(svg_lines(labels, series("build_geo_index"), "&times;", band=null_band("build"),
+                             width=520))
+    parts.append("</div><div>")
+    parts.append("<h3>Pic m&eacute;moire du compilateur (Mo)</h3>")
     parts.append(svg_lines(labels, [(c, n, [e["runtimes"].get(rt, {}).get("build_peak_mb")
                                             for e in entries])
                                     for rt, n, c in HIST_SERIES
                                     if any(e["runtimes"].get(rt, {}).get("build_peak_mb")
                                            for e in entries)],
-                           "Mo", nd=0))
+                           "Mo", nd=0, width=520))
+    parts.append("</div></div>")
 
-    late = latest_context.get("task_baselines", {})
-    parts.append("<h3>Par t&acirc;che &mdash; swag release natif, indice corrig&eacute;</h3>")
-    parts.append('<p class="cap">Chaque t&acirc;che porte sa propre bande de r&eacute;solution, et '
-                 "elles ne se valent pas : une t&acirc;che de quelques millisecondes est bien plus "
-                 "sensible &agrave; l'&eacute;tat de la machine qu'une t&acirc;che de cent. Une "
-                 "t&acirc;che ajout&eacute;e apr&egrave;s la campagne de r&eacute;f&eacute;rence est "
-                 "index&eacute;e sur sa premi&egrave;re campagne, indiqu&eacute;e sous son nom.</p>")
-    parts.append('<div class="small-mult">')
-    for tid, name, _ in TASKS:
+    # One row per task and per edit-loop workload: the latest index, its resolution, and
+    # the trend. Rows, not charts, so the section grows by one line per task.
+    late = entries[-1].get("context", {}).get("task_baselines", {})
+    rows = []
+    for tid in tc.TASKS:
         vals = [e["runtimes"].get("swag-release", {}).get("run_index", {}).get(tid)
                 for e in entries]
-        band = null_band("run", tid)
-        width = half_width(band)
-        note = " depuis %s" % late[tid] if tid in late else ""
-        if width:
-            note += " &middot; r&eacute;solution &plusmn;%.0f&nbsp;%%" % width
-        parts.append('<div class="sm"><b>%s<span class="mode">%s</span></b>%s</div>'
-                     % (tid, note, svg_lines(labels, [("h-a", "", vals)], "&times;",
-                                             compact=True, band=band)))
-    parts.append("</div>")
+        if not any(v is not None for v in vals):
+            continue
+        last = next((v for v in reversed(vals) if v is not None), None)
+        width = half_width(null_band("run", tid))
+        rows.append(["<code>%s</code>" % tid, fmt(last),
+                     "&plusmn;%.0f&nbsp;%%" % width if width else "&mdash;",
+                     late.get(tid, "&mdash;"), spark(vals)])
+    for wid, name, _ in LOOP:
+        vals = [((e.get("loop") or {}).get(wid) or {}).get("index") for e in entries]
+        if not any(v is not None for v in vals):
+            continue
+        since = next((((e.get("loop") or {}).get(wid) or {}).get("since")
+                      for e in reversed(entries)
+                      if ((e.get("loop") or {}).get(wid) or {}).get("since")), None)
+        last = next((v for v in reversed(vals) if v is not None), None)
+        rows.append([name, fmt(last), "&mdash;", since or "&mdash;", spark(vals)])
+    parts.append("<h3>swag release par t&acirc;che et boucle d'&eacute;dition</h3>")
+    parts.append('<p class="cap">Indice corrig&eacute;, 1,00 &agrave; la campagne de r&eacute;f&eacute;rence '
+                 "(ou &agrave; la premi&egrave;re qui a mesur&eacute; la ligne). Plus bas est mieux.</p>")
+    parts.append(simple_table(["", "indice", "r&eacute;solution", "depuis", "tendance"], rows))
 
-    loop_ids = [wid for wid, _, _ in LOOP
-                if any((e.get("loop") or {}).get(wid) for e in entries)]
-    if loop_ids:
-        parts.append("<h3>La boucle d'&eacute;dition &mdash; millisecondes corrig&eacute;es</h3>")
-        parts.append('<p class="cap">Le temps brut de chaque charge divis&eacute; par le contexte '
-                     "de compilation de sa campagne, la m&ecirc;me correction que les t&acirc;ches. "
-                     "Une charge ajout&eacute;e apr&egrave;s la campagne de r&eacute;f&eacute;rence est "
-                     "index&eacute;e sur la premi&egrave;re campagne propre qui l'a mesur&eacute;e, "
-                     "indiqu&eacute;e sous son nom.</p>")
-        parts.append('<div class="small-mult">')
-        for wid, name, _ in LOOP:
-            if wid not in loop_ids:
-                continue
-            vals = [((e.get("loop") or {}).get(wid) or {}).get("adjusted_ms") for e in entries]
-            since = next((((e.get("loop") or {}).get(wid) or {}).get("since")
-                          for e in reversed(entries)
-                          if ((e.get("loop") or {}).get(wid) or {}).get("since")), None)
-            note = " depuis %s" % since if since else ""
-            parts.append('<div class="sm"><b>%s<span class="mode">%s</span></b>%s</div>'
-                         % (name, note, svg_lines(labels, [("h-a", "", vals)], "ms",
-                                                  nd=0, compact=True)))
-        parts.append("</div>")
-
-    rows = []
-    dirty_seen = False
-    busy_seen = False
-    for e in reversed(entries):
+    journal = []
+    for e in list(reversed(entries))[:JOURNAL_ROWS]:
         m = e["meta"]
         rel = e["runtimes"].get("swag-release", {})
-        jit = e["runtimes"].get("swc-jit-release", {})
         context = e.get("context", {})
-        dirty_seen = dirty_seen or m.get("dirty")
         drift = e.get("machine_spread_pct")
         if drift is None:
             drift = abs(e.get("drift_pct") or 0.0)
-        busy = drift > DRIFT_LIMIT
-        busy_seen = busy_seen or busy
-        rows.append([
-            "swag",
+        journal.append([
             "<code>%s%s</code>" % (m.get("commit") or "?", "*" if m.get("dirty") else ""),
             m["date"][:10],
-            (m.get("label") or "&mdash;"),
             fmt(rel.get("run_geo_adjusted_ms")),
-            fmt(jit.get("run_geo_adjusted_ms")),
             fmt(rel.get("build_geo_adjusted_ms"), 0),
+            fmt(rel.get("build_peak_mb"), 0),
             signed_pct(context.get("run_factor")),
             signed_pct(context.get("build_factor")),
-            fmt(rel.get("build_peak_mb"), 0),
-            fmt(e.get("sample_spread_pct"), 0),
-            "<b>%s !</b>" % fmt(drift, 1) if busy else fmt(drift, 1),
+            "<b>%s</b>" % fmt(drift, 1) if drift > DRIFT_LIMIT else fmt(drift, 1),
+            '<span class="l">%s</span>' % (m.get("label") or ""),
         ])
-    parts.append("<h3>Journal des campagnes</h3>")
-    parts.append(table(["commit", "date", "note", "exec natif corrig&eacute;e (ms)",
-                        "exec JIT corrig&eacute;e (ms)", "compil corrig&eacute;e (ms)",
-                        "contexte exec (%)", "contexte compil (%)", "m&eacute;moire (Mo)",
-                        "&eacute;cart des &eacute;chantillons (%)", "sondes machine (%)"],
-                       rows, "wide"))
-    parts.append('<p class="cap">Un contexte n&eacute;gatif signifie que les t&eacute;moins ont '
-                 "tourn&eacute; plus vite que pendant la campagne de r&eacute;f&eacute;rence ; les temps "
-                 "Swag bruts sont alors relev&eacute;s d'autant. La dispersion m&eacute;diane des "
-                 "t&eacute;moins de la derni&egrave;re campagne est de %.1f&nbsp;%% en ex&eacute;cution et "
-                 "%.1f&nbsp;%% en compilation. L'&eacute;cart des &eacute;chantillons est celui d'un "
-                 "runtime avec lui-m&ecirc;me &agrave; l'int&eacute;rieur d'une campagne : il dit si la "
-                 "machine &eacute;tait calme ce jour-l&agrave;, l&agrave; o&ugrave; la bande de "
-                 "r&eacute;solution dit ce que le banc distingue d'une campagne &agrave; l'autre.</p>" %
-                 (latest_run_context.get("run_dispersion_pct") or 0.0,
-                  latest_build_context.get("build_dispersion_pct") or 0.0))
-    if dirty_seen:
-        parts.append('<p class="cap">Un ast&eacute;risque marque une campagne mesur&eacute;e '
-                     "sur un arbre modifi&eacute; : son commit seul ne la reproduit pas.</p>")
-    parts.append('<p class="cap">Les sondes machine sont l\'&eacute;cart maximal de la charge de '
-                 "r&eacute;f&eacute;rence, mesur&eacute;e avant chaque t&acirc;che puis aux deux bouts "
-                 "du balayage. Au-del&agrave; de %.0f&nbsp;%%, quelque chose d'ext&eacute;rieur "
-                 "occupait la machine pendant la mesure et la campagne est archiv&eacute;e sans "
-                 "&ecirc;tre publi&eacute;e.</p>" % DRIFT_LIMIT)
-    if busy_seen:
-        parts.append('<p class="cap">Un point d\'exclamation marque une campagne '
-                     "ant&eacute;rieure &agrave; cette r&egrave;gle et qui la violerait : son point "
-                     "ne constitue pas une preuve.</p>")
+    parts.append("<h3>Journal</h3>")
+    parts.append('<p class="cap">%d derni&egrave;res campagnes. * arbre modifi&eacute;.</p>'
+                 % len(journal))
+    parts.append(simple_table(["commit", "date", "exec (ms)", "build (ms)", "Mo",
+                               "ctx exec", "ctx build", "sondes %", "note"], journal))
     return "\n".join(parts)
 
 
@@ -572,68 +582,70 @@ def main():
     BT = B["tasks"]
     entries = history.rebuild()
 
-    present = [r[0] for r in RUNTIMES if r[0] in T[TASK_IDS[0]]
-               and (T[TASK_IDS[0]][r[0]].get("run") or {}).get("ms")]
-    aot = [r[0] for r in RUNTIMES if r[0] in BT[TASK_IDS[0]]
-           and (BT[TASK_IDS[0]][r[0]].get("build") or {}).get("wall_ms")]
+    # The tasks of the published campaigns, in toolchains order: a task added since the
+    # last campaign appears once a campaign has measured it.
+    TASK_IDS = [t for t in tc.TASKS if t in T and t in BT]
+    first = TASK_IDS[0]
+    present = [r[0] for r in RUNTIMES if r[0] in T[first]
+               and (T[first][r[0]].get("run") or {}).get("ms")]
+    aot = [r[0] for r in RUNTIMES if r[0] in BT[first]
+           and (BT[first][r[0]].get("build") or {}).get("wall_ms")]
 
     def ms(rt, task):
-        return T[task][rt]["run"]["ms"]
+        return ((T[task].get(rt) or {}).get("run") or {}).get("ms")
 
     def build(rt, task, key):
-        return (BT[task][rt].get("build") or {}).get(key)
+        return ((BT[task].get(rt) or {}).get("build") or {}).get(key)
 
-    best = {t: min(ms(r, t) for r in present) for t in TASK_IDS}
-    ratio = {r: {t: ms(r, t) / best[t] for t in TASK_IDS} for r in present}
-    gm = {r: geo([ratio[r][t] for t in TASK_IDS]) for r in present}
+    best = {t: min(v for v in (ms(r, t) for r in present) if v) for t in TASK_IDS}
+    ratio = {r: {t: ms(r, t) / best[t] for t in TASK_IDS if ms(r, t)} for r in present}
+    gm = {r: geo(list(ratio[r].values())) for r in present}
     bgeo = {r: geo([build(r, t, "wall_ms") for t in TASK_IDS]) for r in aot}
-    bmem = {r: max(build(r, t, "peak_bytes") for t in TASK_IDS) / 1048576.0 for r in aot}
+    bmem = {r: max(build(r, t, "peak_bytes") or 0 for t in TASK_IDS) / 1048576.0 for r in aot}
     exekb = {r: geo([build(r, t, "exe_bytes") for t in TASK_IDS]) / 1024.0 for r in aot}
-    rmem = {r: max(T[t][r]["run"]["peak_bytes"] for t in TASK_IDS) for r in present}
+    rmem = {r: max(((T[t].get(r) or {}).get("run") or {}).get("peak_bytes") or 0
+                   for t in TASK_IDS) for r in present}
 
     swag = gm["swag-release"]
-    best_rt = min(present, key=lambda r: gm[r])
     jit_gap = (gm["swc-jit-release"] / swag - 1.0) * 100.0
     build_entry = next(entry for entry in entries
                        if entry["meta"]["stamp"] == B["meta"]["stamp"])
     build_edge = build_entry["headline"]["build_edge"]
 
-    def stat(value, unit, name, note):
+    def stat(value, unit, name):
         return ('<div class="stat"><div class="sv">%s<em>%s</em></div>'
-                '<div class="sl">%s</div><p>%s</p></div>' % (value, unit, name, note))
+                '<div class="sl">%s</div></div>' % (value, unit, name))
 
     stats = "".join([
-        stat(fmt(swag), "&times;", "ex&eacute;cution vs le meilleur",
-             "Moyenne g&eacute;om&eacute;trique sur les %d t&acirc;ches. Le meilleur est %s."
-             % (len(TASK_IDS), META[best_rt][1])),
-        stat("%+.0f" % jit_gap, "%", "JIT swc vs natif swc",
-             "Le m&ecirc;me code, compil&eacute; en m&eacute;moire au lieu d'un exe."),
-        stat(fmt(build_edge, 1), "&times;", "build recipe ratio",
-             "MSVC baseline divided by swc after compiler-control adjustment."),
-        stat("%d" % round(bmem["swag-release"]), "Mo", "pic m&eacute;moire du compilateur",
-             "Plancher fixe : m&ecirc;me valeur sur un hello world."),
+        stat(fmt(swag), "&times;", "ex&eacute;cution vs le meilleur"),
+        stat("%+.0f" % jit_gap, "%", "JIT swc vs natif swc"),
+        stat(fmt(build_edge, 1), "&times;", "build MSVC / swc"),
+        stat("%d" % round(bmem["swag-release"]), "Mo", "pic m&eacute;moire du compilateur"),
     ])
 
     order = sorted(present, key=lambda r: gm[r])
     ex_lo, ex_hi, ex_ticks = log_axis([gm[r] for r in order])
-    ex_chart = chart([(r, gm[r], fmt(gm[r])) for r in order],
-                     ex_lo, ex_hi, ex_ticks, "&times;")
+    ex_chart = chart([(r, gm[r], fmt(gm[r])) for r in order], ex_lo, ex_hi, ex_ticks, "&times;")
+    ex_matrix = matrix(TASK_IDS, present, ms, ms_text,
+                       ("g&eacute;o &times;", gm, lambda v: fmt(v)))
     native_run = [r for r in present if META[r][2] not in ("JIT", "interpr&eacute;t&eacute;")]
-    jit_and_interpreted = [r for r in present if r not in native_run]
-    ex_native_table = ranked_table(TASK_IDS, native_run, ms,
-                                   lambda v: "%s&nbsp;ms" % fmt(v) if v is not None else "&mdash;")
-    ex_jit_table = ranked_table(TASK_IDS, jit_and_interpreted, ms,
-                                lambda v: "%s&nbsp;ms" % fmt(v) if v is not None else "&mdash;")
+    jit_run = [r for r in present if r not in native_run]
+    ex_native_rank = ranked_table(TASK_IDS, native_run, ms, ms_text)
+    ex_jit_rank = ranked_table(TASK_IDS, jit_run, ms, ms_text)
 
     border = sorted(aot, key=lambda r: bgeo[r])
     bu_lo, bu_hi, bu_ticks = log_axis([bgeo[r] for r in border])
     bu_chart = chart([(r, bgeo[r], fmt(bgeo[r], 0)) for r in border],
                      bu_lo, bu_hi, bu_ticks, "ms")
-    bu_table = ranked_table(
-        TASK_IDS + ["hello"], aot,
-        lambda r, t: ((B["hello_build"].get(r) or {}).get("wall_ms") if t == "hello"
-                      else build(r, t, "wall_ms")),
-        lambda v: "%s&nbsp;ms" % fmt(v, 0) if v is not None else "&mdash;")
+    def build_ms(r, t):
+        return ((B["hello_build"].get(r) or {}).get("wall_ms") if t == "hello"
+                else build(r, t, "wall_ms"))
+
+    bu_matrix = matrix(TASK_IDS + ["hello"], aot, build_ms,
+                       lambda v: fmt(v, 0) if v is not None else "&mdash;",
+                       ("g&eacute;o ms", bgeo, lambda v: fmt(v, 0)))
+    bu_rank = ranked_table(TASK_IDS + ["hello"], aot, build_ms,
+                           lambda v: fmt(v, 0) if v is not None else "&mdash;")
 
     # The edit-build loop of this campaign, from its condensed entry: that is where the
     # correction and the index live, and the raw file only holds what was measured.
@@ -645,59 +657,32 @@ def main():
         rec = loop.get(wid)
         if not rec:
             continue
-        since = rec.get("since")
-        loop_rows.append([
-            "swag", "%s <span class=\"mode\">%s</span>" % (name, what),
-            fmt(rec.get("wall_ms"), 0), fmt(rec.get("adjusted_ms"), 0),
-            fmt(rec.get("peak_mb"), 0),
-            "%s%s" % (fmt(rec.get("index")),
-                      (" <span class=\"mode\">depuis %s</span>" % since) if since else ""),
-            "%d" % rec["samples"] if rec.get("samples") else "&mdash;",
-        ])
-    loop_table = (table(["charge", "brut (ms)", "corrig&eacute; (ms)", "m&eacute;moire (Mo)",
-                         "indice", "&eacute;chantillons"], loop_rows, "wide")
+        loop_rows.append(['%s <span class="mode">%s</span>' % (name, what),
+                          fmt(rec.get("wall_ms"), 0), fmt(rec.get("adjusted_ms"), 0),
+                          fmt(rec.get("peak_mb"), 0), fmt(rec.get("index"))])
+    loop_table = (simple_table(["charge", "brut (ms)", "corrig&eacute; (ms)", "Mo", "indice"],
+                               loop_rows)
                   if loop_rows else '<p class="cap">Aucune charge mesur&eacute;e.</p>')
-    loop_cores = ""
 
     me_hi, me_ticks = lin_axis([bmem[r] for r in aot])
-    me_chart = chart(sorted(((r, bmem[r], fmt(bmem[r], 0)) for r in aot), key=lambda x: -x[1]),
+    me_chart = chart(sorted(((r, bmem[r], fmt(bmem[r], 0)) for r in aot), key=lambda x: x[1]),
                      0, me_hi, me_ticks, "Mo", "lin")
-    rm_hi, rm_ticks = lin_axis([rmem[r] / 1048576.0 for r in present])
+    rm_lo, rm_hi, rm_ticks = log_axis([rmem[r] / 1048576.0 for r in present])
     rm_chart = chart(sorted(((r, rmem[r] / 1048576.0, fmt(rmem[r] / 1048576.0, 0))
-                             for r in present), key=lambda x: -x[1]),
-                     0, rm_hi, rm_ticks, "Mo", "lin")
-    me_table = ranked_table(TASK_IDS, aot,
-                            lambda r, t: build(r, t, "peak_bytes"),
-                            lambda v: "%s&nbsp;Mo" % fmt(v / 1048576.0, 1)
-                            if v is not None else "&mdash;")
-    def run_peak(rt, task):
-        return (T[task][rt].get("run") or {}).get("peak_bytes")
-
-    def show_mb(value):
-        return "%s&nbsp;Mo" % fmt(value / 1048576.0, 1) if value is not None else "&mdash;"
-
-    rm_native_table = ranked_table(TASK_IDS, native_run, run_peak, show_mb)
-    rm_jit_table = ranked_table(TASK_IDS, jit_and_interpreted, run_peak, show_mb)
+                             for r in present), key=lambda x: x[1]),
+                     rm_lo, rm_hi, rm_ticks, "Mo")
 
     hr = R["hello_run"]
     startup = [(r, hr[r].get("first_stdout_ms") or hr[r].get("wall_ms"))
                for r in hr if r in META]
     startup = [(runtime, elapsed) for runtime, elapsed in startup if elapsed is not None]
     st_lo, st_hi, st_ticks = log_axis([elapsed for _, elapsed in startup])
-    st_chart = chart(sorted(((runtime, elapsed, fmt(elapsed, 0)) for runtime, elapsed in startup), key=lambda x: x[1]),
+    st_chart = chart(sorted(((runtime, elapsed, fmt(elapsed, 0)) for runtime, elapsed in startup),
+                            key=lambda x: x[1]),
                      st_lo, st_hi, st_ticks, "ms")
     sz_lo, sz_hi, sz_ticks = log_axis([exekb[r] for r in aot])
     sz_chart = chart(sorted(((r, exekb[r], fmt(exekb[r], 0)) for r in aot), key=lambda x: x[1]),
                      sz_lo, sz_hi, sz_ticks, "Ko")
-
-    tt = ['<div class="table-wrap"><table class="tasks">',
-          "<thead><tr><th>t&acirc;che</th><th>ce qu'elle exerce</th>"
-          '<th class="num">checksum commun</th></tr></thead><tbody>']
-    for tid, name, desc in TASKS:
-        tt.append('<tr><th scope="row"><code>%s</code> &nbsp;%s</th><td>%s</td>'
-                  '<td class="num">%d</td></tr>'
-                  % (tid, name, desc, T[tid]["swag-release"]["run"]["check"]))
-    tt.append("</tbody></table></div>")
 
     m = R["meta"]
     settings = m.get("settings") or {}
@@ -772,42 +757,18 @@ def main():
 
     subs = {
         "{{stats}}": stats,
-        "{{ex_chart}}": ex_chart, "{{ex_native_table}}": ex_native_table,
-        "{{ex_jit_table}}": ex_jit_table,
-        "{{bu_chart}}": bu_chart, "{{bu_table}}": bu_table,
-        "{{me_chart}}": me_chart, "{{me_table}}": me_table,
-        "{{rm_chart}}": rm_chart, "{{rm_native_table}}": rm_native_table,
-        "{{rm_jit_table}}": rm_jit_table,
+        "{{ex_chart}}": ex_chart, "{{ex_matrix}}": ex_matrix,
+        "{{ex_native_rank}}": ex_native_rank, "{{ex_jit_rank}}": ex_jit_rank,
+        "{{bu_chart}}": bu_chart, "{{bu_matrix}}": bu_matrix, "{{bu_rank}}": bu_rank,
+        "{{loop_table}}": loop_table,
+        "{{me_chart}}": me_chart, "{{rm_chart}}": rm_chart,
         "{{st_chart}}": st_chart, "{{sz_chart}}": sz_chart,
-        "{{loop_table}}": loop_table, "{{loop_cores}}": loop_cores,
-        "{{task_table}}": "\n".join(tt),
         "{{history}}": history_section(entries),
-        "{{swag_geo}}": fmt(swag),
-        "{{best_name}}": META[best_rt][1],
-        "{{jit_gap}}": "%+.1f" % jit_gap,
-        "{{jit_gap_abs}}": "%.0f" % abs(jit_gap),
-        "{{build_edge}}": fmt(build_edge, 1),
-        "{{drift}}": "%+.1f" % R["calibration"]["drift_pct"],
         "{{machine_spread}}": fmt(R["calibration"].get("spread_pct"), 1),
-        "{{calib_start}}": fmt(R["calibration"]["start"], 3),
-        "{{calib_end}}": fmt(R["calibration"]["end"], 3),
-        "{{swag_build}}": fmt(bgeo["swag-release"], 0),
-        "{{swiftc_edge}}": fmt(bgeo["swift"] / bgeo["swag-release"], 0),
-        "{{aot_edge}}": fmt(bgeo["csharp-aot"] / bgeo["swag-release"], 0),
-        "{{rustc_edge}}": fmt(bgeo["rust"] / bgeo["swag-release"], 1),
-        "{{luajit_geo}}": fmt(gm["luajit2.1"]),
-        "{{jitswag_geo}}": fmt(gm["swc-jit-release"]),
-        "{{sha_swag}}": fmt(ms("swag-release", "sha256")),
-        "{{sha_best}}": fmt(best["sha256"]),
-        "{{sha_fd}}": fmt(ms("swag-fast-debug", "sha256")),
-        "{{sha_fd_ratio}}": fmt(ms("swag-fast-debug", "sha256") / ms("swag-release", "sha256"), 1),
-        "{{worst_task}}": max(TASK_IDS, key=lambda t: ratio["swag-release"][t]),
-        "{{worst_ratio}}": fmt(max(ratio["swag-release"][t] for t in TASK_IDS)),
-        "{{best_task}}": min(TASK_IDS, key=lambda t: ratio["swag-release"][t]),
-        "{{best_ratio}}": fmt(min(ratio["swag-release"][t] for t in TASK_IDS)),
-        "{{provenance}}": ("arbre modifi&eacute; au moment de la mesure : ce commit seul ne la "
-                           "reproduit pas" if m.get("dirty")
-                           else "Release x64 reconstruit depuis ce commit avant la mesure"),
+        "{{calib_start}}": fmt(R["calibration"]["start"], 1),
+        "{{calib_end}}": fmt(R["calibration"]["end"], 1),
+        "{{provenance}}": ("arbre modifi&eacute; au moment de la mesure" if m.get("dirty")
+                           else "Release x64 reconstruit depuis ce commit"),
         "{{commit}}": m.get("commit") or "?",
         "{{subject}}": (m.get("subject") or "").replace("&", "&amp;").replace("<", "&lt;")[:90],
         "{{date}}": m["date"][:10],
@@ -822,7 +783,6 @@ def main():
         "{{build_control_limit}}": "%.0f" % history.BUILD_CONTROL_SPREAD_LIMIT_PCT,
         "{{ntasks}}": str(len(TASK_IDS)),
         "{{nruntimes}}": str(len(present)),
-        "{{nbinaries}}": str(len(TASK_IDS) * len(present)),
         "{{skipped}}": (", ".join(R.get("skipped") or []) or "aucune"),
     }
 

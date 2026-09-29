@@ -338,28 +338,11 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             {
                 for plane in 2'u32
                 {
-                    var pix = frame.pixChroma(plane, mbX * 8 + edge * 2, mbY * 8)
-                    if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
-                    {
+                    let pix = frame.pixChroma(plane, mbX * 8 + edge * 2, mbY * 8)
+                    if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4 do
                         filterChromaWeakVertical(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
-                        continue
-                    }
-
-                    for segment in 4's32
-                    {
-                        let bs = strengths.bs[cast(u64) segment]
-                        if bs == 0
-                        {
-                            pix += 2 * frame.strideChroma
-                            continue
-                        }
-
-                        for 2
-                        {
-                            filterChroma(pix, 1, frame.strideChroma, bs, cIndexA, cAlpha, cBeta)
-                            pix += frame.strideChroma
-                        }
-                    }
+                    else do
+                        filterChromaStrongVertical(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
                 }
             }
         }
@@ -868,6 +851,30 @@ func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeSt
     Simd.store(cast([*] u8) pairs.buffer, Simd.interleaveLow(p0, q0))
     for line in 8'u64 do
         (cast([*] u16) (pix - 1 + line * stride))[0] = pairs[line]
+}
+
+// Filters one vertical chroma edge that carries an intra strength, segment by segment, two lines
+// per segment. It stays a call, as its horizontal twin is, so the edge loop of
+// [[deblockMb]] does not carry the inlined line filter and the values it keeps live.
+#[Swag.NoInline]
+func filterChromaStrongVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
+{
+    var line = pix
+    for segment in 4'u64
+    {
+        let bs = strengths.bs[segment]
+        if bs == 0
+        {
+            line += 2 * stride
+            continue
+        }
+
+        for 2
+        {
+            filterChroma(line, 1, stride, bs, indexA, alpha, beta)
+            line += stride
+        }
+    }
 }
 
 // Returns the chroma QP of one macroblock, with the blue-difference offset; the two chroma

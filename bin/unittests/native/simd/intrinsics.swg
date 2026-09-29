@@ -256,7 +256,19 @@ func sumHighHalves(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
     let m16 = w16 == w16
     Swag.assert(Swag.vecmask(m16) == 0xFF)
     Swag.assert(Swag.vecall(m16) and Swag.vecany(m16))
+
+    // A word lane counts by its sign bit, whatever its low byte holds.
+    let lowOnly = opaqueWords(cast(#simd [8] u16) [0x0080'u16, 0x0080, 0x00FF, 0x0080, 0x0080, 0x0080, 0x0080, 0x0080])
+    Swag.assert(not Swag.vecany(lowOnly) and not Swag.vecall(lowOnly))
+    let signs = opaqueWords(cast(#simd [8] u16) [0x8000'u16, 0x8001, 0xFFFF, 0x8080, 0x8000, 0x8000, 0x8000, 0x80FF])
+    Swag.assert(Swag.vecall(signs) and Swag.vecany(signs))
+    let oneLane = opaqueWords(cast(#simd [8] u16) [0x0080'u16, 0, 0, 0, 0, 0, 0x8000, 0x7FFF])
+    Swag.assert(Swag.vecany(oneLane) and not Swag.vecall(oneLane))
 }
+
+// Hides a vector from constant folding, so the mask reductions above run as code.
+#[Swag.NoInline]
+func opaqueWords(value: #simd [8] u16)->#simd [8] u16 => value
 
 #test
 {

@@ -69,6 +69,89 @@ SWC_TEST_BEGIN(InstCombine_Identity_AddZero_Erased)
 }
 SWC_TEST_END()
 
+// A constant index remains foldable after a scalar memory operation has
+// already absorbed its load/store pair. Dynamic and 32-bit addresses stay
+// indexed because their displacement cannot be derived the same way.
+SWC_TEST_BEGIN(InstCombine_ConstantIndex_FoldsIndexedMemoryOperations)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value = MicroReg::virtualIntReg(3);
+    struct Case
+    {
+        MicroInstrOpcode indexed;
+        MicroInstrOpcode plain;
+        uint8_t          operandCount;
+        uint8_t          offsetIndex;
+    };
+    constexpr std::array cases{
+        Case{MicroInstrOpcode::CmpAmcReg, MicroInstrOpcode::CmpMemReg, 7, 3},
+        Case{MicroInstrOpcode::OpBinaryRegAmcMem, MicroInstrOpcode::OpBinaryRegMem, 8, 4},
+        Case{MicroInstrOpcode::OpBinaryAmcMemReg, MicroInstrOpcode::OpBinaryMemReg, 8, 4},
+        Case{MicroInstrOpcode::OpBinaryAmcMemImm, MicroInstrOpcode::OpBinaryMemImm, 8, 3},
+        Case{MicroInstrOpcode::OpUnaryAmcMem, MicroInstrOpcode::OpUnaryMem, 8, 3},
+    };
+
+    for (const Case& test : cases)
+    {
+        for (const uint32_t variant : {0u, 1u, 2u})
+        {
+            MicroBuilder builder(ctx);
+            if (variant != 1)
+                builder.emitLoadRegImm(index, ApInt(3, 64), MicroOpBits::B64);
+            MicroInstrOperand ops[8] = {};
+            const bool  regResult = test.indexed == MicroInstrOpcode::OpBinaryRegAmcMem;
+            ops[0].reg       = regResult ? value : base;
+            ops[1].reg       = regResult ? base : index;
+            ops[2].reg       = regResult ? index : value;
+            ops[3].opBits    = variant == 2 ? MicroOpBits::B32 : MicroOpBits::B64;
+            ops[4].opBits    = MicroOpBits::B32;
+            ops[5].valueU64  = 4;
+            ops[6].valueU64  = 8;
+            if (test.operandCount == 8)
+                ops[7].microOp = MicroOp::Xor;
+            if (regResult)
+            {
+                ops[3].opBits   = MicroOpBits::B32;
+                ops[4].opBits   = variant == 2 ? MicroOpBits::B32 : MicroOpBits::B64;
+            }
+            if (test.indexed == MicroInstrOpcode::OpBinaryAmcMemImm)
+            {
+                ops[2].opBits = MicroOpBits::B32;
+                ops[4].valueU64 = 4;
+                ops[5].valueU64 = 8;
+                ops[6].setImmediateValue(ApInt(7, 32));
+            }
+            if (test.indexed == MicroInstrOpcode::OpUnaryAmcMem)
+            {
+                ops[2].reg = MicroReg::invalid();
+                ops[7].microOp = MicroOp::Add;
+            }
+            if (test.indexed == MicroInstrOpcode::CmpAmcReg)
+                ops[6].valueU64 = 8;
+            builder.emitRet();
+            builder.instructions().insertDerivedBefore(builder.operands(), builder.instructions().lastInstructionRef(), test.indexed,
+                                                       std::span<const MicroInstrOperand>(ops, test.operandCount));
+
+            SWC_RESULT(runInstCombinePass(builder));
+            const bool fold = variant == 0;
+            if (Backend::Unittest::countOpcode(builder, test.plain) != (fold ? 1u : 0u) ||
+                Backend::Unittest::countOpcode(builder, test.indexed) != (fold ? 0u : 1u))
+                return Result::Error;
+            if (fold)
+            {
+                for (const MicroInstr& result : builder.instructions().view())
+                {
+                    if (result.op == test.plain && result.ops(builder.operands())[test.offsetIndex].valueU64 != 20)
+                        return Result::Error;
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A double read into a general register only to be moved into a vector register
 // is loaded straight into the vector register: the general register and the
 // cross-file move both go, and the load keeps its own instruction.

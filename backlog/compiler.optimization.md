@@ -18,13 +18,38 @@ block, and the hot path keeps the register.
 ### compiler.optimization.098 — Feed adjacent array updates from a packed state
 
 - Recorded: 2026-09-29 08:04
-- Updated: 2026-09-29 09:01 — Retained selective memory-fold deferral for an alias-safe four-word group.
+- Updated: 2026-09-29 09:25 — Distinguished the indexed output loop from a straight-line store group.
 - Area: compiler/backend, SIMD dataflow and memory aliasing
 - Evidence: after ChaCha's packed round loop, Swag stores four vectors to the local state array, then emits 16 repetitions of a scalar state load, an add from the initial array, and an indexed XOR into the output array: four vector stores and 48 scalar Micro instructions per output block. The latest accepted campaign names C++/clang-cl as the fastest other runtime. Its emitted code packs one four-word slice for a vector add, XOR, and store while updating the remaining words individually. This identifies an output path left scalar after Swag's round vectorization, not a measured cost for a compiler edit.
 - Mechanism: `InstructionCombine::tryMemoryFoldTriple` folds each scalar load/XOR/store into `OpBinaryMemReg` before SLP runs. A bounded four-word-store filter now defers the 32-bit XOR fold until SLP has checked the block, then the cleanup loop folds any residual scalar triples. In a scratch function with an incoming output pointer and a stack-resident four-word input, SLP emits one vector load of the input, one splat, add, vector load of the output, XOR, and vector store: seven operations instead of twelve scalar load/add/memory-XOR operations. An unrelated four-store case with different add constants retains its four memory XOR instructions and 36-function-instruction count; two overlapping parameter pointers also stay scalar and preserve sequential results. A global suppression without cleanup had grown an earlier scalar case from 30 to 38 instructions and was removed.
 - Constraint: packing several output updates changes when later state and initial elements are read relative to earlier output writes. The output comes from `benchAlloc`, a wrapper around the runtime allocator; the current Micro pass does not carry a freshness or no-alias proof from that call. A rewrite based only on adjacent addresses could change programs whose output overlaps an input array.
+- Further inspection: each source iteration has one indexed read-modify-write; the existing loop unroller makes sixteen adjacent instances, which `tryMemoryFoldAmcTriple` folds before SLP. SLP rejects every indexed read and write as unresolved, and its root proof recognizes stack and incoming-parameter disjointness but gives allocator returns an unknown root. Extending only the earlier four-store deferral therefore cannot vectorize this loop. A new path needs both a proof across the unrolled iterations and either a documented fresh-allocation contract or a checked overlap fallback.
 - Validation: native Release and DevMode tests for the packed and overlapping cases, JIT Release, 1,156 C++ tests, and all seven benchmark checksums pass. The selected functions of all seven benchmarks have unchanged normalized Micro instructions, including ChaCha's 51-instruction packed round and 457-instruction main. No individual runtime timing informed the decision.
 - Next: establish the allocator result's usable provenance and the exact stack/heap disjointness contract, or guard the overlap case at run time. Extend the deferral and SLP proof to four indexed output updates only when their stable base and adjacent offsets are known. Test overlapping and disjoint indexed arrays, then compare the output path's instructions, memory operations, and spills with clang-cl. Keep the benchmark's computation unchanged.
+
+### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
+
+- Recorded: 2026-09-24 10:33
+- Updated: 2026-09-29 09:25 — Audited the ordinary-loop cap and repaired constant-index folding after memory operations.
+- Area: compiler/backend, loop unrolling
+- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
+  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
+  branch, and constant-table guards already describe general costs and benefits. The unrelated
+  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
+  indices and branches; it benefits from constant-index folding. Conversely,
+  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
+  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
+- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
+  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
+  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
+  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
+  flattens, while the otherwise identical plain loop still keeps its latch.
+- Audit: temporarily raising the ordinary cap to 32 made an unrelated 17-trip arithmetic sum fold from a nine-instruction loop to three straight-line instructions. A 17-word XOR update instead grew from an eight-instruction loop to 35 instructions: the index became constant, but its already-folded memory XOR was outside the constant-index rule. Extending that rule to indexed compares, register-memory operations, and unary/binary memory updates reduces the unrolled XOR case from 35 to 19 instructions, with 17 direct-offset XORs and no indexed reads or per-element index materializations. The production 16-trip cap remains: even after this repair, the 17-word update grows from eight to 19 static instructions and retains all 17 memory updates, so a general profitability rule needs more than a trip count. The C++ test covers five operation forms and rejects dynamic and 32-bit addresses; a native test covers indexed XOR, increment, decrement and dynamic indexing, and a JIT test covers the constant-index updates. All 1,157 C++ tests and seven benchmark checksums pass; the seven selected benchmark functions have identical normalized Micro instructions before and after. No runtime timing was used.
+- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
+  only when a general work-saved versus code-growth rule improves them without expanding loops
+  whose bodies retain their per-trip work.
+- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
+  both admitted and rejected shapes.
 
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 
@@ -630,29 +655,6 @@ block, and the hot path keeps the register.
   runs, then derive a header budget from code growth and work saved instead of the fixed cutoff.
 - Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests
   around the chosen boundary.
-
-### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
-
-- Recorded: 2026-09-24 10:33
-- Updated: 2026-09-24 11:33 — The constant-table case now crosses sixteen trips within the size budget; the ordinary-loop cap remains to calibrate.
-- Area: compiler/backend, loop unrolling
-- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
-  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
-  branch, and constant-table guards already describe general costs and benefits. The unrelated
-  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
-  indices and branches; it benefits from constant-index folding. Conversely,
-  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
-  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
-- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
-  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
-  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
-  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
-  flattens, while the otherwise identical plain loop still keeps its latch.
-- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
-  only when a general work-saved versus code-growth rule improves them without expanding loops
-  whose bodies retain their per-trip work.
-- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
-  both admitted and rejected shapes.
 
 ### compiler.optimization.048 — Check LICM's relocated address policy outside benchmarks
 

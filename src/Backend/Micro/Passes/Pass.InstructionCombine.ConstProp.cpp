@@ -595,11 +595,21 @@ namespace InstructionCombine
             case MicroInstrOpcode::LoadZeroExtAmcRegMem:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
             case MicroInstrOpcode::VecUnaryAmcRegMem:
+            case MicroInstrOpcode::OpBinaryRegAmcMem:
                 break;
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAmcMemImm:
+            case MicroInstrOpcode::OpBinaryAmcMemReg:
+            case MicroInstrOpcode::OpUnaryAmcMem:
+            case MicroInstrOpcode::CmpAmcReg:
                 baseIdx  = 0;
                 indexIdx = 1;
+                break;
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
+                baseIdx  = 0;
+                indexIdx = 1;
+                mulIdx   = 4;
+                addIdx   = 5;
                 break;
             case MicroInstrOpcode::CmpAmcImm:
                 baseIdx  = 0;
@@ -624,12 +634,17 @@ namespace InstructionCombine
             case MicroInstrOpcode::LoadAmcRegMem:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
             case MicroInstrOpcode::VecUnaryAmcRegMem:
+            case MicroInstrOpcode::OpBinaryRegAmcMem:
                 if (ops[4].opBits != MicroOpBits::B64)
                     return false;
                 break;
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAmcMemImm:
             case MicroInstrOpcode::CmpAmcImm:
+            case MicroInstrOpcode::OpBinaryAmcMemReg:
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
+            case MicroInstrOpcode::OpUnaryAmcMem:
+            case MicroInstrOpcode::CmpAmcReg:
                 if (ops[3].opBits != MicroOpBits::B64)
                     return false;
                 break;
@@ -734,6 +749,59 @@ namespace InstructionCombine
                 newOps[2].valueU64 = offsetU64;
                 newOps[3]          = ops[6];
                 ctx.emitRewrite(ref, MicroInstrOpcode::CmpMemImm, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::CmpAmcReg:
+            {
+                MicroInstrOperand newOps[4];
+                newOps[0].reg      = base;
+                newOps[1]          = ops[2];
+                newOps[2]          = ops[4];
+                newOps[3].valueU64 = offsetU64;
+                ctx.emitRewrite(ref, MicroInstrOpcode::CmpMemReg, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::OpBinaryRegAmcMem:
+            {
+                MicroInstrOperand newOps[5];
+                newOps[0]          = ops[0];
+                newOps[1].reg      = base;
+                newOps[2]          = ops[3];
+                newOps[3]          = ops[7];
+                newOps[4].valueU64 = offsetU64;
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegMem, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::OpBinaryAmcMemReg:
+            {
+                MicroInstrOperand newOps[5];
+                newOps[0].reg      = base;
+                newOps[1]          = ops[2];
+                newOps[2]          = ops[4];
+                newOps[3]          = ops[7];
+                newOps[4].valueU64 = offsetU64;
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryMemReg, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
+            {
+                MicroInstrOperand newOps[5];
+                newOps[0].reg      = base;
+                newOps[1]          = ops[2];
+                newOps[2]          = ops[7];
+                newOps[3].valueU64 = offsetU64;
+                newOps[4]          = ops[6];
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryMemImm, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::OpUnaryAmcMem:
+            {
+                MicroInstrOperand newOps[4];
+                newOps[0].reg      = base;
+                newOps[1]          = ops[4];
+                newOps[2]          = ops[7];
+                newOps[3].valueU64 = offsetU64;
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryMem, newOps);
                 return true;
             }
             default:

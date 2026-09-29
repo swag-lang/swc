@@ -107,6 +107,8 @@ namespace
         const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (type.isConst())
             return true;
+        if (!type.isAlias())
+            return false;
 
         const TypeRef unwrappedTypeRef = type.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
         return unwrappedTypeRef.isValid() && sema.typeMgr().get(unwrappedTypeRef).isConst();

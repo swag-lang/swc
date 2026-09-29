@@ -15,6 +15,152 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
+
+- Recorded: 2026-09-24 10:33
+- Updated: 2026-09-29 17:04 — Extended the counted-sum fold to 32-bit accumulators.
+- Area: compiler/backend, loop unrolling
+- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
+  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
+  branch, and constant-table guards already describe general costs and benefits. The unrelated
+  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
+  indices and branches; it benefits from constant-index folding. Conversely,
+  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
+  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
+- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
+  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
+  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
+  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
+  flattens, while the otherwise identical plain loop still keeps its latch.
+- Audit: temporarily raising the ordinary cap to 32 made an unrelated 17-trip arithmetic sum fold from a nine-instruction loop to three straight-line instructions. A 17-word XOR update instead grew from an eight-instruction loop to 35 instructions: the index became constant, but its already-folded memory XOR was outside the constant-index rule. Extending that rule to indexed compares, register-memory operations, and unary/binary memory updates reduces the unrolled XOR case from 35 to 19 instructions, with 17 direct-offset XORs and no indexed reads or per-element index materializations. The production 16-trip cap remains: even after this repair, the 17-word update grows from eight to 19 static instructions and retains all 17 memory updates, so a general profitability rule needs more than a trip count. The C++ test covers five operation forms and rejects dynamic and 32-bit addresses; a native test covers indexed XOR, increment, decrement and dynamic indexing, and a JIT test covers the constant-index updates. All 1,157 C++ tests and seven benchmark checksums pass; the seven selected benchmark functions have identical normalized Micro instructions before and after. No runtime timing was used.
+- A pure unsigned 64-bit counted loop whose only body instruction adds its induction index to a
+  constant-initialized accumulator now computes the arithmetic progression directly. The rule
+  keeps the exact start, step, and bound checks, requires dead post-loop flags, and leaves
+  parameter sums and loops with other body work unchanged. In the 17-trip scratch program,
+  `sum17` falls from eight Release Micro instructions to two; `dynamicSum17` stays at eight,
+  and both builds return `CHECK=391`. C++ tests cover nonzero start and step, modular accumulator
+  wraparound, a runtime operand, and live flags. The DevMode compiler's 1,175 C++ tests, 3,488
+  native DevMode tests, and 1,502 JIT DevMode tests pass. All seven benchmark task checksums
+  pass; no individual task timing was used.
+- Follow-up: `for i in 17'u32` lowers its induction register at 64 bits but adds its low 32 bits
+  to a 32-bit accumulator. The fold now recognizes this mixed-width shape and truncates only
+  the final sum to the accumulator width. The independent Release `sum17u32` falls from eight
+  to two Micro instructions; a runtime-parameter sum remains at eight. Both native and JIT runs
+  return `CHECK=391`; a C++ case also starts the accumulator at `UINT32_MAX`. All 1,175 C++ tests and
+  1,502 JIT DevMode tests pass. The seven benchmark task checksums and selected function sizes
+  are unchanged. No task timing was taken.
+- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
+  only when a general work-saved versus code-growth rule improves them without expanding loops
+  whose bodies retain their per-trip work.
+- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
+  both admitted and rejected shapes.
+
+### compiler.optimization.101 — Small records are assembled in the frame and read back whole
+
+- Recorded: 2026-09-29 14:46
+- Updated: 2026-09-29 16:10 — The NeighborMotion record shrink was kept.
+- Area: compiler/backend, instruction combining (aggregate and vector literals)
+- Evidence (H.264 decoder, 2026-09-29, prompt 2): a value built field by field and then read as
+  one register or one vector is stored lane by lane into a frame temporary and loaded whole, so
+  the wide load waits for the narrow stores it cannot forward from. `bookkeepMb` built its
+  co-located vector row `cast(Simd.S16x8) [mvX, mvY, ...]` as eight 16-bit stores and a 128-bit
+  load; the decoder now broadcasts a packed scalar instead (commit 76513b0d1). `Slice.motionAt`,
+  returning an eight-byte `NeighborMotion` (after dropping its unused difference and direct
+  fields), wrote the record with four stores and read it back with one 64-bit load.
+  `tryBuildVectorFromStores` and `tryBuildScalarFromStores` exist for exactly this shape but did
+  not fire. In `bookkeepMb` the slot's local is also given a default through an address register
+  first (`%1003 = &[%1 + 0x7A0]; [%1003] = 0`), a multi-definition local that stays in the frame
+  because mem2reg is disabled. In `motionAt` the record's other return paths also read the slot,
+  so `slotHasOtherReaders` refuses.
+- Tried and reverted: letting the scalar rule replace the load while keeping the stores when the
+  only other readers are loads through the same base (escapes still refuse). It fired on
+  `motionAt` (four stores then one load became the fields shifted and or-ed, 147 -> 160 Micro
+  instructions, since the stores stay for the other returns), no other decoder function or
+  benchmark program changed, and plane digests stayed exact; but more instructions against one
+  forwarded-load stall is not a static win, so the compiler change was reverted; the record
+  shrink itself was kept (commit 5081feef1).
+  Patch kept outside the tree.
+- Next: build the record in registers on every return path (the returns join into one exit
+  whose value is a phi of the per-path records), so the stores disappear too, and make the
+  vector-literal rule accept a slot whose local was first cleared through an address register.
+- Complete when: a small record returned by value and a vector literal of runtime lanes are
+  built in registers with no frame round trip, without growing any benchmark program.
+- Related: compiler.optimization.099, std.video.001
+
+### compiler.optimization.102 — Retain one floating zero across unrolled arms
+
+- Recorded: 2026-09-29 15:48
+- Updated: 2026-09-29 16:02 — Reject branched-body renaming without zero reuse.
+- Area: compiler/backend, value numbering and register allocation
+- Evidence: the accepted raytrace winner is C++/MSVC. Its unrolled four-sphere `intersect` clears
+  XMM5 once and compares each discriminant against that retained zero. Swag's corresponding
+  205-instruction function clears XMM9 immediately before each of the four comparisons, adding
+  three executed zeroing instructions to this path. Both implementations fully unroll the sphere
+  loop, so loop rotation is not the missing mechanism.
+- A scratch source copy named the zero explicitly before the loop; Release `intersect` remained
+  205 instructions with four clears. A scratch value-numbering trial admitted `ClearReg` on virtual
+  floating registers to share dominating definitions, with a C++ dominance test. It also left
+  `intersect` at 205 instructions with four clears, and left `trace` and `main` at 172 and 136.
+  The trial was reverted because it made no generated-code improvement; no runtime timing was
+  taken. The full unroller renames private temporaries only when its body has no internal labels;
+  `intersect` has conditional branches and `continue`, so the copies reuse the original virtual
+  zero register. Value numbering requires the earlier result still held in its register, which
+  each copy has overwritten before the next clear.
+- A second scratch trial renamed private virtual values in a branched unrolled body only when
+  each had one definition dominating all in-body uses and no outside reader. On its own it made
+  `intersect` 209 instructions, up four, with all four clears intact. Combining it with the
+  `ClearReg` value-numbering change also produced 209 instructions and four clears. The wider
+  renaming perturbed XMM allocation and inserted extra copies; no executed path improved. Both
+  trial edits were reverted without timing or broad correctness tests.
+- Next: inspect a control-flow-aware way to split a private zero definition across cloned arms. A candidate should
+  retain a single zero only where that saves executed clears without adding copies, spills, or
+  saved registers. Compare an unrelated unrolled floating loop and a case with intervening calls
+  before changing general value numbering or allocation.
+- Complete when the repeated clears disappear with no new spill traffic in `intersect`, an
+  unrelated case improves under the same rule, and native/JIT behavior remains correct.
+
+
+### compiler.optimization.083 — Retain the probe mask without increasing spills
+
+- Recorded: 2026-09-26 12:46
+- Updated: 2026-09-29 15:37 — Inspect csvagg's executed hash and digit loops.
+- Area: compiler/backend, LICM and register allocation
+- Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
+- Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
+- With the subsequent caller-test threading, wordfreq `main` was 443 instructions. Its first inlined probe still read `[rbx+0xC8]` for the initial hash mask and again for each collision step; LDC held that mask in `r10` across `memcmp`, saving and restoring it around the call. The Swag collision step retained the extra memory operand, while the checksum remained 130489. This was a code comparison, not a new LICM trial.
+- Post-allocation loop rotation now recognizes the exit label after any run of adjacent labels following the back edge. It duplicates the `used[idx]` comparison at the collision tail and removes the unconditional jump: the first wordfreq collision path falls from seven to six runtime instructions, with three memory operands still versus LDC's two. The two inlined probes add two compares and two labels in total, so `main` rises from 443 to 447 static Micro instructions. The entry comparison remains on the cold entry path, and neither allocation nor spills change. All seven task checksums pass with `--validate-micro`; the other six selected function counts are unchanged. A C++ regression covers adjacent exit aliases and an intervening instruction. This closes .091; the mask load remains this entry's gap. No timing sample informed the decision.
+- The accepted campaign `20260928-051818` named C++/clang-cl as wordfreq's fastest other runtime; the newer `20260929-105508` campaign names it again. Its inlined probe uses `and esi, 3FFFh` at collision, followed by the `used` and length tests: six instructions and two memory operands. A scratch-only trial marked `mapInit` inline; it exposed the constant `0x3FFF` to Swag, but enlarged `main` from 447 to 516 Micro instructions and reintroduced stack reloads and a back-edge jump in the collision loop. The checksum was 130489; the trial was rejected on static code quality, without timing.
+- A post-allocation rule now moves a folded bitwise memory operand into an already saved, idle persistent register. It replaces the same address's straight-line entry read with a load and register operation, then rewrites every matching use in the loop. Eligibility requires a stable base, no loop memory writes, only direct calls annotated `ReadOnly`, and a register that is dead from the entry read through the loop. In wordfreq's first inlined probe, `r15` carries the mask across `memcmp`: the hot collision path remains six instructions and falls from three memory operands to two, matching the winner's counts. The entry still reads the mask once; it gains one encoded instruction but no memory access, while the frame and spill traffic stay unchanged. Thus `main` rises from 447 to 448 static Micro instructions. The final-token probe is unchanged because its entry read uses a different base expression. All seven task checksums pass under `--validate-micro`, and the other six selected function counts are unchanged. C++ tests cover an unrelated OR/XOR loop, a writable call, a memory write, a changing base, no prior read, a live scratch register, and no saved register. This is static evidence, not a measured runtime gain.
+- Csvagg's newly accepted winner is Zig, which encodes the 64-slot probe mask as an immediate.
+  A scratch-only `#[Swag.Inline]` on `mapInit` also exposes `0x3F` to Swag, but enlarges the
+  Release `main` from 1,003 to 1,015 Micro instructions. The collision path gains register
+  copies, two frame reloads, and unconditional jumps after key-length mismatch; it loses the
+  conditional back edge that the preceding rotation established. This repeats the earlier
+  wordfreq failure: exposing one constant by inlining the whole allocator-heavy initializer
+  worsens the hot loop. The trial was rejected on static code quality without timing.
+- A scratch-only post-RA refinement crossed the allocator spill stores at `[rsp+0x838]` and
+  `[rsp+0x840]` before csvagg's probe loop, identified `rbx` as the local base despite a
+  temporary `rcx = rsp` and the return-tail `pop rbx`, and kept the mask in the already saved
+  `r15`. The collision step fell from three to two memory operations, but the entry mask
+  operation grew from one instruction to two. The benchmark's eight region names hash to
+  distinct slots modulo 64 (`21, 36, 16, 32, 12, 31, 14, 5`), so its collision step never
+  executes; every lookup pays the extra entry instruction with no collision saving. The
+  csvagg checksum remained 24828641 and the six other task checksums passed. The refinement
+  was rejected on this executed-path evidence without a timing sample; no compiler rule was
+  retained from the trial.
+- The Release hash loop already reads four key bytes per iteration through the partial indexed-read
+  unroller. Manually grouping four reads in a scratch source copy preserves checksum 24828641 but
+  grows `main` from 1,003 to 1,007 Micro instructions, adding four address calculations before
+  the grouped loop. This does not close a hot-path gap. The quantity and integer-price scans
+  already reuse the delimiter-tested byte in the digit calculation. Their dynamic starting index,
+  delimiter branch, and accumulator updates do not fit the current indexed-read unroller's
+  zero-based, branch-free body; Zig's extra four-byte grouping applies to the two-digit fractional
+  scan and needs its own setup and scalar tail. No compiler edit was retained from these probes.
+- Next: compare wordfreq's complete probe paths and measure its retained mask at a clean paired
+  campaign milestone. For csvagg, compare the successful `memcmp` and occupied-slot update with
+  Zig's executed path; focus on register and frame traffic rather than its absent collisions.
+- Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
+
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget
 
 - Recorded: 2026-09-24 11:53
@@ -125,6 +271,7 @@ block, and the hot path keeps the register.
 - Complete when: the significance bin has no register copy after its shifts and no decoder function
   or benchmark program grows.
 - Related: std.video.001, compiler.optimization.037, compiler.optimization.095
+
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 
 - Recorded: 2026-09-07 10:46
@@ -175,6 +322,7 @@ block, and the hot path keeps the register.
 - Complete when: the tile fill of `filterLumaVertical` disappears from its release dump, a fill
   followed by a partial overwrite and a read keeps its stores, and unit tests cover both.
 - Related: compiler.optimization.011
+
 ### compiler.optimization.098 — Feed adjacent array updates from a packed state
 
 - Recorded: 2026-09-29 08:04
@@ -187,30 +335,6 @@ block, and the hot path keeps the register.
 - Validation: native Release and DevMode tests for the packed and overlapping cases, JIT Release, 1,156 C++ tests, and all seven benchmark checksums pass. The selected functions of all seven benchmarks have unchanged normalized Micro instructions, including ChaCha's 51-instruction packed round and 457-instruction main. No individual runtime timing informed the decision.
 - Milestone: the full campaign `20260929-082219` passed every checksum but was archived under `bench/results/rejected/`. Its reference workload moved 65.9% between neighbouring probes (40% limit), and unchanged build controls spread by 30.7% (25% limit). Other compiler builds and test suites were active on the shared machine during the sweep. The accepted baseline and runtime winners remain `20260928-170009`; no speedup or regression is inferred from the rejected timings.
 - Next: establish the allocator result's usable provenance and the exact stack/heap disjointness contract, or guard the overlap case at run time. Extend the deferral and SLP proof to four indexed output updates only when their stable base and adjacent offsets are known. Test overlapping and disjoint indexed arrays, then compare the output path's instructions, memory operations, and spills with clang-cl. Keep the benchmark's computation unchanged.
-
-### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
-
-- Recorded: 2026-09-24 10:33
-- Updated: 2026-09-29 09:25 — Audited the ordinary-loop cap and repaired constant-index folding after memory operations.
-- Area: compiler/backend, loop unrolling
-- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
-  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
-  branch, and constant-table guards already describe general costs and benefits. The unrelated
-  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
-  indices and branches; it benefits from constant-index folding. Conversely,
-  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
-  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
-- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
-  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
-  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
-  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
-  flattens, while the otherwise identical plain loop still keeps its latch.
-- Audit: temporarily raising the ordinary cap to 32 made an unrelated 17-trip arithmetic sum fold from a nine-instruction loop to three straight-line instructions. A 17-word XOR update instead grew from an eight-instruction loop to 35 instructions: the index became constant, but its already-folded memory XOR was outside the constant-index rule. Extending that rule to indexed compares, register-memory operations, and unary/binary memory updates reduces the unrolled XOR case from 35 to 19 instructions, with 17 direct-offset XORs and no indexed reads or per-element index materializations. The production 16-trip cap remains: even after this repair, the 17-word update grows from eight to 19 static instructions and retains all 17 memory updates, so a general profitability rule needs more than a trip count. The C++ test covers five operation forms and rejects dynamic and 32-bit addresses; a native test covers indexed XOR, increment, decrement and dynamic indexing, and a JIT test covers the constant-index updates. All 1,157 C++ tests and seven benchmark checksums pass; the seven selected benchmark functions have identical normalized Micro instructions before and after. No runtime timing was used.
-- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
-  only when a general work-saved versus code-growth rule improves them without expanding loops
-  whose bodies retain their per-trip work.
-- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
-  both admitted and rejected shapes.
 
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 
@@ -277,20 +401,6 @@ block, and the hot path keeps the register.
 - The emitted csvagg `main` grew from 993 to 1,022 Micro instructions. Its XMM saves fell from five to three and the saved area from `0x50` to `0x30`, but the timed row loop still had 13 frame operands and gained eight static jumps (34 to 42). Each common conversion still executed five instructions, now including a conditional and an unconditional jump. The two saves are paid once; the extra branches run for every row. This is a concrete hot-loop code-quality loss, so the trial and its JIT-only test were reverted without timing.
 - Next: find a range proof that a conversion input stays below `2^63`, or a branchless lowering that uses fewer operations and less XMM pressure than the current packed conversion. Compare both sides of the range and an unrelated cast before revisiting the lowering.
 - Complete when: a general rule improves the complete hot conversion path without extra branches or spills, and preserves full-range nearest-even results in native and JIT output; otherwise retain the current branchless algorithm.
-
-### compiler.optimization.083 — Retain the probe mask without increasing spills
-
-- Recorded: 2026-09-26 12:46
-- Updated: 2026-09-28 08:29 — Keep the probe mask in a saved register without another entry load.
-- Area: compiler/backend, LICM and register allocation
-- Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
-- Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
-- With the subsequent caller-test threading, wordfreq `main` was 443 instructions. Its first inlined probe still read `[rbx+0xC8]` for the initial hash mask and again for each collision step; LDC held that mask in `r10` across `memcmp`, saving and restoring it around the call. The Swag collision step retained the extra memory operand, while the checksum remained 130489. This was a code comparison, not a new LICM trial.
-- Post-allocation loop rotation now recognizes the exit label after any run of adjacent labels following the back edge. It duplicates the `used[idx]` comparison at the collision tail and removes the unconditional jump: the first wordfreq collision path falls from seven to six runtime instructions, with three memory operands still versus LDC's two. The two inlined probes add two compares and two labels in total, so `main` rises from 443 to 447 static Micro instructions. The entry comparison remains on the cold entry path, and neither allocation nor spills change. All seven task checksums pass with `--validate-micro`; the other six selected function counts are unchanged. A C++ regression covers adjacent exit aliases and an intervening instruction. This closes .091; the mask load remains this entry's gap. No timing sample informed the decision.
-- The latest accepted full campaign, `20260928-051818`, names C++/clang-cl as wordfreq's fastest other runtime. Its inlined probe uses `and esi, 3FFFh` at collision, followed by the `used` and length tests: six instructions and two memory operands. A scratch-only trial marked `mapInit` inline; it exposed the constant `0x3FFF` to Swag, but enlarged `main` from 447 to 516 Micro instructions and reintroduced stack reloads and a back-edge jump in the collision loop. The checksum was 130489; the trial was rejected on static code quality, without timing.
-- A post-allocation rule now moves a folded bitwise memory operand into an already saved, idle persistent register. It replaces the same address's straight-line entry read with a load and register operation, then rewrites every matching use in the loop. Eligibility requires a stable base, no loop memory writes, only direct calls annotated `ReadOnly`, and a register that is dead from the entry read through the loop. In wordfreq's first inlined probe, `r15` carries the mask across `memcmp`: the hot collision path remains six instructions and falls from three memory operands to two, matching the winner's counts. The entry still reads the mask once; it gains one encoded instruction but no memory access, while the frame and spill traffic stay unchanged. Thus `main` rises from 447 to 448 static Micro instructions. The final-token probe is unchanged because its entry read uses a different base expression. All seven task checksums pass under `--validate-micro`, and the other six selected function counts are unchanged. C++ tests cover an unrelated OR/XOR loop, a writable call, a memory write, a changing base, no prior read, a live scratch register, and no saved register. This is static evidence, not a measured runtime gain.
-- Next: compare the complete hash and collision paths with clang-cl, including entry frequency and frame traffic; obtain a clean paired wordfreq measurement at a campaign milestone before closing this lead.
-- Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
 ### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
 
@@ -928,6 +1038,7 @@ block, and the hot path keeps the register.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
+
 ### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
 
 - Recorded: 2026-09-18 19:48

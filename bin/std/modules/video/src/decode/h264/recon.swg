@@ -143,7 +143,9 @@ impl Slice
                 return
         }
 
-        if mb.class != MbClassIntra4x4 and mb.class != MbClassIntra8x8
+        // Without a coded luma block there is no residual to add, except the DC levels an intra
+        // 16x16 macroblock always carries; the chroma planes have their own pattern.
+        if (mb.class == MbClassInter and mb.cbpLuma != 0) or mb.class == MbClassIntra16x16
         {
             for plane in planes do
                 .addPlaneResidual(mb, frame, plane, plane == 0 ? mb.qp : (plane == 1 ? qpCb : qpCr))
@@ -161,8 +163,11 @@ impl Slice
                 intraPredictChroma(mb.chromaMode, frame.pixChroma(plane, mb.mbX * 8, mb.mbY * 8), frame.strideChroma, hasLeft, hasTop)
         }
 
-        for plane in 2'u32 do
-            .addChromaResidual(mb, frame, plane, plane == 0 ? qpCb : qpCr)
+        if mb.cbpChroma != 0
+        {
+            for plane in 2'u32 do
+                .addChromaResidual(mb, frame, plane, plane == 0 ? qpCb : qpCr)
+        }
     }
 
     // Reports whether a macroblock's samples can serve intra prediction.
@@ -517,7 +522,16 @@ impl Slice
                 {
                     let list      = ref0 ? 0'u32 : 1'u32
                     let reference = ref0 ? ref0 : ref1!
-                    if .useWeights
+                    if not .useWeights
+                    {
+                        // Both planes share the vector, the phase and the window, and a plain
+                        // prediction writes straight into the picture: one pass predicts them.
+                        let mvX = cast(s32) job.mv[list, 0]
+                        let mvY = cast(s32) job.mv[list, 1]
+                        mcChromaPair(chromaDst, frame.pixChroma(1, chromaX, chromaY), frame.strideChroma, reference, chromaX + (mvX >> 3), chromaY + (mvY >> 3), mvX & 7, mvY & 7, job.width / 2, job.height / 2)
+                        break
+                    }
+                    else
                     {
                         var tempA: [8 * 16] u8
                         .mcChromaList(mb, job, list, reference, plane, tempA.buffer, 16)
@@ -525,10 +539,6 @@ impl Slice
                         let weight = plane == 0 ? entry.cbWeight : entry.crWeight
                         let offset = plane == 0 ? entry.cbOffset : entry.crOffset
                         weightUni(chromaDst, frame.strideChroma, tempA.buffer, 16, job.width / 2, job.height / 2, cast(s32) .chromaLog2Denom, weight, offset)
-                    }
-                    else
-                    {
-                        .mcChromaList(mb, job, list, reference, plane, chromaDst, frame.strideChroma)
                     }
                 }
             }

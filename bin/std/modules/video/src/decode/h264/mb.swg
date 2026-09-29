@@ -135,17 +135,15 @@ struct Mb
     codedBlocks: [16] u8     // Any coefficient in the block, for deblocking.
 }
 
-// One neighbor's motion state.
+// One neighbor's motion state, as the motion vector prediction reads it. The differences and
+// the direct flag the CABAC contexts need are read by `neighborMvd` and `refCtxFlag`.
 struct NeighborMotion
 {
     available: bool
     intra:     bool
-    isDirect:  bool
     refIdx:    s8
     mvX:       s16
     mvY:       s16
-    mvdX:      s16
-    mvdY:      s16
 }
 
 // One macroblock next to the one being parsed: whether this slice decoded it, its summary, and
@@ -174,40 +172,51 @@ struct MbNeighbors
 impl Slice
 {
     // Resolves the macroblocks around the one at the current address, once per macroblock.
+    //
+    // The four answers are written in place from one read of the picture geometry, rather than
+    // four calls that each reload it and return a record to copy.
     mtd resolveNeighbors()
     {
-        let dec = .dec!
-        let sps = dec.sps!
-        let mbX = .mbX
-        let mbY = .mbY
-        .neighbors.blockBase = cast(u64) (mbY * 4 * (sps.mbWidth * 4) + mbX * 4)
-        .neighbors.a         = .resolveNeighbor(mbX - 1, mbY, mbX > 0)
-        .neighbors.b         = .resolveNeighbor(mbX, mbY - 1, mbY > 0)
-        .neighbors.c         = .resolveNeighbor(mbX + 1, mbY - 1, mbY > 0 and mbX + 1 < sps.mbWidth)
-        .neighbors.d         = .resolveNeighbor(mbX - 1, mbY - 1, mbX > 0 and mbY > 0)
+        let dec     = .dec!
+        let mbWidth = dec.sps!.mbWidth
+        let mbInfo  = dec.mbInfo.storage()
+        let mbX     = .mbX
+        let mbY     = .mbY
+        let sliceId = .sliceId
+        let index   = cast(u64) (mbY * mbWidth + mbX)
+        let block   = cast(u64) (mbY * 4 * (mbWidth * 4) + mbX * 4)
+        let chroma  = cast(u64) (mbY * 2 * (mbWidth * 2) + mbX * 2)
+        let row     = cast(u64) mbWidth
+        .neighbors.blockBase = block
+        // An unavailable neighbor's indexes wrap below zero and are never read.
+        fillNeighbor(&.neighbors.a, mbX > 0, mbInfo, sliceId, index - #wrap 1, block - #wrap 4, chroma - #wrap 2)
+        fillNeighbor(&.neighbors.b, mbY > 0, mbInfo, sliceId, index - #wrap row, block - #wrap row * 16, chroma - #wrap row * 4)
+        fillNeighbor(&.neighbors.c, mbY > 0 and mbX + 1 < mbWidth, mbInfo, sliceId, index - #wrap row + #wrap 1, block - #wrap row * 16 + #wrap 4, chroma - #wrap row * 4 + #wrap 2)
+        fillNeighbor(&.neighbors.d, mbX > 0 and mbY > 0, mbInfo, sliceId, index - #wrap row - #wrap 1, block - #wrap row * 16 - #wrap 4, chroma - #wrap row * 4 - #wrap 2)
     }
 
-    // Resolves one neighbor macroblock, available when it lies in the picture and this slice
-    // decoded it.
-    mtd const resolveNeighbor(mbX, mbY: s32, inPicture: bool)->MbNeighbor
+    // Fills one neighbor macroblock, available when it lies in the picture and this slice
+    // decoded it; the indexes are those of its macroblock record, its top-left 4x4 block and
+    // its top-left chroma block.
+    #[Swag.Inline]
+    func fillNeighbor(result: *MbNeighbor, inPicture: bool, mbInfo: [*] MbInfo, sliceId: u16, index, block, chroma: u64)
     {
-        var result: retval
+        result.available  = false
+        result.info       = null
+        result.mbIndex    = 0
+        result.blockBase  = 0
+        result.chromaBase = 0
         if not inPicture do
-            return result
-
-        let dec   = .dec!
-        let sps   = dec.sps!
-        let index = cast(u64) (mbY * sps.mbWidth + mbX)
-        let info  = &dec.mbInfo[index]
-        if info.sliceId != .sliceId do
-            return result
+            return
+        let info = &mbInfo[index]
+        if info.sliceId != sliceId do
+            return
 
         result.available  = true
         result.info       = info
         result.mbIndex    = index
-        result.blockBase  = cast(u64) (mbY * 4 * (sps.mbWidth * 4) + mbX * 4)
-        result.chromaBase = cast(u64) (mbY * 2 * (sps.mbWidth * 2) + mbX * 2)
-        return result
+        result.blockBase  = block
+        result.chromaBase = chroma
     }
 
     // Reports whether the macroblock at `mbX`, `mbY` belongs to this slice's decoded region.
@@ -221,6 +230,7 @@ impl Slice
     }
 
     // Returns the macroblock info at a position the caller knows is valid.
+    #[Swag.Inline]
     mtd const mbInfoAt(mbX, mbY: s32)->*MbInfo
     {
         let dec = .dec!
@@ -274,38 +284,58 @@ impl Slice
 
             if .header.type == SliceTypeP and info.skipped
             {
-                let job = &dec.parsedMbs[other.mbIndex].firstJob
+                // A P-skip refers to the first picture of list 0 and to nothing in list 1
+                // (deriveSkipP), and its vector is in the compact lanes it published for the
+                // filter, sixteen bytes a macroblock, rather than in its whole parsed record,
+                // which the macroblock above has long left the cache with.
+                let lanes = cast(const [*] s16) (dec.skipMotion.storage() + other.mbIndex)
                 result.available = true
-                result.refIdx    = job.refIdx[list]
-                result.mvX       = job.mv[list, 0]
-                result.mvY       = job.mv[list, 1]
+                result.refIdx    = list == 0 ? 0 : -1
+                result.mvX       = list == 0 ? lanes[0] : 0
+                result.mvY       = list == 0 ? lanes[1] : 0
                 return result
             }
 
             index = other.blockBase + cast(u64) ((ry & 3) * gw + (rx & 3))
         }
 
+        let motion = list == 0 ? &dec.motionL0[index] : &dec.motionL1[index]
         result.available = true
-        if list == 0
+        result.refIdx    = motion.refIdx
+        result.mvX       = motion.mvX
+        result.mvY       = motion.mvY
+        return result
+    }
+
+    // Returns the motion vector difference of the block left of (`rx` = -1) or above (`ry` = -1)
+    // a block of the current macroblock, as [[motionAt]] reports it: zero for a block with no
+    // coded motion of this list. The CABAC contexts of a difference read nothing else, so they
+    // skip the record the prediction needs.
+    mtd const neighborMvd(mb: *Mb, list: u32, rx, ry: s32)->[2] s16
+    {
+        var result: retval
+        let dec = .dec!
+        var index: u64
+        if rx >= 0 and ry >= 0
         {
-            let motion = &dec.motionL0[index]
-            result.refIdx = motion.refIdx
-            result.mvX    = motion.mvX
-            result.mvY    = motion.mvY
-            result.mvdX   = dec.mvdL0[index * 2]
-            result.mvdY   = dec.mvdL0[index * 2 + 1]
+            if (mb.motionMask[list] & (1'u32 << cast(u32) (ry * 4 + rx))) == 0 do
+                return result
+            index = .neighbors.blockBase + cast(u64) (ry * (dec.sps!.mbWidth * 4) + rx)
         }
         else
         {
-            let motion = &dec.motionL1[index]
-            result.refIdx = motion.refIdx
-            result.mvX    = motion.mvX
-            result.mvY    = motion.mvY
-            result.mvdX   = dec.mvdL1[index * 2]
-            result.mvdY   = dec.mvdL1[index * 2 + 1]
+            let other = rx < 0 ? &.neighbors.a : &.neighbors.b
+            if not other.available do
+                return result
+            let info = other.info!
+            if info.class != MbClassInter or (.header.type == SliceTypeP and info.skipped) do
+                return result
+            index = other.blockBase + cast(u64) ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3))
         }
 
-        result.isDirect = dec.directFlags[index] != 0
+        let diffs = list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage()
+        result[0] = diffs[index * 2]
+        result[1] = diffs[index * 2 + 1]
         return result
     }
 
@@ -366,24 +396,42 @@ impl Slice
     }
 
     // Stores the final motion of one partition into the picture grid and the parse state.
+    //
+    // As FFmpeg's `fill_rectangle` does, a block's record goes out as one eight-byte word and its
+    // difference pair as one four-byte word, row after row from a pointer, and a whole row of four
+    // direct flags as one word.
     mtd assignMotion(mb: *Mb, list: u32, x4, y4, w4, h4: s32, refIdx: s32, mv: [2] s16, mvd: [2] s16, isDirect: bool)
     {
         let dec   = .dec!
-        let gw    = dec.sps!.mbWidth * 4
+        let gw    = cast(u64) (dec.sps!.mbWidth * 4)
         let refId = refIdx >= 0 ? .refs[list, refIdx].identity : NoReferenceIdentity
-        let entry = BlockMotion{mvX: mv[0], mvY: mv[1], refIdx: cast(s8) refIdx, refId: refId}
-        let grid  = list == 0 ? dec.motionL0.storage() : dec.motionL1.storage()
-        let diffs = list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage()
-        for row in cast(u64) h4
+        let entry = packedMotion(mv, cast(s8) refIdx, refId)
+        let diff  = cast(u32) cast #bit (u16) mvd[0] | (cast(u32) cast #bit (u16) mvd[1] << 16)
+        let flag  = isDirect ? 1'u8 : 0'u8
+        let grid  = cast([*] u64) (list == 0 ? dec.motionL0.storage() : dec.motionL1.storage())
+        let diffs = cast([*] u32) (list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage())
+        let flags = dec.directFlags.storage()
+        let width = cast(u64) w4
+        var index = cast(u64) ((mb.mbY * 4 + y4) * cast(s32) gw + mb.mbX * 4 + x4)
+        for cast(u64) h4
         {
-            for column in cast(u64) w4
+            for column in width
             {
-                let index = cast(u64) ((mb.mbY * 4 + y4 + cast(s32) row) * gw + mb.mbX * 4 + x4 + cast(s32) column)
-                grid[index]            = entry
-                diffs[index * 2]       = mvd[0]
-                diffs[index * 2 + 1]   = mvd[1]
-                dec.directFlags[index] = isDirect ? 1 : 0
+                grid[index + column]  = entry
+                diffs[index + column] = diff
             }
+
+            if width == 4
+            {
+                (cast([*] u32) (flags + index))[0] = cast(u32) flag * 0x01010101
+            }
+            else
+            {
+                for column in width do
+                    flags[index + column] = flag
+            }
+
+            index += gw
         }
 
         let rowMask = ((1'u32 << cast(u32) w4) - 1) << cast(u32) x4
@@ -408,22 +456,22 @@ impl Slice
         if x4 == 0 and y4 == 0 and w4 == 4 and h4 == 4
         {
             // One block record is eight bytes, so one store publishes two blocks and two cover
-            // a whole macroblock row of the grid.
-            let refs0   = packedReferences(refIdx[0], id0)
-            let refs1   = packedReferences(refIdx[1], id1)
-            let pair0   = cast(Simd.S16x8) [mv0[0], mv0[1], refs0, 0's16, mv0[0], mv0[1], refs0, 0's16]
-            let pair1   = cast(Simd.S16x8) [mv1[0], mv1[1], refs1, 0's16, mv1[0], mv1[1], refs1, 0's16]
+            // a whole macroblock row of the grid. The record is packed in a scalar register and
+            // broadcast: a vector assembled lane by lane goes through memory and its wide load
+            // waits on the narrow stores.
+            let pair0   = Simd.splat(packedMotion(mv0, refIdx[0], id0))
+            let pair1   = Simd.splat(packedMotion(mv1, refIdx[1], id1))
             let zeros16 = Simd.splat(0's16)
             let direct  = Simd.splat(isDirect ? 1'u8 : 0)
             for row in 4'u64
             {
                 let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-                let grid0 = cast([*] s16) (dec.motionL0.storage() + index)
-                let grid1 = cast([*] s16) (dec.motionL1.storage() + index)
+                let grid0 = cast([*] u64) (dec.motionL0.storage() + index)
+                let grid1 = cast([*] u64) (dec.motionL1.storage() + index)
                 Simd.store(grid0, pair0)
-                Simd.store(grid0 + 8, pair0)
+                Simd.store(grid0 + 2, pair0)
                 Simd.store(grid1, pair1)
-                Simd.store(grid1 + 8, pair1)
+                Simd.store(grid1 + 2, pair1)
                 Simd.store(dec.mvdL0.storage() + index * 2, zeros16)
                 Simd.store(dec.mvdL1.storage() + index * 2, zeros16)
                 Simd.storeLow4(dec.directFlags.storage() + index, direct)
@@ -834,7 +882,7 @@ impl Slice
                     if .mbAddr >= mbCount do
                         fail InvalidFormatError{"H.264 skip run passes the end of the picture"}
                     .resolveNeighbors()
-                    try .decodeSkipMb(&dec.parsedMbs[.mbAddr])
+                    try .decodeSkipMb(dec.inlineRecon ? &.scratchMb : &dec.parsedMbs[.mbAddr])
                     skipRun -= 1
                 }
 
@@ -845,7 +893,7 @@ impl Slice
             }
 
             .resolveNeighbors()
-            let mb = &dec.parsedMbs[.mbAddr]
+            let mb = dec.inlineRecon ? &.scratchMb : &dec.parsedMbs[.mbAddr]
             if inter and .isCabac and .decodeSkipFlagCabac()
             {
                 try .decodeSkipMb(mb)
@@ -858,8 +906,11 @@ impl Slice
                 else do
                     try .parseMbCavlc(mb)
                 .bookkeepMb(mb)
-                if dec.inlineRecon do
+                if dec.inlineRecon
+                {
                     try .reconstructMb(mb)
+                    .releaseScratchResidual(mb)
+                }
                 dec.decodedMbs += 1
                 .advanceMb()
             }
@@ -888,6 +939,41 @@ impl Slice
             fail InvalidFormatError{"H.264 slice data is truncated"}
         if dec.inlineRecon and .mbAddr >= mbCount do
             dec.completeInlinePicture()
+    }
+
+    // Zeroes the coefficients a reconstructed macroblock may have left in the scratch record: its
+    // DC blocks, and the blocks of every quadrant and chroma plane its coded block pattern let it
+    // parse. A 4:4:4 macroblock keeps clearing the whole record when it starts.
+    mtd releaseScratchResidual(mb: *Mb)
+    {
+        if mb.residual != &.scratchResidual or mb.residual444 != null do
+            return
+
+        let residual = mb.residual!
+        if mb.class == MbClassIntra16x16 do
+            Memory.clear(&residual.lumaDc, #sizeof(residual.lumaDc))
+        for quad in 4'u64
+        {
+            if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
+                continue
+            if mb.transform8x8
+            {
+                Memory.clear(&residual.luma8[quad * 64], 64 * #sizeof(s16))
+            }
+            else
+            {
+                // The quadrant's two block rows are two pairs of adjacent 4x4 blocks.
+                let first = (quad >> 1) * 8 + (quad & 1) * 2
+                Memory.clear(&residual.lumaAc[first * 16], 32 * #sizeof(s16))
+                Memory.clear(&residual.lumaAc[(first + 4) * 16], 32 * #sizeof(s16))
+            }
+        }
+
+        if mb.cbpChroma != 0 do
+            Memory.clear(&residual.chromaDc, #sizeof(residual.chromaDc))
+        if mb.cbpChroma == 2 do
+            Memory.clear(&residual.chromaAc, #sizeof(residual.chromaAc))
+        .scratchClean = true
     }
 
     // Resets the parse state for the macroblock at the current address.
@@ -937,7 +1023,9 @@ impl Slice
             }
 
             Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
-            Memory.clear(mb.residual, #sizeof(MbResidual))
+            if mb.residual != &.scratchResidual or not .scratchClean do
+                Memory.clear(mb.residual, #sizeof(MbResidual))
+            .scratchClean = false
 
             if dec.sps!.is444()
             {
@@ -1764,12 +1852,20 @@ impl Slice
         let modeWords     = cast(const [*] u32) &mb.intraModes[0]
         let nzWords       = cast(const [*] u32) &mb.nzLuma[0]
         let codedWords    = cast(const [*] u32) &mb.codedBlocks[0]
+
+        // The grids are addressed from the macroblock's first block, a row further each time;
+        // their storage is read once rather than on every row.
+        let firstBlock = cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
+        let rowStep    = cast(u64) gw
+        let modesGrid  = dec.intraModes.storage() + firstBlock
+        let nzGrid     = dec.nonZeroLuma.storage() + firstBlock
+        let codedGrid  = dec.codedLuma.storage() + firstBlock
         for row in 4'u64
         {
-            let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-            (cast([*] u32) (dec.intraModes.storage() + index))[0]  = perBlockModes ? modeWords[row] : dcModes
-            (cast([*] u32) (dec.nonZeroLuma.storage() + index))[0] = nzWords[row]
-            (cast([*] u32) (dec.codedLuma.storage() + index))[0]   = codedWords[row]
+            let offset = row * rowStep
+            (cast([*] u32) (modesGrid + offset))[0] = perBlockModes ? modeWords[row] : dcModes
+            (cast([*] u32) (nzGrid + offset))[0]    = nzWords[row]
+            (cast([*] u32) (codedGrid + offset))[0] = codedWords[row]
         }
 
         // A 4:4:4 colour plane has one block per luma block, and its counts go out on the
@@ -1785,13 +1881,17 @@ impl Slice
         }
         else
         {
-            let cw = dec.sps.mbWidth * 2
-            for block in 4's32
-            {
-                let index = cast(u64) ((mb.mbY * 2 + (block >> 1)) * cw + mb.mbX * 2 + (block & 1))
-                dec.nonZeroCb[index] = mb.nzCb[cast(u64) block]
-                dec.nonZeroCr[index] = mb.nzCr[cast(u64) block]
-            }
+            // Two chroma blocks of a row are adjacent in both grids: one 16-bit word each.
+            let cw        = cast(u64) (dec.sps.mbWidth * 2)
+            let index     = cast(u64) (mb.mbY * 2) * cw + cast(u64) (mb.mbX * 2)
+            let countsCb  = cast([*] u16) &mb.nzCb[0]
+            let countsCr  = cast([*] u16) &mb.nzCr[0]
+            let targetCb  = dec.nonZeroCb.storage()
+            let targetCr  = dec.nonZeroCr.storage()
+            (cast([*] u16) (targetCb + index))[0]      = countsCb[0]
+            (cast([*] u16) (targetCb + index + cw))[0] = countsCb[1]
+            (cast([*] u16) (targetCr + index))[0]      = countsCr[0]
+            (cast([*] u16) (targetCr + index + cw))[0] = countsCr[1]
         }
 
         dec.dcFlags[mbIdx * 3]     = mb.dcFlags[0]
@@ -1807,18 +1907,23 @@ impl Slice
             let clean   = cast(Simd.S16x8) [0's16, 0's16, refs, 0's16, 0's16, 0's16, refs, 0's16]
             let zeros16 = Simd.splat(0's16)
             let zeros8  = Simd.splat(0'u8)
-            for row in 4's32
+            let motion0 = dec.motionL0.storage()
+            let motion1 = dec.motionL1.storage()
+            let diffs0  = dec.mvdL0.storage()
+            let diffs1  = dec.mvdL1.storage()
+            let direct  = dec.directFlags.storage()
+            for row in 4'u64
             {
-                let index = cast(u64) ((mb.mbY * 4 + row) * gw + mb.mbX * 4)
-                let grid0 = cast([*] s16) (dec.motionL0.storage() + index)
-                let grid1 = cast([*] s16) (dec.motionL1.storage() + index)
+                let index = firstBlock + row * rowStep
+                let grid0 = cast([*] s16) (motion0 + index)
+                let grid1 = cast([*] s16) (motion1 + index)
                 Simd.store(grid0, clean)
                 Simd.store(grid0 + 8, clean)
                 Simd.store(grid1, clean)
                 Simd.store(grid1 + 8, clean)
-                Simd.store(dec.mvdL0.storage() + index * 2, zeros16)
-                Simd.store(dec.mvdL1.storage() + index * 2, zeros16)
-                Simd.storeLow4(dec.directFlags.storage() + index, zeros8)
+                Simd.store(diffs0 + index * 2, zeros16)
+                Simd.store(diffs1 + index * 2, zeros16)
+                Simd.storeLow4(direct + index, zeros8)
             }
         }
 
@@ -1829,31 +1934,28 @@ impl Slice
             return
         let frame = dec.current!
         frame.colUniform[mbIdx] = 0
-        if mb.class == MbClassInter and mb.jobCount == 1
+
+        // An intra macroblock leaves no motion at all, so like a macroblock with a single motion
+        // it publishes one record for every block, a row at a time.
+        let intra = mb.class != MbClassInter
+        if intra or mb.jobCount == 1
         {
             let job = &mb.firstJob
-            var ref:   s8
+            var ref:   s8 = -1
             var mvX:   s16
             var mvY:   s16
             var poc:   s32
             var short: u8
-            if job.refIdx[0] >= 0
+            if not intra
             {
-                ref   = job.refIdx[0]
-                mvX   = job.mv[0, 0]
-                mvY   = job.mv[0, 1]
-                poc   = .refs[0, cast(u64) ref].poc
-                short = .refs[0, cast(u64) ref].isLong ? 0 : 1
-            }
-            else
-            {
-                ref = job.refIdx[1]
-                mvX = job.mv[1, 0]
-                mvY = job.mv[1, 1]
+                let list = job.refIdx[0] >= 0 ? 0'u64 : 1'u64
+                ref = job.refIdx[list]
+                mvX = job.mv[list, 0]
+                mvY = job.mv[list, 1]
                 if ref >= 0
                 {
-                    poc   = .refs[1, cast(u64) ref].poc
-                    short = .refs[1, cast(u64) ref].isLong ? 0 : 1
+                    poc   = .refs[list, cast(u64) ref].poc
+                    short = .refs[list, cast(u64) ref].isLong ? 0 : 1
                 }
             }
 
@@ -1861,53 +1963,63 @@ impl Slice
             // word or vector, so a row goes out in one store each.
             let refWord   = cast(u32) (cast #bit(u8) ref) * 0x01010101
             let shortWord = cast(u32) short * 0x01010101
-            let mvRow     = cast(Simd.S16x8) [mvX, mvY, mvX, mvY, mvX, mvY, mvX, mvY]
+            let mvRow     = Simd.splat(cast(u32) cast #bit (u16) mvX | (cast(u32) cast #bit (u16) mvY << 16))
             let pocRow    = Simd.splat(poc)
+            let colRef    = frame.colRef.storage()
+            let colShort  = frame.colShort.storage()
+            let colMv     = cast([*] u32) frame.colMv.storage()
+            let colPoc    = frame.colPoc.storage()
             for row in 4'u64
             {
-                let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-                (cast([*] u32) (frame.colRef.storage() + index))[0]   = refWord
-                (cast([*] u32) (frame.colShort.storage() + index))[0] = shortWord
-                Simd.store(frame.colMv.storage() + index * 2, mvRow)
-                Simd.store(frame.colPoc.storage() + index, pocRow)
+                let index = firstBlock + row * rowStep
+                (cast([*] u32) (colRef + index))[0]   = refWord
+                (cast([*] u32) (colShort + index))[0] = shortWord
+                Simd.store(colMv + index, mvRow)
+                Simd.store(colPoc + index, pocRow)
             }
 
             return
         }
 
-        for block in 16's32
+        // Row by row from the first block of each grid row, the arrays read and written through
+        // local pointers; a block's vector goes out as one word.
+        let motions0 = dec.motionL0.storage()
+        let motions1 = dec.motionL1.storage()
+        let colRef   = frame.colRef.storage()
+        let colMv    = cast([*] u32) frame.colMv.storage()
+        let colPoc   = frame.colPoc.storage()
+        let colShort = frame.colShort.storage()
+        var rowIndex = cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
+        for 4
         {
-            let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
-            if mb.class != MbClassInter
+            for column in 4'u64
             {
-                frame.colRef[index]        = -1
-                frame.colMv[index * 2]     = 0
-                frame.colMv[index * 2 + 1] = 0
-                frame.colPoc[index]        = 0
-                frame.colShort[index]      = 0
-                continue
+                let index = rowIndex + column
+                var list  = 0'u64
+                var entry = &motions0[index]
+                if entry.refIdx < 0
+                {
+                    list  = 1
+                    entry = &motions1[index]
+                }
+
+                let ref = entry.refIdx
+                colRef[index] = ref
+                colMv[index]  = cast(u32) cast #bit (u16) entry.mvX | (cast(u32) cast #bit (u16) entry.mvY << 16)
+                if ref >= 0
+                {
+                    let picture = &.refs[list, cast(u64) ref]
+                    colPoc[index]   = picture.poc
+                    colShort[index] = picture.isLong ? 0 : 1
+                }
+                else
+                {
+                    colPoc[index]   = 0
+                    colShort[index] = 0
+                }
             }
 
-            let motion0 = &dec.motionL0[index]
-            let ref0    = motion0.refIdx
-            if ref0 >= 0
-            {
-                frame.colRef[index]        = ref0
-                frame.colMv[index * 2]     = motion0.mvX
-                frame.colMv[index * 2 + 1] = motion0.mvY
-                frame.colPoc[index]        = .refs[0, ref0].poc
-                frame.colShort[index]      = .refs[0, ref0].isLong ? 0 : 1
-            }
-            else
-            {
-                let motion1 = &dec.motionL1[index]
-                let ref1    = motion1.refIdx
-                frame.colRef[index]        = ref1
-                frame.colMv[index * 2]     = motion1.mvX
-                frame.colMv[index * 2 + 1] = motion1.mvY
-                frame.colPoc[index]        = ref1 >= 0 ? .refs[1, ref1].poc : 0
-                frame.colShort[index]      = ref1 >= 0 and not .refs[1, ref1].isLong ? 1 : 0
-            }
+            rowIndex += cast(u64) gw
         }
     }
 
@@ -1920,11 +2032,9 @@ impl Slice
         let poc   = ref >= 0 ? .refs[0, cast(u64) ref].poc : 0
         let gw    = dec.sps!.mbWidth * 4
         let zeros = Simd.splat(0'u8)
-        for row in 4'u64
-        {
-            let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-            Simd.storeLow4(dec.codedLuma.storage() + index, zeros)
-        }
+        let coded = dec.codedLuma.storage() + cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
+        for row in 4'u64 do
+            Simd.storeLow4(coded + row * cast(u64) gw, zeros)
 
         // The lanes the deblocking filter compares for every block of this macroblock: each
         // list's vector and its reference identity in the high byte of the third lane.
@@ -1932,7 +2042,10 @@ impl Slice
         let id0   = ref >= 0 ? .refs[0, cast(u64) ref].identity : NoReferenceIdentity
         let id1   = ref1 >= 0 ? .refs[1, cast(u64) ref1].identity : NoReferenceIdentity
         let mbIdx = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
-        dec.skipMotion[mbIdx] = cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], cast(s16) (cast(s32) id0 << 8), 0, job.mv[1, 0], job.mv[1, 1], cast(s16) (cast(s32) id1 << 8), 0]
+        // Two packed halves rather than a vector assembled lane by lane through memory.
+        let lanes = cast([*] u64) dec.skipMotion.storage() + mbIdx * 2
+        lanes[0]  = packedMotion([job.mv[0, 0], job.mv[0, 1]], 0, id0)
+        lanes[1]  = packedMotion([job.mv[1, 0], job.mv[1, 1]], 0, id1)
 
         // Only a reference picture is read as a co-located one.
         if not dec.isRefPicture do
@@ -2216,6 +2329,14 @@ const NoReferenceIdentity = 0's8
 // to present them as a lane rather than as two fields.
 #[Swag.Inline]
 func packedReferences(refIdx, refId: s8)->s16 => cast #bit (s16) (cast(u16) (cast #bit (u8) refIdx) | (cast(u16) (cast #bit (u8) refId) << 8))
+
+// Packs one block's motion record, laid out as `BlockMotion`, into one 64-bit word.
+#[Swag.Inline]
+func packedMotion(mv: [2] s16, refIdx, refId: s8)->u64
+{
+    return cast(u64) cast #bit (u16) mv[0] | (cast(u64) cast #bit (u16) mv[1] << 16) |
+           (cast(u64) cast #bit (u16) packedReferences(refIdx, refId) << 32)
+}
 
 // Partition shape of each B macroblock type 1..21, Table 7-14.
 const BShapes: [23] u8 = [

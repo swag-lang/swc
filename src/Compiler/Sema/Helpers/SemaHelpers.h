@@ -272,29 +272,23 @@ namespace SemaHelpers
         return sema.typeMgr().get(typeRef);
     }
 
-    inline bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (!normalizedTypeRef.isValid())
-            return false;
-
-        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
-        return normalizedType.isReference();
-    }
-
     // An operand of reference type takes part in an expression through the value it designates,
     // so the reference is read before the operator sees it. Kept inline because every operator
     // form (assign, binary, logical, unary) calls it on its own operands.
     inline Result readReferenceValue(Sema& sema, SemaNodeView& view)
     {
-        if (!shouldReadReferenceValue(sema, view.typeRef()))
+        if (!view.typeRef().isValid())
             return Result::Continue;
 
         const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
+        if (!normalizedTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isReference())
+            return Result::Continue;
+
+        const TypeRef valueTypeRef = normalizedType.payloadTypeRef();
         SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
         return Result::Continue;
     }

@@ -98,11 +98,9 @@ namespace
     {
         TaskContext&    ctx            = sema.ctx();
         const TypeInfo& originalType   = ctx.typeMgr().get(typeRef);
-        TypeRef         storageTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (storageTypeRef.isInvalid())
-            storageTypeRef = typeRef;
+        const TypeRef   storageTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum) : typeRef;
 
-        const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
+        const TypeInfo& storageType = storageTypeRef == typeRef ? originalType : ctx.typeMgr().get(storageTypeRef);
         ConstantValue   result;
 
         if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregateStruct() || storageType.isAggregateArray() || (storageType.isFunction() && storageType.isLambdaClosure()))
@@ -404,10 +402,8 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
         return 0;
 
-    TypeRef storageTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    if (storageTypeRef.isInvalid())
-        storageTypeRef = typeRef;
-    const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
+    const TypeRef   storageTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum) : typeRef;
+    const TypeInfo& storageType    = storageTypeRef == typeRef ? originalType : ctx.typeMgr().get(storageTypeRef);
 
     // Mirror makeMaterializedConstantValue's kind decision. Only the array/struct branches build a
     // borrowed span constant; the scalar branch takes a different code path.
@@ -439,8 +435,8 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     if (sizeOf != payload.size())
         return ConstantRef::invalid();
 
-    const TypeRef   storageTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    const TypeInfo& storageType    = ctx.typeMgr().get(storageTypeRef.isValid() ? storageTypeRef : typeRef);
+    const TypeRef   storageTypeRef = typeInfo.isAlias() || typeInfo.isEnum() ? typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum) : typeRef;
+    const TypeInfo& storageType    = storageTypeRef == typeRef ? typeInfo : ctx.typeMgr().get(storageTypeRef);
     if (storageType.isStruct() && storageType.payloadSymStruct().isUnion())
         return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeRef, payload));
 

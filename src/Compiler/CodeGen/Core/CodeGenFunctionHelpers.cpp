@@ -368,6 +368,27 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveStoredVariablePayload(CodeGen&
     SWC_UNREACHABLE();
 }
 
+namespace
+{
+    void setParameterTypeInfo(CodeGenFunctionHelpers::FunctionParameterInfo& result, const ABITypeNormalize::NormalizedType& type, uint32_t slotIndex)
+    {
+        result.slotIndex         = slotIndex;
+        result.isFloat           = type.isFloat;
+        result.isSigned          = type.isSigned;
+        result.isIndirect        = type.isIndirect;
+        result.needsIndirectCopy = type.needsIndirectCopy;
+        result.numBits           = type.numBits;
+        result.opBits            = functionParameterLoadBits(type.isFloat, type.numBits);
+    }
+
+    void setParameterLocationInfo(CodeGenFunctionHelpers::FunctionParameterInfo& result, const CallConv& callConv, std::span<const ABICall::ArgLayout> argLayouts)
+    {
+        result.registerIndex = ABICall::argumentRegisterIndex(callConv, argLayouts, result.slotIndex);
+        result.isRegisterArg = result.registerIndex != UINT32_MAX;
+        result.stackOffset   = ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
+    }
+}
+
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg, bool hasClosureContextArg)
 {
     SWC_ASSERT(symVar.hasParameterIndex());
@@ -377,13 +398,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     const uint32_t                         parameterIndex  = symVar.parameterIndex();
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
 
-    result.slotIndex         = parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
-    result.isFloat           = normalizedParam.isFloat;
-    result.isSigned          = normalizedParam.isSigned;
-    result.isIndirect        = normalizedParam.isIndirect;
-    result.needsIndirectCopy = normalizedParam.needsIndirectCopy;
-    result.numBits           = normalizedParam.numBits;
-    result.opBits            = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
+    setParameterTypeInfo(result, normalizedParam, parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
 
     SmallVector<ABICall::ArgLayout> argLayouts;
     argLayouts.reserve(symbolFunc.parameters().size() + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
@@ -397,15 +412,45 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
         const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
         argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
     }
-    result.registerIndex = ABICall::argumentRegisterIndex(callConv, argLayouts, result.slotIndex);
-    result.isRegisterArg = result.registerIndex != UINT32_MAX;
-    result.stackOffset   = ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
+    setParameterLocationInfo(result, callConv, argLayouts);
     return result;
 }
 
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
 {
     return functionParameterInfo(codeGen, symbolFunc, symVar, functionUsesIndirectReturnStorage(codeGen, symbolFunc), symbolFunc.isClosure());
+}
+
+void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::span<FunctionParameterInfo> outParamInfos, const SymbolFunction& symbolFunc, bool hasIndirectReturnArg, bool hasClosureContextArg)
+{
+    const auto& params = symbolFunc.parameters();
+    SWC_ASSERT(outParamInfos.size() == params.size());
+
+    const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
+    SmallVector<ABICall::ArgLayout> argLayouts;
+    argLayouts.reserve(params.size() + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
+    if (hasIndirectReturnArg)
+        argLayouts.push_back({});
+    if (hasClosureContextArg)
+        argLayouts.push_back({});
+
+    for (size_t i = 0; i < params.size(); ++i)
+    {
+        const SymbolVariable* param = params[i];
+        SWC_ASSERT(param != nullptr && param->hasParameterIndex());
+        const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+        const uint32_t slotIndex = param->parameterIndex() + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
+        setParameterTypeInfo(outParamInfos[i], type, slotIndex);
+        argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
+    }
+
+    for (FunctionParameterInfo& paramInfo : outParamInfos)
+        setParameterLocationInfo(paramInfo, callConv, argLayouts);
+}
+
+void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::span<FunctionParameterInfo> outParamInfos, const SymbolFunction& symbolFunc)
+{
+    fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc, functionUsesIndirectReturnStorage(codeGen, symbolFunc), symbolFunc.isClosure());
 }
 
 bool CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)

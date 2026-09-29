@@ -349,16 +349,14 @@ namespace
         if (normalizedType.isReference())
             return;
 
-        const TypeRef   normalizedTypeUnwrapped = normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
-        const TypeRef   dstTypeRef              = normalizedTypeUnwrapped.isValid() ? normalizedTypeUnwrapped : normalizedTypeRef;
-        const TypeInfo& dstType                 = typeMgr.get(dstTypeRef);
+        const TypeRef   normalizedTypeUnwrapped = normalizedType.isAlias() ? normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias) : TypeRef::invalid();
+        const TypeInfo& dstType                 = normalizedTypeUnwrapped.isValid() ? typeMgr.get(normalizedTypeUnwrapped) : normalizedType;
 
         if (argPayload.typeRef.isValid())
         {
             const TypeInfo& srcTypeInfo      = typeMgr.get(argPayload.typeRef);
-            const TypeRef   srcTypeUnwrapped = srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
-            const TypeRef   srcTypeRef       = srcTypeUnwrapped.isValid() ? srcTypeUnwrapped : argPayload.typeRef;
-            const TypeInfo& srcType          = typeMgr.get(srcTypeRef);
+            const TypeRef   srcTypeUnwrapped = srcTypeInfo.isAlias() ? srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias) : TypeRef::invalid();
+            const TypeInfo& srcType          = srcTypeUnwrapped.isValid() ? typeMgr.get(srcTypeUnwrapped) : srcTypeInfo;
             const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
             const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 
@@ -738,14 +736,10 @@ namespace
         argPayload.markMaterializedPointerLikeValue();
     }
 
-    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg)
+    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, const ResolvedCallArgument& resolvedArg)
     {
-        if (normalizedTypeRef.isInvalid())
-            return;
-
         TaskContext&                           ctx            = codeGen.ctx();
         const TypeInfo&                        normalizedType = ctx.typeMgr().get(normalizedTypeRef);
-        const ABITypeNormalize::NormalizedType normalizedArg  = ABITypeNormalize::normalize(ctx, callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
         SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect, normalizedArg.isFloat, normalizedArg.numBits));
         const bool passAddressRef = normalizedType.isReference() && resolvedArg.bindsReferenceToValue;
 
@@ -1045,10 +1039,10 @@ namespace
             SWC_RESULT(materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize));
             materializePreparedBorrowedAggregateArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
+            fillPreparedDirectArgType(preparedArg, codeGen, argPayload, normalizedTypeRef, normalizedArg, arg);
         }
 
         preparedArg.srcReg = argPayload.reg;
-        fillPreparedDirectArgType(preparedArg, codeGen, callConv, argPayload, normalizedTypeRef, arg);
         preparedArg.kind = abiPreparedArgKind(arg.passKind);
         out.args.push_back(preparedArg);
         return Result::Continue;
@@ -1075,12 +1069,15 @@ namespace
     {
         while (typeRef.isValid())
         {
-            const TypeInfo& typeInfo         = codeGen.typeMgr().get(typeRef);
-            const TypeRef   unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
+            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+            if (typeInfo.isAlias())
             {
-                typeRef = unwrappedTypeRef;
-                continue;
+                const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
+                if (unwrappedTypeRef.isValid())
+                {
+                    typeRef = unwrappedTypeRef;
+                    continue;
+                }
             }
 
             if (!typeInfo.isReference())

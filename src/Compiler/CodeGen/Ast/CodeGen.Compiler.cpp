@@ -156,12 +156,7 @@ namespace
             return;
 
         outParamInfos.resize(params.size());
-        for (size_t i = 0; i < params.size(); ++i)
-        {
-            const SymbolVariable* symVar = params[i];
-            SWC_ASSERT(symVar != nullptr);
-            outParamInfos[i] = CodeGenFunctionHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar);
-        }
+        CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc);
     }
 
     void materializeCompilerRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)

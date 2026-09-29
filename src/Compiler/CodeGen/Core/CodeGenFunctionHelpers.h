@@ -50,6 +50,8 @@ namespace CodeGenFunctionHelpers
     CodeGenNodePayload    resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg, bool hasClosureContextArg);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
+    void                  fillFunctionParameterInfos(CodeGen& codeGen, std::span<FunctionParameterInfo> outParamInfos, const SymbolFunction& symbolFunc, bool hasIndirectReturnArg, bool hasClosureContextArg);
+    void                  fillFunctionParameterInfos(CodeGen& codeGen, std::span<FunctionParameterInfo> outParamInfos, const SymbolFunction& symbolFunc);
     bool                  canUseIncomingIndirectParameterAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
     bool                  isBorrowedIndirectParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
     bool                  isByValueAggregateParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);

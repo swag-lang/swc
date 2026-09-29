@@ -665,8 +665,8 @@ impl Slice
     // stores them.
     mtd mvdCabac(mb: *Mb, list: u32, x4, y4: s32)->[2] s16
     {
-        let a = .motionAt(mb, list, x4 - 1, y4)
-        let b = .motionAt(mb, list, x4, y4 - 1)
+        let a = .neighborMvd(mb, list, x4 - 1, y4)
+        let b = .neighborMvd(mb, list, x4, y4 - 1)
 
         var range = .cabac.range
         var low   = .cabac.low
@@ -676,8 +676,8 @@ impl Slice
         var result: retval
         for component in 2'u32
         {
-            let sumA    = component == 0 ? absS32(cast(s32) a.mvdX) : absS32(cast(s32) a.mvdY)
-            let sumB    = component == 0 ? absS32(cast(s32) b.mvdX) : absS32(cast(s32) b.mvdY)
+            let sumA    = absS32(cast(s32) a[component])
+            let sumB    = absS32(cast(s32) b[component])
             let amvd    = sumA + sumB
             var ctxBase = component == 0 ? 40'u32 : 47'u32
             var ctx     = 0'u32
@@ -693,15 +693,16 @@ impl Slice
                 continue
             }
 
-            var value    = 1'u32
-            var unaryCtx = ctxBase + 3
+            // The unary prefix walks its contexts through one state pointer.
+            var value = 1'u32
+            var unary = .cabac.contexts.buffer + cast(u64) (ctxBase + 3)
             while value < 9
             {
-                .binDecision(unaryCtx)
+                .binDecisionAt(unary)
                 if (binState & 1) == 0 do
                     break
                 if value < 4 do
-                    unaryCtx += 1
+                    unary += 1
                 value += 1
             }
 
@@ -1051,11 +1052,13 @@ impl Slice
         {
             for plane in 2's32
             {
-                let scale = .dequantRow4(mb, cast(u32) plane + 1)
+                let scale  = .dequantRow4(mb, cast(u32) plane + 1)
+                let counts = plane == 0 ? (mb.nzCb).buffer : (mb.nzCr).buffer
                 for block in 4's32
                 {
-                    let nzA   = .chromaBlockNz(mb, cast(u32) plane, (block & 1) - 1, block >> 1)
-                    let nzB   = .chromaBlockNz(mb, cast(u32) plane, block & 1, (block >> 1) - 1)
+                    // A neighbor inside the macroblock is its own count, decoded just before.
+                    let nzA   = block & 1 ? cast(s32) counts[cast(u64) block - 1] : .chromaBlockNz(mb, cast(u32) plane, -1, block >> 1)
+                    let nzB   = block >> 1 ? cast(s32) counts[cast(u64) block - 2] : .chromaBlockNz(mb, cast(u32) plane, block & 1, -1)
                     let count = .residualCabac'(15, false)(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16, nzA, nzB, scale)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
@@ -1094,8 +1097,9 @@ impl Slice
 
         // One transform size and one quantizer serve the whole macroblock, so its row of
         // dequantization factors is looked up once rather than for every block.
-        let use8x8 = mb.transform8x8 and mb.class != MbClassIntra16x16
-        let scale  = use8x8 ? .dequantRow8(mb, plane) : .dequantRow4(mb, plane)
+        let use8x8       = mb.transform8x8 and mb.class != MbClassIntra16x16
+        let codesFlag8x8 = use8x8 and .dec!.sps!.is444()
+        let scale        = use8x8 ? .dequantRow8(mb, plane) : .dequantRow4(mb, plane)
         for quad in 4's32
         {
             if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
@@ -1104,9 +1108,10 @@ impl Slice
             {
                 // A 4:4:4 8x8 block codes a flag of its own, whose context reads the block left
                 // of and above the quadrant's first cell.
+                // Only a 4:4:4 picture codes that flag; the counts are not asked for otherwise.
                 let first = (quad >> 1) * 8 + (quad & 1) * 2
-                let nzA   = .blockNz8x8(mb, plane, (first & 3) - 1, first >> 2)
-                let nzB   = .blockNz8x8(mb, plane, first & 3, (first >> 2) - 1)
+                let nzA   = codesFlag8x8 ? .blockNz8x8(mb, plane, (first & 3) - 1, first >> 2) : 0
+                let nzB   = codesFlag8x8 ? .blockNz8x8(mb, plane, first & 3, (first >> 2) - 1) : 0
                 let count = .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, nzA, nzB, scale)
 
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
@@ -1127,8 +1132,11 @@ impl Slice
                 let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
                 let bx     = raster & 3
                 let by     = raster >> 2
-                let nzA    = .blockNz(mb, plane, bx - 1, by)
-                let nzB    = .blockNz(mb, plane, bx, by - 1)
+
+                // A neighbor inside this macroblock is its own count, already decoded in the
+                // block order; only the edge blocks ask about the neighboring macroblocks.
+                let nzA    = bx > 0 ? cast(s32) storage.nz[cast(u64) raster - 1] : .blockNz(mb, plane, bx - 1, by)
+                let nzB    = by > 0 ? cast(s32) storage.nz[cast(u64) raster - 4] : .blockNz(mb, plane, bx, by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
                     count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, scale)

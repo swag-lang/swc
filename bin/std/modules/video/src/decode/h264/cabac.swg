@@ -200,66 +200,95 @@ impl Slice
             isIntra = true
             mbType  = .intraMbTypeCabac(mb, 3, intraSlice: true)
         }
-        elif .header.type == SliceTypeP
-        {
-            if .decision(14) != 0
-            {
-                isIntra = true
-                mbType  = .intraMbTypeCabac(mb, 17, intraSlice: false)
-            }
-            elif .decision(15) == 0
-            {
-                mbType = 3 * .decision(16)
-            }
-            else
-            {
-                mbType = 2 - .decision(17)
-            }
-        }
         else
         {
-            var ctx = 0'u32
-            if .neighbors.a.available and not .neighbors.a.info!.direct do
-                ctx += 1
-            if .neighbors.b.available and not .neighbors.b.info!.direct do
-                ctx += 1
-
-            if .decision(27 + ctx) == 0
+            // The inter macroblock type is a few bins decoded against local arithmetic
+            // registers, written back before an intra type takes over the reader.
+            var range = .cabac.range
+            var low   = .cabac.low
+            var binState: s64
+            var intraBase = 0'u32
+            if .header.type == SliceTypeP
             {
-                mbType = 0
-            }
-            elif .decision(30) == 0
-            {
-                mbType = 1 + .decision(32)
-            }
-            else
-            {
-                var bits = .decision(31) << 3
-                bits += .decision(32) << 2
-                bits += .decision(32) << 1
-                bits += .decision(32)
-                if bits < 8
+                .binDecision(14)
+                if (binState & 1) != 0
                 {
-                    mbType = bits + 3
-                }
-                elif bits == 13
-                {
-                    isIntra = true
-                    mbType  = .intraMbTypeCabac(mb, 32, intraSlice: false)
-                }
-                elif bits == 14
-                {
-                    mbType = 11
-                }
-                elif bits == 15
-                {
-                    mbType = 22
+                    intraBase = 17
                 }
                 else
                 {
-                    bits   = (bits << 1) + .decision(32)
-                    mbType = bits - 4
+                    .binDecision(15)
+                    if (binState & 1) == 0
+                    {
+                        .binDecision(16)
+                        mbType = 3 * cast(u32) (binState & 1)
+                    }
+                    else
+                    {
+                        .binDecision(17)
+                        mbType = 2 - cast(u32) (binState & 1)
+                    }
                 }
+            }
+            else
+            {
+                var ctx = 0'u32
+                if .neighbors.a.available and not .neighbors.a.info!.direct do
+                    ctx += 1
+                if .neighbors.b.available and not .neighbors.b.info!.direct do
+                    ctx += 1
+
+                let states = .cabac.contexts.buffer + 32
+                .binDecision(27 + ctx)
+                if (binState & 1) != 0
+                {
+                    .binDecision(30)
+                    if (binState & 1) == 0
+                    {
+                        .binDecisionAt(states)
+                        mbType = 1 + cast(u32) (binState & 1)
+                    }
+                    else
+                    {
+                        .binDecision(31)
+                        var bits = cast(u32) (binState & 1) << 3
+                        .binDecisionAt(states)
+                        bits += cast(u32) (binState & 1) << 2
+                        .binDecisionAt(states)
+                        bits += cast(u32) (binState & 1) << 1
+                        .binDecisionAt(states)
+                        bits += cast(u32) (binState & 1)
+                        if bits < 8
+                        {
+                            mbType = bits + 3
+                        }
+                        elif bits == 13
+                        {
+                            intraBase = 32
+                        }
+                        elif bits == 14
+                        {
+                            mbType = 11
+                        }
+                        elif bits == 15
+                        {
+                            mbType = 22
+                        }
+                        else
+                        {
+                            .binDecisionAt(states)
+                            mbType = (bits << 1) + cast(u32) (binState & 1) - 4
+                        }
+                    }
+                }
+            }
+
+            .cabac.range = range
+            .cabac.low   = low
+            if intraBase != 0
+            {
+                isIntra = true
+                mbType  = .intraMbTypeCabac(mb, intraBase, intraSlice: false)
             }
         }
 

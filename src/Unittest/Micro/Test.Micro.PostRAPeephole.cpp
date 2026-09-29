@@ -350,6 +350,116 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksFrameReloadOnFallthroughOnly)
 }
 SWC_TEST_END()
 
+// The reload may sit behind a comparison of another register, and moves to the
+// fallthrough edge ahead of it; a comparison of the reloaded register pins it.
+SWC_TEST_BEGIN(PostRAPeephole_SinksFrameReloadPastIndependentCompare)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  value = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+
+    for (const bool comparesValue : {false, true})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef cold = builder.createLabel();
+        const MicroLabelRef join = builder.createLabel();
+        const MicroLabelRef out  = builder.createLabel();
+        builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+        builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, cold);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(cold);
+        builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+        builder.placeLabel(join);
+        builder.emitCmpRegImm(comparesValue ? value : flag, ApInt(2, 64), MicroOpBits::B64);
+        builder.emitLoadRegMem(value, conv.stackPointer, 64, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, out);
+        builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+        builder.placeLabel(out);
+        builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+        uint32_t labelIndex = 0;
+        uint32_t loadIndex  = 0;
+        uint32_t index      = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::Label && ops && ops[0].valueU64 == join.get())
+                labelIndex = index;
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[0].reg == value &&
+                ops[1].reg == conv.stackPointer && ops[3].valueU64 == 64)
+                loadIndex = index;
+            ++index;
+        }
+        if (!labelIndex || !loadIndex || comparesValue == (loadIndex < labelIndex))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A spill store every path overwrites before reading, or abandons in the
+// epilogue, goes; a path that reads the slot, reads part of it, or moves the
+// stack pointer keeps it.
+SWC_TEST_BEGIN(PostRAPeephole_ErasesSpillStoreOverwrittenOnEveryPath)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  value = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef loop = builder.createLabel();
+        const MicroLabelRef cold = builder.createLabel();
+        builder.placeLabel(loop);
+        builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+        builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, cold);
+        if (variant == 1)
+            builder.emitLoadRegMem(flag, conv.stackPointer, 64, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadRegMem(flag, conv.stackPointer, 68, MicroOpBits::B32);
+        if (variant == 3)
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitOpUnaryReg(value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loop);
+        builder.placeLabel(cold);
+        if (variant == 4)
+        {
+            builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(0x48, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitRet();
+        }
+        else
+        {
+            builder.emitLoadMemReg(conv.stackPointer, 64, flag, MicroOpBits::B64);
+            builder.emitLoadRegMem(value, conv.stackPointer, 64, MicroOpBits::B64);
+            builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+            builder.emitRet();
+        }
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 64, 72));
+
+        uint32_t valueStores = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadMemReg && ops && ops[0].reg == conv.stackPointer && ops[1].reg == value)
+                ++valueStores;
+        }
+        if (valueStores != (variant == 0 || variant == 4 ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FoldsDeadScalarIncrement)
 {
     constexpr MicroReg value = MicroReg::intReg(0);
@@ -521,6 +631,8 @@ SWC_TEST_BEGIN(PostRAPeephole_ForwardsLocalPointerAcrossDisjointSpill)
         builder.instructions().erase(oldCompare);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, done);
         builder.placeLabel(done);
+        // Something reads the spilled value back, so the store stays.
+        builder.emitOpBinaryRegMem(other, stackPointer, variant == 2 ? 0x88 : 0x80, MicroOp::Add, MicroOpBits::B64);
         builder.emitRet();
 
         X64Encoder encoder(ctx);

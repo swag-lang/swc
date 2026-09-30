@@ -6,6 +6,28 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.063 — Reduce the PDF spill-slot regression to a standalone language test
+
+- Recorded: 2026-09-30 11:15
+- Updated: 2026-09-30 14:18 — retain only the standalone regression coverage still missing
+- Evidence: `sinkFrameStoreIntoBranchTarget` compared raw stack displacements across outgoing-call
+  stack adjustments. In `Pdf.parseContent`, a store at `[rsp + 0x1AA8]` under an eight-byte
+  adjustment belonged to the slot later read at `[rsp + 0x1AA0]`. The pass mistook it for another
+  loop's store at the first displacement and erased it. Comparing entry-relative addresses fixes
+  the three PDF failures; all eleven selected corpus/stroke tests pass in release JIT and native
+  execution. `PostRAPeephole_SpillStoreSinkingTracksStackDepth` fails before the fix and covers both
+  distinct slots with equal displacements and one slot with different displacements.
+- Remaining boundary: that regression is a C++ Micro test, not a standalone source under
+  `bin/unittests`. Extracting the parser and dash loop into a Core-only script passes even without
+  the fix. Forty-eight standalone two-loop variants, varying call arity from one to twelve and
+  live accumulator pressure, also pass without it. Those reductions change register allocation
+  and no longer place the two loops' spills at the conflicting adjusted displacements; retaining
+  the full GUI decoder would violate the standalone suite boundary.
+- Next: reduce the interacting loops and their register pressure while checking the pre-fix
+  post-allocation instruction stream, then keep a native suite case that fails without the fix.
+- Complete when: `bin/unittests/native` reproduces this stack-depth aliasing independently of GUI,
+  alongside the existing C++ regression and PDF consumer tests.
+
 ### compiler.core.061 — Type-info graph publication uses one serialization domain
 
 - Recorded: 2026-09-30 08:34
@@ -28,36 +50,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   repeated parallel cold compilation.
 - Related: compiler.core.020, compiler.core.007.
 
-### compiler.core.063 — Three PDF tests of `std/gui` fail under the release configuration
-
-- Recorded: 2026-09-30 11:15
-- Area: compiler/backend, release code generation as the JIT runs it
-- Evidence: `bin\swc.dm.exe --num-cores 6 tools\std.swgs dm test gui -bc release --num-cores 6`
-  at `170a1d7f4` reports 782 passed and 3 that did not: `pdf.corpus.test.swg:42` and `:57`
-  stop on an access violation in `PdfParser.number` (`parser.swg:1151`, a read of freed
-  storage, register image `0xDEDEDEDE`), and `pdf.stroke.test.swg:15` fails its dash-pattern
-  assertion. The same tests pass with `-bc devmode`. A probe printed from the stroke test shows
-  the decoded pattern holds two values, `10 10`, where `[10 5 3]` must give six: the loop
-  `for valueId in content.nodes[arrayId].values` of the `d` operator in `decode.swg` ran once,
-  and the odd-count rule then doubled the single value. That array holds direct numbers, so
-  `resolve` parses nothing and the node table does not move during the loop.
-- Ruled out: the generated-code campaign of 2026-09-30. With every mechanism it added switched
-  off in a scratch build - immutable handle parameters, nest unrolling and single-trip latches,
-  the reload and dead-store rules, the unsigned-division proof and the deferred signed
-  expansion, the zero-tested remainder, the LICM gap, the post-allocation store rule - and the
-  standard library rebuilt from empty output directories, `pdf.stroke.test.swg` still fails
-  the same way. A standalone script that rebuilds the operator's loop - an `Array` member of an
-  element of another `Array`, iterated while the body calls a method on the owning parser and
-  can `fail` - prints the right six values in both configurations, so the loop itself is sound:
-  the array node probably reaches it with one value already.
-- Not established: which change introduced it, and whether `master` of the morning of
-  2026-09-30 already failed. The headless campaign in the release configuration stops at this
-  module, so `video`, the applications and the reference were run apart.
-- Next: print the value count of the array node the content parser builds for `[10 5 3]` in
-  release, reduce the parsing step that loses two values to a suite test under `bin/unittests`,
-  then bisect the backend and code-generation commits since the last green release campaign
-  with it.
-- Complete when: the three tests pass in release, and a suite test fails on the defect.
 ### compiler.core.062 — Unlocated EOF diagnostics can suppress another file's error state
 
 - Recorded: 2026-09-30 11:02

@@ -143,7 +143,10 @@ using Swag, Core, Pixel
     surface.invalidate()
     surface.paint()
     let rendered = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
-    var image    = rendered.cropped(25, 60, cast(s32) surface.position.width - 50, cast(s32) surface.position.height - cast(s32) dlg.buttonBar.position.height - 60)
+    // End at the action bar's actual position: subtracting its height from the
+    // surface height also includes the bottom window border.
+    let contentBottom = cast(s32) dlg.buttonBar.surfaceRect().y
+    var image = rendered.cropped(25, 60, cast(s32) surface.position.width - 50, contentBottom - 60)
     Pixel.Testing.assertImageGolden(&image, "aboutdlg.identity.dark")
 }
 

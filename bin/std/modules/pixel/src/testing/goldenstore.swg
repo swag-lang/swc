@@ -1,5 +1,6 @@
 #global public
 #global namespace Testing
+#global #[Swag.Safety(.Assert, true)]
 
 using Swag, Core
 
@@ -28,6 +29,8 @@ struct ImageGoldenOptions
 // text next to it as '<name>.actual.txt', prints the first differing line, and fails. Accepting
 // the new output is therefore a copy, which `swc tools/goldens.swgs` does in bulk.
 //
+// These checks remain active when Pixel is built as a release dependency.
+//
 // Both writes land in the module source tree, which a sandboxed run reaches only through the
 // corpus 'swc test' grants it. See [[Core.Env.grantCorpus]].
 func assertGolden(painter: const *Painter, name: string, level = DumpLevel.Full, loc = #callerlocation)
@@ -41,6 +44,7 @@ func assertGolden(painter: const *Painter, name: string, level = DumpLevel.Full,
 // Behaves exactly like [[Pixel.Testing.assertGolden]] but takes the snapshot text directly, for callers
 // that build their own normalized representation. Both sides are compared with end of lines
 // normalized to '\n', so a CRLF checkout never changes the outcome.
+// The check remains active when Pixel is built as a release dependency.
 func assertGoldenText(text: string, name: string, loc = #callerlocation)
 {
     let path = goldenPath(name, ".txt", loc)
@@ -79,6 +83,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
 // at or below [[Pixel.Testing.ImageGoldenOptions.maxChannelDelta]] is accepted; at most
 // [[Pixel.Testing.ImageGoldenOptions.maxDifferentPixels]] pixels may exceed it. A failed comparison
 // writes `<name>.expected.png` and `<name>.actual.png` beside the calling test.
+// The check remains active when Pixel is built as a release dependency.
 func assertImagesNear(expected, actual: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
     Swag.assert(expected != null and expected.isValid(), "expected image needs allocated pixels")
@@ -106,6 +111,7 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes `<name>.actual.png`, reports its
 // first differing pixel, and fails. [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or
 // raster differences; both limits default to exact comparison.
+// The check remains active when Pixel is built as a release dependency.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
     Swag.assert(image != null and image.isValid(), "image golden needs allocated pixels")

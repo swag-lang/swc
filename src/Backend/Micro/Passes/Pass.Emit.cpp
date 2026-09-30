@@ -49,37 +49,95 @@ namespace
     constexpr uint32_t K_LOOP_HEADER_ALIGNMENT = 16;
 }
 
+MicroEmitPass::LabelInfo& MicroEmitPass::labelInfo(const MicroLabelRef labelRef)
+{
+    const uint32_t index = labelRef.get();
+    if (index >= labels_.size())
+        labels_.resize(static_cast<size_t>(index) + 1);
+    return labels_[index];
+}
+
+// The label's entry when the current layout has reached it, null otherwise.
+const MicroEmitPass::LabelInfo* MicroEmitPass::findLabelInfo(const MicroLabelRef labelRef) const
+{
+    const uint32_t index = labelRef.get();
+    if (index >= labels_.size() || labels_[index].offsetStamp != layoutStamp_)
+        return nullptr;
+    return &labels_[index];
+}
+
+bool MicroEmitPass::findRelocationIndex(uint32_t& outIndex, const MicroInstrRef instructionRef) const
+{
+    const uint32_t slot = instructionRef.get();
+    if (slot >= slots_.size() || slots_[slot].relocationStamp != functionStamp_)
+        return false;
+    outIndex = slots_[slot].relocationIndex;
+    return true;
+}
+
+bool MicroEmitPass::isShortJump(const MicroInstrRef instructionRef) const
+{
+    const uint32_t slot = instructionRef.get();
+    return slot < slots_.size() && slots_[slot].shortJumpStamp == functionStamp_;
+}
+
+void MicroEmitPass::nextFunctionStamp()
+{
+    if (++functionStamp_)
+        return;
+
+    // Zero marks an entry no function has written, so a wrapped counter starts over on clean tables.
+    for (LabelInfo& label : labels_)
+        label.seenStamp = label.loopHeaderStamp = 0;
+    for (SlotInfo& slot : slots_)
+        slot = {};
+    functionStamp_ = 1;
+}
+
+void MicroEmitPass::nextLayoutStamp()
+{
+    if (++layoutStamp_)
+        return;
+
+    for (LabelInfo& label : labels_)
+        label.offsetStamp = 0;
+    std::ranges::fill(boundRelocationStamps_, 0);
+    layoutStamp_ = 1;
+}
+
 void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
 {
     // Relocation-backed absolute pointer loads embed a trailing 64-bit immediate.
-    const auto found = relocationByInstructionRef_.find(instructionRef);
-    SWC_ASSERT(found != relocationByInstructionRef_.end());
-    if (found == relocationByInstructionRef_.end())
+    uint32_t   relocationIndex = 0;
+    const bool found           = findRelocationIndex(relocationIndex, instructionRef);
+    SWC_ASSERT(found);
+    if (!found)
         return;
 
     SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
-    MicroRelocation& reloc = context.builder->codeRelocations()[found->second];
-    reloc.codeOffset       = codeEndOffset - sizeof(uint64_t);
-    boundRelocations_.insert(found->second);
+    MicroRelocation& reloc                  = context.builder->codeRelocations()[relocationIndex];
+    reloc.codeOffset                        = codeEndOffset - sizeof(uint64_t);
+    boundRelocationStamps_[relocationIndex] = layoutStamp_;
 }
 
 void MicroEmitPass::bindRel32RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset, uint32_t trailingBytes) const
 {
-    const auto found = relocationByInstructionRef_.find(instructionRef);
-    SWC_ASSERT(found != relocationByInstructionRef_.end());
-    if (found == relocationByInstructionRef_.end())
+    uint32_t   relocationIndex = 0;
+    const bool found           = findRelocationIndex(relocationIndex, instructionRef);
+    SWC_ASSERT(found);
+    if (!found)
         return;
 
     SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint32_t) + trailingBytes);
-    MicroRelocation& reloc = context.builder->codeRelocations()[found->second];
+    MicroRelocation& reloc = context.builder->codeRelocations()[relocationIndex];
     SWC_ASSERT(reloc.form == MicroRelocation::Form::Relative32);
     reloc.codeOffset = codeEndOffset - trailingBytes - sizeof(uint32_t);
 
     // A RIP-relative displacement is measured from the end of the instruction,
     // so whoever patches it needs to know where that is. Nothing else in the
     // record carries the instruction's extent.
-    reloc.relativeEndOffset = codeEndOffset;
-    boundRelocations_.insert(found->second);
+    reloc.relativeEndOffset                 = codeEndOffset;
+    boundRelocationStamps_[relocationIndex] = layoutStamp_;
 }
 
 void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInstrRef instructionRef, const MicroInstr& inst)
@@ -99,7 +157,8 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             // Record concrete code offset so pending branch patches can resolve target.
             SWC_ASSERT(ops[0].valueU64 <= std::numeric_limits<uint32_t>::max());
             const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
-            if (loopHeaders_.contains(labelRef))
+            LabelInfo&          label = labelInfo(labelRef);
+            if (label.loopHeaderStamp == functionStamp_)
             {
                 const uint32_t misalignment = static_cast<uint32_t>(encoder.currentOffset() % K_LOOP_HEADER_ALIGNMENT);
                 if (misalignment)
@@ -107,15 +166,16 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
                 paddedLabels_++;
             }
 
-            labelOffsets_[labelRef]   = encoder.currentOffset();
-            paddedLabelsAt_[labelRef] = paddedLabels_;
+            label.offset       = encoder.currentOffset();
+            label.paddedLabels = paddedLabels_;
+            label.offsetStamp  = layoutStamp_;
             break;
         }
         case MicroInstrOpcode::JumpCond:
         {
             // Emit jump with placeholder displacement; patch after all labels are seen.
             MicroJump         jump;
-            const MicroOpBits jumpBits = shortJumps_.contains(instructionRef) ? MicroOpBits::B8 : ops[1].opBits;
+            const MicroOpBits jumpBits = isShortJump(instructionRef) ? MicroOpBits::B8 : ops[1].opBits;
             encoder.encodeJump(jump, ops[0].cpuCond, jumpBits);
             jump.valid = true;
             SWC_ASSERT(ops[2].valueU64 <= std::numeric_limits<uint32_t>::max());
@@ -141,12 +201,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::LoadRegPtrReloc:
         {
             SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
-            const auto relocIt = relocationByInstructionRef_.find(instructionRef);
-            SWC_ASSERT(relocIt != relocationByInstructionRef_.end());
-            if (relocIt == relocationByInstructionRef_.end())
+            uint32_t   relocationIndex = 0;
+            const bool hasRelocation   = findRelocationIndex(relocationIndex, instructionRef);
+            SWC_ASSERT(hasRelocation);
+            if (!hasRelocation)
                 break;
 
-            MicroRelocation& relocation = context.builder->codeRelocations()[relocIt->second];
+            MicroRelocation& relocation = context.builder->codeRelocations()[relocationIndex];
             const uint32_t   loadStart  = encoder.size();
             if ((relocation.kind == MicroRelocation::Kind::ConstantAddress && relocation.hasConstantSource()) ||
                 relocation.kind == MicroRelocation::Kind::GlobalZeroAddress ||
@@ -192,12 +253,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::CallLocal:
         case MicroInstrOpcode::CallExtern:
         {
-            const auto relocIt = relocationByInstructionRef_.find(instructionRef);
-            SWC_ASSERT(relocIt != relocationByInstructionRef_.end());
-            if (relocIt == relocationByInstructionRef_.end())
+            uint32_t   relocationIndex = 0;
+            const bool hasRelocation   = findRelocationIndex(relocationIndex, instructionRef);
+            SWC_ASSERT(hasRelocation);
+            if (!hasRelocation)
                 break;
 
-            MicroRelocation& relocation = context.builder->codeRelocations()[relocIt->second];
+            MicroRelocation& relocation = context.builder->codeRelocations()[relocationIndex];
             if (inst.op == MicroInstrOpcode::CallLocal)
                 SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress);
             else
@@ -539,24 +601,22 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
 
 void MicroEmitPass::collectLoopHeaders(const MicroPassContext& context)
 {
-    loopHeaders_.clear();
     if (!alignLoopHeaders_)
         return;
 
     // A jump to a label already seen closes a loop whose header is that label.
-    std::unordered_set<MicroLabelRef> seenLabels;
     for (const MicroInstr& inst : context.instructions->view())
     {
         const MicroInstrOperand* ops = inst.ops(*context.operands);
         if (inst.op == MicroInstrOpcode::Label)
         {
-            seenLabels.insert(MicroLabelRef(static_cast<uint32_t>(ops[0].valueU64)));
+            labelInfo(MicroLabelRef(static_cast<uint32_t>(ops[0].valueU64))).seenStamp = functionStamp_;
         }
         else if (inst.op == MicroInstrOpcode::JumpCond)
         {
-            const MicroLabelRef target(static_cast<uint32_t>(ops[2].valueU64));
-            if (seenLabels.contains(target))
-                loopHeaders_.insert(target);
+            const auto target = static_cast<uint32_t>(ops[2].valueU64);
+            if (target < labels_.size() && labels_[target].seenStamp == functionStamp_)
+                labels_[target].loopHeaderStamp = functionStamp_;
         }
     }
 }
@@ -569,9 +629,13 @@ Result MicroEmitPass::run(MicroPassContext& context)
     auto&       encoder     = *(context.encoder);
     const auto& relocations = context.builder->codeRelocations();
 
-    relocationByInstructionRef_.clear();
-    shortJumps_.clear();
+    nextFunctionStamp();
     (context.builder)->pruneDeadRelocations();
+
+    if (slots_.size() < context.instructions->slotCount())
+        slots_.resize(context.instructions->slotCount());
+    if (boundRelocationStamps_.size() < relocations.size())
+        boundRelocationStamps_.resize(relocations.size(), 0);
 
     // Build instruction->relocation lookup once so LoadRegPtrReloc can bind encoded offsets.
     for (uint32_t idx = 0; idx < relocations.size(); ++idx)
@@ -579,7 +643,9 @@ Result MicroEmitPass::run(MicroPassContext& context)
         const MicroRelocation& reloc = relocations[idx];
         if (reloc.instructionRef.isInvalid())
             continue;
-        relocationByInstructionRef_[reloc.instructionRef] = idx;
+        SlotInfo& slot       = slots_[reloc.instructionRef.get()];
+        slot.relocationIndex = idx;
+        slot.relocationStamp = functionStamp_;
     }
 
     collectLoopHeaders(context);
@@ -593,10 +659,8 @@ Result MicroEmitPass::run(MicroPassContext& context)
         // which one that is.
         encoder.setUnwindFrameRegister(CallConv::get(context.callConvKind).framePointer);
 
-        labelOffsets_.clear();
-        paddedLabelsAt_.clear();
+        nextLayoutStamp();
         pendingLabelJumps_.clear();
-        boundRelocations_.clear();
         paddedLabels_ = 0;
 
         // Emit with the short branches already proved by the preceding layout.
@@ -606,31 +670,41 @@ Result MicroEmitPass::run(MicroPassContext& context)
         bool foundShorterJump = false;
         for (const auto& pending : pendingLabelJumps_)
         {
-            const auto it = labelOffsets_.find(pending.labelRef);
-            SWC_ASSERT(it != labelOffsets_.end());
-            if (it == labelOffsets_.end())
+            const LabelInfo* label = findLabelInfo(pending.labelRef);
+            SWC_ASSERT(label != nullptr);
+            if (!label)
                 continue;
 
-            encoder.encodePatchJump(pending.jump, it->second);
+            encoder.encodePatchJump(pending.jump, label->offset);
 
-            const int64_t displacement = static_cast<int64_t>(it->second) - static_cast<int64_t>(pending.jump.offsetStart);
+            const int64_t displacement = static_cast<int64_t>(label->offset) - static_cast<int64_t>(pending.jump.offsetStart);
             if (pending.jump.opBits == MicroOpBits::B8)
             {
                 SWC_ASSERT(displacement >= std::numeric_limits<int8_t>::min() && displacement <= std::numeric_limits<int8_t>::max());
                 continue;
             }
 
+            // Only a conditional jump has a shorter encoding. A label address or a jump-table
+            // entry names no instruction, and counting one as newly short only repeated the
+            // layout to emit the same bytes.
+            if (pending.instructionRef.isInvalid())
+                continue;
+
             // Shrinking other branches moves the loop headers in between, and each
             // header's padding can then grow back to its full width. A branch is
             // made short only when it still fits with every such padding at its
             // widest, so no later layout can push it out of range.
-            const auto     labelPadded   = paddedLabelsAt_.find(pending.labelRef);
-            const uint32_t paddedBetween = labelPadded->second > pending.paddedLabelsBefore ? labelPadded->second - pending.paddedLabelsBefore : pending.paddedLabelsBefore - labelPadded->second;
+            const uint32_t paddedBetween = label->paddedLabels > pending.paddedLabelsBefore ? label->paddedLabels - pending.paddedLabelsBefore : pending.paddedLabelsBefore - label->paddedLabels;
             const int64_t  worstCase     = static_cast<int64_t>(paddedBetween) * (K_LOOP_HEADER_ALIGNMENT - 1);
             if (displacement - worstCase < std::numeric_limits<int8_t>::min() || displacement + worstCase > std::numeric_limits<int8_t>::max())
                 continue;
 
-            foundShorterJump |= shortJumps_.insert(pending.instructionRef).second;
+            SlotInfo& slot = slots_[pending.instructionRef.get()];
+            if (slot.shortJumpStamp != functionStamp_)
+            {
+                slot.shortJumpStamp = functionStamp_;
+                foundShorterJump    = true;
+            }
         }
 
         // Shrinking a branch can only bring every intervening target closer. Repeat until
@@ -648,8 +722,13 @@ Result MicroEmitPass::run(MicroPassContext& context)
     // that rewrites a relocated access into an encoding whose displacement
     // this pass does not bind is a defect in the rule, and this is where it
     // becomes visible.
-    for (const uint32_t index : relocationByInstructionRef_ | std::views::values)
-        SWC_INTERNAL_CHECK(boundRelocations_.contains(index));
+    for (uint32_t idx = 0; idx < relocations.size(); ++idx)
+    {
+        // Several relocations on one instruction share its patch site; the last one owns it.
+        uint32_t owner = 0;
+        if (findRelocationIndex(owner, relocations[idx].instructionRef) && owner == idx)
+            SWC_INTERNAL_CHECK(boundRelocationStamps_[idx] == layoutStamp_);
+    }
 
     return Result::Continue;
 }

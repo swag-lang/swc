@@ -220,6 +220,21 @@ private:
     Result      runGeneratedArtifact();
     Result      runAfterLink();
 
+    // What every data relocation names: the three section base symbols and the scope hash an
+    // allocation symbol is built from. They depend only on the artifact's scope name, which is
+    // fixed for the whole back end, so they are formatted once instead of once per relocation.
+    struct ScopedSymbolNames
+    {
+        Utf8     rdataBase;
+        Utf8     dataBase;
+        Utf8     bssBase;
+        uint32_t scopeHash = 0;
+    };
+
+    const ScopedSymbolNames& scopedSymbolNames() const;
+
+    mutable std::once_flag                                               scopedSymbolNamesOnce_;
+    mutable ScopedSymbolNames                                            scopedSymbolNames_;
     TaskContext                                                          ctx_;
     CompilerInstance*                                                    compiler_       = nullptr;
     bool                                                                 runArtifact_    = false;

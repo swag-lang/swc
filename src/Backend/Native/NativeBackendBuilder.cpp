@@ -53,9 +53,14 @@ Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, const std::
     return std::format("{}_{:08x}", baseName, Math::hash(nativeArtifactScopeName(compiler).view()));
 }
 
+Utf8 nativeScopedRDataAllocationSymbol(const uint32_t scopeHash, const uint32_t shardIndex, const uint32_t sourceOffset)
+{
+    return std::format("__swc_rdata_{:08x}_{:02x}_{:08x}", scopeHash, shardIndex, sourceOffset);
+}
+
 Utf8 nativeScopedRDataAllocationSymbol(const CompilerInstance& compiler, const uint32_t shardIndex, const uint32_t sourceOffset)
 {
-    return std::format("__swc_rdata_{:08x}_{:02x}_{:08x}", Math::hash(nativeArtifactScopeName(compiler).view()), shardIndex, sourceOffset);
+    return nativeScopedRDataAllocationSymbol(Math::hash(nativeArtifactScopeName(compiler).view()), shardIndex, sourceOffset);
 }
 
 Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
@@ -994,6 +999,18 @@ Result NativeBackendBuilder::resolveFunctionSymbolName(Utf8& outName, const Symb
     return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(ctx()));
 }
 
+const NativeBackendBuilder::ScopedSymbolNames& NativeBackendBuilder::scopedSymbolNames() const
+{
+    std::call_once(scopedSymbolNamesOnce_, [this] {
+        scopedSymbolNames_.rdataBase = nativeScopedSectionBaseSymbol(compiler(), K_R_DATA_BASE_SYMBOL);
+        scopedSymbolNames_.dataBase  = nativeScopedSectionBaseSymbol(compiler(), K_DATA_BASE_SYMBOL);
+        scopedSymbolNames_.bssBase   = nativeScopedSectionBaseSymbol(compiler(), K_BSS_BASE_SYMBOL);
+        scopedSymbolNames_.scopeHash = Math::hash(nativeArtifactScopeName(compiler()).view());
+    });
+
+    return scopedSymbolNames_;
+}
+
 Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation)
 {
     SWC_ASSERT(target.bytes != nullptr);
@@ -1040,12 +1057,12 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
 
             if (target.splitRDataReferences)
             {
-                record.symbolName = nativeScopedRDataAllocationSymbol(compiler(), allocation->shardIndex, allocation->sourceOffset);
+                record.symbolName = nativeScopedRDataAllocationSymbol(scopedSymbolNames().scopeHash, allocation->shardIndex, allocation->sourceOffset);
                 record.addend     = sourceRef.offset - allocation->sourceOffset;
             }
             else
             {
-                record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_R_DATA_BASE_SYMBOL);
+                record.symbolName = scopedSymbolNames().rdataBase;
                 record.addend     = allocation->emittedOffset + (sourceRef.offset - allocation->sourceOffset);
             }
 
@@ -1068,7 +1085,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
         case MicroRelocation::Kind::GlobalZeroAddress:
         {
             const bool isInit = relocation.kind == MicroRelocation::Kind::GlobalInitAddress;
-            record.symbolName = nativeScopedSectionBaseSymbol(compiler(), isInit ? K_DATA_BASE_SYMBOL : K_BSS_BASE_SYMBOL);
+            record.symbolName = isInit ? scopedSymbolNames().dataBase : scopedSymbolNames().bssBase;
             record.addend     = relocation.targetAddress;
 
             if (relocation.form == MicroRelocation::Form::Relative32)

@@ -341,6 +341,7 @@ void Sanitizer::computeChainLiveness()
 
     std::vector<ChainFacts> chains(numStates);
     std::vector<uint32_t>   defStamp;
+    MicroInstrUseDef        useDef;
     for (uint32_t head = 0; head < n; head++)
     {
         const uint32_t stateIndex = headStateIndex_[head];
@@ -354,7 +355,7 @@ void Sanitizer::computeChainLiveness()
         {
             const MicroInstr&      inst   = *context_.instructions->ptr(cfg.instructionRefs()[index]);
             const MicroInstrDef&   def    = MicroInstr::info(inst.op);
-            const MicroInstrUseDef useDef = inst.collectUseDef(*context_.operands, context_.encoder);
+            inst.collectUseDef(useDef, *context_.operands, context_.encoder);
             for (const MicroReg reg : useDef.uses)
             {
                 if (!reg.isVirtual())

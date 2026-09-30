@@ -489,7 +489,10 @@ private:
     T*             ptr_           = nullptr;
     size_type      sizeValue_     = 0;
     size_type      capacityValue_ = InlineCapacity;
-    alignas(T) std::byte inlineDataStorage_[sizeof(T) * InlineCapacity]{};
+    // Raw storage, deliberately left as it comes: every element is constructed before it is
+    // read, and zeroing the buffer first made each vector pay for its whole inline capacity
+    // at construction, used or not.
+    alignas(T) std::byte inlineDataStorage_[sizeof(T) * InlineCapacity];
 };
 
 template<class T>

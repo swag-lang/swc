@@ -95,10 +95,20 @@ namespace
 
 MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const
 {
+    MicroInstrUseDef useDef;
+    collectUseDef(useDef, operands, encoder);
+    return useDef;
+}
+
+void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStorage& operands, const Encoder* encoder) const
+{
     const MicroInstrDef&     opcodeInfo = info(op);
     const MicroInstrOperand* ops        = this->ops(operands);
 
-    MicroInstrUseDef useDef;
+    useDef.uses.clear();
+    useDef.defs.clear();
+    useDef.isCall   = false;
+    useDef.callConv = CallConvKind::Swag;
     if (opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction))
     {
         useDef.isCall   = true;
@@ -124,8 +134,6 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
 
     if (encoder && opcodeInfo.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
         encoder->updateRegUseDef(*this, ops, useDef);
-
-    return useDef;
 }
 
 SWC_END_NAMESPACE();

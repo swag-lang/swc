@@ -7,6 +7,7 @@
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Report/Assert.h"
@@ -509,7 +510,7 @@ private:
     std::unordered_map<AstNodeRef, void*>                            auxNodePayloads_;
     std::unordered_map<const SymbolVariable*, VariablePayloadState>  variablePayloads_;
     std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar> moveElisionVars_;
-    std::unordered_set<const SymbolVariable*>                        elidedImplicitDrops_;
+    PointerSet<const SymbolVariable>                                 elidedImplicitDrops_;
     const SymbolVariable*                                            returnMoveOutVar_    = nullptr;
     bool                                                             moveElisionAnalyzed_ = false;
     SymbolFunction*                                                  function_            = nullptr;

@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-09-30 19:15 — Preserved repeated position loads without extending XMM live ranges.
+- Updated: 2026-09-30 19:41 — Inlined borrowed-slice steps to remove per-step ABI saves.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20260930-152655` reports Zig at 17.0078 ms and Swag native
   Release at 24.8768 ms, with `CHECK=169096566666`. The locally inspected Zig 0.15.2
@@ -46,6 +46,16 @@ block, and the hot path keeps the register.
   unchanged frame references. Energy changes from 237/97/10 to 246/79/10. The floating-cache
   alternative was rejected at 499/148/58 for the step: added XMM residency caused spills.
   The five benchmark checksums, 1204 C++ tests and 3530 release tests in JIT/native pass.
+- Borrowed-slice inlining now admits non-null slices of named element types under the
+  existing same-module, body-cost and single-call-site policy. Nbody's timestep is in main:
+  its loop is 464/117/24 instructions/memory operands/frame operands, including the unchanged
+  16/6/0 position loop. The former out-of-line step was 473/134/44 plus the caller's loop;
+  twenty XMM save/restore frame references and the per-step call/return disappear. The
+  interaction arithmetic remains scalar. Other inspected benchmark functions are unchanged.
+  Enabling this exposed a detached array-literal argument whose element conversions were
+  lost during re-analysis. Reapplying its resolved implicit slice conversion fixes the root
+  cause; operator and argument side effects remain single. The 3532 release JIT/native tests,
+  27 devmode slice tests, semantic positive/negative suites, scripts and five checksums pass.
 - Remaining gap: all ten pair roots and divisions remain scalar. The slice-header root
   and derived data root prevent the current whole-block SLP alias proof. The retained f64
   SLP step is an enabler, not vectorization of the interactions.

@@ -93,7 +93,20 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 Result AstCastExpr::semaPostNode(Sema& sema)
 {
     if (!hasFlag(AstCastExprFlagsE::Explicit))
+    {
+        // A detached inline argument re-analyzes the literal below this resolved
+        // cast. Its elements then have their source types again. Reapply the slice
+        // conversion so operator-built elements cannot revive a stale constant.
+        const TypeRef      targetTypeRef = sema.curViewType().typeRef();
+        const SemaNodeView sourceView    = sema.viewTypeConstant(nodeExprRef);
+        if (targetTypeRef.isValid() && sourceView.type() && sourceView.type()->isAggregateArray() && sema.typeMgr().get(targetTypeRef).isSlice())
+        {
+            CastRequest request(CastKind::Implicit);
+            request.errorNodeRef = nodeExprRef;
+            SWC_RESULT(Cast::castAllowed(sema, request, sourceView.typeRef(), targetTypeRef));
+        }
         return Result::Continue;
+    }
 
     const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
     const SemaNodeView srcTypeView  = sema.viewTypeConstant(nodeExprRef);

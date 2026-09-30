@@ -2470,8 +2470,8 @@ namespace
     //    whose lexical context the materializer cannot preserve.
     // An aggregate/by-value-struct type whose inline materialization is not yet reliable
     // (struct-typed constant payloads, the `retval` placeholder of a struct-returning callee,
-    // by-value aggregate parameters). Auto-inline restricts itself to scalar/pointer signatures
-    // to stay clear of these until the codegen materialization handles moved aggregates.
+    // by-value aggregate parameters). Auto-inline accepts scalar/pointer signatures and borrowed
+    // slice parameters; owning aggregate values still need stronger materialization support.
     bool isInlineAggregateType(const TypeInfo& ti)
     {
         return ti.isStruct() || ti.isArray() || ti.isAggregateStruct() || ti.isAggregateArray() ||
@@ -2550,7 +2550,7 @@ namespace
         if (fn.isPublic() && (bodyHasCalls || decl->autoInlineCost > K_AUTO_INLINE_MAX_BODY_TOKENS))
             return false;
 
-        // Scalar/pointer signature only - see isInlineAggregateType.
+        // Scalar/pointer returns only - see isInlineAggregateType.
         if (fn.returnTypeRef().isValid())
         {
             const TypeInfo& returnType = sema.ctx().typeMgr().get(fn.returnTypeRef());
@@ -2571,7 +2571,12 @@ namespace
             // Nullable qualification is part of the callee's flow contract. The inline binding
             // currently adopts the call-site expression type, which can narrow `nullable *T` to
             // `*T` and make a valid null test in the cloned body ill-typed.
-            if ((bodyHasCalls && paramType.isNullable()) || isInlineAggregateType(paramType))
+            // A non-null slice is a borrowed pointer/count descriptor. It does
+            // not move or own the elements, and ordinary inline argument homes
+            // already preserve its view conversion and single evaluation.
+            const bool sliceView = paramType.isSlice() && !paramType.isNullable() &&
+                                   !sema.ctx().typeMgr().get(paramType.payloadTypeRef()).isAggregate();
+            if ((bodyHasCalls && paramType.isNullable()) || (isInlineAggregateType(paramType) && !sliceView))
                 return false;
             // A reference parameter to an aggregate (e.g. `const &{x, y}`) is excluded for the same
             // reason its by-value form is: the aggregate is not a scalar/pointer the auto-inline clone

@@ -15,6 +15,67 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.105 — The lz77 chain loop still divides two counters as signed
+
+- Recorded: 2026-09-30 08:42
+- Area: compiler/backend, value ranges and register allocation
+- Evidence: the accepted campaign `20260929-203640` names Odin as lz77's fastest other runtime
+  (20.594 ms against Swag's 23.693, 1.150x). In the Release chain loop, `cand % WINDOW` is now
+  one `and`: the loop condition `cand >= 0` proves the dividend, and the late strength-reduction
+  instance no longer expands it first. The match loop compares `[root + l]` against a byte
+  through two rooted addresses, six instructions a trip where it was seven. `Lz77.__main_0`
+  goes from 531 to 526 Micro instructions; `CHECK=622942003053` is unchanged. No timing was taken.
+- What is left on that path: `prev[i % WINDOW]` and `prev[p % WINDOW]` keep the five-instruction
+  sign-corrected remainder, because `i` and `p` are loop-carried sums with no test that bounds
+  them from below. LLVM proves them from the `nsw` additions that start at zero; Swag defines no
+  such fact for a release build. The chain loop also reloads `i` from `[rsp + 0x200]` once per
+  candidate: the byte read of the match loop takes `rax`, which held it.
+- Next: decide whether a counter that starts at a non-negative constant and only grows by
+  non-negative steps may be treated as non-negative when the overflow guard is off, and state
+  the rule in the language reference before the backend relies on it. Separately, find why the
+  allocator evicts `i` instead of the match loop's one-instruction temporary.
+- Complete when: both remainders are masks under a documented rule, or the rule is rejected and
+  this lead is cut down to the reload.
+
+### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
+
+- Recorded: 2026-09-30 08:42
+- Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization
+- Evidence: the accepted campaign `20260929-203640` names Zig as nbody's fastest other runtime
+  (16.398 ms against Swag's 25.525, 1.557x). Zig inlines `advance` into `main`, unrolls the ten
+  pairs, keeps the five bodies in registers and frame slots, and packs two pairs per `sqrtpd`
+  and `divpd`: five packed and two scalar square roots per step where Swag executes ten scalar
+  ones.
+- Done in this campaign, static counts on the Release `advance`: the slice header is read once
+  instead of once per pair (a by-value aggregate parameter is immutable storage); the
+  triangular nest unrolls into ten straight-line pairs with direct `[base + K]` addresses; a
+  running velocity stays in its register across the pairs of one body, and the stores it
+  overwrites are gone. A pair costs about 41 instructions where it cost 53 plus loop overhead,
+  the step executes no branch in the pair section, stores into the bodies drop from 60 to 39
+  and explicit or folded reads from about 150 to 109. The function grows from 102 to 467 Micro
+  instructions and saves ten callee-saved XMM registers. `CHECK=169096566666` is unchanged. No
+  timing was taken.
+- Tried and reverted: renaming a body temporary in an inner unroll when the code after the loop
+  rewrites it before reading. The outer copies of a nest keep their names because their bodies
+  hold labels when they are cloned, so the pairs of different bodies still share one name per
+  temporary; the trial changed no function of the twelve benchmark programs.
+- Tried and narrowed: letting any instruction sit between an address sum and its reader in
+  LICM's reassociation. `Sha256.__main_0` went from 370 to 553 instructions: the sums of the
+  sixteen-trip message load were rooted before the unroller made their offsets constant, which
+  left four address registers per word and broke the four-byte swap idiom. The retained rule
+  admits only the read a two-operand byte comparison makes between the sum and the compare.
+- What is left: a velocity written as the second body of a pair is reloaded when that body
+  becomes the first of a later group, because the register that stored it has been reused; a
+  position is read once per pair, 60 reads for 15 values, because the two-address subtraction
+  overwrites the register it was loaded into; and nothing packs two pairs into one vector.
+- Next: give the cloned bodies of a flattened nest their own temporaries once the inner loops
+  have unrolled, then check that forwarding reaches across groups without adding frame
+  traffic. Evaluate the packed square root and division on the unrolled pairs with the SLP
+  root proof, which today stops at the slice's base pointer.
+- Complete when: the unrolled step reads each position and velocity once and stores each
+  velocity once, or packs its pairs, with no new spill traffic in the other benchmark programs.
+- Related: compiler.optimization.049
+
 ### compiler.optimization.103 — The CABAC significance loop reloads two pointers at its latch
 
 - Recorded: 2026-09-29 18:46

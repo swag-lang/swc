@@ -58,7 +58,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .agents/skills/modify-swag-c
 
 The check samples CPU instead of trusting an instantaneous reading. It reports `ready` only when
 average CPU use is at most 65%, available physical memory is at least both 8 GiB and 25% of
-installed memory, and commit headroom is at least both 8 GiB and 20% of the commit limit. These are
+installed memory, and commit headroom is at least both 4 GiB and 10% of the commit limit. These are
 admission thresholds, not targets for a running machine.
 
 - A `ready` result admits one command. Start it promptly; if the start is delayed materially,

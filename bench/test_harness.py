@@ -169,9 +169,11 @@ class HarnessTests(unittest.TestCase):
                     mkpage.main()
                 self.assertNotIn("{{", page.read_text(encoding="utf-8"))
                 if extended:
-                    for label in ("Zig", "D (LDC)", "Odin"):
-                        self.assertIn(label, page.read_text(encoding="utf-8"))
-                        self.assertIn(label, readme.read_text(encoding="utf-8"))
+                    # The page names D alone; the README table keeps its compiler.
+                    for shown, tabled in (("Zig", "Zig"), ('class="rl">D <span', "D (LDC)"),
+                                          ("Odin", "Odin")):
+                        self.assertIn(shown, page.read_text(encoding="utf-8"))
+                        self.assertIn(tabled, readme.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

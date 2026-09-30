@@ -496,7 +496,8 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         deferredEmitDepth_                = 0;
         currentDeferredAddressGeneration_ = 0;
         nextDeferredAddressGeneration_    = 1;
-        hasDeferredStatements_            = containsNodeId(root, AstNodeId::DeferStmt) || functionHasImplicitDrops(*this, symbolFunc);
+        // The drop test reads the function's variables; the other one walks its whole body.
+        hasDeferredStatements_            = functionHasImplicitDrops(*this, symbolFunc) || containsNodeId(root, AstNodeId::DeferStmt);
         variablePayloads_.clear();
         moveElisionVars_.clear();
         elidedImplicitDrops_.clear();
@@ -1668,8 +1669,8 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
     // path of an earlier emission of this same body, and that path does not reach the one about
     // to be emitted, so leaving it behind makes the second emission read a register nothing
     // wrote on its way in.
-    std::unordered_set<AstNodeRef> visited;
-    SmallVector<AstNodeRef>        stack;
+    RefSet<AstNodeRef>      visited;
+    SmallVector<AstNodeRef> stack;
     stack.push_back(nodeRef);
     while (!stack.empty())
     {
@@ -1679,7 +1680,7 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
             continue;
 
         const AstNodeRef currentRef = resolvedNodeRef(rawRef);
-        if (currentRef.isInvalid() || !visited.insert(currentRef).second)
+        if (currentRef.isInvalid() || !visited.insert(currentRef))
             continue;
 
         if (CodeGenNodePayload* payload = safePayload(currentRef))
@@ -1703,8 +1704,8 @@ bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
     if (nodeRef.isInvalid())
         return false;
 
-    std::unordered_set<AstNodeRef> visited;
-    SmallVector<AstNodeRef>        stack;
+    RefSet<AstNodeRef>      visited;
+    SmallVector<AstNodeRef> stack;
     stack.push_back(nodeRef);
     while (!stack.empty())
     {
@@ -1718,7 +1719,7 @@ bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
         const AstNodeRef currentRef = rawRef == nodeRef ? rawRef : sema().viewZero(rawRef).nodeRef();
         if (currentRef.isInvalid())
             continue;
-        if (!visited.insert(currentRef).second)
+        if (!visited.insert(currentRef))
             continue;
 
         const AstNode& currentNode = ast().node(currentRef);

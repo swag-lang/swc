@@ -100,4 +100,67 @@ private:
     size_t          count_ = 0;
 };
 
+// The same table for strong references. A walk that only asks "have I been through this node"
+// pays a node-based set one allocation per node visited; this one allocates nothing until the
+// first insert and one array afterwards. The invalid reference marks a free slot, so it is never
+// a member.
+template<typename R>
+class RefSet
+{
+public:
+    // True when the reference was not already present.
+    bool insert(R ref)
+    {
+        SWC_ASSERT(ref.isValid());
+        if (slots_.empty())
+            rehash(INITIAL_CAPACITY);
+
+        const uint32_t value = ref.get();
+        size_t         index = slotIndex(value, slots_.size() - 1);
+        while (slots_[index] != K_FREE)
+        {
+            if (slots_[index] == value)
+                return false;
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        slots_[index] = value;
+        ++count_;
+
+        // Linear probing degrades sharply near a full table; keep it below three quarters.
+        if (count_ * 4 > slots_.size() * 3)
+            rehash(slots_.size() * 2);
+        return true;
+    }
+
+private:
+    static constexpr size_t   INITIAL_CAPACITY = 16;
+    static constexpr uint32_t K_FREE           = std::numeric_limits<uint32_t>::max();
+
+    static size_t slotIndex(uint32_t value, size_t mask) noexcept
+    {
+        return static_cast<size_t>(value * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+    }
+
+    void rehash(size_t capacity)
+    {
+        std::vector<uint32_t> previous(capacity, K_FREE);
+        previous.swap(slots_);
+
+        const size_t mask = slots_.size() - 1;
+        for (const uint32_t value : previous)
+        {
+            if (value == K_FREE)
+                continue;
+            size_t index = slotIndex(value, mask);
+            while (slots_[index] != K_FREE)
+                index = (index + 1) & mask;
+            slots_[index] = value;
+        }
+    }
+
+    std::vector<uint32_t> slots_;
+    size_t                count_ = 0;
+};
+
 SWC_END_NAMESPACE();

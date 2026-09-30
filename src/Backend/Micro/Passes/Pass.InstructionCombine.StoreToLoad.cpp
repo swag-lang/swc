@@ -63,11 +63,24 @@ namespace InstructionCombine
         // share the same base register — different bases are handled by
         // the caller as "may alias" since we have no pointer-provenance
         // information.
+        // A displacement is signed. An access that ends at the base, such as
+        // the eight bytes at `[b - 8]`, would wrap its unsigned end to zero and
+        // read as disjoint from everything, itself included.
         bool rangesOverlap(uint64_t offA, MicroOpBits bitsA, uint64_t offB, MicroOpBits bitsB)
         {
-            const uint64_t endA = offA + getNumBytes(bitsA);
-            const uint64_t endB = offB + getNumBytes(bitsB);
-            return !(endA <= offB || endB <= offA);
+            const int64_t startA = static_cast<int64_t>(offA);
+            const int64_t startB = static_cast<int64_t>(offB);
+            const int64_t endA   = startA + static_cast<int64_t>(getNumBytes(bitsA));
+            const int64_t endB   = startB + static_cast<int64_t>(getNumBytes(bitsB));
+            return !(endA <= startB || endB <= startA);
+        }
+
+        // Whether the first access holds every byte of the second.
+        bool rangeCovers(uint64_t offA, MicroOpBits bitsA, uint64_t offB, MicroOpBits bitsB)
+        {
+            const int64_t startA = static_cast<int64_t>(offA);
+            const int64_t startB = static_cast<int64_t>(offB);
+            return startA <= startB && startB + static_cast<int64_t>(getNumBytes(bitsB)) <= startA + static_cast<int64_t>(getNumBytes(bitsA));
         }
 
         // A newly-emitted store kills cache entries that might refer to the
@@ -363,7 +376,7 @@ namespace InstructionCombine
                 // A store through another base reads no memory, so the
                 // stores still pending stay pending behind it.
                 dropWhere([&](const PendingStore& earlier) {
-                    if (earlier.base != base || earlier.off < off || earlier.off + getNumBytes(earlier.bits) > off + getNumBytes(bits))
+                    if (earlier.base != base || !rangeCovers(off, bits, earlier.off, earlier.bits))
                         return false;
                     if (ctx.claimAll({earlier.ref}))
                         ctx.emitErase(earlier.ref);

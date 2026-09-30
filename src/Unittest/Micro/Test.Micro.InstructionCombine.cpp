@@ -565,6 +565,51 @@ SWC_TEST_BEGIN(InstCombine_ReloadIntoSameRegister_IsErased)
 }
 SWC_TEST_END()
 
+// Displacements are signed. A store just below the base is overwritten only by a
+// store that covers it, and a load of it takes the last value stored there.
+SWC_TEST_BEGIN(InstCombine_StoresBelowTheBaseKeepSignedRanges)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg second = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(4);
+    const uint64_t     below8  = static_cast<uint64_t>(-8);
+    const uint64_t     below12 = static_cast<uint64_t>(-12);
+
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(first, MicroReg::intReg(8), MicroOpBits::B64);
+        builder.emitLoadRegReg(second, MicroReg::intReg(9), MicroOpBits::B64);
+        builder.emitLoadMemReg(base, below8, first, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, below12, second, MicroOpBits::B32);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 2)
+            return Result::Error;
+    }
+
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(first, MicroReg::intReg(8), MicroOpBits::B64);
+        builder.emitLoadRegReg(second, MicroReg::intReg(9), MicroOpBits::B64);
+        builder.emitLoadMemReg(base, below8, first, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, below8, second, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, base, below8, MicroOpBits::B64);
+        const MicroInstrRef loadRef = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(MicroReg::intReg(3), 0, value, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        const MicroInstr* load = builder.instructions().ptr(loadRef);
+        if (!load || load->op != MicroInstrOpcode::LoadRegReg || load->ops(builder.operands())[1].reg != second)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // An immediate store is overwritten like any other, and overwrites like any other.
 SWC_TEST_BEGIN(InstCombine_OverwrittenImmediateStore_IsErased)
 {

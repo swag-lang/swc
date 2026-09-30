@@ -234,26 +234,28 @@ h3 {
 .row .rv { padding-left: 10px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .74rem; white-space: nowrap; }
 .row .rv em { font-style: normal; color: var(--faint); margin-left: 3px; font-size: .9em; }
 
-/* One colour per runtime; two runtimes of one language take neighbouring shades.
-   swag keeps the signature; devmode is the same, lighter. */
-.l-swag   { --c: #F7F900; }
-.l-clang  { --c: #D6457A; }
-.l-msvc   { --c: #0E9AA7; }
-.l-rust   { --c: #C8662B; }
-.l-zig    { --c: #D4A017; }
-.l-d      { --c: #9C2F3F; }
-.l-odin   { --c: #2F7FD0; }
-.l-swift  { --c: #E8503A; }
-.l-csaot  { --c: #1F7A3C; }
-.l-csjit  { --c: #7DBB5E; }
-.l-js     { --c: #8A8F1E; }
-.l-lua    { --c: #3B3BB0; }
-.l-luajit { --c: #8C8CE6; }
-.l-py     { --c: #7A4FB5; }
+/* One colour per runtime, from a maximum-contrast set (Kelly). swag release keeps the
+   signature yellow; every other runtime, swag's other variants included, has its own. */
+.l-swag       { --c: #F7F900; }
+.l-swagjit    { --c: #FFB300; }
+.l-swagdev    { --c: #AAFFC3; }
+.l-swagdevjit { --c: #DCBEFF; }
+.l-clang      { --c: #E6194B; }
+.l-msvc       { --c: #4363D8; }
+.l-rust       { --c: #9A6324; }
+.l-zig        { --c: #911EB4; }
+.l-d          { --c: #800000; }
+.l-odin       { --c: #42D4F4; }
+.l-swift      { --c: #F032E6; }
+.l-csaot      { --c: #3CB44B; }
+.l-csjit      { --c: #BFEF45; }
+.l-js         { --c: #469990; }
+.l-lua        { --c: #A9A9A9; }
+.l-luajit     { --c: #FABED4; }
+.l-py         { --c: #808000; }
 
 .row .bar { background: var(--c, var(--g-native)); }
 .row.l-swag .bar { background: var(--g-swag); }
-.row.l-dev .bar { opacity: .5; }
 
 .row:hover .rl { color: var(--fg); border-right-color: var(--active); }
 
@@ -329,14 +331,14 @@ table.ranked li {
 table.ranked li b { font-family: var(--mono); font-size: .62rem; font-weight: 400; color: var(--faint); }
 table.ranked li i { font-style: normal; font-family: var(--mono); color: var(--soft); }
 table.ranked li {
-    background: color-mix(in srgb, var(--c) 16%, var(--bg));
-    border-color: color-mix(in srgb, var(--c) 50%, var(--bg));
-    border-left: 3px solid var(--c);
+    background: color-mix(in srgb, var(--c) 24%, var(--bg));
+    border-color: var(--c);
+    border-left: 6px solid var(--c);
 }
-table.ranked li.l-swag { background: var(--volt); border-color: var(--volt); color: #0B0B0D; font-weight: 600; }
-table.ranked li.l-dev { background: color-mix(in srgb, var(--volt) 40%, var(--bg)); color: var(--fg); font-weight: 400; }
-table.ranked li.l-swag b, table.ranked li.l-swag i { color: #0B0B0D; }
-table.ranked li.l-dev b, table.ranked li.l-dev i { color: var(--soft); }
+table.ranked li.l-swag { background: var(--volt); color: #0B0B0D; font-weight: 600; }
+table.ranked li.l-swagjit { background: var(--c); color: #0B0B0D; font-weight: 600; }
+table.ranked li.l-swag b, table.ranked li.l-swag i,
+table.ranked li.l-swagjit b, table.ranked li.l-swagjit i { color: #0B0B0D; }
 
 details { margin: 10px 0 0; }
 summary { cursor: pointer; font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
@@ -405,7 +407,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <p class="cap">Moyenne g&eacute;om&eacute;trique du rapport au meilleur de chaque t&acirc;che, &eacute;chelle logarithmique.</p>
     {{ex_chart}}
     <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
-    <p class="cap">Du plus rapide au plus lent, en millisecondes. Une couleur par runtime&nbsp;; jaune plein&nbsp;: swag release, jaune p&acirc;le&nbsp;: swag devmode.
+    <p class="cap">Du plus rapide au plus lent, en millisecondes. Une couleur par runtime&nbsp;; plein&nbsp;: swag release, jaune en natif, ambre en JIT.
     La colonne swag donne la place de swag release.</p>
     {{ex_native_rank}}
     <h3>Classement par t&acirc;che &mdash; JIT et interpr&eacute;t&eacute;s</h3>

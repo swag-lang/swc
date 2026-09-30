@@ -172,6 +172,9 @@ std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
         case TaskStateKind::SemaWaitSymSemaCompleted:
         case TaskStateKind::SemaWaitSymCodeGenPreSolved:
         case TaskStateKind::SemaWaitSymCodeGenCompleted:
+        case TaskStateKind::SemaWaitSymJitPrepared:
+        case TaskStateKind::SemaWaitSymJitPatched:
+        case TaskStateKind::SemaWaitSymJitCompleted:
             if (st.symbol)
                 return WaitKey{st.symbol, st.kind};
             return std::nullopt;

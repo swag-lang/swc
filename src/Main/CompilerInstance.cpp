@@ -977,23 +977,26 @@ void CompilerInstance::registerDeferredJitConstantFunction(SymbolFunction& symbo
 void CompilerInstance::publishJitFunctionEntry(SymbolFunction& symbol, void* address)
 {
     SWC_ASSERT(address != nullptr);
-    const std::scoped_lock lock(deferredJitConstantFunctionsMutex_);
-    const auto             it = deferredJitConstantFunctions_.find(&symbol);
-    if (it != deferredJitConstantFunctions_.end())
     {
-        for (const DataSegmentRef storage : it->second)
+        const std::scoped_lock lock(deferredJitConstantFunctionsMutex_);
+        const auto             it = deferredJitConstantFunctions_.find(&symbol);
+        if (it != deferredJitConstantFunctions_.end())
         {
-            DataSegment&          segment = cstMgr().shardDataSegment(storage.shardIndex);
-            DataSegmentAllocation allocation;
-            SWC_FORCE_ASSERT(segment.findAllocation(allocation, storage.offset));
-            const std::scoped_lock allocationLock(segment.allocationMutex(allocation.offset));
-            *segment.ptr<void*>(storage.offset) = address;
+            for (const DataSegmentRef storage : it->second)
+            {
+                DataSegment&          segment = cstMgr().shardDataSegment(storage.shardIndex);
+                DataSegmentAllocation allocation;
+                SWC_FORCE_ASSERT(segment.findAllocation(allocation, storage.offset));
+                const std::scoped_lock allocationLock(segment.allocationMutex(allocation.offset));
+                *segment.ptr<void*>(storage.offset) = address;
+            }
+            deferredJitConstantFunctions_.erase(it);
         }
-        deferredJitConstantFunctions_.erase(it);
+        // Registration checks this address under the same lock: it either joins the
+        // pending list before publication or patches immediately afterward.
+        symbol.jitEntryAddress_.exchange(address, std::memory_order_acq_rel);
     }
-    // Registration checks this address under the same lock: it either joins the
-    // pending list before publication or patches immediately afterward.
-    symbol.jitEntryAddress_.store(address, std::memory_order_release);
+    global().jobMgr().wake({&symbol, TaskStateKind::SemaWaitSymJitCompleted});
 }
 
 void CompilerInstance::resetPreparedJitFunctions()

@@ -184,6 +184,8 @@ bool Symbol::isWaitSatisfied(TaskStateKind kind) const noexcept
             readyFlags = SymbolFlagsE::CodeGenCompleted;
             break;
         default:
+            if (const auto* function = safeCast<SymbolFunction>())
+                return function->isJitWaitSatisfied(kind);
             return false;
     }
 

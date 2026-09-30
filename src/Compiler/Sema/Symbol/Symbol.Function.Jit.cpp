@@ -8,7 +8,9 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Support/Report/Assert.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -425,6 +427,20 @@ bool SymbolFunction::hasLoweredCode() const noexcept
     return !loweredMicroCode_.bytes.empty();
 }
 
+bool SymbolFunction::isJitWaitSatisfied(TaskStateKind kind) const noexcept
+{
+    // Registration uses the same atomic as publication. A no-op RMW either
+    // observes readiness or publishes the scheduler's waiter to a later producer.
+    if (kind == TaskStateKind::SemaWaitSymJitPrepared)
+        return (jitState_.flags.fetch_or(0, std::memory_order_acq_rel) & static_cast<uint8_t>(JitStateE::Prepared)) != 0;
+    if (kind != TaskStateKind::SemaWaitSymJitPatched && kind != TaskStateKind::SemaWaitSymJitCompleted)
+        return false;
+
+    auto& address = kind == TaskStateKind::SemaWaitSymJitPatched ? jitPatchedAddress_ : jitEntryAddress_;
+    void* pending = nullptr;
+    return !address.compare_exchange_strong(pending, nullptr, std::memory_order_acq_rel, std::memory_order_acquire);
+}
+
 void SymbolFunction::resetJitState() noexcept
 {
     const std::scoped_lock lock(emitMutex_);
@@ -591,9 +607,10 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
         return false;
     }
 
-    jitState_.add(JitStateE::Prepared, std::memory_order_release);
+    jitState_.add(JitStateE::Prepared, std::memory_order_acq_rel);
     ctx.compiler().registerPreparedJitFunction(this);
     ctx.compiler().notifyAlive();
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymJitPrepared});
     return true;
 }
 
@@ -626,8 +643,9 @@ Result SymbolFunction::jitPatch(TaskContext& ctx)
     const Result patchResult = JIT::patch(ctx, jitExecMemory_, relocations, this);
     if (patchResult == Result::Continue)
     {
-        jitPatchedAddress_.store(jitExecMemory_.entryPoint(), std::memory_order_release);
+        jitPatchedAddress_.exchange(jitExecMemory_.entryPoint(), std::memory_order_acq_rel);
         ctx.compiler().notifyAlive();
+        ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymJitPatched});
     }
     if (patchResult == Result::Error)
         ctx.state().jitEmissionError = true;

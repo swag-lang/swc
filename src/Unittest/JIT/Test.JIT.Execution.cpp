@@ -7,6 +7,7 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemory.h"
+#include "Backend/JIT/JITPatchJob.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNode.h"
@@ -76,6 +77,87 @@ namespace
 {
     void queuedJitNoop()
     {
+    }
+
+    class JitPublicationJob final : public Job
+    {
+    public:
+        JitPublicationJob(const TaskContext& ctx, SymbolFunction& function, TaskStateKind kind, bool publishBeforeParking) :
+            Job(ctx, JobKind::JitPatch),
+            function_(&function),
+            kind_(kind),
+            publishBeforeParking_(publishBeforeParking)
+        {
+        }
+
+        JobResult exec() override
+        {
+            if (slept_)
+            {
+                completed = payload == 42;
+                ctx().state().setNone();
+                return JobResult::Done;
+            }
+
+            slept_ = true;
+            ctx().state().kind   = kind_;
+            ctx().state().symbol = function_;
+            if (publishBeforeParking_)
+                publish();
+            return JobResult::Sleep;
+        }
+
+        void publish()
+        {
+            payload = 42;
+            JITPatchJob producer(ctx(), *function_, nullptr);
+            valid = producer.exec() == JobResult::Done;
+        }
+
+        uint32_t payload   = 0;
+        bool     completed = false;
+        bool     valid     = true;
+
+    private:
+        SymbolFunction* function_;
+        TaskStateKind   kind_;
+        bool            publishBeforeParking_;
+        bool            slept_ = false;
+    };
+
+    Result checkJitPublication(TaskContext& ctx, bool publishBeforeParking)
+    {
+        auto&                   manager = ctx.global().jobMgr();
+        constexpr TaskStateKind KINDS[] = {
+            TaskStateKind::SemaWaitSymJitPrepared,
+            TaskStateKind::SemaWaitSymJitPatched,
+            TaskStateKind::SemaWaitSymJitCompleted,
+        };
+        for (const auto kind : KINDS)
+        {
+            // Preparation registers the function until compiler teardown.
+            auto* declaration = ctx.compiler().allocate<AstNode>(AstNodeId::FunctionDecl, SourceCodeRef::invalid());
+            auto* function    = ctx.compiler().allocate<SymbolFunction>(declaration, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlags{});
+            const_cast<MachineCode&>(function->loweredCode()).bytes.pushBack(std::byte{0xC3});
+
+            JitPublicationJob job(ctx, *function, kind, publishBeforeParking);
+            manager.enqueue(job, JobPriority::Normal, ctx.compiler().jobClientId());
+            manager.waitAll();
+            if (!publishBeforeParking)
+            {
+                job.publish();
+                manager.waitAll();
+            }
+            const bool resumedWithoutBarrier = job.completed;
+            if (job.rec())
+            {
+                manager.wakeAll(ctx.compiler().jobClientId());
+                manager.waitAll();
+            }
+            if (!resumedWithoutBarrier || !job.valid || job.rec())
+                return Result::Error;
+        }
+        return Result::Continue;
     }
 
     class QueuedCompletionJob final : public Job
@@ -1000,6 +1082,18 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     const auto callerFn = reinterpret_cast<CallerFnType>(callerExecMemory.entryPoint());
     SWC_ASSERT(callerFn != nullptr);
     SWC_ASSERT(callerFn() == 8);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_StagePublicationBeforeParkingResumesWithoutBarrier)
+{
+    SWC_RESULT(checkJitPublication(ctx, true));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_StagePublicationAfterParkingResumesWithoutBarrier)
+{
+    SWC_RESULT(checkJitPublication(ctx, false));
 }
 SWC_TEST_END()
 

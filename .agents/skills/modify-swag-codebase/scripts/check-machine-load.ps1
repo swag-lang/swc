@@ -10,10 +10,10 @@ param(
     [double] $MinAvailableMemoryGiB = 8,
 
     [ValidateRange(1, 100)]
-    [int] $MinCommitHeadroomPercent = 20,
+    [int] $MinCommitHeadroomPercent = 10,
 
     [ValidateRange(1, 1024)]
-    [double] $MinCommitHeadroomGiB = 8,
+    [double] $MinCommitHeadroomGiB = 4,
 
     [ValidateRange(1, 10)]
     [int] $CpuSampleSeconds = 5

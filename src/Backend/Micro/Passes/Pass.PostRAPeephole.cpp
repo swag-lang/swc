@@ -25,6 +25,69 @@ namespace
 {
     using namespace PostRaPeephole;
 
+    // A register comparison and its branch preserve the loaded value. Either
+    // outgoing edge may reuse it, provided no other edge enters the reload.
+    bool eraseGuardedReload(MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+        auto&       storage  = *context.instructions;
+        auto&       operands = *context.operands;
+        const auto& cfg      = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+        const auto refs = cfg.instructionRefs();
+        for (uint32_t index = 0; index + 2 < refs.size(); ++index)
+        {
+            const auto* inst = storage.ptr(refs[index]);
+            if (inst->op != MicroInstrOpcode::LoadRegMem)
+                continue;
+            const auto* load = inst->ops(operands);
+            if (!load[0].reg.isInt() || !load[1].reg.isInt() || load[0].reg == load[1].reg ||
+                (load[2].opBits != MicroOpBits::B64 && load[2].opBits != MicroOpBits::B32))
+                continue;
+            const auto* compare = storage.ptr(refs[index + 1]);
+            if (compare->op != MicroInstrOpcode::CmpRegImm && compare->op != MicroInstrOpcode::CmpRegReg &&
+                compare->op != MicroInstrOpcode::TestRegImm && compare->op != MicroInstrOpcode::TestRegReg)
+                continue;
+            if (compare->ops(operands)[0].reg != load[0].reg)
+                continue;
+            const auto* branch = storage.ptr(refs[index + 2]);
+            if (branch->op != MicroInstrOpcode::JumpCond || branch->ops(operands)[0].cpuCond == MicroCond::Unconditional)
+                continue;
+
+            for (const uint32_t successor : cfg.successors(index + 2))
+            {
+                uint32_t at       = successor;
+                uint32_t previous = index + 2;
+                while (at != 0 && at < refs.size())
+                {
+                    const auto& predecessors = cfg.predecessors(at);
+                    if (predecessors.size() != 1 || predecessors[0] != previous ||
+                        std::ranges::find(cfg.addressTakenLabelIndices(), at) != cfg.addressTakenLabelIndices().end())
+                        break;
+                    const auto* target = storage.ptr(refs[at]);
+                    if (target->op == MicroInstrOpcode::Label)
+                    {
+                        previous = at++;
+                        continue;
+                    }
+                    if (at == index || target->op != MicroInstrOpcode::LoadRegMem)
+                        break;
+                    const auto* reload = target->ops(operands);
+                    if (reload[0].reg == load[0].reg && reload[1].reg == load[1].reg &&
+                        reload[2].opBits == load[2].opBits && reload[3].valueU64 == load[3].valueU64)
+                    {
+                        storage.erase(refs[at]);
+                        return true;
+                    }
+                    break;
+                }
+            }
+        }
+        return false;
+    }
+
     // Put a frame reload on the fallthrough edge of a join when every jump
     // into that join already carries the stored value in the same register.
     // A loop's common branch can then skip a reload needed only after its
@@ -1081,7 +1144,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    if (sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
+    if (eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
         eraseDeadSpillStore(context))
     {
         context.passChanged = true;

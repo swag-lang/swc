@@ -994,22 +994,9 @@ namespace
         diagElement.addArgument(Diagnostic::ARG_WHAT, makeCannotCastArgumentText(fn, fail, ctx));
     }
 
-    DiagnosticArguments makeCallCastErrorArguments(const SymbolFunction& fn, const CallArgEntry& entry, const TaskContext& ctx)
-    {
-        // A call through a function-typed value has no declaration to name, and a receiver has
-        // no position between the parentheses. Leaving them out lets the message fall back to its
-        // form without the callee instead of printing an empty name or a number the user never wrote.
-        DiagnosticArguments arguments;
-        if (fn.name(ctx).empty() || !entry.argNumber)
-            return arguments;
-        arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INDEX, entry.argNumber});
-        arguments.push_back(DiagnosticArgument{Diagnostic::ARG_SYM, Utf8{fn.name(ctx)}});
-        return arguments;
-    }
-
     void attachCallCastFailureArgs(CastFailure& failure, const SymbolFunction& fn, const CallArgEntry& entry, const TaskContext& ctx)
     {
-        failure.mergeArguments(makeCallCastErrorArguments(fn, entry, ctx));
+        failure.mergeArguments(Cast::callSiteErrorArguments(ctx, {.function = &fn, .argNumber = entry.argNumber}));
     }
 
     Diagnostic reportMatchFailure(Sema& sema, DiagnosticId id, const SemaNodeView& nodeCallee, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
@@ -1245,12 +1232,15 @@ namespace
     Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument, bool allowUserDefinedLiteralSuffix)
     {
         outRank = ConvRank::Bad;
-        UserDefinedLiteralSuffixInfo suffixInfo;
-        const bool                   hasUserDefinedLiteralSuffix = Cast::resolveUserDefinedLiteralSuffix(sema, argRef, suffixInfo);
-        if (from == to && (!hasUserDefinedLiteralSuffix || allowUserDefinedLiteralSuffix))
+        if (from == to)
         {
-            outRank = ConvRank::Exact;
-            return Result::Continue;
+            // Only an exact type asks whether the argument carries a literal suffix.
+            UserDefinedLiteralSuffixInfo suffixInfo;
+            if (allowUserDefinedLiteralSuffix || !Cast::resolveUserDefinedLiteralSuffix(sema, argRef, suffixInfo))
+            {
+                outRank = ConvRank::Exact;
+                return Result::Continue;
+            }
         }
 
         if (isUfcsArgument && from.isValid() && to.isValid())
@@ -2646,9 +2636,9 @@ namespace
                 }
             }
 
-            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry, sema.ctx());
+            const CastCallSite callSite{.function = &selectedFn, .argNumber = entry.argNumber};
             if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
-                SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
+                SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &callSite));
 
             entry.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
@@ -2681,8 +2671,8 @@ namespace
             const AstNodeRef argValueRef = resolvedCallArgValueRef(sema, fixedVariadicArg);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, variadicTy, argView));
-            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, fixedVariadicArg, sema.ctx());
-            SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
+            const CastCallSite callSite{.function = &selectedFn, .argNumber = fixedVariadicArg.argNumber};
+            SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &callSite));
             fixedVariadicArg.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, fixedVariadicArg.argRef, argView.nodeRef());
         }
@@ -2692,8 +2682,8 @@ namespace
             const AstNodeRef argValueRef = resolvedCallArgValueRef(sema, entry);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, variadicTy, argView));
-            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry, sema.ctx());
-            SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
+            const CastCallSite callSite{.function = &selectedFn, .argNumber = entry.argNumber};
+            SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &callSite));
             entry.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, entry.argRef, argView.nodeRef());
         }
@@ -3248,9 +3238,14 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     if (!buildCallArgMapping(sema, *selectedFn, args, appliedUfcsArg, mapping, mappingFail))
         return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);
 
-    SmallVector<AstNodeRef> mappedValueArgs;
-    collectMappedCallValueArgs(sema, mappedValueArgs, mapping);
-    SWC_RESULT(ConstantIntrinsic::tryConstantFoldCallBeforeParameterCasts(sema, *selectedFn, mappedValueArgs.span()));
+    // This fold only ever reads a call mapped to exactly one argument; any other call would
+    // resolve every argument's value for a list nothing looks at.
+    if (mapping.paramArgs.size() + mapping.variadicArgs.size() == 1)
+    {
+        SmallVector<AstNodeRef> mappedValueArgs;
+        collectMappedCallValueArgs(sema, mappedValueArgs, mapping);
+        SWC_RESULT(ConstantIntrinsic::tryConstantFoldCallBeforeParameterCasts(sema, *selectedFn, mappedValueArgs.span()));
+    }
     const ConstantRef preCastFoldedConst = sema.viewConstant(sema.curNodeRef()).cstRef();
 
     if (!preCastFoldedConst.isValid())

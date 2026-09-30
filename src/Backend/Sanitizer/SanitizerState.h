@@ -105,6 +105,81 @@ struct SanitizerMovedRange
     SourceCodeRef origin;
 };
 
+// A hash map that owns nothing until it first holds an entry. A state carries four maps almost
+// no function ever fills, and a standard hash map allocates its sentinel and its buckets when it
+// is constructed, copied and moved: every state stored at a chain head, copied into a walk or
+// handed to a successor paid for all four. Once created the map stays, so what it holds and the
+// order it is read in are those of the map it wraps.
+template<typename K, typename V>
+class SanitizerSparseMap
+{
+public:
+    using Map            = std::unordered_map<K, V>;
+    using iterator       = typename Map::iterator;
+    using const_iterator = typename Map::const_iterator;
+
+    SanitizerSparseMap() = default;
+    SanitizerSparseMap(const SanitizerSparseMap& other) :
+        map_(other.map_ ? std::make_unique<Map>(*other.map_) : nullptr)
+    {
+    }
+
+    SanitizerSparseMap(SanitizerSparseMap&&) noexcept            = default;
+    SanitizerSparseMap& operator=(SanitizerSparseMap&&) noexcept = default;
+
+    SanitizerSparseMap& operator=(const SanitizerSparseMap& other)
+    {
+        if (this == &other)
+            return *this;
+
+        if (!other.map_)
+            map_.reset();
+        else if (map_)
+            *map_ = *other.map_;
+        else
+            map_ = std::make_unique<Map>(*other.map_);
+        return *this;
+    }
+
+    bool empty() const noexcept { return !map_ || map_->empty(); }
+
+    // Without a map every iterator is the value-initialized one, which compares equal to itself:
+    // a search finds nothing and a loop does not start.
+    iterator       begin() noexcept { return map_ ? map_->begin() : iterator{}; }
+    iterator       end() noexcept { return map_ ? map_->end() : iterator{}; }
+    const_iterator begin() const noexcept { return map_ ? std::as_const(*map_).begin() : const_iterator{}; }
+    const_iterator end() const noexcept { return map_ ? std::as_const(*map_).end() : const_iterator{}; }
+    iterator       find(const K& key) { return map_ ? map_->find(key) : iterator{}; }
+    const_iterator find(const K& key) const { return map_ ? std::as_const(*map_).find(key) : const_iterator{}; }
+
+    V& operator[](const K& key)
+    {
+        if (!map_)
+            map_ = std::make_unique<Map>();
+        return (*map_)[key];
+    }
+
+    // An iterator only exists for a created map.
+    iterator erase(iterator it) { return map_->erase(it); }
+    size_t   erase(const K& key) { return map_ ? map_->erase(key) : 0; }
+
+    void clear() noexcept
+    {
+        if (map_)
+            map_->clear();
+    }
+
+    template<typename Pred>
+    void eraseIf(Pred pred)
+    {
+        if (map_)
+            std::erase_if(*map_, pred);
+    }
+
+private:
+    std::unique_ptr<Map> map_;
+};
+
 // Abstract machine state at one program point: the tracked value of every virtual
 // register and simulated local stack slot, plus which register the CPU flags encode a
 // comparison of against zero.
@@ -116,7 +191,7 @@ struct SanitizerState
     // The upper eight bytes of a 128-bit register copy. Keep this sparse instead of
     // widening every scalar register's information. Loads snapshot both lanes before
     // subsequent stores can change the source memory.
-    std::unordered_map<uint32_t, SanitizerValue> upperRegValues;
+    SanitizerSparseMap<uint32_t, SanitizerValue> upperRegValues;
 
     // Frame ranges abandoned by a '#move'/'#relocate' (moved-from, not reset), set by a
     // 'SanityInvalidate' marker: key = slot offset. A range is moved-from only when it
@@ -124,7 +199,7 @@ struct SanitizerState
     // it, and calls conservatively clear the whole set. The source identifies the move
     // when every incoming path agrees on it; an ambiguous join keeps the fact without
     // claiming one origin.
-    std::unordered_map<int64_t, SanitizerMovedRange> movedFrom;
+    SanitizerSparseMap<int64_t, SanitizerMovedRange> movedFrom;
 
     // Slots holding a pointer that was handed to a FREEING callee (freesParamsMask):
     // dereferencing that pointer again is a use-after-free, freeing it again a double
@@ -132,7 +207,7 @@ struct SanitizerState
     // alias the slot revalidates it, calls conservatively clear the set (the freeing
     // call itself re-marks its arguments afterwards). The value remembers the freeing
     // call so a proven fault can point back to its origin.
-    std::unordered_map<int64_t, SourceCodeRef> freedPtrSlots;
+    SanitizerSparseMap<int64_t, SourceCodeRef> freedPtrSlots;
 
     // Proven slot copies: the key holds the very value the mapped slot holds. Only slots
     // inside a declared local whose address is never formed take part, so nothing but an
@@ -140,7 +215,7 @@ struct SanitizerState
     // store through a pointer can reach them. Releasing one member releases the whole
     // class, which is what turns 'let b = a' followed by a release of 'a' from a miss
     // into a proof. Same join as the sets above: intersection.
-    std::unordered_map<int64_t, int64_t> aliasPtrSlots;
+    SanitizerSparseMap<int64_t, int64_t> aliasPtrSlots;
 
     // Declared locals whose address has left the engine's sight: handed to a callee,
     // stored, or folded into a value it no longer recognizes as an address. A later call

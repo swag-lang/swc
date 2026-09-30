@@ -463,7 +463,7 @@ void Sanitizer::pruneDeadRegs(SanitizerState& state, const uint64_t* live) const
     };
 
     std::erase_if(state.regs, [&](const auto& entry) { return isDead(entry.first); });
-    std::erase_if(state.upperRegValues, [&](const auto& entry) { return isDead(entry.first); });
+    state.upperRegValues.eraseIf([&](const auto& entry) { return isDead(entry.first); });
 }
 
 void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<const EnabledCheck> checks, SmallVector<uint32_t, 32>* worklist, uint64_t& steps)
@@ -1007,7 +1007,7 @@ namespace
 
 void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t slot) const
 {
-    std::erase_if(state.freedPtrSlots, [slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot); });
+    state.freedPtrSlots.eraseIf([slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot); });
 
     // An object is named by where its pointer lives: rewriting that pointer makes the
     // name mean another object, so nothing said about the old one may survive it.
@@ -1016,13 +1016,13 @@ void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t
 
     // Overwriting either end of a proven copy ends the equality: the copy holds a value
     // the other slot no longer has, and releasing that other slot says nothing about it.
-    std::erase_if(state.aliasPtrSlots, [slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot) || storeOverlapsPointer(entry.second, slot); });
+    state.aliasPtrSlots.eraseIf([slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot) || storeOverlapsPointer(entry.second, slot); });
 }
 
 void Sanitizer::forgetReachableLifecycleFacts(SanitizerState& state) const
 {
-    std::erase_if(state.freedPtrSlots, [&](const auto& entry) { return frameObjectReachable(state, entry.first); });
-    std::erase_if(state.aliasPtrSlots, [&](const auto& entry) { return frameObjectReachable(state, entry.first) || frameObjectReachable(state, entry.second); });
+    state.freedPtrSlots.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first); });
+    state.aliasPtrSlots.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first) || frameObjectReachable(state, entry.second); });
 }
 
 bool Sanitizer::writeMayReachFrame(const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
@@ -1600,7 +1600,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // clobbered, and what a register said about the CONTENT of a slot no longer holds
         // once the callee may have written it.
         std::erase_if(state.regs, [](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || (!entry.second.value.isStackAddr() && !entry.second.releasedPointer); });
-        std::erase_if(state.upperRegValues, [](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || !entry.second.isStackAddr(); });
+        state.upperRegValues.eraseIf([](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || !entry.second.isStackAddr(); });
         for (auto& [reg, info] : state.regs)
             info = SanitizerRegInfo{.value = info.value, .releasedPointer = info.releasedPointer, .releasedOrigin = info.releasedOrigin};
 
@@ -1784,7 +1784,7 @@ void Sanitizer::dropZeros(SanitizerState& state)
             ++it;
     }
     std::erase_if(state.stack, [](const auto& entry) { return entry.second.isZero(); });
-    std::erase_if(state.upperRegValues, [](const auto& entry) { return entry.second.isZero(); });
+    state.upperRegValues.eraseIf([](const auto& entry) { return entry.second.isZero(); });
 }
 
 bool Sanitizer::resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const

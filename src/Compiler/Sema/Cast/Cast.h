@@ -55,6 +55,15 @@ struct UserDefinedLiteralSuffixInfo
     std::string_view suffix;
 };
 
+// Which argument of which call a parameter cast converts. Only a failed cast reads it, to name
+// the callee and the argument in its message, so the message arguments are built there instead
+// of once per argument of every call.
+struct CastCallSite
+{
+    const SymbolFunction* function  = nullptr;
+    uint32_t              argNumber = 0;
+};
+
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo);
 
 // The struct a value converted to an interface refers to: the struct itself, or the one behind
@@ -69,10 +78,11 @@ struct Cast
 {
     static Result  castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static TypeRef castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind = CastKind::Implicit);
-    static Result  cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const DiagnosticArguments* errorArguments = nullptr);
-    static Result  castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const DiagnosticArguments* errorArguments = nullptr);
+    static Result  cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const CastCallSite* callSite = nullptr);
+    static Result  castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const CastCallSite* callSite = nullptr);
     static Result  castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, CastKind castKind = CastKind::Promotion);
     static Result  emitCastFailure(Sema& sema, const CastFailure& f);
+    static DiagnosticArguments callSiteErrorArguments(const TaskContext& ctx, const CastCallSite& callSite);
     static Result  castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequest, ConstantRef cstRef, TypeRef targetTypeRef);
     static Result  castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeRef targetTypeRef, AstNodeRef errorNodeRef, CastKind castKind = CastKind::Implicit);
 

@@ -996,6 +996,9 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
     const std::unique_lock lock(callDependenciesMutex_);
     if (!callDependencySet_.insert(mutableSym))
         return;
+    // The epoch moves before the edge exists, both under the lock: a walk that read the old epoch
+    // and then this list either misses the edge and is caught by the epoch, or holds it already.
+    noteOwnCallGraphChanged();
     callDependencies_.push_back(mutableSym);
     noteCallGraphChanged();
 }

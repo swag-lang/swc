@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
@@ -918,11 +919,14 @@ bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const Da
         return false;
 
     SmallVector<DataSegmentRef>        pending;
-    std::unordered_set<uint64_t>       visited;
     std::vector<DataSegmentRelocation> relocations;
 
-    // Roots commonly share runtime type graphs. Scan their union once, and keep
-    // this state local so a later query observes newly published metadata.
+    // Roots commonly share runtime type graphs. Scan their union once. The visited set holds
+    // nothing between queries - a later one must observe newly published metadata - but its table
+    // is the worker's: every constant-call fold asks this, and each one allocated a node per
+    // allocation it walked.
+    static thread_local StampedKeySet visited;
+    visited.clear();
     for (const DataSegmentRef root : roots)
     {
         pending.push_back(root);
@@ -934,8 +938,10 @@ bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const Da
             DataSegmentAllocation allocation;
             if (!segment.findAllocation(allocation, current.offset))
                 continue;
-            const uint64_t key = (static_cast<uint64_t>(current.shardIndex) << 32) | allocation.offset;
-            if (!visited.insert(key).second)
+            // The high bit keeps the first allocation of the first shard from packing to zero,
+            // which the table reads as a free slot.
+            const uint64_t key = 1ULL << 63 | static_cast<uint64_t>(current.shardIndex) << 32 | allocation.offset;
+            if (!visited.insert(key))
                 continue;
             segment.copyRelocations(relocations, allocation.offset, allocation.size);
             for (const DataSegmentRelocation& relocation : relocations)

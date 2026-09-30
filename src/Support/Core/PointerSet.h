@@ -163,4 +163,80 @@ private:
     size_t                count_ = 0;
 };
 
+// A membership set of 64-bit keys that a worker keeps between walks. A walk of the constant graph
+// asks "have I been through this allocation" a few dozen times per function and a module makes
+// thousands of such walks, so the set is reused rather than built: clearing it moves a stamp
+// instead of touching the table, and a walk no longer starts by allocating one.
+class StampedKeySet
+{
+public:
+    // True when the key was not already present. Zero is not a key: it marks a free slot.
+    bool insert(const uint64_t key)
+    {
+        SWC_ASSERT(key != 0);
+        if (slots_.empty())
+            grow(INITIAL_CAPACITY);
+
+        size_t index = slotIndex(key);
+        while (slots_[index].key)
+        {
+            if (slots_[index].stamp != stamp_)
+                break;
+            if (slots_[index].key == key)
+                return false;
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        slots_[index] = {.key = key, .stamp = stamp_};
+        ++count_;
+
+        // Linear probing degrades sharply near a full table; keep it below three quarters.
+        if (count_ * 4 > slots_.size() * 3)
+            grow(slots_.size() * 2);
+        return true;
+    }
+
+    void clear()
+    {
+        ++stamp_;
+        count_ = 0;
+    }
+
+private:
+    struct Slot
+    {
+        uint64_t key   = 0;
+        uint64_t stamp = 0;
+    };
+
+    static constexpr size_t INITIAL_CAPACITY = 64;
+
+    size_t slotIndex(const uint64_t key) const { return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & (slots_.size() - 1); }
+
+    void grow(const size_t capacity)
+    {
+        // A stale slot belongs to an earlier walk, so only this walk's keys move.
+        std::vector<Slot> live;
+        live.reserve(count_);
+        for (const Slot& slot : slots_)
+        {
+            if (slot.key && slot.stamp == stamp_)
+                live.push_back(slot);
+        }
+
+        slots_.assign(capacity, Slot{});
+        for (const Slot& slot : live)
+        {
+            size_t index = slotIndex(slot.key);
+            while (slots_[index].key)
+                index = (index + 1) & (slots_.size() - 1);
+            slots_[index] = slot;
+        }
+    }
+
+    std::vector<Slot> slots_;
+    uint64_t          stamp_ = 1;
+    size_t            count_ = 0;
+};
+
 SWC_END_NAMESPACE();

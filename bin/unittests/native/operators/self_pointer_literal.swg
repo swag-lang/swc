@@ -44,6 +44,17 @@ struct Wrapper
     prev: SelfBuf
 }
 
+func makeWrapper()->Wrapper => {prev: makeSelfBuf(1, 2, 2)}
+
+// Calls that return a self-referencing value need relocation even without a drop hook.
+#test
+{
+    let wrapper = Wrapper{prev: makeSelfBuf(1, 2, 2)}
+    Swag.assert(wrapper.prev.valid())
+    let projected = makeWrapper().prev
+    Swag.assert(projected.valid())
+}
+
 #test
 {
     var direct = makeSelfBuf(1, 2, 2)

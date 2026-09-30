@@ -814,7 +814,8 @@ namespace
             // drop registered for its storage says so. The field adopts it like any owned
             // value, or that drop would release what the field now holds. A projection of
             // such a temporary is an lvalue instead: it is copied, and the temporary dropped.
-            // An aggregate that cannot drop its fields only borrows the temporary.
+            // Inlined calls can supply owned storage without registering a temporary drop;
+            // ownership comes from the call, not just from the pending cleanup.
             //
             // A nested literal was built in a temporary of its own and has just been moved out
             // of it, whether or not its fields own anything: a value that points into itself
@@ -822,8 +823,9 @@ namespace
             const AstNodeRef sourceRef       = codeGen.viewZero(entry.valueRef).nodeRef();
             const bool       sourceIsLValue  = sourceRef.isValid() && codeGen.sema().isLValueStored(sourceRef);
             const bool       adoptsTemporary = canDropFields && !sourceIsLValue && elementPayload.runtimeStorageSym && codeGen.hasTemporaryDrop(*elementPayload.runtimeStorageSym);
+            const bool       adoptsCall      = elementPayload.isAddress() && !codeGen.viewConstant(entry.valueRef).hasConstant() && CodeGenFunctionHelpers::isOwnedCallResult(codeGen, entry.valueRef);
             const bool       adoptsLiteral   = elementPayload.isAddress() && CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, entry.valueRef);
-            if (elementPayload.ownsValue || adoptsTemporary || adoptsLiteral)
+            if (elementPayload.ownsValue || adoptsTemporary || adoptsCall || adoptsLiteral)
             {
                 ownsValue = true;
                 if (codeGen.hasLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostMove))

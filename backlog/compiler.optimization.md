@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-09-30 18:35 — Validated double-lane SLP and stored-value web splitting.
+- Updated: 2026-09-30 19:15 — Preserved repeated position loads without extending XMM live ranges.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20260930-152655` reports Zig at 17.0078 ms and Swag native
   Release at 24.8768 ms, with `CHECK=169096566666`. The locally inspected Zig 0.15.2
@@ -38,13 +38,26 @@ block, and the hot path keeps the register.
   from 416 instructions/149 memory operands to 417/125, including 24 frame operands.
   Raytrace, ChaCha and SHA-256 retain their code counts and checksums. C++ tests, the release
   optimizer suite and the guarded regression pass; the benchmark checksum is unchanged.
-- Remaining gap: all ten pair roots and divisions remain scalar. Position loads are repeated
-  because their two-address subtraction destroys the loaded register; the slice-header root
-  and derived data root also prevent whole-block SLP alias proof. The retained f64 SLP step
-  is an enabler, not vectorization of the interactions.
+- Repeated-load preservation now gives loads destroyed by scalar updates stable integer
+  names before value numbering. Across straight lines without stores or address changes,
+  the bits stay reusable without extending XMM interference. The step is 473/134/44
+  instructions/memory operands/frame operands; its interaction region is 426/107/24.
+  Eighteen memory operands disappear for nine extra register-transfer instructions, with
+  unchanged frame references. Energy changes from 237/97/10 to 246/79/10. The floating-cache
+  alternative was rejected at 499/148/58 for the step: added XMM residency caused spills.
+  The five benchmark checksums, 1204 C++ tests and 3530 release tests in JIT/native pass.
+- Remaining gap: all ten pair roots and divisions remain scalar. The slice-header root
+  and derived data root prevent the current whole-block SLP alias proof. The retained f64
+  SLP step is an enabler, not vectorization of the interactions.
 - Next: pack independent interaction computations while preserving their shared scalar
   magnitudes and reducing register pressure. Prove the read-only prefix/root relationship
   before moving memory operations; compare each pair section and position loop separately.
+- Rejected scalar-prefix trial: capturing common magnitudes before store-tree vectorization,
+  and allowing untouched prefix/suffix roots, grows the step from 464/152/44 to 576/222/119
+  instructions/memory operands/frame operands. Scalar coordinate work remains live for the
+  distance reductions, while packed velocity trees recompute it and keep the captures live.
+  The checksum stays exact, but the static regression rejects this approach. Packing needs
+  shared scalar/vector producers or independent pair scheduling, not late store trees alone.
 - Failed earlier trials: outer-unroll temporary renaming alone changed no benchmark function.
   Broad LICM address reassociation grew SHA-256 main from 370 to 553 instructions by hiding
   the four-byte swap idiom; keep the narrowed reassociation guard.

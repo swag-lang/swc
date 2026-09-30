@@ -50,12 +50,100 @@ namespace
                 return false;
         }
     }
+
+    // Keep repeated scalar loads out of destructive floating webs. Integer
+    // registers hold the unchanged bits without extending XMM interference;
+    // value numbering can then share the load before the scalar copies. Only
+    // a straight line without stores or address changes supplies candidates.
+    bool preserveRepeatedLoads(MicroPassContext& context)
+    {
+        auto&                        storage  = *context.instructions;
+        auto&                        operands = *context.operands;
+        std::unordered_set<MicroReg> destructive;
+        std::unordered_set<MicroReg> excluded;
+        for (const MicroInstr& inst : storage.view())
+        {
+            const auto* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+            {
+                if (modes[i] == MicroInstrRegMode::None)
+                    continue;
+                const MicroReg reg = ops[i].reg;
+                if (!reg.isVirtualFloat())
+                    continue;
+                if (!hasScalarDoubleWidth(inst, ops) || context.builder->virtualRegForbiddenPhysRegs().contains(reg) ||
+                    context.builder->shouldPreserveVirtualCopy(reg))
+                    excluded.insert(reg);
+                if (modes[i] == MicroInstrRegMode::UseDef)
+                    destructive.insert(reg);
+            }
+        }
+        std::unordered_map<MicroReg, std::unordered_map<uint64_t, std::vector<MicroInstrRef>>> loads;
+        std::vector<MicroInstrRef>                                                             preserve;
+        const auto                                                                             flush = [&] {
+            for (const auto& [base, locations] : loads)
+                for (const auto& [offset, refs] : locations)
+                    if (refs.size() >= 2)
+                        preserve.insert(preserve.end(), refs.begin(), refs.end());
+            loads.clear();
+        };
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const auto& info = MicroInstr::info(it->op);
+            const auto* ops  = it->ops(operands);
+            if (it->op == MicroInstrOpcode::Label || it->op == MicroInstrOpcode::LoadVolatileRegMem || info.flags.has(MicroInstrFlagsE::WritesMemory) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+            {
+                flush();
+                continue;
+            }
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+                if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isAnyInt())
+                    flush();
+            if (it->op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
+                ops[0].reg.isVirtualFloat() && ops[1].reg.isVirtualInt() &&
+                destructive.contains(ops[0].reg) && !excluded.contains(ops[0].reg))
+                loads[ops[1].reg][ops[3].valueU64].push_back(it.current);
+        }
+        flush();
+        if (preserve.empty())
+            return false;
+        uint32_t nextInt   = 0;
+        uint32_t nextFloat = 0;
+        MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
+        if (preserve.size() >= MicroReg::K_MAX_INDEX - nextInt)
+            return false;
+        for (const auto ref : preserve)
+        {
+            auto*          ops      = storage.ptr(ref)->ops(operands);
+            const MicroReg original = ops[0].reg;
+            const MicroReg cached   = MicroReg::virtualIntReg(nextInt++);
+            ops[0].reg              = cached;
+            MicroInstrOperand copy[3];
+            copy[0].reg    = original;
+            copy[1].reg    = cached;
+            copy[2].opBits = MicroOpBits::B64;
+            storage.insertDerivedBefore(operands, storage.findNextInstructionRef(ref), MicroInstrOpcode::LoadRegReg, copy);
+        }
+        return true;
+    }
 }
 
 Result MicroWebRenamePass::run(MicroPassContext& context)
 {
     if (!context.builder || !context.instructions || !context.operands)
         return Result::Continue;
+
+    if (preserveRepeatedLoads(context))
+    {
+        context.passChanged = true;
+        return Result::Continue;
+    }
 
     MicroSsaState local;
     const auto*   ssa = MicroSsaState::ensureFor(context, local);

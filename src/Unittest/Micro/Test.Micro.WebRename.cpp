@@ -94,6 +94,63 @@ SWC_TEST_BEGIN(WebRename_PreservesLiveJoinsAndDestructiveUpdates)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(WebRename_RepeatedDoubleLoadsKeepStableBits)
+{
+    for (uint32_t variant = 0; variant < 11; ++variant)
+    {
+        MicroBuilder                 builder(ctx);
+        X64Encoder                   encoder(ctx);
+        const MicroReg               base   = variant == 9 ? encoder.stackPointerReg() : MicroReg::virtualIntReg(1);
+        const MicroReg               value  = MicroReg::virtualFloatReg(1);
+        const MicroReg               output = MicroReg::virtualFloatReg(2);
+        std::array<MicroInstrRef, 2> loads;
+        if (variant == 5)
+            builder.addVirtualRegForbiddenPhysReg(value, MicroReg::floatReg(0));
+        for (uint32_t index = 0; index < 2; ++index)
+        {
+            if (index && variant == 1)
+                builder.emitLoadMemImm(base, 0, ApInt(0, 64), MicroOpBits::B64);
+            if (index && variant == 2)
+                builder.placeLabel(builder.createLabel());
+            if (index && variant == 6)
+                builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+            if (index && variant == 10)
+                builder.emitLoadVolatileRegMem(output, base, 0, MicroOpBits::B64);
+            if (index && variant == 7)
+                builder.emitLoadVolatileRegMem(value, base, 0x40, MicroOpBits::B64);
+            else
+                builder.emitLoadRegMem(value, base, variant == 3 ? 0x40 + index * 8 : 0x40, MicroOpBits::B64);
+            loads[index] = builder.instructions().lastInstructionRef();
+            if (variant == 8)
+                builder.emitOpBinaryRegRegReg(output, value, value, MicroOp::FloatMultiply, MicroOpBits::B64);
+            else
+                builder.emitOpBinaryRegReg(value, value, MicroOp::FloatMultiply, MicroOpBits::B64);
+        }
+        if (variant == 4)
+            builder.emitLoadMemReg(base, 0x80, value, MicroOpBits::B128);
+        builder.emitRet();
+        SWC_RESULT(renameWebs(builder, encoder));
+        for (const auto load : loads)
+        {
+            const auto reg = builder.instructions().ptr(load)->ops(builder.operands())[0].reg;
+            if (reg.isVirtualInt() != (variant == 0))
+                return Result::Error;
+            if (variant != 0)
+                continue;
+            const auto* copy = builder.instructions().ptr(builder.instructions().findNextInstructionRef(load));
+            const auto* ops  = copy->ops(builder.operands());
+            if (copy->op != MicroInstrOpcode::LoadRegReg || ops[0].reg != value || ops[1].reg != reg || ops[2].opBits != MicroOpBits::B64)
+                return Result::Error;
+        }
+        const auto first = builder.instructions().ptr(loads[0])->ops(builder.operands())[0].reg;
+        SWC_RESULT(renameWebs(builder, encoder));
+        if (builder.instructions().ptr(loads[0])->ops(builder.operands())[0].reg != first)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

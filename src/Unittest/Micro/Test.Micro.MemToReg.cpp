@@ -244,6 +244,43 @@ SWC_TEST_BEGIN(MemToReg_WrappingWideAccess_KeepsNarrowOverlap)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MemToReg_OutgoingObjectEndingAtFrameBaseStaysInMemory)
+{
+    SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable local(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    local.setTypeRef(ctx.typeMgr().typeU64());
+    local.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+    local.setCodeGenLocalSize(8);
+    function.addLocalVariable(ctx, &local);
+    local.setOffset(0x40);
+
+    const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg addr   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg copy   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(4);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadAddressRegMem(frame, sp, 0x18, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(addr, sp, 8, MicroOpBits::B64);
+    builder.emitLoadRegReg(copy, addr, MicroOpBits::B64);
+    builder.emitLoadRegMem(vector, MicroReg::intReg(2), 0, MicroOpBits::B128);
+    builder.emitLoadMemReg(copy, 0, vector, MicroOpBits::B128);
+    const auto store = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegReg(MicroReg::intReg(1), addr, MicroOpBits::B64);
+    builder.emitLoadMemImm(frame, 0x40, ApInt(42, 64), MicroOpBits::B64);
+    const auto localStore = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(value, frame, 0x40, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runMemToRegPass(builder, &function));
+    if (builder.instructions().ptr(store)->op != MicroInstrOpcode::LoadMemReg ||
+        builder.instructions().ptr(localStore)->op != MicroInstrOpcode::LoadRegImm)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MemToReg_WidestAccessRespectsEscapedVariableExtents)
 {
     for (const bool unknownEscape : {false, true})
@@ -329,6 +366,83 @@ SWC_TEST_BEGIN(MemToReg_ModifiedFrameAddressCanReachAnotherLocal)
     if (stored->ops(builder.operands())[0].reg != loaded->ops(builder.operands())[1].reg)
         return Result::Error;
     return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MemToReg_AddressCopiesKeepLaneReadsPrivate)
+{
+    for (uint32_t variant = 0; variant < 8; ++variant)
+    {
+        const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg addr   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg copy   = MicroReg::virtualIntReg(3);
+        constexpr MicroReg second = MicroReg::virtualIntReg(4);
+        constexpr MicroReg value  = MicroReg::virtualIntReg(5);
+        constexpr MicroReg vector = MicroReg::virtualFloatReg(1);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(vector, MicroReg::intReg(2), 0, MicroOpBits::B128);
+        builder.emitLoadMemReg(frame, 0x20, vector, MicroOpBits::B128);
+        const auto store = builder.instructions().lastInstructionRef();
+        builder.emitLoadAddressRegMem(addr, frame, 0x20, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadRegImm(addr, ApInt(0, 64), MicroOpBits::B64);
+        if (variant == 3)
+            builder.placeLabel(builder.createLabel());
+        builder.emitLoadRegReg(copy, addr, variant == 4 ? MicroOpBits::B32 : MicroOpBits::B64);
+        if (variant == 5)
+            builder.emitLoadRegImm(copy, ApInt(0, 64), MicroOpBits::B64);
+        if (variant == 6)
+            builder.emitLoadMemReg(MicroReg::intReg(7), 0, copy, MicroOpBits::B64);
+        if (variant == 7)
+            builder.emitLoadRegReg(MicroReg::intReg(1), copy, MicroOpBits::B64);
+        if (variant == 1)
+            builder.emitLoadRegReg(second, copy, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, variant == 1 ? second : copy, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, frame, 0x28, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runMemToRegPass(builder));
+        const bool promoted = builder.instructions().ptr(store)->op == MicroInstrOpcode::LoadRegReg;
+        if (promoted != (variant < 2))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MemToReg_SplitZeroFillUsesFrameRelativeOffsets)
+{
+    const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg addr   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg copy   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(4);
+    constexpr MicroReg vector = MicroReg::virtualFloatReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(addr, frame, 0x20, MicroOpBits::B64);
+    builder.emitLoadRegReg(copy, addr, MicroOpBits::B64);
+    builder.emitClearReg(vector, MicroOpBits::B128);
+    builder.emitLoadMemReg(copy, 0, vector, MicroOpBits::B128);
+    builder.emitLoadRegMem(value, frame, 0x20, MicroOpBits::B64);
+    builder.emitLoadRegMem(value, frame, 0x28, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runMemToRegPass(builder));
+    uint32_t stores = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadMemImm)
+            continue;
+        const auto* ops = inst.ops(builder.operands());
+        if (ops[0].reg != frame || ops[1].opBits != MicroOpBits::B64 ||
+            (ops[2].valueU64 != 0x20 && ops[2].valueU64 != 0x28) || ops[3].valueU64 != 0)
+            return Result::Error;
+        ++stores;
+    }
+    return stores == 2 ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

@@ -15,6 +15,86 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-09-30 19:15 — Preserved repeated position loads without extending XMM live ranges.
+- Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
+- Comparison: accepted campaign `20260930-152655` reports Zig at 17.0078 ms and Swag native
+  Release at 24.8768 ms, with `CHECK=169096566666`. The locally inspected Zig 0.15.2
+  `ReleaseFast` assembly inlines the step, retains body state across timesteps, and executes
+  four packed and two scalar square roots per unrolled step. No new timing campaign was run.
+- Current scalar shape: ten straight-line pairs with direct offsets, one slice-base load,
+  and no branch in the interaction section. SLP now supports two f64 lanes and broadcasting
+  a stable block-entry scalar. The position-update loop falls from 21 to 16 Microinstructions
+  and nine to six memory operands, with packed multiplication/addition and no spill inside
+  that loop. The whole step changes from 467 to 463 instructions and 179 to 176 memory
+  operands, retaining ten saved XMM registers and twenty frame references.
+- Stored-value experiment: separating independent scalar-double webs only where register
+  reuse blocks a later load from forwarding brings the step to 464 instructions and 152
+  memory operands. Frame references rise from twenty to 44, while body-memory traffic falls;
+  the position-update loop remains packed. This is a static tradeoff with a net reduction in
+  memory operations, not a measured speedup. The straight-line interaction region changes
+  from 416 instructions/149 memory operands to 417/125, including 24 frame operands.
+  Raytrace, ChaCha and SHA-256 retain their code counts and checksums. C++ tests, the release
+  optimizer suite and the guarded regression pass; the benchmark checksum is unchanged.
+- Repeated-load preservation now gives loads destroyed by scalar updates stable integer
+  names before value numbering. Across straight lines without stores or address changes,
+  the bits stay reusable without extending XMM interference. The step is 473/134/44
+  instructions/memory operands/frame operands; its interaction region is 426/107/24.
+  Eighteen memory operands disappear for nine extra register-transfer instructions, with
+  unchanged frame references. Energy changes from 237/97/10 to 246/79/10. The floating-cache
+  alternative was rejected at 499/148/58 for the step: added XMM residency caused spills.
+  The five benchmark checksums, 1204 C++ tests and 3530 release tests in JIT/native pass.
+- Remaining gap: all ten pair roots and divisions remain scalar. The slice-header root
+  and derived data root prevent the current whole-block SLP alias proof. The retained f64
+  SLP step is an enabler, not vectorization of the interactions.
+- Next: pack independent interaction computations while preserving their shared scalar
+  magnitudes and reducing register pressure. Prove the read-only prefix/root relationship
+  before moving memory operations; compare each pair section and position loop separately.
+- Rejected scalar-prefix trial: capturing common magnitudes before store-tree vectorization,
+  and allowing untouched prefix/suffix roots, grows the step from 464/152/44 to 576/222/119
+  instructions/memory operands/frame operands. Scalar coordinate work remains live for the
+  distance reductions, while packed velocity trees recompute it and keep the captures live.
+  The checksum stays exact, but the static regression rejects this approach. Packing needs
+  shared scalar/vector producers or independent pair scheduling, not late store trees alone.
+- Failed earlier trials: outer-unroll temporary renaming alone changed no benchmark function.
+  Broad LICM address reassociation grew SHA-256 main from 370 to 553 instructions by hiding
+  the four-byte swap idiom; keep the narrowed reassociation guard.
+- Complete when: the step retains or packs body state with no redundant pair work and matches
+  the winner's packed roots/divisions without a generated-code loss in other tasks.
+- Related: compiler.optimization.016, language.design.037.
+
+### compiler.optimization.016 — General value-web normalization still extends live ranges too far
+
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-09-30 18:31 — Rechecked scalar-double web splitting with the current interval allocator.
+- Intent: give independent def-use webs separate virtual registers so LICM, value numbering
+  and memory forwarding can distinguish computations that lowering gave the same name.
+  Live phi joins and destructive updates must retain a common name. Dead phi cycles must not
+  glue otherwise independent values together.
+- Existing boundary: the unroller already renames independent temporaries in straight-line
+  copies, but leaves carried values and bodies with internal labels unchanged. A flattened
+  nested loop can therefore still contain independent values sharing a register.
+- Rejected with the former hull allocator: the union-find prototype hoisted the deblock
+  modulo chain, but grew `interpolateLuma` from 1583 to 1684 instructions and 314 to 398 frame
+  references. No prototype from that experiment remains in the repository.
+- Current experiment: a scalar-double union-find reconstruction over SSA values, with live
+  phi and read-modify-write unions, still worsens unrelated floating code under interval
+  splitting. Raytrace `intersect` grows from 205 to 211 instructions, 44 to 48 memory operands
+  and 22 to 26 frame references; `trace` grows from 172 to 176 instructions and 56 to 58 memory
+  operands. ChaCha, SHA-256 and binarytrees are unchanged. The broad rule was discarded.
+- A narrower experiment splits only a reused register whose old value was stored and whose
+  memory location is subsequently read. This leaves raytrace unchanged and enables nbody's
+  cross-group velocity forwarding; see compiler.optimization.104. It does not establish a
+  general normalization policy for arbitrary arithmetic temporaries.
+- Next: attribute the extra floating interference and improve residency before expanding
+  eligibility beyond a concrete store-to-load forwarding opportunity. Recheck the deblock
+  consumer and raytrace alongside any broader rule; do not infer a win from renaming alone.
+- Complete when: independent webs expose the intended hoisting and forwarding without
+  worsening the affected hot paths through additional transfers or spill traffic.
+- Related: compiler.optimization.015, compiler.optimization.104.
+
 ### compiler.optimization.039 — Two test functions still sit at the sweep budget
 
 - Recorded: 2026-09-16 12:12
@@ -37,47 +117,6 @@ block, and the hot path keeps the register.
 - Complete when: no function of `bin/std`, tests included, needs more than sixteen sweeps in
   either configuration, or the chain that does is identified and bounded.
 - Related: compiler.optimization.029, compiler.core.004.
-
-### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-09-30 10:20 — The immutable-storage rule covers value handles only.
-- Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization
-- Evidence: the accepted campaign `20260929-203640` names Zig as nbody's fastest other runtime
-  (16.398 ms against Swag's 25.525, 1.557x). Zig inlines `advance` into `main`, unrolls the ten
-  pairs, keeps the five bodies in registers and frame slots, and packs two pairs per `sqrtpd`
-  and `divpd`: five packed and two scalar square roots per step where Swag executes ten scalar
-  ones.
-- Done in this campaign, static counts on the Release `advance`: the slice header is read once
-  instead of once per pair (a string, slice, interface or any parameter is immutable storage;
-  a struct parameter is not, see language.design.037); the
-  triangular nest unrolls into ten straight-line pairs with direct `[base + K]` addresses; a
-  running velocity stays in its register across the pairs of one body, and the stores it
-  overwrites are gone. A pair costs about 41 instructions where it cost 53 plus loop overhead,
-  the step executes no branch in the pair section, stores into the bodies drop from 60 to 39
-  and explicit or folded reads from about 150 to 109. The function grows from 102 to 467 Micro
-  instructions and saves ten callee-saved XMM registers. `CHECK=169096566666` is unchanged. No
-  timing was taken.
-- Tried and reverted: renaming a body temporary in an inner unroll when the code after the loop
-  rewrites it before reading. The outer copies of a nest keep their names because their bodies
-  hold labels when they are cloned, so the pairs of different bodies still share one name per
-  temporary; the trial changed no function of the twelve benchmark programs.
-- Tried and narrowed: letting any instruction sit between an address sum and its reader in
-  LICM's reassociation. `Sha256.__main_0` went from 370 to 553 instructions: the sums of the
-  sixteen-trip message load were rooted before the unroller made their offsets constant, which
-  left four address registers per word and broke the four-byte swap idiom. The retained rule
-  admits only the read a two-operand byte comparison makes between the sum and the compare.
-- What is left: a velocity written as the second body of a pair is reloaded when that body
-  becomes the first of a later group, because the register that stored it has been reused; a
-  position is read once per pair, 60 reads for 15 values, because the two-address subtraction
-  overwrites the register it was loaded into; and nothing packs two pairs into one vector.
-- Next: give the cloned bodies of a flattened nest their own temporaries once the inner loops
-  have unrolled, then check that forwarding reaches across groups without adding frame
-  traffic. Evaluate the packed square root and division on the unrolled pairs with the SLP
-  root proof, which today stops at the slice's base pointer.
-- Complete when: the unrolled step reads each position and velocity once and stores each
-  velocity once, or packs its pairs, with no new spill traffic in the other benchmark programs.
-- Related: language.design.037
 
 ### compiler.optimization.105 — The lz77 chain loop still divides two counters as signed
 
@@ -754,42 +793,6 @@ block, and the hot path keeps the register.
 - Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
   after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
   one on the video corpus.
-
-### compiler.optimization.016 — Independent virtual-register webs need a new normalization measurement
-
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-09-14 06:25 — Separate existing unroller renaming from general def-use web normalization.
-- Intent: a normalization pass gives every def-use web of a virtual register its own fresh
-  register - the SSA property LLVM's passes get from their IR, reconstructed by renaming, with no
-  phi nodes needed because a web that spans a join keeps its one name. The lowering reuses
-  virtual registers across unrelated computations, so today a loop-invariant chain shares its
-  register with code elsewhere in the function (measured on the deblock probe: the `pass % 3`
-  chain's register carries five definitions, one outside the loop), and any pass that reasons
-  per-register - the web hoisting now in LICM first among them - must refuse the whole register.
-- Current boundary: `Pass.LoopUnroll.cpp` already renames independent temporaries in cloned
-  straight-line bodies (`1238a3c2e`, `native/optimizer/unroll_renames_temporaries.swg`). It leaves
-  carried values and bodies with internal labels unchanged; it does not normalize the original
-  function's def-use webs. That narrower transform does not retire this investigation.
-- Next: recover or reconstruct the normalization prototype and compare it with the current split
-  allocator. Splitting may change the earlier interference tradeoff; it does not prove that
-  renaming will now pay.
-- Complete when: after the pass, every virtual register's definitions form one connected def-use
-  web (verified on a corpus dump); the deblock probe's modulo chain hoists out of its x-loop; and
-  the pre-RA fixpoint shows no oscillation with copy elimination (pure renaming inserts no
-  instructions, so none is expected).
-- Attempted 2026-08-27, parked: a union-find pass over `MicroSsaState` value ids (phi unions
-  gated on transitive instruction uses so dead phis stop gluing webs, read-modify-write defs
-  unioned with their reaching def) renames soundly - 58 video functions change, both probe
-  checksums hold, and the deblock chain does hoist once the pass runs inside the pre-RA loop
-  after strength reduction, which is what creates the chain. But the corpus regresses:
-  `interpolateLuma` 1583 -> 1684 instructions and 314 -> 398 frame references, video.dll +2 KB.
-  The shared names the lowering leaves behind are accidental coalescing the hull allocator
-  depends on - splitting them multiplies concurrent hulls, and the allocator pays in spills more
-  than the loop passes earn. That result predates the split allocator now shipped here. Re-measure before treating
-  the old hull interference as a current blocker. The old session named `webrename-parked/`,
-  but no `Pass.WebRename` prototype is present in this checkout; the recorded algorithm is the
-  recoverable starting point.
-- Related: compiler.optimization.015; unlocks the full yield of the web hoisting shipped in LICM.
 
 ### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
 

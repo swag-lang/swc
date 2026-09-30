@@ -31,6 +31,7 @@
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
+#include "Backend/Micro/Passes/Pass.WebRename.h"
 #include "Backend/RuntimeName.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
@@ -498,22 +499,23 @@ MicroPassManager::MicroPassManager()
     emitPass_                 = std::make_unique<MicroEmitPass>();
 
     // Pre-RA optimization passes
-    preRaPeepholePass_       = std::make_unique<MicroPreRaPeepholePass>();
-    constantFoldingPass_     = std::make_unique<MicroConstantFoldingPass>();
-    copyEliminationPass_     = std::make_unique<MicroCopyEliminationPass>();
-    instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
+    preRaPeepholePass_         = std::make_unique<MicroPreRaPeepholePass>();
+    constantFoldingPass_       = std::make_unique<MicroConstantFoldingPass>();
+    copyEliminationPass_       = std::make_unique<MicroCopyEliminationPass>();
+    instructionCombinePass_    = std::make_unique<MicroInstructionCombinePass>();
     strengthReductionPass_     = std::make_unique<MicroStrengthReductionPass>(true);
     lateStrengthReductionPass_ = std::make_unique<MicroStrengthReductionPass>();
-    inductionVariablePass_   = std::make_unique<MicroInductionVariablePass>();
-    valueNumberingPass_      = std::make_unique<MicroValueNumberingPass>();
-    licmPass_                = std::make_unique<MicroLoopInvariantCodeMotionPass>();
-    sinkToUsePass_           = std::make_unique<MicroSinkToUsePass>();
-    deadCodeEliminationPass_ = std::make_unique<MicroDeadCodeEliminationPass>();
-    branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
-    lateBranchSimplifyPass_  = std::make_unique<MicroBranchSimplifyPass>(true);
-    loopUnrollPass_          = std::make_unique<MicroLoopUnrollPass>();
-    slpVectorizePass_        = std::make_unique<MicroSlpVectorizePass>();
-    vecLoopPromotePass_      = std::make_unique<MicroVecLoopPromotePass>();
+    inductionVariablePass_     = std::make_unique<MicroInductionVariablePass>();
+    valueNumberingPass_        = std::make_unique<MicroValueNumberingPass>();
+    licmPass_                  = std::make_unique<MicroLoopInvariantCodeMotionPass>();
+    sinkToUsePass_             = std::make_unique<MicroSinkToUsePass>();
+    deadCodeEliminationPass_   = std::make_unique<MicroDeadCodeEliminationPass>();
+    branchSimplifyPass_        = std::make_unique<MicroBranchSimplifyPass>();
+    lateBranchSimplifyPass_    = std::make_unique<MicroBranchSimplifyPass>(true);
+    loopUnrollPass_            = std::make_unique<MicroLoopUnrollPass>();
+    slpVectorizePass_          = std::make_unique<MicroSlpVectorizePass>();
+    webRenamePass_             = std::make_unique<MicroWebRenamePass>();
+    vecLoopPromotePass_        = std::make_unique<MicroVecLoopPromotePass>();
 
     // Post-RA optimization passes
     postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
@@ -576,6 +578,8 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         addPreRaLoopPass(*instructionCombinePass_);
         if (costly)
             addPreRaLoopPass(*strengthReductionPass_);
+        if (costly)
+            addPreRaLoopPass(*webRenamePass_);
         // Deduplicate identical dominating computes. Runs after strength
         // reduction so the multiply-high expansions of `u / C` and `u % C`
         // exist to be shared, and before LICM so a loop body slimmed by

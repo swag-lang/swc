@@ -59,6 +59,39 @@ alone. Comparative reference points for that investigation:
 | [TCMalloc](https://google.github.io/tcmalloc/design.html) | Per-CPU caches, batched transfers and a hugepage-aware backend are useful architectural reference points. Its [per-CPU restartable sequences](https://google.github.io/tcmalloc/rseq.html) use Linux facilities, so this is not a direct Windows backend comparison. |
 | [Scudo](https://llvm.org/docs/ScudoHardenedAllocator.html) and [hardened_malloc](https://github.com/GrapheneOS/hardened_malloc) | Hardening reference points for state/integrity checks, metadata isolation, randomization and quarantine. Features differ by allocator and configuration; do not imply all protections are enabled by default or provide complete memory safety. |
 
+### runtime.allocator.002 — Close the remaining distance on the allocation hot path
+
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-09-30 18:59 — Isolated the remaining request and heap-lookup costs after removing local interface copies.
+- Accepted campaign `20260930-152655` reports binarytrees at 9.835 ms for Node and 35.8965 ms
+  for Swag native Release, both with checksum 674478. Locally inspected Node 20.15.1 V8 code
+  bumps the nursery allocation pointer by 40 bytes and calls a cold allocation path only at
+  the limit. Its garbage-collected task does not recursively free each node. These are
+  different reclamation strategies; the total-task ratio does not isolate allocator cost.
+- Swag still pays for the allocator interface request and dispatch, per-operation heap lookup
+  through `FlsGetValue`, diagnostic predicates, page recovery and address validation, and
+  per-node free. The matched standalone address predicates now contain twenty rather than
+  thirty Microinstructions, with the same six memory operands and one fewer branch, using
+  modular multiplication and rotation. This closes that specific mask/branch opportunity;
+  the rest of the hot path remains. The native benchmark wrappers now contain 60/51
+  Microinstructions and 23/20 memory operands for allocation/free, down from 62/52 and
+  28/24: the copied interface stays in registers, and allocation reuses its guarded result.
+  Six vector stores still initialize each request; TLS context lookup and the indirect
+  allocator call remain. Checksums are unchanged; these are static counts, not new timings.
+- The historical 77 ns allocation/free pair and 10–20 ns mimalloc comparison are not current
+  measurements. Use runtime.allocator.001 for an allocator-only timing comparison; static
+  benchmark inspection can independently establish redundant instructions.
+- A cheaper thread-heap lookup must preserve foreign-thread cleanup and the current FLS
+  lifetime contract. A plain TLS value cannot own a drop: thread-exit block cleanup releases
+  the bytes without running `opDrop`.
+- Next: inspect request initialization, dispatch and heap lookup in binarytrees' emitted
+  allocation/free paths. Remove proven redundant work without changing its allocations,
+  frees, checksum or the allocator's ownership and corruption checks. Use the shared trace
+  driver before claiming allocator throughput parity or selecting a different allocator.
+- Complete when: generated-code attribution and comparable application/allocator measurements
+  establish the remaining policy, preserving lifetime and error behavior.
+- Related: runtime.allocator.001, runtime.allocator.016.
+
 ### runtime.allocator.017 — Medium pages commit all eight units for their first block
 
 - Recorded: 2026-09-29 16:26
@@ -180,33 +213,6 @@ medium tier is separated. Benchmark large growth and release independently of si
 - Complete when: the current pages, remote returns, abandoned pages and header cache have tested
   idle/trim behavior and documented bounds.
 - Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
-
-### runtime.allocator.002 — Close the remaining distance to mimalloc on the hot path
-
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-09-11 16:29 — Separate code-visible hot-path costs from historical timing estimates.
-- The historical probe above measured about 77 ns per allocate/free pair; its comparison put
-  mimalloc in the 10-20 ns range. These are not current measurements. The shared benchmark in
-  runtime.allocator.001 must establish the present gap before another optimization is selected.
-- What the path still pays, in the order worth attacking: one `FlsGetValue` per operation to find
-  the thread heap (measured at 4 ns per call, against 2 ns for `TlsGetValue` and 1 ns for a plain
-  global read); the `IAllocator` interface dispatch and the `AllocatorRequest` the caller fills;
-  the block-address validation on free; the diagnostic-mode test at every entry point.
-- Real thread-local storage would remove most of the first item. `tls` now lowers to a
-  per-thread copy, so the mechanism is there; what it cannot hold is a value with a drop, which
-  the compiler now refuses at the declaration: the per-thread block is released by the
-  thread-exit destructor, which frees the bytes without running `opDrop`. Whatever the heap
-  keeps in thread-local storage has to be a plain value.
-- Measure with runtime.allocator.001 before and after, not with a probe written for the occasion.
-- Static evidence: `bin/runtime/os.win32.swg::__hostThreadStorageGet` calls `FlsGetValue`;
-  `allocator.swg::threadHeap/freeBlock` reach it on local operations. Dispatch, request setup,
-  validation and diagnostic predicates add work, but inlining and generated code determine the
-  actual cost. The individual FLS/TLS/global timings above are also historical.
-- Next: attribute these costs in the common benchmark and generated code, preserving foreign
-  thread cleanup when evaluating a cheaper heap lookup.
-- Complete when: current A/B evidence identifies a worthwhile change or establishes that the
-  remaining costs meet the parity gate.
-- Related: runtime.allocator.001, runtime.allocator.016.
 
 ### runtime.allocator.005 — Add a medium-allocation tier above 64 KiB
 

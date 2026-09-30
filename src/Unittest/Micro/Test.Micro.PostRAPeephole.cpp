@@ -676,6 +676,50 @@ SWC_TEST_BEGIN(PostRAPeephole_ErasesPrivateFrameReloadAfterBranch)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ErasesReloadOnlyOnProvenGuardEdges)
+{
+    for (uint32_t variant = 0; variant < 10; ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        X64Encoder     encoder(ctx);
+        const MicroReg value  = MicroReg::intReg(0);
+        const MicroReg base   = MicroReg::intReg(7);
+        const auto     target = builder.createLabel();
+        const auto     bits   = variant == 9 ? MicroOpBits::B32 : MicroOpBits::B64;
+        if (variant == 8)
+            builder.emitLoadLabelAddress(MicroReg::intReg(6), target);
+        if (variant == 2)
+            builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, target);
+        builder.emitLoadRegMem(value, base, 8, bits);
+        builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, target);
+        if (variant != 1)
+        {
+            builder.emitClearReg(value, MicroOpBits::B64);
+            builder.emitRet();
+        }
+        builder.placeLabel(target);
+        if (variant == 5)
+            builder.placeLabel(builder.createLabel());
+        if (variant == 4)
+            builder.emitLoadMemImm(base, 8, ApInt(7, 64), MicroOpBits::B64);
+        if (variant == 6)
+            builder.emitClearReg(value, MicroOpBits::B64);
+        if (variant == 7)
+            builder.emitLoadVolatileRegMem(value, base, 8, bits);
+        else
+            builder.emitLoadRegMem(value, base, variant == 3 ? 16 : 8, bits);
+        const auto reload = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const bool removed = !builder.instructions().ptr(reload);
+        if (removed != (variant == 0 || variant == 1 || variant == 5 || variant == 9))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ForwardsPrivateFrameReloadAcrossBranches)
 {
     constexpr MicroReg localBase = MicroReg::intReg(3);

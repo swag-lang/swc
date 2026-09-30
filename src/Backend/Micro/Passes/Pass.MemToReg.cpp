@@ -577,6 +577,46 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
     }
 
+    // Follow pointer copies whose only definition follows the known address on
+    // the same straight line. Interface dispatch copies a local's address into
+    // a temporary before reading its first field; the copy does not expose the
+    // object. An actual escape through either register still poisons it below.
+    std::unordered_set<uint32_t> addressCopies;
+    if (!addrRegOffset.empty())
+    {
+        std::unordered_map<MicroReg, uint32_t> definitions;
+        for (const MicroInstr& inst : storage.view())
+        {
+            const auto* ops   = inst.ops(operands);
+            const auto  modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+                if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtualInt())
+                    ++definitions[ops[i].reg];
+        }
+        std::unordered_set<MicroReg> available;
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+        {
+            const auto& info = MicroInstr::info(it->op);
+            if (it->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                available.clear();
+            const auto* ops = it->ops(operands);
+            if (!ops)
+                continue;
+            if (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
+                ops[0].reg.isVirtualInt() && ops[0].reg != frameBase && definitions[ops[0].reg] == 1 &&
+                !addrRegOffset.contains(ops[0].reg) && available.contains(ops[1].reg))
+            {
+                const uint64_t offset = addrRegOffset.at(ops[1].reg).offset;
+                addrRegOffset.emplace(ops[0].reg, AddrRegInfo{offset, it.current});
+                addressCopies.insert(it.current.get());
+            }
+            const auto found = addrRegOffset.find(ops[0].reg);
+            if (found != addrRegOffset.end() && !found->second.ambiguous && found->second.defRef == it.current)
+                available.insert(found->first);
+        }
+    }
+
     auto isTracked = [&](MicroReg reg) -> bool {
         return reg == frameBase || addrRegOffset.contains(reg);
     };
@@ -703,6 +743,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     //      pinned to one. ----
     thread_local std::unordered_map<uint64_t, SlotInfo> slots;
     slots.clear();
+    SmallVector<std::pair<uint64_t, uint64_t>> wrappingRanges;
     bool bail               = false;
     bool hasFieldSplitWrite = false;
     bool hasNarrowFieldRead = false;
@@ -721,6 +762,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (ref == frameBaseDefRef)
             continue;
         if (addressAdjustments.contains(ref.get()))
+            continue;
+        if (addressCopies.contains(ref.get()))
             continue;
         if (inst.op == MicroInstrOpcode::LoadAddrRegMem && isFrameRegister(ops[1].reg))
             continue;
@@ -957,6 +1000,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         if (hasPending)
         {
+            // Interval proofs below use unsigned half-open ranges. An outgoing
+            // object below the local frame base can end at offset zero: its
+            // wrapped endpoint must not make it appear inside a known local.
+            if (pending.offset + getNumBytes(pending.bits) <= pending.offset)
+                wrappingRanges.emplace_back(pending.offset, pending.offset + getNumBytes(pending.bits));
             if (baseReg != stackPointer && inst.op == MicroInstrOpcode::LoadMemReg &&
                 pending.bits == MicroOpBits::B64 && ops[1].reg.isAnyInt())
                 hasFieldSplitWrite = true;
@@ -1020,7 +1068,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         for (size_t i = 1; i < writeRanges.size() && !overlappingWrites; ++i)
             overlappingWrites = writeRanges[i].first < writeRanges[i - 1].second;
 
-        if (overlappingWrites)
+        if (overlappingWrites && wrappingRanges.empty())
         {
             thread_local std::unordered_map<uint32_t, const SlotAccess*> accessOf;
             accessOf.clear();
@@ -1207,6 +1255,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     SmallVector<Promotion> promotions;
 
     auto overlapsPoisonedVariable = [&](const uint64_t lo, const uint64_t hi) -> bool {
+        if (hi <= lo)
+            return true;
+        for (const auto& [wrapLo, wrapHi] : wrappingRanges)
+            if (lo < wrapHi || wrapLo < hi)
+                return true;
         for (const FrameVarRange& range : varRanges)
         {
             if (range.poisoned && lo < range.hi && range.lo < hi)
@@ -1299,14 +1352,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             for (const auto& [fillRef, shape] : fills)
             {
                 const auto [offset, elementBytes] = shape;
-                const MicroInstr* fill            = storage.ptr(fillRef);
-                const MicroReg    base            = fill->ops(operands)[0].reg;
                 const MicroOpBits bits            = elementBytes == 8 ? MicroOpBits::B64 : MicroOpBits::B32;
                 const uint64_t    count           = getNumBytes(MicroOpBits::B128) / elementBytes;
                 for (uint64_t i = 0; i < count; ++i)
                 {
                     MicroInstrOperand storeOps[4] = {};
-                    storeOps[0].reg               = base;
+                    // The collected offset is relative to the frame, even
+                    // when the original fill used a derived address register.
+                    storeOps[0].reg               = frameBase;
                     storeOps[1].opBits            = bits;
                     storeOps[2].valueU64          = offset + i * elementBytes;
                     storeOps[3].setImmediateValue(ApInt(uint64_t{0}, getNumBits(bits)));

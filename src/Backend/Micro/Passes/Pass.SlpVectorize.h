@@ -8,8 +8,8 @@ SWC_BEGIN_NAMESPACE();
 // Runs once after the pre-RA optimization loop has converged, so it sees the
 // canonical scalar shape: hoisted address computations, folded copies, and the
 // loop bodies as straight-line blocks. It rebuilds each block's dataflow as a
-// 32-bit-lane value graph with in-block store-to-load forwarding, seeds on
-// groups of four adjacent 32-bit stores, grows isomorphic trees down to
+// lane value graph with in-block store-to-load forwarding, seeds on groups
+// of four adjacent 32-bit or two adjacent 64-bit stores, grows isomorphic trees down to
 // adjacent-load leaves, and replaces the matched stores with 128-bit packed
 // code. The scalar computation is left in place and dies in the cleanup sweep
 // that follows.

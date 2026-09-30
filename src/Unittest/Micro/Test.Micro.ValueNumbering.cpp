@@ -15,17 +15,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runValueNumberingPass(MicroBuilder& builder)
+    Result runValueNumberingPass(MicroBuilder& builder, const SymbolFunction* function = nullptr)
     {
         MicroValueNumberingPass pass;
         MicroPassManager        passManager;
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
+        passContext.callConvKind      = CallConvKind::Swag;
+        passContext.sanitizerFunction = function;
         return builder.runPasses(passManager, nullptr, passContext);
     }
-
 }
 
 // Two identical adds on the same values: the second becomes a plain copy.
@@ -944,6 +944,41 @@ SWC_TEST_BEGIN(ValueNumbering_LazyRelocationsPreserveBothLookupsAndLastTarget)
             if (!inst || inst->op != (i == 1 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
                 return Result::Error;
         }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ValueNumbering_SelfCallsNeedWholeBodyReadOnlyProof)
+{
+    for (uint32_t variant = 0; variant < 8; ++variant)
+    {
+        SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolFunction other(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        MicroBuilder   builder(ctx);
+        const MicroReg base   = MicroReg::virtualIntReg(1);
+        const MicroReg first  = MicroReg::virtualIntReg(2);
+        const MicroReg second = MicroReg::virtualIntReg(3);
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegMem(first, base, 8, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadMemReg(base, 0, first, MicroOpBits::B64);
+        builder.emitCallLocal(variant == 1 ? &other : &function, CallConvKind::Swag);
+        if (variant == 6)
+            builder.emitClearReg(first, MicroOpBits::B64);
+        builder.emitLoadRegMem(second, base, 8, MicroOpBits::B64);
+        const auto readback = builder.instructions().lastInstructionRef();
+        if (variant == 3)
+            builder.emitCallLocal(&other, CallConvKind::Swag);
+        if (variant == 4)
+            builder.emitLoadVolatileRegMem(second, base, 0, MicroOpBits::B64);
+        if (variant == 5)
+            builder.emitLoadMemReg(base, 0, second, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runValueNumberingPass(builder, variant == 7 ? nullptr : &function));
+        const auto* inst = builder.instructions().ptr(readback);
+        if (inst->op != (variant == 0 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+            return Result::Error;
     }
     return Result::Continue;
 }

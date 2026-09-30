@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Thread/JobManager.h"
+#include "Backend/JIT/JITExecManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -11,6 +12,23 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    void notifyReadyWorkers(std::condition_variable& cv, size_t readyJobs, size_t workerCount)
+    {
+        if (!readyJobs || !workerCount)
+            return;
+
+        // Small dependency fan-outs should not wake the entire pool just to compete
+        // for a handful of jobs. A large wave can use one broadcast.
+        if (readyJobs >= workerCount)
+            cv.notify_all();
+        else
+            for (size_t i = 0; i < readyJobs; ++i)
+                cv.notify_one();
+    }
+}
+
 struct JobManager::RecordPool
 {
     // Thread-local free list (LIFO for cache locality).
@@ -18,7 +36,8 @@ struct JobManager::RecordPool
     static constexpr std::size_t                                K_TLS_MAX = 1024; // cap per thread to avoid unbounded growth
 };
 
-thread_local size_t                                  JobManager::threadIndex_ = 0;
+thread_local size_t                                  JobManager::threadIndex_   = 0;
+thread_local const JobManager*                       JobManager::threadManager_ = nullptr;
 thread_local std::vector<std::unique_ptr<JobRecord>> JobManager::RecordPool::tls;
 
 JobRecord* JobManager::allocRecord()
@@ -38,6 +57,7 @@ JobRecord* JobManager::allocRecord()
 
 void JobManager::freeRecord(JobRecord* r)
 {
+    SWC_ASSERT(!r->registered && !r->clientWaitPrevious && !r->clientWaitNext && !r->keyWaitPrevious && !r->keyWaitNext);
     // Minimal reset (fields set on reuse anyway).
     r->job      = nullptr;
     r->state    = JobRecord::State::Ready;
@@ -91,10 +111,23 @@ void JobManager::setup(const CommandLine& cmdLine)
 
     // Reserve a dedicated index for the setup/main thread when workers exist.
     // Worker threads keep [0..configuredWorkerCount_-1], main thread gets the last slot.
-    threadIndex_ = singleThreaded_ ? 0 : configuredWorkerCount_;
+    threadIndex_   = singleThreaded_ ? 0 : configuredWorkerCount_;
+    threadManager_ = this;
+    setupThreadId_ = std::this_thread::get_id();
 
     accepting_ = true;
     joined_    = false;
+}
+
+std::optional<size_t> JobManager::currentThreadIndex() const noexcept
+{
+    if (threadManager_ == this)
+        return threadIndex_;
+    // A nested/local pool can change TLS on the setup thread. Its slot in this
+    // pool is still distinct from every worker's slot.
+    if (std::this_thread::get_id() == setupThreadId_)
+        return singleThreaded_ ? 0 : configuredWorkerCount_;
+    return std::nullopt;
 }
 
 JobClientId JobManager::newClientId()
@@ -121,7 +154,6 @@ void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     job.setOwner(this);
     job.setRec(rec);
 
-    liveRecs_.insert(rec);
     bumpClientCountLocked(client, +1);
     pushReady(rec, priority);
     growWorkersForLoadLocked();
@@ -149,6 +181,9 @@ std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
         case TaskStateKind::SemaWaitTypeInfoGeneration:
             return WaitKey{typeInfoGenWaitTarget(), st.kind};
 
+        case TaskStateKind::SemaWaitMainThreadRunJit:
+            return WaitKey{&job.ctx(), st.kind};
+
         // Everything else stays a wildcard sleeper for now (woken by the barrier wakeAll).
         default:
             return std::nullopt;
@@ -167,23 +202,82 @@ void JobManager::wakeTypeInfoGeneration()
     wake(WaitKey{typeInfoGenWaitTarget(), TaskStateKind::SemaWaitTypeInfoGeneration});
 }
 
+void JobManager::parkLocked(JobRecord* rec)
+{
+    SWC_ASSERT(rec->state == JobRecord::State::Running);
+    rec->state = JobRecord::State::Waiting;
+    bumpClientCountLocked(rec->clientId, -1);
+
+    JobRecord*& clientHead  = clients_[rec->clientId].waitingHead;
+    rec->clientWaitPrevious = nullptr;
+    rec->clientWaitNext     = clientHead;
+    if (clientHead)
+        clientHead->clientWaitPrevious = rec;
+    clientHead = rec;
+
+    // Unkeyed waits still belong to the client's list for barrier and cycle handling.
+    if (const std::optional<WaitKey> key = computeWaitKey(*rec->job))
+    {
+        rec->waitKey         = *key;
+        rec->registered      = true;
+        JobRecord*& keyHead  = waiters_[*key];
+        rec->keyWaitPrevious = nullptr;
+        rec->keyWaitNext     = keyHead;
+        if (keyHead)
+            keyHead->keyWaitPrevious = rec;
+        else
+            filterAdd(*key);
+        keyHead = rec;
+    }
+}
+
 void JobManager::unregisterWaiterLocked(JobRecord* rec)
 {
-    if (!rec->registered)
-        return;
-
-    const auto range = waiters_.equal_range(rec->waitKey);
-    for (auto it = range.first; it != range.second; ++it)
+    SWC_ASSERT(rec->state == JobRecord::State::Waiting);
+    JobRecord*& clientHead = clients_[rec->clientId].waitingHead;
+    if (rec->clientWaitPrevious)
+        rec->clientWaitPrevious->clientWaitNext = rec->clientWaitNext;
+    else
     {
-        if (it->second == rec)
+        SWC_ASSERT(clientHead == rec);
+        clientHead = rec->clientWaitNext;
+    }
+    if (rec->clientWaitNext)
+        rec->clientWaitNext->clientWaitPrevious = rec->clientWaitPrevious;
+    rec->clientWaitPrevious = nullptr;
+    rec->clientWaitNext     = nullptr;
+
+    if (rec->registered)
+    {
+        const auto it = waiters_.find(rec->waitKey);
+        SWC_ASSERT(it != waiters_.end());
+        if (rec->keyWaitPrevious)
+            rec->keyWaitPrevious->keyWaitNext = rec->keyWaitNext;
+        else
+        {
+            SWC_ASSERT(it->second == rec);
+            it->second = rec->keyWaitNext;
+        }
+        if (rec->keyWaitNext)
+            rec->keyWaitNext->keyWaitPrevious = rec->keyWaitPrevious;
+        if (!it->second)
         {
             waiters_.erase(it);
             filterSub(rec->waitKey);
-            break;
         }
+        rec->keyWaitPrevious = nullptr;
+        rec->keyWaitNext     = nullptr;
+        rec->waitKey         = {};
+        rec->registered      = false;
     }
+}
 
-    rec->registered = false;
+void JobManager::requeueWaitingLocked(JobRecord* rec)
+{
+    unregisterWaiterLocked(rec);
+    rec->state = JobRecord::State::Ready;
+    bumpClientCountLocked(rec->clientId, +1);
+    pushReady(rec, rec->priority);
 }
 
 void JobManager::wake(const WaitKey& key)
@@ -200,35 +294,22 @@ void JobManager::wake(const WaitKey& key)
 
     const std::unique_lock lk(mtx_);
 
-    const auto range = waiters_.equal_range(key);
-    if (range.first == range.second)
+    const auto it = waiters_.find(key);
+    if (it == waiters_.end())
         return;
 
     size_t woken = 0;
-    for (auto it = range.first; it != range.second;)
+    for (JobRecord* rec = it->second; rec;)
     {
-        JobRecord* rec  = it->second;
-        it              = waiters_.erase(it);
-        rec->registered = false;
-        filterSub(key); // every erased entry was counted in the filter, regardless of its state
-
-        if (rec->state != JobRecord::State::Waiting)
-            continue;
-
-        rec->state = JobRecord::State::Ready;
-        bumpClientCountLocked(rec->clientId, +1);
-        pushReady(rec, rec->priority);
+        JobRecord* next = rec->keyWaitNext;
+        requeueWaitingLocked(rec);
+        rec = next;
         ++woken;
     }
 
     growWorkersForLoadLocked();
 
-    // Wake only as many workers as we made jobs ready: a single readied job does not warrant a
-    // thundering-herd notify_all across every parked worker.
-    if (woken == 1)
-        cv_.notify_one();
-    else if (woken > 1)
-        cv_.notify_all();
+    notifyReadyWorkers(cv_, woken, workers_.size());
 }
 
 void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) const
@@ -236,16 +317,13 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
     waiting.clear();
 
     const std::unique_lock lk(mtx_);
-    if (liveRecs_.empty())
+    const auto             it = clients_.find(client);
+    if (it == clients_.end())
         return;
 
     std::vector<const JobRecord*> temp;
-    temp.reserve(liveRecs_.size());
-    for (const JobRecord* rec : liveRecs_)
-    {
-        if (rec && rec->clientId == client && rec->state == JobRecord::State::Waiting)
-            temp.push_back(rec);
-    }
+    for (const JobRecord* rec = it->second.waitingHead; rec; rec = rec->clientWaitNext)
+        temp.push_back(rec);
 
     std::ranges::sort(temp, {}, &JobRecord::index);
 
@@ -270,7 +348,7 @@ JobRecord* JobManager::popReadyLocked()
             JobRecord* rec = q.front();
             q.pop_front();
 #endif
-            readyCount_.fetch_sub(1, std::memory_order_acq_rel);
+            --readyCount_;
             return rec;
         }
     }
@@ -303,7 +381,7 @@ JobRecord* JobManager::popReadyForClientLocked(JobClientId client)
                 const uint32_t pickIndex = matches[std::rand() % matches.size()]; // NOLINT(concurrency-mt-unsafe)
                 JobRecord*     rec       = q[pickIndex];
                 q.erase(q.begin() + pickIndex);
-                readyCount_.fetch_sub(1, std::memory_order_acq_rel);
+                --readyCount_;
                 return rec;
             }
 
@@ -318,7 +396,7 @@ JobRecord* JobManager::popReadyForClientLocked(JobClientId client)
                 continue;
 
             q.erase(it);
-            readyCount_.fetch_sub(1, std::memory_order_acq_rel);
+            --readyCount_;
             return rec;
         }
     }
@@ -333,7 +411,7 @@ void JobManager::waitAll()
         // In worker mode, wait for the global ready queue to drain and for every worker
         // that already claimed a job to publish its result.
         std::unique_lock lk(mtx_);
-        idleCv_.wait(lk, [this] { return readyCount_.load(std::memory_order_acquire) == 0 && activeWorkers_.load(std::memory_order_acquire) == 0; });
+        idleCv_.wait(lk, [this] { return readyCount_ == 0 && activeWorkers_ == 0; });
         return;
     }
 
@@ -352,12 +430,13 @@ void JobManager::waitAll()
                 continue;
 
             rec->state = JobRecord::State::Running;
-            // Note: clientReadyRunning_ already includes this job from enqueue().
+            // The client's ready/running count already includes this job from enqueue().
             // We do NOT touch bumpClientCountLocked() here, just like in workerLoop().
         }
 
-        const JobResult res = executeJob(*rec->job);
-        handleJobResult(rec, res);
+        const JobResult        res = executeJob(*rec->job);
+        const std::unique_lock lk(mtx_);
+        handleJobResultLocked(rec, res);
     }
 }
 
@@ -365,7 +444,8 @@ bool JobManager::wakeAll(JobClientId client)
 {
     const std::unique_lock lk(mtx_);
 
-    if (liveRecs_.empty())
+    const auto clientIt = clients_.find(client);
+    if (clientIt == clients_.end() || !clientIt->second.waitingHead)
         return false;
 
     std::size_t woken = 0;
@@ -374,37 +454,21 @@ bool JobManager::wakeAll(JobClientId client)
     if (singleThreaded_)
     {
         std::vector<JobRecord*> temp;
-        temp.reserve(liveRecs_.size());
-        for (JobRecord* rec : liveRecs_)
-        {
-            if (rec && rec->clientId == client && rec->state == JobRecord::State::Waiting)
-                temp.push_back(rec);
-        }
+        for (JobRecord* rec = clientIt->second.waitingHead; rec; rec = rec->clientWaitNext)
+            temp.push_back(rec);
 
         std::ranges::sort(temp, {}, &JobRecord::index);
         for (JobRecord* rec : temp)
         {
-            unregisterWaiterLocked(rec);
-            rec->state = JobRecord::State::Ready;
-            bumpClientCountLocked(rec->clientId, +1);
-            pushReady(rec, rec->priority);
+            requeueWaitingLocked(rec);
             ++woken;
         }
     }
     else
     {
-        for (JobRecord* rec : liveRecs_)
+        while (JobRecord* rec = clientIt->second.waitingHead)
         {
-            if (!rec)
-                continue;
-            if (rec->clientId != client)
-                continue;
-            if (rec->state != JobRecord::State::Waiting)
-                continue;
-            unregisterWaiterLocked(rec);
-            rec->state = JobRecord::State::Ready;
-            bumpClientCountLocked(rec->clientId, +1);
-            pushReady(rec, rec->priority);
+            requeueWaitingLocked(rec);
             ++woken;
         }
     }
@@ -412,7 +476,7 @@ bool JobManager::wakeAll(JobClientId client)
     if (woken != 0)
     {
         growWorkersForLoadLocked();
-        cv_.notify_all();
+        notifyReadyWorkers(cv_, woken, workers_.size());
     }
 
     return woken != 0;
@@ -425,7 +489,7 @@ void JobManager::waitAll(JobClientId client)
         // Per-client waiting watches ready+running jobs only. Sleeping jobs are excluded
         // so the caller can perform the compiler action that may wake them.
         std::unique_lock lk(mtx_);
-        idleCv_.wait(lk, [&] { const auto it = clientReadyRunning_.find(client); return it == clientReadyRunning_.end() || it->second == 0; });
+        idleCv_.wait(lk, [&] { const auto it = clients_.find(client); return it == clients_.end() || it->second.readyRunning == 0; });
         return;
     }
 
@@ -438,8 +502,8 @@ void JobManager::waitAll(JobClientId client)
         {
             const std::unique_lock lk(mtx_);
 
-            const auto it = clientReadyRunning_.find(client);
-            if (it == clientReadyRunning_.end() || it->second == 0)
+            const auto it = clients_.find(client);
+            if (it == clients_.end() || it->second.readyRunning == 0)
                 break;
 
             rec = popReadyForClientLocked(client);
@@ -454,8 +518,9 @@ void JobManager::waitAll(JobClientId client)
             rec->state = JobRecord::State::Running;
         }
 
-        const JobResult res = executeJob(*rec->job);
-        handleJobResult(rec, res);
+        const JobResult        res = executeJob(*rec->job);
+        const std::unique_lock lk(mtx_);
+        handleJobResultLocked(rec, res);
     }
 }
 
@@ -476,6 +541,8 @@ void JobManager::shutdown() noexcept
     }
     workers_.clear();
     joined_ = true;
+    if (threadManager_ == this)
+        threadManager_ = nullptr;
 
     // NOTE: User code still owns remaining sleepers (if any).
     // They are not runnable; their rec_ remains set until they are woken and run to completion.
@@ -484,7 +551,7 @@ void JobManager::shutdown() noexcept
 void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 {
     readyQ_[static_cast<int>(priority)].push_back(rec);
-    readyCount_.fetch_add(1, std::memory_order_release);
+    ++readyCount_;
 }
 
 void JobManager::growWorkersForLoadLocked()
@@ -492,9 +559,7 @@ void JobManager::growWorkersForLoadLocked()
     if (singleThreaded_ || !accepting_)
         return;
 
-    const size_t desiredWorkers = std::min<size_t>(
-        configuredWorkerCount_,
-        readyCount_.load(std::memory_order_acquire) + activeWorkers_.load(std::memory_order_acquire));
+    const size_t desiredWorkers = std::min<size_t>(configuredWorkerCount_, readyCount_ + activeWorkers_);
 
     if (workers_.size() >= desiredWorkers)
         return;
@@ -504,7 +569,8 @@ void JobManager::growWorkersForLoadLocked()
     {
         const size_t threadIndex = workers_.size();
         workers_.emplace_back([this, threadIndex] {
-            threadIndex_ = threadIndex;
+            threadIndex_   = threadIndex;
+            threadManager_ = this;
             Os::reserveFaultHandlerStack();
             workerLoop();
         });
@@ -560,10 +626,8 @@ JobResult JobManager::executeJob(Job& job)
     return res;
 }
 
-void JobManager::handleJobResult(JobRecord* rec, const JobResult res)
+void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)
 {
-    const std::unique_lock lk(mtx_);
-
     switch (res)
     {
         case JobResult::Done:
@@ -575,114 +639,67 @@ void JobManager::handleJobResult(JobRecord* rec, const JobResult res)
             // Detach and recycle the record
             rec->job->setRec(nullptr);
             rec->job->setOwner(nullptr);
-            liveRecs_.erase(rec);
             freeRecord(rec);
             break;
         }
 
         case JobResult::Sleep:
         {
-            rec->state = JobRecord::State::Waiting;
-            bumpClientCountLocked(rec->clientId, -1);
+            parkLocked(rec);
 
-            // Register on the precise dependency so the producer can wake it directly.
-            // Non-keyable reasons remain wildcard sleepers, woken only by the barrier.
-            if (const std::optional<WaitKey> key = computeWaitKey(*rec->job))
+            TaskContext& ctx = rec->job->ctx();
+            if (ctx.state().kind == TaskStateKind::SemaWaitMainThreadRunJit &&
+                ctx.compiler().jitExecMgr().hasCompletion(ctx, ctx.state().nodeRef, ctx.state().codeRef))
             {
-                rec->waitKey    = *key;
-                rec->registered = true;
-                waiters_.emplace(*key, rec);
-                filterAdd(*key);
+                // Completion may precede registration. Its mutex either publishes an
+                // existing result to us, or publishes our registration to the producer
+                // before it completes and checks the wait filter. Neither order loses a wake.
+                requeueWaitingLocked(rec);
+                cv_.notify_one();
             }
             break;
         }
     }
-}
-JobRecord* JobManager::popReadyAndMarkRunningLocked()
-{
-    JobRecord* rec = popReadyLocked();
-    if (!rec)
-        return nullptr;
-    if (rec->state == JobRecord::State::Done)
-        return nullptr;
-    rec->state = JobRecord::State::Running;
-    activeWorkers_.fetch_add(1, std::memory_order_acq_rel);
-    return rec;
 }
 
 bool JobManager::isDrainedLocked() const
 {
     // Once we stop accepting, threads should exit as soon as the READY queues are empty.
     // A currently running worker will finish and either requeue or also exit.
-    return !accepting_ && readyCount_.load(std::memory_order_acquire) == 0;
+    return !accepting_ && readyCount_ == 0;
 }
 
 void JobManager::workerLoop()
 {
+    std::unique_lock lk(mtx_);
     while (true)
     {
-        JobRecord* rec = nullptr;
+        // An idle worker leaves the CPU to jobs that can make progress. Completion
+        // and the next dequeue share one lock acquisition while work remains ready.
+        cv_.wait(lk, [this] { return readyCount_ != 0 || !accepting_; });
+        if (isDrainedLocked())
+            return;
 
-        // Fast path: brief spin/yield if no ready work
-        int spins = 0;
-        while (readyCount_.load(std::memory_order_acquire) == 0 && accepting_)
-        {
-            constexpr int spinMax = 200;
-            if (++spins < spinMax)
-            {
-                std::this_thread::yield();
-                continue;
-            }
-
-            // Slow path: fall back to CV wait
-            {
-                std::unique_lock lk(mtx_);
-                cv_.wait(lk, [this] { return readyCount_.load(std::memory_order_acquire) > 0 || !accepting_; });
-
-                if (isDrainedLocked())
-                    return;
-                rec = popReadyAndMarkRunningLocked();
-            }
-
-            break;
-        }
-
-        // If the spin loop did not acquire a job yet, but we observed ready work, do a short locked pop.
-        if (!rec)
-        {
-            const std::unique_lock lk(mtx_);
-            if (isDrainedLocked())
-                return;
-            rec = popReadyAndMarkRunningLocked();
-        }
-
-        if (!rec)
-            continue;
-
-        // From here on, we are an active worker for this job.
-        struct ActiveGuard
-        {
-            std::atomic<size_t>*     ref;
-            std::atomic<uint64_t>*   ready;
-            std::condition_variable* idleCv;
-            ~ActiveGuard()
-            {
-                if (ref->fetch_sub(1, std::memory_order_acq_rel) == 1 &&
-                    ready->load(std::memory_order_acquire) == 0)
-                    idleCv->notify_all();
-            }
-        };
-
-        const ActiveGuard activeGuard{.ref = &activeWorkers_, .ready = &readyCount_, .idleCv = &idleCv_};
-
+        JobRecord* rec = popReadyLocked();
+        SWC_ASSERT(rec && rec->state == JobRecord::State::Ready);
+        rec->state = JobRecord::State::Running;
+        ++activeWorkers_;
+        lk.unlock();
         const JobResult res = executeJob(*rec->job);
-        handleJobResult(rec, res);
+        lk.lock();
+        handleJobResultLocked(rec, res);
+        --activeWorkers_;
+
+        // Publish the idle predicate under the waiter's mutex. Updating the active
+        // count outside it can lose the notification between its check and wait.
+        if (activeWorkers_ == 0 && readyCount_ == 0)
+            idleCv_.notify_all();
     }
 }
 
 void JobManager::bumpClientCountLocked(JobClientId client, int delta)
 {
-    std::size_t& c = clientReadyRunning_[client];
+    std::size_t& c = clients_[client].readyRunning;
     c              = static_cast<std::size_t>(static_cast<long long>(c) + delta);
     if (c == 0)
         idleCv_.notify_all();

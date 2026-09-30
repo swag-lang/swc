@@ -37,6 +37,13 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct alignas(64) CompilerInstance::OwnedJobStorage
+{
+    // Appending jobs changes the vector's control words. Keep neighboring workers
+    // from writing the same cache line after removing their shared ownership lock.
+    std::vector<std::unique_ptr<Job>> jobs;
+};
+
 struct CompilerInstance::PerThreadData
 {
     struct GeneratedSourceThreadData
@@ -338,6 +345,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     const uint32_t numWorkers     = global.jobMgr().numWorkers();
     const uint32_t perThreadSlots = global.jobMgr().isSingleThreaded() ? 1 : numWorkers + 1;
     perThreadData_.resize(perThreadSlots);
+    ownedJobs_.resize(perThreadSlots);
     fileLookup_        = std::make_unique<LookupTable<SourceFile>>();
     srcViewLookup_     = std::make_unique<LookupTable<SourceView>>();
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();
@@ -355,6 +363,23 @@ CompilerInstance::~CompilerInstance()
 size_t CompilerInstance::numPerThreadData() const noexcept
 {
     return perThreadData_.size();
+}
+
+void CompilerInstance::ownJob(std::unique_ptr<Job> job) const
+{
+    // Pool threads own independent storage, regardless of which worker later runs
+    // the job. Enqueue publishes the fully constructed job through the scheduler.
+    const auto threadIndex = global().jobMgr().currentThreadIndex();
+    if (threadIndex)
+    {
+        ownedJobs_[*threadIndex].jobs.push_back(std::move(job));
+        return;
+    }
+
+    // Foreign/runtime threads have no exclusive compiler slot. Preserve makeJob's
+    // thread-safe ownership contract for them without serializing pool workers.
+    const std::scoped_lock lock(externalJobsMutex_);
+    externalJobs_.push_back(std::move(job));
 }
 
 const ModuleApiPerThreadData& CompilerInstance::moduleApiPerThreadData(const size_t index) const

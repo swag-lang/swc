@@ -53,6 +53,7 @@ namespace Runtime
 class CompilerInstance
 {
     struct PerThreadData;
+    struct alignas(64) OwnedJobStorage;
 
 public:
     struct ModuleSetupImport
@@ -132,10 +133,9 @@ public:
     template<typename T, typename... ARGS>
     T* makeJob(ARGS&&... args) const
     {
-        auto                   job = std::make_unique<T>(std::forward<ARGS>(args)...);
-        T*                     ptr = job.get();
-        const std::scoped_lock lock(ownedJobsMutex_);
-        ownedJobs_.push_back(std::move(job));
+        auto job = std::make_unique<T>(std::forward<ARGS>(args)...);
+        T*   ptr = job.get();
+        ownJob(std::move(job));
         return ptr;
     }
     TypeManager&                    typeMgr() { return *(typeMgr_.get()); }
@@ -434,6 +434,7 @@ public:
 private:
     Arena&                  threadArena();
     ModuleApiPerThreadData& threadModuleApiData();
+    void                    ownJob(std::unique_ptr<Job> job) const;
 
     friend class CompilerMessageTypeInfoJob;
     friend class TaskContext;
@@ -584,8 +585,12 @@ private:
     SymbolModule*                                  symModule_           = nullptr;
     SymbolNamespace*                               importRootNamespace_ = nullptr;
     JobClientId                                    jobClientId_         = 0;
-    mutable std::mutex                             ownedJobsMutex_;
-    mutable std::vector<std::unique_ptr<Job>>      ownedJobs_;
+    // Each scheduler thread appends to its own slot. Jobs remain compiler-owned
+    // until teardown, after the caller has drained all work for this instance.
+    mutable std::vector<OwnedJobStorage>      ownedJobs_;
+    mutable std::mutex                        externalJobsMutex_;
+    mutable std::vector<std::unique_ptr<Job>> externalJobs_;
+
     fs::path                                       modulePathSrc_;
     fs::path                                       modulePathFile_;
     fs::path                                       exeFullName_;

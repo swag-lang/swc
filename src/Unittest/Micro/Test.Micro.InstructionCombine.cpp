@@ -524,6 +524,104 @@ SWC_TEST_BEGIN(InstCombine_ForwardingCacheKeepsSurvivingProducers)
 }
 SWC_TEST_END()
 
+// A load into the register that already holds the slot goes away. A 32-bit
+// integer register the slot was only stored from keeps its reload, which also
+// clears the upper half; so does any register across a store that may alias.
+SWC_TEST_BEGIN(InstCombine_ReloadIntoSameRegister_IsErased)
+{
+    for (const uint32_t mode : {0u, 1u, 2u, 3u})
+    {
+        constexpr MicroReg base     = MicroReg::virtualIntReg(1);
+        constexpr MicroReg other    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg word     = MicroReg::virtualIntReg(3);
+        constexpr MicroReg real     = MicroReg::virtualFloatReg(1);
+        const bool         isFloat  = mode == 0 || mode == 3;
+        const MicroReg     value    = isFloat ? real : word;
+        const MicroOpBits  bits     = isFloat ? MicroOpBits::B64 : MicroOpBits::B32;
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(other, MicroReg::intReg(3), MicroOpBits::B64);
+        if (isFloat)
+            builder.emitLoadRegMem(value, other, 32, bits);
+        else if (mode == 1)
+            builder.emitLoadRegImm(value, ApInt(5, 32), bits);
+        if (mode == 2)
+            builder.emitLoadRegMem(value, base, 8, bits);
+        else
+            builder.emitLoadMemReg(base, 8, value, bits);
+        builder.emitLoadMemReg(mode == 3 ? other : base, 16, base, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, base, 8, bits);
+        builder.emitLoadMemReg(other, 0, value, bits);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        // Modes 0 and 2 start with one other load of the register; the reload is the second.
+        const uint32_t loads = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem);
+        if (loads != (mode == 3 ? 2u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An immediate store is overwritten like any other, and overwrites like any other.
+SWC_TEST_BEGIN(InstCombine_OverwrittenImmediateStore_IsErased)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+    builder.emitLoadMemImm(base, 8, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 16, base, MicroOpBits::B64);
+    builder.emitLoadMemImm(base, 8, ApInt(2, 64), MicroOpBits::B64);
+    builder.emitLoadMemImm(base, 16, ApInt(3, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A store the next store to the same bytes covers whole is dead, unless
+// something in between may read what it wrote.
+SWC_TEST_BEGIN(InstCombine_OverwrittenStore_IsErased)
+{
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u})
+    {
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg other  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg second = MicroReg::virtualIntReg(4);
+        constexpr MicroReg read   = MicroReg::virtualIntReg(5);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(other, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegReg(first, MicroReg::intReg(8), MicroOpBits::B64);
+        builder.emitLoadRegReg(second, MicroReg::intReg(9), MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 8, first, mode == 4 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitLoadMemReg(other, 16, first, MicroOpBits::B64);
+        if (mode == 1)
+            builder.emitLoadRegMem(read, other, 0, MicroOpBits::B64);
+        if (mode == 2)
+            builder.emitCallLocal(&callee, CallConvKind::Swag);
+        if (mode == 5)
+            builder.emitLoadAmcRegMem(read, MicroOpBits::B64, other, second, 8, 0, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 8, second, mode == 3 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        const bool erased = mode == 0 || mode == 4;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != (erased ? 2u : 3u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_RipForwardingInitializesBeforeFirstMatchedRelocation)
 {
     MicroBuilder builder(ctx);

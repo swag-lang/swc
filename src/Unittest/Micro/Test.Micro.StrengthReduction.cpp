@@ -415,6 +415,139 @@ SWC_TEST_BEGIN(StrengthReduction_DwordRemainderEqualityBecomesDivisibilityTest)
 }
 SWC_TEST_END()
 
+// A signed remainder or quotient of a dividend a dominating test proved
+// non-negative takes the unsigned form: a mask, a shift. The test must be on
+// the value divided, at the width divided, and on every path to the division.
+SWC_TEST_BEGIN(StrengthReduction_SignedDivisionOfTestedDividendIsUnsigned)
+{
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u})
+    {
+        constexpr MicroReg  value = MicroReg::virtualIntReg(1);
+        constexpr MicroReg  other = MicroReg::virtualIntReg(2);
+        constexpr MicroReg  work  = MicroReg::virtualIntReg(3);
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef skip = builder.createLabel();
+        builder.emitLoadRegReg(value, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(other, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitCmpRegImm(mode == 1 ? other : value, ApInt(uint64_t{0}, 64), mode == 2 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, skip);
+        if (mode == 3)
+            builder.placeLabel(skip);
+        if (mode == 4)
+            builder.emitOpBinaryRegImm(value, ApInt(20, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegReg(work, value, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(work, ApInt(8, 64), MicroOp::ModuloSigned, MicroOpBits::B64);
+        builder.emitLoadMemReg(other, 0, work, MicroOpBits::B64);
+        builder.emitLoadRegReg(work, value, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(work, ApInt(4, 64), MicroOp::DivideSigned, MicroOpBits::B64);
+        builder.emitLoadMemReg(other, 8, work, MicroOpBits::B64);
+        if (mode != 3)
+            builder.placeLabel(skip);
+        builder.emitRet();
+
+        SWC_RESULT(runStrengthReductionPass(builder));
+
+        // The signed expansions correct the sign with an arithmetic shift.
+        const bool proven = mode == 0;
+        if (hasBinaryRegImm(builder, MicroOp::ShiftRight, 2) != proven || (countBinaryRegImmOp(builder, MicroOp::ShiftArithmeticRight) == 0) != proven)
+            return Result::Error;
+        if (proven && !hasBinaryRegImm(builder, MicroOp::And, 7))
+            return Result::Error;
+        if (countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != 0 || countBinaryRegImmOp(builder, MicroOp::DivideSigned) != 0)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// What defines the dividend can prove it too: a zero extension, a mask.
+SWC_TEST_BEGIN(StrengthReduction_SignedDivisionOfMaskedDividendIsUnsigned)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        constexpr MicroReg value = MicroReg::virtualIntReg(1);
+        constexpr MicroReg work  = MicroReg::virtualIntReg(2);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(value, MicroReg::intReg(2), MicroOpBits::B64);
+        if (mode == 0)
+            builder.emitLoadZeroExtendRegReg(work, value, MicroOpBits::B64, MicroOpBits::B16);
+        else
+        {
+            builder.emitLoadRegReg(work, value, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(work, ApInt(mode == 1 ? 0xFFFF : 0xFFFFFFFFFFFF0000ull, 64), MicroOp::And, MicroOpBits::B64);
+        }
+        builder.emitOpBinaryRegImm(work, ApInt(16, 64), MicroOp::ModuloSigned, MicroOpBits::B64);
+        builder.emitLoadMemReg(value, 0, work, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runStrengthReductionPass(builder));
+        if ((countBinaryRegImmOp(builder, MicroOp::ShiftArithmeticRight) == 0) != (mode != 2) || countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != 0)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The instance inside the optimization loop leaves an unproved signed division
+// for the late one, which expands it.
+SWC_TEST_BEGIN(StrengthReduction_LoopInstanceDefersSignedDivision)
+{
+    for (const bool deferred : {true, false})
+    {
+        constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(v1, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(v1, ApInt(8, 64), MicroOp::DivideSigned, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(3), 0, v1, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroStrengthReductionPass pass(deferred);
+        MicroPassManager           passManager;
+        passManager.addStartPass(pass);
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Swag;
+        SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
+
+        if (countBinaryRegImmOp(builder, MicroOp::DivideSigned) != (deferred ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A signed remainder by a power of two that is only tested for zero reads
+// the low bits, whatever the sign. One that is read as a value keeps its sign.
+SWC_TEST_BEGIN(StrengthReduction_SignedRemainderZeroTestBecomesMask)
+{
+    for (const bool readAfter : {false, true})
+    {
+        constexpr MicroReg v1   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg v2   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg base = MicroReg::virtualIntReg(3);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegMem(v1, base, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(v1, ApInt(8, 64), MicroOp::ModuloSigned, MicroOpBits::B64);
+        builder.emitCmpRegImm(v1, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitSetCondReg(v2, MicroCond::Equal);
+        builder.emitLoadMemReg(base, 8, v2, MicroOpBits::B8);
+        if (readAfter)
+            builder.emitLoadMemReg(base, 16, v1, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroStrengthReductionPass pass(true);
+        MicroPassManager           passManager;
+        passManager.addStartPass(pass);
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Swag;
+        SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
+
+        if (hasBinaryRegImm(builder, MicroOp::And, 7) == readAfter || countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != (readAfter ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A remainder read after the compare keeps its full expansion.
 SWC_TEST_BEGIN(StrengthReduction_RemainderReadAfterCompareKept)
 {

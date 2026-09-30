@@ -13,6 +13,13 @@
 // implies "same pointer value at the point of the later access."
 // Calls, branches, labels, and unclassified memory writers still flush the
 // whole cache.
+//
+// A load into the very register the cache names is not a copy to make: the
+// register already holds those bytes, and the load goes away.
+//
+// The same alias model removes a dead store: one that a later store to the
+// same base overwrites completely, with nothing in between that may read the
+// bytes it wrote.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -30,6 +37,16 @@ namespace InstructionCombine
             // relocation, not in (base, off): entries carry the relocation's
             // identity instead, and only equal identities match.
             const MicroRelocation* relocation = nullptr;
+            // The register was filled by a load of this slot, and so holds
+            // exactly what another load of it would produce.
+            bool fromLoad = false;
+        };
+
+        enum class Forward : uint8_t
+        {
+            None,
+            Copied,
+            Erased,
         };
 
         using Cache = SmallVector<CacheEntry, 8>;
@@ -66,7 +83,7 @@ namespace InstructionCombine
             cache.resize(static_cast<size_t>(end - cache.begin()));
         }
 
-        bool forwardLoad(Context& ctx, const Cache& cache, MicroInstrRef loadRef, const MicroInstrOperand* ops, const MicroRelocation* relocation = nullptr)
+        Forward forwardLoad(Context& ctx, const Cache& cache, MicroInstrRef loadRef, const MicroInstrOperand* ops, const MicroRelocation* relocation = nullptr)
         {
             const MicroReg    dst  = ops[0].reg;
             const MicroReg    base = ops[1].reg;
@@ -75,28 +92,77 @@ namespace InstructionCombine
 
             for (const CacheEntry& e : cache)
             {
-                if (e.base != base || e.off != off || e.bits != bits || !e.src.isValid() || e.src == dst)
+                if (e.base != base || e.off != off || e.bits != bits || !e.src.isValid())
                     continue;
                 const bool sameTarget = e.relocation && relocation ? e.relocation->hasSameTarget(*relocation) : e.relocation == relocation;
-                if (sameTarget)
-                {
-                    if (!ctx.claimAll({loadRef}, relocation != nullptr))
-                        return false;
-                    // A forwarded RIP-relative load leaves its relocation
-                    // behind on what becomes a plain register move; detach it
-                    // now so the emitter never tries to bind it.
-                    if (relocation && ctx.builder)
-                        ctx.builder->invalidateRelocationForInstruction(loadRef);
+                if (!sameTarget)
+                    continue;
 
-                    MicroInstrOperand moveOps[3];
-                    moveOps[0].reg    = dst;
-                    moveOps[1].reg    = e.src;
-                    moveOps[2].opBits = bits;
-                    ctx.emitRewrite(loadRef, MicroInstrOpcode::LoadRegReg, moveOps);
-                    return true;
+                // A 32-bit integer load also clears the upper half of its
+                // register. A register the slot was only stored from may
+                // carry other bits there, so that reload stays.
+                const bool sameRegister = e.src == dst;
+                if (sameRegister && !e.fromLoad && dst.isAnyInt() && bits == MicroOpBits::B32)
+                    return Forward::None;
+                if (!ctx.claimAll({loadRef}, relocation != nullptr))
+                    return Forward::None;
+                // A forwarded RIP-relative load leaves its relocation
+                // behind on what becomes a plain register move; detach it
+                // now so the emitter never tries to bind it.
+                if (relocation && ctx.builder)
+                    ctx.builder->invalidateRelocationForInstruction(loadRef);
+                if (sameRegister)
+                {
+                    ctx.emitErase(loadRef);
+                    return Forward::Erased;
                 }
+
+                MicroInstrOperand moveOps[3];
+                moveOps[0].reg    = dst;
+                moveOps[1].reg    = e.src;
+                moveOps[2].opBits = bits;
+                ctx.emitRewrite(loadRef, MicroInstrOpcode::LoadRegReg, moveOps);
+                return Forward::Copied;
             }
-            return false;
+            return Forward::None;
+        }
+
+        // Opcodes that neither read nor write memory, so a pending store
+        // stays unread across them. Anything absent from the list ends the
+        // search: an indexed or vector read, a read-modify-write, a call.
+        bool leavesMemoryAlone(const MicroInstrOpcode op)
+        {
+            switch (op)
+            {
+                case MicroInstrOpcode::Nop:
+                case MicroInstrOpcode::LoadRegReg:
+                case MicroInstrOpcode::LoadRegImm:
+                case MicroInstrOpcode::LoadRegPtrImm:
+                case MicroInstrOpcode::LoadRegPtrReloc:
+                case MicroInstrOpcode::LoadSignedExtRegReg:
+                case MicroInstrOpcode::LoadZeroExtRegReg:
+                case MicroInstrOpcode::LoadAddrRegMem:
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                case MicroInstrOpcode::TestRegReg:
+                case MicroInstrOpcode::TestRegImm:
+                case MicroInstrOpcode::CmpRegReg:
+                case MicroInstrOpcode::CmpRegImm:
+                case MicroInstrOpcode::SetCondReg:
+                case MicroInstrOpcode::ClearReg:
+                case MicroInstrOpcode::OpUnaryReg:
+                case MicroInstrOpcode::LoadCondRegReg:
+                case MicroInstrOpcode::OpBinaryRegReg:
+                case MicroInstrOpcode::OpBinaryRegRegReg:
+                case MicroInstrOpcode::OpBinaryRegImm:
+                case MicroInstrOpcode::OpBinaryRegRegImm:
+                case MicroInstrOpcode::OpTernaryRegRegReg:
+                case MicroInstrOpcode::OpTernaryRegRegRegImm:
+                case MicroInstrOpcode::VecShuffleRegRegImm:
+                case MicroInstrOpcode::VecUnaryRegReg:
+                    return true;
+                default:
+                    return false;
+            }
         }
     }
 
@@ -153,10 +219,15 @@ namespace InstructionCombine
                     relocation = relocIt->second;
                 }
 
-                const bool claimed   = ctx.isClaimed(it.current);
-                bool       forwarded = false;
+                const bool claimed = ctx.isClaimed(it.current);
+                Forward    forward = Forward::None;
                 if (!claimed)
-                    forwarded = forwardLoad(ctx, cache, it.current, ops, relocation);
+                    forward = forwardLoad(ctx, cache, it.current, ops, relocation);
+                // An erased reload leaves its register, and every entry that
+                // names it, exactly as they were.
+                if (forward == Forward::Erased)
+                    continue;
+                const bool forwarded = forward == Forward::Copied;
                 // The load redefines its destination register; any cache entry
                 // whose `src` refers to it is now stale and must be dropped
                 // before a later load could reach for it.
@@ -181,6 +252,7 @@ namespace InstructionCombine
                     entry.bits       = ops[2].opBits;
                     entry.off        = ops[3].valueU64;
                     entry.relocation = relocation;
+                    entry.fromLoad   = true;
                     cache.push_back(entry);
                 }
                 continue;
@@ -242,6 +314,94 @@ namespace InstructionCombine
             {
                 for (const MicroReg def : useDef->defs)
                     dropEntriesReferencing(cache, def);
+            }
+        }
+    }
+
+    void runDeadStoreElimination(Context& ctx)
+    {
+        if (!ctx.ssa)
+            return;
+
+        struct PendingStore
+        {
+            MicroInstrRef ref;
+            MicroReg      base;
+            uint64_t      off  = 0;
+            MicroOpBits   bits = MicroOpBits::Zero;
+        };
+        SmallVector<PendingStore, 8> pending;
+        const auto                   dropWhere = [&](const auto& predicate) {
+            const auto end = std::remove_if(pending.begin(), pending.end(), predicate);
+            pending.resize(static_cast<size_t>(end - pending.begin()));
+        };
+
+        const auto view  = ctx.storage->view();
+        const auto endIt = view.end();
+        for (auto it = view.begin(); it != endIt; ++it)
+        {
+            const MicroInstr&        inst = *it;
+            const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+
+            // A register and an immediate store alike: they differ only in
+            // where the width and the offset sit.
+            if ((inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm) && ops)
+            {
+                const bool        fromReg = inst.op == MicroInstrOpcode::LoadMemReg;
+                const MicroReg    base    = ops[0].reg;
+                const MicroOpBits bits    = ops[fromReg ? 2 : 1].opBits;
+                const uint64_t    off     = ops[fromReg ? 3 : 2].valueU64;
+                if (!base.isVirtualInt())
+                {
+                    pending.clear();
+                    continue;
+                }
+
+                // Whatever this store covers whole was written for nothing.
+                // A store through another base reads no memory, so the
+                // stores still pending stay pending behind it.
+                dropWhere([&](const PendingStore& earlier) {
+                    if (earlier.base != base || earlier.off < off || earlier.off + getNumBytes(earlier.bits) > off + getNumBytes(bits))
+                        return false;
+                    if (ctx.claimAll({earlier.ref}))
+                        ctx.emitErase(earlier.ref);
+                    return true;
+                });
+
+                if (!ctx.isClaimed(it.current) && !ctx.isRelocated(it.current))
+                    pending.push_back({.ref = it.current, .base = base, .off = off, .bits = bits});
+                continue;
+            }
+
+            if (pending.empty())
+                continue;
+
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops)
+            {
+                // A read keeps only the stores it provably misses: the same
+                // base, and bytes that do not overlap. It also redefines its
+                // destination, which may be the base of a pending store.
+                const MicroReg    dst  = ops[0].reg;
+                const MicroReg    base = ops[1].reg;
+                const MicroOpBits bits = ops[2].opBits;
+                const uint64_t    off  = ops[3].valueU64;
+                dropWhere([&](const PendingStore& earlier) {
+                    return earlier.base == dst || earlier.base != base || rangesOverlap(earlier.off, earlier.bits, off, bits);
+                });
+                continue;
+            }
+
+            if (!leavesMemoryAlone(inst.op))
+            {
+                pending.clear();
+                continue;
+            }
+
+            // A redefined base no longer names the address the store wrote.
+            if (const auto* useDef = ctx.ssa->instrUseDef(it.current))
+            {
+                for (const MicroReg def : useDef->defs)
+                    dropWhere([&](const PendingStore& earlier) { return earlier.base == def; });
             }
         }
     }

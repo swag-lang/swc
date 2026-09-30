@@ -254,6 +254,7 @@ namespace InstructionCombine
     //===-- Whole-IR scans --------------------------------------------------===//
 
     void runStoreToLoadForwarding(Context& ctx);
+    void runDeadStoreElimination(Context& ctx);
 }
 
 SWC_END_NAMESPACE();

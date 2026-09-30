@@ -171,7 +171,7 @@ namespace
         return R;
     }
 
-    bool runPerInstructionPatterns(Context& ctx)
+    bool runPerInstructionPatterns(Context& ctx, bool& outHasSecondStore)
     {
         // An instruction that carries a relocation is normally opaque to the combiner:
         // rewriting it to another opcode would leave the relocation pointing
@@ -186,6 +186,7 @@ namespace
         const auto             endIt              = view.end();
         bool                   hasMemoryProducer  = false;
         bool                   hasForwardableLoad = false;
+        bool                   hasStore           = false;
         for (auto it = view.begin(); it != endIt; ++it)
         {
             if (it->op == MicroInstrOpcode::LoadRegMem)
@@ -194,7 +195,17 @@ namespace
                 hasMemoryProducer = true;
             }
             else if (it->op == MicroInstrOpcode::LoadMemReg)
+            {
+                // Only a store behind an earlier one can overwrite it.
+                outHasSecondStore |= hasStore;
+                hasStore          = true;
                 hasMemoryProducer = true;
+            }
+            else if (it->op == MicroInstrOpcode::LoadMemImm)
+            {
+                outHasSecondStore |= hasStore;
+                hasStore          = true;
+            }
             if (!ctx.relocated.empty() && ctx.isRelocated(it.current) && it->op != MicroInstrOpcode::LoadRegPtrReloc)
             {
                 if (it->op == MicroInstrOpcode::LoadRegMem)
@@ -253,13 +264,16 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         }
     }
 
-    const bool hasForwardableMemory = runPerInstructionPatterns(ctx);
+    bool       hasSecondStore       = false;
+    const bool hasForwardableMemory = runPerInstructionPatterns(ctx, hasSecondStore);
 
     // Whole-IR scans with per-position state don't fit the anchor-per-instruction
     // dispatch. They emit into the same action queue so claim tracking works
     // uniformly with per-instruction patterns.
     if (hasForwardableMemory)
         runStoreToLoadForwarding(ctx);
+    if (hasSecondStore)
+        runDeadStoreElimination(ctx);
 
     // Widening a 32-bit copy changes a fact other rules read (its upper half
     // being zero) and claims the copy's readers. It runs only once no other

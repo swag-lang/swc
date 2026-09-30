@@ -500,7 +500,8 @@ MicroPassManager::MicroPassManager()
     constantFoldingPass_     = std::make_unique<MicroConstantFoldingPass>();
     copyEliminationPass_     = std::make_unique<MicroCopyEliminationPass>();
     instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
-    strengthReductionPass_   = std::make_unique<MicroStrengthReductionPass>();
+    strengthReductionPass_     = std::make_unique<MicroStrengthReductionPass>(true);
+    lateStrengthReductionPass_ = std::make_unique<MicroStrengthReductionPass>();
     inductionVariablePass_   = std::make_unique<MicroInductionVariablePass>();
     valueNumberingPass_      = std::make_unique<MicroValueNumberingPass>();
     licmPass_                = std::make_unique<MicroLoopInvariantCodeMotionPass>();
@@ -610,6 +611,12 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         // constant its branch pins only when no fold of the loop wants the
         // chain any more. The cleanup loop then drops the dead setcc.
         addVectorizePass(*lateBranchSimplifyPass_);
+        // Also once on the converged IR: the signed divisions by a constant
+        // that no test or definition proved non-negative take their
+        // sign-corrected expansion here, and the cleanup loop shares and
+        // hoists its parts.
+        if (costly)
+            addVectorizePass(*lateStrengthReductionPass_);
     }
 
     // Static null-dereference sanity analysis (read-only). Runs once, before the

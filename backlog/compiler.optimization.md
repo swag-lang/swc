@@ -694,24 +694,6 @@ block, and the hot path keeps the register.
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
 
-### compiler.optimization.040 — Returning a fresh aggregate invokes its copy hook
-
-- Recorded: 2026-09-16 14:37
-- Area: compiler/lowering, aggregate return ownership
-- Found while: implementing explicit moves in aggregate fields and conditional arms
-  (`language.design.028`).
-- Evidence: on the unchanged DevMode compiler 0.1.687, a non-inlined factory
-  `func makeOwner(value: s64)->Owner => Owner{value}` invokes `Owner.opPostCopy` once
-  for a fresh 16-byte value with drop, copy, and move hooks. Returning a named local
-  instead adopts its storage. A runtime input and a copy counter reproduce the difference;
-  constant folding can hide the factory's copy from runtime counters.
-- Next: review `returnSourceIsOwnedTemporary` in `CodeGen.Function.Post.cpp` and the
-  destination binding for fresh aggregate literals. Establish which literals can transfer
-  ownership into the caller's result without a copy hook or a second destruction.
-- Complete when: fresh aggregate returns have a documented ownership rule and JIT/native
-  regressions cover their copy/move hooks, source cleanup, and optimized inlining.
-- Related: compiler.optimization.027.
-
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 
 - Recorded: 2026-09-06 14:53
@@ -1114,29 +1096,3 @@ block, and the hot path keeps the register.
   longer fires on a whole-library build, and the suites stay green.
 - Related: compiler.optimization.016.
 
-### compiler.optimization.027 — Binding a fallible call's result deep-copies instead of adopting the temporary
-
-- Recorded: 2026-09-02 23:05
-- Evidence (2026-09-02, PNG campaign): `let z = catch produce()` on a struct with lifecycle
-  hooks runs `opPostCopy` once — the call's sret result lands in an `ErrorManagementExpr`
-  runtime temporary, and the variable initializer copies it. For `Image.decode` that was one
-  full pixel-buffer copy (about 1.1 ms per 6 MB) on every `try`/`catch`/`expect` call whose
-  result initializes a variable. A non-fallible `let z = produce2()` binds the slot and copies
-  nothing. Probe: a fallible `produce()->Payload fail` returning a 20-byte struct, called as
-  `let z = catch produce()`, counts exactly one `opPostCopy`; the same chain without `fail`
-  counts zero.
-- The codegen side already anticipates the fix: `initPayloadAliasesSymbolStorage`
-  (CodeGen.Identifier.cpp) accepts an init whose payload storage IS the declared variable when
-  the init node is an `ErrorManagementExpr`. What is missing is the sema side binding the
-  declared variable as the runtime storage of a fallible-call initializer, the way
-  `AstSingleVarDecl::semaPostNodeChild` (Sema.Var.cpp) already does for arrays, closures, and
-  `retval` — including the inferred-type shape, which never enters that type-child hook.
-- Fallback shape if the binding is unreachable for inferred types: at
-  `emitVarInitPostCopy`, an init from an `ErrorManagementExpr`-owned unique temporary could run
-  `opPostMove` and reset the temporary instead of copying, but that requires knowing how the
-  temporary's scope drop is registered so the adoption does not double-drop.
-- Next: bind the declared variable as the fallible initializer's runtime storage in sema for
-  both the typed and the inferred shape, then assert zero `opPostCopy` in a native-suite case
-  shaped like `lifecycle_return_move.swg`.
-- Complete when: `let x = try/catch/expect call()` initializes a lifecycle struct with no
-  `opPostCopy` and no extra drop, with a native-suite regression guarding it.

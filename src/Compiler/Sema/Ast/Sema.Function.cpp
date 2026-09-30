@@ -956,6 +956,11 @@ namespace
     // An lvalue return ('return someLocal', 'return me.field') still owes a copy, and the
     // scratch storages other nodes request (the member-access spill slot is a bare 8-byte
     // array, not the return type) must never be redirected onto the return slot.
+    //
+    // This holds for a type with lifecycle hooks too. A literal is a new value: its fields
+    // run their own copy or move hook as they enter it, and the aggregate they form has no
+    // earlier owner to copy from. Built in the caller's slot, it owes no 'opPostCopy', no
+    // 'opPostMove', and leaves nothing behind to drop.
     bool returnExprBuildsWholeValueInPlace(const Sema& sema, AstNodeRef exprRef)
     {
         if (exprRef.isInvalid())
@@ -979,8 +984,6 @@ namespace
         if (inlinePayload.returnsToCallerSite() || !inlinePayload.resultVar)
             return Result::Continue;
         if (!inlinePayload.returnTypeRef.isValid() || inlinePayload.returnTypeRef == sema.typeMgr().typeVoid())
-            return Result::Continue;
-        if (SemaHelpers::typeHasLifecycle(sema.ctx(), inlinePayload.returnTypeRef))
             return Result::Continue;
 
         frame.setCurrentRuntimeStorage(exprRef, inlinePayload.resultVar);
@@ -1016,9 +1019,6 @@ namespace
 
         const TypeRef storageTypeRef = SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, *sema.currentFunction());
         if (storageTypeRef.isInvalid())
-            return Result::Continue;
-        // The return copy carries the 'opPostCopy' that transfers ownership to the caller.
-        if (SemaHelpers::typeHasLifecycle(sema.ctx(), storageTypeRef))
             return Result::Continue;
 
         // Memoized on the return statement so a sema pause/resume reuses the same symbol

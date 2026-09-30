@@ -577,7 +577,10 @@ namespace
         if (!isMove && !varInitNeedsPostCopy(codeGen, initRef, initPayload))
             return Result::Continue;
 
-        const CodeGen::LifecycleKind postKind = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        // A literal that could not be built in the variable was built in a temporary nothing
+        // else names: the variable adopts it, exactly as it adopts an owned call result.
+        const bool                   adoptsLiteral = !isMove && CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, initRef);
+        const CodeGen::LifecycleKind postKind      = isMove || adoptsLiteral ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         if (codeGen.hasLifecycle(symVar.typeRef(), postKind))
             SWC_RESULT(codeGen.emitLifecycle(symVar.typeRef(), postKind, symbolPayload.reg));
 

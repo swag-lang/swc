@@ -497,7 +497,8 @@ namespace
         const bool                   isRelocate        = modifierFlags.has(AstModifierFlagsE::Relocate);
         const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop) || modifierFlags.has(AstModifierFlagsE::FirstInit) || isRelocate;
         const SymbolVariable*        sourceStorage     = codeGen.runtimeStorageSymbol(rightRef);
-        const bool                   movesTemporary    = originalRightPayload.ownsValue || (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage));
+        const bool                   ownedRValue       = originalRightPayload.isAddress() && (CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, rightRef) || CodeGenFunctionHelpers::isOwnedCallResult(codeGen, rightRef));
+        const bool                   movesTemporary    = originalRightPayload.ownsValue || (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage)) || ownedRValue;
         const CodeGen::LifecycleKind postKind          = isMove || movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         const bool                   hasTargetDrop     = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
         const bool                   hasPostLifecycle  = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
@@ -591,8 +592,10 @@ namespace
         if (wantInvalidateSource && invalidateAfterGuard)
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, stableRight.reg, rightTypeRef, rightRef));
 
-        // A call-result temporary is an owned rvalue. Its bits now belong to the
-        // destination, after any post-move repair, so its statement cleanup stands down.
+        // A call result - emitted, expanded inline, or behind an error-management wrapper,
+        // which registers no cleanup for it - is an owned rvalue, and so is a fresh
+        // aggregate literal. Its bits now belong to the destination, after any post-move
+        // repair, so its statement cleanup stands down.
         if (movesTemporary && sourceStorage)
             codeGen.cancelTemporaryDrop(*sourceStorage);
 

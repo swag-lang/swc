@@ -63,6 +63,41 @@ SWC_TEST_BEGIN(PostRALoopRotate_IndependentHeadersRotate)
 }
 SWC_TEST_END()
 
+// The copied header is bounded: eight instructions ahead of the exit branch
+// rotate, nine keep the unconditional back edge.
+SWC_TEST_BEGIN(PostRALoopRotate_HeaderRunStopsAtEightInstructions)
+{
+    constexpr MicroReg counter = MicroReg::intReg(8);
+    constexpr MicroReg base    = MicroReg::intReg(9);
+    for (const uint32_t connectors : {7u, 8u})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef top  = builder.createLabel();
+        const MicroLabelRef done = builder.createLabel();
+        builder.placeLabel(top);
+        for (uint32_t i = 0; i < connectors; ++i)
+            builder.emitLoadAddressRegMem(MicroReg::intReg(10 + (i & 3)), base, 8 * i, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        const MicroInstrRef backRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        const bool        rotates = connectors == 7;
+        const MicroInstr* back    = builder.instructions().ptr(backRef);
+        if (!back || back->op != MicroInstrOpcode::JumpCond ||
+            back->ops(builder.operands())[0].cpuCond != (rotates ? MicroCond::Less : MicroCond::Unconditional) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != (rotates ? 2u : 1u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != (rotates ? 14u : 8u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRALoopRotate_ClonesRelocatedAddressTest)
 {
     for (const bool addressConnector : {true, false})

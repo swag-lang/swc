@@ -42,6 +42,71 @@ namespace
     }
 }
 
+// One run hands an address to every reader on its straight line, so an
+// unrolled loop does not cost the optimization loop a sweep per trip. A reader
+// that rewrites the base still takes the address and ends the line.
+SWC_TEST_BEGIN(PreRAPeephole_ForwardsAddressToEveryReaderInOneRun)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg address = MicroReg::virtualIntReg(3);
+    constexpr uint32_t readers = 6;
+
+    enum class Case
+    {
+        Offset,
+        Indexed,
+        ReaderRewritesBase,
+    };
+
+    for (const Case testCase : {Case::Offset, Case::Indexed, Case::ReaderRewritesBase})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, MicroReg::intReg(3), MicroOpBits::B64);
+        if (testCase == Case::Indexed)
+            builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, base, index, 8, 0, MicroOpBits::B64);
+        else
+            builder.emitLoadAddressRegMem(address, base, 16, MicroOpBits::B64);
+        if (testCase == Case::ReaderRewritesBase)
+            builder.emitLoadRegMem(base, address, 0, MicroOpBits::B64);
+        for (uint32_t i = 0; i < readers; ++i)
+            builder.emitLoadMemImm(address, i, ApInt(i + 1, 8), MicroOpBits::B8);
+        builder.emitRet();
+
+        SWC_RESULT(runPreRaPeepholePass(builder));
+
+        uint32_t viaAddress = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadMemImm && ops[0].reg == address)
+                ++viaAddress;
+        }
+
+        switch (testCase)
+        {
+            case Case::Offset:
+                if (viaAddress != 0 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != readers)
+                    return Result::Error;
+                break;
+            case Case::Indexed:
+                if (viaAddress != 0 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcMemImm) != readers)
+                    return Result::Error;
+                break;
+            case Case::ReaderRewritesBase:
+            {
+                const MicroInstr* load = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadRegMem);
+                if (!load || load->ops(builder.operands())[1].reg != base || load->ops(builder.operands())[3].valueU64 != 16 || viaAddress != readers)
+                    return Result::Error;
+                break;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PreRAPeephole_FloatBinary_DefinesIndependentResult)
 {
     for (const MicroOp operation : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide})

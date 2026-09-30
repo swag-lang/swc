@@ -28,11 +28,51 @@ namespace PreRaPeephole
         // The crossed instructions are returned so the caller can claim them:
         // a rule rewriting one of them in the same sweep (retargeting a
         // producer onto an input, say) would break the equality this relies on.
-        MicroInstrRef skipCopiesToConsumer(const Context& ctx, MicroInstrRef defRef, MicroReg addrReg, MicroReg inputA, MicroReg inputB, SmallVector<MicroInstrRef, K_MAX_ADDR_FORWARD_COPIES>& outCrossed)
+        // What one instruction does to a forwarded address: whether it reads
+        // the address register, and whether it writes that register or one of
+        // the inputs the address was computed from.
+        struct AddressEffect
+        {
+            bool readsAddr    = false;
+            bool changesInput = false;
+        };
+
+        AddressEffect addressEffectOf(const Context& ctx, const MicroInstr& inst, MicroReg addrReg, MicroReg inputA, MicroReg inputB)
+        {
+            AddressEffect        effect;
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                effect.readsAddr              = std::ranges::find(useDef.uses, addrReg) != useDef.uses.end();
+                for (const MicroReg def : useDef.defs)
+                    effect.changesInput |= def == addrReg || def == inputA || (inputB.isValid() && def == inputB);
+            }
+            else if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::None)
+                        continue;
+                    const MicroReg reg = ops[i].reg;
+                    if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
+                        effect.readsAddr |= reg == addrReg;
+                    if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                        effect.changesInput |= reg == addrReg || reg == inputA || (inputB.isValid() && reg == inputB);
+                }
+            }
+            return effect;
+        }
+
+        // `ioSteps` counts the instructions walked since the definition, the
+        // readers already rewritten included: the reach of one address is
+        // bounded from its definition, however many readers take it.
+        MicroInstrRef skipCopiesToConsumer(const Context& ctx, MicroInstrRef fromRef, MicroReg addrReg, MicroReg inputA, MicroReg inputB, SmallVector<MicroInstrRef, K_MAX_ADDR_FORWARD_COPIES>& outCrossed, uint32_t& ioSteps)
         {
             outCrossed.clear();
-            MicroInstrRef cur = ctx.nextRef(defRef);
-            for (uint32_t step = 0; step < K_MAX_ADDR_FORWARD_COPIES && cur.isValid(); ++step)
+            MicroInstrRef cur = ctx.nextRef(fromRef);
+            for (; ioSteps < K_MAX_ADDR_FORWARD_COPIES && cur.isValid(); ++ioSteps)
             {
                 const MicroInstr* w = ctx.instruction(cur);
                 if (!w || ctx.isClaimed(cur))
@@ -43,33 +83,14 @@ namespace PreRaPeephole
                     info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     return MicroInstrRef::invalid();
 
-                bool readsAddr    = false;
-                bool changesInput = false;
-                if (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+                const AddressEffect effect = addressEffectOf(ctx, *w, addrReg, inputA, inputB);
+                if (w->op != MicroInstrOpcode::LoadRegReg && effect.readsAddr)
                 {
-                    const MicroInstrUseDef useDef = w->collectUseDef(*ctx.operands, ctx.encoder);
-                    readsAddr                     = std::ranges::find(useDef.uses, addrReg) != useDef.uses.end();
-                    for (const MicroReg def : useDef.defs)
-                        changesInput |= def == addrReg || def == inputA || (inputB.isValid() && def == inputB);
-                }
-                else if (const MicroInstrOperand* ops = w->ops(*ctx.operands))
-                {
-                    const auto modes = info.resolvedRegModes(ops);
-                    for (size_t i = 0; i < modes.size(); ++i)
-                    {
-                        if (modes[i] == MicroInstrRegMode::None)
-                            continue;
-                        const MicroReg reg = ops[i].reg;
-                        if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
-                            readsAddr |= reg == addrReg;
-                        if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
-                            changesInput |= reg == addrReg || reg == inputA || (inputB.isValid() && reg == inputB);
-                    }
-                }
-                if (w->op != MicroInstrOpcode::LoadRegReg && readsAddr)
+                    ++ioSteps;
                     return cur; // candidate consumer.
+                }
 
-                if (changesInput)
+                if (effect.changesInput)
                     return MicroInstrRef::invalid(); // an addressing input changed.
 
                 outCrossed.push_back(cur);
@@ -524,25 +545,40 @@ namespace PreRaPeephole
         if (addrReg == baseReg)
             return false;
 
+        // Every reader on the straight line takes the address in this run. One
+        // reader a run costs a sweep of the whole optimization loop per reader,
+        // and an unrolled loop leaves as many readers as it had trips.
         SmallVector<MicroInstrRef, K_MAX_ADDR_FORWARD_COPIES> crossed;
-        const MicroInstrRef                                   consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, baseReg, MicroReg::invalid(), crossed);
-        if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
-            return false;
+        bool                                                  forwarded = false;
+        uint32_t                                              steps     = 0;
+        for (MicroInstrRef fromRef = defRef;;)
+        {
+            const MicroInstrRef consumerRef = skipCopiesToConsumer(ctx, fromRef, addrReg, baseReg, MicroReg::invalid(), crossed, steps);
+            if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
+                break;
 
-        const MicroInstr* consumer = ctx.instruction(consumerRef);
-        if (!consumer)
-            return false;
+            const MicroInstr* consumer = ctx.instruction(consumerRef);
+            if (!consumer)
+                break;
 
-        ConsumerRewrite rewrite;
-        if (!buildAddrRewrite(rewrite, *consumer, ctx.operandsFor(consumerRef), addrReg, baseReg, defOps[3].valueU64))
-            return false;
+            ConsumerRewrite rewrite;
+            if (!buildAddrRewrite(rewrite, *consumer, ctx.operandsFor(consumerRef), addrReg, baseReg, defOps[3].valueU64))
+                break;
 
-        if (!claimConsumerAndCrossed(ctx, consumerRef, crossed))
-            return false;
+            if (!claimConsumerAndCrossed(ctx, consumerRef, crossed))
+                break;
 
-        const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
-        ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps, rewrite.allocOps);
-        return true;
+            const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
+            ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps, rewrite.allocOps);
+            forwarded = true;
+
+            // A reader that also writes the base ends the line for the rest.
+            if (addressEffectOf(ctx, *consumer, addrReg, baseReg, MicroReg::invalid()).changesInput)
+                break;
+            fromRef = consumerRef;
+        }
+
+        return forwarded;
     }
 
     // `lea r, [s]` is `mov r, s`, which the copy passes then fold away; the
@@ -585,25 +621,37 @@ namespace PreRaPeephole
         if (addrReg == defOps[1].reg || addrReg == defOps[2].reg)
             return false;
 
+        // As above: every reader on the straight line, in one run.
         SmallVector<MicroInstrRef, K_MAX_ADDR_FORWARD_COPIES> crossed;
-        const MicroInstrRef                                   consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, defOps[1].reg, defOps[2].reg, crossed);
-        if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
-            return false;
+        bool                                                  forwarded = false;
+        uint32_t                                              steps     = 0;
+        for (MicroInstrRef fromRef = defRef;;)
+        {
+            const MicroInstrRef consumerRef = skipCopiesToConsumer(ctx, fromRef, addrReg, defOps[1].reg, defOps[2].reg, crossed, steps);
+            if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
+                break;
 
-        const MicroInstr* consumer = ctx.instruction(consumerRef);
-        if (!consumer)
-            return false;
+            const MicroInstr* consumer = ctx.instruction(consumerRef);
+            if (!consumer)
+                break;
 
-        ConsumerRewrite rewrite;
-        if (!buildAddrAmcRewrite(rewrite, ctx, *consumer, ctx.operandsFor(consumerRef), addrReg, defOps[1].reg, defOps[2].reg, defOps[4].opBits, defOps[5].valueU64, defOps[6].valueU64))
-            return false;
+            ConsumerRewrite rewrite;
+            if (!buildAddrAmcRewrite(rewrite, ctx, *consumer, ctx.operandsFor(consumerRef), addrReg, defOps[1].reg, defOps[2].reg, defOps[4].opBits, defOps[5].valueU64, defOps[6].valueU64))
+                break;
 
-        if (!claimConsumerAndCrossed(ctx, consumerRef, crossed))
-            return false;
+            if (!claimConsumerAndCrossed(ctx, consumerRef, crossed))
+                break;
 
-        const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
-        ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps, rewrite.allocOps);
-        return true;
+            const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
+            ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps, rewrite.allocOps);
+            forwarded = true;
+
+            if (addressEffectOf(ctx, *consumer, addrReg, defOps[1].reg, defOps[2].reg).changesInput)
+                break;
+            fromRef = consumerRef;
+        }
+
+        return forwarded;
     }
 }
 

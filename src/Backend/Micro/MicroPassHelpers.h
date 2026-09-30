@@ -304,6 +304,12 @@ namespace MicroPassHelpers
     // the address computations ('lea'), which form an address without dereferencing it.
     bool dereferenceBaseOperandIndex(uint8_t& outIndex, MicroInstrOpcode op, const MicroInstrDef& def);
 
+    // The registers the code generator marked as the address of an immutable by-value
+    // parameter, kept only when the function still honors the mark: one definition from the
+    // incoming argument, and no use but as the base of a read. A register that is copied
+    // elsewhere, offset, stored, or written through may name storage someone else changes.
+    void collectImmutableStorageBases(std::unordered_set<MicroReg>& out, const MicroPassContext& context);
+
     // Fold a binary integer operation on two immediate values.
     // Maps MicroOp to Math::FoldBinaryOp and delegates to Math::foldBinaryInt.
     // Returns Math::FoldStatus::Unsupported if the MicroOp has no fold mapping.

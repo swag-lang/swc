@@ -1189,6 +1189,95 @@ bool MicroPassHelpers::dereferenceBaseOperandIndex(uint8_t& outIndex, MicroInstr
     return true;
 }
 
+void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>& out, const MicroPassContext& context)
+{
+    out.clear();
+    if (!context.builder || !context.instructions || !context.operands)
+        return;
+    const std::unordered_set<MicroReg>& marked = context.builder->immutableStorageBases();
+    if (marked.empty())
+        return;
+
+    MicroStorage&        storage  = *context.instructions;
+    MicroOperandStorage& operands = *context.operands;
+
+    std::unordered_set<MicroReg>                  defined;
+    std::unordered_set<MicroReg>                  rejected;
+    SmallVector<std::pair<MicroReg, MicroReg>, 4> copies;
+    MicroInstrRegOperandRefs                      regOps;
+    for (const MicroInstr& inst : storage.view())
+    {
+        if (!inst.numOperands)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            continue;
+
+        regOps.clear();
+        inst.collectRegOperands(operands, regOps, context.encoder);
+
+        const MicroInstrDef& info      = MicroInstr::info(inst.op);
+        uint8_t              baseIndex = 0;
+        const bool           readsBase = !info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+                                         !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
+                                         dereferenceBaseOperandIndex(baseIndex, inst.op, info);
+        for (const MicroInstrRegOperandRef& regOp : regOps)
+        {
+            const MicroReg reg = *regOp.reg;
+            if (!marked.contains(reg))
+                continue;
+
+            if (regOp.def)
+            {
+                // The one definition takes the incoming argument: a copy of its register or
+                // of another marked base, or a read of its stack slot.
+                const bool fromArgument = !regOp.use && regOp.reg == &ops[0].reg &&
+                                          ((inst.op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
+                                            (!ops[1].reg.isVirtual() || marked.contains(ops[1].reg))) ||
+                                           (inst.op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
+                                            !ops[1].reg.isVirtual()));
+                if (!fromArgument || !defined.insert(reg).second)
+                    rejected.insert(reg);
+                continue;
+            }
+
+            if (readsBase && regOp.reg == &ops[baseIndex].reg)
+                continue;
+
+            // A copy into another marked base names the same storage: the two stand or
+            // fall together.
+            if (inst.op == MicroInstrOpcode::LoadRegReg && regOp.reg == &ops[1].reg &&
+                ops[2].opBits == MicroOpBits::B64 && marked.contains(ops[0].reg))
+            {
+                copies.push_back({reg, ops[0].reg});
+                continue;
+            }
+
+            rejected.insert(reg);
+        }
+    }
+
+    for (bool changed = !rejected.empty() && !copies.empty(); changed;)
+    {
+        changed = false;
+        for (const auto& [from, to] : copies)
+        {
+            if (rejected.contains(from) != rejected.contains(to))
+            {
+                rejected.insert(from);
+                rejected.insert(to);
+                changed = true;
+            }
+        }
+    }
+
+    for (const MicroReg reg : defined)
+    {
+        if (!rejected.contains(reg))
+            out.insert(reg);
+    }
+}
+
 bool MicroPassHelpers::definesZeroHighBits(const MicroInstr& inst, const MicroInstrOperand* ops)
 {
     if (!ops)

@@ -659,6 +659,48 @@ SWC_TEST_BEGIN(ValueNumbering_ConstantPoolReadCrossesCallAndStore)
 }
 SWC_TEST_END()
 
+// A read through the incoming address of a by-value parameter repeats an earlier one across a
+// store. It stays across a call, without the mark, and once the address is written through or
+// copied where the scan cannot follow it.
+SWC_TEST_BEGIN(ValueNumbering_ImmutableParameterReadCrossesStoreOnly)
+{
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u})
+    {
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        constexpr MicroReg parameter = MicroReg::virtualIntReg(1);
+        constexpr MicroReg output    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg first     = MicroReg::virtualIntReg(3);
+        constexpr MicroReg second    = MicroReg::virtualIntReg(4);
+        constexpr MicroReg alias     = MicroReg::virtualIntReg(5);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(parameter, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(output, MicroReg::intReg(3), MicroOpBits::B64);
+        if (mode != 1)
+            builder.markImmutableStorageBase(parameter);
+        builder.emitLoadRegMem(first, parameter, 8, MicroOpBits::B64);
+        builder.emitLoadMemReg(mode == 2 ? parameter : output, 0, first, MicroOpBits::B64);
+        if (mode == 3)
+            builder.emitCallLocal(&callee, CallConvKind::Swag);
+        if (mode == 4)
+            builder.emitLoadRegReg(alias, parameter, MicroOpBits::B64);
+        builder.emitLoadRegMem(second, parameter, 8, MicroOpBits::B64);
+        const auto secondRef = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegReg(first, second, MicroOp::Add, MicroOpBits::B64);
+        if (mode == 4)
+            builder.emitOpBinaryRegReg(first, alias, MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runValueNumberingPass(builder));
+        const MicroInstr* inst = builder.instructions().ptr(secondRef);
+        if (!inst || inst->op != (mode == 0 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+            return Result::Error;
+        if (mode == 0 && inst->ops(builder.operands())[1].reg != first)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ValueNumbering_AddressWidthsStayDistinctBeforeAcceptedLoads)
 {
     constexpr MicroReg base  = MicroReg::virtualIntReg(10);

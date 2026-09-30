@@ -162,6 +162,15 @@ namespace
         for (const uint32_t reg : preservedRegs)
             identity.appendLe32(reg);
 
+        std::vector<uint32_t> immutableBases;
+        immutableBases.reserve(microBuilder->immutableStorageBases().size());
+        for (const MicroReg reg : microBuilder->immutableStorageBases())
+            immutableBases.push_back(reg.packed);
+        std::ranges::sort(immutableBases);
+        identity.appendLe32(static_cast<uint32_t>(immutableBases.size()));
+        for (const uint32_t reg : immutableBases)
+            identity.appendLe32(reg);
+
         return digestToHex(sha256(identity.span()));
     }
 

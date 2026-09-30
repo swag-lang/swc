@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -46,7 +47,7 @@ namespace
     class SleepOnSymTypedJob final : public Job
     {
     public:
-        SleepOnSymTypedJob(const TaskContext& ctx, const void* target) :
+        SleepOnSymTypedJob(const TaskContext& ctx, const Symbol* target) :
             Job(ctx, JobKind::Sema),
             target_(target)
         {
@@ -64,14 +65,105 @@ namespace
 
             TaskState& wait = ctx().state();
             wait.kind       = TaskStateKind::SemaWaitSymTyped;
-            wait.symbol     = static_cast<const Symbol*>(target_);
+            wait.symbol     = target_;
             return JobResult::Sleep;
         }
 
     private:
-        const void* target_ = nullptr;
-        bool        slept_  = false;
+        const Symbol* target_ = nullptr;
+        bool          slept_  = false;
     };
+
+    struct SymbolPublication
+    {
+        TaskStateKind kind;
+        void (Symbol::*publish)(TaskContext&);
+    };
+
+    constexpr SymbolPublication SYMBOL_PUBLICATIONS[] = {
+        {TaskStateKind::SemaWaitSymDeclared, &Symbol::setDeclared},
+        {TaskStateKind::SemaWaitSymTyped, &Symbol::setTyped},
+        {TaskStateKind::SemaWaitSymConstraintsResolved, &Symbol::setConstraintsResolved},
+        {TaskStateKind::SemaWaitSymSemaCompleted, &Symbol::setSemaCompleted},
+        {TaskStateKind::SemaWaitSymCodeGenPreSolved, &Symbol::setCodeGenPreSolved},
+        {TaskStateKind::SemaWaitSymCodeGenCompleted, &Symbol::setCodeGenCompleted},
+        {TaskStateKind::SemaWaitSymCodeGenPreSolved, &Symbol::setCodeGenCompleted},
+    };
+
+    class SymbolPublicationJob final : public Job
+    {
+    public:
+        SymbolPublicationJob(const TaskContext& ctx, Symbol& symbol, SymbolPublication publication, bool publishBeforeParking) :
+            Job(ctx, JobKind::Sema),
+            symbol_(&symbol),
+            publication_(publication),
+            publishBeforeParking_(publishBeforeParking)
+        {
+        }
+
+        JobResult exec() override
+        {
+            if (slept_)
+            {
+                completed = payload == 42;
+                ctx().state().setNone();
+                return JobResult::Done;
+            }
+
+            slept_ = true;
+            ctx().state().kind   = publication_.kind;
+            ctx().state().symbol = symbol_;
+            aboutToSleep.store(true, std::memory_order_release);
+            aboutToSleep.notify_one();
+            if (publishBeforeParking_)
+                publish();
+            return JobResult::Sleep;
+        }
+
+        void publish()
+        {
+            payload = 42;
+            (symbol_->*publication_.publish)(ctx());
+        }
+
+        std::atomic<bool> aboutToSleep{false};
+        uint32_t          payload   = 0;
+        bool              completed = false;
+
+    private:
+        Symbol*           symbol_;
+        SymbolPublication publication_;
+        bool              publishBeforeParking_;
+        bool              slept_ = false;
+    };
+
+    Result checkSymbolPublication(TaskContext& ctx, bool publishBeforeParking)
+    {
+        auto& manager = ctx.global().jobMgr();
+        for (const auto publication : SYMBOL_PUBLICATIONS)
+        {
+            Symbol               symbol(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {});
+            SymbolPublicationJob job(ctx, symbol, publication, publishBeforeParking);
+            manager.enqueue(job, JobPriority::Normal, ctx.compiler().jobClientId());
+            manager.waitAll();
+            if (!publishBeforeParking)
+            {
+                job.publish();
+                manager.waitAll();
+            }
+
+            const bool resumedWithoutBarrier = job.completed;
+            // A negative control must drain its sleeper before destroying the job.
+            if (job.rec())
+            {
+                manager.wakeAll(ctx.compiler().jobClientId());
+                manager.waitAll();
+            }
+            if (!resumedWithoutBarrier || job.rec())
+                return Result::Error;
+        }
+        return Result::Continue;
+    }
 
     class CountJob final : public Job
     {
@@ -227,8 +319,8 @@ SWC_TEST_BEGIN(JobManager_TargetedWakeBySymbol)
     const auto        clientId = jobMgr.newClientId();
 
     // Two distinct dependency targets.
-    int dummyA = 0;
-    int dummyB = 0;
+    Symbol dummyA(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {});
+    Symbol dummyB(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {});
 
     SleepOnSymTypedJob jobA(jobCtx, &dummyA);
     SleepOnSymTypedJob jobB(jobCtx, &dummyB);
@@ -309,7 +401,10 @@ SWC_TEST_BEGIN(JobManager_ParallelTargetedWakePreservesOtherSleepers)
     const Global                                     global;
     const TaskContext                                jobCtx(global, cmdLine);
     const auto                                       client = jobMgr.newClientId();
-    int                                              targets[2]{};
+    Symbol targets[2] = {
+        Symbol(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {}),
+        Symbol(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {}),
+    };
     std::vector<std::unique_ptr<SleepOnSymTypedJob>> jobs;
     for (uint32_t i = 0; i < 128; ++i)
     {
@@ -354,7 +449,7 @@ SWC_TEST_BEGIN(JobManager_ClientAndDependencyWakeIndexesStayConsistent)
     const TaskContext                 jobCtx(global, cmdLine);
     const std::array<JobClientId, 3>  clients = {0, jobMgr.newClientId(), jobMgr.newClientId()};
     std::vector<std::unique_ptr<Job>> jobs[3];
-    int                               target = 0;
+    Symbol target(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {});
     for (uint32_t i = 0; i < 16; ++i)
     {
         for (uint32_t client = 0; client < clients.size(); ++client)
@@ -478,6 +573,54 @@ SWC_TEST_BEGIN(JobManager_CompilerOwnsJobsFromUnregisteredThreads)
             valid.store(false);
     }
     if (!valid.load() || executed.load() != NUM_PRODUCERS * NUM_JOBS || destroyed.load() != executed.load())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_SymbolPublicationBeforeParkingResumesWithoutBarrier)
+{
+    SWC_RESULT(checkSymbolPublication(ctx, true));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_SymbolPublicationAfterParkingResumesWithoutBarrier)
+{
+    SWC_RESULT(checkSymbolPublication(ctx, false));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_ConcurrentSymbolPublicationDoesNotLoseWaiters)
+{
+    constexpr uint32_t                                NUM_JOBS = 512;
+    auto&                                             manager  = ctx.global().jobMgr();
+    std::vector<std::unique_ptr<Symbol>>               symbols;
+    std::vector<std::unique_ptr<SymbolPublicationJob>> jobs;
+    for (uint32_t index = 0; index < NUM_JOBS; ++index)
+    {
+        symbols.push_back(std::make_unique<Symbol>(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), SymbolFlags{}));
+        jobs.push_back(std::make_unique<SymbolPublicationJob>(ctx, *symbols.back(), SYMBOL_PUBLICATIONS[index % std::size(SYMBOL_PUBLICATIONS)], false));
+    }
+
+    std::thread producer([&] {
+        for (const auto& job : jobs)
+        {
+            job->aboutToSleep.wait(false, std::memory_order_acquire);
+            job->publish();
+        }
+    });
+    for (const auto& job : jobs)
+        manager.enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
+    manager.waitAll();
+    producer.join();
+    manager.waitAll();
+
+    bool valid = true;
+    for (const auto& job : jobs)
+        if (!job->completed || job->rec())
+            valid = false;
+    manager.wakeAll(ctx.compiler().jobClientId());
+    manager.waitAll();
+    if (!valid)
         return Result::Error;
 }
 SWC_TEST_END()

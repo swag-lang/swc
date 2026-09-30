@@ -160,6 +160,41 @@ bool Symbol::isFunctionLocalVariable() const noexcept
     return cast<SymbolVariable>().isFunctionLocalVariable();
 }
 
+bool Symbol::isWaitSatisfied(TaskStateKind kind) const noexcept
+{
+    EnumFlags<SymbolFlagsE> readyFlags;
+    switch (kind)
+    {
+        case TaskStateKind::SemaWaitSymDeclared:
+            readyFlags = SymbolFlagsE::Declared;
+            break;
+        case TaskStateKind::SemaWaitSymTyped:
+            readyFlags = SymbolFlagsE::Typed;
+            break;
+        case TaskStateKind::SemaWaitSymConstraintsResolved:
+            readyFlags = SymbolFlagsE::ConstraintsResolved;
+            break;
+        case TaskStateKind::SemaWaitSymSemaCompleted:
+            readyFlags = SymbolFlagsE::SemaCompleted;
+            break;
+        case TaskStateKind::SemaWaitSymCodeGenPreSolved:
+            readyFlags = SymbolFlagsE::CodeGenPreSolved | SymbolFlagsE::CodeGenCompleted;
+            break;
+        case TaskStateKind::SemaWaitSymCodeGenCompleted:
+            readyFlags = SymbolFlagsE::CodeGenCompleted;
+            break;
+        default:
+            return false;
+    }
+
+    // Called after the scheduler publishes its waiter. This no-op RMW shares the
+    // publication flag's modification order: either it acquires the ready payload,
+    // or the producer's acq_rel flag update acquires our waiter registration before
+    // testing the scheduler's filter. Two ordinary acquire loads can both miss.
+    const auto flags = flags_.flags.fetch_or(0, std::memory_order_acq_rel);
+    return (flags & readyFlags.get()) != 0;
+}
+
 void Symbol::setTyped(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::Typed))
@@ -206,6 +241,7 @@ void Symbol::setCodeGenCompleted(TaskContext& ctx)
     flags_.add(SymbolFlagsE::CodeGenCompleted);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymCodeGenCompleted});
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymCodeGenPreSolved});
 }
 
 void Symbol::setCodeGenPreSolved(TaskContext& ctx)

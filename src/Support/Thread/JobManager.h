@@ -158,9 +158,9 @@ private:
     // observed waiter avoids the scheduler lock. Hash collisions only cause a locked
     // lookup in the authoritative waiters_ map. Counts change under mtx_ (release);
     // wake() reads them without that lock (acquire).
-    // Registration can race a producer's wake: symbol waits retain Sema::waitDone's
-    // barrier fallback. JIT waits instead recheck completion under its publication
-    // mutex after registering, covering both possible publication orders.
+    // After registration, symbol waits synchronize with the producer's flag RMW;
+    // JIT waits recheck completion under its publication mutex. Both handshakes
+    // publish the filter to a later producer or observe an earlier completion.
     static constexpr size_t                                 WAITER_FILTER_SHARDS = 4096; // power of two
     std::array<std::atomic<uint32_t>, WAITER_FILTER_SHARDS> waiterFilter_{};
 

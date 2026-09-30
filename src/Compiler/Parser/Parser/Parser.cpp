@@ -39,29 +39,24 @@ namespace
     class AutoInlineCallGraph
     {
     public:
-        void addFunction(const Ast& ast, const AstFunctionDecl& decl)
+        // A call belongs to the function whose body holds it, not counting the bodies of the
+        // functions declared inside that one. The module walk already reaches every call with
+        // its callee name in hand, so it names the function here and hands each call over as it
+        // meets it, instead of every function walking its own body a second time.
+        static constexpr uint32_t K_NO_FUNCTION = UINT32_MAX;
+
+        uint32_t addFunction(const Ast& ast, const AstFunctionDecl& decl)
         {
             if (decl.tokNameRef.isInvalid())
-                return;
+                return K_NO_FUNCTION;
+            return indexOf(ast.srcView().tokenString(decl.tokNameRef));
+        }
 
-            const uint32_t sourceIndex = indexOf(ast.srcView().tokenString(decl.tokNameRef));
-            Ast::visit(ast, decl.nodeBodyRef, [&](AstNodeRef, const AstNode& node) {
-                if (node.is(AstNodeId::FunctionDecl))
-                    return Ast::VisitResult::Skip;
-
-                const auto* call = node.safeCast<AstCallExpr>();
-                if (!call)
-                    return Ast::VisitResult::Continue;
-
-                const std::string_view targetName = autoInlineCallName(ast, call->nodeExprRef);
-                if (!targetName.empty())
-                {
-                    const uint32_t targetIndex = indexOf(targetName);
-                    if (std::ranges::find(edges_[sourceIndex], targetIndex) == edges_[sourceIndex].end())
-                        edges_[sourceIndex].push_back(targetIndex);
-                }
-                return Ast::VisitResult::Continue;
-            });
+        void addCall(const uint32_t sourceIndex, const std::string_view targetName)
+        {
+            const uint32_t targetIndex = indexOf(targetName);
+            if (std::ranges::find(edges_[sourceIndex], targetIndex) == edges_[sourceIndex].end())
+                edges_[sourceIndex].push_back(targetIndex);
         }
 
         void findCycles()
@@ -237,25 +232,50 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
     std::unordered_map<std::string_view, uint32_t>                       useCounts;
     std::unordered_map<const Ast*, AutoInlineCallGraph>                  callGraphs;
     std::unordered_map<const Ast*, std::unordered_set<std::string_view>> unsupportedFunctionNames;
-    for (const Ast* ast : moduleAsts)
+    // Every function declaration this walk meets, per Ast. The decisions below are taken
+    // declaration by declaration, so they read this list instead of walking each tree again.
+    std::vector<std::vector<AstNodeRef>> functionDecls(moduleAsts.size());
+    for (size_t astIndex = 0; astIndex < moduleAsts.size(); ++astIndex)
     {
+        const Ast* ast = moduleAsts[astIndex];
         if (!ast || ast->root().isInvalid())
             continue;
 
-        SmallVector<std::pair<AstNodeRef, bool>> pending;
-        SmallVector<AstNodeRef>                  children;
-        pending.push_back({ast->root(), false});
+        struct PendingNode
+        {
+            AstNodeRef nodeRef;
+            bool       inLoop = false;
+            // The function whose body this node is part of, for the call graph.
+            uint32_t bodyOf = AutoInlineCallGraph::K_NO_FUNCTION;
+        };
+
+        AutoInlineCallGraph*       callGraph = nullptr;
+        SmallVector<PendingNode>   pending;
+        SmallVector<AstNodeRef>    children;
+        pending.push_back({.nodeRef = ast->root()});
         while (!pending.empty())
         {
-            const auto [nodeRef, parentInLoop] = pending.back();
+            const auto [nodeRef, parentInLoop, bodyOf] = pending.back();
             pending.pop_back();
             const AstNode& node = ast->node(nodeRef);
             collectMetaFunctionName(*ast, node, metaFunctionNames);
             const bool inLoop = parentInLoop || node.is(AstNodeId::WhileStmt) || node.is(AstNodeId::ForeachStmt) ||
                                 node.is(AstNodeId::ForStmt) || node.is(AstNodeId::ParallelForStmt) || node.is(AstNodeId::InfiniteLoopStmt);
-            if (const auto* decl = node.safeCast<AstFunctionDecl>())
+
+            // A declaration starts over: only its own body belongs to it, and nothing under it
+            // belongs to the function it is declared in.
+            uint32_t   childrenBodyOf = bodyOf;
+            AstNodeRef ownBodyRef     = AstNodeRef::invalid();
+            uint32_t   ownIndex       = AutoInlineCallGraph::K_NO_FUNCTION;
+            const auto* decl          = node.safeCast<AstFunctionDecl>();
+            if (decl)
             {
-                callGraphs[ast].addFunction(*ast, *decl);
+                functionDecls[astIndex].push_back(nodeRef);
+                if (!callGraph)
+                    callGraph = &callGraphs[ast];
+                childrenBodyOf = AutoInlineCallGraph::K_NO_FUNCTION;
+                ownIndex       = callGraph->addFunction(*ast, *decl);
+                ownBodyRef     = decl->nodeBodyRef;
                 if (decl->autoInlineCost == UINT32_MAX && decl->tokNameRef.isValid())
                     unsupportedFunctionNames[ast].insert(ast->srcView().tokenString(decl->tokNameRef));
             }
@@ -272,14 +292,18 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                     callCounts[name]++;
                     if (inLoop)
                         hotCallCounts[name]++;
+                    if (bodyOf != AutoInlineCallGraph::K_NO_FUNCTION)
+                        callGraph->addCall(bodyOf, name);
                 }
             }
 
             children.clear();
             node.collectChildrenFromAst(children, *ast);
             for (const AstNodeRef childRef : std::ranges::reverse_view(children))
+            {
                 if (childRef.isValid())
-                    pending.push_back({childRef, inLoop});
+                    pending.push_back({.nodeRef = childRef, .inLoop = inLoop, .bodyOf = decl && childRef == ownBodyRef ? ownIndex : childrenBodyOf});
+            }
         }
     }
 
@@ -294,16 +318,18 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
         callGraph.findBlockedCalls(metaFunctionNames, unsupportedIt == unsupportedFunctionNames.end() ? nullptr : &unsupportedIt->second);
     }
 
-    for (Ast* ast : moduleAsts)
+    for (size_t astIndex = 0; astIndex < moduleAsts.size(); ++astIndex)
     {
+        Ast* ast = moduleAsts[astIndex];
         if (!ast || ast->root().isInvalid())
             continue;
 
         const auto callGraphIt = callGraphs.find(ast);
-        Ast::visit(*ast, ast->root(), [&](AstNodeRef nodeRef, const AstNode& node) {
-            const auto* decl = node.safeCast<AstFunctionDecl>();
+        for (const AstNodeRef nodeRef : functionDecls[astIndex])
+        {
+            const auto* decl = ast->node(nodeRef).safeCast<AstFunctionDecl>();
             if (!decl || decl->autoInlineCost > K_AUTO_INLINE_LAST_CALL_COST || decl->tokNameRef.isInvalid())
-                return Ast::VisitResult::Continue;
+                continue;
 
             const std::string_view name        = ast->srcView().tokenString(decl->tokNameRef);
             auto*                  mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);
@@ -314,11 +340,11 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             // the parser already rejected, moving the wrapper merely hides the same unsupported
             // materialization one call deeper.
             if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.callsBlockedFunction(name))
-                return Ast::VisitResult::Continue;
+                continue;
             if (callGraphIt != callGraphs.end() && callGraphIt->second.isCyclic(name) && bodyHasCall)
             {
                 mutableDecl->flags().remove(AstFunctionFlagsE::AutoInlineBody);
-                return Ast::VisitResult::Continue;
+                continue;
             }
 
             const auto it               = callCounts.find(name);
@@ -332,8 +358,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                                      uint64_t{decl->autoInlineCost} * it->second <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS;
             if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hotCallBody || hasLastCallBonus)
                 mutableDecl->addFlag(AstFunctionFlagsE::AutoInlineBody);
-            return Ast::VisitResult::Continue;
-        });
+        }
     }
 }
 

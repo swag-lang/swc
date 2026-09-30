@@ -931,6 +931,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedByteAverage);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseRedundantStoreReload);
+        r.add(MicroInstrOpcode::LoadMemReg, tryEraseStoreOfReloadedValue);
         r.add(MicroInstrOpcode::LoadMemReg, tryMoveSpillReloadBeforeSourceOverwrite);
         r.add(MicroInstrOpcode::LoadMemReg, tryForwardStoredValueToReload);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);

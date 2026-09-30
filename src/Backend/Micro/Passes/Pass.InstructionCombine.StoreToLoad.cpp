@@ -351,7 +351,9 @@ namespace InstructionCombine
                 const MicroReg    base    = ops[0].reg;
                 const MicroOpBits bits    = ops[fromReg ? 2 : 1].opBits;
                 const uint64_t    off     = ops[fromReg ? 3 : 2].valueU64;
-                if (!base.isVirtualInt())
+                // A store another rule of this sweep has taken may become
+                // anything, a read-modify-write included: it proves nothing.
+                if (!base.isVirtualInt() || ctx.isClaimed(it.current) || ctx.isRelocated(it.current))
                 {
                     pending.clear();
                     continue;
@@ -368,8 +370,7 @@ namespace InstructionCombine
                     return true;
                 });
 
-                if (!ctx.isClaimed(it.current) && !ctx.isRelocated(it.current))
-                    pending.push_back({.ref = it.current, .base = base, .off = off, .bits = bits});
+                pending.push_back({.ref = it.current, .base = base, .off = off, .bits = bits});
                 continue;
             }
 

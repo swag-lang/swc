@@ -1383,6 +1383,39 @@ SWC_TEST_BEGIN(PostRAPeephole_ErasesOwnStoreReloadOnConditionalFallthrough)
 }
 SWC_TEST_END()
 
+// A register reloaded from a frame home and stored back unchanged writes what
+// the home holds. A change to the register in between, or a call, keeps the store.
+SWC_TEST_BEGIN(PostRAPeephole_ErasesStoreOfReloadedValue)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg r9   = MicroReg::intReg(9);
+
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegMem(r8, base, 40, MicroOpBits::B64);
+        builder.emitLoadRegMem(r9, r8, 8, MicroOpBits::B64);
+        if (mode == 1)
+            builder.emitOpBinaryRegImm(r8, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        if (mode == 2)
+            builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitLoadMemReg(base, 40, r8, MicroOpBits::B64);
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitLoadRegMem(r8, base, 40, MicroOpBits::B64);
+        builder.emitLoadMemReg(r8, 0, r9, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaPeepholePass(builder));
+
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != (mode == 0 ? 1u : 2u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ForwardsStoredValueToReload)
 {
     const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;

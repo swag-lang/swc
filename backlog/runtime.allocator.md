@@ -62,7 +62,7 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-09-30 18:31 — Compared binarytrees with V8 and reduced address-validation overhead.
+- Updated: 2026-09-30 18:59 — Isolated the remaining request and heap-lookup costs after removing local interface copies.
 - Accepted campaign `20260930-152655` reports binarytrees at 9.835 ms for Node and 35.8965 ms
   for Swag native Release, both with checksum 674478. Locally inspected Node 20.15.1 V8 code
   bumps the nursery allocation pointer by 40 bytes and calls a cold allocation path only at
@@ -73,14 +73,18 @@ alone. Comparative reference points for that investigation:
   per-node free. The matched standalone address predicates now contain twenty rather than
   thirty Microinstructions, with the same six memory operands and one fewer branch, using
   modular multiplication and rotation. This closes that specific mask/branch opportunity;
-  the rest of the hot path remains.
+  the rest of the hot path remains. The native benchmark wrappers now contain 60/51
+  Microinstructions and 23/20 memory operands for allocation/free, down from 62/52 and
+  28/24: the copied interface stays in registers, and allocation reuses its guarded result.
+  Six vector stores still initialize each request; TLS context lookup and the indirect
+  allocator call remain. Checksums are unchanged; these are static counts, not new timings.
 - The historical 77 ns allocation/free pair and 10–20 ns mimalloc comparison are not current
   measurements. Use runtime.allocator.001 for an allocator-only timing comparison; static
   benchmark inspection can independently establish redundant instructions.
 - A cheaper thread-heap lookup must preserve foreign-thread cleanup and the current FLS
   lifetime contract. A plain TLS value cannot own a drop: thread-exit block cleanup releases
   the bytes without running `opDrop`.
-- Next: inspect request materialization, dispatch and heap lookup in binarytrees' emitted
+- Next: inspect request initialization, dispatch and heap lookup in binarytrees' emitted
   allocation/free paths. Remove proven redundant work without changing its allocations,
   frees, checksum or the allocator's ownership and corruption checks. Use the shared trace
   driver before claiming allocator throughput parity or selecting a different allocator.

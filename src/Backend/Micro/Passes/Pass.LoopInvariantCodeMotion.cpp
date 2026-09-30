@@ -540,6 +540,11 @@ namespace
             // Doing this here, rather than in the instruction combiner, is
             // essential for nested loops: only this loop's definition set can
             // distinguish an outer induction value from the inner induction.
+            //
+            // A comparison of two indexed bytes reads its second operand
+            // between the sum and the compare that consumes it. That one read
+            // may sit there: it redefines neither part of the sum, so the
+            // compare still sees the induction and the fixed part it was made of.
             for (const uint32_t i : bodyIndices)
             {
                 const MicroInstrRef ref  = instrRefs[i];
@@ -570,6 +575,7 @@ namespace
                 MicroReg                 innerBase  = MicroReg::invalid();
                 MicroReg                 innerIndex = MicroReg::invalid();
                 int64_t                  innerAdd   = 0;
+                bool                     copyAddSum = false;
                 if (nested->op == MicroInstrOpcode::LoadAddrAmcRegMem && definition->second.count == 1)
                 {
                     if (!nestedOps || nestedOps[0].reg != nestedReg || nestedOps[3].opBits != MicroOpBits::B64 ||
@@ -580,7 +586,6 @@ namespace
                     innerAdd   = static_cast<int64_t>(nestedOps[6].valueU64);
                 }
                 else if (nested->op == MicroInstrOpcode::OpBinaryRegReg && definition->second.count == 2 && lastSlot > 0 &&
-                         lastSlot + 1 == i &&
                          inBody[lastSlot - 1] && nestedOps && nestedOps[0].reg == nestedReg &&
                          nestedOps[1].reg != nestedReg && nestedOps[2].opBits == MicroOpBits::B64 &&
                          nestedOps[3].microOp == MicroOp::Add &&
@@ -593,6 +598,7 @@ namespace
                         continue;
                     innerBase  = copyOps[1].reg;
                     innerIndex = nestedOps[1].reg;
+                    copyAddSum = true;
                 }
                 else
                     continue;
@@ -602,10 +608,32 @@ namespace
                 if (baseVaries == indexVaries)
                     continue;
 
+                // Between the sum and its reader, only the read of the value the
+                // reader compares against.
+                if (copyAddSum && lastSlot + 1 != i)
+                {
+                    const MicroInstr* gap = lastSlot + 2 == i && inBody[lastSlot + 1] ? storage.ptr(instrRefs[lastSlot + 1]) : nullptr;
+                    if (!gap || !opcodeReadsMemory(gap->op) || (inst->op != MicroInstrOpcode::CmpAmcReg && inst->op != MicroInstrOpcode::CmpRegAmc))
+                        continue;
+                    const MicroInstrUseDef& gapUseDef = useDefs[lastSlot + 1];
+                    if (gapUseDef.defs.size() != 1 || gapUseDef.defs[0] == innerBase || gapUseDef.defs[0] == innerIndex ||
+                        std::ranges::find(useDefs[i].uses, gapUseDef.defs[0]) == useDefs[i].uses.end())
+                        continue;
+                }
+
                 const MicroReg induction = baseVaries ? innerBase : innerIndex;
                 const MicroReg fixed     = baseVaries ? innerIndex : innerBase;
                 if (!fixed.isVirtualInt() || defsInLoop.contains(fixed))
                     continue;
+
+                // A constant offset belongs in the displacement, which costs no
+                // register: rooting it would keep one alive across the loop.
+                if (const auto fixedDef = definitions.find(fixed); fixedDef != definitions.end() && fixedDef->second.count == 1)
+                {
+                    const MicroInstr* fixedInst = storage.ptr(instrRefs[fixedDef->second.lastSlot]);
+                    if (fixedInst && (fixedInst->op == MicroInstrOpcode::LoadRegImm || fixedInst->op == MicroInstrOpcode::LoadRegPtrImm))
+                        continue;
+                }
 
                 const int64_t add = static_cast<int64_t>(instOps[outerLayout.addIdx].valueU64) + innerAdd;
                 if (add != static_cast<int64_t>(static_cast<int32_t>(add)))

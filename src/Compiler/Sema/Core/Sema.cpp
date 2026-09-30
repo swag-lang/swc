@@ -1909,7 +1909,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         // Compiler messages, lazy bodies, and type-info publication can unblock
         // semantic jobs without another worker finishing. JIT calls run through a
-        // serialized worker-pool lane and publish progress with notifyAlive().
+        // serialized worker-pool lane and wake their owners as each result arrives.
         const Result compilerMessageResult = compiler.executePendingCompilerMessages(ctx);
         if (compilerMessageResult == Result::Pause)
         {
@@ -1988,8 +1988,10 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     if (compiler.jitExecMgr().wakeWaiting())
         compiler.jitExecMgr().executePendingMainThread();
 
-    if (jobMgr.wakeAll(clientId))
-        jobMgr.waitAll(clientId);
+    // Targeted JIT completion may already have moved a sleeper to Ready/Running.
+    // Drain it even when the fallback wakeAll has no remaining sleepers to move.
+    jobMgr.wakeAll(clientId);
+    jobMgr.waitAll(clientId);
 
     // Every sema job of this wave is done: the per-function borrow summaries are final,
     // so the call sites that snapshotted their argument borrows can be judged now.

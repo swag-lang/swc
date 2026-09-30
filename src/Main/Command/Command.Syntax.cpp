@@ -22,20 +22,10 @@ namespace Command
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Syntax))
             stage.emplace(ctx, ScopedTimedLog::Stage::Syntax);
 
-        const Global&     global   = ctx.global();
-        JobManager&       jobMgr   = global.jobMgr();
-        const JobClientId clientId = compiler.jobClientId();
-
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        for (SourceFile* f : compiler.files())
-        {
-            auto* job = compiler.makeJob<ParserJob>(ctx, f);
-            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-        }
-
-        jobMgr.waitAll(compiler.jobClientId());
+        parseSourceFiles(ctx, compiler.files());
 
         if (stage)
             stage->setStat(ScopedTimedLog::formatStatCount(ctx, compiler.files().size(), "file"));

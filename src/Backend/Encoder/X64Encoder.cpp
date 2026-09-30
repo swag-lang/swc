@@ -1018,7 +1018,7 @@ X64Encoder::X64Encoder(TaskContext& ctx) :
 void X64Encoder::resetCode()
 {
     Encoder::resetCode();
-    unwind_ = X64Unwind::create(ctx().compiler().cmdLine().targetOs);
+    unwind_->reset();
 }
 
 void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const

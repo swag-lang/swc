@@ -23,6 +23,10 @@ public:
     // only that one is guaranteed to still hold the frame when the unwinder
     // reads it. See X64UnwindWindows::tryTrackSetFramePointer.
     virtual void setFrameRegister(MicroReg reg) { SWC_UNUSED(reg); }
+
+    // Back to the state of a tracker just created. A function is laid out again whenever a
+    // branch shrinks, and each layout starts its tracking over.
+    virtual void reset() {}
 };
 
 SWC_END_NAMESPACE();

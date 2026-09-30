@@ -10,6 +10,19 @@ public:
     void onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeStartOffset, uint32_t codeEndOffset) override;
     void setFrameRegister(MicroReg reg) override { abiFrameRegister_ = reg; }
 
+    void reset() override
+    {
+        abiFrameRegister_         = MicroReg::invalid();
+        unwindPrologClosed_       = false;
+        unwindHasStackAllocation_ = false;
+        unwindHasFrameRegister_   = false;
+        unwindPrologSize_         = 0;
+        unwindFrameRegister_      = 0;
+        unwindFrameOffsetInSlots_ = 0;
+        unwindPushedRegMask_      = 0;
+        unwindOps_.clear();
+    }
+
 private:
     enum class UnwindOpKind : uint8_t
     {

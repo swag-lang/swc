@@ -13,18 +13,19 @@
 // Superword-level vectorization of straight-line blocks.
 //
 // The pass rebuilds each block's scalar dataflow as a value graph whose values
-// carry 32-bit-lane semantics: register copies and 64<-32 zero-extensions are
-// transparent, additions performed at 64 bits count as 32-bit lane additions
+// carry either 32-bit or 64-bit-lane semantics. In the 32-bit mode, register
+// copies and 64<-32 zero-extensions are transparent, and wider additions count as
+// 32-bit lane additions
 // (the low half of a wider add is the modular 32-bit sum), and in-block stores
 // forward their value to later loads of the same location. Memory addresses
 // are resolved through hoisted address chains down to a stable root register,
 // so `%a = &[%root + 16]` followed by `[%a] = v` is understood as a store to
 // (root, 16).
 //
-// Seeds are the block's final 32-bit stores: four of them covering one
+// Seeds are the block's final lane-sized stores: four 32-bit or two 64-bit stores covering one
 // contiguous 16-byte chunk of a root become one candidate group. Each group
-// grows a tree by walking the four lane values in lockstep - four isomorphic
-// binary operations recurse into their operands, four adjacent loads of block
+// grows a tree by walking the lane values in lockstep - isomorphic
+// binary operations recurse into their operands, adjacent loads of block
 // -entry memory become one packed load, a lane permutation of an already
 // -vectorized tuple becomes one shuffle, and equal shift or rotate immediates
 // become packed shifts (byte-aligned rotates can use a byte permutation; other
@@ -54,9 +55,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_INVALID_ID      = std::numeric_limits<uint32_t>::max();
-    constexpr uint32_t K_LANE_COUNT      = 4;
-    constexpr uint32_t K_LANE_BYTES      = 4;
+    constexpr uint32_t K_INVALID_ID     = std::numeric_limits<uint32_t>::max();
+    constexpr uint32_t K_MAX_LANE_COUNT = 4;
+
+    struct LaneShape
+    {
+        uint32_t bytes = 4;
+
+        uint32_t    count() const { return 16 / bytes; }
+        MicroOpBits bits() const { return bytes == 4 ? MicroOpBits::B32 : MicroOpBits::B64; }
+    };
     constexpr uint32_t K_CHUNK_BYTES     = 16;
     constexpr uint32_t K_MAX_PLAN_INSTRS = 4096;
     constexpr uint32_t K_MAX_TREE_DEPTH  = 512;
@@ -203,18 +211,18 @@ namespace
         uint32_t      valueId          = K_INVALID_ID;
         uint32_t      epoch            = 0;
         bool          hasNonPlainStore = false;
-        bool          lastIsPlain32    = false;
+        bool          lastIsLaneStore  = false;
         MicroInstrRef lastStoreRef     = MicroInstrRef::invalid();
     };
 
     struct StoreRecord
     {
-        MicroInstrRef instRef = MicroInstrRef::invalid();
-        uint32_t      pos     = 0;
-        uint32_t      rootKey = K_INVALID_ID;
-        uint64_t      offset  = 0;
-        uint32_t      size    = 0;
-        bool          plain32 = false;
+        MicroInstrRef instRef   = MicroInstrRef::invalid();
+        uint32_t      pos       = 0;
+        uint32_t      rootKey   = K_INVALID_ID;
+        uint64_t      offset    = 0;
+        uint32_t      size      = 0;
+        bool          plainLane = false;
     };
 
     struct LoadRecord
@@ -258,7 +266,8 @@ namespace
             Copy,
             BinaryRegReg,
             BinaryRegImm,
-            LoadSplat32,
+            LoadSplat,
+            Broadcast,
             RotateBytes,
             // Non-destructive forms: the destination is a register of its own,
             // so the packed value feeding the operation is not overwritten and
@@ -278,6 +287,7 @@ namespace
         uint64_t imm        = 0;
         uint32_t rootKey    = K_INVALID_ID;
         uint64_t baseOffset = 0;
+        MicroReg scalarReg  = MicroReg::invalid();
     };
 
     struct RegDefInfo
@@ -292,6 +302,7 @@ namespace
 
     struct SlpFunctionContext
     {
+        LaneShape            shape;
         MicroPassContext*    context  = nullptr;
         MicroStorage*        storage  = nullptr;
         MicroOperandStorage* operands = nullptr;
@@ -337,14 +348,15 @@ namespace
 
     struct BlockScan
     {
+        LaneShape               shape;
         std::vector<BlockInstr> instrs;
 
         SlpValueTable values;
-        // Current lane value per register (32-bit view of its low bits).
+        // Current lane value per register (the low shape.bytes bytes).
         std::unordered_map<uint32_t, uint32_t> regValues;
         // Stable value for registers live at block entry.
         std::unordered_map<uint32_t, uint32_t> entryValues;
-        // Memory state per (rootKey, offset), 4-byte aligned slots.
+        // Memory state per (rootKey, offset), lane-aligned slots.
         std::unordered_map<LocationKey, MemLocation, LocationKeyHash> locations;
 
         std::vector<StoreRecord> stores;
@@ -482,17 +494,17 @@ namespace
 
     void killLocationRange(BlockScan& scan, uint32_t rootKey, uint64_t offset, uint32_t size, MicroInstrRef storeRef)
     {
-        const uint64_t first = offset & ~static_cast<uint64_t>(K_LANE_BYTES - 1);
+        const uint64_t first = offset & ~static_cast<uint64_t>(scan.shape.bytes - 1);
         // Bound the walk by its byte count: incrementing an absolute displacement
         // near -1 can wrap to zero and keep an unsigned end comparison true forever.
         const uint64_t covered = offset - first + size;
-        for (uint64_t delta = 0; delta < covered; delta += K_LANE_BYTES)
+        for (uint64_t delta = 0; delta < covered; delta += scan.shape.bytes)
         {
             MemLocation& loc     = scan.locations[BlockScan::locationKey(rootKey, first + delta)];
             loc.valueId          = K_INVALID_ID;
             loc.epoch            = loc.epoch + 1;
             loc.hasNonPlainStore = true;
-            loc.lastIsPlain32    = false;
+            loc.lastIsLaneStore  = false;
             loc.lastStoreRef     = storeRef;
         }
     }
@@ -500,26 +512,33 @@ namespace
     // ------------------------------------------------------------------
     // Scan helpers per instruction shape
 
-    bool isLaneTransparentCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
+    bool isLaneTransparentCopy(const MicroInstr& inst, const MicroInstrOperand* ops, LaneShape shape)
     {
         if (inst.op == MicroInstrOpcode::LoadRegReg)
         {
-            // A scalar float copy carries its low 32-bit lane unchanged. Its
+            // A scalar float copy carries its low lane unchanged. Its
             // upper vector lanes are irrelevant to a graph made exclusively
-            // from scalar f32 operations, so it is as transparent as an
+            // from scalar operations, so it is as transparent as an
             // integer lane copy here.
-            if (ops[2].opBits == MicroOpBits::B32)
+            if (ops[2].opBits == shape.bits())
                 return true;
             return ops[2].opBits == MicroOpBits::B64 && !ops[0].reg.isAnyFloat() && !ops[1].reg.isAnyFloat();
         }
         if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg)
-            return ops[2].opBits == MicroOpBits::B64 && ops[3].opBits == MicroOpBits::B32;
+            return shape.bytes == 4 && ops[2].opBits == MicroOpBits::B64 && ops[3].opBits == MicroOpBits::B32;
         return false;
     }
 
-    bool laneOpForBinaryRegReg(MicroOp op, MicroOpBits opBits, LaneOp& outOp)
+    bool laneOpForBinaryRegReg(MicroOp op, MicroOpBits opBits, LaneOp& outOp, LaneShape shape)
     {
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
+            return false;
+
+        // The 64-bit lane mode only models floating arithmetic. Integer
+        // truncation and overflow rules belong to the existing 32-bit mode.
+        if (shape.bytes == 8 && op != MicroOp::FloatAdd && op != MicroOp::FloatSubtract &&
+            op != MicroOp::FloatMultiply && op != MicroOp::FloatDivide && op != MicroOp::FloatMin &&
+            op != MicroOp::FloatMax && op != MicroOp::FloatAnd)
             return false;
 
         switch (op)
@@ -540,39 +559,39 @@ namespace
                 outOp = LaneOp::Xor;
                 return true;
             case MicroOp::FloatAdd:
-                if (opBits != MicroOpBits::B32)
+                if (opBits != shape.bits())
                     return false;
                 outOp = LaneOp::FloatAdd;
                 return true;
             case MicroOp::FloatSubtract:
-                if (opBits != MicroOpBits::B32)
+                if (opBits != shape.bits())
                     return false;
                 outOp = LaneOp::FloatSub;
                 return true;
             case MicroOp::FloatMultiply:
-                if (opBits != MicroOpBits::B32)
+                if (opBits != shape.bits())
                     return false;
                 outOp = LaneOp::FloatMul;
                 return true;
             case MicroOp::FloatDivide:
-                if (opBits != MicroOpBits::B32)
+                if (opBits != shape.bits())
                     return false;
                 outOp = LaneOp::FloatDiv;
                 return true;
             case MicroOp::FloatMin:
-                if (opBits != MicroOpBits::B32)
+                if (opBits != shape.bits())
                     return false;
                 outOp = LaneOp::FloatMin;
                 return true;
             case MicroOp::FloatMax:
-                if (opBits != MicroOpBits::B32)
+                if (opBits != shape.bits())
                     return false;
                 outOp = LaneOp::FloatMax;
                 return true;
             // Scalar FloatAnd is a bitwise operation on the f32 bit pattern.
             // VecAnd applies that same operation independently to every lane.
             case MicroOp::FloatAnd:
-                if (opBits != MicroOpBits::B32)
+                if (opBits != shape.bits())
                     return false;
                 outOp = LaneOp::And;
                 return true;
@@ -641,7 +660,7 @@ namespace
 
     struct TupleKey
     {
-        std::array<uint32_t, K_LANE_COUNT> ids{};
+        std::array<uint32_t, K_MAX_LANE_COUNT> ids{K_INVALID_ID, K_INVALID_ID, K_INVALID_ID, K_INVALID_ID};
 
         bool     operator==(const TupleKey& other) const { return ids == other.ids; }
         uint64_t hash() const
@@ -675,7 +694,7 @@ namespace
         std::unordered_map<TupleKey, TupleKey, TupleKeyHash> firstTupleBySortedKey;
         // A scalar immediate has the same four-lane representation in every
         // group, so one materialized splat feeds all of its vector uses.
-        std::unordered_map<uint32_t, uint32_t> splatRegs;
+        std::unordered_map<uint64_t, uint32_t> splatRegs;
 
         size_t totalInstrs() const { return loads.size() + ops.size() + stores.size(); }
     };
@@ -688,13 +707,13 @@ namespace
     }
 
     // pshufd control: destination lane i takes source lane control[2i+1:2i].
-    bool shuffleControlFor(const TupleKey& target, const TupleKey& source, uint8_t& outControl)
+    bool shuffleControlFor(const TupleKey& target, const TupleKey& source, uint8_t& outControl, LaneShape shape)
     {
         uint8_t control = 0;
-        for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
+        for (uint32_t lane = 0; lane < shape.count(); ++lane)
         {
             uint32_t sourceLane = K_INVALID_ID;
-            for (uint32_t j = 0; j < K_LANE_COUNT; ++j)
+            for (uint32_t j = 0; j < shape.count(); ++j)
             {
                 if (source.ids[j] == target.ids[lane])
                 {
@@ -704,7 +723,8 @@ namespace
             }
             if (sourceLane == K_INVALID_ID)
                 return false;
-            control |= static_cast<uint8_t>(sourceLane << (2 * lane));
+            for (uint32_t word = 0; word < shape.bytes / 4; ++word)
+                control |= static_cast<uint8_t>((sourceLane * (shape.bytes / 4) + word) << (2 * (lane * (shape.bytes / 4) + word)));
         }
         outControl = control;
         return true;
@@ -738,7 +758,7 @@ namespace
             if (permIt != plan_->firstTupleBySortedKey.end())
             {
                 uint8_t control = 0;
-                if (shuffleControlFor(tuple, permIt->second, control))
+                if (shuffleControlFor(tuple, permIt->second, control, scan_->shape))
                 {
                     const uint32_t srcReg = plan_->tupleRegs.at(permIt->second);
                     const uint32_t dstReg = allocReg();
@@ -749,28 +769,33 @@ namespace
                 }
             }
 
-            const SlpValue& n0 = scan_->values.get(tuple.ids[0]);
-            const SlpValue& n1 = scan_->values.get(tuple.ids[1]);
-            const SlpValue& n2 = scan_->values.get(tuple.ids[2]);
-            const SlpValue& n3 = scan_->values.get(tuple.ids[3]);
-            if (n0.kind != n1.kind || n0.kind != n2.kind || n0.kind != n3.kind)
+            const SlpValue& n0       = scan_->values.get(tuple.ids[0]);
+            const auto      allEqual = [&](auto member) {
+                for (uint32_t lane = 1; lane < scan_->shape.count(); ++lane)
+                    if (scan_->values.get(tuple.ids[lane]).*member != n0.*member)
+                        return false;
+                return true;
+            };
+            if (!allEqual(&SlpValue::kind))
                 return K_INVALID_ID;
 
             switch (n0.kind)
             {
                 case SlpValueKind::Load:
-                    return buildLoad(tuple, sorted, n0, n1, n2, n3);
+                    return buildLoad(tuple, sorted);
 
                 case SlpValueKind::Unary:
                 {
-                    if (n0.op != n1.op || n0.op != n2.op || n0.op != n3.op)
+                    if (!allEqual(&SlpValue::op))
                         return K_INVALID_ID;
-                    const TupleKey input{{n0.lhs, n1.lhs, n2.lhs, n3.lhs}};
+                    TupleKey input;
+                    for (uint32_t lane = 0; lane < scan_->shape.count(); ++lane)
+                        input.ids[lane] = scan_->values.get(tuple.ids[lane]).lhs;
                     const uint32_t inputReg = build(input, depth + 1);
                     if (inputReg == K_INVALID_ID)
                         return K_INVALID_ID;
 
-                    MicroOp vecOp = MicroOp::VecSqrtF32;
+                    MicroOp vecOp = scan_->shape.bytes == 4 ? MicroOp::VecSqrtF32 : MicroOp::VecSqrtF64;
                     switch (n0.op)
                     {
                         case LaneOp::FloatSqrt:
@@ -790,11 +815,15 @@ namespace
 
                 case SlpValueKind::BinaryRegReg:
                 {
-                    if (n0.op != n1.op || n0.op != n2.op || n0.op != n3.op)
+                    if (!allEqual(&SlpValue::op))
                         return K_INVALID_ID;
 
-                    const TupleKey lhs{{n0.lhs, n1.lhs, n2.lhs, n3.lhs}};
-                    const TupleKey rhs{{n0.rhs, n1.rhs, n2.rhs, n3.rhs}};
+                    TupleKey lhs;
+                    for (uint32_t lane = 0; lane < scan_->shape.count(); ++lane)
+                        lhs.ids[lane] = scan_->values.get(tuple.ids[lane]).lhs;
+                    TupleKey rhs;
+                    for (uint32_t lane = 0; lane < scan_->shape.count(); ++lane)
+                        rhs.ids[lane] = scan_->values.get(tuple.ids[lane]).rhs;
 
                     const uint32_t lhsReg = build(lhs, depth + 1);
                     if (lhsReg == K_INVALID_ID)
@@ -822,22 +851,22 @@ namespace
                             vecOp = MicroOp::VecXor;
                             break;
                         case LaneOp::FloatAdd:
-                            vecOp = MicroOp::VecAddF32;
+                            vecOp = scan_->shape.bytes == 4 ? MicroOp::VecAddF32 : MicroOp::VecAddF64;
                             break;
                         case LaneOp::FloatSub:
-                            vecOp = MicroOp::VecSubF32;
+                            vecOp = scan_->shape.bytes == 4 ? MicroOp::VecSubF32 : MicroOp::VecSubF64;
                             break;
                         case LaneOp::FloatMul:
-                            vecOp = MicroOp::VecMulF32;
+                            vecOp = scan_->shape.bytes == 4 ? MicroOp::VecMulF32 : MicroOp::VecMulF64;
                             break;
                         case LaneOp::FloatDiv:
-                            vecOp = MicroOp::VecDivF32;
+                            vecOp = scan_->shape.bytes == 4 ? MicroOp::VecDivF32 : MicroOp::VecDivF64;
                             break;
                         case LaneOp::FloatMin:
-                            vecOp = MicroOp::VecMinF32;
+                            vecOp = scan_->shape.bytes == 4 ? MicroOp::VecMinF32 : MicroOp::VecMinF64;
                             break;
                         case LaneOp::FloatMax:
-                            vecOp = MicroOp::VecMaxF32;
+                            vecOp = scan_->shape.bytes == 4 ? MicroOp::VecMaxF32 : MicroOp::VecMaxF64;
                             break;
                         default:
                             return K_INVALID_ID;
@@ -860,12 +889,14 @@ namespace
 
                 case SlpValueKind::BinaryRegImm:
                 {
-                    if (n0.op != n1.op || n0.op != n2.op || n0.op != n3.op)
+                    if (!allEqual(&SlpValue::op))
                         return K_INVALID_ID;
-                    if (n0.imm != n1.imm || n0.imm != n2.imm || n0.imm != n3.imm)
+                    if (!allEqual(&SlpValue::imm))
                         return K_INVALID_ID;
 
-                    const TupleKey lhs{{n0.lhs, n1.lhs, n2.lhs, n3.lhs}};
+                    TupleKey lhs;
+                    for (uint32_t lane = 0; lane < scan_->shape.count(); ++lane)
+                        lhs.ids[lane] = scan_->values.get(tuple.ids[lane]).lhs;
                     const uint32_t lhsReg = build(lhs, depth + 1);
                     if (lhsReg == K_INVALID_ID)
                         return K_INVALID_ID;
@@ -889,7 +920,7 @@ namespace
                                 default: return K_INVALID_ID;
                             }
 
-                            const uint32_t splatValue = static_cast<uint32_t>(n0.imm);
+                            const uint64_t splatValue = n0.imm;
                             const auto     splatIt    = plan_->splatRegs.find(splatValue);
                             uint32_t       splatReg   = K_INVALID_ID;
                             if (splatIt != plan_->splatRegs.end())
@@ -900,7 +931,7 @@ namespace
                             {
                                 splatReg = allocReg();
                                 plan_->splatRegs.emplace(splatValue, splatReg);
-                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat32, .dst = splatReg, .imm = splatValue});
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat, .dst = splatReg, .imm = splatValue});
                             }
 
                             const uint32_t dstReg = allocReg();
@@ -990,10 +1021,10 @@ namespace
 
                 case SlpValueKind::Const:
                 {
-                    if (n0.imm != n1.imm || n0.imm != n2.imm || n0.imm != n3.imm)
+                    if (!allEqual(&SlpValue::imm))
                         return K_INVALID_ID;
 
-                    const uint32_t splatValue = static_cast<uint32_t>(n0.imm);
+                    const uint64_t splatValue = n0.imm;
                     const auto     splatIt    = plan_->splatRegs.find(splatValue);
                     uint32_t       splatReg   = K_INVALID_ID;
                     if (splatIt != plan_->splatRegs.end())
@@ -1004,13 +1035,32 @@ namespace
                     {
                         splatReg = allocReg();
                         plan_->splatRegs.emplace(splatValue, splatReg);
-                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat32, .dst = splatReg, .imm = splatValue});
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat, .dst = splatReg, .imm = splatValue});
                     }
                     remember(tuple, sorted, splatReg);
                     return splatReg;
                 }
                 case SlpValueKind::Opaque:
+                {
+                    // A scalar live at block entry can feed every packed lane.
+                    // Its register must still hold that value at the insertion
+                    // point; vectorizeBlock checks that before applying the plan.
+                    for (uint32_t lane = 1; lane < scan_->shape.count(); ++lane)
+                        if (tuple.ids[lane] != tuple.ids[0])
+                            return K_INVALID_ID;
+                    for (const auto& [packedReg, valueId] : scan_->entryValues)
+                    {
+                        if (valueId != tuple.ids[0])
+                            continue;
+                        const uint32_t dstReg = allocReg();
+                        MicroReg       scalar;
+                        scalar.packed = packedReg;
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Broadcast, .dst = dstReg, .scalarReg = scalar});
+                        remember(tuple, sorted, dstReg);
+                        return dstReg;
+                    }
                     return K_INVALID_ID;
+                }
             }
 
             return K_INVALID_ID;
@@ -1037,21 +1087,24 @@ namespace
             plan_->firstTupleBySortedKey.try_emplace(sorted, tuple);
         }
 
-        uint32_t buildLoad(const TupleKey& tuple, const TupleKey& sortedTuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3) const
+        uint32_t buildLoad(const TupleKey& tuple, const TupleKey& sortedTuple) const
         {
-            // Four loads of block-entry memory covering one contiguous chunk,
+            // Lane loads of block-entry memory covering one contiguous chunk,
             // in any lane order.
-            if (n0.loadEpoch != 0 || n1.loadEpoch != 0 || n2.loadEpoch != 0 || n3.loadEpoch != 0)
-                return K_INVALID_ID;
-            if (n0.loadRootKey != n1.loadRootKey || n0.loadRootKey != n2.loadRootKey || n0.loadRootKey != n3.loadRootKey)
-                return K_INVALID_ID;
-
-            const std::array                   offsets = {n0.loadOffset, n1.loadOffset, n2.loadOffset, n3.loadOffset};
-            std::array<uint64_t, K_LANE_COUNT> sorted  = offsets;
-            std::ranges::sort(sorted);
-            for (uint32_t lane = 1; lane < K_LANE_COUNT; ++lane)
+            const SlpValue&                        first = scan_->values.get(tuple.ids[0]);
+            std::array<uint64_t, K_MAX_LANE_COUNT> offsets{};
+            for (uint32_t lane = 0; lane < scan_->shape.count(); ++lane)
             {
-                if (sorted[lane] != sorted[0] + static_cast<uint64_t>(lane) * K_LANE_BYTES)
+                const SlpValue& value = scan_->values.get(tuple.ids[lane]);
+                if (value.loadEpoch != 0 || value.loadRootKey != first.loadRootKey)
+                    return K_INVALID_ID;
+                offsets[lane] = value.loadOffset;
+            }
+            auto sorted = offsets;
+            std::sort(sorted.begin(), sorted.begin() + scan_->shape.count());
+            for (uint32_t lane = 1; lane < scan_->shape.count(); ++lane)
+            {
+                if (sorted[lane] != sorted[0] + static_cast<uint64_t>(lane) * scan_->shape.bytes)
                     return K_INVALID_ID;
             }
 
@@ -1060,9 +1113,9 @@ namespace
             // The scan already interned these canonical loads. Their distinct
             // contiguous offsets give each existing ID its exact memory lane.
             TupleKey straight;
-            for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
+            for (uint32_t lane = 0; lane < scan_->shape.count(); ++lane)
             {
-                const auto memoryLane    = static_cast<uint32_t>((offsets[lane] - sorted[0]) / K_LANE_BYTES);
+                const auto memoryLane    = static_cast<uint32_t>((offsets[lane] - sorted[0]) / scan_->shape.bytes);
                 straight.ids[memoryLane] = tuple.ids[lane];
             }
 
@@ -1075,7 +1128,7 @@ namespace
             else
             {
                 straightReg = allocReg();
-                plan_->loads.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadVec, .dst = straightReg, .rootKey = n0.loadRootKey, .baseOffset = sorted[0]});
+                plan_->loads.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadVec, .dst = straightReg, .rootKey = first.loadRootKey, .baseOffset = sorted[0]});
                 remember(straight, sortedKeyOf(straight), straightReg);
             }
 
@@ -1083,7 +1136,7 @@ namespace
                 return straightReg;
 
             uint8_t control = 0;
-            if (!shuffleControlFor(tuple, straight, control))
+            if (!shuffleControlFor(tuple, straight, control, scan_->shape))
                 return K_INVALID_ID;
 
             const uint32_t dstReg = allocReg();
@@ -1095,7 +1148,7 @@ namespace
         BlockScan*  scan_           = nullptr;
         VectorPlan* plan_           = nullptr;
         bool        nonDestructive_ = false;
-        bool        canLoadMask_     = false;
+        bool        canLoadMask_    = false;
     };
 
     // ------------------------------------------------------------------
@@ -1233,7 +1286,7 @@ namespace
 
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
-                if (isLaneTransparentCopy(inst, ops))
+                if (isLaneTransparentCopy(inst, ops, scan.shape))
                 {
                     setValue(scan, ops[0].reg, currentValue(scan, ops[1].reg));
                     return;
@@ -1243,9 +1296,17 @@ namespace
 
             case MicroInstrOpcode::LoadRegImm:
             {
+                // Narrow writes preserve part of the preceding register value.
+                // A 32-bit integer write zero-extends on the target, including
+                // when its bits subsequently feed a 64-bit floating lane.
+                if (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64)
+                {
+                    setOpaque(scan, ops[0].reg);
+                    return;
+                }
                 SlpValue v;
                 v.kind = SlpValueKind::Const;
-                v.imm  = ops[2].valueU64 & 0xFFFFFFFFull;
+                v.imm  = ops[2].valueU64 & getBitsMask(scan.shape.bits()) & getBitsMask(ops[1].opBits);
                 setValue(scan, ops[0].reg, scan.values.intern(v));
                 return;
             }
@@ -1280,11 +1341,11 @@ namespace
                 const uint32_t size = std::max<uint32_t>(getNumBytes(sizeBits), 1);
                 scan.loads.push_back(LoadRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .dstReg = ops[0].reg});
 
-                // Only aligned 32-bit reads become lane values; a 64<-32
-                // zero-extending load preserves the lane too.
-                const bool laneRead = (isPlainLoad && sizeBits == MicroOpBits::B32) ||
-                                      (isZeroExt && sizeBits == MicroOpBits::B32 && ops[2].opBits == MicroOpBits::B64);
-                if (!laneRead || (offset % K_LANE_BYTES) != 0)
+                // Only aligned lane-sized reads become lane values. In 32-bit
+                // mode, a 64<-32 zero-extending load preserves the lane too.
+                const bool laneRead = (isPlainLoad && sizeBits == scan.shape.bits()) ||
+                                      (scan.shape.bytes == 4 && isZeroExt && sizeBits == scan.shape.bits() && ops[2].opBits == MicroOpBits::B64);
+                if (!laneRead || (offset % scan.shape.bytes) != 0)
                 {
                     setOpaque(scan, ops[0].reg);
                     return;
@@ -1331,11 +1392,11 @@ namespace
                     return;
                 }
 
-                const uint32_t size    = std::max<uint32_t>(getNumBytes(sizeBits), 1);
-                const bool     plain32 = inst.op != MicroInstrOpcode::StoreVecMemReg && sizeBits == MicroOpBits::B32 && (offset % K_LANE_BYTES) == 0;
-                scan.stores.push_back(StoreRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .plain32 = plain32});
+                const uint32_t size      = std::max<uint32_t>(getNumBytes(sizeBits), 1);
+                const bool     plainLane = inst.op != MicroInstrOpcode::StoreVecMemReg && sizeBits == scan.shape.bits() && (offset % scan.shape.bytes) == 0;
+                scan.stores.push_back(StoreRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .plainLane = plainLane});
 
-                if (!plain32)
+                if (!plainLane)
                 {
                     killLocationRange(scan, rootKey, offset, size, blockInstr.instRef);
                     return;
@@ -1350,14 +1411,14 @@ namespace
                 {
                     SlpValue v;
                     v.kind  = SlpValueKind::Const;
-                    v.imm   = ops[3].valueU64 & 0xFFFFFFFFull;
+                    v.imm   = ops[3].valueU64 & getBitsMask(scan.shape.bits());
                     valueId = scan.values.intern(v);
                 }
 
-                MemLocation& loc  = scan.locations[BlockScan::locationKey(rootKey, offset)];
-                loc.valueId       = valueId;
-                loc.lastIsPlain32 = true;
-                loc.lastStoreRef  = blockInstr.instRef;
+                MemLocation& loc    = scan.locations[BlockScan::locationKey(rootKey, offset)];
+                loc.valueId         = valueId;
+                loc.lastIsLaneStore = true;
+                loc.lastStoreRef    = blockInstr.instRef;
                 return;
             }
 
@@ -1383,7 +1444,7 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegReg:
             {
-                if (ops[3].microOp == MicroOp::FloatSqrt && ops[2].opBits == MicroOpBits::B32 && ops[0].reg == ops[1].reg)
+                if (ops[3].microOp == MicroOp::FloatSqrt && ops[2].opBits == scan.shape.bits())
                 {
                     SlpValue v;
                     v.kind = SlpValueKind::Unary;
@@ -1392,7 +1453,7 @@ namespace
                     setValue(scan, ops[0].reg, scan.values.intern(v));
                     return;
                 }
-                if (ops[3].microOp == MicroOp::ConvertFloatToInt && ops[2].opBits == MicroOpBits::B32 &&
+                if (scan.shape.bytes == 4 && ops[3].microOp == MicroOp::ConvertFloatToInt && ops[2].opBits == MicroOpBits::B32 &&
                     ops[0].reg.isVirtualInt() && ops[1].reg.isVirtualFloat())
                 {
                     SlpValue v;
@@ -1403,7 +1464,7 @@ namespace
                     return;
                 }
                 LaneOp laneOp{};
-                if (laneOpForBinaryRegReg(ops[3].microOp, ops[2].opBits, laneOp))
+                if (laneOpForBinaryRegReg(ops[3].microOp, ops[2].opBits, laneOp, scan.shape))
                 {
                     SlpValue v;
                     v.kind = SlpValueKind::BinaryRegReg;
@@ -1420,7 +1481,7 @@ namespace
             case MicroInstrOpcode::OpBinaryRegRegReg:
             {
                 LaneOp laneOp{};
-                if (laneOpForBinaryRegReg(ops[4].microOp, ops[3].opBits, laneOp))
+                if (laneOpForBinaryRegReg(ops[4].microOp, ops[3].opBits, laneOp, scan.shape))
                 {
                     SlpValue v;
                     v.kind = SlpValueKind::BinaryRegReg;
@@ -1438,7 +1499,7 @@ namespace
             {
                 LaneOp   laneOp{};
                 uint64_t laneImm = 0;
-                if (laneOpForBinaryRegImm(ops[2].microOp, ops[1].opBits, ops[3].valueU64, laneOp, laneImm))
+                if (scan.shape.bytes == 4 && laneOpForBinaryRegImm(ops[2].microOp, ops[1].opBits, ops[3].valueU64, laneOp, laneImm))
                 {
                     SlpValue v;
                     v.kind = SlpValueKind::BinaryRegImm;
@@ -1471,8 +1532,8 @@ namespace
                 scan.loads.push_back(LoadRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .dstReg = ops[0].reg});
 
                 LaneOp laneOp{};
-                if (!laneOpForBinaryRegReg(ops[3].microOp, ops[2].opBits, laneOp) ||
-                    ops[2].opBits != MicroOpBits::B32 || (offset % K_LANE_BYTES) != 0)
+                if (!laneOpForBinaryRegReg(ops[3].microOp, ops[2].opBits, laneOp, scan.shape) ||
+                    ops[2].opBits != scan.shape.bits() || (offset % scan.shape.bytes) != 0)
                 {
                     setOpaque(scan, ops[0].reg);
                     return;
@@ -1520,7 +1581,7 @@ namespace
                 // sides and drop the known value.
                 const uint32_t size = std::max<uint32_t>(getNumBytes(sizeBits), 1);
                 scan.loads.push_back(LoadRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .dstReg = MicroReg::invalid()});
-                scan.stores.push_back(StoreRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .plain32 = false});
+                scan.stores.push_back(StoreRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .plainLane = false});
                 killLocationRange(scan, rootKey, offset, size, blockInstr.instRef);
                 return;
             }
@@ -1602,19 +1663,20 @@ namespace
 
     bool vectorizeBlock(SlpFunctionContext& fn, std::optional<MicroSsaState>& localSsa, std::span<const BlockInstr> blockInstrs)
     {
-        if (blockInstrs.size() < static_cast<size_t>(K_LANE_COUNT) * 2)
+        if (blockInstrs.size() < static_cast<size_t>(fn.shape.count()) * 2)
             return false;
 
         BlockScan scan;
+        scan.shape = fn.shape;
         for (const BlockInstr& blockInstr : blockInstrs)
             scanInstruction(fn, scan, blockInstr);
 
         // Finish scanning before rejecting a block: resolving its addresses also
-        // registers roots used by later blocks. Four locations need four stores.
-        if (scan.stores.size() < K_LANE_COUNT || scan.hasUnresolvedMemRead || scan.hasUnresolvedMemWrite)
+        // registers roots used by later blocks. Each lane needs a store.
+        if (scan.stores.size() < fn.shape.count() || scan.hasUnresolvedMemRead || scan.hasUnresolvedMemWrite)
             return false;
 
-        // Candidate locations: final write is a plain aligned 32-bit store and
+        // Candidate locations: final write is a plain aligned lane-sized store and
         // nothing ever wrote the location any other way.
         struct Candidate
         {
@@ -1625,7 +1687,7 @@ namespace
         std::unordered_map<uint32_t, std::vector<Candidate>> candidatesByRoot;
         for (const auto& [key, loc] : scan.locations)
         {
-            if (!loc.lastIsPlain32 || loc.hasNonPlainStore || loc.valueId == K_INVALID_ID)
+            if (!loc.lastIsLaneStore || loc.hasNonPlainStore || loc.valueId == K_INVALID_ID)
                 continue;
             candidatesByRoot[key.rootKey].push_back(Candidate{.offset = key.offset, .valueId = loc.valueId, .lastStoreRef = loc.lastStoreRef});
         }
@@ -1685,12 +1747,12 @@ namespace
             std::ranges::sort(candidates, [](const Candidate& a, const Candidate& b) { return a.offset < b.offset; });
 
             size_t index = 0;
-            while (index + K_LANE_COUNT <= candidates.size())
+            while (index + fn.shape.count() <= candidates.size())
             {
                 bool contiguous = true;
-                for (uint32_t lane = 1; lane < K_LANE_COUNT; ++lane)
+                for (uint32_t lane = 1; lane < fn.shape.count(); ++lane)
                 {
-                    if (candidates[index + lane].offset != candidates[index].offset + static_cast<uint64_t>(lane) * K_LANE_BYTES)
+                    if (candidates[index + lane].offset != candidates[index].offset + static_cast<uint64_t>(lane) * fn.shape.bytes)
                     {
                         contiguous = false;
                         break;
@@ -1706,10 +1768,10 @@ namespace
                 SeedGroup group;
                 group.rootKey = rootKey;
                 group.offset  = candidates[index].offset;
-                for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
+                for (uint32_t lane = 0; lane < fn.shape.count(); ++lane)
                     group.tuple.ids[lane] = candidates[index + lane].valueId;
                 vectorized.push_back(group);
-                index += K_LANE_COUNT;
+                index += fn.shape.count();
             }
         }
 
@@ -1734,12 +1796,12 @@ namespace
         if (vectorized.empty() || plan.arithmeticOps == 0)
             return false;
 
-        // The deleted set: every plain 32-bit store to a vectorized location.
+        // The deleted set: every plain lane-sized store to a vectorized location.
         std::unordered_set<LocationKey, LocationKeyHash> vectorizedLocations;
         for (const SeedGroup& group : vectorized)
         {
-            for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
-                vectorizedLocations.insert(BlockScan::locationKey(group.rootKey, group.offset + static_cast<uint64_t>(lane) * K_LANE_BYTES));
+            for (uint32_t lane = 0; lane < fn.shape.count(); ++lane)
+                vectorizedLocations.insert(BlockScan::locationKey(group.rootKey, group.offset + static_cast<uint64_t>(lane) * fn.shape.bytes));
         }
 
         std::unordered_set<uint32_t> deletedStoreRefs;
@@ -1747,7 +1809,7 @@ namespace
         MicroInstrRef                firstDeletedRef = MicroInstrRef::invalid();
         for (const StoreRecord& record : scan.stores)
         {
-            if (!record.plain32 || !vectorizedLocations.contains(BlockScan::locationKey(record.rootKey, record.offset)))
+            if (!record.plainLane || !vectorizedLocations.contains(BlockScan::locationKey(record.rootKey, record.offset)))
                 continue;
             deletedStoreRefs.insert(record.instRef.get());
             if (record.pos < firstDeletedPos)
@@ -1760,9 +1822,9 @@ namespace
         SWC_ASSERT(!deletedStoreRefs.empty() && firstDeletedRef.isValid());
 
         const auto overlapsVectorized = [&](const uint32_t rootKey, const uint64_t offset, const uint32_t size) {
-            const uint64_t first   = offset & ~static_cast<uint64_t>(K_LANE_BYTES - 1);
+            const uint64_t first   = offset & ~static_cast<uint64_t>(fn.shape.bytes - 1);
             const uint64_t covered = offset - first + size;
-            for (uint64_t delta = 0; delta < covered; delta += K_LANE_BYTES)
+            for (uint64_t delta = 0; delta < covered; delta += fn.shape.bytes)
             {
                 if (vectorizedLocations.contains(BlockScan::locationKey(rootKey, first + delta)))
                     return true;
@@ -1798,7 +1860,7 @@ namespace
             // Most scanned blocks have no viable packed plan. Construct the
             // standalone fallback only when SSA is actually requested.
             MicroSsaState& ssaScratch = fn.context->ssaState ? *fn.context->ssaState : localSsa.emplace();
-            fn.ssa                   = MicroSsaState::ensureFor(*fn.context, ssaScratch);
+            fn.ssa                    = MicroSsaState::ensureFor(*fn.context, ssaScratch);
             if (!fn.ssa)
                 return false;
         }
@@ -1846,6 +1908,22 @@ namespace
             }
         }
 
+        // A broadcast uses the block-entry scalar, not a later definition of
+        // the same virtual register. Reject before adding any packed code.
+        for (const PlanInstr& operation : plan.ops)
+        {
+            if (operation.kind != PlanInstr::Kind::Broadcast)
+                continue;
+            for (const BlockInstr& blockInstr : blockInstrs)
+            {
+                if (blockInstr.pos >= firstDeletedPos)
+                    break;
+                const auto useDef = blockInstr.inst->collectUseDef(*fn.operands, fn.encoder);
+                if (std::ranges::find(useDef.defs, operation.scalarReg) != useDef.defs.end())
+                    return false;
+            }
+        }
+
         // ----- Materialize.
         if (!fn.nextVirtualFloatRegIndex)
             MicroPassHelpers::computeNextVirtualRegIndices(*fn.context, fn.nextVirtualIntRegIndex, fn.nextVirtualFloatRegIndex);
@@ -1857,7 +1935,7 @@ namespace
         }
 
         std::array<uint32_t, 4> rotateUseCounts{};
-        std::vector<uint8_t> livePlanRegs(plan.nextPlanReg);
+        std::vector<uint8_t>    livePlanRegs(plan.nextPlanReg);
         for (const SeedGroup& group : vectorized)
             livePlanRegs[group.planReg] = true;
         // A failed seed can leave a partial tree in the plan. Count only the
@@ -1891,7 +1969,8 @@ namespace
                     break;
                 case PlanInstr::Kind::LoadVec:
                 case PlanInstr::Kind::StoreVec:
-                case PlanInstr::Kind::LoadSplat32:
+                case PlanInstr::Kind::LoadSplat:
+                case PlanInstr::Kind::Broadcast:
                     break;
             }
         }
@@ -1950,7 +2029,22 @@ namespace
                     fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegImm, ops);
                     break;
                 }
-                case PlanInstr::Kind::LoadSplat32:
+                case PlanInstr::Kind::Broadcast:
+                {
+                    MicroInstrOperand copy[3];
+                    copy[0].reg    = planRegs[planInstr.dst];
+                    copy[1].reg    = planInstr.scalarReg;
+                    copy[2].opBits = fn.shape.bits();
+                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegReg, copy);
+                    MicroInstrOperand shuffle[4];
+                    shuffle[0].reg      = planRegs[planInstr.dst];
+                    shuffle[1].reg      = planRegs[planInstr.dst];
+                    shuffle[2].opBits   = MicroOpBits::B128;
+                    shuffle[3].valueU64 = fn.shape.bytes == 4 ? 0 : 0x44;
+                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecShuffleRegRegImm, shuffle);
+                    break;
+                }
+                case PlanInstr::Kind::LoadSplat:
                 {
                     if (canLoadMask)
                     {
@@ -1958,9 +2052,9 @@ namespace
                         // immediate, a move across register classes and a
                         // shuffle: the four lanes already exist in memory.
                         std::array<char, 16> lanes;
-                        const auto           lane = static_cast<uint32_t>(planInstr.imm);
-                        for (uint32_t index = 0; index < 4; ++index)
-                            std::memcpy(lanes.data() + index * sizeof(lane), &lane, sizeof(lane));
+                        const uint64_t       lane = planInstr.imm;
+                        for (uint32_t index = 0; index < fn.shape.count(); ++index)
+                            std::memcpy(lanes.data() + index * fn.shape.bytes, &lane, fn.shape.bytes);
                         emitVectorConstantLoad(fn, firstDeletedRef, planRegs[planInstr.dst], lanes);
                         break;
                     }
@@ -1970,15 +2064,15 @@ namespace
                     {
                         std::array<MicroInstrOperand, 3> ops;
                         ops[0].reg    = scalar;
-                        ops[1].opBits = MicroOpBits::B32;
-                        ops[2].setImmediateValue(ApInt(planInstr.imm, 32));
+                        ops[1].opBits = fn.shape.bits();
+                        ops[2].setImmediateValue(ApInt(planInstr.imm, getNumBits(fn.shape.bits())));
                         fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegImm, ops);
                     }
                     {
                         std::array<MicroInstrOperand, 3> ops;
                         ops[0].reg    = planRegs[planInstr.dst];
                         ops[1].reg    = scalar;
-                        ops[2].opBits = MicroOpBits::B32;
+                        ops[2].opBits = fn.shape.bits();
                         fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegReg, ops);
                     }
                     {
@@ -1986,7 +2080,7 @@ namespace
                         ops[0].reg      = planRegs[planInstr.dst];
                         ops[1].reg      = planRegs[planInstr.dst];
                         ops[2].opBits   = MicroOpBits::B128;
-                        ops[3].valueU64 = 0;
+                        ops[3].valueU64 = fn.shape.bytes == 4 ? 0 : 0x44;
                         fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecShuffleRegRegImm, ops);
                     }
                     break;
@@ -2117,107 +2211,125 @@ namespace
     }
 }
 
-Result MicroSlpVectorizePass::run(MicroPassContext& context)
+namespace
 {
-    if (!context.builder || !context.instructions || !context.operands || !context.encoder)
-        return Result::Continue;
-
-    const Runtime::BuildCfgBackend& backendCfg = context.builder->backendBuildCfg();
-    if (!backendCfg.optimizes() || !backendCfg.vectorize)
-        return Result::Continue;
-    if (context.instructions->count() < K_LANE_COUNT * 2)
-        return Result::Continue;
-
-    SlpFunctionContext fn;
-    fn.context  = &context;
-    fn.storage  = context.instructions;
-    fn.operands = context.operands;
-    fn.encoder  = context.encoder;
-
-    // Single-definition map for address rooting, and global positions.
-    std::vector<BlockInstr> blockInstrs;
-    uint32_t                position = 0;
-    uint32_t                scalarStores = 0;
-    for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
+    Result runSlp(MicroPassContext& context, LaneShape shape)
     {
-        if (it->op == MicroInstrOpcode::LoadMemReg || it->op == MicroInstrOpcode::LoadMemImm)
-            scalarStores++;
+        if (!context.builder || !context.instructions || !context.operands || !context.encoder)
+            return Result::Continue;
 
-        if (fn.firstCallPos == K_INVALID_ID && MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
-            fn.firstCallPos = position;
+        const Runtime::BuildCfgBackend& backendCfg = context.builder->backendBuildCfg();
+        if (!backendCfg.optimizes() || !backendCfg.vectorize)
+            return Result::Continue;
+        if (context.instructions->count() < shape.count() * 2)
+            return Result::Continue;
 
-        const auto recordDef = [&](const MicroReg reg) {
-            if (!reg.isVirtual())
-                return;
-            RegDefInfo& info = fn.regDefs[reg.packed];
-            info.defCount++;
-            info.defRef = it.current;
-            info.defPos = position;
-        };
-        const MicroInstrDef& info = MicroInstr::info(it->op);
-        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+        SlpFunctionContext fn;
+        fn.shape    = shape;
+        fn.context  = &context;
+        fn.storage  = context.instructions;
+        fn.operands = context.operands;
+        fn.encoder  = context.encoder;
+
+        // Single-definition map for address rooting, and global positions.
+        std::vector<BlockInstr> blockInstrs;
+        uint32_t                position     = 0;
+        uint32_t                scalarStores = 0;
+        for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
         {
-            const MicroInstrUseDef useDef = it->collectUseDef(*fn.operands, fn.encoder);
-            for (const MicroReg reg : useDef.defs)
-                recordDef(reg);
-        }
-        else if (const MicroInstrOperand* ops = it->ops(*fn.operands))
-        {
-            const auto modes = info.resolvedRegModes(ops);
-            for (size_t i = 0; i < modes.size(); ++i)
+            if (it->op == MicroInstrOpcode::LoadMemReg || it->op == MicroInstrOpcode::LoadMemImm)
+                scalarStores++;
+
+            if (fn.firstCallPos == K_INVALID_ID && MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                fn.firstCallPos = position;
+
+            const auto recordDef = [&](const MicroReg reg) {
+                if (!reg.isVirtual())
+                    return;
+                RegDefInfo& info = fn.regDefs[reg.packed];
+                info.defCount++;
+                info.defRef = it.current;
+                info.defPos = position;
+            };
+            const MicroInstrDef& info = MicroInstr::info(it->op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
             {
-                if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
-                    recordDef(ops[i].reg);
+                const MicroInstrUseDef useDef = it->collectUseDef(*fn.operands, fn.encoder);
+                for (const MicroReg reg : useDef.defs)
+                    recordDef(reg);
+            }
+            else if (const MicroInstrOperand* ops = it->ops(*fn.operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                        recordDef(ops[i].reg);
+                }
             }
         }
-    }
 
-    // Every vectorized group needs four scalar memory writes. Other memory
-    // operations can only disqualify a group, so skip the block scan here.
-    if (scalarStores < K_LANE_COUNT)
-        return Result::Continue;
+        // Every vectorized group needs one scalar memory write per lane. Other memory
+        // operations can only disqualify a group, so skip the block scan here.
+        if (scalarStores < shape.count())
+            return Result::Continue;
 
-    std::optional<MicroSsaState> localSsa;
+        std::optional<MicroSsaState> localSsa;
 
-    // Walk the straight-line blocks.
-    bool changed = false;
-    position     = 0;
-    blockInstrs.clear();
-    uint32_t scalarStoresInBlock = 0;
-
-    const auto flushBlock = [&]() {
-        // Four scalar writes must occur in the same straight-line block.
-        if (scalarStoresInBlock >= K_LANE_COUNT && vectorizeBlock(fn, localSsa, blockInstrs))
-            changed = true;
+        // Walk the straight-line blocks.
+        bool changed = false;
+        position     = 0;
         blockInstrs.clear();
-        scalarStoresInBlock = 0;
-    };
+        uint32_t scalarStoresInBlock = 0;
 
-    for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
-    {
-        MicroInstr&          inst = *it;
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        const auto flushBlock = [&]() {
+            // All lane writes must occur in the same straight-line block.
+            if (scalarStoresInBlock >= shape.count() && vectorizeBlock(fn, localSsa, blockInstrs))
+                changed = true;
+            blockInstrs.clear();
+            scalarStoresInBlock = 0;
+        };
 
-        const bool isBoundary = inst.op == MicroInstrOpcode::Label ||
-                                inst.op == MicroInstrOpcode::End ||
-                                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-                                info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
-                                info.flags.has(MicroInstrFlagsE::IsCallInstruction);
-        if (isBoundary)
+        for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
         {
-            flushBlock();
-            continue;
+            MicroInstr&          inst = *it;
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+
+            const bool isBoundary = inst.op == MicroInstrOpcode::Label ||
+                                    inst.op == MicroInstrOpcode::End ||
+                                    info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                                    info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                                    info.flags.has(MicroInstrFlagsE::IsCallInstruction);
+            if (isBoundary)
+            {
+                flushBlock();
+                continue;
+            }
+
+            if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm)
+                ++scalarStoresInBlock;
+            blockInstrs.push_back(BlockInstr{.instRef = it.current, .inst = &inst, .pos = position});
         }
+        flushBlock();
 
-        if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm)
-            ++scalarStoresInBlock;
-        blockInstrs.push_back(BlockInstr{.instRef = it.current, .inst = &inst, .pos = position});
+        if (changed)
+            context.passChanged = true;
+
+        return Result::Continue;
     }
-    flushBlock();
 
-    if (changed)
-        context.passChanged = true;
+}
 
+Result MicroSlpVectorizePass::run(MicroPassContext& context)
+{
+    SWC_RESULT(runSlp(context, {4}));
+    // The first width may have changed the instruction stream. Keep its shared
+    // scalar snapshot intact and build the second width's analysis locally.
+    MicroPassContext doubleContext = context;
+    doubleContext.ssaState         = nullptr;
+    doubleContext.passChanged      = false;
+    SWC_RESULT(runSlp(doubleContext, {8}));
+    context.passChanged = context.passChanged || doubleContext.passChanged;
     return Result::Continue;
 }
 

@@ -43,6 +43,39 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
+
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-30 19:29 — Reports moved out of line and settled guards removed; devmode measured against release again.
+- Area: compiler/backend, optimization
+- Evidence: `buildCfg.safetyGuards` is `None` in `release`, so `a[i]` with a runtime `i` has no
+  bounds guard; an invalid access may read unrelated storage or fault. The same invalid index
+  gets a located panic in `devmode`. The static half still covers what it can
+  prove — a constant index, and an index the value analysis folds to a constant, are rejected at
+  compile time *in release* — but a genuinely dynamic index is unchecked.
+- Prior decision (2026-07-08, do not re-litigate on the same evidence): the cost was measured at
+  +7-8% on a worst-case tight indexed-sum loop and +2% on a data-dependent double lookup, and
+  `release` deliberately kept `safetyGuards = None`.
+- Done 2026-09-30, with every guard kept: the report of a guard is laid out behind the function
+  (`MicroColdBlockLayoutPass`), so the passing path takes no jump; a guard whose test the operand
+  ranges settle is resolved, and so is one that repeats the test of an earlier guard on the same
+  value (`tryResolveRangeProvedBranch`, `tryDropRepeatedGuard`); `devmode` inlines automatically.
+  On the twelve `bench/` programs `devmode` went from 1.96x to 1.45x the time of `release`
+  (geometric mean; sha256 175 -> 60 ms, leven 54 -> 27 ms, chacha 76 -> 40 ms). The same build
+  without runtime guards is at 1.17x, so the guards still cost 1.24x.
+- What remains is the guards no local proof removes: an index bounded by a loop test
+  (`for j in lb + 1 do row0[j]` in leven), a count read again from memory before each access, a
+  `late` global checked on every read inside a loop (dijkstra, wordfreq), and 64-bit sums of
+  values loaded from memory (sha256's `KTAB[i] + w[i]`).
+- Next: bound an index by the dominating loop or branch test that already compares it with the
+  same count (induction-variable range against the container's `.count`), and hoist the check of
+  a `late` global out of a loop that does not assign it. Re-measure the two loops of the prior
+  decision with guards on.
+- Complete when: a loop-bounded index needs no guard, the residual cost of `.BoundCheck` on the
+  two loops above is recorded next to the 2026-07-08 numbers, and `devmode` compile time is
+  measured before and after.
+- Related: [compiler.optimization.md](compiler.optimization.md) owns the pass once it is scoped.
+
 ### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
 
 - Recorded: 2026-09-08 07:59
@@ -208,36 +241,6 @@ is the current scorecard.
   bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
   survives at the interop and bit-punning boundary, which is where the marker belongs and where it
   joins compiler.safety.007. Also compiler.safety.014.
-
-### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
-
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-12 06:57 — Distinguish unchecked access from guaranteed silence and planned elimination from shipped code.
-- Area: compiler/backend, optimization
-- Evidence: `buildCfg.safetyGuards` is `None` in `release`, so `a[i]` with a runtime `i` has no
-  bounds guard; an invalid access may read unrelated storage or fault. The same invalid index
-  gets a located panic in `devmode`. The static half still covers what it can
-  prove — a constant index, and an index the value analysis folds to a constant, are rejected at
-  compile time *in release* — but a genuinely dynamic index is unchecked.
-- Prior decision (2026-07-08, do not re-litigate on the same evidence): the cost was measured at
-  +7-8% on a worst-case tight indexed-sum loop and +2% on a data-dependent double lookup, and
-  `release` deliberately kept `safetyGuards = None`.
-- What has not been measured is the same question with the checks made cheap. That measurement was
-  taken against code generation that emits `cmp`/`jb`/call at every index and has no pass dedicated
-  to removing them. The two idiomatic Swag forms — `for v in arr` and `for i in arr.count` — are
-  provably in range on every iteration, and a range analysis over the Micro SSA could remove checks
-  where a guard was emitted for an explicit index. Direct element iteration already uses the
-  compiler's own traversal; it must be measured separately from indexed accesses. The remaining
-  cost belongs to checks that cannot be proven redundant.
-- Next: implement bound-check elimination as a backend pass (induction-variable range against the
-  container's `.count`, dominating comparisons, constant indices), then re-measure the two loops
-  above with guards on. The deliverable is the pass, not a change of default: `release` stays
-  guard-free, `devmode` pays this cost on every index today, and a build that turns the guards on
-  deliberately is exactly the build the pass is for.
-- Complete when: a bound-check-elimination pass exists, `devmode` compile time and generated code
-  are measured before and after, and the residual cost of `.BoundCheck` on the two loops above is
-  recorded next to the 2026-07-08 numbers.
-- Related: [compiler.optimization.md](compiler.optimization.md) owns the pass once it is scoped.
 
 ### compiler.safety.023 — Opaque results lack pointer-field provenance
 

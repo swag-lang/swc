@@ -16,7 +16,7 @@ public:
     Symbol*       addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
     Symbol*       addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol*       addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void          addUsingSymMap(SymbolMap* symMap);
+    void          addUsingSymMap(TaskContext& ctx, SymbolMap* symMap);
     void          copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
@@ -38,6 +38,12 @@ protected:
         std::unordered_map<IdentifierRef, Symbol*> map;
     };
 
+    struct UsingSymMap
+    {
+        SymbolMap*         symbol   = nullptr;
+        const UsingSymMap* previous = nullptr;
+    };
+
     static constexpr uint32_t SMALL_CAP        = 8;
     static constexpr uint32_t SHARD_BITS       = 3;
     static constexpr uint32_t SHARD_COUNT      = 1u << SHARD_BITS;
@@ -50,7 +56,9 @@ protected:
     std::optional<std::unordered_map<IdentifierRef, Symbol*>> bigMap_;
     std::atomic<Shard*>                                       shards_ = nullptr;
     mutable std::shared_mutex                                 mutex_;
-    SmallVector<SymbolMap*>                                   usingSymMaps_;
+    // Entries are immutable after publication and live in the compiler's arena.
+    // Readers keep a stable prefix while writers append under mutex_.
+    std::atomic<const UsingSymMap*>                            usingSymMaps_ = nullptr;
     uint32_t                                                  smallSize_ = 0;
     // Different shards publish symbols concurrently; their locks do not protect this total.
     std::atomic<uint32_t> count_ = 0;
@@ -62,7 +70,7 @@ private:
     Entry*       smallFind(IdentifierRef key);
     const Entry* smallFind(IdentifierRef key) const;
 
-    static uint32_t shardIndex(IdentifierRef idRef) noexcept { return idRef.get() & (SHARD_COUNT - 1); }
+    static uint32_t shardIndex(IdentifierRef idRef) noexcept;
     void            maybeUpgradeToSharded(TaskContext& ctx);
     Symbol*         insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
 };

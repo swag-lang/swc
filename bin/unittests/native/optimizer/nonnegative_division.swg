@@ -57,6 +57,27 @@ func remainder(value: s64)->s64 => value % 8
 #[Swag.Optimize(true)]
 func half(value: s64)->s64 => value / 2
 
+// A remainder only tested for zero reads the low bits of the dividend, whatever its sign.
+#[Swag.NoInline]
+#[Swag.Optimize(true)]
+func isMultipleOf8(value: s64)->bool => value % 8 == 0
+
+#[Swag.NoInline]
+#[Swag.Optimize(true)]
+func alternate(count: s64)->s64
+{
+    var sum = 0's64
+    for i in -count until count
+    {
+        if i % 2 == 0 do
+            sum += i
+        else do
+            sum -= 3
+    }
+
+    return sum
+}
+
 // The test is on another value.
 #[Swag.NoInline]
 #[Swag.Optimize(true)]
@@ -100,6 +121,9 @@ func changedAfterTest(value: s64)->s64
 
     Swag.assert(remainder(-13) == -5 and remainder(13) == 5)
     Swag.assert(half(-7) == -3 and half(7) == 3)
+    Swag.assert(isMultipleOf8(-16) and isMultipleOf8(24) and isMultipleOf8(0))
+    Swag.assert(not isMultipleOf8(-13) and not isMultipleOf8(7) and not isMultipleOf8(-1))
+    Swag.assert(alternate(5) == -15)
     Swag.assert(guardedByOther(-13, 4) == -5 and guardedByOther(-13, -1) == 0)
     Swag.assert(changedAfterTest(5) == -7 and changedAfterTest(30) == 2 and changedAfterTest(-4) == 1)
 }

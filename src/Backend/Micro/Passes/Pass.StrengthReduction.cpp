@@ -150,6 +150,69 @@ namespace
         return *outCond == MicroCond::Equal || *outCond == MicroCond::NotEqual ? reader : nullptr;
     }
 
+    // Whether the remainder `instRef` leaves in `value` is only ever compared
+    // with zero for equality: the compare follows, its one reader asks for
+    // equal or not equal, and nothing else reads the remainder or the flags.
+    bool isOnlyTestedAgainstZero(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState*& ssaState, MicroSsaState& localSsaState, MicroInstrRef instRef, const MicroReg value, const MicroOpBits opBits, MicroInstrRef& outCmpRef)
+    {
+        // The compare may follow a few moves that leave the flags alone, as
+        // the zero it reads being loaded.
+        constexpr uint32_t K_MAX_MOVES = 3;
+        MicroInstrRef      cmpRef      = storage.findNextInstructionRef(instRef);
+        const MicroInstr*  cmp         = cmpRef.isValid() ? storage.ptr(cmpRef) : nullptr;
+        for (uint32_t step = 0; step < K_MAX_MOVES && cmp && (cmp->op == MicroInstrOpcode::LoadRegImm || cmp->op == MicroInstrOpcode::LoadRegReg); ++step)
+        {
+            if (cmp->ops(operands)[0].reg == value)
+                return false;
+            cmpRef = storage.findNextInstructionRef(cmpRef);
+            cmp    = cmpRef.isValid() ? storage.ptr(cmpRef) : nullptr;
+        }
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const MicroInstrOperand* cmpOps = cmp->ops(operands);
+        if (cmpOps[0].reg != value || cmpOps[1].opBits != opBits || cmpOps[2].hasWideImmediateValue() || (cmpOps[2].valueU64 & getBitsMask(opBits)) != 0)
+            return false;
+
+        MicroInstrRef readerRef;
+        MicroCond*    cond = nullptr;
+        if (!findEqualityReader(storage, operands, cmpRef, readerRef, cond))
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, readerRef, context.builder))
+            return false;
+        // Only the matching compare and reader need SSA to prove unique use.
+        if (!ssaState)
+            ssaState = MicroSsaState::ensureFor(context, localSsaState);
+        if (!ssaState || !ssaState->isValid())
+            return false;
+        // The compare is the remainder's only reader.
+        uint32_t remainderId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState->defValue(value, instRef, remainderId) || ssaState->transitiveInstructionUseCount(remainderId, 2) != 1)
+            return false;
+
+        outCmpRef = cmpRef;
+        return true;
+    }
+
+    // A signed remainder by a power of two is zero exactly when the low bits
+    // of the dividend are, whatever its sign: `x % 8 == 0` tests `x & 7`.
+    // The sign correction only matters to a reader of the remainder's value.
+    bool tryReduceSignedModuloPow2Equality(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState*& ssaState, MicroSsaState& localSsaState, MicroInstrRef instRef, MicroInstrOperand* ops)
+    {
+        const MicroOpBits opBits  = ops[1].opBits;
+        const uint64_t    divisor = ops[3].valueU64 & getBitsMask(opBits);
+        if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || ops[3].hasWideImmediateValue() || divisor < 2 ||
+            !Math::isPowerOfTwo(divisor) || !canRewriteShift(opBits, divisor) || !ops[0].reg.isVirtualInt())
+            return false;
+
+        MicroInstrRef cmpRef;
+        if (!isOnlyTestedAgainstZero(context, storage, operands, ssaState, localSsaState, instRef, ops[0].reg, opBits, cmpRef))
+            return false;
+
+        ops[2].microOp  = MicroOp::And;
+        ops[3].valueU64 = divisor - 1;
+        return true;
+    }
+
     // The inverse of an odd value modulo 2^64, by Newton's iteration: each step
     // doubles the correct low bits, from the three an odd value starts with.
     uint64_t oddInverse(uint64_t value)
@@ -179,38 +242,8 @@ namespace
         if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || divisor < 3 || Math::isPowerOfTwo(divisor) || !value.isVirtualInt())
             return false;
 
-        // The compare may follow a few moves that leave the flags alone, as
-        // the zero it reads being loaded.
-        constexpr uint32_t K_MAX_MOVES = 3;
-        MicroInstrRef      cmpRef      = storage.findNextInstructionRef(instRef);
-        const MicroInstr*  cmp         = cmpRef.isValid() ? storage.ptr(cmpRef) : nullptr;
-        for (uint32_t step = 0; step < K_MAX_MOVES && cmp && (cmp->op == MicroInstrOpcode::LoadRegImm || cmp->op == MicroInstrOpcode::LoadRegReg); ++step)
-        {
-            if (cmp->ops(operands)[0].reg == value)
-                return false;
-            cmpRef = storage.findNextInstructionRef(cmpRef);
-            cmp    = cmpRef.isValid() ? storage.ptr(cmpRef) : nullptr;
-        }
-        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
-            return false;
-        MicroInstrOperand* cmpOps = cmp->ops(operands);
-        if (cmpOps[0].reg != value || cmpOps[1].opBits != opBits || cmpOps[2].hasWideImmediateValue() || (cmpOps[2].valueU64 & mask) != 0)
-            return false;
-
-        MicroInstrRef readerRef;
-        MicroCond*    cond = nullptr;
-        if (!findEqualityReader(storage, operands, cmpRef, readerRef, cond))
-            return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, readerRef, context.builder))
-            return false;
-        // Only the matching compare and reader need SSA to prove unique use.
-        if (!ssaState)
-            ssaState = MicroSsaState::ensureFor(context, localSsaState);
-        if (!ssaState || !ssaState->isValid())
-            return false;
-        // The compare is the remainder's only reader.
-        uint32_t remainderId = MicroSsaState::K_INVALID_VALUE;
-        if (!ssaState->defValue(value, instRef, remainderId) || ssaState->transitiveInstructionUseCount(remainderId, 2) != 1)
+        MicroInstrRef cmpRef;
+        if (!isOnlyTestedAgainstZero(context, storage, operands, ssaState, localSsaState, instRef, value, opBits, cmpRef))
             return false;
 
         const uint32_t shift   = static_cast<uint32_t>(std::countr_zero(divisor));
@@ -254,10 +287,10 @@ namespace
             storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::OpBinaryRegImm, rotateOps);
         }
 
-        cmp    = storage.ptr(cmpRef);
-        cmpOps = cmp->ops(operands);
+        MicroInstrOperand* cmpOps = storage.ptr(cmpRef)->ops(operands);
         cmpOps[2].setImmediateValue(ApInt(limit, bits));
         MicroInstrRef ignored;
+        MicroCond*    cond = nullptr;
         findEqualityReader(storage, operands, cmpRef, ignored, cond);
         *cond = *cond == MicroCond::Equal ? MicroCond::BelowOrEqual : MicroCond::Above;
         return true;
@@ -707,7 +740,9 @@ namespace
                 default:
                     break;
             }
-            if (proven >= n || cfg.predecessors(proven).size() != 1 || cfg.predecessors(proven)[0] != i + 1)
+            // A jump to the very next instruction proves nothing on either edge.
+            const uint32_t target = cfg.indexOfLabel(jumpOps[2].valueU64);
+            if (proven >= n || target == i + 2 || cfg.predecessors(proven).size() != 1 || cfg.predecessors(proven)[0] != i + 1)
                 continue;
 
             // The test also bounds every value the compared register was copied from.
@@ -1031,6 +1066,12 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
 
             case MicroOp::DivideSigned:
             case MicroOp::ModuloSigned:
+                if (microOp == MicroOp::ModuloSigned && MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder) &&
+                    tryReduceSignedModuloPow2Equality(context, storage, operands, ssaState, ssaScratch, instRef, ops))
+                {
+                    changed = true;
+                    break;
+                }
                 if (deferSignedDivision_)
                     break;
                 if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))

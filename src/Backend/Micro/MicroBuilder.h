@@ -91,8 +91,12 @@ public:
     // A register that holds the address of a by-value aggregate parameter the
     // ABI passes by reference. The language gives the callee an immutable
     // value, so what the address names cannot change while the function runs.
-    void                                                       markImmutableStorageBase(MicroReg virtualReg);
+    // `forwardable` is for the value handles - string, slice, interface, any - the function
+    // may hand on to a callee as they are: a callee takes them by value too, and cannot write
+    // through the address either.
+    void                                                       markImmutableStorageBase(MicroReg virtualReg, bool forwardable = false);
     const std::unordered_set<MicroReg>&                        immutableStorageBases() const { return immutableStorageBases_; }
+    const std::unordered_set<MicroReg>&                        forwardableStorageBases() const { return forwardableStorageBases_; }
     uint32_t                                                   nextVirtualIntRegIndexHint() const;
     const MicroControlFlowGraph&                               controlFlowGraph();
     void                                                       invalidateControlFlowGraph();
@@ -186,6 +190,7 @@ private:
     std::unordered_map<MicroReg, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
     std::unordered_set<MicroReg>                        preservedVirtualCopyRegs_;
     std::unordered_set<MicroReg>                        immutableStorageBases_;
+    std::unordered_set<MicroReg>                        forwardableStorageBases_;
     MicroControlFlowGraph                               controlFlowGraph_;
     uint64_t                                            controlFlowGraphStorageRevision_ = 0;
     bool                                                hasControlFlowGraph_             = false;

@@ -306,8 +306,9 @@ namespace MicroPassHelpers
 
     // The registers the code generator marked as the address of an immutable by-value
     // parameter, kept only when the function still honors the mark: one definition from the
-    // incoming argument, and no use but as the base of a read. A register that is copied
-    // elsewhere, offset, stored, or written through may name storage someone else changes.
+    // incoming argument, and no use but as the base of a read - or, for a value handle, as an
+    // argument handed on to a callee. A register that is copied elsewhere, offset, stored, or
+    // written through may name storage someone else changes.
     void collectImmutableStorageBases(std::unordered_set<MicroReg>& out, const MicroPassContext& context);
 
     // Fold a binary integer operation on two immediate values.

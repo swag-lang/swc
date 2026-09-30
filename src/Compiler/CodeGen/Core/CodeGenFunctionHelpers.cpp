@@ -519,6 +519,17 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
            storageType.isStruct() || storageType.isAggregateStruct();
 }
 
+void CodeGenFunctionHelpers::markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg)
+{
+    if (!isImmutableIndirectParameter(codeGen, symVar, paramInfo))
+        return;
+
+    TaskContext&    ctx         = codeGen.ctx();
+    const TypeInfo& storageType = ctx.typeMgr().get(ctx.typeMgr().unwrapAliasEnum(ctx, symVar.typeRef()));
+    const bool      isHandle    = storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny();
+    codeGen.builder().markImmutableStorageBase(reg, isHandle);
+}
+
 void CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
 {
     if (!codeGen.hasLocalStackFrame())
@@ -650,8 +661,7 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
     outPayload.typeRef = payloadSym.typeRef();
     outPayload.reg     = codeGen.nextVirtualRegisterForType(payloadSym.typeRef());
     emitLoadFunctionParameterToReg(codeGen, symbolFunc, effectiveParamInfo, outPayload.reg);
-    if (isImmutableIndirectParameter(codeGen, payloadSym, effectiveParamInfo))
-        codeGen.builder().markImmutableStorageBase(outPayload.reg);
+    markImmutableIndirectParameter(codeGen, payloadSym, effectiveParamInfo, outPayload.reg);
 
     if (effectiveParamInfo.isIndirect)
         outPayload.setIsAddress();

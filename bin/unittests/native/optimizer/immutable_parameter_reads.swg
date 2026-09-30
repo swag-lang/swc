@@ -106,6 +106,29 @@ func countAround(text: string)->u64
     return total
 }
 
+// A string handed on to a callee is still the caller's immutable value: the loop bound stays
+// in a register although the text goes out as an argument on every trip.
+#[Swag.NoInline]
+func byteAt(text: string, index: u64)->u64
+{
+    GCalls += 1
+    return cast(u64) text[index]
+}
+
+#[Swag.NoInline]
+#[Swag.Optimize(true)]
+func sumForwarded(dst: [*] u64, text: string)->u64
+{
+    var total = 0'u64
+    for i in text.count
+    {
+        dst[i] = byteAt(text, i)
+        total += dst[i] + text.count
+    }
+
+    return total
+}
+
 // An array parameter is a view of the caller's storage: the callee writes through it, and
 // the reads that follow must see those writes.
 #[Swag.NoInline]
@@ -164,6 +187,12 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
     let counted = countAround("abc")
     Swag.assert(counted == 12)
     Swag.assert(GCalls == 294)
+
+    var forwarded: [4] u64
+    GCalls = 0
+    let forwardedSum = sumForwarded(&forwarded[0], "abc")
+    Swag.assert(forwardedSum == 303 and GCalls == 3)
+    Swag.assert(forwarded[0] == 97 and forwarded[2] == 99 and forwarded[3] == 0)
 
     var values: [6] s64 = [1, 2, 3, 4, 5, 6]
     let summed = prefixSums(values)

@@ -1244,6 +1244,12 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
             if (readsBase && regOp.reg == &ops[baseIndex].reg)
                 continue;
 
+            // A value handle handed to a callee in an argument register stays immutable:
+            // the callee takes it by value and cannot write through the address either.
+            if (inst.op == MicroInstrOpcode::LoadRegReg && regOp.reg == &ops[1].reg && ops[2].opBits == MicroOpBits::B64 &&
+                ops[0].reg.isAnyInt() && !ops[0].reg.isVirtual() && context.builder->forwardableStorageBases().contains(reg))
+                continue;
+
             // A copy into another marked base names the same storage: the two stand or
             // fall together.
             if (inst.op == MicroInstrOpcode::LoadRegReg && regOp.reg == &ops[1].reg &&

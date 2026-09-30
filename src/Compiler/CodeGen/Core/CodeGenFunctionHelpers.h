@@ -58,6 +58,10 @@ namespace CodeGenFunctionHelpers
     // A value-semantic aggregate the ABI passes by reference: the callee reads it through the
     // incoming address and never writes through it, so that storage is fixed for the call.
     bool                  isImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
+    // Marks the register holding such a parameter's address for the optimizer. A string, slice,
+    // interface or any has no lifecycle and no member to take a mutable receiver on, so it may
+    // also be handed on to a callee without losing the mark.
+    void                  markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg);
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);

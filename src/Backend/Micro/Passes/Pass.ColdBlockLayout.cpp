@@ -6,9 +6,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Compiler/Sema/Symbol/IdentifierManager.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
-#include "Main/TaskContext.h"
 #include "Support/Report/Assert.h"
 
 // Cold block layout. See the header for why it exists and why it runs last.
@@ -40,27 +37,6 @@ namespace
 {
     using MicroLabelHelpers::tryGetJumpTargetLabelId;
     using MicroLabelHelpers::tryGetLabelId;
-
-    // The calls whose block is cold by construction. Matching the name alone is
-    // enough: taking a call for a report moves code, it never changes what runs.
-    void collectReportCallRefs(std::unordered_set<uint32_t>& outRefs, const MicroBuilder& builder)
-    {
-        const IdentifierManager& idMgr = builder.ctx().idMgr();
-        const std::array         names = {
-            idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic),
-            idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::Panic),
-            idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::FailedExpect),
-        };
-
-        for (const MicroRelocation& relocation : builder.codeRelocations())
-        {
-            if (relocation.instructionRef.isInvalid() || !relocation.targetSymbol)
-                continue;
-            const IdentifierRef idRef = relocation.targetSymbol->idRef();
-            if (idRef.isValid() && std::ranges::find(names, idRef) != names.end())
-                outRefs.insert(relocation.instructionRef.get());
-        }
-    }
 
     bool isUnconditionalLabelJump(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
@@ -144,8 +120,7 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
     if (!context.builder)
         return Result::Continue;
 
-    std::unordered_set<uint32_t> reportCalls;
-    collectReportCallRefs(reportCalls, *context.builder);
+    const std::unordered_set<uint32_t> reportCalls = MicroPassHelpers::collectReportCallRefs(*context.builder);
     if (reportCalls.empty())
         return Result::Continue;
 

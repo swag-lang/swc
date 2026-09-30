@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/SmallVector.h"
@@ -20,6 +21,27 @@ std::unordered_set<uint32_t> MicroPassHelpers::collectReadOnlyCallRefs(const Mic
     {
         if (relocation.instructionRef.isValid() && relocation.targetSymbol && relocation.targetSymbol->isFunction() &&
             relocation.targetSymbol->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly))
+            refs.insert(relocation.instructionRef.get());
+    }
+    return refs;
+}
+
+std::unordered_set<uint32_t> MicroPassHelpers::collectReportCallRefs(const MicroBuilder& builder)
+{
+    const IdentifierManager& idMgr = builder.ctx().idMgr();
+    const std::array         names = {
+        idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic),
+        idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::Panic),
+        idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::FailedExpect),
+    };
+
+    std::unordered_set<uint32_t> refs;
+    for (const MicroRelocation& relocation : builder.codeRelocations())
+    {
+        if (relocation.instructionRef.isInvalid() || !relocation.targetSymbol)
+            continue;
+        const IdentifierRef idRef = relocation.targetSymbol->idRef();
+        if (idRef.isValid() && std::ranges::find(names, idRef) != names.end())
             refs.insert(relocation.instructionRef.get());
     }
     return refs;

@@ -146,6 +146,12 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowCompareOfZeroExtension);
+        r.add(MicroInstrOpcode::CmpRegImm, tryResolveRangeProvedBranch);
+        r.add(MicroInstrOpcode::CmpRegReg, tryResolveRangeProvedBranch);
+        r.add(MicroInstrOpcode::CmpRegImm, tryDropRepeatedGuard);
+        r.add(MicroInstrOpcode::CmpRegReg, tryDropRepeatedGuard);
+        r.add(MicroInstrOpcode::OpBinaryRegImm, tryResolveRangeProvedBranch);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryResolveRangeProvedBranch);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryDelayCopiedAddressIncrement);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseCompareOperandForSelect);
@@ -242,6 +248,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.relocated.clear();
     ctx.booleanMerges.clear();
     ctx.loopSlots.clear();
+    ctx.reportCalls.clear();
+    ctx.reportCallsReady         = false;
     ctx.loopSlotsReady           = false;
     ctx.loopSlotsAll             = false;
     ctx.nextVirtualFloatRegIndex = 0;

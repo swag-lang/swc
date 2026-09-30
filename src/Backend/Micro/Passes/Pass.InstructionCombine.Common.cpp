@@ -354,6 +354,16 @@ namespace InstructionCombine
         return loopSlotsAll || loopSlots.contains(ref.get());
     }
 
+    bool Context::isReportCall(const MicroInstrRef ref)
+    {
+        if (!reportCallsReady)
+        {
+            reportCalls      = builder ? MicroPassHelpers::collectReportCallRefs(*builder) : std::unordered_set<uint32_t>{};
+            reportCallsReady = true;
+        }
+        return reportCalls.contains(ref.get());
+    }
+
     bool Context::claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated)
     {
         for (const MicroInstrRef ref : refs)

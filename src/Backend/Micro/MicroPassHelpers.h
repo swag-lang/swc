@@ -248,6 +248,10 @@ namespace MicroPassHelpers
     // Relocations of direct calls whose target promises no caller-visible writes.
     // Callers still verify the instruction is a direct call before using the set.
     std::unordered_set<uint32_t> collectReadOnlyCallRefs(const MicroBuilder& builder);
+    // Relocations of the calls that report a fault: the panic functions of the runtime.
+    // The name alone decides. Every reader only moves or drops code a report makes cold,
+    // so taking another function of that name for one changes nothing a program observes.
+    std::unordered_set<uint32_t> collectReportCallRefs(const MicroBuilder& builder);
     // A straight-line proof, ending at a flag overwrite, call, or return.
     // Jumps preserve flags and require the CFG variant to prove their successors.
     bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef, MicroBuilder* builder = nullptr);

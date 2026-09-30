@@ -991,6 +991,31 @@ namespace InstructionCombine
                     outBound = 0;
                     return true;
 
+                // A 32-bit load clears the upper half; a byte or word load keeps it.
+                case MicroInstrOpcode::LoadRegMem:
+                    if (defOps[2].opBits != MicroOpBits::B32)
+                        return false;
+                    outBound = getBitsMask(MicroOpBits::B32);
+                    return true;
+
+                case MicroInstrOpcode::LoadAmcRegMem:
+                    if (defOps[3].opBits != MicroOpBits::B32)
+                        return false;
+                    outBound = getBitsMask(MicroOpBits::B32);
+                    return true;
+
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                    if (getNumBits(defOps[2].opBits) < 32)
+                        return false;
+                    outBound = getBitsMask(defOps[3].opBits);
+                    return true;
+
+                case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                    if (getNumBits(defOps[3].opBits) < 32)
+                        return false;
+                    outBound = getBitsMask(defOps[4].opBits);
+                    return true;
+
                 case MicroInstrOpcode::LoadRegReg:
                     if (getNumBits(defOps[2].opBits) < 32)
                         return false;
@@ -1199,6 +1224,170 @@ namespace InstructionCombine
             ctx.emitRewrite(use.ref, MicroInstrOpcode::LoadRegReg, moveOps);
         }
 
+        return true;
+    }
+
+    namespace
+    {
+        enum class BranchVerdict : uint8_t
+        {
+            Unknown,
+            Always,
+            Never,
+        };
+
+        // What a compare of a value in [0, bound] against `constant` decides, at a width
+        // whose all-ones value is `mask`. The signed conditions read like the unsigned ones
+        // while both sides keep their sign bit clear.
+        BranchVerdict compareVerdict(const MicroCond cond, const uint64_t bound, const uint64_t constant, const uint64_t mask)
+        {
+            MicroCond unsignedCond = cond;
+            switch (cond)
+            {
+                case MicroCond::Less: unsignedCond = MicroCond::Below; break;
+                case MicroCond::LessOrEqual: unsignedCond = MicroCond::BelowOrEqual; break;
+                case MicroCond::Greater: unsignedCond = MicroCond::Above; break;
+                case MicroCond::GreaterOrEqual: unsignedCond = MicroCond::AboveOrEqual; break;
+                default: break;
+            }
+            if (unsignedCond != cond && (bound > mask >> 1 || constant > mask >> 1))
+                return BranchVerdict::Unknown;
+
+            switch (unsignedCond)
+            {
+                case MicroCond::Below:
+                    if (bound < constant)
+                        return BranchVerdict::Always;
+                    return constant == 0 ? BranchVerdict::Never : BranchVerdict::Unknown;
+                case MicroCond::AboveOrEqual:
+                    if (bound < constant)
+                        return BranchVerdict::Never;
+                    return constant == 0 ? BranchVerdict::Always : BranchVerdict::Unknown;
+                case MicroCond::BelowOrEqual:
+                    return bound <= constant ? BranchVerdict::Always : BranchVerdict::Unknown;
+                case MicroCond::Above:
+                    return bound <= constant ? BranchVerdict::Never : BranchVerdict::Unknown;
+                case MicroCond::NotEqual:
+                    return bound < constant ? BranchVerdict::Always : BranchVerdict::Unknown;
+                case MicroCond::Equal:
+                    return bound < constant ? BranchVerdict::Never : BranchVerdict::Unknown;
+                default:
+                    return BranchVerdict::Unknown;
+            }
+        }
+
+        // What the flags of a sum that cannot exceed `bound` decide.
+        BranchVerdict sumVerdict(const MicroCond cond, const uint64_t bound, const uint64_t mask)
+        {
+            switch (cond)
+            {
+                case MicroCond::Below:
+                    return BranchVerdict::Never;
+                case MicroCond::AboveOrEqual:
+                    return BranchVerdict::Always;
+                case MicroCond::Overflow:
+                    return bound <= mask >> 1 ? BranchVerdict::Never : BranchVerdict::Unknown;
+                case MicroCond::NotOverflow:
+                    return bound <= mask >> 1 ? BranchVerdict::Always : BranchVerdict::Unknown;
+                default:
+                    return BranchVerdict::Unknown;
+            }
+        }
+    }
+
+    // A jump on flags whose outcome the ranges of the operands decide.
+    //
+    // A runtime guard is a test and a jump around its report. When the test cannot fail the
+    // jump is no jump at all: the sum of two 32-bit values held in 64 bits never carries, and
+    // a value masked to 32 bits never exceeds the 32-bit maximum its conversion is checked
+    // against. ChaCha20's `cast(u32) ((cast(u64) left + right) & M32)` paid both guards on
+    // every addition. The jump that always passes becomes unconditional, the one that never
+    // fails goes away, and the report nothing reaches any more is dead code.
+    bool tryResolveRangeProvedBranch(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa)
+            return false;
+
+        const MicroInstrRef jumpRef = ctx.nextRef(ref);
+        const MicroInstr*   jump    = jumpRef.isValid() ? ctx.instruction(jumpRef) : nullptr;
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond || ctx.isClaimed(jumpRef))
+            return false;
+        const MicroInstrOperand* jumpOps = jump->ops(*ctx.operands);
+        if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+
+        bool        isSum       = false;
+        bool        hasConstant = false;
+        auto        bits        = MicroOpBits::Zero;
+        uint64_t    constant    = 0;
+        MicroReg    right       = MicroReg::invalid();
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::CmpRegImm:
+                bits        = ops[1].opBits;
+                constant    = ops[2].valueU64;
+                hasConstant = !ops[2].hasWideImmediateValue();
+                break;
+            case MicroInstrOpcode::CmpRegReg:
+                bits        = ops[2].opBits;
+                hasConstant = findImmDef(constant, ctx, ops[1].reg, ref);
+                break;
+            case MicroInstrOpcode::OpBinaryRegImm:
+                isSum       = ops[2].microOp == MicroOp::Add;
+                bits        = ops[1].opBits;
+                constant    = ops[3].valueU64;
+                hasConstant = !ops[3].hasWideImmediateValue();
+                break;
+            case MicroInstrOpcode::OpBinaryRegReg:
+                isSum = ops[3].microOp == MicroOp::Add;
+                bits  = ops[2].opBits;
+                right = ops[1].reg;
+                break;
+            default:
+                return false;
+        }
+
+        if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+            return false;
+        if (inst.op != MicroInstrOpcode::CmpRegImm && inst.op != MicroInstrOpcode::CmpRegReg && !isSum)
+            return false;
+
+        const uint64_t mask  = getBitsMask(bits);
+        uint64_t       bound = 0;
+        if (!unsignedUpperBound(bound, ctx, ops[0].reg, ref, K_MAX_BOUND_DEPTH) || bound > mask)
+            return false;
+
+        auto verdict = BranchVerdict::Unknown;
+        if (isSum)
+        {
+            uint64_t rightBound = constant & mask;
+            if (!hasConstant && (!unsignedUpperBound(rightBound, ctx, right, ref, K_MAX_BOUND_DEPTH) || rightBound > mask))
+                return false;
+            if (rightBound > mask - bound)
+                return false;
+            verdict = sumVerdict(jumpOps[0].cpuCond, bound + rightBound, mask);
+        }
+        else if (hasConstant)
+        {
+            verdict = compareVerdict(jumpOps[0].cpuCond, bound, constant & mask, mask);
+        }
+
+        if (verdict == BranchVerdict::Unknown || !ctx.claimAll({jumpRef}))
+            return false;
+
+        if (verdict == BranchVerdict::Never)
+        {
+            ctx.emitErase(jumpRef);
+            return true;
+        }
+
+        MicroInstrOperand newOps[3] = {jumpOps[0], jumpOps[1], jumpOps[2]};
+        newOps[0].cpuCond           = MicroCond::Unconditional;
+        ctx.emitRewrite(jumpRef, MicroInstrOpcode::JumpCond, newOps);
         return true;
     }
 }

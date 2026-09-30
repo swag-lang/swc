@@ -101,6 +101,13 @@ namespace InstructionCombine
         // ask; a CFG the loop analysis cannot read answers yes for everything.
         bool isInsideLoop(MicroInstrRef ref);
 
+        // Whether the instruction is a call that reports a fault. The set is collected
+        // on the first question: only a rule that already found a guard asks.
+        bool isReportCall(MicroInstrRef ref);
+
+        bool                         reportCallsReady = false;
+        std::unordered_set<uint32_t> reportCalls;
+
         bool                         loopSlotsReady = false;
         bool                         loopSlotsAll   = false;
         std::unordered_set<uint32_t> loopSlots;
@@ -244,6 +251,8 @@ namespace InstructionCombine
     bool tryFoldConstCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryFoldConstAmcCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryDropRangeProvedCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
+    bool tryResolveRangeProvedBranch(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryDropRepeatedGuard(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
     bool tryFoldConstCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldBooleanSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

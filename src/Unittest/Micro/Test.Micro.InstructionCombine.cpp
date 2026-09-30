@@ -12,6 +12,7 @@
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/DataSegment.h"
@@ -5521,6 +5522,129 @@ SWC_TEST_BEGIN(InstCombine_StoreOfJustLoadedValueIsErased)
                 ++storesBack;
         }
         if (storesBack != (shape == Shape::Plain ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A jump on the carry of a sum of two dwords held in qwords is decided: the sum cannot
+// carry. A qword operand keeps the carry possible, and the guard with it.
+SWC_TEST_BEGIN(InstCombine_RangeProvedBranch_SumOfDwordsNeverCarries)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right = MicroReg::virtualIntReg(3);
+    for (const MicroOpBits rightBits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef passed = builder.createLabel();
+        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B32);
+        builder.emitLoadRegMem(right, base, 8, rightBits);
+        builder.emitOpBinaryRegReg(left, right, MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, passed);
+        const MicroInstrRef jumpRef = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemImm(base, 16, ApInt(1, 32), MicroOpBits::B32);
+        builder.placeLabel(passed);
+        builder.emitLoadMemReg(base, 24, left, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        const MicroInstr* jump = builder.instructions().ptr(jumpRef);
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond)
+            return Result::Error;
+        const MicroCond expected = rightBits == MicroOpBits::B32 ? MicroCond::Unconditional : MicroCond::AboveOrEqual;
+        if (jump->ops(builder.operands())[0].cpuCond != expected)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A dword compared against the dword maximum never exceeds it, so the jump to the report
+// of a narrowing conversion goes away. A qword can exceed it and keeps the jump.
+SWC_TEST_BEGIN(InstCombine_RangeProvedBranch_DwordNeverAboveDwordMaximum)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value = MicroReg::virtualIntReg(2);
+    constexpr MicroReg limit = MicroReg::virtualIntReg(3);
+    for (const MicroOpBits valueBits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef fail = builder.createLabel();
+        const MicroLabelRef done = builder.createLabel();
+        builder.emitLoadRegMem(value, base, 0, valueBits);
+        builder.emitLoadRegImm(limit, ApInt(uint64_t{0xFFFFFFFF}, 64), MicroOpBits::B64);
+        builder.emitCmpRegReg(value, limit, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Above, MicroOpBits::B32, fail);
+        const MicroInstrRef jumpRef = builder.instructions().lastInstructionRef();
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+        builder.placeLabel(fail);
+        builder.emitLoadMemImm(base, 16, ApInt(1, 32), MicroOpBits::B32);
+        builder.placeLabel(done);
+        builder.emitLoadMemReg(base, 24, value, MicroOpBits::B32);
+        builder.emitRet();
+
+        // The first sweep may fold the constant into the compare; the second decides the jump.
+        SWC_RESULT(runInstCombinePass(builder));
+        SWC_RESULT(runInstCombinePass(builder));
+
+        if ((builder.instructions().ptr(jumpRef) == nullptr) != (valueBits == MicroOpBits::B32))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A guard repeating the test of an earlier guard on the same value is resolved. It stays
+// when the value changed in between, when the earlier test guards no report, or when the
+// repeated test is the program's own branch rather than a guard.
+SWC_TEST_BEGIN(InstCombine_RepeatedGuard_ResolvedOnlyBehindTheSameGuard)
+{
+    enum class Shape : uint8_t
+    {
+        Repeated,
+        IndexChanged,
+        EarlierIsNoGuard,
+        LaterIsNoGuard,
+    };
+
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value = MicroReg::virtualIntReg(3);
+    for (const Shape shape : {Shape::Repeated, Shape::IndexChanged, Shape::EarlierIsNoGuard, Shape::LaterIsNoGuard})
+    {
+        const IdentifierRef reportId = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
+        SymbolFunction      report(nullptr, TokenRef::invalid(), reportId, SymbolFlagsE::Zero);
+        SymbolFunction      other(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef first  = builder.createLabel();
+        const MicroLabelRef second = builder.createLabel();
+        builder.emitLoadRegMem(index, base, 0, MicroOpBits::B64);
+        builder.emitCmpRegImm(index, ApInt(16, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, first);
+        builder.emitCallLocal(shape == Shape::EarlierIsNoGuard ? &other : &report, CallConvKind::Swag);
+        builder.placeLabel(first);
+        builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+        if (shape == Shape::IndexChanged)
+            builder.emitLoadRegMem(index, base, 16, MicroOpBits::B64);
+        builder.emitCmpRegImm(index, ApInt(16, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, second);
+        const MicroInstrRef jumpRef = builder.instructions().lastInstructionRef();
+        builder.emitCallLocal(shape == Shape::LaterIsNoGuard ? &other : &report, CallConvKind::Swag);
+        builder.placeLabel(second);
+        builder.emitLoadMemReg(base, 24, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        const MicroInstr* jump = builder.instructions().ptr(jumpRef);
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond)
+            return Result::Error;
+        const MicroCond expected = shape == Shape::Repeated ? MicroCond::Unconditional : MicroCond::Below;
+        if (jump->ops(builder.operands())[0].cpuCond != expected)
             return Result::Error;
     }
     return Result::Continue;

@@ -33,6 +33,28 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.058 — The about-dialog golden does not reproduce from its own commit
+
+- Recorded: 2026-09-30 10:14
+- Found while: a whole `std` test run with the Release compiler during the 2026-09-30 prompt-4 run.
+- Evidence: `swc tools/std.swgs test gui --test-file dialogs.layout.test.swg` fails on
+  `aboutdlg.identity.dark`: 450 pixels differ, all of them the last row of the 450x206 crop
+  (`y = 205`), which renders `(10, 10, 13)` where the golden holds `(32, 32, 38)` and one
+  `(21, 21, 26)` - a row drawn at half coverage, so an edge that lands half a pixel away. The
+  other nine tests of the file pass. It fails identically with a Release compiler built from
+  `2a45d8311`, the commit that recorded the golden, with one built from `d767903d7`, and with the
+  DevMode compiler of the campaign branch, so neither a later compiler change nor the program
+  configuration explains it. A probe in the failing run reads `dpiScale = 1`, a 500x312 surface,
+  the button bar at `y = 229` with a height of 46, the message label 47 high and the identity
+  block 116 high: every value is whole, and the differing row is the first row of the button
+  bar, which the crop `height - buttonBar.height - 60` is written to leave out. The golden
+  therefore comes from a layout one pixel taller above the bar than the one this tree produces.
+- Next: run the same probe where the golden was recorded and compare the five numbers; the label
+  height and the caption metric are the two that can move by one. If they match there too, the
+  golden was recorded before the last edit of `2a45d8311` and only needs recording again.
+- Complete when: the test renders the same crop wherever it runs, or the golden is recorded from
+  a state the headless host pins itself.
+
 ### std.gui.001 — Clipboard data cannot represent virtual files
 
 - Recorded: 2026-08-09 11:30

@@ -341,7 +341,15 @@ void SymbolFunction::refreshJitOrderCache() const
 
 const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const
 {
-    const std::scoped_lock lock(globalInitOffsetsMutex_);
+    // Computed once and read at every compile-time call that runs through this function: the
+    // readers share the lock, and only the one computation takes it alone.
+    {
+        const std::shared_lock lock(globalInitOffsetsMutex_);
+        if (globalInitOffsetsComputed_)
+            return globalInitOffsetsCache_;
+    }
+
+    const std::unique_lock lock(globalInitOffsetsMutex_);
     if (globalInitOffsetsComputed_)
         return globalInitOffsetsCache_;
 
@@ -363,7 +371,16 @@ Result SymbolFunction::emit(TaskContext& ctx)
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
-    const std::scoped_lock lock(emitMutex_);
+    // Every compile-time call asks this of each function it reaches, and nearly all of them are
+    // lowered already: that answer is read under a shared lock, so the callers do not queue
+    // behind one another to be told the same thing.
+    {
+        const std::shared_lock lock(emitMutex_);
+        if (hasLoweredCode())
+            return Result::Continue;
+    }
+
+    const std::unique_lock lock(emitMutex_);
     if (hasLoweredCode())
         return Result::Continue;
     auto& builder = microInstrBuilder(ctx);

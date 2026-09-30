@@ -706,7 +706,8 @@ namespace
         const bool remembers = function.hasLoweredCode();
         if (remembers)
         {
-            const std::scoped_lock lock(function.constantJitTargetsMutex());
+            // Readers only copy the shared list out; they share the lock.
+            const std::shared_lock lock(function.constantJitTargetsMutex());
             const auto&            cache = function.constantJitTargets();
             if (cache.targets && constantJitTargetsAreCurrent(sema, cache))
                 return cache.targets;

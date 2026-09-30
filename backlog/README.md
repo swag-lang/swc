@@ -35,7 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-30 14:18 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-30 15:28 |
 | [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-30 10:20 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-30 10:20 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-29 21:24 |
@@ -52,7 +52,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-27 17:49 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-27 17:45 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
-| [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-12 07:12 |
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-12 06:37 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-12 06:24 |
@@ -70,6 +69,7 @@ the latest entry was removed. The removal itself lives in Git.
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-10 19:06 |
 | [app.scope.hexa.md](app.scope.hexa.md) | The Swag Scope hexadecimal viewer | 2026-09-10 19:06 |
 | [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` | 2026-09-06 17:42 |
+| [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-06 17:42 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-06 07:51 |
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-09-06 07:51 |

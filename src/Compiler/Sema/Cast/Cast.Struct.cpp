@@ -264,12 +264,15 @@ namespace
 
     CastRequest makeFieldCastRequest(const CastAggregateArgs& args, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
     {
+        // Recursive aggregate casts need the literal's children to retarget their runtime
+        // storage. A named-argument wrapper carries the diagnostic site, not those children.
+        const AstNodeRef valueNodeRef = aggregateFieldValueNodeRef(*args.sema, fieldNodeRef);
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
-        elemCtx.errorNodeRef = fieldNodeRef.isValid() ? fieldNodeRef : args.castRequest->errorNodeRef;
+        elemCtx.errorNodeRef = valueNodeRef.isValid() ? valueNodeRef : args.castRequest->errorNodeRef;
         elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
         elemCtx.probing      = args.castRequest->probing;
-        elemCtx.applyAutoCast(*args.sema, aggregateFieldValueNodeRef(*args.sema, fieldNodeRef));
+        elemCtx.applyAutoCast(*args.sema, valueNodeRef);
         return elemCtx;
     }
 

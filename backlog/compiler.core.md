@@ -6,6 +6,28 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
+
+- Recorded: 2026-09-30 15:28
+- Evidence: a serial native Swag Prism test with the DevMode compiler and program configuration
+  `release` loads `bin/std/.output/core/shared-library/release/x86_64/core.dll` in its parent
+  compiler. The test's child compiler requests `build --build-cfg release --optim-level 0` for a
+  temporary Core importer and tries to republish that DLL. The write fails with access denied;
+  the diagnostic identifies the parent `swc.dm.exe` as its owner. Six workers and serial execution
+  reproduce it. Running a script concurrently can hold the same source artifact and expose the
+  same failure, but concurrency between campaigns is not required.
+- Boundary: scripts use immutable dependency-cache copies, and external workspace dependencies
+  are mirrored into `.dep`; workspace-local dependencies can still be loaded from their mutable
+  `.output` directories. `ExternalModuleManager` retains loaded libraries for the process.
+  Prism's retired probe helper exposed this by forwarding snippet optimization levels to all
+  dependencies; its current `BuildArtifact` path sets the level on the snippet's module instead.
+- Next: reduce the parent compile-time DLL call followed by a child's forced dependency rebuild
+  to a workspace-suite fixture. Audit shared-library resolution during dependency builds and
+  separate compiler-loaded library lifetime from the mutable publication path, while preserving
+  native linking, publication, cache invalidation, and runtime-instance ownership.
+- Complete when: the fixture rebuilds the dependency while its parent compiler remains alive,
+  with both compiler executables, and workspace reuse and publication checks still pass.
+
 ### compiler.core.063 — Reduce the PDF spill-slot regression to a standalone language test
 
 - Recorded: 2026-09-30 11:15

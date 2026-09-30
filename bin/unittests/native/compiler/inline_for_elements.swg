@@ -4,8 +4,8 @@
 // the loop routed to the inlined callee's result. A custom `opVisit` lowers the loop body
 // into a void `#code` callback, so the materialized return must not bind to that void
 // callback. Marked `#[Swag.Inline]` callees exercise this deterministically (inlined under
-// MarkedOnly and Auto); the unmarked twins exercise the Auto size/shape heuristic when the
-// suite runs with `-bc release`.
+// MarkedOnly and Auto); the unmarked twins exercise the Auto size/shape heuristic, which
+// both configurations run.
 
 struct ReturnVisits
 {

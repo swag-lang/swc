@@ -231,7 +231,9 @@ namespace
             buildCfg.errorStackTrace           = true;
             buildCfg.backend.optimLevel        = Runtime::BuildCfgBackendOptimLevel::O1;
             buildCfg.backend.debugInfo         = false;
-            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::MarkedOnly;
+            // Inlining follows release: a small callee left as a call keeps every guard its
+            // constant arguments would have folded away, which costs far more than the call.
+            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::Auto;
         }
         else if (cfgName == "release")
         {

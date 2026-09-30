@@ -126,7 +126,7 @@ func forwardInline(value: s64)->FreshOwner
     return makeInline(value)
 }
 
-// Left to the optimizer: a call in devmode, an inline expansion in release.
+// Left to the optimizer, which expands it inline in both configurations.
 func makeAuto(value: s64)->FreshOwner
 {
     return FreshOwner{value}

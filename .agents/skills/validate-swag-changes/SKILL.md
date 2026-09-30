@@ -61,8 +61,8 @@ The registered presets are the contract:
 
 | Configuration | Relevant properties | Select it for |
 | --- | --- | --- |
-| `devmode` | backend optimization; safety and sanity guards; lighter allocator diagnostics; marked-only inlining | the default path and optimized code that must retain guards |
-| `release` | backend optimization; no runtime safety guards; sanity guards; automatic inlining, SSE2 vectorization, aggressive FP policy | Release-only optimization, inlining, vectorization, FP, or guard-free behavior |
+| `devmode` | backend optimization; safety and sanity guards; lighter allocator diagnostics; automatic inlining | the default path and optimized code that must retain guards |
+| `release` | backend optimization; no runtime safety guards; sanity guards; automatic inlining, SSE2 vectorization, aggressive FP policy | Release-only optimization, vectorization, FP, or guard-free behavior |
 
 The `test` command enables `.Assert` by default in both presets; explicit local `Swag.Safety`
 overrides still apply. Other runtime guards retain their configured defaults.
@@ -76,7 +76,7 @@ whole language suite merely to keep debug-information generation exercised.
 Apply these reductions:
 
 - Start with `devmode` when the code path exists in every preset.
-- For an optimization or micro-pass change, use `devmode` when it executes the pass. If the pass is self-gated by automatic inlining,
+- For an optimization or micro-pass change, use `devmode` when it executes the pass. If the pass is self-gated by
   vectorization, aggressive FP, or another Release-only decision, use `release` instead; add both
   configurations only when both execute distinct relevant paths.
 - For runtime safety guards, use `devmode` and omit `release`, where those guards are disabled.

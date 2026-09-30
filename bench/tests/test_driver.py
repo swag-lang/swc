@@ -196,6 +196,21 @@ class EditLoopTests(unittest.TestCase):
         self.assertIn("exit=3", err)
         self.assertIn("boom", err)
 
+    def test_compiler_diagnostic_survives_trailing_progress(self):
+        diagnostic = "error: cannot write through a const buffer\nsource.swg:93:17\n"
+        failed = {"exit": 5, "stdout": "building modules\n",
+                  "stderr": diagnostic + "module complete\n" * 200}
+        recipe = {"cmd": ["compiler"], "cwd": ".", "prepare": None, "clean": []}
+        with mock.patch.object(winproc, "run", return_value=failed):
+            for execute in (driver.build_once, driver.workload_once):
+                with self.subTest(command=execute.__name__):
+                    result, error = execute(recipe, {})
+                    self.assertIsNone(result)
+                    self.assertIn(diagnostic, error)
+            result, error, _ = driver.run_once(["compiler", "sema"], {})
+            self.assertIsNone(result)
+            self.assertIn(diagnostic, error)
+
     def test_a_workload_keeps_its_minimum_and_every_sample(self):
         acc = {}
         for wall in (30.0, 20.0, 25.0):

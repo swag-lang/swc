@@ -106,6 +106,13 @@ def prepare(recipe):
         os.makedirs(p, exist_ok=True)
 
 
+def process_error(result):
+    # Parallel module progress can follow the diagnostic by thousands of characters.
+    # Keep both streams whole so the report preserves its source location and notes.
+    output = "\n".join(stream.rstrip() for stream in (result["stdout"], result["stderr"]) if stream)
+    return "exit=%d\n%s" % (result["exit"], output)
+
+
 def prepare_swag_dependencies(swc, env, cores=0):
     """Publish dependencies once, outside every timed compiler sample."""
     std = os.path.join(tc.worktree(), "bin", "std")
@@ -114,8 +121,7 @@ def prepare_swag_dependencies(swc, env, cores=0):
                "--build-cfg", cfg]
         r = winproc.run(cmd, cwd=tc.worktree(), env=env)
         if r["exit"] != 0:
-            return "win32/%s: exit=%d %s" % (
-                cfg, r["exit"], (r["stdout"] + r["stderr"])[-900:])
+            return "win32/%s: %s" % (cfg, process_error(r))
         try:
             api_files = tc.swag_dependency_api_files(cfg)
         except RuntimeError as error:
@@ -129,7 +135,7 @@ def build_once(recipe, env):
     prepare(recipe)
     r = winproc.run(recipe["cmd"], cwd=recipe["cwd"], env=env)
     if r["exit"] != 0 or not os.path.exists(recipe["exe"]):
-        return None, "exit=%d %s" % (r["exit"], (r["stdout"] + r["stderr"])[-900:])
+        return None, process_error(r)
     return r, None
 
 
@@ -139,7 +145,7 @@ def workload_once(workload, env):
         workload["prepare"](env)
     r = winproc.run(workload["cmd"], cwd=workload["cwd"], env=env)
     if r["exit"] != 0:
-        return None, "exit=%d %s" % (r["exit"], (r["stdout"] + r["stderr"])[-900:])
+        return None, process_error(r)
     return r, None
 
 
@@ -155,7 +161,7 @@ def run_once(cmd, env):
     r = winproc.run(cmd, cwd=tc.BENCH, env=env, pin=True)
     m = PAT.search(r["stdout"] + r["stderr"])
     if r["exit"] != 0 or not m:
-        return None, (r["stdout"] + r["stderr"])[-400:], r
+        return None, process_error(r), r
     return (int(m.group(1)), float(m.group(2))), None, r
 
 
@@ -374,7 +380,7 @@ def main():
     calib_recipe = recipes["cpp-clang-cl"]("sha256", "calib_sha256")
     r, err = build_once(calib_recipe, env)
     if err:
-        print("calibration build failed: %s" % err[:400])
+        print("calibration build failed: %s" % err)
         return 1
 
     # The campaign used to idle for two minutes first, so that it "started cold". A
@@ -435,7 +441,7 @@ def main():
                     hello_plan.setdefault(name, plan_builds(r["wall_ms"], name in history.TRACKED))
         for name, acc in results["hello_build"].items():
             if acc.get("error"):
-                print("  %-20s ERROR %s" % (name, acc["error"][:150]))
+                print("  %-20s ERROR %s" % (name, acc["error"]))
             else:
                 print("  %-20s build=%9.1f ms  mem=%7.1f MB" %
                       (name, acc["wall_ms"], acc["peak_bytes"] / 1048576.0))
@@ -461,7 +467,7 @@ def main():
                     loop_plan.setdefault(name, plan_builds(r["wall_ms"]))
         for name, acc in results["loop"].items():
             if acc.get("error"):
-                print("  %-20s ERROR %s" % (name, acc["error"][:150]))
+                print("  %-20s ERROR %s" % (name, acc["error"]))
             else:
                 print("  %-20s wall=%9.1f ms (%dx, %+4.0f%%)  mem=%7.1f MB" %
                       (name, acc["wall_ms"], len(acc["samples"]), spread_pct(acc["samples"]),
@@ -576,14 +582,14 @@ def main():
                     entry["build"] = {"error": errors[name]}
                 if measure_run:
                     entry["run"] = {"error": errors[name]}
-                print("  %-20s %s ERROR %s" % (name, "BUILD" if measure_build else "RUN", errors[name][:150]))
+                print("  %-20s %s ERROR %s" % (name, "BUILD" if measure_build else "RUN", errors[name]))
             elif measure_run:
                 if measure_build and name in aot:
                     entry["build"] = acc_build[name]
                 entry["run"] = acc_run.get(name, {})
                 r = entry["run"]
                 if r.get("error"):
-                    print("  %-20s RUN ERROR %s" % (name, r["error"][:150]))
+                    print("  %-20s RUN ERROR %s" % (name, r["error"]))
                 elif name in aot and measure_build:
                     print("  %-20s run=%10.2f ms (%2dx, %+4.0f%%)  build=%8.1f ms  "
                           "bmem=%7.1f MB  check=%d"

@@ -25,6 +25,57 @@ func automaticSlice(values: [..] s32)->u64
     return values.count
 }
 
+#[Swag.NoInline]
+func writeFirst(values: [*] s32)
+{
+    values[0] += 1
+}
+
+#[Swag.Inline]
+func explicitBuffer(values: [..] s32)->u64
+{
+    writeFirst(values.buffer)
+    return values.count
+}
+
+func automaticBuffer(values: [..] s32)->u64
+{
+    writeFirst(values.buffer)
+    return values.count
+}
+
+#[Swag.Inline]
+func singleBuffer(values: [..] s32)
+{
+    writeFirst((values).buffer)
+}
+
+#[Swag.Inline]
+func constBuffer(values: const [..] s32)->s32
+{
+    #assert(#typeof(values.buffer) == const [*] s32)
+    return values.buffer[0]
+}
+
+#test
+{
+    var data: [3] s32 = [1, 2, 3]
+    let explicitCount = explicitBuffer(data)
+    let automaticCount = automaticBuffer(data)
+    Swag.assert(explicitCount == 3 and automaticCount == 3)
+    Swag.assert(data[0] == 3)
+
+    let view: [..] s32 = data
+    singleBuffer(view)
+    Swag.assert(data[0] == 4)
+    Swag.assert(constBuffer(view) == 4)
+
+    Calls = 0
+    Storage = [4, 5, 6]
+    let returnedCount = explicitBuffer(nextSlice())
+    Swag.assert(returnedCount == 3 and Calls == 1 and Storage[0] == 5)
+}
+
 #[Swag.Inline]
 func(T) genericSlice(values: [..] T)->u64
 {

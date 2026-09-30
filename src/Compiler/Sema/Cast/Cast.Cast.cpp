@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
@@ -1810,7 +1811,24 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         }
     }
 
-    const Result result = castAllowed(sema, castRequest, view.typeRef(), dstTypeRef);
+    Result result = castAllowed(sema, castRequest, view.typeRef(), dstTypeRef);
+    if (result == Result::Error && srcCstRef.isValid() && effectiveFlags.has(CastFlagsE::FromExplicitNode) &&
+        (castRequest.failure.diagId == DiagnosticId::sema_err_literal_overflow || castRequest.failure.diagId == DiagnosticId::sema_err_signed_unsigned))
+    {
+        const auto* inlinePayload = sema.frame().currentInlinePayload();
+        if (inlinePayload && inlinePayload->narrowFactsBodyStartRef.isValid())
+        {
+            // Inlining substitutes arguments into typed runtime conversions and can
+            // expose an out-of-range constant in a branch that never runs; retain the
+            // runtime cast and its safety guard instead of rejecting the inline expansion.
+            castRequest.setConstantFoldingSrc(ConstantRef::invalid());
+            castRequest.failure = {};
+            sema.clearConstant(view.nodeRef());
+            sema.setType(view.nodeRef(), srcTypeRef);
+            view.recompute(sema);
+            result = castAllowed(sema, castRequest, srcTypeRef, dstTypeRef);
+        }
+    }
     if (result == Result::Pause)
         return result;
 

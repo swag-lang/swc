@@ -1243,6 +1243,7 @@ namespace
         uint8_t count        = 0;
         bool    nonCountOf   = false;
         bool    address      = false;
+        bool    buffer       = false;
         bool    mutableUse   = false;
         bool    indexOrFor   = false;
         bool    pointerLevel = false;
@@ -1255,7 +1256,23 @@ namespace
         const AstNode* parent     = nullptr;
         bool           mutableUse = false;
         bool           foreachUse = false;
+        bool           bufferUse  = false;
     };
+
+    bool inlineMemberProjectsBuffer(Sema& sema, const Ast& sourceAst, const AstMemberAccessExpr& member)
+    {
+        if (member.projectionId == TokenId::IntrinsicDataOf)
+            return true;
+        if (member.projectionId != TokenId::Invalid)
+            return false;
+
+        // Explicit same-AST inlining can inspect a body before its projections resolve.
+        const Ast* rightAst = resolveInlineAnalysisNodeAst(sema, sourceAst, member.nodeRightRef);
+        if (!rightAst)
+            return false;
+        const AstNode& right = rightAst->node(member.nodeRightRef);
+        return right.is(AstNodeId::Identifier) && sema.idMgr().get(sema.idMgr().addIdentifier(sema.ctx(), right.codeRef())).name == "buffer";
+    }
 
     void collectInlineBindingUses(Sema& sema, InlineBindingUses& outUses, const Ast& sourceAst, AstNodeRef nodeRef, const InlineBindingUseContext& context = {})
     {
@@ -1276,6 +1293,7 @@ namespace
                     ++use.count;
                 use.mutableUse |= context.mutableUse;
                 use.indexOrFor |= context.foreachUse;
+                use.buffer |= context.bufferUse;
 
                 bool countOf = false;
                 if (context.parent)
@@ -1292,10 +1310,14 @@ namespace
             }
         }
 
-        const auto* assignStmt   = node.safeCast<AstAssignStmt>();
-        const auto* foreachStmt  = node.safeCast<AstForeachStmt>();
-        const auto* unary        = node.safeCast<AstUnaryExpr>();
-        const bool  takesAddress = unary && sema.token(node.codeRef()).id == TokenId::SymAmpersand;
+        const auto* assignStmt      = node.safeCast<AstAssignStmt>();
+        const auto* foreachStmt     = node.safeCast<AstForeachStmt>();
+        const auto* unary           = node.safeCast<AstUnaryExpr>();
+        const bool  takesAddress    = unary && sema.token(node.codeRef()).id == TokenId::SymAmpersand;
+        const auto* member          = node.safeCast<AstMemberAccessExpr>();
+        const auto* intrinsic       = node.safeCast<AstIntrinsicCall>();
+        const bool  memberBuffer    = member && inlineMemberProjectsBuffer(sema, sourceAst, *member);
+        const bool  intrinsicBuffer = intrinsic && intrinsic->intrinsicId == TokenId::IntrinsicDataOf;
 
         SmallVector<AstNodeRef> children;
         collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
@@ -1307,6 +1329,7 @@ namespace
             childContext.parent     = &node;
             childContext.mutableUse = context.mutableUse || (assignStmt && assignStmt->nodeLeftRef == childRef) || (takesAddress && unary->nodeExprRef == childRef);
             childContext.foreachUse = context.foreachUse || (foreachStmt && foreachStmt->nodeExprRef == childRef);
+            childContext.bufferUse  = context.bufferUse || (memberBuffer && member->nodeLeftRef == childRef) || intrinsicBuffer;
             collectInlineBindingUses(sema, outUses, sourceAst, childRef, childContext);
         }
     }
@@ -1766,7 +1789,9 @@ namespace
         // A non-null pointer parameter binds by address exactly like a reference did:
         // its binding aliases the caller's storage and must not be re-homed.
         mat.bindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
-        mat.hasAddressUse  = use.address;
+        // A buffer projection exposes element storage. A synthetic 'let' must not
+        // make a mutable slice or array parameter's buffer const.
+        mat.hasAddressUse = use.address || (use.buffer && (paramType.isSlice() || paramType.isArray()));
         // A non-null pointer parameter CAN bind a flow-narrowed nullable argument. A
         // by-address binding is pinned in place with a typed cast instead of being
         // re-homed into a local.

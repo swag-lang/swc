@@ -111,7 +111,7 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
 {
     func solveDigits(bytes: const [..] u8)->u32
     {
-        for i in bytes.count
+        for i in cast(u64) bytes.count
         {
             let a = parseForDigit(bytes, &i), b = parseForDigit(bytes, &i)
             return a * 10'u32 + b

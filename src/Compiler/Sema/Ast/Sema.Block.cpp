@@ -246,7 +246,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
         }
 
         if (ownerSymMap)
-            ownerSymMap->addUsingSymMap(usingSymMap);
+            ownerSymMap->addUsingSymMap(sema.ctx(), usingSymMap);
     }
 
     return Result::Continue;

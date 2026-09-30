@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -163,6 +164,79 @@ namespace
                 return Result::Error;
         }
         return Result::Continue;
+    }
+
+    class TypeInfoOwnerJob final : public Job
+    {
+    public:
+        TypeInfoOwnerJob(const TaskContext& ctx, TypeGen::TypeGenCache& cache, uint32_t& payload, bool releaseBeforeParking = false) :
+            Job(ctx, JobKind::Sema),
+            cache_(&cache),
+            payload_(&payload),
+            releaseBeforeParking_(releaseBeforeParking)
+        {
+        }
+
+        JobResult exec() override
+        {
+            std::optional<TypeGen::CacheLock> earlierOwner;
+            if (releaseBeforeParking_ && attempts == 0)
+                earlierOwner.emplace(*cache_, ctx(), TypeGen::LockMode::Wait);
+            ++attempts;
+
+            const TypeGen::CacheLock lock(*cache_, ctx(), TypeGen::LockMode::TryLock);
+            if (!lock.ownsLock())
+            {
+                ctx().state().kind               = TaskStateKind::SemaWaitTypeInfoGeneration;
+                ctx().state().typeInfoOwner      = &cache_->ownership;
+                ctx().state().typeInfoGeneration = lock.generation();
+                if (earlierOwner)
+                    *payload_ = 42;
+                return JobResult::Sleep;
+            }
+
+            // This ordinary payload is protected by the same ownership as metadata.
+            // A resumed contender must acquire the preceding owner's publication.
+            ++*payload_;
+            completed = true;
+            ctx().state().setNone();
+            return JobResult::Done;
+        }
+
+        uint32_t attempts  = 0;
+        bool     completed = false;
+
+    private:
+        TypeGen::TypeGenCache* cache_;
+        uint32_t*              payload_;
+        bool                   releaseBeforeParking_;
+    };
+
+    Result checkTypeInfoOwnershipRelease(TaskContext& ctx, bool beforeParking)
+    {
+        auto&                               manager = ctx.global().jobMgr();
+        TypeGen::TypeGenCache               cache;
+        uint32_t                            payload = 0;
+        std::unique_ptr<TypeGen::CacheLock> owner;
+        if (!beforeParking)
+            owner = std::make_unique<TypeGen::CacheLock>(cache, ctx, TypeGen::LockMode::Wait);
+        TypeInfoOwnerJob job(ctx, cache, payload, beforeParking);
+        manager.enqueue(job, JobPriority::Normal, ctx.compiler().jobClientId());
+        manager.waitAll();
+        bool valid = beforeParking || (!job.completed && job.attempts == 1);
+        if (owner)
+        {
+            payload = 42;
+            owner.reset();
+            manager.waitAll();
+        }
+        valid &= job.completed && job.attempts == 2 && payload == 43;
+        if (job.rec())
+        {
+            manager.wakeAll(ctx.compiler().jobClientId());
+            manager.waitAll();
+        }
+        return valid ? Result::Continue : Result::Error;
     }
 
     class CountJob final : public Job
@@ -618,6 +692,76 @@ SWC_TEST_BEGIN(JobManager_ConcurrentSymbolPublicationDoesNotLoseWaiters)
     for (const auto& job : jobs)
         if (!job->completed || job->rec())
             valid = false;
+    manager.wakeAll(ctx.compiler().jobClientId());
+    manager.waitAll();
+    if (!valid)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_TypeInfoReleaseBeforeParkingResumesWithoutBarrier)
+{
+    SWC_RESULT(checkTypeInfoOwnershipRelease(ctx, true));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_TypeInfoReleaseAfterParkingResumesWithoutBarrier)
+{
+    SWC_RESULT(checkTypeInfoOwnershipRelease(ctx, false));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_TypeInfoReleaseWakesOnlyItsStorage)
+{
+    auto&                 manager = ctx.global().jobMgr();
+    TypeGen::TypeGenCache firstCache;
+    TypeGen::TypeGenCache secondCache;
+    uint32_t              firstPayload  = 42;
+    uint32_t              secondPayload = 42;
+    auto                  firstOwner    = std::make_unique<TypeGen::CacheLock>(firstCache, ctx, TypeGen::LockMode::Wait);
+    auto                  secondOwner   = std::make_unique<TypeGen::CacheLock>(secondCache, ctx, TypeGen::LockMode::Wait);
+    TypeInfoOwnerJob      first(ctx, firstCache, firstPayload);
+    TypeInfoOwnerJob      second(ctx, secondCache, secondPayload);
+    manager.enqueue(first, JobPriority::Normal, ctx.compiler().jobClientId());
+    manager.enqueue(second, JobPriority::Normal, ctx.compiler().jobClientId());
+    manager.waitAll();
+    firstOwner.reset();
+    manager.waitAll();
+    bool valid = first.completed && first.attempts == 2 && firstPayload == 43 &&
+                 !second.completed && second.attempts == 1 && secondPayload == 42;
+    secondOwner.reset();
+    manager.waitAll();
+    valid &= second.completed && second.attempts == 2 && secondPayload == 43;
+    manager.wakeAll(ctx.compiler().jobClientId());
+    manager.waitAll();
+    if (!valid || first.rec() || second.rec())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_TypeInfoContendersPreserveExclusivePublication)
+{
+    constexpr uint32_t                             NUM_JOBS = 256;
+    auto&                                          manager  = ctx.global().jobMgr();
+    TypeGen::TypeGenCache                          cache;
+    uint32_t                                       payload = 0;
+    auto                                           owner   = std::make_unique<TypeGen::CacheLock>(cache, ctx, TypeGen::LockMode::Wait);
+    std::vector<std::unique_ptr<TypeInfoOwnerJob>> jobs;
+    for (uint32_t index = 0; index < NUM_JOBS; ++index)
+    {
+        jobs.push_back(std::make_unique<TypeInfoOwnerJob>(ctx, cache, payload));
+        manager.enqueue(*jobs.back(), JobPriority::Normal, ctx.compiler().jobClientId());
+    }
+    // All contenders yield even though the resource remains owned by this thread.
+    manager.waitAll();
+    bool valid = payload == 0;
+    for (const auto& job : jobs)
+        valid &= job->attempts == 1 && !job->completed;
+    owner.reset();
+    manager.waitAll();
+    valid &= payload == NUM_JOBS;
+    for (const auto& job : jobs)
+        valid &= job->completed && !job->rec();
     manager.wakeAll(ctx.compiler().jobClientId());
     manager.waitAll();
     if (!valid)

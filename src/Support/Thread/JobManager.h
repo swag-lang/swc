@@ -22,13 +22,6 @@ public:
     void wake(const WaitKey& key);
     void refreshJitWait(const TaskContext* owner);
 
-    // Shared wake target for every job parked on SemaWaitTypeInfoGeneration. Type-info
-    // generation contention is not keyable to a single producer (any worker publishing a
-    // type-info can unblock any waiter), so all such waiters register on this one sentinel
-    // and a type-info publication wakes them all via wakeTypeInfoGeneration().
-    static const void* typeInfoGenWaitTarget();
-    void               wakeTypeInfoGeneration();
-
     bool wakeAll(JobClientId client);
     void waitAll();
     void waitAll(JobClientId client);

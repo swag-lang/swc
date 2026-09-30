@@ -133,39 +133,54 @@ TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
     return *it->second;
 }
 
+TypeGen::CacheLock::CacheLock(TypeGenCache& cache, TaskContext& ctx, LockMode mode) :
+    cache_(&cache),
+    ctx_(&ctx),
+    generation_(cache.ownership.load(std::memory_order_acquire))
+{
+    while (true)
+    {
+        if (generation_ & 1)
+        {
+            if (mode == LockMode::TryLock)
+                return;
+            cache.ownership.wait(generation_, std::memory_order_acquire);
+            generation_ = cache.ownership.load(std::memory_order_acquire);
+            continue;
+        }
+
+        if (cache.ownership.compare_exchange_strong(generation_, generation_ + 1, std::memory_order_acq_rel, std::memory_order_acquire))
+        {
+            owned_ = true;
+            return;
+        }
+    }
+}
+
+TypeGen::CacheLock::~CacheLock()
+{
+    if (!owned_)
+        return;
+
+    // Publish every release, including a semantic Pause or Error. A contender waits
+    // for ownership, not for this particular root's metadata to become complete.
+    const uint64_t previous = cache_->ownership.fetch_add(1, std::memory_order_acq_rel);
+    SWC_ASSERT(previous & 1);
+    cache_->ownership.notify_all();
+    ctx_->global().jobMgr().wake({&cache_->ownership, TaskStateKind::SemaWaitTypeInfoGeneration});
+}
+
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result, const LockMode lockMode)
 {
-    auto& cache = cacheFor(storage);
-    {
-        std::shared_lock lock(cache.mutex, std::defer_lock);
-        if (lockMode == LockMode::TryLock)
-        {
-            if (!lock.try_lock())
-                return Result::Pause;
-        }
-        else
-        {
-            lock.lock();
-        }
+    auto&           cache = cacheFor(storage);
+    const CacheLock lock(cache, sema.ctx(), lockMode);
+    if (!lock.ownsLock())
+        return sema.waitTypeInfoGeneration(cache.ownership, lock.generation(), ownerNodeRef);
 
-        if (tryGetCompletedTypeInfoResult(sema.ctx(), storage, cache, typeRef, result))
-            return Result::Continue;
-    }
-
-    std::unique_lock lock(cache.mutex, std::defer_lock);
-
-    if (lockMode == LockMode::TryLock)
-    {
-        // Compiler-message type-info preparation is opportunistic work: if another
-        // thread already owns this shard-local cache, yield instead of parking a
-        // worker on the mutex so sema/JIT can keep making forward progress.
-        if (!lock.try_lock())
-            return Result::Pause;
-    }
-    else
-    {
-        lock.lock();
-    }
+    // ConstantManager already serves published roots without entering this ownership
+    // domain. Recheck here for a root another owner completed before we acquired it.
+    if (tryGetCompletedTypeInfoResult(sema.ctx(), storage, cache, typeRef, result))
+        return Result::Continue;
 
     // Each call progresses as much as possible without relying on recursion.
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
@@ -195,13 +210,6 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
         cache.pendingBackRefs.clear();
     }
-
-    // The type-info (and all its dependencies) is now published. Release the shard lock
-    // first, then notify every job parked on type-info generation so they re-drive at once
-    // instead of relying on the bounded barrier drain. This keeps the scheduler "alive"
-    // each time a type-info is produced and prevents an all-sleeping cycle on contention.
-    lock.unlock();
-    sema.ctx().global().jobMgr().wakeTypeInfoGeneration();
 
     return Result::Continue;
 }

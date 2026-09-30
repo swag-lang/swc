@@ -1350,27 +1350,18 @@ Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
     return parkOnSymbol(TaskStateKind::SemaWaitTypeCompleted, type->getNotCompletedSymbol(ctx()), nodeRef, SourceCodeRef::invalid());
 }
 
-Result Sema::waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+Result Sema::waitTypeInfoGeneration(std::atomic<uint64_t>& owner, uint64_t generation, AstNodeRef nodeRef)
 {
-    return parkOnSymbol(TaskStateKind::SemaWaitTypeInfoGeneration, nullptr, nodeRef, codeRef);
+    ctx().state().typeInfoOwner      = &owner;
+    ctx().state().typeInfoGeneration = generation;
+    return parkOnSymbol(TaskStateKind::SemaWaitTypeInfoGeneration, nullptr, nodeRef, SourceCodeRef::invalid());
 }
 
 Result Sema::makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
-    // Try to publish the runtime type-info without parking the worker on the shard-local
-    // type-gen mutex. If another worker already owns the shard, yield cooperatively so this
-    // job can make progress elsewhere instead of blocking until the owner publishes.
-    const Result result = cstMgr().makeTypeInfo(*this, outRef, typeRef, ownerNodeRef, ConstantManager::TypeInfoLockMode::TryLock);
-    if (result != Result::Pause)
-        return result;
-
-    // An already-pending semantic wait takes precedence over the transient cache contention.
-    if (ctx().state().hasPauseReason())
-        return Result::Pause;
-
-    // Type-info cache contention is transient work sharing, not a semantic dependency.
-    // The drain loop in waitDone() keeps these waiters re-driven until the shard owner publishes.
-    return waitTypeInfoGeneration(ownerNodeRef);
+    // If another job owns the metadata storage, yield this worker to independent
+    // work. TypeGen records that owner generation and wakes us when it releases.
+    return cstMgr().makeTypeInfo(*this, outRef, typeRef, ownerNodeRef, ConstantManager::TypeInfoLockMode::TryLock);
 }
 
 void Sema::setVisitors()

@@ -178,10 +178,9 @@ std::optional<WaitKey> JobManager::computeWaitKey(const TaskState& st)
                 return WaitKey{st.symbol, st.kind};
             return std::nullopt;
 
-        // Type-info generation: not keyable to a single producer, but every waiter shares one
-        // sentinel target so any type-info publication can wake them all (see wakeTypeInfoGeneration).
         case TaskStateKind::SemaWaitTypeInfoGeneration:
-            return WaitKey{typeInfoGenWaitTarget(), st.kind};
+            SWC_ASSERT(st.typeInfoOwner != nullptr);
+            return WaitKey{st.typeInfoOwner, st.kind};
 
         // JIT completion has a separate owner alias, independent of the dependency
         // that currently occupies this record's intrusive key links.
@@ -192,18 +191,6 @@ std::optional<WaitKey> JobManager::computeWaitKey(const TaskState& st)
         default:
             return std::nullopt;
     }
-}
-
-const void* JobManager::typeInfoGenWaitTarget()
-{
-    // Stable, process-wide non-null address used purely as a WaitKey discriminator.
-    static constexpr char SENTINEL = 0;
-    return &SENTINEL;
-}
-
-void JobManager::wakeTypeInfoGeneration()
-{
-    wake(WaitKey{typeInfoGenWaitTarget(), TaskStateKind::SemaWaitTypeInfoGeneration});
 }
 
 void JobManager::parkLocked(JobRecord* rec, const TaskState& state)
@@ -709,7 +696,11 @@ void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)
             }
 
             parkLocked(rec, *state);
-            if ((state->symbol && state->symbol->isWaitSatisfied(state->kind)) || (jitWait && jitWait->completed))
+            // The no-op RMW either observes the owner's release or publishes this
+            // registration to that release before the producer checks the waiter filter.
+            const bool typeInfoReleased = state->kind == TaskStateKind::SemaWaitTypeInfoGeneration &&
+                                          state->typeInfoOwner->fetch_or(0, std::memory_order_acq_rel) != state->typeInfoGeneration;
+            if ((state->symbol && state->symbol->isWaitSatisfied(state->kind)) || typeInfoReleased || (jitWait && jitWait->completed))
             {
                 // Publication can precede registration. Symbol flag RMWs and the JIT
                 // completion mutex close that window without a global barrier retry.

@@ -6,6 +6,28 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.061 — Type-info graph publication uses one serialization domain
+
+- Recorded: 2026-09-30 08:34
+- Updated: 2026-09-30 13:48 — narrow the remaining boundary to canonical graph ownership
+- Evidence: `ConstantManager::makeTypeInfo` deliberately sends all reflected types to constant
+  shard zero, so shared dependencies have one canonical runtime identity. `TypeGen::makeTypeInfo`
+  retains exclusive ownership of that segment across `processTypeInfo` and back-reference
+  publication. Contention now records the exact storage and owner generation, and every ownership
+  release wakes its registered jobs, including semantic pauses. Independent reflection roots still
+  cannot generate their metadata concurrently. This is a static concurrency boundary, not an
+  attribution of a measured fraction of cold-build time.
+- Safety boundary: hashing roots into separate stores would duplicate common dependencies and
+  break pointer identity. Publishing an entry before all required payloads and back references
+  are ready would expose partial recursive metadata.
+- Next: separate canonical graph registration from payload generation, identify independently
+  publishable components, and define ownership and completion for recursive components before
+  shortening or dividing the exclusive section. Preserve one address per reflected type.
+- Complete when: independent components can progress on different workers, mutually recursive
+  graphs publish no partial data, and identity, interface, and reflection tests pass under
+  repeated parallel cold compilation.
+- Related: compiler.core.020, compiler.core.007.
+
 ### compiler.core.063 — Three PDF tests of `std/gui` fail under the release configuration
 
 - Recorded: 2026-09-30 11:15
@@ -94,26 +116,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: each item is either removed with a test of compile-time execution behind it, or
   recorded as measured and not worth its risk.
 - Related: compiler.core.056, compiler.core.030.
-
-### compiler.core.061 — Type-info graph publication uses one serialization domain
-
-- Recorded: 2026-09-30 08:34
-- Evidence: `ConstantManager::makeTypeInfo` deliberately sends all reflected types to constant
-  shard zero, so shared dependencies have one canonical runtime identity. `TypeGen::makeTypeInfo`
-  holds that segment's exclusive cache mutex across `processTypeInfo` and back-reference
-  publication. Independent reflection roots therefore cannot generate their metadata concurrently;
-  contenders pause and share the type-info wake sentinel. This is a static concurrency boundary,
-  not an attribution of a measured fraction of cold-build time.
-- Safety boundary: hashing roots into separate stores would duplicate common dependencies and
-  break pointer identity. Publishing an entry before all required payloads and back references
-  are ready would expose partial recursive metadata.
-- Next: separate canonical graph registration from payload generation, identify independently
-  publishable components, and define ownership and completion for recursive components before
-  shortening or dividing the exclusive section. Preserve one address per reflected type.
-- Complete when: independent components can progress on different workers, mutually recursive
-  graphs publish no partial data, and identity, interface, and reflection tests pass under
-  repeated parallel cold compilation.
-- Related: compiler.core.020, compiler.core.007.
 
 ### compiler.core.007 — Workspace front ends and code generation run serially
 

@@ -647,13 +647,14 @@ void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)
         {
             parkLocked(rec);
 
-            TaskContext& ctx = rec->job->ctx();
-            if (ctx.state().kind == TaskStateKind::SemaWaitMainThreadRunJit &&
-                ctx.compiler().jitExecMgr().hasCompletion(ctx, ctx.state().nodeRef, ctx.state().codeRef))
+            TaskContext&     ctx   = rec->job->ctx();
+            const TaskState& state = ctx.state();
+            if ((state.symbol && state.symbol->isWaitSatisfied(state.kind)) ||
+                (state.kind == TaskStateKind::SemaWaitMainThreadRunJit &&
+                 ctx.compiler().jitExecMgr().hasCompletion(ctx, state.nodeRef, state.codeRef)))
             {
-                // Completion may precede registration. Its mutex either publishes an
-                // existing result to us, or publishes our registration to the producer
-                // before it completes and checks the wait filter. Neither order loses a wake.
+                // Publication can precede registration. Symbol flag RMWs and the JIT
+                // completion mutex close that window without a global barrier retry.
                 requeueWaitingLocked(rec);
                 cv_.notify_one();
             }

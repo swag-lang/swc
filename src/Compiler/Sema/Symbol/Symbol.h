@@ -137,6 +137,8 @@ public:
     bool        isPublic() const noexcept { return flags_.has(SymbolFlagsE::Public); }
     bool        isPrivate() const noexcept { return flags_.has(SymbolFlagsE::Private); }
 
+    bool isWaitSatisfied(TaskStateKind kind) const noexcept;
+
     bool isTyped() const noexcept { return flags_.has(SymbolFlagsE::Typed); }
     void setTyped(TaskContext& ctx);
     bool areConstraintsResolved() const noexcept { return flags_.has(SymbolFlagsE::ConstraintsResolved); }
@@ -256,7 +258,7 @@ protected:
     TypeRef                              typeRef_     = TypeRef::invalid();
     TokenRef                             tokRef_      = TokenRef::invalid();
     SymbolKind                           kind_        = SymbolKind::Invalid;
-    SymbolFlags                          flags_       = SymbolFlagsE::Zero;
+    mutable SymbolFlags                  flags_       = SymbolFlagsE::Zero;
     std::atomic<SymbolExtraFlagsStorage> extraFlags_  = 0;
 
     // Memoized hash of getFullScopedName(). 0 means "not computed yet"; a real hash that

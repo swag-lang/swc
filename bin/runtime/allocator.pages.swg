@@ -230,16 +230,16 @@ impl AllocatorPage
     }
 
     // Precomputes the exact-division test used to reject an interior or bogus address on free.
-    // 'blockSize' splits into a power of two and an odd factor; divisibility by the odd factor is
-    // a multiply and a compare against a precomputed limit. The Newton iteration below converges
-    // modulo 2^32, so it wraps on purpose.
+    // Multiplying by the inverse of the odd factor and rotating out the power of two turns
+    // divisibility into one unsigned comparison. The Newton iteration converges modulo 2^32,
+    // so it wraps on purpose.
     #[Swag.Safety(.Overflow, false)]
     mtd setupBlockDivision(blockSize: u32)
     {
         let odd = blockSize >> cast(u32) Swag.bitCountTz(blockSize)
         .blockSize  = blockSize
         .blockShift = cast(u32) Swag.bitCountTz(blockSize)
-        .blockLimit = 0xFFFF_FFFF'u32 / odd
+        .blockLimit = 0xFFFF_FFFF'u32 / blockSize
 
         var inverse = odd
         for 5 do
@@ -257,10 +257,7 @@ impl AllocatorPage
             return false
 
         let offset = cast(u32) (address - .areaStart)
-        if (offset & ((1'u32 << .blockShift) - 1)) != 0 do
-            return false
-
-        return (offset >> .blockShift) * .blockInv <= .blockLimit
+        return Swag.ror(offset * .blockInv, cast(u8) .blockShift) <= .blockLimit
     }
 
     #[Swag.Inline]

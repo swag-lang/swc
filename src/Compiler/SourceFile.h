@@ -41,7 +41,7 @@ public:
 
     FileRef ref() const { return fileRef_; }
 
-    fs::path                    path() const { return path_; }
+    const fs::path&             path() const { return path_; }
     Utf8                        name() const { return path_.filename().string().c_str(); }
     const Utf8&                 formattedFileName(const TaskContext* ctx) const;
     Utf8                        formatFileLocation(const TaskContext* ctx, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0) const;

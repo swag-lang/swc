@@ -1027,7 +1027,11 @@ MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
     if (CodeGenFunctionHelpers::usesCallerReturnStorage(*this, *storageSym))
         return ensureCurrentFunctionIndirectReturnReg(function().callConvKind());
 
-    const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*storageSym, !inDeferredEmission());
+    // The result temporary of an inline expansion is declared nowhere, and each 'return' of
+    // the expanded body reaches it inside its own branch: an address cached by one of them
+    // does not dominate the others.
+    const bool               isInlineResult = frame().hasCurrentInlineContext() && frame().currentInlineContext().payload->resultVar == storageSym;
+    const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*storageSym, !inDeferredEmission() && !isInlineResult);
     SWC_ASSERT(storagePayload.isAddress());
     return storagePayload.reg;
 }

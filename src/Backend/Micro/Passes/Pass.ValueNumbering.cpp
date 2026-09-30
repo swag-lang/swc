@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -411,6 +412,35 @@ namespace
         return info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction);
     }
 
+    // A recursive reader cannot change its caller's memory when its complete
+    // lowered body has no write and calls only itself. Prove that contract here
+    // rather than relying on the frontend's constant-evaluation purity flag.
+    bool selfCallsOnlyReadMemory(const MicroPassContext& context)
+    {
+        if (!context.sanitizerFunction)
+            return false;
+        std::unordered_set<uint32_t> selfCalls;
+        for (const auto& relocation : context.builder->codeRelocations())
+            if (relocation.kind == MicroRelocation::Kind::LocalFunctionAddress &&
+                relocation.targetSymbol == context.sanitizerFunction)
+                selfCalls.insert(relocation.instructionRef.get());
+        if (selfCalls.empty())
+            return false;
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        {
+            const auto flags = MicroInstr::info(it->op).flags;
+            if (flags.has(MicroInstrFlagsE::IsCallInstruction))
+            {
+                if (it->op != MicroInstrOpcode::CallLocal || !selfCalls.contains(it.current.get()))
+                    return false;
+            }
+            else if (flags.has(MicroInstrFlagsE::WritesMemory) || it->op == MicroInstrOpcode::LoadVolatileRegMem ||
+                     it->op == MicroInstrOpcode::Breakpoint || it->op == MicroInstrOpcode::SanityInvalidate)
+                return false;
+        }
+        return true;
+    }
+
     // Registers that hold an address into the frame: the stack pointer and
     // every copy, lea or addition chained from one. Flow-insensitive and
     // transitive, so it over-approximates — which only withholds numbering
@@ -583,6 +613,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     uint32_t memoryEpoch             = 0;
     uint32_t lastEpoch               = 0;
 
+    const bool readOnlySelfCalls = selfCallsOnlyReadMemory(context);
+
     // The epoch in force at each instruction. Epochs are never reused: a label
     // that resumes its single predecessor's epoch shares it only with the
     // straight lines that predecessor itself is reached through.
@@ -598,7 +630,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         if (inst->op == MicroInstrOpcode::Label && cfg.predecessors(i).size() == 1 && cfg.predecessors(i)[0] < i)
             memoryEpoch = epochAt[cfg.predecessors(i)[0]];
-        else if (advancesMemoryEpoch(*inst))
+        else if (advancesMemoryEpoch(*inst) && !(readOnlySelfCalls && inst->op == MicroInstrOpcode::CallLocal))
             memoryEpoch = ++lastEpoch;
         epochAt[i] = memoryEpoch;
         if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))

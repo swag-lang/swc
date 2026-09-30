@@ -334,6 +334,13 @@ public:
     static void     noteCallGraphChanged() noexcept { s_callGraphVersion.fetch_add(1, std::memory_order_release); }
     static uint64_t callGraphVersion() noexcept { return s_callGraphVersion.load(std::memory_order_acquire); }
 
+    // This function's own share of the same two events. The global version moves with every call
+    // edge any function gains, and nearly all of them land outside a given closure; an order is
+    // still current while none of the functions it holds has moved. The epoch only grows, so the
+    // sum over a closure is unchanged exactly when every member is.
+    void     noteOwnCallGraphChanged() noexcept { callGraphEpoch_.fetch_add(1, std::memory_order_release); }
+    uint32_t callGraphEpoch() const noexcept { return callGraphEpoch_.load(std::memory_order_acquire); }
+
     bool hasLoweredCode() const noexcept;
 
     // Offsets of the global-init slots this function's code refers to. Its lowered code no longer
@@ -443,7 +450,9 @@ private:
     static inline std::atomic<uint64_t>           s_freesMaskVersion{0};
     static inline std::atomic<uint64_t>           s_callGraphVersion{0};
     mutable std::vector<SymbolFunction*>          jitOrderCache_;
-    mutable uint64_t                              jitOrderCacheVersion_ = 0;
+    mutable std::atomic<uint64_t>                 jitOrderCacheVersion_  = 0;
+    mutable uint64_t                              jitOrderCacheEpochSum_ = 0;
+    std::atomic<uint32_t>                         callGraphEpoch_        = 0;
     mutable std::shared_mutex                     jitOrderCacheMutex_;
     mutable std::vector<uint64_t>                 globalInitOffsetsCache_;
     mutable bool                                  globalInitOffsetsComputed_ = false;

@@ -231,6 +231,8 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
     if (flags_.has(SymbolFlagsE::Ignored))
         return;
     flags_.add(SymbolFlagsE::Ignored);
+    if (auto* const function = safeCast<SymbolFunction>())
+        function->noteOwnCallGraphChanged();
     SymbolFunction::noteCallGraphChanged();
     ctx.compiler().notifyAlive();
 }

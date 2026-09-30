@@ -20,13 +20,18 @@ namespace
         bool            expanded = false;
     };
 
-    void appendDepOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
+    // Returns the sum of the call-graph epochs of every function the order holds, each read before
+    // anything else about that function is: a function that moves after being read here is caught
+    // by its epoch, and one that moved before is walked in its new state.
+    uint64_t appendDepOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
     {
         // Iterative DFS avoids recursive stack growth on large call graphs and
         // emits dependencies before dependents, which is the order JIT batching
         // needs for patching direct calls.
-        PointerSet<SymbolFunction> seen;
-        SmallVector<DepStackEntry> stack;
+        PointerSet<SymbolFunction>   seen;
+        SmallVector<DepStackEntry>   stack;
+        SmallVector<SymbolFunction*> dependencies;
+        uint64_t                     epochSum = 0;
         stack.push_back({.function = &root, .expanded = false});
 
         while (!stack.empty())
@@ -48,6 +53,7 @@ namespace
             if (!seen.insert(function))
                 continue;
 
+            epochSum += function->callGraphEpoch();
             if (function->isIgnored())
             {
                 outJitOrder.push_back(function);
@@ -56,7 +62,7 @@ namespace
 
             stack.push_back({.function = function, .expanded = true});
 
-            SmallVector<SymbolFunction*> dependencies;
+            dependencies.clear();
             function->appendCallDependencies(dependencies);
             for (auto* dependency : std::ranges::reverse_view(dependencies))
             {
@@ -65,6 +71,8 @@ namespace
                 stack.push_back({.function = dependency, .expanded = false});
             }
         }
+
+        return epochSum;
     }
 
     void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction& function, const Symbol* waiterSymbol)
@@ -303,16 +311,32 @@ void SymbolFunction::refreshJitOrderCache() const
 
     {
         const std::shared_lock lock(jitOrderCacheMutex_);
-        if (jitOrderCacheVersion_ == version && !jitOrderCache_.empty())
-            return;
+        if (!jitOrderCache_.empty())
+        {
+            if (jitOrderCacheVersion_.load(std::memory_order_relaxed) == version)
+                return;
+
+            // The graph moved somewhere. The walk reads nothing but the dependency list and the
+            // ignored state of the functions it reaches, which are the ones this order holds, so
+            // the order stands when none of them moved: one load per function instead of the walk.
+            uint64_t epochSum = 0;
+            for (const SymbolFunction* function : jitOrderCache_)
+                epochSum += function->callGraphEpoch();
+            if (epochSum == jitOrderCacheEpochSum_)
+            {
+                jitOrderCacheVersion_.store(version, std::memory_order_relaxed);
+                return;
+            }
+        }
     }
 
     SmallVector<SymbolFunction*> order;
-    appendDepOrder(order, *const_cast<SymbolFunction*>(this));
+    const uint64_t               epochSum = appendDepOrder(order, *const_cast<SymbolFunction*>(this));
 
     const std::unique_lock lock(jitOrderCacheMutex_);
     jitOrderCache_.assign(order.begin(), order.end());
-    jitOrderCacheVersion_ = version;
+    jitOrderCacheVersion_.store(version, std::memory_order_relaxed);
+    jitOrderCacheEpochSum_ = epochSum;
 }
 
 const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const

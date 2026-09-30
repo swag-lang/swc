@@ -114,6 +114,46 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+// A displacement names a slot only together with the stack pointer it is
+// added to. A store issued between the adjustments around a call writes the
+// slot below the one the same displacement names outside them: it is no
+// earlier copy of the store ahead of the branch, and it stays where it is for
+// the reload that reads its own slot.
+SWC_TEST_BEGIN(PostRAPeephole_SpillStoreUnderAdjustedStackNamesAnotherSlot)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  value = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef cold = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
+    builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+    const MicroInstrRef adjustedStore = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+    builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, cold);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+    builder.placeLabel(cold);
+    builder.emitLoadRegMem(flag, conv.stackPointer, 64, MicroOpBits::B64);
+    builder.placeLabel(done);
+    builder.emitLoadRegMem(conv.intReturn, conv.stackPointer, 56, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(conv.intReturn, flag, MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 56, 72));
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 56, 72));
+
+    const MicroInstr* kept = builder.instructions().ptr(adjustedStore);
+    if (!kept || kept->op != MicroInstrOpcode::LoadMemReg || kept->ops(builder.operands())[1].reg != value)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_SinksPrivateSpillStoreToColdBranch)
 {
     const CallConv& conv  = CallConv::get(CallConvKind::Swag);
@@ -454,6 +494,56 @@ SWC_TEST_BEGIN(PostRAPeephole_ErasesSpillStoreOverwrittenOnEveryPath)
                 ++valueStores;
         }
         if (valueStores != (variant == 0 || variant == 4 ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A vector's sixteen-byte home follows the same rule with its own width: the
+// overwrite has to cover both halves, a read of either half keeps the store,
+// and a read of the slot beside it does not.
+SWC_TEST_BEGIN(PostRAPeephole_ErasesVectorSpillStoreOverwrittenOnEveryPath)
+{
+    const CallConv&    conv   = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg vector = MicroReg::floatReg(6);
+    constexpr MicroReg other  = MicroReg::floatReg(7);
+    const MicroReg     flag   = MicroReg::intReg(10);
+
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef loop = builder.createLabel();
+        const MicroLabelRef cold = builder.createLabel();
+        builder.placeLabel(loop);
+        builder.emitLoadMemReg(conv.stackPointer, 64, vector, MicroOpBits::B128);
+        builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, cold);
+        if (variant == 1)
+            builder.emitLoadRegMem(flag, conv.stackPointer, 72, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadRegMem(flag, conv.stackPointer, 80, MicroOpBits::B64);
+        if (variant == 3)
+            builder.emitLoadRegMem(flag, conv.stackPointer, 56, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(vector, other, MicroOp::VecAdd32, MicroOpBits::B128);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loop);
+        builder.placeLabel(cold);
+        // Eight bytes rewrite half of the home; only sixteen retire it.
+        builder.emitLoadMemReg(conv.stackPointer, 64, variant == 4 ? flag : other, variant == 4 ? MicroOpBits::B64 : MicroOpBits::B128);
+        builder.emitLoadRegMem(vector, conv.stackPointer, 64, MicroOpBits::B128);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 56, 88));
+
+        uint32_t vectorStores = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadMemReg && ops && ops[0].reg == conv.stackPointer && ops[1].reg == vector)
+                ++vectorStores;
+        }
+        if (vectorStores != (variant == 1 || variant == 4 ? 1u : 0u))
             return Result::Error;
     }
     return Result::Continue;

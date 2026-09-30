@@ -290,7 +290,13 @@ namespace
 
     // A spill store may be delayed until the sole branch that reads its home.
     // Restrict this to allocator-owned slots: program pointers cannot reach
-    // them, and every explicit frame access can be checked by its offset.
+    // them, and every explicit frame access can be checked by the slot it
+    // names. A displacement names a slot only together with the stack pointer
+    // it is added to: a store issued between the adjustments around a call
+    // writes another slot than the same displacement outside them. Every
+    // frame access is therefore identified by where it lands from the stack
+    // pointer at entry, and a function whose stack pointer cannot be followed
+    // keeps its stores where they are.
     bool sinkFrameStoreIntoBranchTarget(MicroPassContext& context)
     {
         if (!context.builder || context.spillAreaLo >= context.spillAreaHi ||
@@ -314,7 +320,13 @@ namespace
         bool                  anySlotOpaque          = false;
         std::vector<uint32_t> frameAccesses;
         std::vector<uint32_t> sameStores;
-        const auto            collectFrameAccesses = [&] {
+        // How far below its entry value the stack pointer sits when each instruction runs.
+        constexpr int64_t    K_UNKNOWN_DEPTH = std::numeric_limits<int64_t>::min();
+        std::vector<int64_t> stackDepth;
+        const auto           slotOf = [&](const uint32_t index, const uint64_t displacement) {
+            return static_cast<int64_t>(displacement) - stackDepth[index];
+        };
+        const auto collectFrameAccesses = [&] {
             frameAccessesCollected = true;
             for (uint32_t index = 0; index < refs.size(); ++index)
             {
@@ -349,6 +361,53 @@ namespace
                 if (ops && info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops[info.memBaseOperandIndex].reg == stack)
                     frameAccesses.push_back(index);
             }
+
+            // Follow the stack pointer from the entry. Every path into an
+            // instruction has to agree, and only constant adjustments, pushes
+            // and pops are followed.
+            stackDepth.assign(refs.size(), K_UNKNOWN_DEPTH);
+            std::vector<uint32_t> pending = {0};
+            stackDepth[0]                 = 0;
+            while (!pending.empty())
+            {
+                const uint32_t index = pending.back();
+                pending.pop_back();
+                const MicroInstr* inst  = storage.ptr(refs[index]);
+                int64_t           depth = stackDepth[index];
+                const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                if (std::ranges::find(useDef.defs, stack) != useDef.defs.end())
+                {
+                    const auto* ops = inst->ops(operands);
+                    if (inst->op == MicroInstrOpcode::OpBinaryRegImm && ops && ops[0].reg == stack &&
+                        ops[1].opBits == MicroOpBits::B64 && ops[3].valueU64 <= 0x10000000 &&
+                        (ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract))
+                        depth += ops[2].microOp == MicroOp::Subtract ? static_cast<int64_t>(ops[3].valueU64) : -static_cast<int64_t>(ops[3].valueU64);
+                    else if (inst->op == MicroInstrOpcode::Push)
+                        depth += 8;
+                    else if (inst->op == MicroInstrOpcode::Pop)
+                        depth -= 8;
+                    else
+                    {
+                        anySlotOpaque = true;
+                        return;
+                    }
+                }
+                for (const uint32_t successor : cfg.successors(index))
+                {
+                    if (stackDepth[successor] == K_UNKNOWN_DEPTH)
+                    {
+                        stackDepth[successor] = depth;
+                        pending.push_back(successor);
+                    }
+                    else if (stackDepth[successor] != depth)
+                    {
+                        anySlotOpaque = true;
+                        return;
+                    }
+                }
+            }
+            for (const uint32_t index : frameAccesses)
+                anySlotOpaque = anySlotOpaque || stackDepth[index] == K_UNKNOWN_DEPTH;
         };
 
         for (uint32_t storeIndex = 0; storeIndex + 2 < refs.size(); ++storeIndex)
@@ -360,8 +419,7 @@ namespace
                 saved[3].valueU64 > context.spillAreaHi - sizeof(uint64_t))
                 continue;
 
-            const MicroReg value  = saved[1].reg;
-            const uint64_t offset = saved[3].valueU64;
+            const MicroReg value       = saved[1].reg;
             uint32_t       reloadIndex = MicroControlFlowGraph::K_NO_INDEX;
             bool           slotOpaque  = false;
             if (!frameAccessesCollected)
@@ -369,6 +427,9 @@ namespace
             // An opaque instruction rejects every candidate, whichever slot it names.
             if (anySlotOpaque)
                 return false;
+            if (stackDepth[storeIndex] == K_UNKNOWN_DEPTH)
+                continue;
+            const int64_t slot = slotOf(storeIndex, saved[3].valueU64);
 
             sameStores.clear();
             for (const uint32_t index : frameAccesses)
@@ -377,21 +438,21 @@ namespace
                 const auto*       ops  = inst->ops(operands);
                 const auto&       info = MicroInstr::info(inst->op);
 
-                const uint64_t accessOffset = ops[info.memOffsetOperandIndex].valueU64;
-                uint64_t accessSize = 64;
+                const int64_t accessSlot = slotOf(index, ops[info.memOffsetOperandIndex].valueU64);
+                int64_t       accessSize = 64;
                 if (inst->op == MicroInstrOpcode::LoadRegMem || inst->op == MicroInstrOpcode::LoadMemReg)
                     accessSize = getNumBytes(ops[2].opBits);
                 else if (inst->op == MicroInstrOpcode::LoadMemImm)
                     accessSize = getNumBytes(ops[1].opBits);
-                if (accessOffset > offset + 7 || (accessOffset < offset && offset - accessOffset >= accessSize))
+                if (accessSlot >= slot + 8 || accessSlot + accessSize <= slot)
                     continue;
-                if (inst->op == MicroInstrOpcode::LoadMemReg && accessOffset == offset &&
+                if (inst->op == MicroInstrOpcode::LoadMemReg && accessSlot == slot &&
                     ops[1].reg == value && ops[2].opBits == MicroOpBits::B64)
                 {
                     sameStores.push_back(index);
                     continue;
                 }
-                if (inst->op == MicroInstrOpcode::LoadRegMem && accessOffset == offset &&
+                if (inst->op == MicroInstrOpcode::LoadRegMem && accessSlot == slot &&
                     ops[2].opBits == MicroOpBits::B64 && reloadIndex == MicroControlFlowGraph::K_NO_INDEX)
                 {
                     reloadIndex = index;
@@ -415,6 +476,10 @@ namespace
                 const MicroInstr* branch = storage.ptr(refs[branchIndex]);
                 if (!branch || branch->op != MicroInstrOpcode::JumpCond || branchIndex <= storeIndex ||
                     branchIndex >= labelIndex)
+                    continue;
+                // The moved store keeps its displacement, so it has to run
+                // where the stack pointer is what it was at the original.
+                if (stackDepth[labelIndex + 1] != stackDepth[storeIndex])
                     continue;
 
                 // The target must dominate its only reader, even through the
@@ -543,7 +608,8 @@ namespace
                     const auto* ops = inst->ops(operands);
                     if (ops && inst->op == MicroInstrOpcode::LoadMemReg &&
                         ops[0].reg == stack && ops[1].reg == value &&
-                        ops[2].opBits == MicroOpBits::B64 && ops[3].valueU64 == offset)
+                        ops[2].opBits == MicroOpBits::B64 && stackDepth[index] != K_UNKNOWN_DEPTH &&
+                        slotOf(index, ops[3].valueU64) == slot)
                         continue;
                     if (index == reloadIndex ||
                         MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory) ||
@@ -659,20 +725,35 @@ namespace
             Overwrite,
             Other,
         };
-        const auto classify = [&](const MicroInstr& inst, const MicroInstrOperand* ops, const uint64_t offset) {
+        // Displacements are signed: an access below the stack pointer must not
+        // wrap past the slot and read as disjoint from it.
+        const auto classify = [&](const MicroInstr& inst, const MicroInstrOperand* ops, const int64_t offset, const int64_t slotSize) {
             const auto& info = MicroInstr::info(inst.op);
             if (!ops || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) || ops[info.memBaseOperandIndex].reg != stack)
                 return SlotAccess::None;
-            const uint64_t accessOffset = ops[info.memOffsetOperandIndex].valueU64;
-            uint64_t       accessSize   = 64;
-            if (inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadMemReg)
-                accessSize = getNumBytes(ops[2].opBits);
-            else if (inst.op == MicroInstrOpcode::LoadMemImm)
-                accessSize = getNumBytes(ops[1].opBits);
-            if (accessOffset > offset + 7 || (accessOffset < offset && offset - accessOffset >= accessSize))
+            const auto accessOffset = static_cast<int64_t>(ops[info.memOffsetOperandIndex].valueU64);
+            int64_t    accessSize   = 64;
+            bool       pureStore    = false;
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadMemReg:
+                case MicroInstrOpcode::StoreVecMemReg:
+                    pureStore = true;
+                    [[fallthrough]];
+                case MicroInstrOpcode::LoadRegMem:
+                case MicroInstrOpcode::LoadVecRegMem:
+                    accessSize = getNumBytes(ops[2].opBits);
+                    break;
+                case MicroInstrOpcode::LoadMemImm:
+                    pureStore  = true;
+                    accessSize = getNumBytes(ops[1].opBits);
+                    break;
+                default:
+                    break;
+            }
+            if (accessOffset >= offset + slotSize || accessOffset + accessSize <= offset)
                 return SlotAccess::None;
-            if ((inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm) &&
-                accessOffset <= offset && accessOffset + accessSize >= offset + 8)
+            if (pureStore && accessOffset <= offset && accessOffset + accessSize >= offset + slotSize)
                 return SlotAccess::Overwrite;
             return SlotAccess::Other;
         };
@@ -705,13 +786,18 @@ namespace
         uint32_t                   stamp = 0;
         for (uint32_t storeIndex = 0; storeIndex < refs.size(); ++storeIndex)
         {
+            // The allocator homes a value in eight bytes, or in sixteen when
+            // some instruction names it as a whole vector.
             const MicroInstr* store = storage.ptr(refs[storeIndex]);
             const auto*       saved = store && store->op == MicroInstrOpcode::LoadMemReg ? store->ops(operands) : nullptr;
-            if (!saved || saved[0].reg != stack || saved[2].opBits != MicroOpBits::B64 ||
-                saved[3].valueU64 < context.spillAreaLo || saved[3].valueU64 > context.spillAreaHi - sizeof(uint64_t))
+            if (!saved || saved[0].reg != stack || (saved[2].opBits != MicroOpBits::B64 && saved[2].opBits != MicroOpBits::B128))
+                continue;
+            const uint64_t slotSize = getNumBytes(saved[2].opBits);
+            if (saved[3].valueU64 < context.spillAreaLo || saved[3].valueU64 > context.spillAreaHi ||
+                slotSize > context.spillAreaHi - saved[3].valueU64)
                 continue;
 
-            const uint64_t offset = saved[3].valueU64;
+            const auto offset = static_cast<int64_t>(saved[3].valueU64);
             ++stamp;
             pending.assign(cfg.successors(storeIndex).begin(), cfg.successors(storeIndex).end());
             bool     live  = false;
@@ -735,7 +821,7 @@ namespace
                     break;
                 }
                 const auto*      ops    = inst->ops(operands);
-                const SlotAccess access = classify(*inst, ops, offset);
+                const SlotAccess access = classify(*inst, ops, offset, static_cast<int64_t>(slotSize));
                 if (access == SlotAccess::Overwrite)
                     continue;
                 if (access == SlotAccess::Other)

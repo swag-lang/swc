@@ -20,6 +20,7 @@ public:
     // Dependency-driven wake: move every job parked on this exact dependency from
     // Waiting to Ready. Cheap no-op when nobody waits on it.
     void wake(const WaitKey& key);
+    void refreshJitWait(const TaskContext* owner);
 
     // Shared wake target for every job parked on SemaWaitTypeInfoGeneration. Type-info
     // generation contention is not keyable to a single producer (any worker publishing a
@@ -102,8 +103,8 @@ private:
     static JobResult              executeJob(Job& job);
     void                          handleJobResultLocked(JobRecord* rec, JobResult res);
     void                          workerLoop();
-    static std::optional<WaitKey> computeWaitKey(const Job& job);
-    void                          parkLocked(JobRecord* rec);
+    static std::optional<WaitKey> computeWaitKey(const TaskState& state);
+    void                          parkLocked(JobRecord* rec, const TaskState& state);
     void                          unregisterWaiterLocked(JobRecord* rec);
     void                          requeueWaitingLocked(JobRecord* rec);
     void                          growWorkersForLoadLocked();
@@ -150,10 +151,11 @@ private:
     std::atomic<uint32_t>                        nextIndex_{0};
 
     // Sleeping jobs indexed by the exact dependency they wait on, for targeted wakeups.
-    // Only keyable sleepers appear here; non-keyable ones stay wildcard (barrier-woken).
+    // JIT owners also have a unique completion alias in this map. Its record is not
+    // linked through keyWaitNext: the actual dependency owns those intrusive links.
     std::unordered_map<WaitKey, JobRecord*, WaitKeyHash> waiters_;
 
-    // Counts nonempty dependency lists, not individual sleepers. Presence is read
+    // Counts nonempty dependency lists and JIT owner aliases, not individual sleepers. Presence is read
     // before taking mtx_, so symbol-state publication with no
     // observed waiter avoids the scheduler lock. Hash collisions only cause a locked
     // lookup in the authoritative waiters_ map. Counts change under mtx_ (release);

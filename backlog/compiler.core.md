@@ -93,30 +93,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   deferred-function registration and the `Pause` path are what a memo has to keep exact.
 - Complete when: each item is either removed with a test of compile-time execution behind it, or
   recorded as measured and not worth its risk.
-- Related: compiler.core.056, compiler.core.055, compiler.core.030.
-
-### compiler.core.055 — Resume paused JIT requests from their exact dependencies
-
-- Recorded: 2026-09-20 07:07
-- Updated: 2026-09-30 08:34 — narrow the remaining barrier to internal JIT readiness waits
-- Evidence: `JITExecManager::executePendingWorker` records `Result::Pause` as an item's
-  `Waiting` state and retains its exact `TaskState`, but does not register that dependency
-  with `JobManager`. `wakeWaiting` moves all waiting items back to the pending queue only
-  after `Sema::waitDone` has drained the client's other jobs and observed compiler progress.
-  Direct completion wakes do not remove this earlier dependency barrier.
-- Safety boundary: queued and immediate calls must continue sharing `executionMutex_`.
-  `bin/unittests/jit/misc/execution_lane.swg` checks shared compile-time writes whose updates
-  would be lost if arbitrary JIT calls overlapped. A dependency continuation also needs
-  cancellation when a fallback retry or ignored dependency completes its item; otherwise
-  stale sleeping records can outlive the item and enter cycle detection.
-- Next: design a cancellable dependency registration for a paused item, so satisfying that
-  dependency queues only that item while the serialized lane continues serving other requests.
-  Keep the execution context private to the lane and publish completion before resuming its owner.
-- Complete when: a paused request resumes while unrelated compiler work remains active,
-  before/after-registration tests cover lost wakes and cancellation, and repeated parallel JIT
-  and ignored-dependency tests preserve serial side effects. Retain statically demonstrated
-  reductions in barriers or unrelated retries even when shared-machine timings are inconclusive.
-- Related: compiler.core.004, compiler.core.030.
+- Related: compiler.core.056, compiler.core.030.
 
 ### compiler.core.061 — Type-info graph publication uses one serialization domain
 

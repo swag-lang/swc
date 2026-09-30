@@ -815,10 +815,15 @@ namespace
             // value, or that drop would release what the field now holds. A projection of
             // such a temporary is an lvalue instead: it is copied, and the temporary dropped.
             // An aggregate that cannot drop its fields only borrows the temporary.
+            //
+            // A nested literal was built in a temporary of its own and has just been moved out
+            // of it, whether or not its fields own anything: a value that points into itself
+            // still points into that temporary until its 'opPostMove' runs.
             const AstNodeRef sourceRef       = codeGen.viewZero(entry.valueRef).nodeRef();
             const bool       sourceIsLValue  = sourceRef.isValid() && codeGen.sema().isLValueStored(sourceRef);
             const bool       adoptsTemporary = canDropFields && !sourceIsLValue && elementPayload.runtimeStorageSym && codeGen.hasTemporaryDrop(*elementPayload.runtimeStorageSym);
-            if (elementPayload.ownsValue || adoptsTemporary)
+            const bool       adoptsLiteral   = elementPayload.isAddress() && CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, entry.valueRef);
+            if (elementPayload.ownsValue || adoptsTemporary || adoptsLiteral)
             {
                 ownsValue = true;
                 if (codeGen.hasLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostMove))

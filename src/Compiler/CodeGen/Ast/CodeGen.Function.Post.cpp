@@ -559,6 +559,15 @@ namespace
         return CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, exprRef) || CodeGenFunctionHelpers::isOwnedCallResult(codeGen, exprRef);
     }
 
+    // A literal the compiler folded is copied out of constant data, exactly as it is into a
+    // variable it initializes: no value owned it before, and none of its fields can point into
+    // storage that did not exist yet. Entering the return slot runs no hook, as when the call
+    // itself is folded and the caller receives the constant.
+    bool returnSourceIsConstantLiteral(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
+    {
+        return exprPayload.runtimeStorageSym == nullptr && codeGen.viewConstant(exprRef).hasConstant() && CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, exprRef);
+    }
+
     // The local named by 'return exprRef' when the return can transfer its ownership:
     // the value moves to the caller and this return's deferred actions skip its drop.
     // An explicit 'return #move local' asks for exactly what the bare local already
@@ -681,7 +690,7 @@ namespace
             return Result::Continue;
         const bool movesOwnership     = moveOutVar != nullptr || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
         const auto storeLifecycleKind = movesOwnership ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
-        if (codeGen.hasLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind))
+        if (!returnSourceIsConstantLiteral(codeGen, payloadExprRef, exprPayload) && codeGen.hasLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind))
             SWC_RESULT(codeGen.emitLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind, resultAddr));
 
         if (movesOwnership)
@@ -937,15 +946,15 @@ namespace
             CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, valueReg, copySize);
     }
 
-    Result emitLifecycleAfterIndirectReturnCopy(CodeGen& codeGen, TypeRef returnTypeRef, const CodeGenNodePayload& exprPayload, MicroReg outputStorageReg, CodeGen::LifecycleKind lifecycleKind)
+    Result emitLifecycleAfterIndirectReturnCopy(CodeGen& codeGen, TypeRef returnTypeRef, const CodeGenNodePayload& exprPayload, MicroReg outputStorageReg, std::optional<CodeGen::LifecycleKind> lifecycleKind)
     {
         if (!exprPayload.isAddress() || exprPayload.reg != outputStorageReg)
             SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, returnTypeRef, outputStorageReg));
-        if (!exprPayload.isAddress() || exprPayload.reg == outputStorageReg)
+        if (!exprPayload.isAddress() || exprPayload.reg == outputStorageReg || !lifecycleKind)
             return Result::Continue;
-        if (!codeGen.hasLifecycle(returnTypeRef, lifecycleKind))
+        if (!codeGen.hasLifecycle(returnTypeRef, *lifecycleKind))
             return Result::Continue;
-        return codeGen.emitLifecycle(returnTypeRef, lifecycleKind, outputStorageReg);
+        return codeGen.emitLifecycle(returnTypeRef, *lifecycleKind, outputStorageReg);
     }
 
     bool isCompilerFunctionDecl(CodeGen& codeGen);
@@ -981,13 +990,15 @@ namespace
         // and a reference return borrows the local rather than consuming it.
         const SymbolVariable* moveOutVar          = nullptr;
         bool                  movesOwnedTemporary = false;
-        auto                  copyLifecycleKind   = CodeGen::LifecycleKind::PostCopy;
+        std::optional         copyLifecycleKind   = CodeGen::LifecycleKind::PostCopy;
         if (!needsPersistentCompilerReturn && !codeGen.typeMgr().get(returnTypeRef).isReference())
         {
             moveOutVar          = returnMoveOutSource(codeGen, exprRef);
             movesOwnedTemporary = returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
             if (moveOutVar != nullptr || movesOwnedTemporary)
                 copyLifecycleKind = CodeGen::LifecycleKind::PostMove;
+            if (returnSourceIsConstantLiteral(codeGen, exprRef, exprPayload))
+                copyLifecycleKind.reset();
         }
 
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();

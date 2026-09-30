@@ -294,7 +294,8 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(1, 1, 3, 353_434)
 }
 
-// An array literal of fresh elements is as fresh as they are.
+// An array literal of fresh elements owns them. Each element is built in a temporary of its own
+// and moved into the array, so a value that points into itself is repaired by its move hook.
 #test
 {
     resetFresh(24)
@@ -302,10 +303,10 @@ func makeAuto(value: s64)->FreshOwner
         let owners = makeArray(FreshSeed)
         Swag.assert(owners[0].value == 24 and owners[1].value == 25)
     }
-    expectFresh(0, 0, 2, 2425)
+    expectFresh(0, 2, 2, 2425)
 }
 
-// Binding a literal builds it in the variable.
+// Binding a literal builds it in the variable. The elements of an array literal are moved into it.
 #test
 {
     resetFresh(26)
@@ -327,7 +328,7 @@ func makeAuto(value: s64)->FreshOwner
         let owners = [FreshOwner{FreshSeed}, FreshOwner{FreshSeed + 1}]
         Swag.assert(owners[0].value == 28 and owners[1].value == 29)
     }
-    expectFresh(0, 0, 2, 2829)
+    expectFresh(0, 2, 2, 2829)
 }
 
 // Assigning a literal moves it over the value it replaces.

@@ -37,6 +37,30 @@ Public API consistency remains a module-by-module design requirement under
 options structs, slices and ownership contracts are available today. A concrete API defect belongs
 in its module backlog; a general request for better names is not a missing language feature.
 
+### language.design.037 — A struct parameter is documented as a private value and used as a live reference
+
+- Recorded: 2026-09-30 10:20
+- Area: language semantics, parameter passing
+- Evidence: the reference page `006_001_declaration.swg` states that a function takes a struct
+  argument as an immutable value and that "the code behaves as if a private copy had been
+  made". The implementation passes the caller's address, and `std/audio` depends on that:
+  `updateThreadProc(th: Threading.Thread)` polls `th.requestEnd`, which another thread sets on
+  the very object the caller passed. A backend change that treated the parameter's storage as
+  fixed for the call moved that read out of the loop, and the release build of the audio tests
+  waited forever; the change was cut back to string, slice, interface and any parameters, and
+  `native/optimizer/immutable_parameter_reads.swg` now pins that a struct parameter sees a
+  change made to the caller's object during the call.
+- The two statements cannot both hold. Either a struct parameter is a value, and a callee that
+  must observe the caller's object takes `*T` - then `Threading.Thread` bodies and every similar
+  signature change, and the optimizer may read each field once; or it is a constant reference,
+  and the reference page and the borrow rules say so.
+- Next: decide which one the language means. List the `bin/` signatures that read a by-value
+  struct parameter across a call or a wait while something else writes the object, starting
+  with thread and task bodies.
+- Complete when: the reference, the standard library and the backend agree, and the test above
+  either states the chosen rule or is replaced by its opposite.
+- Related: compiler.optimization.104
+
 ### language.design.036 — Struct equality compares float members by their bytes
 
 - Recorded: 2026-09-18 14:05

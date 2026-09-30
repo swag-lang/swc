@@ -48,6 +48,28 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
+### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
+
+- Recorded: 2026-08-19 19:26
+- Updated: 2026-09-30 16:13 — Constant narrow lane reads and constant lane writes stay in registers; dynamic lanes and FMA remain.
+- Intent: complete dynamic lane insertion and extraction and evaluate fused multiply-add with an
+  explicit rounding contract. Immediate lane shuffles, horizontal reductions and SAD already lower
+  through dedicated operations; vector `mulAdd` currently emits a multiply followed by an add, so
+  replacing it with FMA must not silently change its rounding semantics.
+- Evidence: a constant lane read of a register-resident vector never touches the frame. A 32- or
+  64-bit lane is a `movd`/`movq`, through one `pshufd` past lane zero; an 8- or 16-bit lane slides
+  down by bytes (`psrldq`) and leaves through the same move, extended from its own width. A
+  constant lane written into a vector local is one `vpinsrb`/`vpinsrw`/`vpinsrd` where it was a
+  sixteen-byte spill, a narrow store and a wide reload stalled behind it. `native/simd/lanes.swg`
+  covers signed and unsigned narrow reads and the three insertion widths. What still goes through
+  the frame: a 64-bit lane write, and every dynamic index - `v[i]` spills the vector and reads
+  `[rsp + i * 4]`, `v[i] = x` spills, stores the lane and reloads sixteen bytes.
+- Next: give the 64-bit lane write its `vpinsrq`, lower a dynamic lane read through a byte shuffle
+  with a computed control where that beats the spill, and decide the FMA contract.
+- Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
+  kernel and end-to-end benchmarks show no regression on the fallback target.
+- Related: cpu.simd.010.
+
 ### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
 
 - Recorded: 2026-09-12 18:05
@@ -245,20 +267,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   profile.
 - Related: cpu.simd.006, std.video.001.
 
-### cpu.simd.013 — Unrolling does not expose constant-index SIMD packs
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-09-10 20:49 — removed the already explicit-packed ChaCha path as the outstanding reproducer
-- Evidence: ChaCha already uses explicit packed XOR in `chacha20XorFour`; it is no longer
-  evidence that automatic packing must still be added there. `Pass.LoopUnroll` and
-  `Pass.SlpVectorize` remain separate passes, and the remaining lead needs a scalar-source fixture.
-- Intent: fold induction-derived addresses to constant offsets after unrolling and rerun the
-  combining needed for SLP to recognize adjacent loads and stores.
-- Complete when: reduced scalar-source array and codec kernels become packed after unrolling
-  because induction-derived addresses are combined, with no code-size-only unroll when vectorization
-  does not follow.
-- Related: compiler.optimization.002.
-
 ### cpu.simd.007 — Gather supports one shape; scatter, compress and expand are absent
 
 - Recorded: 2026-08-20 08:56
@@ -362,22 +370,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: error bounds, exceptional values, determinism policy, and scalar/vector parity are
   tested, and benchmarks justify the chosen polynomial/table implementations.
 - Related: cpu.simd.027, cpu.simd.033, cpu.simd.034.
-
-### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
-
-- Recorded: 2026-08-19 19:26
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: complete direct narrow/dynamic lane insertion and extraction and evaluate fused
-  multiply-add with an explicit rounding contract. Immediate lane shuffles, horizontal reductions
-  and SAD already lower through dedicated operations; vector `mulAdd` currently emits a multiply
-  followed by an add, so replacing it with FMA must not silently change its rounding semantics. Landed 2026-08-22: `Swag.vecselect` is one `vpblendvb` (the
-  mask's byte sign bits carry a whole-lane compare mask exactly), and a constant 32- or 64-bit
-  lane read of a register-resident vector is a `movd`/`movq` — lane zero directly, another lane
-  through one `pshufd` — instead of a spill and a reload, which is what `storeLow4`/`storeLow8`
-  and every transposed store compile to. Narrow lanes and dynamic indices still take the spill.
-- Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
-  kernel and end-to-end benchmarks show no regression on the fallback target.
-- Related: cpu.simd.010.
 
 ### cpu.simd.015 — UTF-8 validation still lacks a profitable packed fast path
 

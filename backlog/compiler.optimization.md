@@ -15,6 +15,29 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.039 — Two test functions still sit at the sweep budget
+
+- Recorded: 2026-09-16 12:12
+- Updated: 2026-09-30 16:42 — Recorded the sweep distribution in both configurations; one chain fixed, two test functions remain at 20 and 24 sweeps.
+- Area: compiler/backend, compilation time
+- Evidence: the pre-RA optimization loop sweeps at most twenty-four times, and a function that
+  still changes on the last sweep stops the build. A temporary counter, final unchanged sweep
+  included, over `bin/std` with six workers: the release build runs the loop 30,944 times with a
+  median of 3 sweeps and a maximum of 15 (`Slice.predictIntraPlane`, `Pixel.Webp.vp8Reconstruct`);
+  the DevMode configuration reaches 14 (`Core.Base64.digitValue`). The release test builds go
+  further: `expectedCountOnes16` of `std/core` needs 20 sweeps, and one `#test` body of 404
+  instructions needs 24, which is the budget itself. One more link in its chain stops the build.
+- Already taken: the pre-RA address forward rewrote one reader of a `lea` per run, so an unrolled
+  sixteen-trip copy (`ScalingLists.setDefaults` and `setDefaultMatrix` of the HEVC decoder) took
+  20 sweeps. It now rewrites every reader on the straight line in one run, and the reduced case
+  settles in 8 with the same final code.
+- Next: trace which pass still advances one link per sweep in `expectedCountOnes16` (sixteen
+  unrolled copies of a bit count) and in the 24-sweep test body, and make it finish its chain in
+  one run, as the induction-variable pass and the address forward now do.
+- Complete when: no function of `bin/std`, tests included, needs more than sixteen sweeps in
+  either configuration, or the chain that does is identified and bounded.
+- Related: compiler.optimization.029, compiler.core.004.
+
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
@@ -54,7 +77,7 @@ block, and the hot path keeps the register.
   root proof, which today stops at the slice's base pointer.
 - Complete when: the unrolled step reads each position and velocity once and stores each
   velocity once, or packs its pairs, with no new spill traffic in the other benchmark programs.
-- Related: compiler.optimization.049, language.design.037
+- Related: language.design.037
 
 ### compiler.optimization.105 — The lz77 chain loop still divides two counters as signed
 
@@ -101,51 +124,6 @@ block, and the hot path keeps the register.
 - Complete when: the no-hit significance iteration reloads nothing at its latch and no decoder
   function or benchmark program grows.
 - Related: std.video.001, compiler.optimization.037
-
-### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
-
-- Recorded: 2026-09-24 10:33
-- Updated: 2026-09-29 17:23 — Folded pure index subtraction as well as addition.
-- Area: compiler/backend, loop unrolling
-- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
-  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
-  branch, and constant-table guards already describe general costs and benefits. The unrelated
-  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
-  indices and branches; it benefits from constant-index folding. Conversely,
-  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
-  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
-- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
-  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
-  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
-  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
-  flattens, while the otherwise identical plain loop still keeps its latch.
-- Audit: temporarily raising the ordinary cap to 32 made an unrelated 17-trip arithmetic sum fold from a nine-instruction loop to three straight-line instructions. A 17-word XOR update instead grew from an eight-instruction loop to 35 instructions: the index became constant, but its already-folded memory XOR was outside the constant-index rule. Extending that rule to indexed compares, register-memory operations, and unary/binary memory updates reduces the unrolled XOR case from 35 to 19 instructions, with 17 direct-offset XORs and no indexed reads or per-element index materializations. The production 16-trip cap remains: even after this repair, the 17-word update grows from eight to 19 static instructions and retains all 17 memory updates, so a general profitability rule needs more than a trip count. The C++ test covers five operation forms and rejects dynamic and 32-bit addresses; a native test covers indexed XOR, increment, decrement and dynamic indexing, and a JIT test covers the constant-index updates. All 1,157 C++ tests and seven benchmark checksums pass; the seven selected benchmark functions have identical normalized Micro instructions before and after. No runtime timing was used.
-- A pure unsigned 64-bit counted loop whose only body instruction adds its induction index to a
-  constant-initialized accumulator now computes the arithmetic progression directly. The rule
-  keeps the exact start, step, and bound checks, requires dead post-loop flags, and leaves
-  parameter sums and loops with other body work unchanged. In the 17-trip scratch program,
-  `sum17` falls from eight Release Micro instructions to two; `dynamicSum17` stays at eight,
-  and both builds return `CHECK=391`. C++ tests cover nonzero start and step, modular accumulator
-  wraparound, a runtime operand, and live flags. The DevMode compiler's 1,175 C++ tests, 3,488
-  native DevMode tests, and 1,502 JIT DevMode tests pass. All seven benchmark task checksums
-  pass; no individual task timing was used.
-- Follow-up: `for i in 17'u32` lowers its induction register at 64 bits but adds its low 32 bits
-  to a 32-bit accumulator. The fold now recognizes this mixed-width shape and truncates only
-  the final sum to the accumulator width. The independent Release `sum17u32` falls from eight
-  to two Micro instructions; a runtime-parameter sum remains at eight. Both native and JIT runs
-  return `CHECK=391`; a C++ case also starts the accumulator at `UINT32_MAX`. All 1,175 C++ tests and
-  1,502 JIT DevMode tests pass. The seven benchmark task checksums and selected function sizes
-  are unchanged. No task timing was taken.
-- The same closed form now folds a body that subtracts the induction value. A separate
-  `u32` 17-trip subtractor falls from eight to two Release Micro instructions; its
-  parameter-driven counterpart remains at eight. Native and JIT execution both return
-  `CHECK=8589934201`, including unsigned wraparound. The 1,175 C++ and 1,502 JIT DevMode
-  tests pass. This is a code-size and executed-work gain on an unrelated input; no timing was used.
-- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
-  only when a general work-saved versus code-growth rule improves them without expanding loops
-  whose bodies retain their per-trip work.
-- Complete when: the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
-  both admitted and rejected shapes.
 
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 
@@ -259,57 +237,6 @@ block, and the hot path keeps the register.
   Zig's executed path; focus on register and frame traffic rather than its absent collisions.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
-### compiler.optimization.051 — Calibrate the loop-rotation header budget
-
-- Recorded: 2026-09-24 11:53
-- Updated: 2026-09-29 13:49 — Rotated a collision loop through its direct exit trampoline.
-- Area: compiler/backend, post-RA loop rotation
-- Evidence: `PostRALoopRotate` duplicates a flag-only test and the allocator's flag-neutral
-  connectors at the back edge, replacing one unconditional jump per iteration. The unrelated
-  `PostRALoopRotate_IndependentHeadersRotate` test rotates headers with one incoming back edge;
-  `PostRALoopRotate_SecondIncomingJumpBlocks` keeps a header with another incoming edge. These
-  safety guards use general control flow, and the pass now covers register and memory `test`
-  instructions as well as compares. Its eight-instruction header limit is a static growth budget,
-  but no cost comparison explains why a safe nine-instruction header should keep its per-iteration
-  jump while an eight-instruction header is duplicated.
-- Address-header batch: the same rotation now accepts flag-neutral `lea` instructions before the
-  compare and clones each RIP-relative relocation onto the copied test instruction. Dijkstra's
-  `pop` changes from 48 to 52 static Micro instructions; its inlined copy in `main` changes that
-  function from 435 to 439. Both remove one executed unconditional jump per sift-down step, with
-  the address calculation, bound load, and compare still executed once per step. MSVC's winning
-  sift-down loop likewise branches conditionally back to the comparison. Leven's unrelated
-  row-shift loop changes its enclosing `main` from 474 to 477 static instructions and removes its
-  unconditional back edge. Five other benchmark tasks have identical normalized selected Micro
-  instructions. All seven checksums pass. The C++ test checks the copied relocation target and
-  rejects a flag-changing arithmetic connector; 1,158 C++ tests, 3,488 native Release tests,
-  and 1,502 JIT Release tests pass. The JIT case changes a global bound inside the loop, proving
-  the copied load reads the next iteration's value. No timing sample informed this batch.
-- Campaign check: a full sweep after this batch passed all seven task checksums but stopped before
-  recording because the `doc_std` edit-build workload raised a compiler hardware exception.
-  The reference probes moved 78.3% between neighbouring points (40% limit), so its timings would
-  have been rejected even without that error. The exact `doc --workspace bin/std --rebuild`
-  command subsequently completed all twelve modules in both DevMode and Release with six workers;
-  the exception was not reproduced. The driver left `history.json` and the latest accepted
-  campaign (`20260928-170009`) unchanged. Do not infer a runtime ranking from this sweep.
-- Exit-trampoline batch: a copied test can now fall through adjacent labels to an unconditional
-  jump to the same exit, provided no instruction executes between the back edge and that jump.
-  The first inlined csvagg probe changes from 1,001 to 1,003 static Micro instructions. A
-  collision that fails its key-length comparison now executes six instructions, two branches,
-  and three memory operations until the next key-length comparison, down from seven, three,
-  and three. The newly accepted `20260929-105508` campaign names Zig as csvagg's fastest other
-  runtime; its comparable path uses seven instructions, two branches, and three memory operations.
-  Zig encodes the mask as an immediate but reloads the key-length pointer after testing the used
-  slot; Swag keeps that pointer but reads the mask from memory. That mask lead belongs to .083.
-  The C++ regression rejects a different trampoline target and an intervening instruction. All 1,172
-  C++ tests, 3,488 native Release tests, 1,502 JIT Release tests, and seven task checksums pass.
-  This is static code evidence; no timing sample was taken for the batch.
-- Next: compare code size and executed jumps for unrelated loops with short and long connector
-  runs, including other direct exit trampolines; then derive a header budget from code growth
-  and work saved instead of the fixed cutoff.
-- Complete when: the cutoff or its replacement has non-benchmark profitability evidence and tests
-  around the chosen boundary.
-- Related: compiler.optimization.083
-
 ### compiler.optimization.098 — Feed adjacent array updates from a packed state
 
 - Recorded: 2026-09-29 08:04
@@ -345,16 +272,6 @@ block, and the hot path keeps the register.
 - Next: represent unwind ranges and parent links in `MachineCode`, emit them from the final physical instruction stream, and publish all ranges in native `.pdata` and the JIT function table. Then move only saves for registers first defined below the guard, with a proof for each path to a restore. Test both arms, nested calls and exceptional unwinding before and after the delayed saves in native and JIT output; compare no-hit and hit paths against MSVC.
 - Complete when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
 
-### compiler.optimization.096 — Remove the loop-bound reload from wordfreq's common path
-
-- Recorded: 2026-09-28 15:46
-- Updated: 2026-09-28 16:15 — The cold-edge placement passed C++, native, JIT, and all seven benchmark checksums.
-- Area: compiler/backend, path-sensitive frame reload placement
-- Evidence: LDC's wordfreq character loop compares its index with the bound retained in `rbp`. Swag's corresponding alphabetic path retains the index in `r12` after compiler.optimization.095, but reloads the bound into `r13` from `[rsp+0x200]` immediately before the loop comparison on every character. A second reload from that slot is needed only after leaving the scan loop for token finalization. The current `main` contains 448 optimized Micro instructions and checksum 130489.
-- Investigation: the post-allocation CFG exposes a join label followed by the index increment and the bound reload. An earlier adjacent-label trial did not match this shape. The accepted rule looks past that independent increment and places the reload between the preceding cold-edge label and the join label. Its backward proof tracks balanced stack adjustments, rejects writes overlapping the private spill slot and paths without an initial value, and checks every direct jump into the join. An entry without a matching store initially exposed an unsound cycle in the proof; the regression test caught it before integration.
-- Evidence: the final Micro for wordfreq keeps the bound store at `[rsp+0x200]`, reloads it once on the cold edge before the join label and once after loop exit, and compares `r12` and `r13` on the alphabetic path. The common increment-and-compare path goes from three instructions with one memory read to two instructions with none; the cold path gains that read. `main` remains at 448 optimized Micro instructions and checksum 130489. The C++ unit test covers an independent loop, balanced stack adjustments, an unrelated memory write, missing initialization, a register clobber, an overlapping slot write, and a slot outside the private spill area. No individual runtime timing was taken.
-- Validation: 1,156 C++ tests, 3,483 native Release tests, 1,500 JIT Release tests, and all seven deterministic benchmark checksums pass. The six other selected benchmark function counts are unchanged.
-
 ### compiler.optimization.095 — Keep loop values off the stack on the common branch
 
 - Recorded: 2026-09-28 14:04
@@ -362,7 +279,7 @@ block, and the hot path keeps the register.
 - Area: compiler/backend, path-sensitive spill placement
 - Evidence: In wordfreq's character scan, the alphabetic path reaches a join where `r12` still holds the index, while token processing may reuse `r12`. The interval allocator had put the reload from `[rsp+0x210]` at that join, so every alphabetic character read the index from the stack. A post-allocation rule now moves the reload to the join's fallthrough edge only when every direct jump into the join can trace the same register value back to a matching frame store or reload without an intervening register definition, memory write, or call. It rejects a cyclic proof through the reload being moved. The common path loses one memory read; `main` grows from 448 to 450 static Micro instructions because subsequent branch layout changes, with no new instruction on that path. The checksum remains 130489; the other six benchmark checksums and selected function counts are unchanged. C++ (1,154), native Release (3,483), and JIT Release (1,500) tests pass. No timing sample was taken for this edit.
 - A second post-allocation rule now moves a private spill store to the cold branch that dominates its sole read. It checks every explicit access to the eight-byte slot, rejects overlapping or indexed accesses, proves that the register still equals the slot on every incoming path, and tracks balanced stack-pointer adjustments along paths to the read. It removes later writes only when the new store lies on every route to the read. It applies only when at least one redundant write is removed: wordfreq's header and latch stores become one cold-entry store. The common alphabetic path now avoids the header store, join reload, and latch store, while `main` has 448 static Micro instructions and checksum 130489. A wider version moved a store in Leven without removing another write and raised its `main` from 474 to 478 instructions; the narrower rule restores 474 and checksum 67441. The other five benchmark checksums and selected function counts are unchanged. C++ (1,155), native Release (3,483), and JIT Release (1,500) tests pass with the final rule, as do all seven benchmark checksums. No timing sample was taken for this edit.
-- The bound reload and its separate path proof are covered by compiler.optimization.096.
+- The bound reload is placed the same way: once on the cold edge before the join and once after loop exit.
 - Next: obtain a clean paired measurement at a campaign milestone.
 - Complete when: the common character path has no index or bound spill traffic without adding costs to the token-processing path or changing JIT/native behavior; otherwise retain only the proven reload placement.
 
@@ -467,109 +384,6 @@ block, and the hot path keeps the register.
 - Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3–8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1–64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
 - Next: compare the issued short-key path against the C runtime used by LDC and recheck the wordfreq ratio only after further static gains, since the larger generic fallback alone does not establish a benchmark speedup.
 - Complete when: final short-key code and repeated paired wordfreq measurements establish competitive cost, or isolate a reproducible remaining gap whose implementation can be specified here.
-
-### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
-
-- Recorded: 2026-09-16 12:12
-- Updated: 2026-09-26 17:47 — Validated later prompt-4 backend workspace savings in Release.
-- Area: compiler/backend, compilation time
-- Evidence: the pre-RA optimization loop sweeps at most sixteen times, and a function that still
-  changes on the sixteenth stops the build. Lowering that budget to three with a temporary knob
-  (Release 0.1.684) and building `bin/std/modules/gui` showed what that costs: eighteen errors,
-  all of them semantic errors about the user's own source, because the compile-time evaluations
-  those calls fold are lowered through the same loop. The loop now reports the defect itself,
-  naming the function and the budget, covered by the C++ test
-  `MicroPassManager_PreRa_ReportsALoopThatNeverSettles`. What it still does not say is how much
-  room is left: no measurement records the sweep counts a real build reaches, so whether sixteen
-  is a distant safety net or a limit some function already approaches is unknown.
-- 2026-09-26 Release diagnosis: the budget is now 24. `Slice.predictIntraPlane` in `std/video`
-  still mutated on sweep 24 with both the current compiler and an earlier unmodified master.
-  Temporarily allowing 80 sweeps showed 29 changing sweeps followed by a stable thirtieth;
-  this was a finite chain, not oscillation. The induction-variable pass reduced only one natural
-  loop per call, forcing the whole pre-RA pass battery to run between independent loop reductions.
-  Reducing distinct loops inside that pass, with a local 32-round bound and a fresh CFG per
-  reduction, lets this function converge under the unchanged 24-sweep budget. Each loop is
-  processed at most once per invocation, preserving the product-before-sum ordering protected by
-  the C++ pass tests. The `video` module's 117 tests, 3,481 native tests, and 1,500 JIT tests
-  passed on this refined form. This resolves the observed outlier; it does not measure the full
-  distribution.
-- Five order-alternated pairs against the exact previous master `a5a2414b2` gave candidate /
-  parent medians of 3,875 / 3,638 ms for core rebuild, 59 / 985 ms for no-op, 3,528 / 8,051 ms
-  for core touch, and 215 / 207 ms for hello build. Both binaries suffered unrelated load spikes:
-  a parent touch took 24 s, a candidate rebuild 12 s, and no-op runs reached 687 ms candidate
-  and 1,907 ms parent. The final quieter pair was near parity (2,829 / 2,827 ms rebuild). These
-  observations establish no percentage speedup or regression.
-- The integrated Release campaign passed repository checks, compiler suites, 3,481 native and
-  1,500 JIT tests, workspace tests, and built every standard module including `video`; it stopped
-  while executing `std/pixel` tests when `swc.exe` crashed with `0xC0000005`. The exact parent
-  reproduced the crash after tuning the same 6,580 functions. A GUI test fixture also needed
-  its property attribute qualified as `#[Properties.ReadOnly]` after the runtime added a
-  same-named attribute. Manual continuation then passed all 783 `std/gui` tests, 117 `std/video`
-  tests, 479 reference tests, every script smoke, and the first 228 application tests.
-  `Swag Scope` then stopped in semantic analysis on a forward
-  `arDecimalAt` reference. The examples smoke stopped when `pixel4` exhausted memory in polygon
-  cleanup; the parent also grew beyond 100 GiB of committed memory in the same smoke and was
-  stopped to protect the shared machine. These failures limit whole-repository validation and
-  are not evidence of a regression in this optimization.
-- 2026-09-26 follow-up: the `arDecimalAt` failure came from macro-injected caller code resolving
-  file-private symbols against the macro's source file. Lookup now uses the identifier's source
-  file namespace when it differs from the active AST; all 23 focused `Swag Scope` Release tests
-  pass. The `pixel4` memory growth came from a malformed RoundAnchor/SquareAnchor stroke: its
-  starting point became zero and created a huge diagonal polygon. A Pixel regression checks the
-  generated vertices; all 571 Pixel Release tests pass in JIT and native execution, and the
-  `pixel4` Release smoke completes. The separate window-close panic was fixed by releasing the
-  render context before Win32 destroys the window; manual close exits normally.
-- A temporary counter in the Release compiler recorded 29,205 pre-RA optimization-loop calls
-  during `bin/std` `--rebuild` with six workers. The count includes the final unchanged sweep:
-  median 3, 90th percentile 5, 95th 6, 99th 7, 99.9th 10, and maximum 15 (two functions).
-  Sixteen functions needed more than ten sweeps; none exceeded fifteen. The current 24-sweep
-  limit has nine sweeps of headroom on this corpus. The counter was removed after measurement;
-  DevMode and other consumer workspaces remain unmeasured.
-- Later prompt-4 batches avoid a boolean-fusion scan without an immediate compare, count only
-  queried virtual definitions in the sanitizer, defer its call-target, diagnostic, released-location
-  and escaped-object containers, and retain live-slot, visit, block-index and register-position
-  storage across functions. The CFG no longer clears edge lists it is about to discard. These are
-  equivalent-work allocation and traversal savings; the shared machine has not yielded a stable
-  whole-build percentage. The latest Release candidate passed 3,481 native, 1,500 JIT and 781
-  `std/core` tests. After the dense-register change, all 12 standard modules built; the combined
-  test run first stopped once on an undiagnosed `CodeGen` error in `core`, which then passed alone
-  and in the next combined run. That run stopped in `pixel` with `0xC0000005` at `ntdll+0x1ff2a`;
-  the exact pre-campaign parent had crashed at the same offset earlier that day. Separate `gui`
-  and `video` runs passed 783 and 117 tests before the two latest workspace changes. A five-pair
-  four-workload timing attempt was stopped after unrelated load stretched one core touch to 30 s;
-  the shorter A/B screens establish no percentage claim.
-- The 2026-09-28 prompt-4 continuation moved the allocator's control-flow check into its
-  existing use/def collection walk and removed a duplicate clearing of the same instruction
-  buffer. This removes a separate instruction walk for functions without an early label or jump.
-  The Release compiler passed 20 focused native and 17 focused JIT register-allocation tests,
-  then 3,483 native and 1,500 JIT tests on the merged master source. Timing was not measured.
-- A follow-up removes four per-instruction clears in allocator liveness collection. `clearState`
-  destroys the old per-instruction lists before the collection resizes them, so every new list
-  is already empty. The focused Release register-allocation file passed 20 native tests, followed
-  by 3,483 native and 1,500 JIT tests. Timing was not measured.
-- Post-allocation upper-half analysis now resizes its slot table without zeroing old entries.
-  Both acyclic and cyclic CFG paths overwrite every live instruction slot before any caller asks
-  for it; callers use live references while rewrites are still queued. This removes one
-  slot-count fill per analysis after the table first reaches that size. Four focused native Release
-  zero-extension tests passed, followed by 3,483 native and 1,500 JIT tests. Timing and peak
-  memory were not measured.
-- `MicroStorage::allocNode` no longer resets a node after obtaining it. A fresh slot is already
-  default-constructed, and `erase` resets a recycled slot before it enters the free list. This
-  removes one `Node` assignment per allocated micro-instruction slot. The focused Release
-  register-allocation file passed 20 native tests, followed by 3,483 native and 1,500 JIT tests.
-  Timing was not measured.
-- `MicroBuilder::addInstructionWithRef` no longer placement-constructs operand entries after
-  `MicroOperandStorage::emplaceUninitArray` has resized its `std::vector`. The resize already
-  default-constructs every operand, including its `ApInt`; this removes one duplicate construction
-  per emitted operand without changing its initial value. The focused Release `slp_vectorize`
-  file passed 17 native tests, followed by 3,483 native and 1,500 JIT tests. Timing was not
-  measured.
-- Next: count DevMode sweeps and other consumer workspaces before treating the Release
-  standard-library maximum as a general bound. If any function approaches 24, identify the
-  pass chain that keeps changing it before raising the limit.
-- Complete when: the sweep distribution over `bin/std` is recorded, and the budget is either
-  justified by it or replaced by what the measurement shows is needed.
-- Related: compiler.optimization.029, compiler.core.004.
 
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
@@ -784,116 +598,6 @@ block, and the hot path keeps the register.
 - Complete when: either a profitable general rule and its alias tests are in
   place, or measurements show that scalar indexed updates are the better form.
 
-### compiler.optimization.053 — Recheck scalar global loop updates with RIP memory operands
-
-- Recorded: 2026-09-24 16:49
-- Area: compiler/backend, loop memory folding
-- Evidence: an independent four-element `u32` loop computes `Total += values[i]`
-  and `dst[] += values[i]`; both results are 10. The final Release micro code for
-  the global update contains a RIP load, an indexed-memory add into a register,
-  and a RIP store per iteration. The pointer update contains an indexed load and
-  an `add [rcx], r9`. `keepAccessScalar` retains some global accesses in loops to
-  protect vectorization. Direct RIP memory arithmetic is now available, so the
-  global scalar loop may have a remaining `load; add; store` fold opportunity.
-  Entries .002 and .046 document vectorization losses from broad changes to this
-  guard; this one loop does not justify changing the policy.
-- Next: compare final code, vector operations, memory operations, and register
-  pressure for unrelated scalar-global loops with and without a guarded RIP
-  read-modify-write fold. Include a vectorization candidate and a frame slot.
-  Admit only a general condition that improves scalar loops while preserving
-  vectorization.
-- Complete when: static evidence explains which loop shapes should use direct
-  memory arithmetic and which must retain the existing guard.
-
-### compiler.optimization.052 — Check final code before adding a late indexed-select rule
-
-- Recorded: 2026-09-24 12:30
-- Area: compiler/backend, indexed memory selection
-- Evidence: in `wordfreq.less`, the first post-RA sweep showed a five-instruction
-  `copy; compare indexed memory; branch; reload; copy` minimum. A candidate post-RA
-  rule turned it into `load; compare; cmov`, passed 1,075 C++ unit tests and the
-  independently drawn native `flow/switch_complete.swg` (two tests), and kept
-  `CHECK=130489`. A comparison of the **final** dumps showed that the existing
-  optimizer already emits the same three-instruction minimum: `less` has 46 final
-  micro instructions in both builds. The candidate was reverted; the first sweep
-  was the wrong baseline for a multi-sweep pass.
-- Next: only consider another post-RA indexed-select rule after locating a
-  non-benchmark function whose final dump still has the redundant branch and
-  reload. Compare final dumps after every optimization sweep, not adjacent stage
-  snapshots from different sweeps.
-- Complete when: that search either identifies a genuine missed final-code shape
-  with static benefit or rules out this additional post-RA rule.
-
-### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-24 11:56 — Correct the current trip limit after the later unroller changes.
-- Area: compiler/backend
-- Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
-- Observation in August 2026: the dominant cost was the key-stream application — sixteen words
-  XOR-ed one at a time, a loop the unroller then refused because `K_MAX_TRIPS` was 8. Raising
-  it to 16 unrolled the
-  loop and bought nothing (2026-08-22, static census, release: chacha main 627 -> 763
-  instructions, sha256 725 -> 878, every other task unchanged), because the per-element body
-  carried three instructions a constant cannot remove. Those are gone (2026-09-03): the
-  zero-extension after a 32-bit load and the `& M32` after a 64-bit add of two zero-extended
-  words fold in `Pass.InstructionCombine.ZeroExtend.cpp` (a 32-bit write clears the upper half
-  of its register, a contract `MicroInstr.h` now states), and the `load; op; store` round trip
-  folds into `xor [r9], r11`. That fold always existed on paper; two defects kept it out of
-  every loop. Every single-consumer fold counted the dead header phi of a loop-defined value
-  as a second reader (`valueHasSingleUse` now looks through phis nothing reads), and
-  legalization rewrote every memory-destination form back into registers because it read a
-  virtual register as "not an integer". The folds now leave a frame slot or a global alone
-  inside a loop, where slot promotion, the vectorizer and the instruction-pointer-relative
-  access own it (the round loop of chacha lost its SLP packing otherwise, 229 -> 483).
-- Evidence: release, static census of the bench mains, 2026-09-03: chacha 229 -> 223, sha256
-  394 -> 369 (25 zero-extensions -> 2), csvagg 699 -> 695, wordfreq 322 -> 318, dijkstra
-  276 -> 275, raytrace 115 -> 114, leven unchanged. The key-stream body alone is 24
-  instructions against 28.
-- Current boundary: `1238a3c2e` subsequently gave independent temporaries in cloned straight-line
-  bodies fresh names, with coverage in `native/optimizer/unroll_renames_temporaries.swg`.
-  `K_MAX_TRIPS` is now 16 for ordinary loops, and loops indexing immutable constant tables can
-  exceed it within the existing code-size budget. The August/September counts above predate
-  these changes; carried values are deliberately not renamed.
-- Next: compare current ChaCha key-stream code against the earlier eight-trip limit using static
-  per-loop instructions, memory operations, and spills. Use paired timing only if a tradeoff
-  remains after inspecting the generated code.
-- Complete when: the current unroll limit has profitability evidence for this loop, including
-  the effects of temporary renaming and later instruction folds.
-
-### compiler.optimization.048 — Check LICM's relocated address policy outside benchmarks
-
-- Recorded: 2026-09-24 09:47
-- Area: compiler/backend, loop-invariant code motion
-- Evidence: `Pass.LoopInvariantCodeMotion.cpp` keeps a relocated `LoadRegPtrImm` inside a loop while
-  it may hoist relocated memory reads. The rule uses opcode and relocation properties, not a
-  benchmark name. `LICM_RetargetsDuplicateRelocationsAndKeepsUnhoistedOnes` checks both shapes
-  on an unrelated synthetic loop. The recorded cost argument for keeping the address
-  materialization inside cites only SHA-256 (+2 instructions and one stack slot when hoisted),
-  so the profitability decision lacks a static comparison on other code.
-- Next: compare loop instructions and spill traffic for the current policy and a guarded hoist on
-  non-benchmark functions that repeatedly access relocated tables, plus functions without such
-  accesses. Keep the current rule if hoisting merely lengthens live ranges; otherwise derive a
-  register-pressure condition from those cases and add focused correctness coverage.
-- Complete when: the policy has static profitability evidence outside `bench/`.
-
-### compiler.optimization.047 — Calibrate span-scoped register grants on non-benchmark code
-
-- Recorded: 2026-09-24 09:13
-- Area: compiler/backend, register allocation
-- Evidence: `Pass.RegisterAllocation.cpp` grants a register named elsewhere when a candidate's
-  benefit density reaches half the best density in that function. The decision uses general
-  properties — loop benefit, live span, pool headroom, call crossings, and concrete claims — but
-  the factor of two was selected from `bench/` results for sha256, leven, wordfreq, and csvagg.
-  A review on 2026-09-24 found no benchmark-specific predicate, yet no recorded static census of
-  spill traffic or rejected grants in unrelated standard-module code supports that factor.
-- Next: compare divisor values 1, 2, and 4 on representative non-benchmark functions with
-  different register pressure. Count granted ranges and memory operations in the affected loops
-  before relying on timing; retain the factor or replace it with a pressure cost rule from that
-  evidence.
-- Complete when: the current gate or its replacement has static evidence outside `bench/` and
-  focused correctness coverage for both accepted and rejected grants.
-
 ### compiler.optimization.046 — A local array copied whole stays in memory, and scalarizing the copy costs the vectorizer
 
 - Recorded: 2026-09-23 19:51
@@ -990,20 +694,6 @@ block, and the hot path keeps the register.
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
 
-### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
-
-- Recorded: 2026-09-18 19:48
-- Area: compiler/backend, constant materialization
-- Evidence: four `Swag.abs(f32)` stores now form a scalar constant load, `pshufd`, packed load,
-  `andps`, packed store (five body instructions). LLVM uses a 16-byte repeated sign-mask constant
-  directly as the `andps` memory operand, for three body instructions. The scalar constant
-  allocation owns only four bytes, so reusing it as a packed memory operand is unsound; the SLP
-  pass correctly materializes a register splat instead.
-- Next: design an interned 128-bit repeated-constant allocation with an explicit relocation and
-  memory-operand legality contract; use it only where the packed operation can read all 16 bytes.
-- Complete when: the sign-mask fixture loads or consumes a verified 128-bit constant without a
-  scalar-to-vector shuffle, and relocation/JIT tests cover the allocation boundary.
-
 ### compiler.optimization.040 — Returning a fresh aggregate invokes its copy hook
 
 - Recorded: 2026-09-16 14:37
@@ -1044,7 +734,7 @@ block, and the hot path keeps the register.
   claim or correctness acceptance was made for either rejected prototype.
 - Observation: duplicating the body alone does not eliminate the carried-state frame accesses
   described in compiler.optimization.005. The current pass only fully unrolls at most eight
-  trips; merely raising that limit is a different experiment, compiler.optimization.002.
+  trips; merely raising that limit is a different experiment.
 - Current boundary: since `1238a3c2e`, the full unroller gives independent temporaries fresh
   names in cloned straight-line bodies. Values read before their first write, read outside the
   body, or constrained by allocation keep their names; bodies with internal labels also keep
@@ -1117,41 +807,7 @@ block, and the hot path keeps the register.
   the old hull interference as a current blocker. The old session named `webrename-parked/`,
   but no `Pass.WebRename` prototype is present in this checkout; the recorded algorithm is the
   recoverable starting point.
-- Related: compiler.optimization.015, compiler.optimization.017; unlocks the full yield of the web hoisting shipped in LICM.
-
-### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
-
-- Recorded: 2026-08-19 14:16
-- Updated: 2026-09-14 06:25 — Account for flag-preserving branch fixes without inferring a clamp speedup.
-- Area: compiler
-- Found while: std.video.001, profiling the H.264 decoder on a 1080p30 Main stream in release.
-- Observation: `cond ? a : b`, `Swag.min`, `Swag.max`, `Swag.abs` and `Math.clamp` through them lower to a
-  compare and a conditional move: the ternary diamond converts when both arms are short, pure
-  and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
-  through the single-arm conversion beside it. The select written as a statement — the
-  `if v < lo do return lo` / `if v > hi do return hi` chain — now converts too (2026-09-03,
-  `convertEarlyReturnsToSelects`): each statement is a triangle whose body leaves the function,
-  so the innermost pair folds into one return fed by a conditional move, and the fixed point
-  folds the chain from the bottom, under the diamond's rules (pure, short, one value leaving
-  each path, the compare re-issued when a path wrote the flags). What still compiles to a branch
-  is an `if`/`else` whose arms do more than produce one value.
-- Current boundary: `900480a3c` and `3cd5a5c77` corrected the treatment of instructions that
-  preserve CPU flags, including XMM clears and integer NOT. Branch and arm analysis now uses
-  `instructionActuallyDefinesCpuFlags`; a nominal opcode flag is not proof that entry flags
-  were overwritten. `Test.Micro.BranchSimplify.cpp` covers the dynamic branch and arm cases,
-  and `native/flow/string_condition_snapshot.swg` covers the string-condition failure.
-  The sign-bit helpers remain in `decode/h264/transform.swg`; these correctness fixes supply
-  no new timing evidence for replacing them.
-- Evidence: `#[Swag.PrintMicro("pre-emit")]` in release on the three-way early-return clamp:
-  15 instructions with two `jump_cond` and three `ret` before, 12 with two `cmov` and one `ret`
-  after; the nested ternary is 10. The decoder's conversion stage went from 1495 ms to about
-  470 ms over 59 frames when its clamps were rewritten branch-free by hand (3.2x, byte-identical
-  output; the sign-bit forms in `decode/h264/transform.swg`).
-- Next: re-measure the decoder's deblock and conversion loops with the clamps written as
-  statements against the hand-written sign-bit forms, and retire those if the select matches
-  them.
-- Complete when: the decoder's conversion stage measures the same with statement clamps as with
-  the sign-bit forms, and the sign-bit forms are gone.
+- Related: compiler.optimization.015; unlocks the full yield of the web hoisting shipped in LICM.
 
 ### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
 
@@ -1344,45 +1000,6 @@ block, and the hot path keeps the register.
   back edge with no per-iteration store (dump-verified), a trace-based drop/store audit like
   std.video.005's validates the rewrite, and HEVC serial decode does not regress.
 - Related: std.video.005, compiler.optimization.011.
-
-### compiler.optimization.017 — Jump-entered loops have no general preheader normalization
-
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: a small structural pass gives every natural-loop header entered by a jump a fresh
-  preheader label - non-back-edge jumps retargeted to it, fall-in preserved - so LICM, RA loop
-  residency, `VecLoopPromote`, `PostRALoopHoist` and carried-slot promotion stop declining
-  those loops outright. LLVM makes this shape (LoopSimplify) a precondition of its whole loop
-  stack; with no phi nodes in the Micro IR it is pure label rewiring here.
-- Next: count the loops LICM and `VecLoopPromote` refuse for a jump-entered header on the
-  video corpus; implement the preheader only if that count is not zero.
-- Complete when: the five loop passes accept a previously jump-entered loop (counted on a corpus
-  dump), `BranchSimplify::redirectJumpChains` provably does not thread the new preheader away,
-  and the suites stay green.
-- Measured 2026-08-27 at the post-RA stage: all 33 natural loops of the release probe corpus
-  plus `filterLumaEdge` and `interpolateLuma` enter their header by clean fall-through - the
-  rotate pass has already normalized every hot entry by then. The post-RA half has no substrate;
-  only the pre-RA half (LICM, `VecLoopPromote`) remains unmeasured. Deprioritized until a pre-RA
-  count shows refused loops.
-- Related: compiler.optimization.015, compiler.optimization.016.
-
-### compiler.optimization.018 — Dead spill stores have no byte-liveness elimination pass
-
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: a post-RA pass runs a backward byte-liveness fixed point over
-  `[spillAreaLo, spillAreaHi)` on the instruction CFG and deletes every spill store no path
-  reloads before overwrite - the write-back protocol audited from the consumption side, since the
-  allocator manufactures stores wholesale and nothing checks whether any path reads them.
-- Next: recover or reconstruct the byte-liveness prototype, check its assumptions against the
-  current split allocator, and run the focused spill cases before the full video Release run.
-- Complete when: the pass lands with the three known landmines closed - exact read widths (a
-  16-byte over-approximation pins the neighbouring 8-byte slot), push/pop and stack-pointer
-  arithmetic not treated as area barriers (or the epilogue keeps everything alive), and any
-  function with a stack-pointer adjustment between its first and last spill access skipped
-  (call-argument setup shifts the offset coordinate system) - and the full video release run stays
-  green. An older session recorded a `dse-parked` prototype; it is not present in this checkout.
-- Related: the historical lane-count failure was fixed on 2026-08-27; current allocator changes still require fresh validation.
 
 ### compiler.optimization.020 — Memory optimizations maintain separate frame alias analyses
 

@@ -28,36 +28,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   repeated parallel cold compilation.
 - Related: compiler.core.020, compiler.core.007.
 
-### compiler.core.063 — Three PDF tests of `std/gui` fail under the release configuration
-
-- Recorded: 2026-09-30 11:15
-- Area: compiler/backend, release code generation as the JIT runs it
-- Evidence: `bin\swc.dm.exe --num-cores 6 tools\std.swgs dm test gui -bc release --num-cores 6`
-  at `170a1d7f4` reports 782 passed and 3 that did not: `pdf.corpus.test.swg:42` and `:57`
-  stop on an access violation in `PdfParser.number` (`parser.swg:1151`, a read of freed
-  storage, register image `0xDEDEDEDE`), and `pdf.stroke.test.swg:15` fails its dash-pattern
-  assertion. The same tests pass with `-bc devmode`. A probe printed from the stroke test shows
-  the decoded pattern holds two values, `10 10`, where `[10 5 3]` must give six: the loop
-  `for valueId in content.nodes[arrayId].values` of the `d` operator in `decode.swg` ran once,
-  and the odd-count rule then doubled the single value. That array holds direct numbers, so
-  `resolve` parses nothing and the node table does not move during the loop.
-- Ruled out: the generated-code campaign of 2026-09-30. With every mechanism it added switched
-  off in a scratch build - immutable handle parameters, nest unrolling and single-trip latches,
-  the reload and dead-store rules, the unsigned-division proof and the deferred signed
-  expansion, the zero-tested remainder, the LICM gap, the post-allocation store rule - and the
-  standard library rebuilt from empty output directories, `pdf.stroke.test.swg` still fails
-  the same way. A standalone script that rebuilds the operator's loop - an `Array` member of an
-  element of another `Array`, iterated while the body calls a method on the owning parser and
-  can `fail` - prints the right six values in both configurations, so the loop itself is sound:
-  the array node probably reaches it with one value already.
-- Not established: which change introduced it, and whether `master` of the morning of
-  2026-09-30 already failed. The headless campaign in the release configuration stops at this
-  module, so `video`, the applications and the reference were run apart.
-- Next: print the value count of the array node the content parser builds for `[10 5 3]` in
-  release, reduce the parsing step that loses two values to a suite test under `bin/unittests`,
-  then bisect the backend and code-generation commits since the last green release campaign
-  with it.
-- Complete when: the three tests pass in release, and a suite test fails on the defect.
 ### compiler.core.062 — Unlocated EOF diagnostics can suppress another file's error state
 
 - Recorded: 2026-09-30 11:02

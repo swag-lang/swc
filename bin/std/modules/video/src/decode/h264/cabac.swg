@@ -684,8 +684,8 @@ impl Slice
         var result: retval
         for component in 2'u32
         {
-            let sumA    = absS32(cast(s32) a[component])
-            let sumB    = absS32(cast(s32) b[component])
+            let sumA    = Math.abs(cast(s32) a[component])
+            let sumB    = Math.abs(cast(s32) b[component])
             let amvd    = sumA + sumB
             var ctxBase = component == 0 ? 40'u32 : 47'u32
             var ctx     = 0'u32
@@ -1127,7 +1127,7 @@ impl Slice
                 for cell in 4's32
                 {
                     let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
-                    storage.nz[cast(u64) raster] = cast(u8) minS32(count, 16)
+                    storage.nz[cast(u64) raster] = cast(u8) Math.min(count, 16)
                     if isLuma do
                         mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0
                 }

@@ -931,33 +931,33 @@ func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta
     let q1 = cast(s32) (pix + step)[0]
 
     // The three sample conditions of 8.7.2.2 fold into one sign test.
-    if ((alpha - 1 - absS32(p0 - q0)) | (beta - 1 - absS32(p1 - p0)) | (beta - 1 - absS32(q1 - q0))) < 0 do
+    if ((alpha - 1 - Math.abs(p0 - q0)) | (beta - 1 - Math.abs(p1 - p0)) | (beta - 1 - Math.abs(q1 - q0))) < 0 do
         return
 
     // `-1` when the side condition holds, `0` otherwise, so the count rides on a subtraction.
     let p2     = cast(s32) (pix - 3 * step)[0]
     let q2     = cast(s32) (pix + 2 * step)[0]
-    let apMask = (absS32(p2 - p0) - beta) >> 31
-    let aqMask = (absS32(q2 - q0) - beta) >> 31
+    let apMask = (Math.abs(p2 - p0) - beta) >> 31
+    let aqMask = (Math.abs(q2 - q0) - beta) >> 31
 
     if bs < 4
     {
         let tc0 = cast(s32) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs - 1)]
         let tc  = tc0 - apMask - aqMask
 
-        let delta = clampS32((((q0 - p0) << 2) + (p1 - q1) + 4) >> 3, -tc, tc)
+        let delta = Math.clamp((((q0 - p0) << 2) + (p1 - q1) + 4) >> 3, -tc, tc)
         (pix - step)[0] = clampPixel(p0 + delta)
         pix[0] = clampPixel(q0 - delta)
 
         if apMask != 0
         {
-            let adjust = clampS32((p2 + ((p0 + q0 + 1) >> 1) - 2 * p1) >> 1, -tc0, tc0)
+            let adjust = Math.clamp((p2 + ((p0 + q0 + 1) >> 1) - 2 * p1) >> 1, -tc0, tc0)
             (pix - 2 * step)[0] = cast(u8) (p1 + adjust)
         }
 
         if aqMask != 0
         {
-            let adjust = clampS32((q2 + ((p0 + q0 + 1) >> 1) - 2 * q1) >> 1, -tc0, tc0)
+            let adjust = Math.clamp((q2 + ((p0 + q0 + 1) >> 1) - 2 * q1) >> 1, -tc0, tc0)
             (pix + step)[0] = cast(u8) (q1 + adjust)
         }
 
@@ -965,7 +965,7 @@ func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta
     }
 
     // Strong filtering.
-    let shortGap = absS32(p0 - q0) < (alpha >> 2) + 2
+    let shortGap = Math.abs(p0 - q0) < (alpha >> 2) + 2
     if shortGap and apMask != 0
     {
         let p3 = cast(s32) (pix - 4 * step)[0]
@@ -1000,13 +1000,13 @@ func filterChroma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, be
     let q0 = cast(s32) pix[0]
     let p1 = cast(s32) (pix - 2 * step)[0]
     let q1 = cast(s32) (pix + step)[0]
-    if ((alpha - 1 - absS32(p0 - q0)) | (beta - 1 - absS32(p1 - p0)) | (beta - 1 - absS32(q1 - q0))) < 0 do
+    if ((alpha - 1 - Math.abs(p0 - q0)) | (beta - 1 - Math.abs(p1 - p0)) | (beta - 1 - Math.abs(q1 - q0))) < 0 do
         return
 
     if bs < 4
     {
         let tc    = cast(s32) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs - 1)] + 1
-        let delta = clampS32((((q0 - p0) << 2) + (p1 - q1) + 4) >> 3, -tc, tc)
+        let delta = Math.clamp((((q0 - p0) << 2) + (p1 - q1) + 4) >> 3, -tc, tc)
         (pix - step)[0] = clampPixel(p0 + delta)
         pix[0] = clampPixel(q0 - delta)
         return

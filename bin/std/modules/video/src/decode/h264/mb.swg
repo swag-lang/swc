@@ -390,8 +390,8 @@ impl Slice
         if matchC and not matchA and not matchB do
             return [c.mvX, c.mvY]
 
-        let medianX = maxS32(minS32(cast(s32) a.mvX, cast(s32) b.mvX), minS32(maxS32(cast(s32) a.mvX, cast(s32) b.mvX), cast(s32) c.mvX))
-        let medianY = maxS32(minS32(cast(s32) a.mvY, cast(s32) b.mvY), minS32(maxS32(cast(s32) a.mvY, cast(s32) b.mvY), cast(s32) c.mvY))
+        let medianX = Math.max(Math.min(cast(s32) a.mvX, cast(s32) b.mvX), Math.min(Math.max(cast(s32) a.mvX, cast(s32) b.mvX), cast(s32) c.mvX))
+        let medianY = Math.max(Math.min(cast(s32) a.mvY, cast(s32) b.mvY), Math.min(Math.max(cast(s32) a.mvY, cast(s32) b.mvY), cast(s32) c.mvY))
         return [cast(s16) medianX, cast(s16) medianY]
     }
 

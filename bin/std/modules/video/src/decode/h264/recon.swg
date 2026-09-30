@@ -372,10 +372,10 @@ impl Slice
         // Four flat blocks, the common case, take one pass over the 8x8 block.
         if counts[0] == 0 and counts[1] == 0 and counts[2] == 0 and counts[3] == 0
         {
-            let dc0 = clampS32((cast(s32) dc[0] * cast(s32) table[0]) >> 5, -32768, 32767)
-            let dc1 = clampS32((cast(s32) dc[1] * cast(s32) table[0]) >> 5, -32768, 32767)
-            let dc2 = clampS32((cast(s32) dc[2] * cast(s32) table[0]) >> 5, -32768, 32767)
-            let dc3 = clampS32((cast(s32) dc[3] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc0 = Math.clamp((cast(s32) dc[0] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc1 = Math.clamp((cast(s32) dc[1] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc2 = Math.clamp((cast(s32) dc[2] * cast(s32) table[0]) >> 5, -32768, 32767)
+            let dc3 = Math.clamp((cast(s32) dc[3] * cast(s32) table[0]) >> 5, -32768, 32767)
             if dc0 != 0 or dc1 != 0 or dc2 != 0 or dc3 != 0 do
                 addDc8x8Quad(frame.pixChroma(plane, mb.mbX * 8, mb.mbY * 8), stride, dc0, dc1, dc2, dc3)
             return
@@ -390,7 +390,7 @@ impl Slice
                 continue
 
             // A block with no AC level is flat, the rounded DC on every sample.
-            let clamped     = clampS32(dcValue, -32768, 32767)
+            let clamped     = Math.clamp(dcValue, -32768, 32767)
             let destination = frame.pixChroma(plane, mb.mbX * 8 + bx * 4, mb.mbY * 8 + by * 4)
             if counts[cast(u64) block] == 0
             {
@@ -710,7 +710,7 @@ private func reconstructBand(decoder: *Decoder, first, end: u32)
 #[Swag.Inline]
 private func intra16Dc(dcBlock: const [*] s16, raster: s32, scale: s32)->s32
 {
-    return clampS32((cast(s32) dcBlock[cast(u64) raster] * scale + 32) >> 6, -32768, 32767)
+    return Math.clamp((cast(s32) dcBlock[cast(u64) raster] * scale + 32) >> 6, -32768, 32767)
 }
 
 // Adds one 4x4 block of a colour plane, already dequantized in raster order, to its prediction.

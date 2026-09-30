@@ -11,55 +11,9 @@ using Core
 // Inverse transforms of section 8.5. Every routine adds its result to the prediction already
 // sitting in the destination plane, clamping to the byte range.
 
-// Branchless pixel-loop primitives retained from the decoder's measured sign-bit path.
-// The backend can now lower simple clamps to conditional moves; replacing these forms
-// still needs a comparison of the generated loops and decoder cost.
-
-// Clamps one reconstructed sample.
+// Clamps one reconstructed sample to the byte range.
 #[Swag.Inline]
-func clampPixel(value: s32)->u8
-{
-    let positive = value & ~(value >> 31)
-    return cast(u8) ((positive | ((255 - positive) >> 31)) & 255)
-}
-
-// Returns `value` clamped to zero from below.
-#[Swag.Inline]
-func max0S32(value: s32)->s32 => value & ~(value >> 31)
-
-// Returns the absolute value.
-#[Swag.Inline]
-func absS32(value: s32)->s32
-{
-    let sign = value >> 31
-    return (value ^ sign) - sign
-}
-
-// Clamps `value` into `low`..`high`.
-#[Swag.Inline]
-func clampS32(value, low, high: s32)->s32
-{
-    let aboveLow  = value - low
-    let floored   = low + (aboveLow & ~(aboveLow >> 31))
-    let belowHigh = high - floored
-    return high - (belowHigh & ~(belowHigh >> 31))
-}
-
-// Returns the smaller value.
-#[Swag.Inline]
-func minS32(a, b: s32)->s32
-{
-    let difference = a - b
-    return b + (difference & (difference >> 31))
-}
-
-// Returns the larger value.
-#[Swag.Inline]
-func maxS32(a, b: s32)->s32
-{
-    let difference = a - b
-    return a - (difference & (difference >> 31))
-}
+func clampPixel(value: s32)->u8 => cast(u8) Math.clamp(value, 0, 255)
 
 // The inverse 4x4 core transform of section 8.5.12.2 in 32-bit scalar arithmetic: the
 // reference [[addIdct4x4]] is checked against.
@@ -238,10 +192,10 @@ func hadamard4x4Scalar(block: [*] s16)
         let e1 = c0 - c2
         let e2 = c1 - c3
         let e3 = c1 + c3
-        block[column]      = cast(s16) clampS32(e0 + e3, -32768, 32767)
-        block[4 + column]  = cast(s16) clampS32(e1 + e2, -32768, 32767)
-        block[8 + column]  = cast(s16) clampS32(e1 - e2, -32768, 32767)
-        block[12 + column] = cast(s16) clampS32(e0 - e3, -32768, 32767)
+        block[column]      = cast(s16) Math.clamp(e0 + e3, -32768, 32767)
+        block[4 + column]  = cast(s16) Math.clamp(e1 + e2, -32768, 32767)
+        block[8 + column]  = cast(s16) Math.clamp(e1 - e2, -32768, 32767)
+        block[12 + column] = cast(s16) Math.clamp(e0 - e3, -32768, 32767)
     }
 }
 

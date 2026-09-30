@@ -31,6 +31,11 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
     hold the same function targets for the relocations that carry a constant source; the verdict
     "nothing unpublished" also only changes when the closure does, since a JIT entry is never
     withdrawn during a build.
+  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
+    memo keys on the count of semantically completed symbols, which moves for as long as sema
+    runs, so during that whole phase each call rescans every forwarding edge not yet applied -
+    and an edge whose callee never frees its parameter is never applied. A worklist keyed by
+    callee would touch an edge only when its callee's mask or either end's completion moves.
   - `JIT::patchGlobalFunctionVariables` copies the module's whole global-variable list under a
     lock and scans it on every compile-time call, to patch the few function-initialized globals the
     running call graph references.

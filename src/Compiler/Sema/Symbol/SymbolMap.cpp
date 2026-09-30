@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -126,24 +127,39 @@ SymbolMap::SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, Iden
 {
 }
 
-void SymbolMap::addUsingSymMap(SymbolMap* symMap)
+uint32_t SymbolMap::shardIndex(IdentifierRef idRef) noexcept
+{
+    // References contain aligned byte offsets: masking their low bits routes every
+    // real identifier to shard zero. Mix the whole reference before choosing a lock.
+    return Math::hash(idRef.get()) & (SHARD_COUNT - 1);
+}
+
+void SymbolMap::addUsingSymMap(TaskContext& ctx, SymbolMap* symMap)
 {
     SWC_ASSERT(symMap != nullptr);
     const std::unique_lock lk(mutex_);
-    for (const SymbolMap* existing : usingSymMaps_)
+    const UsingSymMap* head = usingSymMaps_.load(std::memory_order_relaxed);
+    for (const UsingSymMap* existing = head; existing; existing = existing->previous)
     {
-        if (existing == symMap)
+        if (existing->symbol == symMap)
             return;
     }
 
-    usingSymMaps_.push_back(symMap);
+    auto* entry     = ctx.allocate<UsingSymMap>();
+    entry->symbol   = symMap;
+    entry->previous = head;
+    usingSymMaps_.store(entry, std::memory_order_release);
 }
 
 void SymbolMap::copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const
 {
-    const std::shared_lock lk(mutex_);
-    for (const SymbolMap* symMap : usingSymMaps_)
-        out.push_back(symMap);
+    const size_t start = out.size();
+    for (const UsingSymMap* entry = usingSymMaps_.load(std::memory_order_acquire); entry; entry = entry->previous)
+        out.push_back(entry->symbol);
+
+    // The published chain points backwards; lookup still sees insertion order and
+    // keeps any entries the caller had already collected at the front.
+    std::reverse(out.begin() + start, out.end());
 }
 
 bool SymbolMap::empty() const noexcept

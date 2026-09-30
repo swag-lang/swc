@@ -6,37 +6,6 @@ using Core
 // Folder the snippet module lives in, which is also the name the compiler reports it under.
 private const ProbeModuleName = "prismprobe"
 
-/*
-The module setup the probe compiles the snippet in.
-
-The snippet is the whole of a module of its own, so nothing the user writes has to know it is being
-inspected, and a snippet that does not compile stops nothing but its own build.
-
-A static library is what the snippet is built as. Code is generated for every function it declares,
-which is what the pane reads, and nothing has to be linked or given a `#main` — so a snippet is one
-loose function rather than a program, which is how a reader wants to write one.
-*/
-private const ProbeModuleSource = """\
-    #import("core", location: "swag@std")
-    #run
-    {
-        with let cfg = Swag.compiler().getBuildCfg()!
-        {
-            .backendKind = .StaticLibrary
-        }
-    }
-    """
-
-/*
-The configuration the snippet is built in.
-
-Swag Prism shows the code that would ship. A development build inserts the bounds checks and the
-overflow guards a released one leaves out, and a pane full of calls to `Swag.safetyPanic` answers a
-question nobody asked about a backend they came to judge. The selected backend optimization level
-is passed separately, so O0, O1, and O2 share the same runtime guard policy.
-*/
-private const ProbeBuildConfig = "release"
-
 // What one compilation of a snippet left behind.
 struct Result
 {
@@ -44,16 +13,8 @@ struct Result
     failed: bool       // Whether the compiler stopped before it could print a stage.
 }
 
-/*
-Compiles one snippet on its own and collects what the compiler printed about it.
-
-The snippet is built as a module in a temporary folder by a separate compiler process. That is the
-whole point of the type: a snippet that does not compile, loops forever, or stops the compiler
-outright must cost the reader the output pane and never the text they were writing.
-
-The folder is created once and reused for every compilation, because the compiler keys its cache on
-the module and a folder that moves between runs throws that cache away on every keystroke.
-*/
+// Owns the temporary module and artifact directory used by one compilation.
+// Separate sessions keep simultaneous builds from sharing source files or outputs.
 #[Swag.NoCopy]
 struct Probe
 {
@@ -93,10 +54,8 @@ impl Probe
                 fail createError
         }
 
-        // One session folder per probe rather than one per compilation: the compiler cache lives
-        // with the module, and a folder that moves between runs throws that cache away on every
-        // keystroke — while a second instance of the application must not build into the first
-        // one's.
+        // Claim a directory before writing: concurrent artifacts and application instances must
+        // never share mutable sources or outputs.
         var session: String
         for
         {
@@ -117,54 +76,15 @@ impl Probe
         try Directory.create(root.toString())
         try Directory.create(Path.combine(root, "src").toString())
 
-        let moduleFile = Path.combine(root, "module.swg")
-        discard try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) ProbeModuleSource)
-
         .session = #move session
         .root    = #move root
-    }
-
-    // Compiles `source` and returns what the compiler printed about `stage`.
-    mtd compile(source: string, stage: string, optimLevel: Swag.BuildCfgBackendOptimLevel, cancelled: *u32? = null)->Result fail
-    {
-        try .open()
-
-        let sourceFile = Path.combine(.root, "src", "probe.swg")
-        let inspected  = inspectedSource(source, stage)
-        discard try File.writeAllBytes(sourceFile.toString(), cast(const [..] u8) inspected.toString())
-
-        let compiler  = compilerPath()
-        let arguments = Format.toString("build --num-cores % --build-cfg % --optim-level % --module-file \"%/module.swg\" --directory src", compilerWorkerCount(), ProbeBuildConfig, cast(u8) optimLevel, .root)
-
-        // Swag Prism draws its own window, and the compiler is a console program, so without this
-        // the system builds a console and its host process for every single compilation — which
-        // flashes a window and costs several times what the compilation itself costs. Nothing is
-        // lost by refusing it: both of the child's streams are read here.
-        let info = Env.StartInfo{fileName: compiler.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false}
-
-        var process = try Env.startProcess(info)
-        defer retireProcess(&process)
-        var watch: Time.Stopwatch
-        watch.start()
-        while not try process.tryWaitForExit(20'ms)
-        {
-            if cancelled and Atomic.get(cancelled) do
-                return {}
-            if watch.elapsedMilliseconds() > 60000 do
-                return {text: String.from("Compilation exceeded 60 seconds."), failed: true}
-        }
-
-        var result: retval
-        result.text   = String.from(process.standardOutput())
-        result.failed = process.exitCode() != 0
-        if result.failed do
-            result.text.append(process.standardError())
-        return result
     }
 }
 
 /*
 Path of the compiler that builds the snippets.
+
+An explicit `--compiler=<path>` launch argument selects a development compiler before discovery.
 
 A shipped application sits in the directory the compiler was published to, so the compiler beside it
 is the one that matches this build. A development build sits several directories under that same
@@ -177,6 +97,10 @@ resolves the compiler, and it is what the reader sees named when nothing does.
 func compilerPath()->String
 {
     const CompilerName = "swc.exe"
+
+    let requested = compilerArgument("--compiler=")
+    if requested.count do
+        return String.from(requested)
 
     var folder = String.from(Path.directoryName(Env.executablePath()))
     while not folder.isEmpty()
@@ -203,6 +127,8 @@ compiler runs, so it keeps a processor for itself. And the compiler stops paying
 before a large machine runs out: measured on a twenty-two processor machine, one snippet takes
 324 ms with six workers, 264 ms with twelve, and 266 ms with twenty-two — the last for a quarter
 more processor time, which the interface then has to compete with.
+
+The `--compiler-workers=<count>` launch argument can lower this budget for shared-machine runs.
 */
 func compilerWorkerCount()->u32
 {
@@ -212,7 +138,17 @@ func compilerWorkerCount()->u32
     let available = Hardware.processorCount()
     if available <= 2 do
         return 1
-    return Math.min(available - 1, MaxWorkers)
+    let requested = catch StrConv.toU32(compilerArgument("--compiler-workers="))
+    let limit     = requested != 0 ? Math.min(requested, MaxWorkers) : MaxWorkers
+    return Math.min(available - 1, limit)
+}
+
+// Explicit launch options let development runs select the compiler and share a worker budget.
+private func compilerArgument(prefix: string)->string
+{
+    for argument in Env.arguments() where Utf8.startsWith(cast(const [..] u8) argument, prefix) do
+        return argument[prefix.count to]
+    return ""
 }
 
 /*

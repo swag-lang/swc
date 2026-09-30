@@ -233,6 +233,64 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksPrivateSpillStoreToColdBranch)
 }
 SWC_TEST_END()
 
+// Equal stack displacements can name different slots around a call adjustment;
+// different displacements can also name the same slot. Neither hides a reader.
+SWC_TEST_BEGIN(PostRAPeephole_SpillStoreSinkingTracksStackDepth)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  value = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+
+    for (const bool separateSlot : {true, false})
+    {
+        MicroBuilder  builder(ctx);
+        const auto    loop = builder.createLabel();
+        const auto    cold = builder.createLabel();
+        const auto    join = builder.createLabel();
+        MicroInstrRef observedStore;
+        if (separateSlot)
+        {
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+            observedStore = builder.instructions().lastInstructionRef();
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadRegMem(flag, conv.stackPointer, 56, MicroOpBits::B64);
+        }
+        builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+        if (!separateSlot)
+            observedStore = builder.instructions().lastInstructionRef();
+        builder.placeLabel(loop);
+        if (!separateSlot)
+        {
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitLoadRegMem(flag, conv.stackPointer, 72, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        }
+        builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, cold);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(cold);
+        builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+        builder.placeLabel(join);
+        builder.emitLoadRegMem(value, conv.stackPointer, 64, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+        builder.emitCmpRegImm(flag, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 56, 80));
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 56, 80));
+        const MicroInstr* store = builder.instructions().ptr(observedStore);
+        if (!store || store->op != MicroInstrOpcode::LoadMemReg)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_SinksLoopBoundReloadPastIncrement)
 {
     const CallConv& conv  = CallConv::get(CallConvKind::Swag);

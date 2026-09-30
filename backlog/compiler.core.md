@@ -6,6 +6,50 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
+
+- Recorded: 2026-09-30 15:28
+- Evidence: a serial native Swag Prism test with the DevMode compiler and program configuration
+  `release` loads `bin/std/.output/core/shared-library/release/x86_64/core.dll` in its parent
+  compiler. The test's child compiler requests `build --build-cfg release --optim-level 0` for a
+  temporary Core importer and tries to republish that DLL. The write fails with access denied;
+  the diagnostic identifies the parent `swc.dm.exe` as its owner. Six workers and serial execution
+  reproduce it. Running a script concurrently can hold the same source artifact and expose the
+  same failure, but concurrency between campaigns is not required.
+- Boundary: scripts use immutable dependency-cache copies, and external workspace dependencies
+  are mirrored into `.dep`; workspace-local dependencies can still be loaded from their mutable
+  `.output` directories. `ExternalModuleManager` retains loaded libraries for the process.
+  Prism's retired probe helper exposed this by forwarding snippet optimization levels to all
+  dependencies; its current `BuildArtifact` path sets the level on the snippet's module instead.
+- Next: reduce the parent compile-time DLL call followed by a child's forced dependency rebuild
+  to a workspace-suite fixture. Audit shared-library resolution during dependency builds and
+  separate compiler-loaded library lifetime from the mutable publication path, while preserving
+  native linking, publication, cache invalidation, and runtime-instance ownership.
+- Complete when: the fixture rebuilds the dependency while its parent compiler remains alive,
+  with both compiler executables, and workspace reuse and publication checks still pass.
+
+### compiler.core.063 — Reduce the PDF spill-slot regression to a standalone language test
+
+- Recorded: 2026-09-30 11:15
+- Updated: 2026-09-30 14:18 — retain only the standalone regression coverage still missing
+- Evidence: `sinkFrameStoreIntoBranchTarget` compared raw stack displacements across outgoing-call
+  stack adjustments. In `Pdf.parseContent`, a store at `[rsp + 0x1AA8]` under an eight-byte
+  adjustment belonged to the slot later read at `[rsp + 0x1AA0]`. The pass mistook it for another
+  loop's store at the first displacement and erased it. Comparing entry-relative addresses fixes
+  the three PDF failures; all eleven selected corpus/stroke tests pass in release JIT and native
+  execution. `PostRAPeephole_SpillStoreSinkingTracksStackDepth` fails before the fix and covers both
+  distinct slots with equal displacements and one slot with different displacements.
+- Remaining boundary: that regression is a C++ Micro test, not a standalone source under
+  `bin/unittests`. Extracting the parser and dash loop into a Core-only script passes even without
+  the fix. Forty-eight standalone two-loop variants, varying call arity from one to twelve and
+  live accumulator pressure, also pass without it. Those reductions change register allocation
+  and no longer place the two loops' spills at the conflicting adjusted displacements; retaining
+  the full GUI decoder would violate the standalone suite boundary.
+- Next: reduce the interacting loops and their register pressure while checking the pre-fix
+  post-allocation instruction stream, then keep a native suite case that fails without the fix.
+- Complete when: `bin/unittests/native` reproduces this stack-depth aliasing independently of GUI,
+  alongside the existing C++ regression and PDF consumer tests.
+
 ### compiler.core.061 — Type-info graph publication uses one serialization domain
 
 - Recorded: 2026-09-30 08:34

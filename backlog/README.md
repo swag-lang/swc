@@ -37,22 +37,21 @@ the latest entry was removed. The removal itself lives in Git.
 | --- | --- | --- |
 | [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-30 16:42 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-30 16:13 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-30 13:48 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-30 15:28 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-30 10:20 |
-| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-30 10:14 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-29 21:24 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-29 18:46 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-29 13:48 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-28 16:00 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-27 18:13 |
 | [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-27 18:11 |
+| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-27 18:09 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:06 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-27 17:52 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-27 17:50 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-27 17:49 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-27 17:45 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
-| [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-12 07:12 |
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-12 06:37 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-12 06:24 |
@@ -70,6 +69,7 @@ the latest entry was removed. The removal itself lives in Git.
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-10 19:06 |
 | [app.scope.hexa.md](app.scope.hexa.md) | The Swag Scope hexadecimal viewer | 2026-09-10 19:06 |
 | [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` | 2026-09-06 17:42 |
+| [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-06 17:42 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-06 07:51 |
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-09-06 07:51 |

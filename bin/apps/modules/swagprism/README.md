@@ -64,10 +64,16 @@ working process. An unchanged preview continues playing when another panel chang
 switching examples, closing a viewer, or quitting cancels and reaps its process. A build
 has a 60-second deadline, and an unresponsive preview has a 10-second frame deadline.
 
+For a development compiler, pass `--run-arg=--compiler=<absolute compiler path>` to select the
+compiler used by snippets and formatting. `--run-arg=--compiler-workers=6` limits those child
+compilers too; the outer `--num-cores` option only bounds the compiler building Prism. Positive
+worker limits are capped at twelve and leave one processor free when the machine has more than two.
+Without these options, Prism keeps its normal compiler discovery and worker budget.
+
 From the repository root:
 
 ```powershell
-bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm run swagprism --num-cores 6
-bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm test swagprism --num-cores 6
-bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm smoke swagprism --num-cores 6
+bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm run swagprism --num-cores 6 --run-arg=--compiler-workers=6
+bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm test swagprism --num-cores 6 --run-arg=--compiler-workers=6
+bin\swc.dm.exe --num-cores 6 tools\apps.swgs dm smoke swagprism --num-cores 6 --run-arg=--compiler-workers=6
 ```

@@ -14,7 +14,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runSlpPass(MicroBuilder& builder, MicroSsaState& ssa, X64Encoder& encoder)
+    Result runSlpPass(MicroBuilder& builder, MicroSsaState& ssa, X64Encoder& encoder, TaskContext* taskContext = nullptr)
     {
         Runtime::BuildCfgBackend backendCfg{};
         backendCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
@@ -22,6 +22,7 @@ namespace
         builder.setBackendBuildCfg(backendCfg);
 
         MicroPassContext passContext;
+        passContext.taskContext  = taskContext;
         passContext.builder      = &builder;
         passContext.instructions = &builder.instructions();
         passContext.operands     = &builder.operands();
@@ -305,6 +306,64 @@ SWC_TEST_BEGIN(SlpVectorize_SplatsSharedArithmeticImmediate)
     }
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 2 ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 2 || splats != 1 || adds != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_ReadsRepeatedConstantFromItsOwnSixteenBytes)
+{
+    MicroBuilder   builder(ctx);
+    X64Encoder     encoder(ctx);
+    MicroSsaState  ssa;
+    const MicroReg sp = encoder.stackPointerReg();
+    for (uint32_t group = 0; group < 2; ++group)
+    {
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const MicroReg value  = MicroReg::virtualIntReg(group * 4 + lane + 1);
+            const uint64_t offset = group * 0x20 + lane * 4;
+            builder.emitLoadRegMem(value, sp, 0x40 + offset, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(value, ApInt(0x80000005, 32), MicroOp::Add, MicroOpBits::B32);
+            builder.emitLoadMemReg(sp, 0x80 + offset, value, MicroOpBits::B32);
+        }
+    }
+    builder.emitRet();
+
+    SWC_RESULT(runSlpPass(builder, ssa, encoder, &ctx));
+    MicroInstrRef constantLoad = MicroInstrRef::invalid();
+    uint32_t      adds         = 0;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        const auto* ops = it->ops(builder.operands());
+        // No lane is staged through an integer register and shuffled.
+        if (it->op == MicroInstrOpcode::VecShuffleRegRegImm || it->op == MicroInstrOpcode::LoadRegImm)
+            return Result::Error;
+        if (it->op == MicroInstrOpcode::LoadRegMem && ops[1].reg == MicroReg::instructionPointer())
+        {
+            if (constantLoad.isValid() || ops[2].opBits != MicroOpBits::B128)
+                return Result::Error;
+            constantLoad = it.current;
+        }
+        if (it->op == MicroInstrOpcode::OpBinaryRegRegReg && ops[4].microOp == MicroOp::VecAdd32)
+            ++adds;
+    }
+    if (constantLoad.isInvalid() || adds != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 2)
+        return Result::Error;
+
+    // The relocation names an allocation of all sixteen bytes read.
+    const auto& relocations = builder.codeRelocations();
+    if (relocations.size() != 1)
+        return Result::Error;
+    const MicroRelocation& relocation = relocations.front();
+    if (relocation.instructionRef != constantLoad || relocation.kind != MicroRelocation::Kind::ConstantAddress ||
+        relocation.form != MicroRelocation::Form::Relative32 || relocation.constantCopySize != 16)
+        return Result::Error;
+    const auto*     stored = reinterpret_cast<const uint32_t*>(relocation.targetAddress);
+    const std::span lanes{stored, 4};
+    if (reinterpret_cast<uint64_t>(stored) % 16 != 0 || !std::ranges::all_of(lanes, [](const uint32_t lane) { return lane == 0x80000005; }))
         return Result::Error;
     return Result::Continue;
 }

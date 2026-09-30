@@ -1574,6 +1574,32 @@ namespace
         uint32_t planReg = K_INVALID_ID;
     };
 
+    // Reads a read-only sixteen-byte constant into `dst`. The allocation owns
+    // all sixteen bytes and is aligned on them, so a packed operation may
+    // also take it as its memory operand once the load is folded.
+    void emitVectorConstantLoad(const SlpFunctionContext& fn, const MicroInstrRef beforeRef, const MicroReg dst, const std::array<char, 16>& bytes)
+    {
+        DataSegmentRef         segmentRef;
+        const std::string_view stored = fn.context->taskContext->cstMgr().addPayloadBuffer(std::string_view{bytes.data(), bytes.size()}, &segmentRef, 16);
+
+        std::array<MicroInstrOperand, 4> loadOps;
+        loadOps[0].reg              = dst;
+        loadOps[1].reg              = MicroReg::instructionPointer();
+        loadOps[2].opBits           = MicroOpBits::B128;
+        loadOps[3].valueU64         = 0;
+        const MicroInstrRef loadRef = fn.storage->insertDerivedBefore(*fn.operands, beforeRef, MicroInstrOpcode::LoadRegMem, loadOps);
+
+        MicroRelocation relocation;
+        relocation.kind             = MicroRelocation::Kind::ConstantAddress;
+        relocation.form             = MicroRelocation::Form::Relative32;
+        relocation.instructionRef   = loadRef;
+        relocation.targetAddress    = reinterpret_cast<uint64_t>(stored.data());
+        relocation.constantShard    = segmentRef.shardIndex;
+        relocation.constantOffset   = segmentRef.offset;
+        relocation.constantCopySize = static_cast<uint32_t>(bytes.size());
+        fn.context->builder->addRelocation(relocation);
+    }
+
     bool vectorizeBlock(SlpFunctionContext& fn, std::optional<MicroSsaState>& localSsa, std::span<const BlockInstr> blockInstrs)
     {
         if (blockInstrs.size() < static_cast<size_t>(K_LANE_COUNT) * 2)
@@ -1926,6 +1952,19 @@ namespace
                 }
                 case PlanInstr::Kind::LoadSplat32:
                 {
+                    if (canLoadMask)
+                    {
+                        // One read of the repeated constant instead of an
+                        // immediate, a move across register classes and a
+                        // shuffle: the four lanes already exist in memory.
+                        std::array<char, 16> lanes;
+                        const auto           lane = static_cast<uint32_t>(planInstr.imm);
+                        for (uint32_t index = 0; index < 4; ++index)
+                            std::memcpy(lanes.data() + index * sizeof(lane), &lane, sizeof(lane));
+                        emitVectorConstantLoad(fn, firstDeletedRef, planRegs[planInstr.dst], lanes);
+                        break;
+                    }
+
                     SWC_ASSERT(fn.nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX);
                     const MicroReg scalar = MicroReg::virtualIntReg(fn.nextVirtualIntRegIndex++);
                     {
@@ -1983,25 +2022,7 @@ namespace
                         // would select every output word's bytes from the first input word.
                         for (uint32_t index = 0; index < 16; ++index)
                             mask[index] = static_cast<char>((index & ~3u) | ((index + 4u - maskIndex) & 3u));
-
-                        DataSegmentRef         segmentRef;
-                        const std::string_view stored = fn.context->taskContext->cstMgr().addPayloadBuffer(std::string_view{mask.data(), mask.size()}, &segmentRef, 16);
-                        std::array<MicroInstrOperand, 4> loadOps;
-                        loadOps[0].reg      = maskReg;
-                        loadOps[1].reg      = MicroReg::instructionPointer();
-                        loadOps[2].opBits   = MicroOpBits::B128;
-                        loadOps[3].valueU64 = 0;
-                        const MicroInstrRef loadRef = fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegMem, loadOps);
-
-                        MicroRelocation relocation;
-                        relocation.kind             = MicroRelocation::Kind::ConstantAddress;
-                        relocation.form             = MicroRelocation::Form::Relative32;
-                        relocation.instructionRef   = loadRef;
-                        relocation.targetAddress    = reinterpret_cast<uint64_t>(stored.data());
-                        relocation.constantShard    = segmentRef.shardIndex;
-                        relocation.constantOffset   = segmentRef.offset;
-                        relocation.constantCopySize = static_cast<uint32_t>(mask.size());
-                        fn.context->builder->addRelocation(relocation);
+                        emitVectorConstantLoad(fn, firstDeletedRef, maskReg, mask);
                     }
 
                     if (fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary())

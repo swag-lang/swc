@@ -104,6 +104,7 @@ namespace
 
     bool hasVirtualRegisters(const MicroStorage& instructions, const MicroOperandStorage& operands, const Encoder* encoder)
     {
+        MicroInstrUseDef useDef;
         for (const MicroInstr& inst : instructions.view())
         {
             const MicroInstrDef&     info = MicroInstr::info(inst.op);
@@ -123,7 +124,7 @@ namespace
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
             {
-                const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+                inst.collectUseDef(useDef, operands, encoder);
                 for (const MicroReg reg : useDef.uses)
                     if (reg.isVirtual())
                         return true;
@@ -237,6 +238,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
     SWC_ASSERT(instructions_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);
 
+    MicroInstrUseDef useDef;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt;)
     {
         const MicroInstrRef instructionRef = it.current;
@@ -284,10 +286,10 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
             {
-                const MicroInstrUseDef useDef = scanIt->collectUseDef(*operands_, context_->encoder);
-                definesSource                 = containsKey(useDef.defs, srcReg);
-                definesDestination            = containsKey(useDef.defs, dstReg);
-                usesDestination               = containsKey(useDef.uses, dstReg);
+                scanIt->collectUseDef(useDef, *operands_, context_->encoder);
+                definesSource      = containsKey(useDef.defs, srcReg);
+                definesDestination = containsKey(useDef.defs, dstReg);
+                usesDestination    = containsKey(useDef.uses, dstReg);
             }
             else if (scanOps)
             {
@@ -2098,7 +2100,8 @@ void MicroRegisterAllocationPass::prepareInstructionData()
         if (!hasControlFlow_ && (inst->op == MicroInstrOpcode::Label || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::JumpInstruction)))
             hasControlFlow_ = true;
 
-        MicroInstrUseDef useDef = inst->collectUseDef(*operands_, context_->encoder);
+        MicroInstrUseDef& useDef = instructionUseDefs_[idx];
+        inst->collectUseDef(useDef, *operands_, context_->encoder);
         if (!hasVirtual)
         {
             for (const MicroReg reg : useDef.uses)
@@ -2124,7 +2127,6 @@ void MicroRegisterAllocationPass::prepareInstructionData()
 
         if (useDef.isCall)
             callPositions_.push_back(idx);
-        instructionUseDefs_[idx] = std::move(useDef);
     }
 
     hasVirtualRegs_       = hasVirtual;

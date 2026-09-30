@@ -112,7 +112,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
         if (!reuseUseDef)
         {
-            info.useDef = inst->collectUseDef(operands, encoder);
+            inst->collectUseDef(info.useDef, operands, encoder);
 
             info.cachedOp          = inst->op;
             info.cachedNumOperands = numOperands;

@@ -742,6 +742,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         out.deadDefs.clear();
     scratch.useMasks.resize(instCount);
     scratch.defMasks.resize(instCount);
+    MicroInstrUseDef scratchUseDef;
     for (uint32_t i = 0; i < instCount; ++i)
     {
         const MicroInstr* inst = context.instructions->ptr(instructionRefs[i]);
@@ -784,9 +785,10 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
             continue;
         }
 
-        MicroInstrUseDef useDef  = inst->collectUseDef(*context.operands, context.encoder);
-        uint64_t         useMask = 0;
-        uint64_t         defMask = 0;
+        MicroInstrUseDef& useDef = retainUseDefs ? out.useDefs[i] : scratchUseDef;
+        inst->collectUseDef(useDef, *context.operands, context.encoder);
+        uint64_t useMask = 0;
+        uint64_t defMask = 0;
         for (const MicroReg reg : useDef.uses)
             useMask |= maskOf(reg);
         if (recordDeadDefs)
@@ -807,8 +809,6 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         }
         scratch.useMasks[i] = useMask;
         scratch.defMasks[i] = defMask;
-        if (retainUseDefs)
-            out.useDefs[i] = std::move(useDef);
     }
 
     const CallConv& conv        = CallConv::get(context.callConvKind);

@@ -15,10 +15,39 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
+
+- Recorded: 2026-09-28 09:58
+- Updated: 2026-09-30 19:55 — Closed the focused round with retained-code validation.
+- Area: compiler/backend, register allocation, prologue and unwind information
+- Evidence: The latest accepted campaign (`20260928-105618`) names C++/MSVC as raytrace's fastest other runtime (9.249 ms versus Swag's 10.469 ms; ratio 1.132). In `trace`, Swag saves XMM6–XMM15 before its first `intersect` call and reloads all ten on the no-hit return. MSVC saves six XMM registers before that call; after `g_HitI >= 0` it saves XMM9 and XMM13–XMM15, which the no-hit path never touches. The no-hit path therefore avoids four stores and four loads in MSVC. Swag's frame reserves `0x168` bytes and MSVC's `0x128`, though allocation size alone does not measure the path cost.
+- Unwind evidence: `dumpbin /unwindinfo` on the accepted MSVC executable shows a primary `trace` range `0x1440–0x14DA` with six `SAVE_XMM128` records and a chained range `0x14DA–0x16F0` with saves for XMM9/XMM13/XMM14/XMM15 plus RBX/RDI. The no-hit return at object offset `0x74` lies in the primary range; the four later saves begin at offset `0xB4`. Two further chained ranges describe later control-flow regions. Swag currently builds one `UNWIND_INFO` blob in `X64UnwindWindows`, one native `.pdata` entry per function in `DebugInfoCodeView`, and one JIT `RUNTIME_FUNCTION` per allocation in `Os.Windows`. Those three interfaces must represent multiple code ranges before a delayed save can be correct under Windows unwinding.
+- Contract: [Microsoft's x64 unwind specification](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170#chained-unwind-info-structures) permits chained code regions for delayed register saves, but excludes an additional push or fixed stack allocation in the delayed region. The save slots must therefore remain in the entry frame. The encoder currently closes unwind tracking after the first ordinary instruction, while `MachineCode` exposes a single unwind byte array; `DebugInfoCodeView::appendUnwindSections` writes one `.pdata` record, and `Os::addHostJitFunctionTable` registers one runtime range. `PrologEpilogSanitize` also shares identical return tails, so the early and hit exits must carry the right saved-register state after that rewrite.
+- Binarytrees audit (Node 20.15.1 winner in `20260930-152655`): the retained `check`
+  is 25 instructions/three memory operands, including two pushes and two pops (excluded
+  from the memory-operand count). A leaf still pays the prologue and restores. Delaying that work across the first null guard is not a local
+  peephole: the current single unwind range cannot describe the leaf's different frame.
+- Rejected short-tail sharing: admitting the four-instruction scalar epilogue in
+  `collectReturnTail` changes `check` from 25/3 to 23/3 static instructions/memory operands,
+  but adds one executed unconditional jump to the recursive return and removes no executed
+  restore. Nbody, Raytrace, ChaCha and SHA-256 counts and all five checksums are unchanged.
+  This is a size tradeoff, not a speed-path improvement; the existing two-XMM-restore gate
+  was retained. Together with the two nbody root schedules, this ends the focused static
+  round after three consecutive attempts without a retained gain. Eight earlier batches
+  remain integrated; the winner mechanisms have not yet converged. No further local
+  rewrite is justified by the evidence: the remaining work needs register-pressure-aware
+  vector plans, allocator strategy, or multiple unwind ranges.
+- Final retained-code validation: 1205 C++ tests, 3532 native-suite tests in each of
+  devmode and release (JIT and native), semantic positive/negative suites, scripts, the
+  repository checks and all five inspected benchmark checksums pass. Restoring the failed
+  prototypes restores the accepted instruction counts. No new timing campaign was run.
+- Next: represent unwind ranges and parent links in `MachineCode`, emit them from the final physical instruction stream, and publish all ranges in native `.pdata` and the JIT function table. Then move only saves for registers first defined below the guard, with a proof for each path to a restore. Test both arms, nested calls and exceptional unwinding before and after the delayed saves in native and JIT output; compare no-hit and hit paths against MSVC.
+- Complete when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
+
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-09-30 19:41 — Inlined borrowed-slice steps to remove per-step ABI saves.
+- Updated: 2026-09-30 19:52 — Rejected two root-packing schedules that increased spills.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20260930-152655` reports Zig at 17.0078 ms and Swag native
   Release at 24.8768 ms, with `CHECK=169096566666`. The locally inspected Zig 0.15.2
@@ -62,6 +91,19 @@ block, and the hot path keeps the register.
 - Next: pack independent interaction computations while preserving their shared scalar
   magnitudes and reducing register pressure. Prove the read-only prefix/root relationship
   before moving memory operations; compare each pair section and position loop separately.
+- Rejected root-pair scheduling after inlining: hoist the second independent distance's
+  proven pure producers across disjoint same-base stores, rename their SSA values, then
+  pack two scalar square roots. Main's timestep uses three packed and four scalar roots,
+  but changes from 464/117/24 to 511/148/76 instructions/memory operands/frame operands.
+  The standalone step reaches five packed roots, at 529/176/107 instead of 473/134/44.
+  Both checksums remain exact; Raytrace remains unchanged. Extending coordinate lifetimes
+  costs more memory than the packed roots save, so the prototype was removed.
+- A second schedule caches the hoisted coordinates and upper root lane in integer registers
+  until their original uses. Main's loop still regresses to 532/145/73; the standalone step
+  is 575/172/103. The integer transfers do not remove enough XMM interference and add more
+  instructions. This prototype was also removed. A profitable next design needs packed
+  coordinate producers and their scalar consumers planned together, with a register-pressure
+  estimate; pairing the expensive operations alone is not sufficient.
 - Rejected scalar-prefix trial: capturing common magnitudes before store-tree vectorization,
   and allowing untouched prefix/suffix roots, grows the step from 464/152/44 to 576/222/119
   instructions/memory operands/frame operands. Scalar coordinate work remains live for the
@@ -310,16 +352,6 @@ block, and the hot path keeps the register.
 - Follow-up: a partial execution-only sweep of wordfreq and raytrace passed every runtime checksum and had 24.1% worst reference departure, but individual runtime samples varied by more than 900% in several cases. The partial sweep recorded nothing and cannot establish a runtime change.
 - Next: at the next full campaign milestone, inspect any larger ordinary loop newly reached by this layout rule and check its hot and cold branch balance before closing this lead.
 
-### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
-
-- Recorded: 2026-09-28 09:58
-- Updated: 2026-09-28 17:35 — Confirmed the MSVC lead in the latest accepted campaign.
-- Area: compiler/backend, register allocation, prologue and unwind information
-- Evidence: The latest accepted campaign (`20260928-105618`) names C++/MSVC as raytrace's fastest other runtime (9.249 ms versus Swag's 10.469 ms; ratio 1.132). In `trace`, Swag saves XMM6–XMM15 before its first `intersect` call and reloads all ten on the no-hit return. MSVC saves six XMM registers before that call; after `g_HitI >= 0` it saves XMM9 and XMM13–XMM15, which the no-hit path never touches. The no-hit path therefore avoids four stores and four loads in MSVC. Swag's frame reserves `0x168` bytes and MSVC's `0x128`, though allocation size alone does not measure the path cost.
-- Unwind evidence: `dumpbin /unwindinfo` on the accepted MSVC executable shows a primary `trace` range `0x1440–0x14DA` with six `SAVE_XMM128` records and a chained range `0x14DA–0x16F0` with saves for XMM9/XMM13/XMM14/XMM15 plus RBX/RDI. The no-hit return at object offset `0x74` lies in the primary range; the four later saves begin at offset `0xB4`. Two further chained ranges describe later control-flow regions. Swag currently builds one `UNWIND_INFO` blob in `X64UnwindWindows`, one native `.pdata` entry per function in `DebugInfoCodeView`, and one JIT `RUNTIME_FUNCTION` per allocation in `Os.Windows`. Those three interfaces must represent multiple code ranges before a delayed save can be correct under Windows unwinding.
-- Contract: [Microsoft's x64 unwind specification](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170#chained-unwind-info-structures) permits chained code regions for delayed register saves, but excludes an additional push or fixed stack allocation in the delayed region. The save slots must therefore remain in the entry frame. The encoder currently closes unwind tracking after the first ordinary instruction, while `MachineCode` exposes a single unwind byte array; `DebugInfoCodeView::appendUnwindSections` writes one `.pdata` record, and `Os::addHostJitFunctionTable` registers one runtime range. `PrologEpilogSanitize` also shares identical return tails, so the early and hit exits must carry the right saved-register state after that rewrite.
-- Next: represent unwind ranges and parent links in `MachineCode`, emit them from the final physical instruction stream, and publish all ranges in native `.pdata` and the JIT function table. Then move only saves for registers first defined below the guard, with a proof for each path to a restore. Test both arms, nested calls and exceptional unwinding before and after the delayed saves in native and JIT output; compare no-hit and hit paths against MSVC.
-- Complete when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
 
 ### compiler.optimization.095 — Keep loop values off the stack on the common branch
 

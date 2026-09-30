@@ -66,15 +66,21 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
 Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds)
 {
-    SmallVector skipTokens = {TokenId::SymComma};
-    for (const TokenId tokenEndId : tokenEndIds)
-        skipTokens.push_back(tokenEndId);
-    if (depthParen_)
-        skipTokens.push_back(TokenId::SymRightParen);
-    if (depthBracket_)
-        skipTokens.push_back(TokenId::SymRightBracket);
-    if (depthCurly_)
-        skipTokens.push_back(TokenId::SymRightCurly);
+    // Where to resume after a missing separator. Only the error paths ask, and nothing they do
+    // before asking consumes a token or moves a nesting depth, so the list is built there
+    // instead of once per element of every list parsed.
+    const auto skipToRecoveryPoint = [&] {
+        SmallVector skipTokens = {TokenId::SymComma};
+        for (const TokenId tokenEndId : tokenEndIds)
+            skipTokens.push_back(tokenEndId);
+        if (depthParen_)
+            skipTokens.push_back(TokenId::SymRightParen);
+        if (depthBracket_)
+            skipTokens.push_back(TokenId::SymRightBracket);
+        if (depthCurly_)
+            skipTokens.push_back(TokenId::SymRightCurly);
+        skipTo(skipTokens);
+    };
 
     switch (blockNodeId)
     {
@@ -87,7 +93,7 @@ Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<cons
             if (consumeIf(TokenId::SymComma).isInvalid() && !containsTokenId(tokenEndIds, id()) && !tok().startsLine())
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-                skipTo(skipTokens);
+                skipToRecoveryPoint();
                 return Result::Error;
             }
             break;
@@ -96,7 +102,7 @@ Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<cons
             if (consumeIf(TokenId::SymComma).isInvalid() && consumeIf(TokenId::SymSemiColon).isInvalid() && !containsTokenId(tokenEndIds, id()) && !tok().startsLine())
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-                skipTo(skipTokens);
+                skipToRecoveryPoint();
                 return Result::Error;
             }
             break;
@@ -105,7 +111,7 @@ Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<cons
             if (consumeIf(TokenId::SymSemiColon).isInvalid() && !containsTokenId(tokenEndIds, id()) && !tok().startsLine())
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymSemiColon);
-                skipTo(skipTokens);
+                skipToRecoveryPoint();
                 return Result::Error;
             }
             break;
@@ -122,7 +128,7 @@ Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<cons
             if (consumeIf(TokenId::SymComma).isInvalid() && !containsTokenId(tokenEndIds, id()))
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-                skipTo(skipTokens);
+                skipToRecoveryPoint();
                 return Result::Error;
             }
             break;

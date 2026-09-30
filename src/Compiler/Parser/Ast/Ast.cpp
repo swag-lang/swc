@@ -14,8 +14,9 @@ bool Ast::hasNode(AstNodeRef nodeRef) const
     if (shard >= SHARD_COUNT)
         return false;
 
-    const uint32_t   localRef = refLocal(globalRef);
-    std::shared_lock lock(shards_[shard].mutex);
+    // The test reads the store's published page snapshot and a page's atomic fill, the same way
+    // every unlocked node access does, so it takes no lock either.
+    const uint32_t localRef = refLocal(globalRef);
     return shards_[shard].store.containsRef(localRef, sizeof(AstNode));
 }
 
@@ -29,8 +30,7 @@ bool Ast::hasSpan(SpanRef spanRef) const
     if (shard >= SHARD_COUNT)
         return false;
 
-    const uint32_t   localRef = refLocal(globalRef);
-    std::shared_lock lock(shards_[shard].mutex);
+    const uint32_t localRef = refLocal(globalRef);
     return shards_[shard].store.containsRef(localRef);
 }
 

@@ -214,8 +214,10 @@ bool Parser::isClosureCaptureEndPipe() const
 
 AstModifierFlags Parser::parseModifiers()
 {
-    AstModifierFlags                     result = AstModifierFlagsE::Zero;
-    std::map<AstModifierFlags, TokenRef> done;
+    // Where each accepted modifier was written, read only to point at the earlier one when a
+    // modifier is repeated. Most operators carry none, so this must cost nothing to set up.
+    AstModifierFlags                                       result = AstModifierFlagsE::Zero;
+    SmallVector<std::pair<AstModifierFlags, TokenRef>, 4> done;
 
     while (true)
     {
@@ -283,12 +285,13 @@ AstModifierFlags Parser::parseModifiers()
 
         if (result.has(toSet))
         {
-            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
-            diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, done[toSet]), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+            const auto       previous = std::ranges::find(std::views::reverse(done), toSet, &std::pair<AstModifierFlags, TokenRef>::first);
+            const Diagnostic diag     = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
+            diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, previous->second), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
         }
 
-        done[toSet] = ref();
+        done.push_back({toSet, ref()});
         result.add(toSet);
         consume();
     }

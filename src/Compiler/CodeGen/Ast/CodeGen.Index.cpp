@@ -618,9 +618,11 @@ namespace
     // A constant lane read of a vector that lives in a register: lane zero of a
     // 32- or 64-bit lane is one move out of the float register file, and any
     // other lane first rides to position zero through the four-lane permute.
-    // Narrow lanes and dynamic indices keep the spill-and-load path. Reading
-    // the low lane this way is what `storeLow4`/`storeLow8` and every lane
-    // extraction of a transpose compile to, so it is worth a direct form.
+    // An 8- or 16-bit integer lane slides down by whole bytes instead, leaves
+    // through the same move, and is extended from its own width. Dynamic
+    // indices keep the spill-and-load path. Reading the low lane this way is
+    // what `storeLow4`/`storeLow8` and every lane extraction of a transpose
+    // compile to, so it is worth a direct form.
     bool tryEmitSimdLaneRead(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {
         if (!indexedType.isSimd() || indexedPayload.isAddress())
@@ -639,11 +641,33 @@ namespace
         const TypeRef   laneTypeRef = indexedType.payloadSimdLaneTypeRef();
         const TypeInfo& laneType    = codeGen.typeMgr().get(laneTypeRef);
         const uint32_t  laneBits    = laneType.isFloat() ? laneType.payloadFloatBits() : laneType.payloadIntBits();
+        MicroBuilder& builder = codeGen.builder();
+        MicroReg      srcReg  = indexedPayload.reg;
+        if (laneBits == 8 || laneBits == 16)
+        {
+            if (lane != 0)
+            {
+                const MicroReg slidReg = codeGen.nextVirtualFloatRegister();
+                builder.emitOpBinaryRegRegImm(slidReg, srcReg, ApInt(static_cast<uint64_t>(lane) * (laneBits / 8), 8), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+                srcReg = slidReg;
+            }
+
+            const MicroReg    dwordReg = codeGen.nextVirtualIntRegister();
+            const MicroOpBits laneOp   = laneBits == 8 ? MicroOpBits::B8 : MicroOpBits::B16;
+            builder.emitLoadRegReg(dwordReg, srcReg, MicroOpBits::B32);
+
+            CodeGenNodePayload& narrowPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), laneTypeRef);
+            narrowPayload.reg                 = codeGen.nextVirtualIntRegister();
+            if (laneType.isIntSigned())
+                builder.emitLoadSignedExtendRegReg(narrowPayload.reg, dwordReg, MicroOpBits::B32, laneOp);
+            else
+                builder.emitLoadZeroExtendRegReg(narrowPayload.reg, dwordReg, MicroOpBits::B32, laneOp);
+            return true;
+        }
+
         if (laneBits != 32 && laneBits != 64)
             return false;
 
-        MicroBuilder& builder = codeGen.builder();
-        MicroReg      srcReg  = indexedPayload.reg;
         if (lane != 0)
         {
             // pshufd control: every 32-bit position takes the lane's dword(s).

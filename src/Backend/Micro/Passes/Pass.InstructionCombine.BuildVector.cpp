@@ -43,6 +43,8 @@ namespace InstructionCombine
             uint64_t imm     = 0;
             MicroReg reg     = MicroReg::invalid();
             uint32_t valueId = 0;
+            // The lane keeps what a whole vector stored before it holds.
+            bool fromWhole = false;
         };
 
         bool sameLane(const Lane& a, const Lane& b)
@@ -240,8 +242,9 @@ namespace InstructionCombine
         // The stores covering the slot, walked backwards from the load in a
         // straight line. The latest store to a lane wins; every lane must be
         // written once the walk is over, with one width for all of them.
-        bool collectStores(const Context& ctx, const MicroInstrRef loadRef, const MicroReg base, const uint64_t slotOffset, SmallVector<Lane, 16>& outLanes, uint32_t& outLaneBytes, SmallVector<MicroInstrRef, 16>& outStoreRefs)
+        bool collectStores(const Context& ctx, const MicroInstrRef loadRef, const MicroReg base, const uint64_t slotOffset, SmallVector<Lane, 16>& outLanes, uint32_t& outLaneBytes, SmallVector<MicroInstrRef, 16>& outStoreRefs, MicroReg& outWhole)
         {
+            outWhole = MicroReg::invalid();
             bool     covered[16]  = {};
             uint32_t coveredBytes = 0;
             outLaneBytes          = 0;
@@ -305,6 +308,30 @@ namespace InstructionCombine
                         covered[laneIndex]        = true;
                         coveredBytes += outLaneBytes;
                     }
+                    outStoreRefs.push_back(ref);
+                    continue;
+                }
+
+                // A whole vector stored before the lanes were: the lanes no
+                // store wrote keep its value, and the written ones are
+                // inserted into it. The register must still hold that vector
+                // where the load stood.
+                if (bytes == 16 && offset == slotOffset && storeReg && outLaneBytes != 0 && ops[1].reg.isVirtualFloat())
+                {
+                    const MicroSsaState::ReachingDef atStore = ctx.ssa->reachingDef(ops[1].reg, ref);
+                    const MicroSsaState::ReachingDef atLoad  = ctx.ssa->reachingDef(ops[1].reg, loadRef);
+                    if (!atStore.valid() || !atLoad.valid() || atStore.valueId != atLoad.valueId)
+                        return false;
+                    for (uint32_t laneIndex = 0; laneIndex < outLanes.size(); ++laneIndex)
+                    {
+                        if (covered[laneIndex])
+                            continue;
+                        outLanes[laneIndex]           = Lane{};
+                        outLanes[laneIndex].fromWhole = true;
+                        covered[laneIndex]            = true;
+                        coveredBytes += outLaneBytes;
+                    }
+                    outWhole = ops[1].reg;
                     outStoreRefs.push_back(ref);
                     continue;
                 }
@@ -572,6 +599,18 @@ namespace InstructionCombine
                     return unpackWithSelf(reg, 8);
                 return reg;
             }
+
+            // A vector that is `whole` but for the lanes written after it.
+            MicroReg updateVector(const MicroReg whole, std::span<const Lane> lanes)
+            {
+                MicroReg reg = whole;
+                for (uint32_t i = 0; i < lanes.size(); ++i)
+                {
+                    if (!lanes[i].fromWhole)
+                        reg = insert(reg, lanes[i], i);
+                }
+                return reg;
+            }
         };
     }
 
@@ -593,7 +632,8 @@ namespace InstructionCombine
         SmallVector<Lane, 16>          lanes;
         SmallVector<MicroInstrRef, 16> storeRefs;
         uint32_t                       laneBytes = 0;
-        if (!collectStores(ctx, loadRef, base, slotOffset, lanes, laneBytes, storeRefs))
+        MicroReg                       whole     = MicroReg::invalid();
+        if (!collectStores(ctx, loadRef, base, slotOffset, lanes, laneBytes, storeRefs, whole))
             return false;
         for (const MicroInstrRef ref : storeRefs)
         {
@@ -610,7 +650,10 @@ namespace InstructionCombine
         const uint32_t savedFloat = ctx.nextVirtualFloatRegIndex;
         const uint32_t savedInt   = ctx.nextVirtualIntRegIndex;
         Plan           plan{ctx, laneBytes};
-        plan.buildVector(lanes.span());
+        if (whole.isValid())
+            plan.updateVector(whole, lanes.span());
+        else
+            plan.buildVector(lanes.span());
         if (plan.failed || plan.steps.empty() || plan.steps.size() > storeRefs.size() + 1)
         {
             ctx.nextVirtualFloatRegIndex = savedFloat;

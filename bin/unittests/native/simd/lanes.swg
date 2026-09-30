@@ -2,8 +2,10 @@
 
 // Constant lane reads of register-resident vectors: lane zero of a 32- or
 // 64-bit lane is one move out of the vector register, the other lanes slide
-// there through a four-lane permute, and narrow lanes keep the memory path.
-// Every read is checked against the array view of the same vector.
+// there through a four-lane permute, and an 8- or 16-bit lane slides down by
+// bytes and is extended from its own width. A constant lane written into a
+// vector local is an insertion into the register. Every access is checked
+// against the array view of the same vector.
 
 #[Swag.Optimize(true)]
 func readU32Lanes(a, b: u32)->u64
@@ -54,6 +56,60 @@ func lowLanesThroughBitcast(bytes: #simd [16] u8)->u64
     return cast(u64) low32 + low64 + high64
 }
 
+// Signed narrow lanes extend their sign from the lane width, not from the dword they leave in.
+#[Swag.Optimize(true)]
+func readSignedNarrowLanes(seed: s8)->s64
+{
+    let bytes: #simd [16] s8 = Swag.vecsplat(seed)
+    let words: #simd [8] s16 = Swag.vecsplat(cast(s16) seed * 300)
+    let v = bytes - cast(#simd [16] s8) [0's8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let w = words + cast(#simd [8] s16) [0's16, 1, 2, 3, 4, 5, 6, 7]
+    return cast(s64) v[0] + cast(s64) v[7] * 1000 + cast(s64) v[15] * 1000000 + cast(s64) w[0] + cast(s64) w[3] + cast(s64) w[7]
+}
+
+#[Swag.Optimize(true)]
+func readU16Lanes(seed: u16)->u64
+{
+    let base: #simd [8] u16 = Swag.vecsplat(seed)
+    let v = base + cast(#simd [8] u16) [0'u16, 1, 2, 3, 4, 5, 6, 7]
+    return cast(u64) v[0] + (cast(u64) v[5] << 16) + (cast(u64) v[7] << 32)
+}
+
+#[Swag.Optimize(true)]
+func writeByteLanes(v: #simd [16] u8, first, last: u8)->#simd [16] u8
+{
+    var result = v
+    result[0]  = first
+    result[9]  = 0xAB
+    result[15] = last
+    return result
+}
+
+#[Swag.Optimize(true)]
+func writeWordLane(v: #simd [8] u16, value: u16)->#simd [8] u16
+{
+    var result = v
+    result[6] = value
+    return result
+}
+
+#[Swag.Optimize(true)]
+func writeDwordLane(v: #simd [4] u32, value: u32)->#simd [4] u32
+{
+    var result = v
+    result[2] = value
+    return result
+}
+
+// A dynamic index has no insertion form: the lane goes through the frame.
+#[Swag.Optimize(true)]
+func writeDynamicLane(v: #simd [4] u32, lane: u64, value: u32)->#simd [4] u32
+{
+    var result = v
+    result[lane] = value
+    return result
+}
+
 #test
 {
     // (a+1) + 3(b+1) + 5(a+b+1) + 7((a^b)+1)
@@ -65,4 +121,31 @@ func lowLanesThroughBitcast(bytes: #simd [16] u8)->u64
 
     let bytes = cast(#simd [16] u8) [1'u8, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 4]
     Swag.assert(lowLanesThroughBitcast(bytes) == 1 + 0x0000_0002_0000_0001 + 0x0400_0000_0000_0003)
+}
+
+#test
+{
+    // -5, -12, -20 as bytes; -1500, -1497, -1493 as words.
+    Swag.assert(readSignedNarrowLanes(-5) == -5 - 12000 - 20000000 - 1500 - 1497 - 1493)
+    Swag.assert(readSignedNarrowLanes(100) == 100 + 93000 + 85000000 + 30000 + 30003 + 30007)
+    Swag.assert(readU16Lanes(0xFFF0) == 0xFFF0 + (0xFFF5 << 16) + (0xFFF7 << 32))
+}
+
+#test
+{
+    let bytes   = cast(#simd [16] u8) [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let written = cast([16] u8) writeByteLanes(bytes, 200, 100)
+    for i in 16
+    {
+        let expected = i == 0 ? 200'u8 : i == 9 ? 0xAB'u8 : i == 15 ? 100'u8 : cast(u8) i
+        Swag.assert(written[i] == expected)
+    }
+
+    let words = cast([8] u16) writeWordLane(cast(#simd [8] u16) [10'u16, 11, 12, 13, 14, 15, 16, 17], 0xBEEF)
+    Swag.assert(words == [10, 11, 12, 13, 14, 15, 0xBEEF, 17])
+
+    let source = cast(#simd [4] u32) [1'u32, 2, 3, 4]
+    Swag.assert(cast([4] u32) writeDwordLane(source, 0xDEAD_BEEF) == [1, 2, 0xDEAD_BEEF, 4])
+    Swag.assert(cast([4] u32) writeDynamicLane(source, 3, 9) == [1, 2, 3, 9])
+    Swag.assert(cast([4] u32) source == [1, 2, 3, 4])
 }

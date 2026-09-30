@@ -160,7 +160,15 @@ namespace InstructionCombine
         const uint64_t    loadOff  = loadOps[3].valueU64;
         if (!vt.isVirtualInt())
             return false;
-        if (keepAccessScalar(ctx, loadRef, base))
+
+        // A frame slot updated inside a loop stays a load and a store for slot
+        // promotion. A global has no such client: its update is one
+        // instruction-pointer-relative read-modify-write, unless its words may
+        // still form a packed group.
+        const bool frameBase    = isFrameDerivedAddress(ctx, base, loadRef);
+        const bool globalBase   = !frameBase && isRelocatedAddress(ctx, base, loadRef);
+        const bool globalInLoop = globalBase && ctx.isInsideLoop(loadRef);
+        if (frameBase && ctx.isInsideLoop(loadRef))
             return false;
 
         if (!ctx.storage->ptr(loadRef))
@@ -195,7 +203,7 @@ namespace InstructionCombine
                     (tri.middleIsUnary ? (tri.microOp != MicroOp::BitwiseNot && tri.microOp != MicroOp::Negate) : !isMemFoldableOp(tri.microOp)) ||
                     (tri.middleIsRegImm && opOps[3].hasWideImmediateValue()))
                     return false;
-                if (ctx.passContext->deferXorMemoryFoldForSlp && tri.microOp == MicroOp::Xor && loadBits == MicroOpBits::B32 &&
+                if (ctx.passContext->deferXorMemoryFoldForSlp && (tri.microOp == MicroOp::Xor || globalInLoop) && loadBits == MicroOpBits::B32 &&
                     hasPotentialWordStoreGroup(ctx, loadRef))
                 {
                     ctx.passContext->deferredXorMemoryFold = true;
@@ -282,10 +290,12 @@ namespace InstructionCombine
         const MicroReg base  = loadOps[1].reg;
         const MicroReg index = loadOps[2].reg;
         // Indexed accesses are opaque to SLP even inside a loop. A matched
-        // single-use triple therefore has no scalar lanes to preserve for it.
+        // single-use triple therefore has no scalar lanes to preserve for it:
+        // only a frame array in a loop stays apart, for slot promotion.
         if (!value.isVirtualInt() || !base.isVirtualInt() || !index.isVirtualInt() ||
-            value == base || value == index || keepAccessScalar(ctx, loadRef, base) ||
-            !valueHasSingleUse(*ctx.ssa, value, loadRef))
+            value == base || value == index || !valueHasSingleUse(*ctx.ssa, value, loadRef))
+            return false;
+        if (isFrameDerivedAddress(ctx, base, loadRef) && ctx.isInsideLoop(loadRef))
             return false;
 
         MicroReg          opValue        = value;
@@ -419,8 +429,16 @@ namespace InstructionCombine
             return false;
 
         const bool registerMultiply = !immediateUpdate && !directUnaryUpdate && opOps[3].microOp == MicroOp::MultiplySigned;
-        if (registerMultiply && (copyRef.isValid() || loadOps[3].opBits == MicroOpBits::B8 || ctx.ssa->isRegUsedAfter(opOps[1].reg, opRef)))
-            return false;
+        if (registerMultiply)
+        {
+            // The multiply overwrites its right operand, so that value must
+            // have no reader but this multiply: the next element of an
+            // unrolled update multiplies by the same factor.
+            const MicroSsaState::ReachingDef factor = ctx.ssa->reachingDef(opOps[1].reg, opRef);
+            if (copyRef.isValid() || loadOps[3].opBits == MicroOpBits::B8 || !factor.valid() ||
+                singleDirectInstructionUse(*ctx.ssa, factor.valueId) != opRef)
+                return false;
+        }
         const bool claimed = preCopyRef.isValid() && copyRef.isValid() ? ctx.claimAll({loadRef, preCopyRef, opRef, copyRef, storeRef}) : preCopyRef.isValid() ? ctx.claimAll({loadRef, preCopyRef, opRef, storeRef})
                                                                                                                                      : copyRef.isValid()      ? ctx.claimAll({loadRef, opRef, copyRef, storeRef})
                                                                                                                                                               : ctx.claimAll({loadRef, opRef, storeRef});

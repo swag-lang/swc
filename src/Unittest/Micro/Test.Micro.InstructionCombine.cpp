@@ -22,14 +22,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runInstCombinePass(MicroBuilder& builder)
+    Result runInstCombinePass(MicroBuilder& builder, const bool beforeVectorizer = false)
     {
         MicroInstructionCombinePass pass;
         MicroPassManager            passManager;
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
+        passContext.callConvKind             = CallConvKind::Swag;
+        passContext.deferXorMemoryFoldForSlp = beforeVectorizer;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -1575,6 +1576,37 @@ SWC_TEST_BEGIN(InstCombine_IndexedRotateWithCopy_UsesMemoryOperand)
 }
 SWC_TEST_END()
 
+// An indexed element multiplied in place reuses the factor's register as the
+// product, which is only free when nothing else reads the factor: the second
+// element of an unrolled update multiplies by the same one.
+SWC_TEST_BEGIN(InstCombine_IndexedMultiplyKeepsSharedFactor)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg factor = MicroReg::virtualIntReg(3);
+    for (const uint32_t elements : {1u, 2u})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegReg(factor, MicroReg::intReg(8), MicroOpBits::B64);
+        for (uint32_t element = 0; element < elements; ++element)
+        {
+            const MicroReg value = MicroReg::virtualIntReg(4 + element);
+            builder.emitLoadAmcRegMem(value, MicroOpBits::B32, base, index, 4, element * 4, MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(value, factor, MicroOp::MultiplySigned, MicroOpBits::B32);
+            builder.emitLoadAmcMemReg(base, index, 4, element * 4, MicroOpBits::B64, value, MicroOpBits::B32);
+        }
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegAmcMem) != (elements == 1 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_IndexedMemoryFoldInsideLoopKeepsFrameScalar)
 {
     const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
@@ -1639,6 +1671,74 @@ SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_LeavesLoopFrameSlot)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A global has no slot promotion to wait for: its update inside a loop is one
+// read-modify-write, direct or indexed. Only a 32-bit update beside four word
+// stores waits, while the vectorizer has still to look at the block.
+SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_FoldsLoopGlobalUpdate)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg key     = MicroReg::virtualIntReg(3);
+    constexpr MicroReg word    = MicroReg::virtualIntReg(4);
+    constexpr MicroReg other   = MicroReg::virtualIntReg(5);
+
+    enum class Case
+    {
+        Direct,
+        Indexed,
+        WordGroupBeforeVectorizer,
+        WordGroupAfterVectorizer,
+    };
+
+    for (const Case testCase : {Case::Direct, Case::Indexed, Case::WordGroupBeforeVectorizer, Case::WordGroupAfterVectorizer})
+    {
+        const bool        wordGroup = testCase == Case::WordGroupBeforeVectorizer || testCase == Case::WordGroupAfterVectorizer;
+        const MicroOpBits bits      = wordGroup ? MicroOpBits::B32 : MicroOpBits::B64;
+        MicroBuilder      builder(ctx);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+        builder.emitLoadRegReg(other, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(key, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+        builder.emitLoadRegDataSegmentReloc(address, DataSegmentKind::GlobalZero, 8);
+        if (testCase == Case::Indexed)
+        {
+            builder.emitLoadAmcRegMem(word, bits, address, count, 8, 0, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(word, ApInt(uint64_t{1}, 64), MicroOp::Add, bits);
+            builder.emitLoadAmcMemReg(address, count, 8, 0, MicroOpBits::B64, word, bits);
+        }
+        else
+        {
+            builder.emitLoadRegMem(word, address, 0, bits);
+            builder.emitOpBinaryRegReg(word, key, MicroOp::Add, bits);
+            builder.emitLoadMemReg(address, 0, word, bits);
+        }
+        if (wordGroup)
+        {
+            for (uint32_t lane = 0; lane < 4; ++lane)
+                builder.emitLoadMemReg(other, lane * 4, key, MicroOpBits::B32);
+        }
+        builder.emitOpBinaryRegImm(count, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(uint64_t{16}, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loopLabel);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder, testCase == Case::WordGroupBeforeVectorizer));
+
+        const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) +
+                                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpUnaryAmcMem) +
+                                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemImm);
+        const uint32_t loads = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) +
+                               Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem);
+        const bool waits = testCase == Case::WordGroupBeforeVectorizer;
+        if (folded != (waits ? 0u : 1u) || loads != (waits ? 1u : 0u))
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()
@@ -5282,6 +5382,100 @@ SWC_TEST_BEGIN(InstCombine_VectorLiteralClearedThroughAddressBuildsInRegisters)
         }
         if (wholeLoads != (escapes ? 1u : 0u))
             return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A lane written into a vector that was stored whole is an insertion into that vector: no
+// narrow store, and no wide load stalled behind it. The vector register has to hold the same
+// value where the load stood, and a lane wider than a dword has no insertion.
+SWC_TEST_BEGIN(InstCombine_LaneWrittenIntoStoredVectorIsInserted)
+{
+    const MicroReg     stack   = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg scalar  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg source  = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg updated = MicroReg::virtualFloatReg(2);
+
+    enum class Case
+    {
+        ByteLane,
+        TwoWordLanes,
+        ImmediateDwordLane,
+        SourceRedefined,
+        QwordLane,
+    };
+
+    for (const Case testCase : {Case::ByteLane, Case::TwoWordLanes, Case::ImmediateDwordLane, Case::SourceRedefined, Case::QwordLane})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressRegMem(base, stack, 0x20, MicroOpBits::B64);
+        builder.emitLoadRegReg(scalar, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(source, MicroReg::floatReg(0), MicroOpBits::B128);
+        builder.emitStoreVecMemReg(base, 0x40, source, MicroOpBits::B128);
+        switch (testCase)
+        {
+            case Case::ByteLane:
+            case Case::SourceRedefined:
+                builder.emitLoadMemReg(base, 0x45, scalar, MicroOpBits::B8);
+                break;
+            case Case::TwoWordLanes:
+                builder.emitLoadMemReg(base, 0x42, scalar, MicroOpBits::B16);
+                builder.emitLoadMemReg(base, 0x4E, scalar, MicroOpBits::B16);
+                break;
+            case Case::ImmediateDwordLane:
+                builder.emitLoadMemImm(base, 0x48, ApInt(0x1234, 32), MicroOpBits::B32);
+                break;
+            case Case::QwordLane:
+                builder.emitLoadMemReg(base, 0x48, scalar, MicroOpBits::B64);
+                break;
+        }
+        if (testCase == Case::SourceRedefined)
+            builder.emitLoadRegReg(source, MicroReg::floatReg(1), MicroOpBits::B128);
+        builder.emitLoadRegMem(updated, base, 0x40, MicroOpBits::B128);
+        builder.emitLoadRegReg(MicroReg::floatReg(0), updated, MicroOpBits::B128);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        uint32_t inserts    = 0;
+        uint32_t wholeLoads = 0;
+        MicroOp  insertOp   = MicroOp::Add;
+        uint64_t lastLane   = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[0].reg == updated)
+                ++wholeLoads;
+            if (inst.op == MicroInstrOpcode::OpTernaryRegRegRegImm)
+            {
+                ++inserts;
+                insertOp = ops[4].microOp;
+                lastLane = ops[5].valueU64;
+            }
+        }
+
+        switch (testCase)
+        {
+            case Case::ByteLane:
+                if (wholeLoads != 0 || inserts != 1 || insertOp != MicroOp::VecInsert8 || lastLane != 5)
+                    return Result::Error;
+                break;
+            case Case::TwoWordLanes:
+                if (wholeLoads != 0 || inserts != 2 || insertOp != MicroOp::VecInsert16 || lastLane != 7)
+                    return Result::Error;
+                break;
+            case Case::ImmediateDwordLane:
+                if (wholeLoads != 0 || inserts != 1 || insertOp != MicroOp::VecInsert32 || lastLane != 2)
+                    return Result::Error;
+                break;
+            case Case::SourceRedefined:
+            case Case::QwordLane:
+                if (wholeLoads != 1 || inserts != 0)
+                    return Result::Error;
+                break;
+        }
     }
     return Result::Continue;
 }

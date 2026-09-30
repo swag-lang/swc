@@ -10198,5 +10198,542 @@
         "since": "a4677422e"
       }
     }
+  },
+  {
+    "meta": {
+      "protocol": 2,
+      "settings": {
+        "pin_mask": "0x55401",
+        "pin_cores": 6,
+        "phases": [
+          "build",
+          "run"
+        ],
+        "budget_ms": 2000,
+        "min_reps": 3,
+        "max_reps": 16,
+        "build_budget_ms": 2000,
+        "warmup_s": 30
+      },
+      "stamp": "20260929-203640",
+      "date": "2026-09-29T20:36:40+00:00",
+      "label": "",
+      "commit": "9626c1c92",
+      "subject": "Add five bench tasks, shorten campaigns, compact the report",
+      "master": "9626c1c92",
+      "dirty": false,
+      "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
+      "swc_bytes": 7471104
+    },
+    "drift_pct": 7.559659690865763,
+    "machine_spread_pct": 8.436076388539714,
+    "worst_moment": "wordfreq",
+    "calibration_ms": 39.7756,
+    "context": {
+      "baseline": "20260807-134858",
+      "baseline_commit": "d36631d85",
+      "task_baselines": {
+        "nbody": "9626c1c92",
+        "fannkuch": "9626c1c92",
+        "binarytrees": "9626c1c92",
+        "lz77": "9626c1c92",
+        "sort": "9626c1c92"
+      },
+      "run_factor": 0.9340905982341607,
+      "run_task_factors": {
+        "wordfreq": 0.8537151437380921,
+        "csvagg": 0.8650265211021405,
+        "sha256": 0.8949687366045067,
+        "dijkstra": 0.9097592239766163,
+        "raytrace": 0.9018356674840214,
+        "leven": 1.164372851569326,
+        "chacha": 0.9827131945460496,
+        "nbody": 1.0,
+        "fannkuch": 1.0,
+        "binarytrees": 1.0,
+        "lz77": 1.0,
+        "sort": 1.0
+      },
+      "run_controls": 135,
+      "run_dispersion_pct": 1.6706535116604897,
+      "build_factor": 0.8617175395247514,
+      "build_task_factors": {
+        "wordfreq": 0.8712527760611493,
+        "csvagg": 0.8041253618310329,
+        "sha256": 0.8438378049223025,
+        "dijkstra": 0.8319887395165974,
+        "raytrace": 0.9116022441760478,
+        "leven": 0.8412436813137071,
+        "chacha": 0.9353689877434463,
+        "nbody": 1.0,
+        "fannkuch": 1.0,
+        "binarytrees": 1.0,
+        "lz77": 1.0,
+        "sort": 1.0
+      },
+      "build_controls": 87,
+      "build_dispersion_pct": 0.0
+    },
+    "runtimes": {
+      "swag-release": {
+        "run_ms": {
+          "wordfreq": 44.589,
+          "csvagg": 15.61469998,
+          "sha256": 30.98829999,
+          "dijkstra": 28.02540001,
+          "raytrace": 10.75720001,
+          "leven": 11.50009996,
+          "chacha": 19.61060002,
+          "nbody": 25.5247,
+          "fannkuch": 13.82160001,
+          "binarytrees": 34.9197,
+          "lz77": 23.69259996,
+          "sort": 18.13869999
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 52.22936517766549,
+          "csvagg": 18.051122825812467,
+          "sha256": 34.625008363497685,
+          "dijkstra": 30.805293611093234,
+          "raytrace": 11.928115506909238,
+          "leven": 9.87664728226901,
+          "chacha": 19.955568042473306,
+          "nbody": 25.5247,
+          "fannkuch": 13.82160001,
+          "binarytrees": 34.9197,
+          "lz77": 23.69259996,
+          "sort": 18.13869999
+        },
+        "run_geo_adjusted_ms": 21.832179711831802,
+        "run_index": {
+          "wordfreq": 0.7223139377212974,
+          "csvagg": 0.6154952914077295,
+          "sha256": 0.5888556791778587,
+          "dijkstra": 0.681306946301623,
+          "raytrace": 0.67417526164077,
+          "leven": 0.594781685006376,
+          "chacha": 0.685056815188262,
+          "nbody": 1.0,
+          "fannkuch": 1.0,
+          "binarytrees": 1.0,
+          "lz77": 1.0,
+          "sort": 1.0
+        },
+        "run_geo_index": 0.6499499505198836,
+        "build_ms": {
+          "wordfreq": 153.1884,
+          "csvagg": 166.6132,
+          "sha256": 149.8155,
+          "dijkstra": 143.6548,
+          "raytrace": 139.5189,
+          "leven": 149.5052,
+          "chacha": 163.8119,
+          "nbody": 132.5619,
+          "fannkuch": 138.9049,
+          "binarytrees": 145.4458,
+          "lz77": 158.6637,
+          "sort": 146.1186
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 175.82543689852002,
+          "csvagg": 207.19804138575307,
+          "sha256": 177.54063532836673,
+          "dijkstra": 172.6643561107166,
+          "raytrace": 153.04799970748672,
+          "leven": 177.71925462373633,
+          "chacha": 175.1307795602589,
+          "nbody": 132.5619,
+          "fannkuch": 138.9049,
+          "binarytrees": 145.4458,
+          "lz77": 158.6637,
+          "sort": 146.1186
+        },
+        "build_geo_adjusted_ms": 176.42334914275855,
+        "build_index": {
+          "wordfreq": 1.589260367777572,
+          "csvagg": 1.889091772122988,
+          "sha256": 1.5678206305202627,
+          "dijkstra": 1.7462751867566846,
+          "raytrace": 1.4001306351991014,
+          "leven": 1.5507017070157623,
+          "chacha": 1.3247702072152785,
+          "nbody": 1.0,
+          "fannkuch": 1.0,
+          "binarytrees": 1.0,
+          "lz77": 1.0,
+          "sort": 1.0
+        },
+        "build_geo_index": 1.571238375458881,
+        "build_peak_mb": 101.2734375,
+        "exe_kb": 91.61619647839773
+      },
+      "swc-jit-release": {
+        "run_ms": {
+          "wordfreq": 48.89809998,
+          "csvagg": 15.84070001,
+          "sha256": 59.17070003,
+          "dijkstra": 28.48900005,
+          "raytrace": 10.8623,
+          "leven": 12.97789998,
+          "chacha": 19.45239998,
+          "nbody": 26.19900001,
+          "fannkuch": 14.5778,
+          "binarytrees": 17.55420002,
+          "lz77": 23.43950002,
+          "sort": 18.78579997
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 57.27683330752916,
+          "csvagg": 18.312386526389016,
+          "sha256": 66.1148234680157,
+          "dijkstra": 31.314879035216308,
+          "raytrace": 12.044655574894366,
+          "leven": 11.145828385219188,
+          "chacha": 19.794585122046477,
+          "nbody": 26.19900001,
+          "fannkuch": 14.5778,
+          "binarytrees": 17.55420002,
+          "lz77": 23.43950002,
+          "sort": 18.78579997
+        },
+        "run_geo_adjusted_ms": 24.800529458217706,
+        "run_index": {
+          "wordfreq": 0.759802946127991,
+          "csvagg": 0.7133714005496262,
+          "sha256": 1.1301061057261996,
+          "dijkstra": 0.6908430468476383,
+          "raytrace": 0.6939164941459142,
+          "leven": 0.6587485836964682,
+          "chacha": 0.6608261645747299,
+          "nbody": 1.0,
+          "fannkuch": 1.0,
+          "binarytrees": 1.0,
+          "lz77": 1.0,
+          "sort": 1.0
+        },
+        "run_geo_index": 0.7453763873290793
+      },
+      "swag-fast-debug": {
+        "run_ms": {
+          "wordfreq": 72.41239998,
+          "csvagg": 29.95690005,
+          "sha256": 143.62480002,
+          "dijkstra": 53.29059996,
+          "raytrace": 13.28229997,
+          "leven": 46.6604,
+          "chacha": 59.76239999,
+          "nbody": 29.22730002,
+          "fannkuch": 17.75470003,
+          "binarytrees": 46.38090002,
+          "lz77": 39.25389994,
+          "sort": 23.79820001
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 84.82032972137966,
+          "csvagg": 34.631192592605785,
+          "sha256": 160.48024265619557,
+          "dijkstra": 58.576597582669564,
+          "raytrace": 14.728071253885435,
+          "leven": 40.073418009627886,
+          "chacha": 60.81367414386493,
+          "nbody": 29.22730002,
+          "fannkuch": 17.75470003,
+          "binarytrees": 46.38090002,
+          "lz77": 39.25389994,
+          "sort": 23.79820001
+        },
+        "run_geo_adjusted_ms": 51.728626401101934,
+        "run_index": {
+          "wordfreq": 0.9467030117916477,
+          "csvagg": 0.610798800596101,
+          "sha256": 0.6234581308463363,
+          "dijkstra": 1.1346776233545768,
+          "raytrace": 0.6568902806443475,
+          "leven": 0.8456270010009495,
+          "chacha": 0.6458512237804808,
+          "nbody": 1.0,
+          "fannkuch": 1.0,
+          "binarytrees": 1.0,
+          "lz77": 1.0,
+          "sort": 1.0
+        },
+        "run_geo_index": 0.7602252129239069,
+        "build_ms": {
+          "wordfreq": 158.2111,
+          "csvagg": 161.4992,
+          "sha256": 150.1606,
+          "dijkstra": 135.664,
+          "raytrace": 150.1051,
+          "leven": 163.6443,
+          "chacha": 174.9638,
+          "nbody": 137.9198,
+          "fannkuch": 141.8703,
+          "binarytrees": 157.7597,
+          "lz77": 155.068,
+          "sort": 148.7527
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 181.59035396737247,
+          "csvagg": 200.83833649054222,
+          "sha256": 177.94960017680913,
+          "dijkstra": 163.0598991986641,
+          "raytrace": 164.66073987748084,
+          "leven": 194.52663197951034,
+          "chacha": 187.05324026413967,
+          "nbody": 137.9198,
+          "fannkuch": 141.8703,
+          "binarytrees": 157.7597,
+          "lz77": 155.068,
+          "sort": 148.7527
+        },
+        "build_geo_adjusted_ms": 180.90285476555286,
+        "build_index": {
+          "wordfreq": 1.2962471364149328,
+          "csvagg": 1.3191135547235167,
+          "sha256": 1.2727522420860249,
+          "dijkstra": 1.460692680126954,
+          "raytrace": 1.4454461092031194,
+          "leven": 1.3244808301996822,
+          "chacha": 0.3789918369026898,
+          "nbody": 1.0,
+          "fannkuch": 1.0,
+          "binarytrees": 1.0,
+          "lz77": 1.0,
+          "sort": 1.0
+        },
+        "build_geo_index": 1.1268082602239249,
+        "build_peak_mb": 101.859375,
+        "exe_kb": 123.75031589700671
+      },
+      "swc-jit-fast-debug": {
+        "run_ms": {
+          "wordfreq": 77.53120002,
+          "csvagg": 31.32750001,
+          "sha256": 147.08380005,
+          "dijkstra": 51.74590001,
+          "raytrace": 14.8991,
+          "leven": 44.10170001,
+          "chacha": 61.0022,
+          "nbody": 30.69450002,
+          "fannkuch": 20.83009999,
+          "binarytrees": 21.05530002,
+          "lz77": 42.45760001,
+          "sort": 24.4235
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 90.81624074339425,
+          "csvagg": 36.21565263696801,
+          "sha256": 164.34518216584075,
+          "dijkstra": 56.878675858668764,
+          "raytrace": 16.520859106810587,
+          "leven": 37.87592604083849,
+          "chacha": 62.07528334671349,
+          "nbody": 30.69450002,
+          "fannkuch": 20.83009999,
+          "binarytrees": 21.05530002,
+          "lz77": 42.45760001,
+          "sort": 24.4235
+        },
+        "run_geo_adjusted_ms": 53.12479532840202,
+        "run_index": {
+          "wordfreq": 0.9858482348808848,
+          "csvagg": 0.5903429790385996,
+          "sha256": 0.6149073559919781,
+          "dijkstra": 1.0051562433799002,
+          "raytrace": 0.6712003832599706,
+          "leven": 0.8747428035737973,
+          "chacha": 0.644189744894733,
+          "nbody": 1.0,
+          "fannkuch": 1.0,
+          "binarytrees": 1.0,
+          "lz77": 1.0,
+          "sort": 1.0
+        },
+        "run_geo_index": 0.7520443351380848
+      }
+    },
+    "headline": {
+      "tasks": 7,
+      "exec_vs_best": 1.0254794744677653,
+      "exec_fastest": "swag-release",
+      "jit_gap_pct": 13.596213413254432,
+      "build_edge": 2.4935340808589688
+    },
+    "null": {
+      "run": {
+        "controls": 10,
+        "geo": [
+          0.963884504874547,
+          1.0229556882936661
+        ],
+        "tasks": {
+          "wordfreq": [
+            0.9618449734243665,
+            1.054388111361719
+          ],
+          "csvagg": [
+            0.8739690842349882,
+            1.095956476672807
+          ],
+          "sha256": [
+            0.9147852412510595,
+            1.0382136624810279
+          ],
+          "dijkstra": [
+            0.9152974878311535,
+            1.2946155585928933
+          ],
+          "raytrace": [
+            0.8818040968537625,
+            1.1285760536938452
+          ],
+          "leven": [
+            0.9140504332987461,
+            1.039825303768143
+          ],
+          "chacha": [
+            0.9192425588698905,
+            1.0772555196935267
+          ],
+          "nbody": [
+            1.0,
+            1.0
+          ],
+          "fannkuch": [
+            1.0,
+            1.0
+          ],
+          "binarytrees": [
+            1.0,
+            1.0
+          ],
+          "lz77": [
+            1.0,
+            1.0
+          ],
+          "sort": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "build": {
+        "controls": 6,
+        "geo": [
+          0.7444715617644326,
+          1.144024618576171
+        ],
+        "tasks": {
+          "wordfreq": [
+            0.8769772161549081,
+            1.0751229596879293
+          ],
+          "csvagg": [
+            0.4130402464141481,
+            1.3695669360647598
+          ],
+          "sha256": [
+            0.6877406195336326,
+            1.083189674300685
+          ],
+          "dijkstra": [
+            0.9282799402757267,
+            1.1165080526918674
+          ],
+          "raytrace": [
+            0.4916711012866371,
+            1.1531343213291934
+          ],
+          "leven": [
+            0.43145746065384877,
+            1.1797996275169025
+          ],
+          "chacha": [
+            0.9005076044247973,
+            1.1186199623290727
+          ],
+          "nbody": [
+            1.0,
+            1.0
+          ],
+          "fannkuch": [
+            1.0,
+            1.0
+          ],
+          "binarytrees": [
+            1.0,
+            1.0
+          ],
+          "lz77": [
+            1.0,
+            1.0
+          ],
+          "sort": [
+            1.0,
+            1.0
+          ]
+        }
+      }
+    },
+    "sample_spread_pct": 23.766038676887092,
+    "hello_jit_ms": 113.9356,
+    "hello_build_ms": 137.3616,
+    "hello_build_peak_mb": 85.94140625,
+    "loop": {
+      "hello_build": {
+        "wall_ms": 137.3616,
+        "adjusted_ms": 159.40443788083593,
+        "peak_mb": 85.94140625,
+        "peak_working_set_mb": 82.9765625,
+        "samples": 6,
+        "index": 1.4153532058618845,
+        "since": "d36631d85"
+      },
+      "core_rebuild": {
+        "wall_ms": 2810.1001,
+        "adjusted_ms": 3261.0454947334683,
+        "peak_mb": 532.44921875,
+        "peak_working_set_mb": 493.359375,
+        "samples": 1,
+        "index": 1.0414486432291712,
+        "since": "a4677422e"
+      },
+      "core_noop": {
+        "wall_ms": 66.3562,
+        "adjusted_ms": 77.00458323802522,
+        "peak_mb": 6.53125,
+        "peak_working_set_mb": 15.8203125,
+        "samples": 6,
+        "index": 1.270219603492785,
+        "since": "a4677422e"
+      },
+      "core_touch": {
+        "wall_ms": 2642.1036,
+        "adjusted_ms": 3066.0900803494787,
+        "peak_mb": 510.69921875,
+        "peak_working_set_mb": 470.59765625,
+        "samples": 1,
+        "index": 1.0264911197377382,
+        "since": "a4677422e"
+      },
+      "doc_std": {
+        "wall_ms": 38961.8806,
+        "adjusted_ms": 45214.213257731746,
+        "peak_mb": 2608.046875,
+        "peak_working_set_mb": 2547.02734375,
+        "samples": 1,
+        "index": 1.1968990501881613,
+        "since": "a4677422e"
+      },
+      "format_tree": {
+        "wall_ms": 514.5703,
+        "adjusted_ms": 597.1449766286437,
+        "peak_mb": 484.64453125,
+        "peak_working_set_mb": 428.65234375,
+        "samples": 3,
+        "index": 1.3038828130826117,
+        "since": "a4677422e"
+      }
+    }
   }
 ]

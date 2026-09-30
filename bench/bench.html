@@ -382,15 +382,15 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <svg class="mark" viewBox="0 0 114 116" role="img" aria-label="Swag"><path d="M17.8 38L52 8L94 8L104.32 20L95.2 28L47.2 28L38.08 36L37.52 40L44.4 48L92.4 48L99.28 56L96.2 78L62 108L20 108L9.68 96L18.8 88L66.8 88L75.92 80L76.48 76L69.6 68L21.6 68L14.72 60L17.8 38Z"/></svg>
         <span class="wordmark">SWAG</span>
         <span class="sep"></span>
-        <span class="meta">2026-09-29 &middot; <code>7e72000a8</code> &middot; campagne nº27</span>
+        <span class="meta">2026-09-29 &middot; <code>9626c1c92</code> &middot; campagne nº28</span>
     </div>
 </header>
 
 <div class="hero">
     <div class="wrap">
         <div class="rule"></div>
-        <span class="eyebrow">7 t&acirc;ches &middot; 17 runtimes &middot; checksums identiques</span>
-        <div class="stats"><div class="stat"><div class="sv">1.03<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div></div><div class="stat"><div class="sv">+16<em>%</em></div><div class="sl">JIT swc vs natif swc</div></div><div class="stat"><div class="sv">2.5<em>&times;</em></div><div class="sl">build MSVC / swc</div></div><div class="stat"><div class="sv">101<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div></div></div>
+        <span class="eyebrow">12 t&acirc;ches &middot; 17 runtimes &middot; checksums identiques</span>
+        <div class="stats"><div class="stat"><div class="sv">1.19<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div></div><div class="stat"><div class="sv">+3<em>%</em></div><div class="sl">JIT swc vs natif swc</div></div><div class="stat"><div class="sv">2.5<em>&times;</em></div><div class="sl">build MSVC / swc</div></div><div class="stat"><div class="sv">101<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div></div></div>
     </div>
 </div>
 
@@ -402,182 +402,290 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <figure class="chart">
 <div class="axis" aria-hidden="true">
 <span class="tick" style="left:0.700%"><i></i><b>1</b></span>
-<span class="tick" style="left:25.000%"><i></i><b>4</b></span>
-<span class="tick" style="left:50.000%"><i></i><b>16</b></span>
-<span class="tick" style="left:75.000%"><i></i><b>64</b></span>
-<span class="tick" style="left:100.000%"><i></i><b>256</b></span>
+<span class="tick" style="left:14.286%"><i></i><b>2</b></span>
+<span class="tick" style="left:28.571%"><i></i><b>4</b></span>
+<span class="tick" style="left:42.857%"><i></i><b>8</b></span>
+<span class="tick" style="left:57.143%"><i></i><b>16</b></span>
+<span class="tick" style="left:71.429%"><i></i><b>32</b></span>
+<span class="tick" style="left:85.714%"><i></i><b>64</b></span>
+<span class="tick" style="left:100.000%"><i></i><b>128</b></span>
 </div>
-<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:0.700%"></span></div><div class="rv">1.03<em>&times;</em></div></div>
-<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:2.270%"></span></div><div class="rv">1.13<em>&times;</em></div></div>
-<div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:2.430%"></span></div><div class="rv">1.14<em>&times;</em></div></div>
-<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:2.948%"></span></div><div class="rv">1.18<em>&times;</em></div></div>
-<div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:2.956%"></span></div><div class="rv">1.18<em>&times;</em></div></div>
-<div class="row l-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:3.158%"></span></div><div class="rv">1.19<em>&times;</em></div></div>
-<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:4.037%"></span></div><div class="rv">1.25<em>&times;</em></div></div>
-<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:4.560%"></span></div><div class="rv">1.29<em>&times;</em></div></div>
-<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:8.467%"></span></div><div class="rv">1.60<em>&times;</em></div></div>
-<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:11.575%"></span></div><div class="rv">1.90<em>&times;</em></div></div>
-<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:16.028%"></span></div><div class="rv">2.43<em>&times;</em></div></div>
-<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:16.690%"></span></div><div class="rv">2.52<em>&times;</em></div></div>
-<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:21.412%"></span></div><div class="rv">3.28<em>&times;</em></div></div>
-<div class="row l-js"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:34.107%"></span></div><div class="rv">6.63<em>&times;</em></div></div>
-<div class="row l-lua"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:35.316%"></span></div><div class="rv">7.09<em>&times;</em></div></div>
-<div class="row l-lua"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:76.992%"></span></div><div class="rv">71.47<em>&times;</em></div></div>
-<div class="row l-py"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:94.507%"></span></div><div class="rv">188.78<em>&times;</em></div></div>
+<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.645%"></span></div><div class="rv">1.19<em>&times;</em></div></div>
+<div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:4.038%"></span></div><div class="rv">1.22<em>&times;</em></div></div>
+<div class="row l-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:4.174%"></span></div><div class="rv">1.22<em>&times;</em></div></div>
+<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:4.626%"></span></div><div class="rv">1.25<em>&times;</em></div></div>
+<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:4.646%"></span></div><div class="rv">1.25<em>&times;</em></div></div>
+<div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:4.857%"></span></div><div class="rv">1.27<em>&times;</em></div></div>
+<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:4.930%"></span></div><div class="rv">1.27<em>&times;</em></div></div>
+<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:5.623%"></span></div><div class="rv">1.31<em>&times;</em></div></div>
+<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:9.872%"></span></div><div class="rv">1.61<em>&times;</em></div></div>
+<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:10.421%"></span></div><div class="rv">1.66<em>&times;</em></div></div>
+<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:16.001%"></span></div><div class="rv">2.17<em>&times;</em></div></div>
+<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:16.499%"></span></div><div class="rv">2.23<em>&times;</em></div></div>
+<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:20.499%"></span></div><div class="rv">2.70<em>&times;</em></div></div>
+<div class="row l-js"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:29.982%"></span></div><div class="rv">4.28<em>&times;</em></div></div>
+<div class="row l-lua"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:35.116%"></span></div><div class="rv">5.49<em>&times;</em></div></div>
+<div class="row l-lua"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:76.970%"></span></div><div class="rv">41.87<em>&times;</em></div></div>
+<div class="row l-py"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:98.689%"></span></div><div class="rv">120.11<em>&times;</em></div></div>
 </figure>
     <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
     <p class="cap">Du plus rapide au plus lent, en millisecondes. Une couleur par langage&nbsp;; jaune plein&nbsp;: swag release, jaune p&acirc;le&nbsp;: swag devmode.
     La colonne swag donne la place de swag release.</p>
     <div class="table-wrap"><table class="ranked"><thead><tr><th>t&acirc;che</th><th>swag</th><th>classement</th></tr></thead><tbody>
 <tr><th title="table de hachage maison sur 2 M mots, puis tri"><code>wordfreq</code></th><td>1<span class="mode">/10</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>45.0</i></li>
-<li class="l-d"><b>2</b>D <span class="mode">LDC</span><i>45.6</i></li>
-<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>47.3</i></li>
-<li class="l-rust"><b>4</b>Rust<i>48.4</i></li>
-<li class="l-cpp"><b>5</b>MSVC <span class="mode">C++</span><i>52.1</i></li>
+<li class="l-swag"><b>1</b>swag<i>44.6</i></li>
+<li class="l-cpp"><b>2</b>clang-cl <span class="mode">C++</span><i>46.7</i></li>
+<li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>47.3</i></li>
+<li class="l-rust"><b>4</b>Rust<i>49.9</i></li>
+<li class="l-cpp"><b>5</b>MSVC <span class="mode">C++</span><i>51.2</i></li>
 <li class="l-odin"><b>6</b>Odin<i>53.2</i></li>
-<li class="l-zig"><b>7</b>Zig<i>53.3</i></li>
-<li class="l-cs"><b>8</b>C# <span class="mode">AOT</span><i>53.8</i></li>
+<li class="l-zig"><b>7</b>Zig<i>53.4</i></li>
+<li class="l-cs"><b>8</b>C# <span class="mode">AOT</span><i>54.7</i></li>
 <li class="l-swift"><b>9</b>Swift<i>59.1</i></li>
-<li class="l-swag l-dev"><b>10</b>swag dev<i>71.9</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>72.4</i></li>
 </ol></td></tr>
-<tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th><td>1<span class="mode">/10</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>15.2</i></li>
-<li class="l-odin"><b>2</b>Odin<i>15.8</i></li>
-<li class="l-zig"><b>3</b>Zig<i>15.8</i></li>
-<li class="l-cpp"><b>4</b>clang-cl <span class="mode">C++</span><i>16.0</i></li>
+<tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th><td>2<span class="mode">/10</span></td><td><ol>
+<li class="l-zig"><b>1</b>Zig<i>15.4</i></li>
+<li class="l-swag"><b>2</b>swag<i>15.6</i></li>
+<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>15.7</i></li>
+<li class="l-odin"><b>4</b>Odin<i>15.9</i></li>
 <li class="l-cpp"><b>5</b>MSVC <span class="mode">C++</span><i>16.7</i></li>
-<li class="l-d"><b>6</b>D <span class="mode">LDC</span><i>17.8</i></li>
-<li class="l-rust"><b>7</b>Rust<i>20.4</i></li>
-<li class="l-cs"><b>8</b>C# <span class="mode">AOT</span><i>23.1</i></li>
-<li class="l-swift"><b>9</b>Swift<i>24.5</i></li>
-<li class="l-swag l-dev"><b>10</b>swag dev<i>30.9</i></li>
+<li class="l-d"><b>6</b>D <span class="mode">LDC</span><i>17.2</i></li>
+<li class="l-rust"><b>7</b>Rust<i>20.3</i></li>
+<li class="l-cs"><b>8</b>C# <span class="mode">AOT</span><i>23.5</i></li>
+<li class="l-swift"><b>9</b>Swift<i>27.0</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>30.0</i></li>
 </ol></td></tr>
 <tr><th title="8 Mio, ALU entière pure, rotations"><code>sha256</code></th><td>1<span class="mode">/10</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>31.8</i></li>
-<li class="l-zig"><b>2</b>Zig<i>34.8</i></li>
-<li class="l-rust"><b>3</b>Rust<i>35.8</i></li>
-<li class="l-cpp"><b>4</b>clang-cl <span class="mode">C++</span><i>36.2</i></li>
-<li class="l-d"><b>5</b>D <span class="mode">LDC</span><i>36.6</i></li>
-<li class="l-odin"><b>6</b>Odin<i>36.6</i></li>
-<li class="l-cpp"><b>7</b>MSVC <span class="mode">C++</span><i>37.5</i></li>
-<li class="l-cs"><b>8</b>C# <span class="mode">AOT</span><i>42.7</i></li>
-<li class="l-swift"><b>9</b>Swift<i>48.0</i></li>
-<li class="l-swag l-dev"><b>10</b>swag dev<i>145</i></li>
+<li class="l-swag"><b>1</b>swag<i>31.0</i></li>
+<li class="l-zig"><b>2</b>Zig<i>33.7</i></li>
+<li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>34.5</i></li>
+<li class="l-odin"><b>4</b>Odin<i>35.3</i></li>
+<li class="l-cpp"><b>5</b>clang-cl <span class="mode">C++</span><i>36.6</i></li>
+<li class="l-rust"><b>6</b>Rust<i>36.8</i></li>
+<li class="l-cpp"><b>7</b>MSVC <span class="mode">C++</span><i>40.2</i></li>
+<li class="l-cs"><b>8</b>C# <span class="mode">AOT</span><i>44.0</i></li>
+<li class="l-swift"><b>9</b>Swift<i>50.6</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>144</i></li>
 </ol></td></tr>
 <tr><th title="grille 800×800, tas binaire"><code>dijkstra</code></th><td>2<span class="mode">/10</span></td><td><ol>
-<li class="l-cpp"><b>1</b>MSVC <span class="mode">C++</span><i>27.0</i></li>
-<li class="l-swag"><b>2</b>swag<i>27.9</i></li>
-<li class="l-odin"><b>3</b>Odin<i>39.3</i></li>
-<li class="l-cpp"><b>4</b>clang-cl <span class="mode">C++</span><i>39.7</i></li>
-<li class="l-zig"><b>5</b>Zig<i>40.4</i></li>
+<li class="l-cpp"><b>1</b>MSVC <span class="mode">C++</span><i>27.9</i></li>
+<li class="l-swag"><b>2</b>swag<i>28.0</i></li>
+<li class="l-odin"><b>3</b>Odin<i>37.6</i></li>
+<li class="l-zig"><b>4</b>Zig<i>39.8</i></li>
+<li class="l-cpp"><b>5</b>clang-cl <span class="mode">C++</span><i>41.2</i></li>
 <li class="l-rust"><b>6</b>Rust<i>43.9</i></li>
-<li class="l-d"><b>7</b>D <span class="mode">LDC</span><i>45.3</i></li>
-<li class="l-swag l-dev"><b>8</b>swag dev<i>51.3</i></li>
-<li class="l-cs"><b>9</b>C# <span class="mode">AOT</span><i>53.7</i></li>
-<li class="l-swift"><b>10</b>Swift<i>68.6</i></li>
+<li class="l-d"><b>7</b>D <span class="mode">LDC</span><i>44.3</i></li>
+<li class="l-cs"><b>8</b>C# <span class="mode">AOT</span><i>49.8</i></li>
+<li class="l-swag l-dev"><b>9</b>swag dev<i>53.3</i></li>
+<li class="l-swift"><b>10</b>Swift<i>65.9</i></li>
 </ol></td></tr>
 <tr><th title="480×360, f64, récursion"><code>raytrace</code></th><td>5<span class="mode">/10</span></td><td><ol>
-<li class="l-cpp"><b>1</b>MSVC <span class="mode">C++</span><i>9.23</i></li>
-<li class="l-odin"><b>2</b>Odin<i>9.32</i></li>
-<li class="l-cs"><b>3</b>C# <span class="mode">AOT</span><i>9.94</i></li>
-<li class="l-cpp"><b>4</b>clang-cl <span class="mode">C++</span><i>10.1</i></li>
-<li class="l-swag"><b>5</b>swag<i>10.7</i></li>
-<li class="l-zig"><b>6</b>Zig<i>10.8</i></li>
-<li class="l-d"><b>7</b>D <span class="mode">LDC</span><i>10.9</i></li>
-<li class="l-rust"><b>8</b>Rust<i>11.2</i></li>
-<li class="l-swift"><b>9</b>Swift<i>11.2</i></li>
-<li class="l-swag l-dev"><b>10</b>swag dev<i>13.6</i></li>
+<li class="l-cpp"><b>1</b>MSVC <span class="mode">C++</span><i>9.25</i></li>
+<li class="l-odin"><b>2</b>Odin<i>9.83</i></li>
+<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>10.2</i></li>
+<li class="l-cs"><b>4</b>C# <span class="mode">AOT</span><i>10.5</i></li>
+<li class="l-swag"><b>5</b>swag<i>10.8</i></li>
+<li class="l-d"><b>6</b>D <span class="mode">LDC</span><i>11.2</i></li>
+<li class="l-zig"><b>7</b>Zig<i>11.3</i></li>
+<li class="l-rust"><b>8</b>Rust<i>11.7</i></li>
+<li class="l-swift"><b>9</b>Swift<i>12.0</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>13.3</i></li>
 </ol></td></tr>
 <tr><th title="40 requêtes contre 6000 mots"><code>leven</code></th><td>1<span class="mode">/10</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>11.8</i></li>
+<li class="l-swag"><b>1</b>swag<i>11.5</i></li>
 <li class="l-odin"><b>2</b>Odin<i>12.1</i></li>
-<li class="l-swift"><b>3</b>Swift<i>12.8</i></li>
+<li class="l-zig"><b>3</b>Zig<i>12.8</i></li>
 <li class="l-cpp"><b>4</b>clang-cl <span class="mode">C++</span><i>12.9</i></li>
-<li class="l-d"><b>5</b>D <span class="mode">LDC</span><i>13.1</i></li>
-<li class="l-zig"><b>6</b>Zig<i>13.2</i></li>
-<li class="l-rust"><b>7</b>Rust<i>13.3</i></li>
-<li class="l-cpp"><b>8</b>MSVC <span class="mode">C++</span><i>17.9</i></li>
-<li class="l-cs"><b>9</b>C# <span class="mode">AOT</span><i>23.3</i></li>
-<li class="l-swag l-dev"><b>10</b>swag dev<i>46.4</i></li>
+<li class="l-d"><b>5</b>D <span class="mode">LDC</span><i>12.9</i></li>
+<li class="l-swift"><b>6</b>Swift<i>13.0</i></li>
+<li class="l-rust"><b>7</b>Rust<i>13.0</i></li>
+<li class="l-cpp"><b>8</b>MSVC <span class="mode">C++</span><i>17.5</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">AOT</span><i>23.6</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>46.7</i></li>
 </ol></td></tr>
 <tr><th title="16 Mio de flot de clé, lanes 32 bits, rotations"><code>chacha</code></th><td>1<span class="mode">/10</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>19.5</i></li>
-<li class="l-odin"><b>2</b>Odin<i>21.9</i></li>
-<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>22.4</i></li>
-<li class="l-zig"><b>4</b>Zig<i>23.0</i></li>
-<li class="l-cpp"><b>5</b>MSVC <span class="mode">C++</span><i>26.9</i></li>
-<li class="l-d"><b>6</b>D <span class="mode">LDC</span><i>31.0</i></li>
-<li class="l-rust"><b>7</b>Rust<i>31.5</i></li>
-<li class="l-swift"><b>8</b>Swift<i>48.3</i></li>
-<li class="l-swag l-dev"><b>9</b>swag dev<i>59.9</i></li>
-<li class="l-cs"><b>10</b>C# <span class="mode">AOT</span><i>167</i></li>
+<li class="l-swag"><b>1</b>swag<i>19.6</i></li>
+<li class="l-odin"><b>2</b>Odin<i>21.8</i></li>
+<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>22.1</i></li>
+<li class="l-zig"><b>4</b>Zig<i>22.5</i></li>
+<li class="l-cpp"><b>5</b>MSVC <span class="mode">C++</span><i>26.5</i></li>
+<li class="l-d"><b>6</b>D <span class="mode">LDC</span><i>30.0</i></li>
+<li class="l-rust"><b>7</b>Rust<i>31.0</i></li>
+<li class="l-swift"><b>8</b>Swift<i>48.1</i></li>
+<li class="l-swag l-dev"><b>9</b>swag dev<i>59.8</i></li>
+<li class="l-cs"><b>10</b>C# <span class="mode">AOT</span><i>189</i></li>
+</ol></td></tr>
+<tr><th title="5 corps, 500 k pas, f64, sqrt, tableau de structures"><code>nbody</code></th><td>7<span class="mode">/10</span></td><td><ol>
+<li class="l-zig"><b>1</b>Zig<i>16.4</i></li>
+<li class="l-rust"><b>2</b>Rust<i>20.0</i></li>
+<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>20.9</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>21.3</i></li>
+<li class="l-swift"><b>5</b>Swift<i>22.7</i></li>
+<li class="l-odin"><b>6</b>Odin<i>24.9</i></li>
+<li class="l-swag"><b>7</b>swag<i>25.5</i></li>
+<li class="l-cpp"><b>8</b>MSVC <span class="mode">C++</span><i>26.3</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">AOT</span><i>27.1</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>29.2</i></li>
+</ol></td></tr>
+<tr><th title="fannkuch-redux N = 9, permutations et retournements"><code>fannkuch</code></th><td>2<span class="mode">/10</span></td><td><ol>
+<li class="l-rust"><b>1</b>Rust<i>13.3</i></li>
+<li class="l-swag"><b>2</b>swag<i>13.8</i></li>
+<li class="l-cpp"><b>3</b>MSVC <span class="mode">C++</span><i>14.2</i></li>
+<li class="l-cpp"><b>4</b>clang-cl <span class="mode">C++</span><i>15.0</i></li>
+<li class="l-d"><b>5</b>D <span class="mode">LDC</span><i>15.0</i></li>
+<li class="l-swift"><b>6</b>Swift<i>16.4</i></li>
+<li class="l-cs"><b>7</b>C# <span class="mode">AOT</span><i>16.7</i></li>
+<li class="l-odin"><b>8</b>Odin<i>17.0</i></li>
+<li class="l-swag l-dev"><b>9</b>swag dev<i>17.8</i></li>
+<li class="l-zig"><b>10</b>Zig<i>18.0</i></li>
+</ol></td></tr>
+<tr><th title="profondeur 12, allocation et libération nœud par nœud"><code>binarytrees</code></th><td>7<span class="mode">/10</span></td><td><ol>
+<li class="l-cs"><b>1</b>C# <span class="mode">AOT</span><i>9.79</i></li>
+<li class="l-d"><b>2</b>D <span class="mode">LDC</span><i>22.0</i></li>
+<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>25.5</i></li>
+<li class="l-cpp"><b>4</b>MSVC <span class="mode">C++</span><i>26.0</i></li>
+<li class="l-rust"><b>5</b>Rust<i>26.6</i></li>
+<li class="l-zig"><b>6</b>Zig<i>32.9</i></li>
+<li class="l-swag"><b>7</b>swag<i>34.9</i></li>
+<li class="l-odin"><b>8</b>Odin<i>37.1</i></li>
+<li class="l-swift"><b>9</b>Swift<i>39.9</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>46.4</i></li>
+</ol></td></tr>
+<tr><th title="1 Mio, compression par chaînes de hachage puis décompression"><code>lz77</code></th><td>8<span class="mode">/10</span></td><td><ol>
+<li class="l-odin"><b>1</b>Odin<i>20.6</i></li>
+<li class="l-d"><b>2</b>D <span class="mode">LDC</span><i>20.8</i></li>
+<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>21.3</i></li>
+<li class="l-cpp"><b>4</b>MSVC <span class="mode">C++</span><i>21.8</i></li>
+<li class="l-zig"><b>5</b>Zig<i>22.2</i></li>
+<li class="l-rust"><b>6</b>Rust<i>22.7</i></li>
+<li class="l-cs"><b>7</b>C# <span class="mode">AOT</span><i>23.3</i></li>
+<li class="l-swag"><b>8</b>swag<i>23.7</i></li>
+<li class="l-swift"><b>9</b>Swift<i>31.6</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>39.3</i></li>
+</ol></td></tr>
+<tr><th title="300 k entiers, quicksort médiane de trois"><code>sort</code></th><td>6<span class="mode">/10</span></td><td><ol>
+<li class="l-d"><b>1</b>D <span class="mode">LDC</span><i>17.5</i></li>
+<li class="l-odin"><b>2</b>Odin<i>17.5</i></li>
+<li class="l-cpp"><b>3</b>clang-cl <span class="mode">C++</span><i>17.9</i></li>
+<li class="l-cpp"><b>4</b>MSVC <span class="mode">C++</span><i>18.1</i></li>
+<li class="l-zig"><b>5</b>Zig<i>18.1</i></li>
+<li class="l-swag"><b>6</b>swag<i>18.1</i></li>
+<li class="l-rust"><b>7</b>Rust<i>19.8</i></li>
+<li class="l-cs"><b>8</b>C# <span class="mode">AOT</span><i>21.2</i></li>
+<li class="l-swift"><b>9</b>Swift<i>21.5</i></li>
+<li class="l-swag l-dev"><b>10</b>swag dev<i>23.8</i></li>
 </ol></td></tr>
 </tbody></table></div>
     <h3>Classement par t&acirc;che &mdash; JIT et interpr&eacute;t&eacute;s</h3>
     <div class="table-wrap"><table class="ranked"><thead><tr><th>t&acirc;che</th><th>swag</th><th>classement</th></tr></thead><tbody>
 <tr><th title="table de hachage maison sur 2 M mots, puis tri"><code>wordfreq</code></th><td>1<span class="mode">/7</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>47.1</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>74.8</i></li>
-<li class="l-lua"><b>3</b>LuaJIT<i>118</i></li>
+<li class="l-swag"><b>1</b>swag<i>48.9</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>77.5</i></li>
+<li class="l-lua"><b>3</b>LuaJIT<i>124</i></li>
 <li class="l-cs"><b>4</b>C# <span class="mode">JIT</span><i>128</i></li>
-<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>165</i></li>
-<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>683</i></li>
-<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>1981</i></li>
+<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>162</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>690</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>2061</i></li>
 </ol></td></tr>
 <tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th><td>1<span class="mode">/7</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>16.4</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>31.2</i></li>
-<li class="l-cs"><b>3</b>C# <span class="mode">JIT</span><i>44.3</i></li>
-<li class="l-js"><b>4</b>Node <span class="mode">V8</span><i>68.6</i></li>
-<li class="l-lua"><b>5</b>LuaJIT<i>75.0</i></li>
-<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>1145</i></li>
-<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>2285</i></li>
+<li class="l-swag"><b>1</b>swag<i>15.8</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>31.3</i></li>
+<li class="l-cs"><b>3</b>C# <span class="mode">JIT</span><i>43.0</i></li>
+<li class="l-js"><b>4</b>Node <span class="mode">V8</span><i>77.5</i></li>
+<li class="l-lua"><b>5</b>LuaJIT<i>84.0</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>1135</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>2360</i></li>
 </ol></td></tr>
 <tr><th title="8 Mio, ALU entière pure, rotations"><code>sha256</code></th><td>2<span class="mode">/7</span></td><td><ol>
-<li class="l-cs"><b>1</b>C# <span class="mode">JIT</span><i>42.0</i></li>
-<li class="l-swag"><b>2</b>swag<i>62.1</i></li>
-<li class="l-swag l-dev"><b>3</b>swag dev<i>156</i></li>
-<li class="l-lua"><b>4</b>LuaJIT<i>502</i></li>
-<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>582</i></li>
-<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>9702</i></li>
-<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>21593</i></li>
+<li class="l-cs"><b>1</b>C# <span class="mode">JIT</span><i>45.2</i></li>
+<li class="l-swag"><b>2</b>swag<i>59.2</i></li>
+<li class="l-swag l-dev"><b>3</b>swag dev<i>147</i></li>
+<li class="l-lua"><b>4</b>LuaJIT<i>509</i></li>
+<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>566</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>9292</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>20824</i></li>
 </ol></td></tr>
 <tr><th title="grille 800×800, tas binaire"><code>dijkstra</code></th><td>1<span class="mode">/7</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>30.0</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>52.5</i></li>
-<li class="l-cs"><b>3</b>C# <span class="mode">JIT</span><i>122</i></li>
-<li class="l-lua"><b>4</b>LuaJIT<i>130</i></li>
-<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>135</i></li>
-<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>679</i></li>
-<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>1927</i></li>
+<li class="l-swag"><b>1</b>swag<i>28.5</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>51.7</i></li>
+<li class="l-cs"><b>3</b>C# <span class="mode">JIT</span><i>123</i></li>
+<li class="l-lua"><b>4</b>LuaJIT<i>132</i></li>
+<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>141</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>711</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>2628</i></li>
 </ol></td></tr>
 <tr><th title="480×360, f64, récursion"><code>raytrace</code></th><td>1<span class="mode">/7</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>10.8</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>14.6</i></li>
-<li class="l-lua"><b>3</b>LuaJIT<i>30.0</i></li>
-<li class="l-cs"><b>4</b>C# <span class="mode">JIT</span><i>36.4</i></li>
-<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>39.9</i></li>
-<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>249</i></li>
-<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>802</i></li>
+<li class="l-swag"><b>1</b>swag<i>10.9</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>14.9</i></li>
+<li class="l-lua"><b>3</b>LuaJIT<i>29.0</i></li>
+<li class="l-cs"><b>4</b>C# <span class="mode">JIT</span><i>36.3</i></li>
+<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>39.5</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>259</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>804</i></li>
 </ol></td></tr>
 <tr><th title="40 requêtes contre 6000 mots"><code>leven</code></th><td>1<span class="mode">/7</span></td><td><ol>
 <li class="l-swag"><b>1</b>swag<i>13.0</i></li>
-<li class="l-cs"><b>2</b>C# <span class="mode">JIT</span><i>23.7</i></li>
-<li class="l-swag l-dev"><b>3</b>swag dev<i>45.5</i></li>
-<li class="l-lua"><b>4</b>LuaJIT<i>54.0</i></li>
-<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>71.3</i></li>
-<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>770</i></li>
-<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>2903</i></li>
+<li class="l-cs"><b>2</b>C# <span class="mode">JIT</span><i>23.9</i></li>
+<li class="l-swag l-dev"><b>3</b>swag dev<i>44.1</i></li>
+<li class="l-lua"><b>4</b>LuaJIT<i>55.0</i></li>
+<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>71.1</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>774</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>2881</i></li>
 </ol></td></tr>
 <tr><th title="16 Mio de flot de clé, lanes 32 bits, rotations"><code>chacha</code></th><td>1<span class="mode">/7</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>20.8</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>63.4</i></li>
-<li class="l-cs"><b>3</b>C# <span class="mode">JIT</span><i>200</i></li>
-<li class="l-js"><b>4</b>Node <span class="mode">V8</span><i>275</i></li>
-<li class="l-lua"><b>5</b>LuaJIT<i>1191</i></li>
-<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>11964</i></li>
-<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>24172</i></li>
+<li class="l-swag"><b>1</b>swag<i>19.5</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>61.0</i></li>
+<li class="l-cs"><b>3</b>C# <span class="mode">JIT</span><i>219</i></li>
+<li class="l-js"><b>4</b>Node <span class="mode">V8</span><i>289</i></li>
+<li class="l-lua"><b>5</b>LuaJIT<i>1130</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>12942</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>25126</i></li>
+</ol></td></tr>
+<tr><th title="5 corps, 500 k pas, f64, sqrt, tableau de structures"><code>nbody</code></th><td>1<span class="mode">/7</span></td><td><ol>
+<li class="l-swag"><b>1</b>swag<i>26.2</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>30.7</i></li>
+<li class="l-js"><b>3</b>Node <span class="mode">V8</span><i>42.1</i></li>
+<li class="l-lua"><b>4</b>LuaJIT<i>68.0</i></li>
+<li class="l-cs"><b>5</b>C# <span class="mode">JIT</span><i>104</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>1048</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>2565</i></li>
+</ol></td></tr>
+<tr><th title="fannkuch-redux N = 9, permutations et retournements"><code>fannkuch</code></th><td>1<span class="mode">/7</span></td><td><ol>
+<li class="l-swag"><b>1</b>swag<i>14.6</i></li>
+<li class="l-cs"><b>2</b>C# <span class="mode">JIT</span><i>19.3</i></li>
+<li class="l-swag l-dev"><b>3</b>swag dev<i>20.8</i></li>
+<li class="l-js"><b>4</b>Node <span class="mode">V8</span><i>35.2</i></li>
+<li class="l-lua"><b>5</b>LuaJIT<i>49.0</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>252</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>1356</i></li>
+</ol></td></tr>
+<tr><th title="profondeur 12, allocation et libération nœud par nœud"><code>binarytrees</code></th><td>3<span class="mode">/7</span></td><td><ol>
+<li class="l-js"><b>1</b>Node <span class="mode">V8</span><i>9.61</i></li>
+<li class="l-cs"><b>2</b>C# <span class="mode">JIT</span><i>12.9</i></li>
+<li class="l-swag"><b>3</b>swag<i>17.6</i></li>
+<li class="l-swag l-dev"><b>4</b>swag dev<i>21.1</i></li>
+<li class="l-lua"><b>5</b>LuaJIT<i>39.0</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>116</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>132</i></li>
+</ol></td></tr>
+<tr><th title="1 Mio, compression par chaînes de hachage puis décompression"><code>lz77</code></th><td>1<span class="mode">/7</span></td><td><ol>
+<li class="l-swag"><b>1</b>swag<i>23.4</i></li>
+<li class="l-cs"><b>2</b>C# <span class="mode">JIT</span><i>23.6</i></li>
+<li class="l-swag l-dev"><b>3</b>swag dev<i>42.5</i></li>
+<li class="l-js"><b>4</b>Node <span class="mode">V8</span><i>52.8</i></li>
+<li class="l-lua"><b>5</b>LuaJIT<i>86.0</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>441</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>2487</i></li>
+</ol></td></tr>
+<tr><th title="300 k entiers, quicksort médiane de trois"><code>sort</code></th><td>1<span class="mode">/7</span></td><td><ol>
+<li class="l-swag"><b>1</b>swag<i>18.8</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>24.4</i></li>
+<li class="l-cs"><b>3</b>C# <span class="mode">JIT</span><i>40.2</i></li>
+<li class="l-lua"><b>4</b>LuaJIT<i>50.0</i></li>
+<li class="l-js"><b>5</b>Node <span class="mode">V8</span><i>58.0</i></li>
+<li class="l-lua"><b>6</b>Lua <span class="mode">5.4</span><i>149</i></li>
+<li class="l-py"><b>7</b>Python <span class="mode">3.12</span><i>472</i></li>
 </ol></td></tr>
 </tbody></table></div>
     <details>
@@ -602,157 +710,252 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <th>Python<br><span class="mode">3.12</span></th>
 </tr></thead><tbody>
 <tr><th title="table de hachage maison sur 2 M mots, puis tri"><code>wordfreq</code></th>
-<td class="best sw">45.0</td>
-<td>47.1</td>
-<td>71.9</td>
-<td>74.8</td>
-<td class="gap">47.3</td>
-<td>52.1</td>
-<td>48.4</td>
-<td>53.3</td>
-<td>45.6</td>
+<td class="best sw">44.6</td>
+<td>48.9</td>
+<td>72.4</td>
+<td>77.5</td>
+<td class="gap">46.7</td>
+<td>51.2</td>
+<td>49.9</td>
+<td>53.4</td>
+<td>47.3</td>
 <td>53.2</td>
 <td>59.1</td>
-<td class="gap">53.8</td>
+<td class="gap">54.7</td>
 <td>128</td>
-<td class="gap">165</td>
-<td>118</td>
-<td>683</td>
-<td>1981</td>
+<td class="gap">162</td>
+<td>124</td>
+<td>690</td>
+<td>2061</td>
 </tr>
 <tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th>
-<td class="best sw">15.2</td>
-<td>16.4</td>
-<td>30.9</td>
-<td>31.2</td>
-<td class="gap">16.0</td>
+<td class="sw">15.6</td>
+<td>15.8</td>
+<td>30.0</td>
+<td>31.3</td>
+<td class="gap">15.7</td>
 <td>16.7</td>
-<td>20.4</td>
-<td>15.8</td>
-<td>17.8</td>
-<td>15.8</td>
-<td>24.5</td>
-<td class="gap">23.1</td>
-<td>44.3</td>
-<td class="gap">68.6</td>
-<td>75.0</td>
-<td>1145</td>
-<td>2285</td>
+<td>20.3</td>
+<td class="best">15.4</td>
+<td>17.2</td>
+<td>15.9</td>
+<td>27.0</td>
+<td class="gap">23.5</td>
+<td>43.0</td>
+<td class="gap">77.5</td>
+<td>84.0</td>
+<td>1135</td>
+<td>2360</td>
 </tr>
 <tr><th title="8 Mio, ALU entière pure, rotations"><code>sha256</code></th>
-<td class="best sw">31.8</td>
-<td>62.1</td>
-<td>145</td>
-<td>156</td>
-<td class="gap">36.2</td>
-<td>37.5</td>
-<td>35.8</td>
-<td>34.8</td>
-<td>36.6</td>
-<td>36.6</td>
-<td>48.0</td>
-<td class="gap">42.7</td>
-<td>42.0</td>
-<td class="gap">582</td>
-<td>502</td>
-<td>9702</td>
-<td>21593</td>
+<td class="best sw">31.0</td>
+<td>59.2</td>
+<td>144</td>
+<td>147</td>
+<td class="gap">36.6</td>
+<td>40.2</td>
+<td>36.8</td>
+<td>33.7</td>
+<td>34.5</td>
+<td>35.3</td>
+<td>50.6</td>
+<td class="gap">44.0</td>
+<td>45.2</td>
+<td class="gap">566</td>
+<td>509</td>
+<td>9292</td>
+<td>20824</td>
 </tr>
 <tr><th title="grille 800×800, tas binaire"><code>dijkstra</code></th>
-<td class="sw">27.9</td>
-<td>30.0</td>
-<td>51.3</td>
-<td>52.5</td>
-<td class="gap">39.7</td>
-<td class="best">27.0</td>
+<td class="sw">28.0</td>
+<td>28.5</td>
+<td>53.3</td>
+<td>51.7</td>
+<td class="gap">41.2</td>
+<td class="best">27.9</td>
 <td>43.9</td>
-<td>40.4</td>
-<td>45.3</td>
-<td>39.3</td>
-<td>68.6</td>
-<td class="gap">53.7</td>
-<td>122</td>
-<td class="gap">135</td>
-<td>130</td>
-<td>679</td>
-<td>1927</td>
+<td>39.8</td>
+<td>44.3</td>
+<td>37.6</td>
+<td>65.9</td>
+<td class="gap">49.8</td>
+<td>123</td>
+<td class="gap">141</td>
+<td>132</td>
+<td>711</td>
+<td>2628</td>
 </tr>
 <tr><th title="480×360, f64, récursion"><code>raytrace</code></th>
-<td class="sw">10.7</td>
-<td>10.8</td>
-<td>13.6</td>
-<td>14.6</td>
-<td class="gap">10.1</td>
-<td class="best">9.23</td>
-<td>11.2</td>
-<td>10.8</td>
+<td class="sw">10.8</td>
 <td>10.9</td>
-<td>9.32</td>
+<td>13.3</td>
+<td>14.9</td>
+<td class="gap">10.2</td>
+<td class="best">9.25</td>
+<td>11.7</td>
+<td>11.3</td>
 <td>11.2</td>
-<td class="gap">9.94</td>
-<td>36.4</td>
-<td class="gap">39.9</td>
-<td>30.0</td>
-<td>249</td>
-<td>802</td>
+<td>9.83</td>
+<td>12.0</td>
+<td class="gap">10.5</td>
+<td>36.3</td>
+<td class="gap">39.5</td>
+<td>29.0</td>
+<td>259</td>
+<td>804</td>
 </tr>
 <tr><th title="40 requêtes contre 6000 mots"><code>leven</code></th>
-<td class="best sw">11.8</td>
+<td class="best sw">11.5</td>
 <td>13.0</td>
-<td>46.4</td>
-<td>45.5</td>
+<td>46.7</td>
+<td>44.1</td>
 <td class="gap">12.9</td>
-<td>17.9</td>
-<td>13.3</td>
-<td>13.2</td>
-<td>13.1</td>
-<td>12.1</td>
+<td>17.5</td>
+<td>13.0</td>
 <td>12.8</td>
-<td class="gap">23.3</td>
-<td>23.7</td>
-<td class="gap">71.3</td>
-<td>54.0</td>
-<td>770</td>
-<td>2903</td>
+<td>12.9</td>
+<td>12.1</td>
+<td>13.0</td>
+<td class="gap">23.6</td>
+<td>23.9</td>
+<td class="gap">71.1</td>
+<td>55.0</td>
+<td>774</td>
+<td>2881</td>
 </tr>
 <tr><th title="16 Mio de flot de clé, lanes 32 bits, rotations"><code>chacha</code></th>
-<td class="best sw">19.5</td>
-<td>20.8</td>
-<td>59.9</td>
-<td>63.4</td>
-<td class="gap">22.4</td>
-<td>26.9</td>
-<td>31.5</td>
-<td>23.0</td>
+<td class="sw">19.6</td>
+<td class="best">19.5</td>
+<td>59.8</td>
+<td>61.0</td>
+<td class="gap">22.1</td>
+<td>26.5</td>
 <td>31.0</td>
-<td>21.9</td>
-<td>48.3</td>
-<td class="gap">167</td>
-<td>200</td>
-<td class="gap">275</td>
-<td>1191</td>
-<td>11964</td>
-<td>24172</td>
+<td>22.5</td>
+<td>30.0</td>
+<td>21.8</td>
+<td>48.1</td>
+<td class="gap">189</td>
+<td>219</td>
+<td class="gap">289</td>
+<td>1130</td>
+<td>12942</td>
+<td>25126</td>
+</tr>
+<tr><th title="5 corps, 500 k pas, f64, sqrt, tableau de structures"><code>nbody</code></th>
+<td class="sw">25.5</td>
+<td>26.2</td>
+<td>29.2</td>
+<td>30.7</td>
+<td class="gap">20.9</td>
+<td>26.3</td>
+<td>20.0</td>
+<td class="best">16.4</td>
+<td>21.3</td>
+<td>24.9</td>
+<td>22.7</td>
+<td class="gap">27.1</td>
+<td>104</td>
+<td class="gap">42.1</td>
+<td>68.0</td>
+<td>1048</td>
+<td>2565</td>
+</tr>
+<tr><th title="fannkuch-redux N = 9, permutations et retournements"><code>fannkuch</code></th>
+<td class="sw">13.8</td>
+<td>14.6</td>
+<td>17.8</td>
+<td>20.8</td>
+<td class="gap">15.0</td>
+<td>14.2</td>
+<td class="best">13.3</td>
+<td>18.0</td>
+<td>15.0</td>
+<td>17.0</td>
+<td>16.4</td>
+<td class="gap">16.7</td>
+<td>19.3</td>
+<td class="gap">35.2</td>
+<td>49.0</td>
+<td>252</td>
+<td>1356</td>
+</tr>
+<tr><th title="profondeur 12, allocation et libération nœud par nœud"><code>binarytrees</code></th>
+<td class="sw">34.9</td>
+<td>17.6</td>
+<td>46.4</td>
+<td>21.1</td>
+<td class="gap">25.5</td>
+<td>26.0</td>
+<td>26.6</td>
+<td>32.9</td>
+<td>22.0</td>
+<td>37.1</td>
+<td>39.9</td>
+<td class="gap">9.79</td>
+<td>12.9</td>
+<td class="best gap">9.61</td>
+<td>39.0</td>
+<td>116</td>
+<td>132</td>
+</tr>
+<tr><th title="1 Mio, compression par chaînes de hachage puis décompression"><code>lz77</code></th>
+<td class="sw">23.7</td>
+<td>23.4</td>
+<td>39.3</td>
+<td>42.5</td>
+<td class="gap">21.3</td>
+<td>21.8</td>
+<td>22.7</td>
+<td>22.2</td>
+<td>20.8</td>
+<td class="best">20.6</td>
+<td>31.6</td>
+<td class="gap">23.3</td>
+<td>23.6</td>
+<td class="gap">52.8</td>
+<td>86.0</td>
+<td>441</td>
+<td>2487</td>
+</tr>
+<tr><th title="300 k entiers, quicksort médiane de trois"><code>sort</code></th>
+<td class="sw">18.1</td>
+<td>18.8</td>
+<td>23.8</td>
+<td>24.4</td>
+<td class="gap">17.9</td>
+<td>18.1</td>
+<td>19.8</td>
+<td>18.1</td>
+<td class="best">17.5</td>
+<td>17.5</td>
+<td>21.5</td>
+<td class="gap">21.2</td>
+<td>40.2</td>
+<td class="gap">58.0</td>
+<td>50.0</td>
+<td>149</td>
+<td>472</td>
 </tr>
 </tbody>
 <tfoot><tr><th>g&eacute;o &times;</th>
-<td class="sw">1.03</td>
-<td>1.19</td>
-<td>2.43</td>
-<td>2.52</td>
-<td class="gap">1.14</td>
-<td>1.18</td>
-<td>1.29</td>
-<td>1.18</td>
+<td class="sw">1.19</td>
+<td>1.22</td>
+<td>2.23</td>
+<td>2.17</td>
+<td class="gap">1.22</td>
+<td>1.27</td>
+<td>1.31</td>
 <td>1.25</td>
-<td>1.13</td>
-<td>1.60</td>
-<td class="gap">1.90</td>
-<td>3.28</td>
-<td class="gap">6.63</td>
-<td>7.09</td>
-<td>71.47</td>
-<td>188.78</td>
+<td>1.25</td>
+<td>1.27</td>
+<td>1.66</td>
+<td class="gap">1.61</td>
+<td>2.70</td>
+<td class="gap">4.28</td>
+<td>5.49</td>
+<td>41.87</td>
+<td>120.11</td>
 </tr></tfoot>
 </table></div>
     </details>
@@ -772,122 +975,187 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <span class="tick" style="left:83.333%"><i></i><b>4096</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>8192</b></span>
 </div>
-<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.494%"></span></div><div class="rv">148<em>ms</em></div></div>
-<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.726%"></span></div><div class="rv">149<em>ms</em></div></div>
-<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:18.927%"></span></div><div class="rv">281<em>ms</em></div></div>
-<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:20.004%"></span></div><div class="rv">294<em>ms</em></div></div>
-<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:24.043%"></span></div><div class="rv">348<em>ms</em></div></div>
-<div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:25.543%"></span></div><div class="rv">370<em>ms</em></div></div>
-<div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:25.653%"></span></div><div class="rv">372<em>ms</em></div></div>
-<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:73.791%"></span></div><div class="rv">2754<em>ms</em></div></div>
-<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:76.404%"></span></div><div class="rv">3070<em>ms</em></div></div>
-<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:78.780%"></span></div><div class="rv">3389<em>ms</em></div></div>
-<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:93.283%"></span></div><div class="rv">6195<em>ms</em></div></div>
+<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.599%"></span></div><div class="rv">149<em>ms</em></div></div>
+<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:4.225%"></span></div><div class="rv">153<em>ms</em></div></div>
+<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:17.830%"></span></div><div class="rv">269<em>ms</em></div></div>
+<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:20.203%"></span></div><div class="rv">297<em>ms</em></div></div>
+<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:24.325%"></span></div><div class="rv">352<em>ms</em></div></div>
+<div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:26.055%"></span></div><div class="rv">378<em>ms</em></div></div>
+<div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:27.304%"></span></div><div class="rv">398<em>ms</em></div></div>
+<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:68.367%"></span></div><div class="rv">2198<em>ms</em></div></div>
+<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:76.853%"></span></div><div class="rv">3128<em>ms</em></div></div>
+<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:81.643%"></span></div><div class="rv">3818<em>ms</em></div></div>
+<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:94.942%"></span></div><div class="rv">6638<em>ms</em></div></div>
 </figure>
     <h3>Classement par t&acirc;che</h3>
     <p class="cap">Du plus rapide au plus lent, en millisecondes.</p>
     <div class="table-wrap"><table class="ranked"><thead><tr><th>t&acirc;che</th><th>swag</th><th>classement</th></tr></thead><tbody>
 <tr><th title="table de hachage maison sur 2 M mots, puis tri"><code>wordfreq</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>145</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>150</i></li>
-<li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>308</i></li>
-<li class="l-rust"><b>4</b>Rust<i>323</i></li>
-<li class="l-odin"><b>5</b>Odin<i>356</i></li>
-<li class="l-cpp"><b>6</b>clang-cl <span class="mode">C++</span><i>391</i></li>
-<li class="l-cpp"><b>7</b>MSVC <span class="mode">C++</span><i>399</i></li>
-<li class="l-swift"><b>8</b>Swift<i>2062</i></li>
-<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3070</i></li>
-<li class="l-zig"><b>10</b>Zig<i>3599</i></li>
-<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6346</i></li>
+<li class="l-swag"><b>1</b>swag<i>153</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>158</i></li>
+<li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>317</i></li>
+<li class="l-rust"><b>4</b>Rust<i>326</i></li>
+<li class="l-odin"><b>5</b>Odin<i>344</i></li>
+<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>388</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>412</i></li>
+<li class="l-swift"><b>8</b>Swift<i>2045</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3058</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3602</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>7301</i></li>
 </ol></td></tr>
 <tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th><td>2<span class="mode">/11</span></td><td><ol>
-<li class="l-swag l-dev"><b>1</b>swag dev<i>147</i></li>
-<li class="l-swag"><b>2</b>swag<i>158</i></li>
+<li class="l-swag l-dev"><b>1</b>swag dev<i>161</i></li>
+<li class="l-swag"><b>2</b>swag<i>167</i></li>
 <li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>331</i></li>
-<li class="l-rust"><b>4</b>Rust<i>375</i></li>
-<li class="l-cpp"><b>5</b>clang-cl <span class="mode">C++</span><i>377</i></li>
-<li class="l-odin"><b>6</b>Odin<i>381</i></li>
-<li class="l-cpp"><b>7</b>MSVC <span class="mode">C++</span><i>406</i></li>
-<li class="l-swift"><b>8</b>Swift<i>2452</i></li>
-<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3074</i></li>
-<li class="l-zig"><b>10</b>Zig<i>3375</i></li>
-<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6131</i></li>
+<li class="l-rust"><b>4</b>Rust<i>378</i></li>
+<li class="l-odin"><b>5</b>Odin<i>399</i></li>
+<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>425</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>426</i></li>
+<li class="l-swift"><b>8</b>Swift<i>2341</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3106</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3474</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6425</i></li>
 </ol></td></tr>
 <tr><th title="8 Mio, ALU entière pure, rotations"><code>sha256</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>138</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>142</i></li>
-<li class="l-rust"><b>3</b>Rust<i>225</i></li>
-<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>271</i></li>
-<li class="l-cpp"><b>5</b>clang-cl <span class="mode">C++</span><i>345</i></li>
-<li class="l-odin"><b>6</b>Odin<i>345</i></li>
-<li class="l-cpp"><b>7</b>MSVC <span class="mode">C++</span><i>363</i></li>
-<li class="l-swift"><b>8</b>Swift<i>1768</i></li>
-<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3162</i></li>
-<li class="l-zig"><b>10</b>Zig<i>3185</i></li>
-<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6317</i></li>
+<li class="l-swag"><b>1</b>swag<i>150</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>150</i></li>
+<li class="l-rust"><b>3</b>Rust<i>248</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>291</i></li>
+<li class="l-odin"><b>5</b>Odin<i>333</i></li>
+<li class="l-cpp"><b>6</b>clang-cl <span class="mode">C++</span><i>402</i></li>
+<li class="l-cpp"><b>7</b>MSVC <span class="mode">C++</span><i>414</i></li>
+<li class="l-swift"><b>8</b>Swift<i>1750</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3190</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3695</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6439</i></li>
 </ol></td></tr>
 <tr><th title="grille 800×800, tas binaire"><code>dijkstra</code></th><td>2<span class="mode">/11</span></td><td><ol>
-<li class="l-swag l-dev"><b>1</b>swag dev<i>132</i></li>
-<li class="l-swag"><b>2</b>swag<i>147</i></li>
-<li class="l-rust"><b>3</b>Rust<i>244</i></li>
-<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>273</i></li>
-<li class="l-cpp"><b>5</b>MSVC <span class="mode">C++</span><i>307</i></li>
-<li class="l-odin"><b>6</b>Odin<i>324</i></li>
-<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>324</i></li>
-<li class="l-swift"><b>8</b>Swift<i>1474</i></li>
-<li class="l-zig"><b>9</b>Zig<i>3011</i></li>
-<li class="l-cs"><b>10</b>C# <span class="mode">JIT</span><i>3089</i></li>
-<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>5925</i></li>
+<li class="l-swag l-dev"><b>1</b>swag dev<i>136</i></li>
+<li class="l-swag"><b>2</b>swag<i>144</i></li>
+<li class="l-rust"><b>3</b>Rust<i>220</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>263</i></li>
+<li class="l-cpp"><b>5</b>MSVC <span class="mode">C++</span><i>325</i></li>
+<li class="l-odin"><b>6</b>Odin<i>350</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>350</i></li>
+<li class="l-swift"><b>8</b>Swift<i>1501</i></li>
+<li class="l-zig"><b>9</b>Zig<i>3014</i></li>
+<li class="l-cs"><b>10</b>C# <span class="mode">JIT</span><i>3314</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6003</i></li>
 </ol></td></tr>
 <tr><th title="480×360, f64, récursion"><code>raytrace</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>144</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>151</i></li>
-<li class="l-rust"><b>3</b>Rust<i>233</i></li>
-<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>281</i></li>
-<li class="l-odin"><b>5</b>Odin<i>332</i></li>
-<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>363</i></li>
-<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>377</i></li>
-<li class="l-swift"><b>8</b>Swift<i>1522</i></li>
-<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3056</i></li>
-<li class="l-zig"><b>10</b>Zig<i>3633</i></li>
-<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6285</i></li>
+<li class="l-swag"><b>1</b>swag<i>140</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>150</i></li>
+<li class="l-rust"><b>3</b>Rust<i>230</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>285</i></li>
+<li class="l-odin"><b>5</b>Odin<i>324</i></li>
+<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>364</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>409</i></li>
+<li class="l-swift"><b>8</b>Swift<i>1617</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3122</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3776</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6820</i></li>
 </ol></td></tr>
 <tr><th title="40 requêtes contre 6000 mots"><code>leven</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>146</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>160</i></li>
-<li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>310</i></li>
-<li class="l-rust"><b>4</b>Rust<i>330</i></li>
-<li class="l-odin"><b>5</b>Odin<i>359</i></li>
-<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>372</i></li>
-<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>412</i></li>
-<li class="l-swift"><b>8</b>Swift<i>2025</i></li>
-<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3083</i></li>
-<li class="l-zig"><b>10</b>Zig<i>3738</i></li>
-<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6789</i></li>
+<li class="l-swag"><b>1</b>swag<i>150</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>164</i></li>
+<li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>313</i></li>
+<li class="l-rust"><b>4</b>Rust<i>326</i></li>
+<li class="l-cpp"><b>5</b>MSVC <span class="mode">C++</span><i>382</i></li>
+<li class="l-odin"><b>6</b>Odin<i>383</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>425</i></li>
+<li class="l-swift"><b>8</b>Swift<i>2027</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3095</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3620</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>7249</i></li>
 </ol></td></tr>
 <tr><th title="16 Mio de flot de clé, lanes 32 bits, rotations"><code>chacha</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>161</i></li>
-<li class="l-swag l-dev"><b>2</b>swag dev<i>167</i></li>
-<li class="l-rust"><b>3</b>Rust<i>271</i></li>
-<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>290</i></li>
-<li class="l-odin"><b>5</b>Odin<i>343</i></li>
-<li class="l-cpp"><b>6</b>clang-cl <span class="mode">C++</span><i>386</i></li>
-<li class="l-cpp"><b>7</b>MSVC <span class="mode">C++</span><i>392</i></li>
-<li class="l-cs"><b>8</b>C# <span class="mode">JIT</span><i>2962</i></li>
-<li class="l-zig"><b>9</b>Zig<i>3248</i></li>
-<li class="l-cs"><b>10</b>C# <span class="mode">AOT</span><i>5637</i></li>
-<li class="l-swift"><b>11</b>Swift<i>29619</i></li>
+<li class="l-swag"><b>1</b>swag<i>164</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>175</i></li>
+<li class="l-rust"><b>3</b>Rust<i>273</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>305</i></li>
+<li class="l-odin"><b>5</b>Odin<i>346</i></li>
+<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>390</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>396</i></li>
+<li class="l-cs"><b>8</b>C# <span class="mode">JIT</span><i>2958</i></li>
+<li class="l-zig"><b>9</b>Zig<i>3663</i></li>
+<li class="l-cs"><b>10</b>C# <span class="mode">AOT</span><i>5908</i></li>
+<li class="l-swift"><b>11</b>Swift<i>29518</i></li>
+</ol></td></tr>
+<tr><th title="5 corps, 500 k pas, f64, sqrt, tableau de structures"><code>nbody</code></th><td>1<span class="mode">/11</span></td><td><ol>
+<li class="l-swag"><b>1</b>swag<i>133</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>138</i></li>
+<li class="l-rust"><b>3</b>Rust<i>237</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>293</i></li>
+<li class="l-cpp"><b>5</b>clang-cl <span class="mode">C++</span><i>351</i></li>
+<li class="l-odin"><b>6</b>Odin<i>353</i></li>
+<li class="l-cpp"><b>7</b>MSVC <span class="mode">C++</span><i>360</i></li>
+<li class="l-swift"><b>8</b>Swift<i>1533</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3117</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3281</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6232</i></li>
+</ol></td></tr>
+<tr><th title="fannkuch-redux N = 9, permutations et retournements"><code>fannkuch</code></th><td>1<span class="mode">/11</span></td><td><ol>
+<li class="l-swag"><b>1</b>swag<i>139</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>142</i></li>
+<li class="l-rust"><b>3</b>Rust<i>240</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>281</i></li>
+<li class="l-odin"><b>5</b>Odin<i>334</i></li>
+<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>356</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>405</i></li>
+<li class="l-swift"><b>8</b>Swift<i>1528</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3215</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3766</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6903</i></li>
+</ol></td></tr>
+<tr><th title="profondeur 12, allocation et libération nœud par nœud"><code>binarytrees</code></th><td>1<span class="mode">/11</span></td><td><ol>
+<li class="l-swag"><b>1</b>swag<i>145</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>158</i></li>
+<li class="l-rust"><b>3</b>Rust<i>229</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>275</i></li>
+<li class="l-odin"><b>5</b>Odin<i>336</i></li>
+<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>372</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>383</i></li>
+<li class="l-swift"><b>8</b>Swift<i>1310</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3109</i></li>
+<li class="l-cs"><b>10</b>C# <span class="mode">AOT</span><i>6578</i></li>
+<li class="l-zig"><b>11</b>Zig<i>7863</i></li>
+</ol></td></tr>
+<tr><th title="1 Mio, compression par chaînes de hachage puis décompression"><code>lz77</code></th><td>2<span class="mode">/11</span></td><td><ol>
+<li class="l-swag l-dev"><b>1</b>swag dev<i>155</i></li>
+<li class="l-swag"><b>2</b>swag<i>159</i></li>
+<li class="l-rust"><b>3</b>Rust<i>308</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>325</i></li>
+<li class="l-odin"><b>5</b>Odin<i>393</i></li>
+<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>411</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>423</i></li>
+<li class="l-swift"><b>8</b>Swift<i>2142</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3171</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3763</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>6939</i></li>
+</ol></td></tr>
+<tr><th title="300 k entiers, quicksort médiane de trois"><code>sort</code></th><td>1<span class="mode">/11</span></td><td><ol>
+<li class="l-swag"><b>1</b>swag<i>146</i></li>
+<li class="l-swag l-dev"><b>2</b>swag dev<i>149</i></li>
+<li class="l-rust"><b>3</b>Rust<i>256</i></li>
+<li class="l-d"><b>4</b>D <span class="mode">LDC</span><i>288</i></li>
+<li class="l-odin"><b>5</b>Odin<i>340</i></li>
+<li class="l-cpp"><b>6</b>MSVC <span class="mode">C++</span><i>362</i></li>
+<li class="l-cpp"><b>7</b>clang-cl <span class="mode">C++</span><i>407</i></li>
+<li class="l-swift"><b>8</b>Swift<i>1591</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">JIT</span><i>3099</i></li>
+<li class="l-zig"><b>10</b>Zig<i>3758</i></li>
+<li class="l-cs"><b>11</b>C# <span class="mode">AOT</span><i>7036</i></li>
 </ol></td></tr>
 <tr><th><code>hello</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b>swag<i>138</i></li>
-<li class="l-cpp"><b>2</b>MSVC <span class="mode">C++</span><i>146</i></li>
-<li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>162</i></li>
-<li class="l-rust"><b>4</b>Rust<i>184</i></li>
-<li class="l-odin"><b>5</b>Odin<i>252</i></li>
-<li class="l-swift"><b>6</b>Swift<i>361</i></li>
-<li class="l-cs"><b>7</b>C# <span class="mode">JIT</span><i>3104</i></li>
-<li class="l-zig"><b>8</b>Zig<i>3369</i></li>
-<li class="l-cs"><b>9</b>C# <span class="mode">AOT</span><i>6965</i></li>
+<li class="l-swag"><b>1</b>swag<i>137</i></li>
+<li class="l-cpp"><b>2</b>MSVC <span class="mode">C++</span><i>151</i></li>
+<li class="l-d"><b>3</b>D <span class="mode">LDC</span><i>168</i></li>
+<li class="l-rust"><b>4</b>Rust<i>189</i></li>
+<li class="l-odin"><b>5</b>Odin<i>265</i></li>
+<li class="l-swift"><b>6</b>Swift<i>435</i></li>
+<li class="l-cs"><b>7</b>C# <span class="mode">JIT</span><i>3294</i></li>
+<li class="l-zig"><b>8</b>Zig<i>3648</i></li>
+<li class="l-cs"><b>9</b>C# <span class="mode">AOT</span><i>7025</i></li>
 <li class="l-swag l-dev"><b>10</b>swag dev<i>&mdash;</i></li>
 <li class="l-cpp"><b>11</b>clang-cl <span class="mode">C++</span><i>&mdash;</i></li>
 </ol></td></tr>
@@ -908,122 +1176,187 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <th>C#<br><span class="mode">JIT</span></th>
 </tr></thead><tbody>
 <tr><th title="table de hachage maison sur 2 M mots, puis tri"><code>wordfreq</code></th>
-<td class="best sw">145</td>
-<td>150</td>
-<td class="gap">391</td>
-<td>399</td>
-<td>323</td>
-<td>3599</td>
-<td>308</td>
-<td>356</td>
-<td>2062</td>
-<td class="gap">6346</td>
-<td>3070</td>
+<td class="best sw">153</td>
+<td>158</td>
+<td class="gap">412</td>
+<td>388</td>
+<td>326</td>
+<td>3602</td>
+<td>317</td>
+<td>344</td>
+<td>2045</td>
+<td class="gap">7301</td>
+<td>3058</td>
 </tr>
 <tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th>
-<td class="sw">158</td>
-<td class="best">147</td>
-<td class="gap">377</td>
-<td>406</td>
-<td>375</td>
-<td>3375</td>
+<td class="sw">167</td>
+<td class="best">161</td>
+<td class="gap">426</td>
+<td>425</td>
+<td>378</td>
+<td>3474</td>
 <td>331</td>
-<td>381</td>
-<td>2452</td>
-<td class="gap">6131</td>
-<td>3074</td>
+<td>399</td>
+<td>2341</td>
+<td class="gap">6425</td>
+<td>3106</td>
 </tr>
 <tr><th title="8 Mio, ALU entière pure, rotations"><code>sha256</code></th>
-<td class="best sw">138</td>
-<td>142</td>
-<td class="gap">345</td>
-<td>363</td>
-<td>225</td>
-<td>3185</td>
-<td>271</td>
-<td>345</td>
-<td>1768</td>
-<td class="gap">6317</td>
-<td>3162</td>
+<td class="best sw">150</td>
+<td>150</td>
+<td class="gap">402</td>
+<td>414</td>
+<td>248</td>
+<td>3695</td>
+<td>291</td>
+<td>333</td>
+<td>1750</td>
+<td class="gap">6439</td>
+<td>3190</td>
 </tr>
 <tr><th title="grille 800×800, tas binaire"><code>dijkstra</code></th>
-<td class="sw">147</td>
-<td class="best">132</td>
-<td class="gap">324</td>
-<td>307</td>
-<td>244</td>
-<td>3011</td>
-<td>273</td>
-<td>324</td>
-<td>1474</td>
-<td class="gap">5925</td>
-<td>3089</td>
+<td class="sw">144</td>
+<td class="best">136</td>
+<td class="gap">350</td>
+<td>325</td>
+<td>220</td>
+<td>3014</td>
+<td>263</td>
+<td>350</td>
+<td>1501</td>
+<td class="gap">6003</td>
+<td>3314</td>
 </tr>
 <tr><th title="480×360, f64, récursion"><code>raytrace</code></th>
-<td class="best sw">144</td>
-<td>151</td>
-<td class="gap">377</td>
-<td>363</td>
-<td>233</td>
-<td>3633</td>
-<td>281</td>
-<td>332</td>
-<td>1522</td>
-<td class="gap">6285</td>
-<td>3056</td>
+<td class="best sw">140</td>
+<td>150</td>
+<td class="gap">409</td>
+<td>364</td>
+<td>230</td>
+<td>3776</td>
+<td>285</td>
+<td>324</td>
+<td>1617</td>
+<td class="gap">6820</td>
+<td>3122</td>
 </tr>
 <tr><th title="40 requêtes contre 6000 mots"><code>leven</code></th>
-<td class="best sw">146</td>
-<td>160</td>
-<td class="gap">412</td>
-<td>372</td>
-<td>330</td>
-<td>3738</td>
-<td>310</td>
-<td>359</td>
-<td>2025</td>
-<td class="gap">6789</td>
-<td>3083</td>
+<td class="best sw">150</td>
+<td>164</td>
+<td class="gap">425</td>
+<td>382</td>
+<td>326</td>
+<td>3620</td>
+<td>313</td>
+<td>383</td>
+<td>2027</td>
+<td class="gap">7249</td>
+<td>3095</td>
 </tr>
 <tr><th title="16 Mio de flot de clé, lanes 32 bits, rotations"><code>chacha</code></th>
-<td class="best sw">161</td>
-<td>167</td>
-<td class="gap">386</td>
-<td>392</td>
-<td>271</td>
-<td>3248</td>
-<td>290</td>
-<td>343</td>
-<td>29619</td>
-<td class="gap">5637</td>
-<td>2962</td>
+<td class="best sw">164</td>
+<td>175</td>
+<td class="gap">396</td>
+<td>390</td>
+<td>273</td>
+<td>3663</td>
+<td>305</td>
+<td>346</td>
+<td>29518</td>
+<td class="gap">5908</td>
+<td>2958</td>
+</tr>
+<tr><th title="5 corps, 500 k pas, f64, sqrt, tableau de structures"><code>nbody</code></th>
+<td class="best sw">133</td>
+<td>138</td>
+<td class="gap">351</td>
+<td>360</td>
+<td>237</td>
+<td>3281</td>
+<td>293</td>
+<td>353</td>
+<td>1533</td>
+<td class="gap">6232</td>
+<td>3117</td>
+</tr>
+<tr><th title="fannkuch-redux N = 9, permutations et retournements"><code>fannkuch</code></th>
+<td class="best sw">139</td>
+<td>142</td>
+<td class="gap">405</td>
+<td>356</td>
+<td>240</td>
+<td>3766</td>
+<td>281</td>
+<td>334</td>
+<td>1528</td>
+<td class="gap">6903</td>
+<td>3215</td>
+</tr>
+<tr><th title="profondeur 12, allocation et libération nœud par nœud"><code>binarytrees</code></th>
+<td class="best sw">145</td>
+<td>158</td>
+<td class="gap">383</td>
+<td>372</td>
+<td>229</td>
+<td>7863</td>
+<td>275</td>
+<td>336</td>
+<td>1310</td>
+<td class="gap">6578</td>
+<td>3109</td>
+</tr>
+<tr><th title="1 Mio, compression par chaînes de hachage puis décompression"><code>lz77</code></th>
+<td class="sw">159</td>
+<td class="best">155</td>
+<td class="gap">423</td>
+<td>411</td>
+<td>308</td>
+<td>3763</td>
+<td>325</td>
+<td>393</td>
+<td>2142</td>
+<td class="gap">6939</td>
+<td>3171</td>
+</tr>
+<tr><th title="300 k entiers, quicksort médiane de trois"><code>sort</code></th>
+<td class="best sw">146</td>
+<td>149</td>
+<td class="gap">407</td>
+<td>362</td>
+<td>256</td>
+<td>3758</td>
+<td>288</td>
+<td>340</td>
+<td>1591</td>
+<td class="gap">7036</td>
+<td>3099</td>
 </tr>
 <tr><th><code>hello</code></th>
-<td class="best sw">138</td>
+<td class="best sw">137</td>
 <td>&mdash;</td>
 <td class="gap">&mdash;</td>
-<td>146</td>
-<td>184</td>
-<td>3369</td>
-<td>162</td>
-<td>252</td>
-<td>361</td>
-<td class="gap">6965</td>
-<td>3104</td>
+<td>151</td>
+<td>189</td>
+<td>3648</td>
+<td>168</td>
+<td>265</td>
+<td>435</td>
+<td class="gap">7025</td>
+<td>3294</td>
 </tr>
 </tbody>
 <tfoot><tr><th>g&eacute;o ms</th>
-<td class="sw">148</td>
-<td>149</td>
-<td class="gap">372</td>
-<td>370</td>
-<td>281</td>
-<td>3389</td>
-<td>294</td>
-<td>348</td>
-<td>2754</td>
-<td class="gap">6195</td>
-<td>3070</td>
+<td class="sw">149</td>
+<td>153</td>
+<td class="gap">398</td>
+<td>378</td>
+<td>269</td>
+<td>3818</td>
+<td>297</td>
+<td>352</td>
+<td>2198</td>
+<td class="gap">6638</td>
+<td>3128</td>
 </tr></tfoot>
 </table></div>
     </details>
@@ -1035,12 +1368,12 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <th>Mo</th>
 <th>indice</th>
 </tr></thead><tbody>
-<tr><th>std/core &agrave; froid <span class="mode">tous les fichiers, sorties supprim&eacute;es</span></th><td>2491</td><td>2971</td><td>532</td><td>0.95</td></tr>
-<tr><th>std/core sans changement <span class="mode">rien n'a boug&eacute; depuis la derni&egrave;re construction</span></th><td>68</td><td>82</td><td>7</td><td>1.35</td></tr>
-<tr><th>std/core, un fichier sauv&eacute; <span class="mode">une seule date de modification a avanc&eacute;</span></th><td>2296</td><td>2737</td><td>510</td><td>0.92</td></tr>
-<tr><th>hello world &rarr; exe <span class="mode">small program, source to executable</span></th><td>138</td><td>165</td><td>87</td><td>1.46</td></tr>
-<tr><th>documentation de std <span class="mode">tout le site de la biblioth&egrave;que standard</span></th><td>38348</td><td>45730</td><td>2690</td><td>1.21</td></tr>
-<tr><th>formatage du d&eacute;p&ocirc;t <span class="mode">toutes les sources Swag, sur une copie</span></th><td>500</td><td>597</td><td>499</td><td>1.30</td></tr>
+<tr><th>std/core &agrave; froid <span class="mode">tous les fichiers, sorties supprim&eacute;es</span></th><td>2810</td><td>3261</td><td>532</td><td>1.04</td></tr>
+<tr><th>std/core sans changement <span class="mode">rien n'a boug&eacute; depuis la derni&egrave;re construction</span></th><td>66</td><td>77</td><td>7</td><td>1.27</td></tr>
+<tr><th>std/core, un fichier sauv&eacute; <span class="mode">une seule date de modification a avanc&eacute;</span></th><td>2642</td><td>3066</td><td>511</td><td>1.03</td></tr>
+<tr><th>hello world &rarr; exe <span class="mode">small program, source to executable</span></th><td>137</td><td>159</td><td>86</td><td>1.42</td></tr>
+<tr><th>documentation de std <span class="mode">tout le site de la biblioth&egrave;que standard</span></th><td>38962</td><td>45214</td><td>2608</td><td>1.20</td></tr>
+<tr><th>formatage du d&eacute;p&ocirc;t <span class="mode">toutes les sources Swag, sur une copie</span></th><td>515</td><td>597</td><td>485</td><td>1.30</td></tr>
 </tbody></table></div>
 </section>
 
@@ -1058,17 +1391,17 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <span class="tick" style="left:75.000%"><i></i><b>1500</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>2000</b></span>
 </div>
-<div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.481%"></span></div><div class="rv">70<em>Mo</em></div></div>
-<div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.652%"></span></div><div class="rv">73<em>Mo</em></div></div>
-<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:5.041%"></span></div><div class="rv">101<em>Mo</em></div></div>
-<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:5.152%"></span></div><div class="rv">103<em>Mo</em></div></div>
-<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:6.115%"></span></div><div class="rv">122<em>Mo</em></div></div>
-<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:7.314%"></span></div><div class="rv">146<em>Mo</em></div></div>
-<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:8.879%"></span></div><div class="rv">178<em>Mo</em></div></div>
-<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:9.244%"></span></div><div class="rv">185<em>Mo</em></div></div>
-<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:18.777%"></span></div><div class="rv">376<em>Mo</em></div></div>
-<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:37.918%"></span></div><div class="rv">758<em>Mo</em></div></div>
-<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:77.134%"></span></div><div class="rv">1543<em>Mo</em></div></div>
+<div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.251%"></span></div><div class="rv">65<em>Mo</em></div></div>
+<div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.480%"></span></div><div class="rv">70<em>Mo</em></div></div>
+<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:5.064%"></span></div><div class="rv">101<em>Mo</em></div></div>
+<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:5.093%"></span></div><div class="rv">102<em>Mo</em></div></div>
+<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:5.960%"></span></div><div class="rv">119<em>Mo</em></div></div>
+<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:7.334%"></span></div><div class="rv">147<em>Mo</em></div></div>
+<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:8.922%"></span></div><div class="rv">178<em>Mo</em></div></div>
+<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:9.296%"></span></div><div class="rv">186<em>Mo</em></div></div>
+<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:18.004%"></span></div><div class="rv">360<em>Mo</em></div></div>
+<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:37.906%"></span></div><div class="rv">758<em>Mo</em></div></div>
+<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:77.092%"></span></div><div class="rv">1542<em>Mo</em></div></div>
 </figure>
         </div>
         <div>
@@ -1083,23 +1416,23 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <span class="tick" style="left:80.000%"><i></i><b>512</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>1024</b></span>
 </div>
-<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:13.329%"></span></div><div class="rv">51<em>Mo</em></div></div>
-<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:13.342%"></span></div><div class="rv">51<em>Mo</em></div></div>
+<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:13.333%"></span></div><div class="rv">51<em>Mo</em></div></div>
+<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:13.353%"></span></div><div class="rv">51<em>Mo</em></div></div>
+<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:13.364%"></span></div><div class="rv">51<em>Mo</em></div></div>
 <div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:13.369%"></span></div><div class="rv">51<em>Mo</em></div></div>
 <div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:13.375%"></span></div><div class="rv">51<em>Mo</em></div></div>
-<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:13.375%"></span></div><div class="rv">51<em>Mo</em></div></div>
-<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:13.433%"></span></div><div class="rv">51<em>Mo</em></div></div>
-<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:13.455%"></span></div><div class="rv">51<em>Mo</em></div></div>
-<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:14.518%"></span></div><div class="rv">53<em>Mo</em></div></div>
-<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:14.905%"></span></div><div class="rv">54<em>Mo</em></div></div>
-<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:15.266%"></span></div><div class="rv">54<em>Mo</em></div></div>
-<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:17.315%"></span></div><div class="rv">58<em>Mo</em></div></div>
-<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:38.503%"></span></div><div class="rv">122<em>Mo</em></div></div>
-<div class="row l-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:39.846%"></span></div><div class="rv">127<em>Mo</em></div></div>
-<div class="row l-py"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:51.615%"></span></div><div class="rv">191<em>Mo</em></div></div>
-<div class="row l-lua"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:60.379%"></span></div><div class="rv">259<em>Mo</em></div></div>
-<div class="row l-js"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:74.446%"></span></div><div class="rv">422<em>Mo</em></div></div>
-<div class="row l-lua"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:80.177%"></span></div><div class="rv">515<em>Mo</em></div></div>
+<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:13.435%"></span></div><div class="rv">51<em>Mo</em></div></div>
+<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:13.453%"></span></div><div class="rv">51<em>Mo</em></div></div>
+<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:14.516%"></span></div><div class="rv">53<em>Mo</em></div></div>
+<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:14.926%"></span></div><div class="rv">54<em>Mo</em></div></div>
+<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:15.233%"></span></div><div class="rv">54<em>Mo</em></div></div>
+<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:17.064%"></span></div><div class="rv">58<em>Mo</em></div></div>
+<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:38.231%"></span></div><div class="rv">120<em>Mo</em></div></div>
+<div class="row l-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:39.256%"></span></div><div class="rv">125<em>Mo</em></div></div>
+<div class="row l-py"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:51.467%"></span></div><div class="rv">190<em>Mo</em></div></div>
+<div class="row l-lua"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:60.375%"></span></div><div class="rv">259<em>Mo</em></div></div>
+<div class="row l-js"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:74.418%"></span></div><div class="rv">422<em>Mo</em></div></div>
+<div class="row l-lua"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:80.175%"></span></div><div class="rv">515<em>Mo</em></div></div>
 </figure>
         </div>
         <div>
@@ -1112,12 +1445,12 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <span class="tick" style="left:66.667%"><i></i><b>64</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>128</b></span>
 </div>
-<div class="row l-lua"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:14.889%"></span></div><div class="rv">22<em>ms</em></div></div>
-<div class="row l-lua"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:20.984%"></span></div><div class="rv">25<em>ms</em></div></div>
-<div class="row l-js"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:66.931%"></span></div><div class="rv">64<em>ms</em></div></div>
-<div class="row l-py"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:67.545%"></span></div><div class="rv">65<em>ms</em></div></div>
-<div class="row l-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:92.541%"></span></div><div class="rv">110<em>ms</em></div></div>
-<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:93.454%"></span></div><div class="rv">112<em>ms</em></div></div>
+<div class="row l-lua"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:12.340%"></span></div><div class="rv">21<em>ms</em></div></div>
+<div class="row l-lua"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:19.657%"></span></div><div class="rv">24<em>ms</em></div></div>
+<div class="row l-js"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:63.820%"></span></div><div class="rv">60<em>ms</em></div></div>
+<div class="row l-py"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:65.146%"></span></div><div class="rv">62<em>ms</em></div></div>
+<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:89.197%"></span></div><div class="rv">102<em>ms</em></div></div>
+<div class="row l-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:94.402%"></span></div><div class="rv">114<em>ms</em></div></div>
 </figure>
         </div>
         <div>
@@ -1132,17 +1465,17 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <span class="tick" style="left:88.889%"><i></i><b>1024</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>2048</b></span>
 </div>
-<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:8.375%"></span></div><div class="rv">7<em>Ko</em></div></div>
-<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:29.742%"></span></div><div class="rv">26<em>Ko</em></div></div>
-<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:50.310%"></span></div><div class="rv">92<em>Ko</em></div></div>
-<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:55.484%"></span></div><div class="rv">127<em>Ko</em></div></div>
-<div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:56.802%"></span></div><div class="rv">138<em>Ko</em></div></div>
-<div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:56.877%"></span></div><div class="rv">139<em>Ko</em></div></div>
-<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:58.189%"></span></div><div class="rv">151<em>Ko</em></div></div>
-<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:58.533%"></span></div><div class="rv">154<em>Ko</em></div></div>
-<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:75.591%"></span></div><div class="rv">447<em>Ko</em></div></div>
-<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:77.043%"></span></div><div class="rv">489<em>Ko</em></div></div>
-<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:90.028%"></span></div><div class="rv">1099<em>Ko</em></div></div>
+<div class="row l-cs"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:7.225%"></span></div><div class="rv">6<em>Ko</em></div></div>
+<div class="row l-swift"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:29.139%"></span></div><div class="rv">25<em>Ko</em></div></div>
+<div class="row l-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:50.195%"></span></div><div class="rv">92<em>Ko</em></div></div>
+<div class="row l-swag l-dev"><div class="rl">swag devmode <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:55.014%"></span></div><div class="rv">124<em>Ko</em></div></div>
+<div class="row l-cpp"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:56.751%"></span></div><div class="rv">138<em>Ko</em></div></div>
+<div class="row l-cpp"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:56.838%"></span></div><div class="rv">139<em>Ko</em></div></div>
+<div class="row l-odin"><div class="rl">Odin <span class="mode">native</span></div><div class="track"><span class="bar" style="width:58.138%"></span></div><div class="rv">150<em>Ko</em></div></div>
+<div class="row l-rust"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:58.457%"></span></div><div class="rv">153<em>Ko</em></div></div>
+<div class="row l-d"><div class="rl">D (LDC) <span class="mode">native</span></div><div class="track"><span class="bar" style="width:75.580%"></span></div><div class="rv">446<em>Ko</em></div></div>
+<div class="row l-zig"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:77.729%"></span></div><div class="rv">510<em>Ko</em></div></div>
+<div class="row l-cs"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:90.020%"></span></div><div class="rv">1099<em>Ko</em></div></div>
 </figure>
         </div>
     </div>
@@ -1161,8 +1494,8 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
 <text class="hlab" x="34" y="15.5" text-anchor="end">1.59</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">115fc00d0</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">7e72000a8</text>
-<polyline class="hline h-a" points="40.0,25.5 49.5,24.0 59.1,26.2 68.6,31.2 78.2,56.7 87.7,60.3 97.2,59.4 106.8,57.2 116.3,56.4 125.8,61.9 135.4,63.2 144.9,61.2 164.0,58.4 173.5,64.5 183.1,61.3 192.6,66.5 202.2,66.9 211.7,64.4 221.2,68.6 230.8,71.4 240.3,71.5 249.8,71.3 259.4,72.0 268.9,67.8 278.5,67.8 288.0,71.7"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">9626c1c92</text>
+<polyline class="hline h-a" points="40.0,25.5 49.2,24.0 58.4,26.2 67.6,31.2 76.7,56.7 85.9,60.3 95.1,59.4 104.3,57.2 113.5,56.4 122.7,61.9 131.9,63.2 141.0,61.2 159.4,58.4 168.6,64.5 177.8,61.3 187.0,66.5 196.1,66.9 205.3,64.4 214.5,68.6 223.7,71.4 232.9,71.5 242.1,71.3 251.3,72.0 260.4,67.8 269.6,67.8 278.8,71.7 288.0,71.8"/>
 </svg></div>
 <div class="sm"><b>JIT swc vs natif swc (%)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
@@ -1172,8 +1505,8 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
 <text class="hlab" x="34" y="15.5" text-anchor="end">28</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">115fc00d0</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">7e72000a8</text>
-<polyline class="hline h-a" points="40.0,67.4 49.5,72.0 59.1,70.9 68.6,61.3 78.2,30.8 87.7,39.4 97.2,41.7 106.8,40.9 116.3,26.3 125.8,37.4 135.4,41.1 144.9,44.6 164.0,47.0 173.5,41.2 183.1,36.9 192.6,42.0 202.2,42.8 211.7,36.8 221.2,29.7 230.8,26.2 240.3,33.6 249.8,24.1 259.4,24.0 268.9,41.6 278.5,36.2 288.0,36.1"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">9626c1c92</text>
+<polyline class="hline h-a" points="40.0,67.4 49.2,72.0 58.4,70.9 67.6,61.3 76.7,30.8 85.9,39.4 95.1,41.7 104.3,40.9 113.5,26.3 122.7,37.4 131.9,41.1 141.0,44.6 159.4,47.0 168.6,41.2 177.8,36.9 187.0,42.0 196.1,42.8 205.3,36.8 214.5,29.7 223.7,26.2 232.9,33.6 242.1,24.1 251.3,24.0 260.4,41.6 269.6,36.2 278.8,36.1 288.0,41.1"/>
 </svg></div>
 <div class="sm"><b>build MSVC / swc (&times;)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
@@ -1183,36 +1516,36 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
 <text class="hlab" x="34" y="15.5" text-anchor="end">4.7</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">115fc00d0</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">7e72000a8</text>
-<polyline class="hline h-a" points="40.0,24.0 49.5,30.6 59.1,28.9 68.6,49.8 78.2,42.4 87.7,59.9 97.2,49.0 106.8,48.5 116.3,43.6 125.8,72.0 135.4,66.8 144.9,60.7 154.5,59.1 164.0,61.0 173.5,64.2 183.1,64.9 192.6,61.6 211.7,57.4 221.2,53.5 230.8,60.0 240.3,61.0 249.8,59.5 259.4,59.9 268.9,60.9 278.5,59.7 288.0,60.7"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">9626c1c92</text>
+<polyline class="hline h-a" points="40.0,24.0 49.2,30.6 58.4,28.9 67.6,49.8 76.7,42.4 85.9,59.9 95.1,49.0 104.3,48.5 113.5,43.6 122.7,72.0 131.9,66.8 141.0,60.7 150.2,59.1 159.4,61.0 168.6,64.2 177.8,64.9 187.0,61.6 205.3,57.4 214.5,53.5 223.7,60.0 232.9,61.0 242.1,59.5 251.3,59.9 260.4,60.9 269.6,59.7 278.8,60.7 288.0,60.7"/>
 </svg></div>
 </div>
 <div class="grid2"><div>
 <h3>Indice d'ex&eacute;cution</h3>
 <svg class="hchart" viewBox="0 0 520 200" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="52" y1="166.0" x2="424" y2="166.0"/>
-<text class="hlab" x="46" y="169.5" text-anchor="end">0.56</text>
+<text class="hlab" x="46" y="169.5" text-anchor="end">0.55</text>
 <line class="hgrid" x1="52" y1="128.5" x2="424" y2="128.5"/>
-<text class="hlab" x="46" y="132.0" text-anchor="end">0.71</text>
+<text class="hlab" x="46" y="132.0" text-anchor="end">0.70</text>
 <line class="hgrid" x1="52" y1="91.0" x2="424" y2="91.0"/>
 <text class="hlab" x="46" y="94.5" text-anchor="end">0.86</text>
 <line class="hgrid" x1="52" y1="53.5" x2="424" y2="53.5"/>
 <text class="hlab" x="46" y="57.0" text-anchor="end">1.02</text>
 <line class="hgrid" x1="52" y1="16.0" x2="424" y2="16.0"/>
 <text class="hlab" x="46" y="19.5" text-anchor="end">1.17</text>
-<polygon class="hband" points="52.0,51.7 66.3,52.6 80.6,57.5 94.9,47.7 109.2,43.8 123.5,47.2 137.8,48.3 152.2,48.8 166.5,42.4 180.8,47.7 195.1,47.9 209.4,47.6 238.0,49.3 252.3,51.5 266.6,45.2 280.9,49.4 295.2,52.9 309.5,51.8 323.8,48.1 338.2,53.9 352.5,48.2 366.8,48.5 381.1,49.9 395.4,50.3 409.7,47.3 424.0,47.1 424.0,69.6 409.7,70.6 395.4,68.3 381.1,69.8 366.8,76.1 352.5,69.6 338.2,64.4 323.8,71.8 309.5,69.8 295.2,62.9 280.9,71.6 266.6,63.1 252.3,61.2 238.0,71.6 209.4,64.1 195.1,65.3 180.8,69.7 166.5,64.6 152.2,65.6 137.8,67.9 123.5,64.5 109.2,71.3 94.9,74.4 80.6,57.5 66.3,63.2 52.0,62.3"/>
+<polygon class="hband" points="52.0,51.5 65.8,52.3 79.6,57.2 93.3,47.6 107.1,43.8 120.9,47.1 134.7,48.2 148.4,48.7 162.2,42.4 176.0,47.6 189.8,47.7 203.6,47.4 231.1,49.1 244.9,51.2 258.7,45.1 272.4,49.2 286.2,52.6 300.0,51.6 313.8,47.9 327.6,53.6 341.3,48.0 355.1,48.4 368.9,49.7 382.7,50.1 396.4,47.2 410.2,46.9 424.0,51.7 424.0,65.8 410.2,69.0 396.4,69.9 382.7,67.7 368.9,69.1 355.1,75.3 341.3,68.9 327.6,63.9 313.8,71.2 300.0,69.2 286.2,62.4 272.4,71.0 258.7,62.6 244.9,60.7 231.1,70.9 203.6,63.6 189.8,64.8 176.0,69.1 162.2,64.1 148.4,65.1 134.7,67.3 120.9,63.9 107.1,70.6 93.3,73.7 79.6,57.2 65.8,62.8 52.0,61.8"/>
 <text class="hlab" x="52.0" y="192" text-anchor="middle">115fc00d0</text>
-<text class="hlab" x="152.2" y="192" text-anchor="middle">85c05997b</text>
-<text class="hlab" x="252.3" y="192" text-anchor="middle">5e182b6b7</text>
-<text class="hlab" x="424.0" y="192" text-anchor="middle">7e72000a8</text>
-<polyline class="hline h-a" points="52.0,57.0 66.3,56.8 80.6,57.5 94.9,61.2 109.2,101.9 123.5,110.1 137.8,108.7 152.2,110.4 166.5,119.3 180.8,119.9 195.1,121.0 209.4,116.9 238.0,115.8 252.3,125.5 266.6,124.9 280.9,129.0 295.2,129.8 309.5,124.7 323.8,134.8 338.2,138.1 352.5,136.0 366.8,137.7 381.1,141.0 395.4,130.3 409.7,133.2 424.0,138.2"/>
-<polyline class="hline h-b" points="52.0,52.9 66.3,58.1 80.6,57.5 94.9,49.8 109.2,62.3 123.5,80.3 137.8,80.9 152.2,82.1 166.5,79.1 180.8,89.9 195.1,94.4 209.4,92.9 238.0,93.8 252.3,99.6 266.6,95.2 280.9,104.4 295.2,105.9 309.5,94.9 323.8,100.9 338.2,101.9 352.5,105.4 366.8,99.8 381.1,103.8 395.4,105.5 409.7,104.3 424.0,110.0"/>
-<polyline class="hline h-c" points="52.0,50.0 66.3,59.4 80.6,57.5 94.9,41.0 109.2,90.2 123.5,101.9 137.8,106.0 152.2,105.2 166.5,108.3 180.8,106.7 195.1,111.7 209.4,110.0 238.0,108.7 252.3,107.8 266.6,110.8 280.9,96.9 295.2,109.6 309.5,111.6 323.8,111.7 338.2,116.5 352.5,112.1 366.8,112.7 381.1,114.2 395.4,108.5 409.7,106.1 424.0,110.4"/>
-<polyline class="hline h-d" points="52.0,61.1 66.3,58.7 80.6,57.5 94.9,41.1 109.2,83.7 123.5,99.1 137.8,105.6 152.2,103.3 166.5,100.7 180.8,83.5 195.1,83.0 209.4,94.4 238.0,92.8 252.3,98.0 266.6,89.3 280.9,94.0 295.2,97.7 309.5,99.6 323.8,107.3 338.2,105.9 352.5,108.2 366.8,105.6 381.1,102.9 395.4,103.6 409.7,100.8 424.0,110.5"/>
-<text class="hend h-b" x="432.0" y="113.5">release JIT</text>
-<text class="hend h-c" x="432.0" y="125.5">devmode natif</text>
-<text class="hend h-d" x="432.0" y="137.5">devmode JIT</text>
-<text class="hend h-a" x="432.0" y="149.5">release natif</text>
+<text class="hlab" x="148.4" y="192" text-anchor="middle">85c05997b</text>
+<text class="hlab" x="244.9" y="192" text-anchor="middle">5e182b6b7</text>
+<text class="hlab" x="424.0" y="192" text-anchor="middle">9626c1c92</text>
+<polyline class="hline h-a" points="52.0,56.7 65.8,56.4 79.6,57.2 93.3,60.7 107.1,100.5 120.9,108.6 134.7,107.2 148.4,108.9 162.2,117.6 176.0,118.2 189.8,119.2 203.6,115.3 231.1,114.1 244.9,123.6 258.7,123.1 272.4,127.1 286.2,127.9 300.0,122.9 313.8,132.8 327.6,136.0 341.3,133.9 355.1,135.6 368.9,138.8 382.7,128.3 396.4,131.2 410.2,136.1 424.0,141.0"/>
+<polyline class="hline h-b" points="52.0,52.6 65.8,57.7 79.6,57.2 93.3,49.6 107.1,61.9 120.9,79.4 134.7,80.0 148.4,81.2 162.2,78.3 176.0,88.8 189.8,93.2 203.6,91.8 231.1,92.7 244.9,98.3 258.7,94.0 272.4,103.0 286.2,104.5 300.0,93.7 313.8,99.6 327.6,100.6 341.3,104.0 355.1,98.5 368.9,102.4 382.7,104.1 396.4,103.0 410.2,108.6 424.0,118.2"/>
+<polyline class="hline h-c" points="52.0,49.8 65.8,59.0 79.6,57.2 93.3,41.0 107.1,89.1 120.9,100.6 134.7,104.6 148.4,103.8 162.2,106.9 176.0,105.3 189.8,110.2 203.6,108.5 231.1,107.2 244.9,106.4 258.7,109.3 272.4,95.7 286.2,108.2 300.0,110.1 313.8,110.2 327.6,114.8 341.3,110.6 355.1,111.1 368.9,112.6 382.7,107.0 396.4,104.7 410.2,108.9 424.0,114.6"/>
+<polyline class="hline h-d" points="52.0,60.7 65.8,58.3 79.6,57.2 93.3,41.1 107.1,82.8 120.9,97.9 134.7,104.2 148.4,101.9 162.2,99.4 176.0,82.6 189.8,82.1 203.6,93.2 231.1,91.7 244.9,96.8 258.7,88.3 272.4,92.9 286.2,96.4 300.0,98.3 313.8,105.9 327.6,104.5 341.3,106.8 355.1,104.2 368.9,101.6 382.7,102.3 396.4,99.5 410.2,109.0 424.0,116.6"/>
+<text class="hend h-c" x="432.0" y="118.1">devmode natif</text>
+<text class="hend h-d" x="432.0" y="130.1">devmode JIT</text>
+<text class="hend h-b" x="432.0" y="142.1">release JIT</text>
+<text class="hend h-a" x="432.0" y="154.1">release natif</text>
 <text class="hunit" x="44" y="12">&times;</text>
 </svg>
 </div><div>
@@ -1228,15 +1561,15 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <text class="hlab" x="46" y="57.0" text-anchor="end">1.80</text>
 <line class="hgrid" x1="52" y1="16.0" x2="424" y2="16.0"/>
 <text class="hlab" x="46" y="19.5" text-anchor="end">2.32</text>
-<polygon class="hband" points="52.0,106.3 66.3,110.1 80.6,111.6 94.9,87.0 109.2,104.3 123.5,102.3 137.8,103.6 152.2,103.2 166.5,106.5 180.8,103.7 195.1,106.3 209.4,105.9 223.7,100.0 238.0,102.4 252.3,105.1 266.6,100.8 280.9,100.1 309.5,104.9 323.8,103.8 338.2,104.7 352.5,105.1 366.8,103.6 381.1,104.5 395.4,104.3 409.7,102.4 424.0,104.6 424.0,131.0 409.7,131.2 395.4,131.3 381.1,130.8 366.8,130.7 352.5,131.0 338.2,129.3 323.8,132.4 309.5,130.5 280.9,133.3 266.6,130.8 252.3,128.2 238.0,132.9 223.7,133.7 209.4,132.1 195.1,130.6 180.8,131.3 166.5,129.7 152.2,132.6 137.8,131.4 123.5,131.5 109.2,132.0 94.9,141.0 80.6,111.6 66.3,119.5 52.0,121.7"/>
+<polygon class="hband" points="52.0,106.3 65.8,110.1 79.6,111.6 93.3,87.0 107.1,104.3 120.9,102.3 134.7,103.6 148.4,103.2 162.2,106.5 176.0,103.7 189.8,106.3 203.6,105.9 217.3,100.0 231.1,102.4 244.9,105.1 258.7,100.8 272.4,100.1 300.0,104.9 313.8,103.8 327.6,104.7 341.3,105.1 355.1,103.6 368.9,104.5 382.7,104.3 396.4,102.4 410.2,104.6 424.0,101.1 424.0,130.1 410.2,131.0 396.4,131.2 382.7,131.3 368.9,130.8 355.1,130.7 341.3,131.0 327.6,129.3 313.8,132.4 300.0,130.5 272.4,133.3 258.7,130.8 244.9,128.2 231.1,132.9 217.3,133.7 203.6,132.1 189.8,130.6 176.0,131.3 162.2,129.7 148.4,132.6 134.7,131.4 120.9,131.5 107.1,132.0 93.3,141.0 79.6,111.6 65.8,119.5 52.0,121.7"/>
 <text class="hlab" x="52.0" y="192" text-anchor="middle">115fc00d0</text>
-<text class="hlab" x="152.2" y="192" text-anchor="middle">85c05997b</text>
-<text class="hlab" x="252.3" y="192" text-anchor="middle">5e182b6b7</text>
-<text class="hlab" x="424.0" y="192" text-anchor="middle">7e72000a8</text>
-<polyline class="hline h-a" points="52.0,115.4 66.3,110.1 80.6,111.6 94.9,88.7 109.2,98.3 123.5,71.6 137.8,89.8 152.2,90.5 166.5,96.8 180.8,41.0 195.1,55.9 209.4,70.0 223.7,73.2 238.0,69.4 252.3,62.4 266.6,60.7 280.9,68.2 309.5,76.5 323.8,83.2 338.2,71.5 352.5,69.5 366.8,72.4 381.1,71.6 395.4,69.7 409.7,72.0 424.0,70.0"/>
-<polyline class="hline h-c" points="52.0,113.8 66.3,111.0 80.6,111.6 94.9,94.7 109.2,96.6 123.5,77.5 137.8,96.8 152.2,97.5 166.5,100.5 180.8,66.7 195.1,73.1 209.4,88.6 223.7,88.6 238.0,93.8 252.3,89.4 266.6,88.0 280.9,92.5 309.5,94.6 323.8,102.3 338.2,96.2 352.5,95.7 366.8,98.4 381.1,96.1 395.4,100.7 409.7,102.7 424.0,103.6"/>
-<text class="hend h-a" x="432.0" y="73.5">release natif</text>
-<text class="hend h-c" x="432.0" y="107.1">devmode natif</text>
+<text class="hlab" x="148.4" y="192" text-anchor="middle">85c05997b</text>
+<text class="hlab" x="244.9" y="192" text-anchor="middle">5e182b6b7</text>
+<text class="hlab" x="424.0" y="192" text-anchor="middle">9626c1c92</text>
+<polyline class="hline h-a" points="52.0,115.4 65.8,110.1 79.6,111.6 93.3,88.7 107.1,98.3 120.9,71.6 134.7,89.8 148.4,90.5 162.2,96.8 176.0,41.0 189.8,55.9 203.6,70.0 217.3,73.2 231.1,69.4 244.9,62.4 258.7,60.7 272.4,68.2 300.0,76.5 313.8,83.2 327.6,71.5 341.3,69.5 355.1,72.4 368.9,71.6 382.7,69.7 396.4,72.0 410.2,70.0 424.0,70.1"/>
+<polyline class="hline h-c" points="52.0,113.8 65.8,111.0 79.6,111.6 93.3,94.7 107.1,96.6 120.9,77.5 134.7,96.8 148.4,97.5 162.2,100.5 176.0,66.7 189.8,73.1 203.6,88.6 217.3,88.6 231.1,93.8 244.9,89.4 258.7,88.0 272.4,92.5 300.0,94.6 313.8,102.3 327.6,96.2 341.3,95.7 355.1,98.4 368.9,96.1 382.7,100.7 396.4,102.7 410.2,103.6 424.0,102.3"/>
+<text class="hend h-a" x="432.0" y="73.6">release natif</text>
+<text class="hend h-c" x="432.0" y="105.8">devmode natif</text>
 <text class="hunit" x="44" y="12">&times;</text>
 </svg>
 </div><div>
@@ -1253,13 +1586,13 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <line class="hgrid" x1="52" y1="16.0" x2="424" y2="16.0"/>
 <text class="hlab" x="46" y="19.5" text-anchor="end">320</text>
 <text class="hlab" x="52.0" y="192" text-anchor="middle">115fc00d0</text>
-<text class="hlab" x="152.2" y="192" text-anchor="middle">85c05997b</text>
-<text class="hlab" x="252.3" y="192" text-anchor="middle">5e182b6b7</text>
-<text class="hlab" x="424.0" y="192" text-anchor="middle">7e72000a8</text>
-<polyline class="hline h-a" points="52.0,119.0 66.3,119.5 80.6,119.6 94.9,109.9 109.2,120.4 123.5,117.2 137.8,117.2 152.2,118.0 166.5,117.1 180.8,108.8 195.1,114.5 209.4,119.1 223.7,118.4 238.0,118.3 252.3,141.0 266.6,115.3 280.9,116.3 309.5,117.5 323.8,116.3 338.2,114.4 352.5,111.8 366.8,111.1 381.1,112.4 395.4,127.9 409.7,128.3 424.0,128.0"/>
-<polyline class="hline h-c" points="52.0,63.4 66.3,71.4 80.6,62.7 94.9,66.1 109.2,79.1 123.5,43.2 137.8,41.5 152.2,41.9 166.5,41.0 180.8,53.5 195.1,56.7 209.4,63.4 223.7,64.7 238.0,64.1 252.3,87.1 266.6,60.2 280.9,61.1 309.5,59.6 323.8,61.1 338.2,61.2 352.5,60.6 366.8,59.9 381.1,61.2 395.4,127.5 409.7,127.1 424.0,126.9"/>
-<text class="hend h-c" x="432.0" y="130.4">devmode natif</text>
-<text class="hend h-a" x="432.0" y="142.4">release natif</text>
+<text class="hlab" x="148.4" y="192" text-anchor="middle">85c05997b</text>
+<text class="hlab" x="244.9" y="192" text-anchor="middle">5e182b6b7</text>
+<text class="hlab" x="424.0" y="192" text-anchor="middle">9626c1c92</text>
+<polyline class="hline h-a" points="52.0,119.0 65.8,119.5 79.6,119.6 93.3,109.9 107.1,120.4 120.9,117.2 134.7,117.2 148.4,118.0 162.2,117.1 176.0,108.8 189.8,114.5 203.6,119.1 217.3,118.4 231.1,118.3 244.9,141.0 258.7,115.3 272.4,116.3 300.0,117.5 313.8,116.3 327.6,114.4 341.3,111.8 355.1,111.1 368.9,112.4 382.7,127.9 396.4,128.3 410.2,128.0 424.0,127.8"/>
+<polyline class="hline h-c" points="52.0,63.4 65.8,71.4 79.6,62.7 93.3,66.1 107.1,79.1 120.9,43.2 134.7,41.5 148.4,41.9 162.2,41.0 176.0,53.5 189.8,56.7 203.6,63.4 217.3,64.7 231.1,64.1 244.9,87.1 258.7,60.2 272.4,61.1 300.0,59.6 313.8,61.1 327.6,61.2 341.3,60.6 355.1,59.9 368.9,61.2 382.7,127.5 396.4,127.1 410.2,126.9 424.0,127.5"/>
+<text class="hend h-c" x="432.0" y="131.0">devmode natif</text>
+<text class="hend h-a" x="432.0" y="143.0">release natif</text>
 <text class="hunit" x="44" y="12">Mo</text>
 </svg>
 </div></div>
@@ -1272,19 +1605,24 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <th>depuis</th>
 <th>tendance</th>
 </tr></thead><tbody>
-<tr><th><code>wordfreq</code></th><td>0.74</td><td>&plusmn;6&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="6.6" y2="6.6"/><polyline points="2.0,4.2 7.2,5.2 12.5,6.6 17.7,2.0 22.9,10.5 28.2,11.8 33.4,11.7 38.6,11.1 43.8,14.1 49.1,15.3 54.3,15.1 59.5,15.3 70.0,14.9 75.2,13.6 80.5,10.7 85.7,15.8 90.9,17.2 96.2,13.7 101.4,14.6 106.6,17.6 111.8,17.7 117.1,18.9 122.3,20.0 127.5,18.1 132.8,19.6 138.0,18.7"/></svg></td></tr>
-<tr><th><code>csvagg</code></th><td>0.62</td><td>&plusmn;10&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="3.6" y2="3.6"/><polyline points="2.0,2.6 7.2,2.0 12.5,3.6 17.7,8.8 22.9,12.2 28.2,15.1 33.4,14.9 38.6,16.7 43.8,17.3 49.1,13.9 54.3,15.5 59.5,15.8 70.0,7.2 75.2,12.7 80.5,15.3 85.7,15.3 90.9,13.8 96.2,16.0 101.4,18.6 106.6,18.5 111.8,18.3 117.1,18.6 122.3,17.8 127.5,11.0 132.8,11.5 138.0,20.0"/></svg></td></tr>
-<tr><th><code>sha256</code></th><td>0.62</td><td>&plusmn;8&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="3.1" y2="3.1"/><polyline points="2.0,2.0 7.2,3.3 12.5,3.1 17.7,3.6 22.9,11.7 28.2,13.5 33.4,13.3 38.6,14.7 43.8,17.0 49.1,17.2 54.3,17.1 59.5,15.1 70.0,17.0 75.2,17.8 80.5,18.2 85.7,18.1 90.9,17.1 96.2,18.2 101.4,19.1 106.6,20.0 111.8,18.0 117.1,18.5 122.3,18.2 127.5,17.7 132.8,18.0 138.0,18.2"/></svg></td></tr>
-<tr><th><code>dijkstra</code></th><td>0.70</td><td>&plusmn;5&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="2.1" y2="2.1"/><polyline points="2.0,2.6 7.2,2.6 12.5,2.1 17.7,2.0 22.9,6.9 28.2,11.8 33.4,10.8 38.6,9.3 43.8,12.0 49.1,12.2 54.3,15.3 59.5,13.2 70.0,13.3 75.2,18.3 80.5,16.3 85.7,18.4 90.9,20.0 96.2,15.9 101.4,17.3 106.6,18.3 111.8,17.9 117.1,19.5 122.3,18.6 127.5,18.4 132.8,19.3 138.0,17.3"/></svg></td></tr>
-<tr><th><code>raytrace</code></th><td>0.70</td><td>&plusmn;12&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="3.0" y2="3.0"/><polyline points="2.0,4.9 7.2,4.6 12.5,3.0 17.7,2.0 22.9,14.9 28.2,16.4 33.4,14.9 38.6,16.4 43.8,17.2 49.1,16.8 54.3,17.3 59.5,15.4 70.0,16.3 75.2,19.7 80.5,18.1 85.7,17.5 90.9,17.9 96.2,16.5 101.4,19.2 106.6,19.9 111.8,18.8 117.1,19.5 122.3,20.0 127.5,18.1 132.8,18.2 138.0,16.9"/></svg></td></tr>
-<tr><th><code>leven</code></th><td>0.61</td><td>&plusmn;8&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="2.0" y2="2.0"/><polyline points="2.0,3.2 7.2,2.6 12.5,2.0 17.7,4.6 22.9,14.7 28.2,14.2 33.4,14.8 38.6,14.1 43.8,15.4 49.1,17.4 54.3,15.4 59.5,16.3 70.0,18.0 75.2,19.0 80.5,18.4 85.7,19.3 90.9,18.2 96.2,19.1 101.4,19.1 106.6,18.8 111.8,20.0 117.1,20.0 122.3,19.2 127.5,17.3 132.8,17.1 138.0,18.6"/></svg></td></tr>
-<tr><th><code>chacha</code></th><td>0.71</td><td>&plusmn;13&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="3.2" y2="3.2"/><polyline points="2.0,3.6 7.2,2.0 12.5,3.2 17.7,4.5 22.9,8.8 28.2,7.4 33.4,8.0 38.6,7.3 43.8,8.4 49.1,9.9 54.3,8.5 59.5,7.9 70.0,10.6 75.2,7.9 80.5,12.1 85.7,10.4 90.9,13.2 96.2,8.3 101.4,15.5 106.6,14.2 111.8,14.3 117.1,11.4 122.3,19.9 127.5,18.8 132.8,20.0 138.0,19.8"/></svg></td></tr>
-<tr><th>std/core &agrave; froid</th><td>0.95</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="15.8" y2="15.8"/><polyline points="22.9,15.8 28.2,6.0 33.4,18.5 38.6,15.2 43.8,20.0 49.1,13.7 54.3,12.9 59.5,9.4 64.8,11.0 70.0,12.5 75.2,2.0 80.5,15.1 85.7,13.7 96.2,10.0 101.4,17.9 106.6,12.5 111.8,17.8 117.1,16.5 122.3,15.4 127.5,16.3 132.8,15.9 138.0,17.6"/></svg></td></tr>
-<tr><th>std/core sans changement</th><td>1.35</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="17.3" y2="17.3"/><polyline points="22.9,17.3 28.2,12.2 33.4,12.7 38.6,20.0 43.8,19.5 49.1,12.5 54.3,13.4 59.5,11.4 64.8,2.0 70.0,12.1 75.2,15.3 80.5,13.7 85.7,10.2 96.2,17.0 101.4,18.2 106.6,13.0 111.8,10.0 117.1,9.6 122.3,7.6 127.5,8.2 132.8,9.5 138.0,7.6"/></svg></td></tr>
-<tr><th>std/core, un fichier sauv&eacute;</th><td>0.92</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="9.4" y2="9.4"/><polyline points="22.9,9.4 28.2,5.6 33.4,15.8 38.6,10.7 43.8,20.0 49.1,7.5 54.3,7.9 59.5,9.1 64.8,6.7 70.0,9.1 75.2,2.0 80.5,12.9 85.7,10.8 96.2,6.7 101.4,17.9 106.6,10.8 111.8,13.3 117.1,10.6 122.3,9.7 127.5,12.4 132.8,10.3 138.0,12.0"/></svg></td></tr>
-<tr><th>hello world &rarr; exe</th><td>1.46</td><td>&mdash;</td><td>d36631d85</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="16.8" y2="16.8"/><polyline points="2.0,20.0 7.2,16.8 12.5,16.8 17.7,10.4 22.9,15.5 28.2,5.6 33.4,6.6 38.6,11.9 43.8,4.3 49.1,3.7 54.3,5.4 59.5,6.4 64.8,4.6 70.0,6.3 75.2,2.0 80.5,8.7 85.7,6.9 96.2,8.7 101.4,12.0 106.6,2.9 111.8,5.9 117.1,6.7 122.3,5.5 127.5,5.1 132.8,5.4 138.0,5.3"/></svg></td></tr>
-<tr><th>documentation de std</th><td>1.21</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="20.0" y2="20.0"/><polyline points="22.9,20.0 28.2,18.1 33.4,19.4 38.6,19.8 43.8,2.0 49.1,16.5 54.3,16.4 59.5,16.0 64.8,14.3 70.0,17.5 75.2,14.1 80.5,17.3 85.7,17.7 96.2,17.0 101.4,19.6 106.6,16.0 111.8,18.1 117.1,17.8 122.3,17.2 127.5,18.0 132.8,17.1 138.0,17.2"/></svg></td></tr>
-<tr><th>formatage du d&eacute;p&ocirc;t</th><td>1.30</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="20.0" y2="20.0"/><polyline points="22.9,20.0 28.2,19.8 33.4,19.8 38.6,19.9 43.8,19.8 49.1,19.8 54.3,19.8 59.5,19.8 64.8,19.7 70.0,19.8 75.2,2.0 80.5,19.8 85.7,19.8 96.2,19.7 101.4,19.9 106.6,19.8 111.8,19.8 117.1,19.8 122.3,19.8 127.5,19.7 132.8,19.8 138.0,19.8"/></svg></td></tr>
+<tr><th><code>wordfreq</code></th><td>0.72</td><td>&plusmn;6&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="6.6" y2="6.6"/><polyline points="2.0,4.2 7.0,5.2 12.1,6.6 17.1,2.0 22.1,10.5 27.2,11.8 32.2,11.7 37.3,11.1 42.3,14.1 47.3,15.3 52.4,15.1 57.4,15.3 67.5,14.9 72.5,13.6 77.6,10.7 82.6,15.8 87.6,17.2 92.7,13.7 97.7,14.6 102.7,17.6 107.8,17.7 112.8,18.9 117.9,20.0 122.9,18.1 127.9,19.6 133.0,18.7 138.0,19.3"/></svg></td></tr>
+<tr><th><code>csvagg</code></th><td>0.62</td><td>&plusmn;10&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="3.6" y2="3.6"/><polyline points="2.0,2.6 7.0,2.0 12.1,3.6 17.1,8.7 22.1,12.0 27.2,14.9 32.2,14.7 37.3,16.4 42.3,17.0 47.3,13.7 52.4,15.3 57.4,15.5 67.5,7.1 72.5,12.5 77.6,15.1 82.6,15.0 87.6,13.6 92.7,15.7 97.7,18.3 102.7,18.2 107.8,18.0 112.8,18.3 117.9,17.5 122.9,10.8 127.9,11.3 133.0,19.7 138.0,20.0"/></svg></td></tr>
+<tr><th><code>sha256</code></th><td>0.59</td><td>&plusmn;8&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="3.1" y2="3.1"/><polyline points="2.0,2.0 7.0,3.3 12.1,3.1 17.1,3.6 22.1,11.7 27.2,13.5 32.2,13.3 37.3,14.7 42.3,17.0 47.3,17.2 52.4,17.1 57.4,15.1 67.5,17.0 72.5,17.8 77.6,18.2 82.6,18.1 87.6,17.1 92.7,18.2 97.7,19.1 102.7,20.0 107.8,18.0 112.8,18.5 117.9,18.2 122.9,17.7 127.9,18.0 133.0,18.2 138.0,19.6"/></svg></td></tr>
+<tr><th><code>dijkstra</code></th><td>0.68</td><td>&plusmn;5&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="2.1" y2="2.1"/><polyline points="2.0,2.6 7.0,2.6 12.1,2.1 17.1,2.0 22.1,6.9 27.2,11.8 32.2,10.8 37.3,9.3 42.3,12.0 47.3,12.2 52.4,15.3 57.4,13.2 67.5,13.3 72.5,18.3 77.6,16.3 82.6,18.4 87.6,20.0 92.7,15.9 97.7,17.3 102.7,18.3 107.8,17.9 112.8,19.5 117.9,18.6 122.9,18.4 127.9,19.3 133.0,17.3 138.0,18.3"/></svg></td></tr>
+<tr><th><code>raytrace</code></th><td>0.67</td><td>&plusmn;12&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="3.0" y2="3.0"/><polyline points="2.0,4.9 7.0,4.6 12.1,3.0 17.1,2.0 22.1,14.9 27.2,16.4 32.2,14.9 37.3,16.4 42.3,17.2 47.3,16.8 52.4,17.3 57.4,15.4 67.5,16.3 72.5,19.7 77.6,18.1 82.6,17.5 87.6,17.9 92.7,16.5 97.7,19.2 102.7,19.9 107.8,18.8 112.8,19.5 117.9,20.0 122.9,18.1 127.9,18.2 133.0,16.9 138.0,18.1"/></svg></td></tr>
+<tr><th><code>leven</code></th><td>0.59</td><td>&plusmn;8&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="2.0" y2="2.0"/><polyline points="2.0,3.2 7.0,2.6 12.1,2.0 17.1,4.6 22.1,14.7 27.2,14.2 32.2,14.8 37.3,14.1 42.3,15.4 47.3,17.4 52.4,15.4 57.4,16.3 67.5,18.0 72.5,19.0 77.6,18.4 82.6,19.3 87.6,18.2 92.7,19.1 97.7,19.1 102.7,18.8 107.8,20.0 112.8,20.0 117.9,19.2 122.9,17.3 127.9,17.1 133.0,18.6 138.0,19.4"/></svg></td></tr>
+<tr><th><code>chacha</code></th><td>0.69</td><td>&plusmn;13&nbsp;%</td><td>&mdash;</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="3.1" y2="3.1"/><polyline points="2.0,3.5 7.0,2.0 12.1,3.1 17.1,4.3 22.1,8.4 27.2,7.1 32.2,7.7 37.3,7.0 42.3,8.0 47.3,9.4 52.4,8.1 57.4,7.6 67.5,10.0 72.5,7.6 77.6,11.4 82.6,9.9 87.6,12.5 92.7,7.9 97.7,14.6 102.7,13.5 107.8,13.5 112.8,10.8 117.9,18.8 122.9,17.8 127.9,18.9 133.0,18.8 138.0,20.0"/></svg></td></tr>
+<tr><th><code>nbody</code></th><td>1.00</td><td>&mdash;</td><td>9626c1c92</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="11.0" y2="11.0"/><polyline points="2.0,11.0 138.0,11.0"/></svg></td></tr>
+<tr><th><code>fannkuch</code></th><td>1.00</td><td>&mdash;</td><td>9626c1c92</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="11.0" y2="11.0"/><polyline points="2.0,11.0 138.0,11.0"/></svg></td></tr>
+<tr><th><code>binarytrees</code></th><td>1.00</td><td>&mdash;</td><td>9626c1c92</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="11.0" y2="11.0"/><polyline points="2.0,11.0 138.0,11.0"/></svg></td></tr>
+<tr><th><code>lz77</code></th><td>1.00</td><td>&mdash;</td><td>9626c1c92</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="11.0" y2="11.0"/><polyline points="2.0,11.0 138.0,11.0"/></svg></td></tr>
+<tr><th><code>sort</code></th><td>1.00</td><td>&mdash;</td><td>9626c1c92</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="11.0" y2="11.0"/><polyline points="2.0,11.0 138.0,11.0"/></svg></td></tr>
+<tr><th>std/core &agrave; froid</th><td>1.04</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="15.8" y2="15.8"/><polyline points="22.1,15.8 27.2,6.0 32.2,18.5 37.3,15.2 42.3,20.0 47.3,13.7 52.4,12.9 57.4,9.4 62.4,11.0 67.5,12.5 72.5,2.0 77.6,15.1 82.6,13.7 92.7,10.0 97.7,17.9 102.7,12.5 107.8,17.8 112.8,16.5 117.9,15.4 122.9,16.3 127.9,15.9 133.0,17.6 138.0,14.4"/></svg></td></tr>
+<tr><th>std/core sans changement</th><td>1.27</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="17.3" y2="17.3"/><polyline points="22.1,17.3 27.2,12.2 32.2,12.7 37.3,20.0 42.3,19.5 47.3,12.5 52.4,13.4 57.4,11.4 62.4,2.0 67.5,12.1 72.5,15.3 77.6,13.7 82.6,10.2 92.7,17.0 97.7,18.2 102.7,13.0 107.8,10.0 112.8,9.6 117.9,7.6 122.9,8.2 127.9,9.5 133.0,7.6 138.0,9.7"/></svg></td></tr>
+<tr><th>std/core, un fichier sauv&eacute;</th><td>1.03</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="9.4" y2="9.4"/><polyline points="22.1,9.4 27.2,5.6 32.2,15.8 37.3,10.7 42.3,20.0 47.3,7.5 52.4,7.9 57.4,9.1 62.4,6.7 67.5,9.1 72.5,2.0 77.6,12.9 82.6,10.8 92.7,6.7 97.7,17.9 102.7,10.8 107.8,13.3 112.8,10.6 117.9,9.7 122.9,12.4 127.9,10.3 133.0,12.0 138.0,8.5"/></svg></td></tr>
+<tr><th>hello world &rarr; exe</th><td>1.42</td><td>&mdash;</td><td>d36631d85</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="16.8" y2="16.8"/><polyline points="2.0,20.0 7.0,16.8 12.1,16.8 17.1,10.4 22.1,15.5 27.2,5.6 32.2,6.6 37.3,11.9 42.3,4.3 47.3,3.7 52.4,5.4 57.4,6.4 62.4,4.6 67.5,6.3 72.5,2.0 77.6,8.7 82.6,6.9 92.7,8.7 97.7,12.0 102.7,2.9 107.8,5.9 112.8,6.7 117.9,5.5 122.9,5.1 127.9,5.4 133.0,5.3 138.0,6.5"/></svg></td></tr>
+<tr><th>documentation de std</th><td>1.20</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="20.0" y2="20.0"/><polyline points="22.1,20.0 27.2,18.1 32.2,19.4 37.3,19.8 42.3,2.0 47.3,16.5 52.4,16.4 57.4,16.0 62.4,14.3 67.5,17.5 72.5,14.1 77.6,17.3 82.6,17.7 92.7,17.0 97.7,19.6 102.7,16.0 107.8,18.1 112.8,17.8 117.9,17.2 122.9,18.0 127.9,17.1 133.0,17.2 138.0,17.3"/></svg></td></tr>
+<tr><th>formatage du d&eacute;p&ocirc;t</th><td>1.30</td><td>&mdash;</td><td>a4677422e</td><td><svg class="spark" viewBox="0 0 140 22" aria-hidden="true"><line x1="0" x2="140" y1="20.0" y2="20.0"/><polyline points="22.1,20.0 27.2,19.8 32.2,19.8 37.3,19.9 42.3,19.8 47.3,19.8 52.4,19.8 57.4,19.8 62.4,19.7 67.5,19.8 72.5,2.0 77.6,19.8 82.6,19.8 92.7,19.7 97.7,19.9 102.7,19.8 107.8,19.8 112.8,19.8 117.9,19.8 122.9,19.7 127.9,19.8 133.0,19.8 138.0,19.8"/></svg></td></tr>
 </tbody></table></div>
 <h3>Journal</h3>
 <p class="cap">10 derni&egrave;res campagnes. * arbre modifi&eacute;.</p>
@@ -1299,6 +1637,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <th>sondes %</th>
 <th>note</th>
 </tr></thead><tbody>
+<tr><th><code>9626c1c92</code></th><td>2026-09-29</td><td>21.83</td><td>176</td><td>101</td><td>-6.6</td><td>-13.8</td><td>8.4</td><td><span class="l"></span></td></tr>
 <tr><th><code>7e72000a8</code></th><td>2026-09-29</td><td>22.52</td><td>177</td><td>101</td><td>-9.2</td><td>-16.1</td><td>20.3</td><td><span class="l"></span></td></tr>
 <tr><th><code>937f52de2*</code></th><td>2026-09-29</td><td>23.20</td><td>173</td><td>100</td><td>-9.2</td><td>-16.7</td><td>9.1</td><td><span class="l"></span></td></tr>
 <tr><th><code>937f52de2</code></th><td>2026-09-29</td><td>23.61</td><td>177</td><td>101</td><td>-6.1</td><td>-16.5</td><td>24.1</td><td><span class="l"></span></td></tr>
@@ -1308,7 +1647,6 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <tr><th><code>218bb77c0</code></th><td>2026-09-28</td><td>22.54</td><td>174</td><td>128</td><td>+1.7</td><td>-11.3</td><td>16.9</td><td><span class="l"></span></td></tr>
 <tr><th><code>79295f73d</code></th><td>2026-09-27</td><td>22.98</td><td>156</td><td>124</td><td>+2.6</td><td>-5.4</td><td>20.6</td><td><span class="l"></span></td></tr>
 <tr><th><code>96eaeb08a</code></th><td>2026-09-26</td><td>24.37</td><td>166</td><td>121</td><td>-10.1</td><td>-22.4</td><td>38.2</td><td><span class="l"></span></td></tr>
-<tr><th><code>9c3ac1d9d</code></th><td>2026-09-25</td><td>23.68</td><td>&mdash;</td><td>&mdash;</td><td>-2.4</td><td>&mdash;</td><td>22.7</td><td><span class="l">Lazy runtime scratch buffers</span></td></tr>
 </tbody></table></div>
 </section>
 
@@ -1317,8 +1655,8 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <ul class="method">
         <li><b>Machine</b>Intel Core Ultra 9 185H, Windows 11, sur secteur. x86-64 de base partout, ni <code>-march=native</code> ni LTO.</li>
         <li><b>&Eacute;pinglage</b>Ex&eacute;cutions sur les c&oelig;urs performants (<code>0x55401</code>, 6 c&oelig;urs)&nbsp;; builds non &eacute;pingl&eacute;s.</li>
-        <li><b>&Eacute;chantillons</b>swag&nbsp;: 4500&nbsp;ms par t&acirc;che, 3 &agrave; 24 passes&nbsp;; t&eacute;moins moins&nbsp;; round-robin tournant, minimum retenu.</li>
-        <li><b>Calibration</b>39.6&nbsp;ms puis 38.4&nbsp;ms, &eacute;cart 20.3&nbsp;% (rejet au-del&agrave; de 40&nbsp;%, t&eacute;moins de build au-del&agrave; de 25&nbsp;%).</li>
+        <li><b>&Eacute;chantillons</b>swag&nbsp;: 2000&nbsp;ms par t&acirc;che, 3 &agrave; 16 passes&nbsp;; t&eacute;moins moins&nbsp;; round-robin tournant, minimum retenu.</li>
+        <li><b>Calibration</b>39.8&nbsp;ms puis 42.8&nbsp;ms, &eacute;cart 8.4&nbsp;% (rejet au-del&agrave; de 40&nbsp;%, t&eacute;moins de build au-del&agrave; de 25&nbsp;%).</li>
         <li><b>Bornes</b>Rust, Swift et C# gardent leurs v&eacute;rifications de bornes&nbsp;; swag release et C++ non.</li>
         <li><b>Protocole</b>nº2. D&eacute;tails et r&egrave;gles&nbsp;: <code>bench/README.md</code>.</li>
     </ul>
@@ -1327,6 +1665,6 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 </main>
 
 <footer class="wrap">
-    <code>7e72000a8</code> &mdash; Align loop headers to 16 bytes in optimized code<br>
+    <code>9626c1c92</code> &mdash; Add five bench tasks, shorten campaigns, compact the report<br>
     Release x64 reconstruit depuis ce commit &middot; toolchains absentes&nbsp;: aucune
 </footer>

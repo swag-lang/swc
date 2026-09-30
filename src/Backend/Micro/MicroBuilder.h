@@ -88,6 +88,11 @@ public:
     bool                                                       isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
     void                                                       preserveVirtualCopy(MicroReg virtualReg);
     bool                                                       shouldPreserveVirtualCopy(MicroReg virtualReg) const;
+    // A register that holds the address of a by-value aggregate parameter the
+    // ABI passes by reference. The language gives the callee an immutable
+    // value, so what the address names cannot change while the function runs.
+    void                                                       markImmutableStorageBase(MicroReg virtualReg);
+    const std::unordered_set<MicroReg>&                        immutableStorageBases() const { return immutableStorageBases_; }
     uint32_t                                                   nextVirtualIntRegIndexHint() const;
     const MicroControlFlowGraph&                               controlFlowGraph();
     void                                                       invalidateControlFlowGraph();
@@ -180,6 +185,7 @@ private:
     std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<MicroReg, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
     std::unordered_set<MicroReg>                        preservedVirtualCopyRegs_;
+    std::unordered_set<MicroReg>                        immutableStorageBases_;
     MicroControlFlowGraph                               controlFlowGraph_;
     uint64_t                                            controlFlowGraphStorageRevision_ = 0;
     bool                                                hasControlFlowGraph_             = false;

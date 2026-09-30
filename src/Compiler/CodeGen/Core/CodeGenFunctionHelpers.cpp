@@ -498,6 +498,27 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     return !normalizedParam.isIndirect;
 }
 
+bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
+{
+    if (!paramInfo.isIndirect || !symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        return false;
+
+    // A parameter whose address the body takes can be written through that address.
+    if (symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))
+        return false;
+
+    TaskContext&  ctx     = codeGen.ctx();
+    const TypeRef typeRef = symVar.typeRef();
+    if (!typeRef.isValid())
+        return false;
+
+    // An array parameter is a view of the caller's storage, and writes through it are the
+    // language contract. Every other indirect aggregate is an immutable value to the callee.
+    const TypeInfo& storageType = ctx.typeMgr().get(ctx.typeMgr().unwrapAliasEnum(ctx, typeRef));
+    return storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny() ||
+           storageType.isStruct() || storageType.isAggregateStruct();
+}
+
 void CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
 {
     if (!codeGen.hasLocalStackFrame())
@@ -629,6 +650,8 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
     outPayload.typeRef = payloadSym.typeRef();
     outPayload.reg     = codeGen.nextVirtualRegisterForType(payloadSym.typeRef());
     emitLoadFunctionParameterToReg(codeGen, symbolFunc, effectiveParamInfo, outPayload.reg);
+    if (isImmutableIndirectParameter(codeGen, payloadSym, effectiveParamInfo))
+        codeGen.builder().markImmutableStorageBase(outPayload.reg);
 
     if (effectiveParamInfo.isIndirect)
         outPayload.setIsAddress();

@@ -39,6 +39,10 @@
 // RIP-relative loads use the relocation target in place of a register base.
 // Reads from the constant pool can cross memory epochs because their bytes
 // cannot change; mutable targets still require the same epoch.
+// A by-value aggregate parameter the ABI passes by reference is immutable to
+// the callee too, so a read through its incoming address crosses stores and
+// labels. It stops at a call: keeping the value across one costs a saved
+// register or a spill, where the reload it would replace is one read.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -460,6 +464,7 @@ namespace
         MicroReg                 defReg     = MicroReg::invalid();
         uint32_t                 defValueId = MicroSsaState::K_INVALID_VALUE;
         uint32_t                 epoch      = 0;
+        uint32_t                 callCount  = 0;
         MicroInstrOpcode         op         = MicroInstrOpcode::OpBinaryRegImm;
         MicroOpBits              movBits    = MicroOpBits::B64;
         SmallVector<uint64_t, 8> key;
@@ -479,6 +484,7 @@ namespace
     {
         std::unordered_map<MicroInstrRef, const MicroRelocation*>    relocationByInstruction;
         std::unordered_set<MicroReg>                                 frameDerivedRegs;
+        std::unordered_set<MicroReg>                                 immutableBases;
         std::unordered_map<uint64_t, SmallVector<NumberingEntry, 2>> table;
         std::vector<PlannedRewrite>                                  rewrites;
         ValueAliases                                                 valueAliases;
@@ -488,6 +494,7 @@ namespace
         {
             relocationByInstruction.clear();
             frameDerivedRegs.clear();
+            immutableBases.clear();
             table.clear();
             rewrites.clear();
             valueAliases.clear();
@@ -564,12 +571,15 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     scratch.reset(n);
     auto&    relocationByInstruction = scratch.relocationByInstruction;
     auto&    frameDerivedRegs        = scratch.frameDerivedRegs;
+    auto&    immutableBases          = scratch.immutableBases;
     auto&    table                   = scratch.table;
     auto&    rewrites                = scratch.rewrites;
     auto&    valueAliases            = scratch.valueAliases;
     auto&    epochAt                 = scratch.epochAt;
     bool     relocationsReady        = false;
     bool     frameDerivedRegsReady   = false;
+    bool     immutableBasesReady     = !context.builder || context.builder->immutableStorageBases().empty();
+    uint32_t callCount               = 0;
     uint32_t memoryEpoch             = 0;
     uint32_t lastEpoch               = 0;
 
@@ -591,6 +601,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         else if (advancesMemoryEpoch(*inst))
             memoryEpoch = ++lastEpoch;
         epochAt[i] = memoryEpoch;
+        if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+            ++callCount;
 
         const NumberingShape* shapePtr = cachedNumberingShapeFor(inst->op);
         if (!shapePtr)
@@ -689,6 +701,17 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             if (!ripLoad && frameDerivedRegs.contains(ops[shape.useSlots[0]].reg))
                 continue;
         }
+
+        bool immutableLoad = false;
+        if (shape.readsMemory && !ripLoad)
+        {
+            if (!immutableBasesReady)
+            {
+                MicroPassHelpers::collectImmutableStorageBases(immutableBases, context);
+                immutableBasesReady = true;
+            }
+            immutableLoad = immutableBases.contains(ops[shape.useSlots[0]].reg);
+        }
         const MicroOpBits movBits = ops[shape.movBitsSlot].opBits;
         const MicroOpBits useBits = shape.readsMemory ? MicroOpBits::B64 : movBits;
         const MicroOpBits srcBits = shape.readsMemory ? ops[shape.srcBitsSlot].opBits : movBits;
@@ -759,7 +782,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         {
             if (cand.key.size() != key.size() || !std::equal(cand.key.begin(), cand.key.end(), key.begin()))
                 continue;
-            if (shape.readsMemory && !constantPoolLoad && cand.epoch != memoryEpoch)
+            if (shape.readsMemory && !constantPoolLoad && cand.epoch != memoryEpoch &&
+                (!immutableLoad || cand.callCount != callCount))
                 continue;
             // Only matching expressions need dominance. All rewrites are still
             // queued, so this sees the same CFG as an eager construction would.
@@ -825,7 +849,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         }
 
         if (!replaced)
-            bucket.push_back({.index = i, .defReg = dstReg, .defValueId = myValueId, .epoch = memoryEpoch, .op = inst->op, .movBits = movBits, .key = std::move(key)});
+            bucket.push_back({.index = i, .defReg = dstReg, .defValueId = myValueId, .epoch = memoryEpoch, .callCount = callCount, .op = inst->op, .movBits = movBits, .key = std::move(key)});
     }
 
     if (rewrites.empty())

@@ -438,6 +438,12 @@ namespace
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
         const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, definitions, context.encoder);
 
+        // A by-value aggregate parameter passed by reference is immutable to
+        // the callee: no store and no call in a loop changes what a read
+        // through its incoming address returns.
+        thread_local std::unordered_set<MicroReg> immutableBases;
+        MicroPassHelpers::collectImmutableStorageBases(immutableBases, context);
+
         thread_local std::unordered_set<uint32_t> claimed; // instruction slot ids planned this round
         thread_local std::vector<HoistPlan>       plans;
         thread_local std::vector<uint32_t>        bodyIndices;
@@ -840,14 +846,16 @@ namespace
                                                             relocationIt != firstRelocation.end() &&
                                                             relocations[relocationIt->second].kind == MicroRelocation::Kind::ConstantAddress;
 
+                            const bool immutableLoad = loadOps[1].reg.isVirtualInt() && immutableBases.contains(loadOps[1].reg);
+
                             // A call may write an ordinary loaded location.
-                            if (loopHasCall && !constantPoolVector)
+                            if (loopHasCall && !constantPoolVector && !immutableLoad)
                                 continue;
 
                             // Indexed values and pointer-sized fields of an
                             // invariant structure can also cross a read-only
                             // call when the alias checks below exclude stores.
-                            if (loopHasReadOnlyCall && !constantPoolVector)
+                            if (loopHasReadOnlyCall && !constantPoolVector && !immutableLoad)
                             {
                                 bool directGlobal = false;
                                 if (inst->op == MicroInstrOpcode::LoadRegMem && loadOps[1].reg.isInstructionPointer() &&
@@ -869,7 +877,11 @@ namespace
 
                             const MicroReg base        = firstUseReg(*useDef);
                             const bool     baseIsFrame = base.isValid() && frame.isFrame(base, stackPointer);
-                            if (baseIsFrame)
+                            if (immutableLoad)
+                            {
+                                // Nothing the loop does reaches the parameter's storage.
+                            }
+                            else if (baseIsFrame)
                             {
                                 // Reading a frame slot: any store in the loop may hit it.
                                 if (loopHasFrameStore || loopHasPointerStore)

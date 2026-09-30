@@ -394,6 +394,81 @@ SWC_TEST_BEGIN(LoopUnroll_MultipleLoops_RebuildsIncomingJumpRanges)
 }
 SWC_TEST_END()
 
+// One trip copies nothing: the latch goes and the body stays where it is.
+SWC_TEST_BEGIN(LoopUnroll_SingleTrip_LosesItsLatch)
+{
+    constexpr MicroReg  counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  value   = MicroReg::virtualIntReg(2);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef header = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(2, 64), MicroOpBits::B64);
+    builder.placeLabel(header);
+    builder.emitLoadRegReg(value, counter, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+    builder.emitRet();
+
+    SWC_RESULT(runLoopUnrollPass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An inner loop that starts one past the outer counter gets a constant trip
+// count in every copy of the outer body, so the outer loop unrolls although
+// its body branches. It stays a nest when the inner start is unrelated to the
+// outer counter, and when the flattened nest would be too large.
+SWC_TEST_BEGIN(LoopUnroll_TriangularNest_UnrollsOuterLoop)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        constexpr MicroReg  outer = MicroReg::virtualIntReg(1);
+        constexpr MicroReg  start = MicroReg::virtualIntReg(2);
+        constexpr MicroReg  inner = MicroReg::virtualIntReg(3);
+        constexpr MicroReg  sum   = MicroReg::virtualIntReg(4);
+        constexpr MicroReg  other = MicroReg::virtualIntReg(5);
+        const uint64_t      bound = mode == 2 ? 16 : 4;
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef outerHeader = builder.createLabel();
+        const MicroLabelRef innerHeader = builder.createLabel();
+        const MicroLabelRef innerExit   = builder.createLabel();
+        builder.emitLoadRegReg(other, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(sum, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(outer, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(outerHeader);
+        builder.emitLoadAddressRegMem(start, mode == 1 ? other : outer, 1, MicroOpBits::B64);
+        builder.emitLoadRegReg(inner, start, MicroOpBits::B64);
+        builder.emitCmpRegImm(start, ApInt(bound, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, innerExit);
+        builder.placeLabel(innerHeader);
+        for (uint32_t i = 0; i < 24; ++i)
+            builder.emitOpBinaryRegReg(sum, inner, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(inner, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(inner, ApInt(bound, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, innerHeader);
+        builder.placeLabel(innerExit);
+        builder.emitOpBinaryRegImm(outer, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(outer, ApInt(bound, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, outerHeader);
+        builder.emitRet();
+
+        SWC_RESULT(runLoopUnrollPass(builder));
+
+        // Every copy keeps its guard and its inner latch until the constants fold.
+        const bool     unrolled = mode == 0;
+        const uint32_t jumps    = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond);
+        const uint32_t bodies   = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg);
+        if (jumps != (unrolled ? 8u : 3u) || bodies != (unrolled ? 96u : 24u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_OutsideReadsAndCarriedValuesKeepTheirNames)
 {
     for (const bool hasPrivateTemporary : {false, true})

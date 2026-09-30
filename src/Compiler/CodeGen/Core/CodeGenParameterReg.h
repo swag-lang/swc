@@ -62,6 +62,8 @@ namespace CodeGenParameterReg
         if (!futureSourceRegs.empty())
             builder.preserveVirtualCopy(symbolPayload.reg);
         CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
+        if (CodeGenFunctionHelpers::isImmutableIndirectParameter(codeGen, symVar, paramInfo))
+            builder.markImmutableStorageBase(symbolPayload.reg);
         symbolPayload.setValueOrAddress(paramInfo.isIndirect);
         codeGen.setVariablePayload(symVar, symbolPayload);
 
@@ -83,6 +85,8 @@ namespace CodeGenParameterReg
             CodeGenNodePayload reboundPayload = registerPayload.payload;
             reboundPayload.reg                = registerPayload.paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(reboundPayload.reg, registerPayload.payload.reg, registerPayload.paramInfo.opBits);
+            if (CodeGenFunctionHelpers::isImmutableIndirectParameter(codeGen, *registerPayload.symVar, registerPayload.paramInfo))
+                builder.markImmutableStorageBase(reboundPayload.reg);
             codeGen.setVariablePayload(*registerPayload.symVar, reboundPayload);
         }
     }

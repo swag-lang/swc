@@ -229,6 +229,14 @@ bool MicroBuilder::shouldPreserveVirtualCopy(MicroReg virtualReg) const
     return virtualReg.isVirtual() && preservedVirtualCopyRegs_.contains(virtualReg);
 }
 
+void MicroBuilder::markImmutableStorageBase(MicroReg virtualReg)
+{
+    if (!virtualReg.isVirtualInt())
+        return;
+
+    immutableStorageBases_.insert(virtualReg);
+}
+
 uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
 {
     uint32_t nextIndex = 1;
@@ -237,6 +245,16 @@ uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
         if (!key.isVirtualInt())
             continue;
 
+        if (key.index() < MicroReg::K_MAX_INDEX)
+            nextIndex = std::max(nextIndex, key.index() + 1);
+        else
+            return MicroReg::K_MAX_INDEX;
+    }
+
+    // A pass that mints a register must not reuse the index of a marked
+    // base the optimizer has since removed: the mark would follow the index.
+    for (const MicroReg key : immutableStorageBases_)
+    {
         if (key.index() < MicroReg::K_MAX_INDEX)
             nextIndex = std::max(nextIndex, key.index() + 1);
         else
@@ -1040,6 +1058,8 @@ void MicroBuilder::releaseMemory()
         virtualRegForbiddenPhysRegs_ = decltype(virtualRegForbiddenPhysRegs_){};
     if (!preservedVirtualCopyRegs_.empty())
         preservedVirtualCopyRegs_ = decltype(preservedVirtualCopyRegs_){};
+    if (!immutableStorageBases_.empty())
+        immutableStorageBases_ = decltype(immutableStorageBases_){};
 }
 
 SWC_END_NAMESPACE();

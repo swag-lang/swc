@@ -190,6 +190,45 @@ SWC_TEST_BEGIN(LICM_HoistsVectorConstantAcrossCallAndPointerStore)
 }
 SWC_TEST_END()
 
+// The length of a by-value slice parameter leaves a loop that stores through another pointer
+// and calls. An unmarked address keeps it in the loop, and so does a marked one that escapes.
+SWC_TEST_BEGIN(LICM_HoistsImmutableParameterReadAcrossStoreAndCall)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        constexpr MicroReg parameter = MicroReg::virtualIntReg(1);
+        constexpr MicroReg output    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg count     = MicroReg::virtualIntReg(3);
+        constexpr MicroReg length    = MicroReg::virtualIntReg(4);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        builder.emitLoadRegReg(parameter, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(output, MicroReg::intReg(3), MicroOpBits::B64);
+        if (mode != 1)
+            builder.markImmutableStorageBase(parameter);
+        if (mode == 2)
+            builder.emitLoadMemReg(output, 8, parameter, MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitLoadRegMem(length, parameter, 8, MicroOpBits::B64);
+        builder.emitLoadMemReg(output, 0, length, MicroOpBits::B64);
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegReg(count, length, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitRet();
+        SWC_RESULT(runLicmPass(builder));
+
+        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadRegMem);
+        if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A zeroed vector register read by several stores leaves a call-free loop, but stays in a loop
 // that calls: the clear is free to repeat, and hoisted it would have to survive every call in
 // a callee-saved register.

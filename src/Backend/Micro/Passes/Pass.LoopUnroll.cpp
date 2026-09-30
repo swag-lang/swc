@@ -31,6 +31,12 @@
 // the body are duplicated with fresh ids per copy, so internal control flow
 // (a `continue`, an `if`) lands in the right copy; jumps that leave the loop
 // forward keep their external target untouched.
+//
+// A nest unrolls from the outside in. An inner counted loop whose start is
+// the outer counter plus a constant - `for j in i + 1 until N` - has no
+// constant trip count of its own, but each copy of the outer body hands it
+// one: the sweep after the outer unroll folds the start, drops the zero-trip
+// guard that tested it, and the inner loop is then an ordinary candidate.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -49,6 +55,11 @@ namespace
     // The exception below is a short loop over constant tables: each fixed
     // index lets later passes fold a table lookup despite those branches.
     constexpr uint32_t K_MAX_TOTAL_INSTR_WITH_BRANCHES = 96;
+    // A nest whose inner loops all flatten leaves no branch behind, and both
+    // element indices of a pair become constants. It may take twice an
+    // ordinary loop's budget, counted on the code that remains once every
+    // inner loop has been unrolled in its turn.
+    constexpr uint32_t K_MAX_NEST_TOTAL_INSTR = 2 * K_MAX_ORDINARY_TOTAL_INSTR;
 
     struct LabelInfo
     {
@@ -61,6 +72,245 @@ namespace
     {
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
         return std::ranges::find(useDef.defs, reg) != useDef.defs.end();
+    }
+
+    // Whether the jump a compare of the two values feeds is taken.
+    bool evaluateCompare(bool& outTaken, const MicroCond cond, const int64_t lhs, const int64_t rhs)
+    {
+        const uint64_t ulhs = static_cast<uint64_t>(lhs);
+        const uint64_t urhs = static_cast<uint64_t>(rhs);
+        switch (cond)
+        {
+            case MicroCond::Equal:
+            case MicroCond::Zero:
+                outTaken = lhs == rhs;
+                return true;
+            case MicroCond::NotEqual:
+            case MicroCond::NotZero:
+                outTaken = lhs != rhs;
+                return true;
+            case MicroCond::Less:
+                outTaken = lhs < rhs;
+                return true;
+            case MicroCond::LessOrEqual:
+                outTaken = lhs <= rhs;
+                return true;
+            case MicroCond::Greater:
+                outTaken = lhs > rhs;
+                return true;
+            case MicroCond::GreaterOrEqual:
+                outTaken = lhs >= rhs;
+                return true;
+            case MicroCond::Below:
+                outTaken = ulhs < urhs;
+                return true;
+            case MicroCond::BelowOrEqual:
+            case MicroCond::NotAbove:
+                outTaken = ulhs <= urhs;
+                return true;
+            case MicroCond::Above:
+                outTaken = ulhs > urhs;
+                return true;
+            case MicroCond::AboveOrEqual:
+                outTaken = ulhs >= urhs;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // A counted loop: its body, from the instruction after the header to the
+    // one before the latch, and what decides how often the latch jumps.
+    struct CountedLoop
+    {
+        uint32_t bodyBegin = 0;
+        uint32_t bodyEnd   = 0;
+        MicroReg counter   = MicroReg::invalid();
+        uint64_t initValue = 0;
+        uint64_t step      = 0;
+        uint64_t trips     = 0;
+    };
+
+    // The size of a nest once the outer loop and then every inner loop are
+    // unrolled. The body qualifies when its only control flow is inner counted
+    // loops that start at the outer counter plus a constant, and the guards
+    // that compare such a value with a constant: each copy of the outer body
+    // then knows every trip count and every guard's outcome. An inner loop
+    // must also pass the limits it will meet as an ordinary candidate, or the
+    // outer unroll would only multiply loops.
+    bool flattenedNestSize(uint64_t& outTotal, const MicroPassContext& context, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint64_t, LabelInfo>& labels, const CountedLoop& outer)
+    {
+        struct InnerLoop
+        {
+            uint32_t jump       = 0;
+            uint64_t step       = 0;
+            uint64_t bound      = 0;
+            int64_t  initOffset = 0;
+        };
+        struct Guard
+        {
+            uint32_t  target = 0;
+            MicroCond cond   = MicroCond::Equal;
+            int64_t   offset = 0;
+            int64_t   value  = 0;
+        };
+        std::unordered_map<uint32_t, InnerLoop> innerByHeader;
+        std::unordered_map<uint32_t, Guard>     guardByJump;
+        std::unordered_map<MicroReg, int64_t>   offsets;
+        offsets.emplace(outer.counter, 0);
+
+        const auto labelOrdinal = [&](const uint64_t id) {
+            const auto it = labels.find(id);
+            return it == labels.end() ? std::numeric_limits<uint32_t>::max() : it->second.ordinal;
+        };
+
+        // Inner latches first: the walk below meets a header before its latch.
+        for (uint32_t o = outer.bodyBegin; o < outer.bodyEnd; ++o)
+        {
+            const MicroInstr*        inst = storage.ptr(order[o]);
+            const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            if (!inst || inst->op != MicroInstrOpcode::JumpCond || !ops || inst->numOperands < 3)
+                continue;
+            const uint32_t target = labelOrdinal(ops[2].valueU64);
+            if (target >= o)
+                continue;
+            if (target < outer.bodyBegin || o < target + 4)
+                return false;
+
+            const MicroInstr*        cmp    = storage.ptr(order[o - 1]);
+            const MicroInstr*        add    = storage.ptr(order[o - 2]);
+            const MicroInstrOperand* cmpOps = cmp ? cmp->ops(operands) : nullptr;
+            const MicroInstrOperand* addOps = add ? add->ops(operands) : nullptr;
+            if (!cmpOps || !addOps || cmp->op != MicroInstrOpcode::CmpRegImm || add->op != MicroInstrOpcode::OpBinaryRegImm ||
+                (ops[0].cpuCond != MicroCond::Less && ops[0].cpuCond != MicroCond::Below) ||
+                addOps[2].microOp != MicroOp::Add || addOps[0].reg != cmpOps[0].reg || !cmpOps[0].reg.isVirtualInt() ||
+                cmpOps[2].hasWideImmediateValue() || addOps[3].hasWideImmediateValue() ||
+                addOps[3].valueU64 < 1 || addOps[3].valueU64 > 64 || cmpOps[2].valueU64 > 1000000)
+                return false;
+            const LabelInfo& header = labels.at(ops[2].valueU64);
+            if (header.firstJump != o || header.lastJump != o)
+                return false;
+
+            // A straight-line inner body: the ordinary unroll then renames its temporaries.
+            for (uint32_t b = target + 1; b + 2 < o; ++b)
+            {
+                const MicroInstr* body = storage.ptr(order[b]);
+                if (!body || body->op == MicroInstrOpcode::Label)
+                    return false;
+                const MicroInstrDef& info = MicroInstr::info(body->op);
+                if (info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                    return false;
+            }
+            innerByHeader.emplace(target, InnerLoop{.jump = o, .step = addOps[3].valueU64, .bound = cmpOps[2].valueU64});
+        }
+        if (innerByHeader.empty())
+            return false;
+
+        // One walk in layout order: which registers hold the outer counter
+        // plus a constant, where each inner counter starts, what each guard tests.
+        for (uint32_t o = outer.bodyBegin; o < outer.bodyEnd; ++o)
+        {
+            const MicroInstr*        inst = storage.ptr(order[o]);
+            const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            if (!inst)
+                return false;
+
+            if (inst->op == MicroInstrOpcode::Label)
+            {
+                const auto innerIt = innerByHeader.find(o);
+                if (innerIt == innerByHeader.end())
+                    continue;
+                const MicroInstrOperand* cmpOps   = storage.ptr(order[innerIt->second.jump - 1])->ops(operands);
+                const auto               offsetIt = offsets.find(cmpOps[0].reg);
+                if (offsetIt == offsets.end())
+                    return false;
+                innerIt->second.initOffset = offsetIt->second;
+                continue;
+            }
+
+            if (inst->op == MicroInstrOpcode::JumpCond)
+            {
+                if (!ops || inst->numOperands < 3)
+                    return false;
+                const uint32_t target = labelOrdinal(ops[2].valueU64);
+                if (target < o)
+                    continue;
+                const MicroInstr*        cmp    = storage.ptr(order[o - 1]);
+                const MicroInstrOperand* cmpOps = cmp ? cmp->ops(operands) : nullptr;
+                if (target >= outer.bodyEnd || !cmpOps || cmp->op != MicroInstrOpcode::CmpRegImm || cmpOps[2].hasWideImmediateValue())
+                    return false;
+                const auto offsetIt = offsets.find(cmpOps[0].reg);
+                bool       probe    = false;
+                if (offsetIt == offsets.end() || !evaluateCompare(probe, ops[0].cpuCond, 0, 0))
+                    return false;
+                guardByJump.emplace(o, Guard{.target = target, .cond = ops[0].cpuCond, .offset = offsetIt->second, .value = static_cast<int64_t>(cmpOps[2].valueU64)});
+                continue;
+            }
+
+            if (!ops)
+                continue;
+            std::optional<std::pair<MicroReg, int64_t>> derived;
+            switch (inst->op)
+            {
+                case MicroInstrOpcode::LoadRegReg:
+                case MicroInstrOpcode::LoadSignedExtRegReg:
+                case MicroInstrOpcode::LoadZeroExtRegReg:
+                    if (const auto it = offsets.find(ops[1].reg); it != offsets.end())
+                        derived.emplace(ops[0].reg, it->second);
+                    break;
+                case MicroInstrOpcode::LoadAddrRegMem:
+                    if (const auto it = offsets.find(ops[1].reg); it != offsets.end() && ops[3].valueU64 <= 1000000)
+                        derived.emplace(ops[0].reg, it->second + static_cast<int64_t>(ops[3].valueU64));
+                    break;
+                default:
+                    break;
+            }
+
+            const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+            for (const MicroReg def : useDef.defs)
+                offsets.erase(def);
+            if (derived && derived->first.isVirtualInt())
+                offsets.insert_or_assign(derived->first, derived->second);
+        }
+
+        // Replay every copy of the outer body with its counter value.
+        uint64_t total = 0;
+        for (uint64_t k = 0; k < outer.trips; ++k)
+        {
+            const int64_t outerValue = static_cast<int64_t>(outer.initValue + k * outer.step);
+            for (uint32_t o = outer.bodyBegin; o < outer.bodyEnd;)
+            {
+                if (const auto guardIt = guardByJump.find(o); guardIt != guardByJump.end())
+                {
+                    bool taken = false;
+                    evaluateCompare(taken, guardIt->second.cond, outerValue + guardIt->second.offset, guardIt->second.value);
+                    o = taken ? guardIt->second.target : o + 1;
+                    continue;
+                }
+
+                const auto innerIt = innerByHeader.find(o);
+                if (innerIt == innerByHeader.end())
+                {
+                    ++total;
+                    ++o;
+                    continue;
+                }
+
+                const InnerLoop& inner     = innerIt->second;
+                const int64_t    start     = outerValue + inner.initOffset;
+                const uint64_t   bodyCount = inner.jump - 2 - (o + 1);
+                if (start < 0 || static_cast<uint64_t>(start) >= inner.bound || (inner.bound - static_cast<uint64_t>(start)) % inner.step != 0)
+                    return false;
+                const uint64_t innerTrips = (inner.bound - static_cast<uint64_t>(start)) / inner.step;
+                if (!bodyCount || bodyCount > K_MAX_ORDINARY_BODY_INSTR || innerTrips > K_MAX_TRIPS || bodyCount * innerTrips > K_MAX_ORDINARY_TOTAL_INSTR)
+                    return false;
+                total += bodyCount * innerTrips;
+                o = inner.jump + 1;
+            }
+        }
+
+        outTotal = total;
+        return true;
     }
 
     // A counted XOR checksum over 32-bit words can process four consecutive
@@ -631,9 +881,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             }
             if (!haveInit || initValue >= bound || (bound - initValue) % step != 0)
                 continue;
+            // A single trip still loses its latch: the body runs once either way.
             const uint64_t trips = (bound - initValue) / step;
-            if (trips < 2)
-                continue;
 
             const uint32_t bodyBegin = h + 1;
             const uint32_t bodyEnd   = jccOrdinal - 2;
@@ -809,10 +1058,22 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             const bool foldsTableIndices = indexedConstantLoads != 0;
             if (trips > K_MAX_TRIPS && !foldsTableIndices)
                 continue;
-            if ((!foldsTableIndices || trips > K_MAX_WIDE_TABLE_TRIPS) &&
+
+            // A nest that flattens completely is judged on its flattened size.
+            bool flattensNest = false;
+            if (!internalLabels.empty() && trips > 1 && !foldsTableIndices && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES)
+            {
+                const CountedLoop outer{.bodyBegin = bodyBegin, .bodyEnd = bodyEnd, .counter = counter, .initValue = initValue, .step = step, .trips = trips};
+                uint64_t          flattened = 0;
+                flattensNest                = flattenedNestSize(flattened, context, storage, operands, order, labels, outer) && flattened <= K_MAX_NEST_TOTAL_INSTR;
+            }
+
+            // One trip copies nothing, so no size limit applies to it.
+            const bool growsCode = trips > 1 && !flattensNest;
+            if (growsCode && (!foldsTableIndices || trips > K_MAX_WIDE_TABLE_TRIPS) &&
                 (bodyCount > K_MAX_ORDINARY_BODY_INSTR || bodyCount * trips > K_MAX_ORDINARY_TOTAL_INSTR))
                 continue;
-            if (!internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES && !foldsTableIndices)
+            if (growsCode && !internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES && !foldsTableIndices)
                 continue;
 
             // No jump from outside the body may land on an internal label.

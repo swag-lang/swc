@@ -39,9 +39,9 @@
 // RIP-relative loads use the relocation target in place of a register base.
 // Reads from the constant pool can cross memory epochs because their bytes
 // cannot change; mutable targets still require the same epoch.
-// A by-value aggregate parameter the ABI passes by reference is immutable to
-// the callee too, so a read through its incoming address crosses stores and
-// labels. It stops at a call: keeping the value across one costs a saved
+// A string, slice, interface or any parameter the ABI passes by reference is
+// immutable to the callee too, so a read through its incoming address crosses
+// stores and labels. It stops at a call: keeping the value across one costs a saved
 // register or a spill, where the reload it would replace is one read.
 
 SWC_BEGIN_NAMESPACE();

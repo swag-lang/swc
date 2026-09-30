@@ -229,12 +229,14 @@ bool MicroBuilder::shouldPreserveVirtualCopy(MicroReg virtualReg) const
     return virtualReg.isVirtual() && preservedVirtualCopyRegs_.contains(virtualReg);
 }
 
-void MicroBuilder::markImmutableStorageBase(MicroReg virtualReg)
+void MicroBuilder::markImmutableStorageBase(MicroReg virtualReg, bool forwardable)
 {
     if (!virtualReg.isVirtualInt())
         return;
 
     immutableStorageBases_.insert(virtualReg);
+    if (forwardable)
+        forwardableStorageBases_.insert(virtualReg);
 }
 
 uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
@@ -1060,6 +1062,8 @@ void MicroBuilder::releaseMemory()
         preservedVirtualCopyRegs_ = decltype(preservedVirtualCopyRegs_){};
     if (!immutableStorageBases_.empty())
         immutableStorageBases_ = decltype(immutableStorageBases_){};
+    if (!forwardableStorageBases_.empty())
+        forwardableStorageBases_ = decltype(forwardableStorageBases_){};
 }
 
 SWC_END_NAMESPACE();

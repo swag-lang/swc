@@ -220,6 +220,7 @@ namespace PostRaPeephole
     bool tryUseSelfOperandForFloatBinary(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
     bool tryEraseOverwrittenStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryEraseRedundantStoreReload(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
+    bool tryEraseStoreOfReloadedValue(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryMoveSpillReloadBeforeSourceOverwrite(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryForwardStoredValueToReload(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
 

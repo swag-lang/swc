@@ -661,10 +661,11 @@ SWC_TEST_END()
 
 // A read through the incoming address of a by-value parameter repeats an earlier one across a
 // store. It stays across a call, without the mark, and once the address is written through or
-// copied where the scan cannot follow it.
+// copied where the scan cannot follow it. A value handle may be placed in an argument register
+// on the way; any other parameter may not.
 SWC_TEST_BEGIN(ValueNumbering_ImmutableParameterReadCrossesStoreOnly)
 {
-    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u})
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u})
     {
         SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         constexpr MicroReg parameter = MicroReg::virtualIntReg(1);
@@ -676,9 +677,11 @@ SWC_TEST_BEGIN(ValueNumbering_ImmutableParameterReadCrossesStoreOnly)
         builder.emitLoadRegReg(parameter, MicroReg::intReg(2), MicroOpBits::B64);
         builder.emitLoadRegReg(output, MicroReg::intReg(3), MicroOpBits::B64);
         if (mode != 1)
-            builder.markImmutableStorageBase(parameter);
+            builder.markImmutableStorageBase(parameter, mode == 5);
         builder.emitLoadRegMem(first, parameter, 8, MicroOpBits::B64);
         builder.emitLoadMemReg(mode == 2 ? parameter : output, 0, first, MicroOpBits::B64);
+        if (mode >= 5)
+            builder.emitLoadRegReg(MicroReg::intReg(2), parameter, MicroOpBits::B64);
         if (mode == 3)
             builder.emitCallLocal(&callee, CallConvKind::Swag);
         if (mode == 4)
@@ -692,9 +695,10 @@ SWC_TEST_BEGIN(ValueNumbering_ImmutableParameterReadCrossesStoreOnly)
 
         SWC_RESULT(runValueNumberingPass(builder));
         const MicroInstr* inst = builder.instructions().ptr(secondRef);
-        if (!inst || inst->op != (mode == 0 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+        const bool shared = mode == 0 || mode == 5;
+        if (!inst || inst->op != (shared ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
             return Result::Error;
-        if (mode == 0 && inst->ops(builder.operands())[1].reg != first)
+        if (shared && inst->ops(builder.operands())[1].reg != first)
             return Result::Error;
     }
     return Result::Continue;

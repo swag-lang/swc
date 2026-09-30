@@ -438,9 +438,9 @@ namespace
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
         const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, definitions, context.encoder);
 
-        // A by-value aggregate parameter passed by reference is immutable to
-        // the callee: no store and no call in a loop changes what a read
-        // through its incoming address returns.
+        // A value-handle parameter passed by reference is immutable to the
+        // callee: no store and no call in a loop changes what a read through
+        // its incoming address returns.
         thread_local std::unordered_set<MicroReg> immutableBases;
         MicroPassHelpers::collectImmutableStorageBases(immutableBases, context);
 

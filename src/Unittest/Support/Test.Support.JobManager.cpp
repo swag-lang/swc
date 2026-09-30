@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Thread/JobManager.h"
 #include "Unittest/Unittest.h"
@@ -89,6 +90,74 @@ namespace
 
     private:
         std::atomic<uint32_t>* count_ = nullptr;
+    };
+
+    class OwnedForkJob final : public Job
+    {
+    public:
+        OwnedForkJob(const TaskContext& ctx, uint32_t depth, std::atomic<uint32_t>& executed, std::atomic<uint32_t>& destroyed) :
+            Job(ctx, JobKind::Parser),
+            depth_(depth),
+            executed_(&executed),
+            destroyed_(&destroyed)
+        {
+        }
+
+        ~OwnedForkJob() override { destroyed_->fetch_add(1, std::memory_order_relaxed); }
+
+        JobResult exec() override
+        {
+            executed_->fetch_add(1, std::memory_order_relaxed);
+            if (depth_)
+            {
+                for (uint32_t i = 0; i < 2; ++i)
+                {
+                    auto* child = ctx().compiler().makeJob<OwnedForkJob>(ctx(), depth_ - 1, *executed_, *destroyed_);
+                    owner()->enqueue(*child, JobPriority::Normal, clientId());
+                }
+            }
+            return JobResult::Done;
+        }
+
+    private:
+        uint32_t               depth_;
+        std::atomic<uint32_t>* executed_;
+        std::atomic<uint32_t>* destroyed_;
+    };
+
+    class ForkJob final : public Job
+    {
+    public:
+        ForkJob(const TaskContext& ctx, uint32_t index, std::atomic<bool>& valid) :
+            Job(ctx, JobKind::Parser),
+            index_(index),
+            valid_(&valid)
+        {
+        }
+
+        JobResult exec() override
+        {
+            if (input != index_ + 1)
+                valid_->store(false, std::memory_order_relaxed);
+            ++runs;
+            for (ForkJob* child : children)
+            {
+                if (!child)
+                    continue;
+                // This write must be published before another worker executes the child.
+                child->input = child->index_ + 1;
+                owner()->enqueue(*child, static_cast<JobPriority>(child->index_ % 3), clientId());
+            }
+            return JobResult::Done;
+        }
+
+        ForkJob* children[2]{};
+        uint32_t input = 0;
+        uint32_t runs  = 0;
+
+    private:
+        uint32_t           index_;
+        std::atomic<bool>* valid_;
     };
 }
 
@@ -178,6 +247,238 @@ SWC_TEST_BEGIN(JobManager_TargetedWakeBySymbol)
     // Waking B's key drains the last sleeper.
     jobMgr.wake({&dummyB, TaskStateKind::SemaWaitSymTyped});
     jobMgr.waitAll(clientId);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_ParallelForksDrainEveryClient)
+{
+    CommandLine cmdLine;
+    cmdLine.numCores = ctx.global().jobMgr().isSingleThreaded() ? 1 : ctx.global().jobMgr().numWorkers();
+    JobManager jobMgr;
+    jobMgr.setup(cmdLine);
+
+    const Global      global;
+    const TaskContext jobCtx(global, cmdLine);
+    const auto        firstClient  = jobMgr.newClientId();
+    const auto        secondClient = jobMgr.newClientId();
+    std::atomic<bool> valid{true};
+
+    constexpr uint32_t                    JOBS_PER_CLIENT = 127;
+    std::vector<std::unique_ptr<ForkJob>> trees[2];
+    for (auto& tree : trees)
+    {
+        for (uint32_t i = 0; i < JOBS_PER_CLIENT; ++i)
+            tree.push_back(std::make_unique<ForkJob>(jobCtx, i, valid));
+        for (uint32_t i = 0; i < JOBS_PER_CLIENT / 2; ++i)
+        {
+            tree[i]->children[0] = tree[2 * i + 1].get();
+            tree[i]->children[1] = tree[2 * i + 2].get();
+        }
+        tree.front()->input = 1;
+    }
+
+    // Reuse detached jobs across bursts, with per-client and global barriers while
+    // workers both consume and publish work at all three priorities.
+    for (uint32_t round = 0; round < 8; ++round)
+    {
+        jobMgr.enqueue(*trees[0].front(), JobPriority::Normal, firstClient);
+        jobMgr.enqueue(*trees[1].front(), JobPriority::High, secondClient);
+        jobMgr.waitAll(firstClient);
+        for (const auto& job : trees[0])
+            if (job->runs != round + 1 || job->rec() || job->owner())
+                valid.store(false, std::memory_order_relaxed);
+
+        jobMgr.waitAll();
+        for (const auto& job : trees[1])
+            if (job->runs != round + 1 || job->rec() || job->owner())
+                valid.store(false, std::memory_order_relaxed);
+    }
+
+    if (!valid.load(std::memory_order_relaxed))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_ParallelTargetedWakePreservesOtherSleepers)
+{
+    CommandLine cmdLine;
+    cmdLine.numCores = ctx.global().jobMgr().isSingleThreaded() ? 1 : ctx.global().jobMgr().numWorkers();
+    JobManager jobMgr;
+    jobMgr.setup(cmdLine);
+
+    const Global                                     global;
+    const TaskContext                                jobCtx(global, cmdLine);
+    const auto                                       client = jobMgr.newClientId();
+    int                                              targets[2]{};
+    std::vector<std::unique_ptr<SleepOnSymTypedJob>> jobs;
+    for (uint32_t i = 0; i < 128; ++i)
+    {
+        jobs.push_back(std::make_unique<SleepOnSymTypedJob>(jobCtx, &targets[i % 2]));
+        jobMgr.enqueue(*jobs.back(), JobPriority::Normal, client);
+    }
+    jobMgr.waitAll();
+
+    std::vector<Job*> sleeping;
+    jobMgr.waitingJobs(sleeping, client);
+    if (sleeping.size() != jobs.size())
+        return Result::Error;
+
+    jobMgr.wake({&targets[0], TaskStateKind::SemaWaitSymTyped});
+    jobMgr.waitAll(client);
+    jobMgr.waitingJobs(sleeping, client);
+    if (sleeping.size() != jobs.size() / 2)
+        return Result::Error;
+    for (uint32_t i = 0; i < jobs.size(); i += 2)
+        if (jobs[i]->rec() || jobs[i]->owner())
+            return Result::Error;
+
+    jobMgr.wake({&targets[1], TaskStateKind::SemaWaitSymTyped});
+    jobMgr.waitAll();
+    jobMgr.waitingJobs(sleeping, client);
+    if (!sleeping.empty())
+        return Result::Error;
+    for (const auto& job : jobs)
+        if (job->rec() || job->owner())
+            return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_ClientAndDependencyWakeIndexesStayConsistent)
+{
+    CommandLine cmdLine;
+    cmdLine.numCores = ctx.global().jobMgr().isSingleThreaded() ? 1 : ctx.global().jobMgr().numWorkers();
+    JobManager jobMgr;
+    jobMgr.setup(cmdLine);
+
+    const Global                      global;
+    const TaskContext                 jobCtx(global, cmdLine);
+    const std::array<JobClientId, 3>  clients = {0, jobMgr.newClientId(), jobMgr.newClientId()};
+    std::vector<std::unique_ptr<Job>> jobs[3];
+    int                               target = 0;
+    for (uint32_t i = 0; i < 16; ++i)
+    {
+        for (uint32_t client = 0; client < clients.size(); ++client)
+        {
+            if (i % 2)
+                jobs[client].push_back(std::make_unique<SleepOnceJob>(jobCtx));
+            else
+                jobs[client].push_back(std::make_unique<SleepOnSymTypedJob>(jobCtx, &target));
+            jobMgr.enqueue(*jobs[client].back(), JobPriority::Normal, clients[client]);
+        }
+    }
+    jobMgr.waitAll();
+
+    bool              valid = true;
+    std::vector<Job*> sleeping;
+    for (uint32_t client = 0; client < clients.size(); ++client)
+    {
+        jobMgr.waitingJobs(sleeping, clients[client]);
+        if (sleeping.size() != jobs[client].size())
+            valid = false;
+        else
+            for (uint32_t i = 0; i < sleeping.size(); ++i)
+                if (sleeping[i] != jobs[client][i].get())
+                    valid = false;
+    }
+
+    // Removing one client's keyed and wildcard waits must preserve the other
+    // clients' links, including records waiting on the same dependency key.
+    if (!jobMgr.wakeAll(clients[1]))
+        valid = false;
+    jobMgr.waitAll();
+    jobMgr.waitingJobs(sleeping, clients[1]);
+    if (!sleeping.empty())
+        valid = false;
+
+    jobMgr.wake({&target, TaskStateKind::SemaWaitSymTyped});
+    jobMgr.waitAll();
+    for (uint32_t client : {0u, 2u})
+    {
+        jobMgr.waitingJobs(sleeping, clients[client]);
+        if (sleeping.size() != 8)
+            valid = false;
+    }
+
+    // Zero denotes the default client, not every client.
+    if (!jobMgr.wakeAll(0))
+        valid = false;
+    jobMgr.waitAll();
+    jobMgr.waitingJobs(sleeping, clients[2]);
+    if (sleeping.size() != 8)
+        valid = false;
+    if (!jobMgr.wakeAll(clients[2]))
+        valid = false;
+    jobMgr.waitAll();
+    for (uint32_t client = 0; client < clients.size(); ++client)
+    {
+        if (jobMgr.wakeAll(clients[client]))
+            valid = false;
+        for (const auto& job : jobs[client])
+            if (job->rec() || job->owner())
+                valid = false;
+    }
+    if (!valid)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_CompilerOwnsConcurrentForksUntilTeardown)
+{
+    std::atomic<uint32_t> executed{0};
+    std::atomic<uint32_t> destroyed{0};
+    bool                  keptAlive = false;
+    {
+        CompilerInstance compiler(ctx.global(), ctx.cmdLine());
+        TaskContext      jobCtx(compiler);
+        auto&            jobMgr = ctx.global().jobMgr();
+        for (uint32_t i = 0; i < 2; ++i)
+        {
+            auto* root = compiler.makeJob<OwnedForkJob>(jobCtx, 6, executed, destroyed);
+            jobMgr.enqueue(*root, JobPriority::Normal, compiler.jobClientId());
+        }
+        jobMgr.waitAll(compiler.jobClientId());
+        keptAlive = destroyed.load() == 0;
+    }
+    if (!keptAlive || executed.load() != 254 || destroyed.load() != 254)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_CompilerOwnsJobsFromUnregisteredThreads)
+{
+    constexpr uint32_t    NUM_PRODUCERS = 2;
+    constexpr uint32_t    NUM_JOBS      = 128;
+    std::atomic<uint32_t> executed{0};
+    std::atomic<uint32_t> destroyed{0};
+    std::atomic<bool>     valid{true};
+    {
+        CompilerInstance                       compiler(ctx.global(), ctx.cmdLine());
+        const TaskContext                      jobCtx(compiler);
+        auto&                                  jobMgr = ctx.global().jobMgr();
+        std::barrier                           start(NUM_PRODUCERS + 1);
+        std::array<std::thread, NUM_PRODUCERS> producers;
+        for (auto& producer : producers)
+        {
+            producer = std::thread([&] {
+                if (jobMgr.currentThreadIndex())
+                    valid.store(false);
+                start.arrive_and_wait();
+                for (uint32_t i = 0; i < NUM_JOBS; ++i)
+                {
+                    auto* job = compiler.makeJob<OwnedForkJob>(jobCtx, 0, executed, destroyed);
+                    jobMgr.enqueue(*job, JobPriority::Normal, compiler.jobClientId());
+                }
+            });
+        }
+        start.arrive_and_wait();
+        for (auto& producer : producers)
+            producer.join();
+        jobMgr.waitAll(compiler.jobClientId());
+        if (destroyed.load())
+            valid.store(false);
+    }
+    if (!valid.load() || executed.load() != NUM_PRODUCERS * NUM_JOBS || destroyed.load() != executed.load())
+        return Result::Error;
 }
 SWC_TEST_END()
 

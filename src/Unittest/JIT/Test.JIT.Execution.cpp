@@ -5,11 +5,16 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
+#include "Support/Thread/JobManager.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -69,6 +74,117 @@ SWC_TEST_END()
 
 namespace
 {
+    void queuedJitNoop()
+    {
+    }
+
+    class QueuedCompletionJob final : public Job
+    {
+    public:
+        QueuedCompletionJob(const TaskContext& ctx, const SymbolFunction& function, bool completeBeforeParking) :
+            Job(ctx, JobKind::Sema),
+            completeBeforeParking_(completeBeforeParking)
+        {
+            request_.function          = &function;
+            request_.nodeRef           = AstNodeRef{17};
+            request_.runtimeSetupMode  = JITRuntimeSetupMode::None;
+            request_.completionPayload = std::make_shared<uint64_t>(0);
+            request_.onCompleted       = [this](Result result) {
+                if (result != Result::Continue)
+                    valid.store(false);
+                if (!completeBeforeParking_)
+                {
+                    // Hold publication until the owner is registered. This makes the
+                    // after-parking case deterministic even on a busy worker pool.
+                    const auto        deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+                    std::vector<Job*> waiting;
+                    while (true)
+                    {
+                        this->ctx().global().jobMgr().waitingJobs(waiting, this->ctx().compiler().jobClientId());
+                        if (std::ranges::find(waiting, this) != waiting.end())
+                            break;
+                        if (std::chrono::steady_clock::now() >= deadline)
+                        {
+                            valid.store(false);
+                            break;
+                        }
+                        std::this_thread::yield();
+                    }
+                }
+                *std::static_pointer_cast<uint64_t>(request_.completionPayload) = 42;
+            };
+        }
+
+        JobResult exec() override
+        {
+            auto& manager = ctx().compiler().jitExecMgr();
+            if (submitted_)
+            {
+                const auto completion = manager.consumeCompletion(ctx(), request_.nodeRef, request_.codeRef);
+                completed             = completion.hasValue && completion.result == Result::Continue &&
+                            completion.completionPayload == request_.completionPayload &&
+                            *std::static_pointer_cast<uint64_t>(completion.completionPayload) == 42;
+                ctx().state().setNone();
+                return JobResult::Done;
+            }
+
+            submitted_ = true;
+            if (manager.submit(ctx(), request_) != Result::Pause)
+            {
+                valid.store(false);
+                return JobResult::Done;
+            }
+            if (completeBeforeParking_)
+            {
+                // Also works with one core: drive the queued item before returning Sleep.
+                manager.executePendingMainThread();
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+                while (!manager.hasCompletion(ctx(), request_.nodeRef, request_.codeRef))
+                {
+                    if (std::chrono::steady_clock::now() >= deadline)
+                    {
+                        valid.store(false);
+                        break;
+                    }
+                    std::this_thread::yield();
+                }
+            }
+            return JobResult::Sleep;
+        }
+
+        std::atomic<bool> valid{true};
+        bool              completed = false;
+
+    private:
+        JITExecManager::Request request_;
+        bool                    completeBeforeParking_;
+        bool                    submitted_ = false;
+    };
+
+    Result checkQueuedCompletion(TaskContext& ctx, bool completeBeforeParking)
+    {
+        const AstNode  declaration(AstNodeId::FunctionDecl, SourceCodeRef::invalid());
+        SymbolFunction function(&declaration, TokenRef::invalid(), IdentifierRef::invalid(), {});
+        ctx.compiler().publishJitFunctionEntry(function, reinterpret_cast<void*>(&queuedJitNoop));
+        auto& jobMgr = ctx.global().jobMgr();
+        for (uint32_t round = 0; round < 8; ++round)
+        {
+            QueuedCompletionJob job(ctx, function, completeBeforeParking);
+            jobMgr.enqueue(job, JobPriority::Normal, ctx.compiler().jobClientId());
+            jobMgr.waitAll();
+            const bool resumedWithoutBarrier = job.completed;
+            // Keep a failing test's job alive until cleanup has drained its record.
+            if (job.rec())
+            {
+                jobMgr.wakeAll(ctx.compiler().jobClientId());
+                jobMgr.waitAll();
+            }
+            if (!resumedWithoutBarrier || !job.valid.load() || job.rec() || job.owner())
+                return Result::Error;
+        }
+        return Result::Continue;
+    }
+
     struct Copy128Payload
     {
         uint64_t lo;
@@ -884,6 +1000,67 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     const auto callerFn = reinterpret_cast<CallerFnType>(callerExecMemory.entryPoint());
     SWC_ASSERT(callerFn != nullptr);
     SWC_ASSERT(callerFn() == 8);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_QueuedCompletionBeforeParkingRequeuesOwner)
+{
+    SWC_RESULT(checkQueuedCompletion(ctx, true));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_QueuedCompletionWakesParkedOwner)
+{
+    SWC_RESULT(checkQueuedCompletion(ctx, false));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_QueuedBatchDeduplicatesPendingRequests)
+{
+    constexpr uint32_t NUM_REQUESTS = 64;
+    const AstNode      declaration(AstNodeId::FunctionDecl, SourceCodeRef::invalid());
+    SymbolFunction     function(&declaration, TokenRef::invalid(), IdentifierRef::invalid(), {});
+    ctx.compiler().publishJitFunctionEntry(function, reinterpret_cast<void*>(&queuedJitNoop));
+
+    std::atomic<bool>                               submitted{false};
+    std::atomic<bool>                               valid{true};
+    std::array<std::atomic<uint32_t>, NUM_REQUESTS> calls{};
+    std::vector<std::unique_ptr<TaskContext>>       owners;
+    auto&                                           manager = ctx.compiler().jitExecMgr();
+    for (uint32_t i = 0; i < NUM_REQUESTS; ++i)
+    {
+        owners.push_back(std::make_unique<TaskContext>(ctx));
+        JITExecManager::Request request;
+        request.function          = &function;
+        request.nodeRef           = AstNodeRef{23};
+        request.runtimeSetupMode  = JITRuntimeSetupMode::None;
+        request.completionPayload = std::make_shared<uint32_t>(i);
+        request.onCompleted       = [&, i](Result result) {
+            // Keep every request Pending or Running until all duplicate submissions
+            // have reached the queue. No duplicate may schedule a second execution.
+            submitted.wait(false, std::memory_order_acquire);
+            if (result != Result::Continue)
+                valid.store(false);
+            calls[i].fetch_add(1, std::memory_order_relaxed);
+        };
+        if (manager.submit(*owners.back(), request) != Result::Pause ||
+            manager.submit(*owners.back(), request) != Result::Pause)
+            valid.store(false);
+    }
+    submitted.store(true, std::memory_order_release);
+    submitted.notify_all();
+    ctx.global().jobMgr().waitAll();
+
+    for (uint32_t i = 0; i < NUM_REQUESTS; ++i)
+    {
+        const auto completion = manager.consumeCompletion(*owners[i], AstNodeRef{23}, SourceCodeRef::invalid());
+        if (!completion.hasValue || completion.result != Result::Continue || calls[i].load() != 1 ||
+            *std::static_pointer_cast<uint32_t>(completion.completionPayload) != i ||
+            manager.hasItem(*owners[i], AstNodeRef{23}, SourceCodeRef::invalid()))
+            valid.store(false);
+    }
+    if (!valid.load())
+        return Result::Error;
 }
 SWC_TEST_END()
 

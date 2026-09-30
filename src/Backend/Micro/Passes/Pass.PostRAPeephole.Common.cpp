@@ -276,6 +276,65 @@ namespace PostRaPeephole
         return false;
     }
 
+    bool tryEraseStoreOfReloadedValue(Context& ctx, const MicroInstrRef storeRef, const MicroInstr& storeInst)
+    {
+        // The register was read from this very frame home and neither has
+        // changed since: the store writes back what the home already holds.
+        // Allocation leaves the pair when a value reloaded after one call has
+        // to survive the next, as a node pointer does between two recursive
+        // calls. The reload is claimed with the store, so no rule of the same
+        // sweep removes the read that vouches for the register.
+        if (ctx.isClaimed(storeRef))
+            return false;
+        const MicroInstrOperand* storeOps = storeInst.ops(*ctx.operands);
+        if (!storeOps)
+            return false;
+
+        const MicroReg baseReg   = storeOps[0].reg;
+        const MicroReg sourceReg = storeOps[1].reg;
+        if (!ctx.isPrivateFrameBase(baseReg) || sourceReg == baseReg)
+            return false;
+
+        MicroInstrRef scanRef = ctx.previousRef(storeRef);
+        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanRef.isValid(); ++step, scanRef = ctx.previousRef(scanRef))
+        {
+            const MicroInstr* scanInst = ctx.instruction(scanRef);
+            if (!scanInst)
+                return false;
+            const MicroInstrOperand* scanOps = scanInst->ops(*ctx.operands);
+
+            if (scanInst->op == MicroInstrOpcode::LoadRegMem &&
+                scanOps &&
+                scanOps[0].reg == sourceReg &&
+                scanOps[1].reg == baseReg &&
+                scanOps[2].opBits == storeOps[2].opBits &&
+                scanOps[3].valueU64 == storeOps[3].valueU64)
+            {
+                if (!ctx.claimAll({storeRef, scanRef}))
+                    return false;
+                ctx.emitErase(storeRef);
+                return true;
+            }
+
+            const MicroInstrDef& info               = MicroInstr::info(scanInst->op);
+            const bool           disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+                                                      writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
+            if (scanInst->op == MicroInstrOpcode::Label ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (info.flags.has(MicroInstrFlagsE::WritesMemory) && !disjointFrameWrite) ||
+                scanInst->op == MicroInstrOpcode::Push ||
+                scanInst->op == MicroInstrOpcode::Pop)
+                return false;
+
+            if (regTouch(ctx, *scanInst, baseReg, sourceReg).def)
+                return false;
+        }
+
+        return false;
+    }
+
     bool tryEraseRedundantStoreReload(Context& ctx, const MicroInstrRef storeRef, const MicroInstr& storeInst)
     {
         // The stored physical register still contains the same value when it

@@ -149,8 +149,9 @@ namespace Unittest
     {
         // Internal C++ unit tests must stay isolated from the caller inputs so they
         // cannot accidentally recollect the user sources before the real command runs.
-        CompilerInstance compiler(ctx.global(), makeIsolatedUnittestCommandLine(ctx.cmdLine()));
-        TaskContext      testCtx(compiler);
+        const CommandLine testCmdLine = makeIsolatedUnittestCommandLine(ctx.cmdLine());
+        CompilerInstance  compiler(ctx.global(), testCmdLine);
+        TaskContext       testCtx(compiler);
         if (compiler.setupSema(testCtx) != Result::Continue)
             return Result::Error;
         ScopedTimedLog          stage(testCtx, ScopedTimedLog::Stage::Unittest);

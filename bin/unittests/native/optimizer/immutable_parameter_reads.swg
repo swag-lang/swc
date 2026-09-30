@@ -1,10 +1,11 @@
 #global private
 
-// A slice, a string, or a struct taken by value reaches the callee as an address, and the
-// callee cannot write through it. Reads of the parameter are therefore fixed for the whole
-// call: they leave a loop that stores through another pointer, and repeat an earlier read
-// across such a store. Every function is forced to the optimizing backend, and the results
-// must match the unoptimized semantics.
+// A slice or a string reaches the callee as the address of a handle the callee cannot write
+// through. Reads of the handle are therefore fixed for the whole call: they leave a loop that
+// stores through another pointer, and repeat an earlier read across such a store. A struct
+// parameter is different: it is read through the caller's storage, and a change made to that
+// storage while the call runs must be seen. Every function is forced to the optimizing
+// backend, and the results must match the unoptimized semantics.
 
 struct Body
 {
@@ -68,7 +69,7 @@ func upperInto(dst: [*] u8, text: string)->u64
     return count
 }
 
-// Three fields of a struct parameter, read around stores to the output.
+// Three fields of a struct parameter, read around stores to an output that does not overlap it.
 #[Swag.NoInline]
 #[Swag.Optimize(true)]
 func scaleInto(dst: [*] s64, src: const [*] s64, scale: Scale)->s64
@@ -104,6 +105,62 @@ func countAround(text: string)->u64
     }
 
     return total
+}
+
+// A string handed on to a callee is still the caller's immutable value: the loop bound stays
+// in a register although the text goes out as an argument on every trip.
+#[Swag.NoInline]
+func byteAt(text: string, index: u64)->u64
+{
+    GCalls += 1
+    return cast(u64) text[index]
+}
+
+#[Swag.NoInline]
+#[Swag.Optimize(true)]
+func sumForwarded(dst: [*] u64, text: string)->u64
+{
+    var total = 0'u64
+    for i in text.count
+    {
+        dst[i] = byteAt(text, i)
+        total += dst[i] + text.count
+    }
+
+    return total
+}
+
+// A struct parameter names the caller's object. A stop flag polled through it is the pattern
+// of a thread body that takes its thread by value: the flag is set from elsewhere while the
+// loop runs, here through a second pointer to the same object, and the loop must end.
+struct Worker
+{
+    requestEnd: bool
+    rounds:     s64
+}
+
+#[Swag.NoInline]
+func nudge(worker: *Worker, round: s64)
+{
+    worker.rounds += 1
+    if round == 2 do
+        worker.requestEnd = true
+}
+
+#[Swag.NoInline]
+#[Swag.Optimize(true)]
+func pollUntilEnd(worker: Worker, same: *Worker)->s64
+{
+    var round = 0's64
+    while not worker.requestEnd
+    {
+        nudge(same, round)
+        round += 1
+        if round == 100 do
+            break
+    }
+
+    return round + worker.rounds * 10
 }
 
 // An array parameter is a view of the caller's storage: the callee writes through it, and
@@ -164,6 +221,16 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
     let counted = countAround("abc")
     Swag.assert(counted == 12)
     Swag.assert(GCalls == 294)
+
+    var forwarded: [4] u64
+    GCalls = 0
+    let forwardedSum = sumForwarded(&forwarded[0], "abc")
+    Swag.assert(forwardedSum == 303 and GCalls == 3)
+    Swag.assert(forwarded[0] == 97 and forwarded[2] == 99 and forwarded[3] == 0)
+
+    var worker: Worker
+    let polled = pollUntilEnd(worker, &worker)
+    Swag.assert(polled == 33 and worker.requestEnd)
 
     var values: [6] s64 = [1, 2, 3, 4, 5, 6]
     let summed = prefixSums(values)

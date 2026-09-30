@@ -512,11 +512,18 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     if (!typeRef.isValid())
         return false;
 
-    // An array parameter is a view of the caller's storage, and writes through it are the
-    // language contract. Every other indirect aggregate is an immutable value to the callee.
+    // Only the value handles qualify. A struct parameter is read through the caller's storage,
+    // and code relies on seeing what happens to that storage during the call: a thread body
+    // takes its 'Thread' by value and polls the stop flag another thread sets. An array
+    // parameter is a view the callee itself writes through.
     const TypeInfo& storageType = ctx.typeMgr().get(ctx.typeMgr().unwrapAliasEnum(ctx, typeRef));
-    return storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny() ||
-           storageType.isStruct() || storageType.isAggregateStruct();
+    return storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny();
+}
+
+void CodeGenFunctionHelpers::markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg)
+{
+    if (isImmutableIndirectParameter(codeGen, symVar, paramInfo))
+        codeGen.builder().markImmutableStorageBase(reg, true);
 }
 
 void CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
@@ -650,8 +657,7 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
     outPayload.typeRef = payloadSym.typeRef();
     outPayload.reg     = codeGen.nextVirtualRegisterForType(payloadSym.typeRef());
     emitLoadFunctionParameterToReg(codeGen, symbolFunc, effectiveParamInfo, outPayload.reg);
-    if (isImmutableIndirectParameter(codeGen, payloadSym, effectiveParamInfo))
-        codeGen.builder().markImmutableStorageBase(outPayload.reg);
+    markImmutableIndirectParameter(codeGen, payloadSym, effectiveParamInfo, outPayload.reg);
 
     if (effectiveParamInfo.isIndirect)
         outPayload.setIsAddress();

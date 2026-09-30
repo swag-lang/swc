@@ -45,6 +45,23 @@ SWC_TEST_BEGIN(JIT_DependencyOrderPreservesCyclesSharedChildrenAndIgnoredNodes)
     SWC_ASSERT(order.size() == SECOND_ORDER.size());
     for (size_t index = 0; index < order.size(); ++index)
         SWC_ASSERT(order[index] == functions[SECOND_ORDER[index]].get());
+
+    // An edge the walk never reaches moves the graph without moving this closure: the ignored
+    // function is not expanded, so what it calls gains an edge the root's order does not hold.
+    functions[6]->addCallDependency(functions[7].get());
+    order.clear();
+    functions[0]->visitJitOrder([&order](SymbolFunction* function) { order.push_back(function); });
+    SWC_ASSERT(order.size() == SECOND_ORDER.size());
+    for (size_t index = 0; index < order.size(); ++index)
+        SWC_ASSERT(order[index] == functions[SECOND_ORDER[index]].get());
+
+    // Withdrawing a member of the closure adds no edge, and must still drop what it reached.
+    functions[3]->setIgnored(ctx);
+    order.clear();
+    functions[0]->visitJitOrder([&order](SymbolFunction* function) { order.push_back(function); });
+    SWC_ASSERT(order.size() == FIRST_ORDER.size());
+    for (size_t index = 0; index < order.size(); ++index)
+        SWC_ASSERT(order[index] == functions[FIRST_ORDER[index]].get());
 }
 SWC_TEST_END()
 

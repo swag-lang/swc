@@ -574,7 +574,7 @@ namespace
                 SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols));
 
             SectionPlacement placement;
-            SWC_RESULT(appendNativeSection(placement, textSection));
+            SWC_RESULT(appendNativeSection(placement, std::move(textSection)));
             if (description.startup)
                 addSymbol(description.startup->symbolName, placement.index, placement.base + description.startup->textOffset);
             for (const NativeFunctionInfo* info : description.functions)
@@ -660,9 +660,30 @@ namespace
 
         Result appendNativeSection(SectionPlacement& outPlacement, const NativeSectionData& section)
         {
+            if (!placeNativeSection(outPlacement, section))
+                return Result::Continue;
+            for (const NativeSectionRelocation& relocation : section.relocations)
+                SWC_RESULT(appendRelocation(outPlacement.index, outPlacement.base, section.name, relocation, Utf8{relocation.symbolName}));
+            return Result::Continue;
+        }
+
+        // For a section its caller is done with: each relocation hands its symbol name over
+        // instead of having it copied, one allocation per relocation of the module's code.
+        Result appendNativeSection(SectionPlacement& outPlacement, NativeSectionData&& section)
+        {
+            if (!placeNativeSection(outPlacement, section))
+                return Result::Continue;
+            for (NativeSectionRelocation& relocation : section.relocations)
+                SWC_RESULT(appendRelocation(outPlacement.index, outPlacement.base, section.name, relocation, std::move(relocation.symbolName)));
+            return Result::Continue;
+        }
+
+        // False when the section takes no place in the image.
+        bool placeNativeSection(SectionPlacement& outPlacement, const NativeSectionData& section)
+        {
             outPlacement = {};
             if (isDebugSectionName(section.name))
-                return Result::Continue;
+                return false;
 
             uint32_t   sectionIndex = 0;
             const auto it           = sectionByName_.find(section.name);
@@ -703,13 +724,10 @@ namespace
             outPlacement.index = sectionIndex;
             outPlacement.base  = base;
             outPlacement.valid = true;
-
-            for (const NativeSectionRelocation& relocation : section.relocations)
-                SWC_RESULT(appendRelocation(sectionIndex, base, section.name, relocation));
-            return Result::Continue;
+            return true;
         }
 
-        Result appendRelocation(const uint32_t sectionIndex, const uint32_t base, const Utf8& sectionName, const NativeSectionRelocation& relocation) const
+        Result appendRelocation(const uint32_t sectionIndex, const uint32_t base, const Utf8& sectionName, const NativeSectionRelocation& relocation, Utf8&& symbolName) const
         {
             LinkRelocKind kind;
             if (!linkRelocKindFromCoffType(kind, relocation.type))
@@ -742,7 +760,7 @@ namespace
             LinkReloc linkReloc;
             linkReloc.sectionIndex = sectionIndex;
             linkReloc.offset       = patchOffset;
-            linkReloc.symbolName   = relocation.symbolName;
+            linkReloc.symbolName   = std::move(symbolName);
             linkReloc.kind         = kind;
             section.relocs.push_back(std::move(linkReloc));
             return Result::Continue;

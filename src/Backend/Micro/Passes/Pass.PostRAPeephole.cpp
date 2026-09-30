@@ -305,27 +305,24 @@ namespace
 
         const auto      refs = cfg.instructionRefs();
         const MicroReg  stack = CallConv::get(context.callConvKind).stackPointer;
-        for (uint32_t storeIndex = 0; storeIndex + 2 < refs.size(); ++storeIndex)
-        {
-            const MicroInstr* store = storage.ptr(refs[storeIndex]);
-            const auto*       saved = store && store->op == MicroInstrOpcode::LoadMemReg ? store->ops(operands) : nullptr;
-            if (!saved || saved[0].reg != stack || !saved[1].reg.isInt() || saved[1].reg == stack ||
-                saved[2].opBits != MicroOpBits::B64 || saved[3].valueU64 < context.spillAreaLo ||
-                saved[3].valueU64 > context.spillAreaHi - sizeof(uint64_t))
-                continue;
 
-            const MicroReg value  = saved[1].reg;
-            const uint64_t offset = saved[3].valueU64;
-            uint32_t       reloadIndex = MicroControlFlowGraph::K_NO_INDEX;
-            bool           slotOpaque  = false;
-            std::vector<uint32_t> sameStores;
+        // What a candidate store has to be judged against is the same for every candidate: the
+        // instructions that address the frame through the stack pointer, and whether any
+        // instruction makes every slot opaque. Both are read off the function once, on the first
+        // candidate, instead of walking the whole function again for each spill store.
+        bool                  frameAccessesCollected = false;
+        bool                  anySlotOpaque          = false;
+        std::vector<uint32_t> frameAccesses;
+        std::vector<uint32_t> sameStores;
+        const auto            collectFrameAccesses = [&] {
+            frameAccessesCollected = true;
             for (uint32_t index = 0; index < refs.size(); ++index)
             {
                 const MicroInstr* inst = storage.ptr(refs[index]);
                 if (!inst)
                 {
-                    slotOpaque = true;
-                    break;
+                    anySlotOpaque = true;
+                    return;
                 }
                 const auto* ops  = inst->ops(operands);
                 const auto& info = MicroInstr::info(inst->op);
@@ -345,13 +342,40 @@ namespace
                 if (ops && indexedMemory)
                 {
                     for (uint8_t operand = 0; operand < std::min<uint8_t>(inst->numOperands, 3); ++operand)
-                        slotOpaque = slotOpaque || ops[operand].reg == stack;
-                    if (slotOpaque)
-                        break;
+                        anySlotOpaque = anySlotOpaque || ops[operand].reg == stack;
+                    if (anySlotOpaque)
+                        return;
                 }
-                if (!ops || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) ||
-                    ops[info.memBaseOperandIndex].reg != stack)
-                    continue;
+                if (ops && info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops[info.memBaseOperandIndex].reg == stack)
+                    frameAccesses.push_back(index);
+            }
+        };
+
+        for (uint32_t storeIndex = 0; storeIndex + 2 < refs.size(); ++storeIndex)
+        {
+            const MicroInstr* store = storage.ptr(refs[storeIndex]);
+            const auto*       saved = store && store->op == MicroInstrOpcode::LoadMemReg ? store->ops(operands) : nullptr;
+            if (!saved || saved[0].reg != stack || !saved[1].reg.isInt() || saved[1].reg == stack ||
+                saved[2].opBits != MicroOpBits::B64 || saved[3].valueU64 < context.spillAreaLo ||
+                saved[3].valueU64 > context.spillAreaHi - sizeof(uint64_t))
+                continue;
+
+            const MicroReg value  = saved[1].reg;
+            const uint64_t offset = saved[3].valueU64;
+            uint32_t       reloadIndex = MicroControlFlowGraph::K_NO_INDEX;
+            bool           slotOpaque  = false;
+            if (!frameAccessesCollected)
+                collectFrameAccesses();
+            // An opaque instruction rejects every candidate, whichever slot it names.
+            if (anySlotOpaque)
+                return false;
+
+            sameStores.clear();
+            for (const uint32_t index : frameAccesses)
+            {
+                const MicroInstr* inst = storage.ptr(refs[index]);
+                const auto*       ops  = inst->ops(operands);
+                const auto&       info = MicroInstr::info(inst->op);
 
                 const uint64_t accessOffset = ops[info.memOffsetOperandIndex].valueU64;
                 uint64_t accessSize = 64;

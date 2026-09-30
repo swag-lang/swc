@@ -110,16 +110,19 @@ namespace
         return !ctx.compiler().srcView(function->srcViewRef()).isRuntimeFile();
     }
 
-    void collectGlobalInitRelocationOffsets(const SymbolFunction& function, std::unordered_set<uint64_t>& outOffsets)
+    void collectGlobalInitRelocationOffsets(const SymbolFunction& function, std::vector<uint64_t>& outOffsets)
     {
         if (function.loweredCode().bytes.empty())
             return;
 
-        for (const uint64_t offset : function.globalInitRelocationOffsets())
-            outOffsets.insert(offset);
+        const std::vector<uint64_t>& offsets = function.globalInitRelocationOffsets();
+        outOffsets.insert(outOffsets.end(), offsets.begin(), offsets.end());
     }
 
-    void collectJitGlobalInitRelocationOffsets(TaskContext& ctx, std::unordered_set<uint64_t>& outOffsets)
+    // Appends the offsets of every function the run reaches; the caller sorts the result. The
+    // list is only ever searched, so it is gathered as a list instead of a set with a node per
+    // offset that every compile-time call then copied into one.
+    void collectJitGlobalInitRelocationOffsets(TaskContext& ctx, std::vector<uint64_t>& outOffsets)
     {
         const SymbolFunction* runFunction = ctx.state().runJitFunction;
         if (!runFunction)
@@ -1260,20 +1263,18 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
     const auto                   globals = ctx.compiler().nativeGlobalVariablesSnapshot();
     JITRelocationPatchContext    patchContext;
     const bool                   patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
-    std::unordered_set<uint64_t> referencedGlobalInitOffsets;
     std::vector<uint64_t>        sortedReferencedGlobalInitOffsets;
 
     // During a #run, patch only global-init slots referenced by the active JIT call graph.
     // Full native/JIT preparation still patches the complete snapshot.
     if (patchReferencedGlobalsOnly)
     {
-        collectJitGlobalInitRelocationOffsets(ctx, referencedGlobalInitOffsets);
-        sortedReferencedGlobalInitOffsets.assign(referencedGlobalInitOffsets.begin(), referencedGlobalInitOffsets.end());
+        collectJitGlobalInitRelocationOffsets(ctx, sortedReferencedGlobalInitOffsets);
         std::ranges::sort(sortedReferencedGlobalInitOffsets);
     }
 
-    patchContext.resolvedFunctionAddresses.reserve(globals.size());
-
+    // The address cache grows with the functions actually resolved. Sizing it for every global
+    // of the module made each compile-time call allocate and clear a table of that size.
     for (const SymbolVariable* symVar : globals)
     {
         if (!symVar)

@@ -4151,10 +4151,6 @@ Result CompilerInstance::adoptModuleBuildCfg(TaskContext& ctx, const Runtime::Bu
 // the setup pass acts on rather than statements it refuses.
 Result CompilerInstance::collectModuleSetupLoadedFiles(TaskContext& ctx, const std::set<fs::path>& alreadyRead, std::vector<SourceFile*>& outFiles)
 {
-    const Global&     global   = ctx.global();
-    JobManager&       jobMgr   = global.jobMgr();
-    const JobClientId clientId = jobClientId();
-
     std::vector<SourceFile*> added;
     for (const fs::path& filePath : moduleSetupLoadedFiles())
     {
@@ -4170,13 +4166,7 @@ Result CompilerInstance::collectModuleSetupLoadedFiles(TaskContext& ctx, const s
         return Result::Continue;
 
     const uint64_t errorsBefore = Stats::getNumErrors();
-    for (SourceFile* file : added)
-    {
-        auto* job = makeJob<ParserJob>(ctx, file);
-        jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-    }
-
-    jobMgr.waitAll(clientId);
+    parseSourceFiles(ctx, added);
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -4214,13 +4204,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     const JobClientId clientId     = setupCompiler.jobClientId();
     const uint64_t    errorsBefore = Stats::getNumErrors();
 
-    for (SourceFile* file : setupCompiler.files())
-    {
-        auto* job = setupCompiler.makeJob<ParserJob>(setupCtx, file);
-        jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-    }
-
-    jobMgr.waitAll(clientId);
+    parseSourceFiles(setupCtx, setupCompiler.files());
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 

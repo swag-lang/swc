@@ -9,6 +9,7 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Parser/Parser/Parser.h"
+#include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/SourceFile.h"
@@ -108,6 +109,47 @@ func validate()
         return result;
     }
 }
+
+SWC_TEST_BEGIN(Compiler_ParserWorkersKeepFileDiagnosticsIsolated)
+{
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    compilerCtx.setMuteOutput(true);
+    compilerCtx.setReportToStats(false);
+
+    std::vector<SourceFile*> files;
+    for (uint32_t i = 0; i < 64; ++i)
+    {
+        const std::string_view source = i % 4 == 0 ? "func 0() {}" : "func parsed() {}";
+        files.push_back(&Unittest::addTestSource(compilerCtx, "Compiler", std::format("ParserWorker_{}", i), source));
+    }
+    const TaskContext* currentBefore = TaskContext::current();
+    parseSourceFiles(compilerCtx, files);
+    if (TaskContext::current() != currentBefore || compilerCtx.hasError())
+    {
+        std::println(stderr, "parser batch changed its caller context: current={}, error={}", TaskContext::current() != currentBefore, compilerCtx.hasError());
+        return Result::Error;
+    }
+
+    for (uint32_t i = 0; i < files.size(); ++i)
+    {
+        if (i % 4 == 0)
+        {
+            if (!files[i]->hasError())
+            {
+                std::println(stderr, "parser input {} has no error recorded", i);
+                return Result::Error;
+            }
+        }
+        else if (files[i]->hasError() || !findFunctionDecl(files[i]->ast(), "parsed"))
+        {
+            std::println(stderr, "parser input {} has no clean function declaration: error={}", i, files[i]->hasError());
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_LegacyStaticControlDirectivesAreNotKeywords)
 {

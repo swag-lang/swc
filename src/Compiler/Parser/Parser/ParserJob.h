@@ -15,17 +15,8 @@ struct ParserJobOptions
 
 Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, ParserJobOptions options);
 
-class ParserJob : public Job
-{
-public:
-    static constexpr auto K = JobKind::Parser;
-    ParserJob(const TaskContext& ctx, SourceFile* file, ParserJobOptions options = {});
-
-    JobResult exec() override;
-
-private:
-    SourceFile*      file_ = nullptr;
-    ParserJobOptions options_{};
-};
+// Parse a fixed set of independent files and wait for the set to finish. Workers
+// claim file indices directly, so the scheduler owns at most one job per worker.
+void parseSourceFiles(const TaskContext& ctx, std::span<SourceFile* const> files, ParserJobOptions options = {});
 
 SWC_END_NAMESPACE();

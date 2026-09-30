@@ -89,37 +89,43 @@ public:
     static size_t threadIndex() noexcept { return threadIndex_; }
     bool          isSingleThreaded() const noexcept { return singleThreaded_; }
 
+    // A private storage slot for this pool's worker or setup thread. External
+    // callers have no slot, even though the legacy TLS threadIndex defaults to zero.
+    std::optional<size_t> currentThreadIndex() const noexcept;
+
 private:
     void       pushReady(JobRecord* rec, JobPriority priority);
     JobRecord* popReadyLocked();
-    JobRecord* popReadyAndMarkRunningLocked();
     JobRecord* popReadyForClientLocked(JobClientId client);
     bool       isDrainedLocked() const;
 
     static JobResult              executeJob(Job& job);
-    void                          handleJobResult(JobRecord* rec, JobResult res);
+    void                          handleJobResultLocked(JobRecord* rec, JobResult res);
     void                          workerLoop();
     static std::optional<WaitKey> computeWaitKey(const Job& job);
+    void                          parkLocked(JobRecord* rec);
     void                          unregisterWaiterLocked(JobRecord* rec);
+    void                          requeueWaitingLocked(JobRecord* rec);
     void                          growWorkersForLoadLocked();
 
     void shutdown() noexcept;
 
     // Setup
-    bool                       singleThreaded_        = false;
-    const CommandLine*         cmdLine_               = nullptr;
-    uint32_t                   randSeed_              = 0;
-    uint32_t                   configuredWorkerCount_ = 0;
-    static thread_local size_t threadIndex_;
+    bool                                  singleThreaded_        = false;
+    const CommandLine*                    cmdLine_               = nullptr;
+    uint32_t                              randSeed_              = 0;
+    uint32_t                              configuredWorkerCount_ = 0;
+    static thread_local size_t            threadIndex_;
+    static thread_local const JobManager* threadManager_;
+    std::thread::id                       setupThreadId_;
 
     // Ready queues per priority (store Record* for direct access).
     std::deque<JobRecord*> readyQ_[3];
 
-    // Fast “is work available” counter to avoid CV churn.
-    std::atomic<std::uint64_t> readyCount_{0};
-
-    // Running job count.
-    std::atomic<std::size_t> activeWorkers_{0};
+    // Queue and completion predicates share mtx_ with their condition-variable waits.
+    // No worker polls these counters outside the scheduler lock.
+    size_t readyCount_    = 0;
+    size_t activeWorkers_ = 0;
 
     // Threading & sync
     std::vector<std::thread> workers_;
@@ -131,28 +137,30 @@ private:
     std::atomic<bool> accepting_{false};
     std::atomic<bool> joined_{false};
 
-    // Per-client READY/RUNNING counters (protected by mtx_)
-    std::atomic<JobClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
-    std::unordered_map<JobClientId, std::size_t> clientReadyRunning_;
-    std::atomic<uint32_t>                        nextIndex_{0};
+    struct ClientState
+    {
+        size_t     readyRunning = 0;
+        JobRecord* waitingHead  = nullptr;
+    };
 
-    // All currently scheduled records (any state except free), to allow wakeAll scans.
-    std::unordered_set<JobRecord*> liveRecs_;
+    // Client counters and sleeping lists share mtx_. Ready/running jobs need no
+    // secondary live-record registry or per-job hash node.
+    std::atomic<JobClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
+    std::unordered_map<JobClientId, ClientState> clients_;
+    std::atomic<uint32_t>                        nextIndex_{0};
 
     // Sleeping jobs indexed by the exact dependency they wait on, for targeted wakeups.
     // Only keyable sleepers appear here; non-keyable ones stay wildcard (barrier-woken).
-    std::unordered_multimap<WaitKey, JobRecord*, WaitKeyHash> waiters_;
+    std::unordered_map<WaitKey, JobRecord*, WaitKeyHash> waiters_;
 
-    // Lock-free presence filter over the registered wait keys. wake() consults it BEFORE
-    // taking mtx_: an empty shard proves no job is parked on the key, so the (overwhelmingly
-    // common) wake with no waiter never touches the global scheduler mutex. Symbol-state wakes
-    // (setTyped/setDeclared/...) fire on every symbol transition across the whole compile; the
-    // old unconditional lock serialized every worker on mtx_ even though almost nobody waits on
-    // that exact symbol. The filter is a counting filter: shard == 0 means "no waiter here",
-    // shard > 0 means "maybe a waiter" (hash collisions only cause a correct fall-through to the
-    // authoritative locked scan). A genuinely lost wake is impossible beyond the pre-existing
-    // best-effort window already covered by the wakeAll barrier in Sema::waitDone. All mutations
-    // happen under mtx_ (release); only wake()'s fast-path read is lock-free (acquire).
+    // Counts nonempty dependency lists, not individual sleepers. Presence is read
+    // before taking mtx_, so symbol-state publication with no
+    // observed waiter avoids the scheduler lock. Hash collisions only cause a locked
+    // lookup in the authoritative waiters_ map. Counts change under mtx_ (release);
+    // wake() reads them without that lock (acquire).
+    // Registration can race a producer's wake: symbol waits retain Sema::waitDone's
+    // barrier fallback. JIT waits instead recheck completion under its publication
+    // mutex after registering, covering both possible publication orders.
     static constexpr size_t                                 WAITER_FILTER_SHARDS = 4096; // power of two
     std::array<std::atomic<uint32_t>, WAITER_FILTER_SHARDS> waiterFilter_{};
 

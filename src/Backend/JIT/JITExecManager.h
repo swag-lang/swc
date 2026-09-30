@@ -51,6 +51,7 @@ public:
     Result     submit(TaskContext& ctx, const Request& request);
     Completion consumeCompletion(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     bool       hasItem(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef) const;
+    bool       hasCompletion(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef) const;
     bool       executePendingMainThread();
     bool       completeWaitingOnIgnoredDependency();
     bool       wakeWaiting();
@@ -118,13 +119,18 @@ private:
     static Result executeItem(Item& item);
     void          enqueueWorker();
     void          executePendingWorker();
+    void          notifyCompletion(const TaskContext* ownerCtx);
+    Item*         popPendingLocked();
 
     CompilerInstance*                                               compiler_ = nullptr;
     mutable std::mutex                                              mutex_;
     std::mutex                                                      executionMutex_;
     std::unordered_map<ItemKey, std::unique_ptr<Item>, ItemKeyHash> items_;
-    Strategy                                                        strategy_        = Strategy::MainThreadQueued;
-    bool                                                            workerScheduled_ = false;
+    // Only Pending items are queued. They cannot be consumed until a worker has
+    // removed them and published Completed under mutex_.
+    std::deque<Item*> pendingItems_;
+    Strategy          strategy_        = Strategy::MainThreadQueued;
+    bool              workerScheduled_ = false;
 };
 
 SWC_END_NAMESPACE();

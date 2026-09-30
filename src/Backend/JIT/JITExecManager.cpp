@@ -117,6 +117,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
         {
             slot = std::make_unique<Item>(ctx, request);
             slot->waitState.setNone();
+            pendingItems_.push_back(slot.get());
         }
 
         Item& item = *slot;
@@ -131,6 +132,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
         {
             item = Item(ctx, request);
             item.waitState.setNone();
+            pendingItems_.push_back(&item);
         }
 
         if (!workerScheduled_)
@@ -162,14 +164,7 @@ void JITExecManager::executePendingWorker()
         Item* itemToRun = nullptr;
         {
             const std::scoped_lock lock(mutex_);
-            for (auto& item : items_ | std::views::values)
-            {
-                if (!item || item->status != Status::Pending)
-                    continue;
-                item->status = Status::Running;
-                itemToRun    = item.get();
-                break;
-            }
+            itemToRun = popPendingLocked();
 
             if (!itemToRun)
             {
@@ -191,16 +186,36 @@ void JITExecManager::executePendingWorker()
             continue;
         }
 
+        const TaskContext* ownerCtx;
         {
             const std::scoped_lock lock(mutex_);
             itemToRun->result = result;
             itemToRun->status = Status::Completed;
+            ownerCtx          = itemToRun->ownerCtx;
         }
 
-        // waitDone consumes this persistent progress signal after the worker lane
-        // drains, so completion cannot be lost while the owner job is parking.
-        compiler_->notifyAlive();
+        notifyCompletion(ownerCtx);
     }
+}
+
+JITExecManager::Item* JITExecManager::popPendingLocked()
+{
+    if (pendingItems_.empty())
+        return nullptr;
+
+    Item* item = pendingItems_.front();
+    pendingItems_.pop_front();
+    SWC_ASSERT(item->status == Status::Pending);
+    item->status = Status::Running;
+    return item;
+}
+
+void JITExecManager::notifyCompletion(const TaskContext* ownerCtx)
+{
+    // Never enter the scheduler while holding mutex_: parking checks completion in
+    // the opposite order. A resumed owner can already have erased its Item here.
+    compiler_->notifyAlive();
+    compiler_->global().jobMgr().wake({ownerCtx, TaskStateKind::SemaWaitMainThreadRunJit});
 }
 
 JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
@@ -232,6 +247,14 @@ bool JITExecManager::hasItem(const TaskContext& ctx, const AstNodeRef nodeRef, c
     return it != items_.end() && it->second != nullptr;
 }
 
+bool JITExecManager::hasCompletion(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef) const
+{
+    const ItemKey          key = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
+    const std::scoped_lock lock(mutex_);
+    const auto             it = items_.find(key);
+    return it != items_.end() && it->second && it->second->status == Status::Completed;
+}
+
 bool JITExecManager::executePendingMainThread()
 {
     bool processedAny = false;
@@ -246,14 +269,7 @@ bool JITExecManager::executePendingMainThread()
             // Claim one item under the lock, then run it without holding the mutex:
             // JIT execution can re-enter compiler services and would otherwise deadlock
             // producers/consumers of the same queue.
-            for (auto& item : items_ | std::views::values)
-            {
-                if (!item || item->status != Status::Pending)
-                    continue;
-                item->status = Status::Running;
-                itemToRun    = item.get();
-                break;
-            }
+            itemToRun = popPendingLocked();
         }
 
         if (!itemToRun)
@@ -264,6 +280,7 @@ bool JITExecManager::executePendingMainThread()
             result = executeItem(*itemToRun);
         }
 
+        const TaskContext* ownerCtx = nullptr;
         {
             const std::scoped_lock lock(mutex_);
             if (result == Result::Pause)
@@ -275,11 +292,12 @@ bool JITExecManager::executePendingMainThread()
             {
                 itemToRun->result = result;
                 itemToRun->status = Status::Completed;
+                ownerCtx          = itemToRun->ownerCtx;
             }
         }
 
         if (result != Result::Pause)
-            compiler_->notifyAlive();
+            notifyCompletion(ownerCtx);
 
         processedAny = true;
     }
@@ -289,7 +307,7 @@ bool JITExecManager::executePendingMainThread()
 
 bool JITExecManager::completeWaitingOnIgnoredDependency()
 {
-    bool completedAny = false;
+    SmallVector<const TaskContext*> completedOwners;
 
     {
         const std::scoped_lock lock(mutex_);
@@ -305,15 +323,15 @@ bool JITExecManager::completeWaitingOnIgnoredDependency()
                 item->waitState.setNone();
                 item->result = Result::Error;
                 item->status = Status::Completed;
-                completedAny = true;
+                completedOwners.push_back(item->ownerCtx);
             }
         }
     }
 
-    if (completedAny)
-        compiler_->notifyAlive();
+    for (const TaskContext* ownerCtx : completedOwners)
+        notifyCompletion(ownerCtx);
 
-    return completedAny;
+    return !completedOwners.empty();
 }
 
 bool JITExecManager::wakeWaiting()
@@ -331,7 +349,8 @@ bool JITExecManager::wakeWaiting()
             // The scheduler only tells us that compiler progress happened. Requeue every
             // waiting item and let executeItem re-check its exact dependency.
             item->status = Status::Pending;
-            woken        = true;
+            pendingItems_.push_back(item.get());
+            woken = true;
         }
 
         if (woken && !workerScheduled_)

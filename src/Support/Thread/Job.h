@@ -84,6 +84,12 @@ struct JobRecord
     // Dependency registration while Waiting (only set when registered in the wait registry).
     WaitKey waitKey{};
     bool    registered = false;
+
+    // Intrusive wait indexes, mutated only under the owning manager's mutex.
+    JobRecord* clientWaitPrevious = nullptr;
+    JobRecord* clientWaitNext     = nullptr;
+    JobRecord* keyWaitPrevious    = nullptr;
+    JobRecord* keyWaitNext        = nullptr;
 };
 
 class Job

@@ -6,7 +6,7 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
-### compiler.core.061 — Three PDF tests of `std/gui` fail under the release configuration
+### compiler.core.063 — Three PDF tests of `std/gui` fail under the release configuration
 
 - Recorded: 2026-09-30 11:15
 - Area: compiler/backend, release code generation as the JIT runs it
@@ -36,10 +36,26 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   then bisect the backend and code-generation commits since the last green release campaign
   with it.
 - Complete when: the three tests pass in release, and a suite test fails on the defect.
+### compiler.core.062 — Unlocated EOF diagnostics can suppress another file's error state
+
+- Recorded: 2026-09-30 11:02
+- Evidence: a one-core C++ probe parsed 64 independent in-memory files, every fourth containing
+  only `func`. The first such file acquired its error flag; the next did not. The same batch with
+  `func 0() {}` has a nonempty source span and exercises per-file parser diagnostics instead.
+  `DiagnosticElement::addSpan` drops a zero-length EOF span, so `DiagnosticBuilder::build` omits
+  the source location. `Diagnostic::report` deduplicates the rendered message across the compiler
+  before setting the task and file error flags. Identical unlocated errors from different files
+  therefore share one deduplication key. These diagnostic paths predate the parser worker change.
+- Next: preserve EOF source provenance and separate publication of each task/file's error state
+  from suppression of repeated display text. Add a reduced two-file EOF regression and keep
+  repeated diagnostics for the same source site suppressed.
+- Complete when: both files retain their error state and attributable diagnostics in ordinary and
+  one-line output, with source expectation checking independent of job order and worker count.
 
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 
 - Recorded: 2026-09-30 08:32
+- Updated: 2026-09-30 10:22 — remove the scheduler costs resolved by the dependency-indexed job loop
 - Area: compiler/JIT, compile-time execution, compilation time
 - Evidence: read from the code while the 2026-09-30 prompt-4 run removed the neighbouring costs (a
   JIT order is now revalidated by the call-graph epochs of its own closure instead of being walked
@@ -70,9 +86,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   - `JIT::patchGlobalFunctionVariables` copies the module's whole global-variable list under a
     lock and scans it on every compile-time call, to patch the few function-initialized globals the
     running call graph references.
-  - `JobManager::workerLoop` takes the scheduler mutex twice per job (once to record the result,
-    once to pop the next), and `enqueue`/`handleJobResult` allocate and free the job record and a
-    `liveRecs_` hash node inside that mutex.
 - Next: measure the first item on the `gui` release rebuild (14 617 compile-time calls on
   2026-09-16), since it is the only one with a fixed cost per call; an invoker that reads its
   arguments from a block instead of baking them in can be lowered once per signature shape.
@@ -81,6 +94,81 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: each item is either removed with a test of compile-time execution behind it, or
   recorded as measured and not worth its risk.
 - Related: compiler.core.056, compiler.core.055, compiler.core.030.
+
+### compiler.core.055 — Resume paused JIT requests from their exact dependencies
+
+- Recorded: 2026-09-20 07:07
+- Updated: 2026-09-30 08:34 — narrow the remaining barrier to internal JIT readiness waits
+- Evidence: `JITExecManager::executePendingWorker` records `Result::Pause` as an item's
+  `Waiting` state and retains its exact `TaskState`, but does not register that dependency
+  with `JobManager`. `wakeWaiting` moves all waiting items back to the pending queue only
+  after `Sema::waitDone` has drained the client's other jobs and observed compiler progress.
+  Direct completion wakes do not remove this earlier dependency barrier.
+- Safety boundary: queued and immediate calls must continue sharing `executionMutex_`.
+  `bin/unittests/jit/misc/execution_lane.swg` checks shared compile-time writes whose updates
+  would be lost if arbitrary JIT calls overlapped. A dependency continuation also needs
+  cancellation when a fallback retry or ignored dependency completes its item; otherwise
+  stale sleeping records can outlive the item and enter cycle detection.
+- Next: design a cancellable dependency registration for a paused item, so satisfying that
+  dependency queues only that item while the serialized lane continues serving other requests.
+  Keep the execution context private to the lane and publish completion before resuming its owner.
+- Complete when: a paused request resumes while unrelated compiler work remains active,
+  before/after-registration tests cover lost wakes and cancellation, and repeated parallel JIT
+  and ignored-dependency tests preserve serial side effects. Retain statically demonstrated
+  reductions in barriers or unrelated retries even when shared-machine timings are inconclusive.
+- Related: compiler.core.004, compiler.core.030.
+
+### compiler.core.061 — Type-info graph publication uses one serialization domain
+
+- Recorded: 2026-09-30 08:34
+- Evidence: `ConstantManager::makeTypeInfo` deliberately sends all reflected types to constant
+  shard zero, so shared dependencies have one canonical runtime identity. `TypeGen::makeTypeInfo`
+  holds that segment's exclusive cache mutex across `processTypeInfo` and back-reference
+  publication. Independent reflection roots therefore cannot generate their metadata concurrently;
+  contenders pause and share the type-info wake sentinel. This is a static concurrency boundary,
+  not an attribution of a measured fraction of cold-build time.
+- Safety boundary: hashing roots into separate stores would duplicate common dependencies and
+  break pointer identity. Publishing an entry before all required payloads and back references
+  are ready would expose partial recursive metadata.
+- Next: separate canonical graph registration from payload generation, identify independently
+  publishable components, and define ownership and completion for recursive components before
+  shortening or dividing the exclusive section. Preserve one address per reflected type.
+- Complete when: independent components can progress on different workers, mutually recursive
+  graphs publish no partial data, and identity, interface, and reflection tests pass under
+  repeated parallel cold compilation.
+- Related: compiler.core.020, compiler.core.007.
+
+### compiler.core.007 — Workspace front ends and code generation run serially
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-09-30 07:58 — Located the shared state that must be isolated before scheduling module front ends concurrently.
+
+**Evidence.** The workspace computes dependency order, but module front-end and code-generation work is still consumed serially. The current depth-one pipeline can overlap one background link with compilation of the next module; it does not schedule independent ready modules concurrently.
+
+**Architecture audit (2026-09-30).** `CompilerInstance::runWorkspace` still calls
+`runWorkspaceModule` synchronously for each item in `buildOrder`; only one
+`WorkspaceModuleLink` can remain in flight. Increasing `--num-cores` therefore cannot overlap
+two independent module front ends. `Logger::ScopedStagesDetailed` and `Logger::ScopedStageMute`
+change shared logger state, and command metrics live in the process-wide `Stats` singleton.
+Dispatching the existing module loop as worker jobs would also let its blocking
+`waitAll(clientId)` calls exhaust the same worker pool they need to finish.
+
+**Next.** Give each in-flight module its own log/metric scope and drive module stages from a
+coordinator that never blocks a compiler worker on its own pool. Preserve the lifetime of each
+compiler through artifact publication and linking, then admit independent ready modules within
+the shared memory budget.
+
+**Intent.** Schedule ready modules concurrently on the dependency DAG through a shared worker pool with explicit memory and CPU limits.
+
+**Complete when.**
+
+- Independent sibling modules overlap front-end and code-generation work, while consumers wait for the required interface or link artifact.
+- Compiler and linker work share a bounded concurrency policy and do not oversubscribe the host.
+- Logs, manifests, diagnostics, and emitted artifacts remain deterministic.
+- The concurrency cap accounts for the memory measurements and budget from compiler.core.005.
+- Workspace tests cover a diamond graph, concurrent failures, cancellation, and deterministic repeated builds.
+
+**Related:** compiler.core.004, compiler.core.005.
 
 ### compiler.core.005 — Compiler memory has no attributed, enforced budget
 
@@ -237,67 +325,6 @@ passed 18 native tests; timing and peak memory were not measured.
 - `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
 
 **Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
-
-### compiler.core.055 — Start serialized JIT execution before the semantic barrier
-
-- Recorded: 2026-09-20 07:07
-- Updated: 2026-09-20 08:01 — enforce unrestricted compiler worker selection for every benchmark measurement
-- Evidence: JIT materialization is already parallel: `SymbolFunction::jitBatch` schedules one
-  `JITPatchJob` per function, and workers prepare, patch, and finalize executable memory. The
-  remaining call is queued by `JITExecManager::submit`, which parks its semantic job in
-  `SemaWaitMainThreadRunJit`. `Sema::waitDone` calls `JobManager::waitAll(clientId)` before it
-  drains that queue, so every ready or running job of the client has stopped before the main
-  thread begins JIT execution. The current implementation therefore serializes execution with
-  all other compilation, not only with other JIT calls.
-- Measurement: a temporary Release compiler that changed the manager's default strategy from
-  `MainThreadQueued` to `Immediate` exercised the upper bound: the requesting worker executed JIT
-  code while other workers continued. Thirty interleaved hello-world pairs showed no material
-  improvement (73.56 ms to its `hello, world` line and 80.41 ms to exit at baseline, versus
-  74.11 ms and 80.63 ms immediate). Twelve interleaved complete JIT-suite pairs moved by only
-  1.5% amid a strong common timing drift; both compiled 391 files and passed all 1,499 tests.
-  A synthetic pair of independent 250 ms `#run` blocks did expose the available overlap,
-  dropping from 590 ms to 331 ms.
-- Safety boundary: unrestricted worker execution is not valid. A second synthetic probe made
-  both blocks read, delay, and increment one compile-time global. Main-thread serialization
-  produced `2`; immediate execution deterministically lost an update and produced `1`.
-  `#run` order is documented as undefined, but serial execution in either order preserves both
-  updates; simultaneous execution introduces a new data race across arbitrary user and foreign
-  side effects. Per-thread runtime contexts and existing immediate paths make worker execution
-  technically possible, but do not make shared compile-time state concurrent.
-- Implementation: `JITExecManager` now queues one `JitExec` job on the existing compiler pool.
-  It drains requests serially, protects immediate callers with the same execution mutex, and
-  copies the owner `TaskContext` before execution so a parked semantic job is never mutated from
-  another worker. Each completion calls `notifyAlive`, which gives `Sema::waitDone` a persistent
-  progress signal rather than relying on a wake that can race job parking. The lane is a pool job,
-  so `--num-cores` remains the total execution budget. A JIT regression submits eight independent
-  shared-global increments with a deliberately widened read/write window and requires the
-  dependency-ordered final call to observe all eight.
-- Measurement update: the bench harness now streams stdout and timestamps a requested output
-  marker, rather than process exit or the compiler's progress banner. Benchmark measurements never
-  pass `--num-cores`: they leave worker selection to the compiler. On the post-change uncapped
-  release probe, the Swag `hello, world` marker appeared at 91.57 ms and process exit at 100.70 ms;
-  Lua's `hi` marker appeared at 12.73 ms and exit at 14.95 ms. This confirms that the safe lane
-  alone does not materially improve hello-world first program output, matching the immediate
-  upper bound. DevMode and Release each passed the complete 1,500-test JIT suite with the lane
-  enabled.
-- Measurement caveat: the benchmark section named “time to first output” currently records
-  `winproc.run(...).wall_ms`, after `WaitForSingleObject` has observed process exit; it never
-  timestamps output arrival. A streaming probe on the current checkout observed the program's
-  hello line at 65.50 ms and process exit at 72.16 ms (un-pinned diagnostic medians), while the
-  compiler's own progress output began around 9 ms. Future comparisons must identify the program
-  line rather than the compiler's earlier progress text.
-- Resolution of the preceding historical caveat: the harness now records the requested program
-  marker directly; the old `wall_ms` value is retained only as total process duration for older
-  results which predate marker timing.
-- Next: profile the delay before the first JIT request becomes eligible in hello world, then move
-  only independent prerequisite work ahead of that request. Compare a real JIT-heavy module and
-  whole-compilation time against the corrected marker measurement; retain or redesign the lane
-  based on a gain beyond the benchmark noise band.
-- Complete when: JIT calls can overlap eligible compiler work without overlapping one another,
-  compile-time shared-state and foreign-side-effect probes retain serial behavior, both compiler
-  executables pass repeated parallel JIT coverage, and the corrected benchmark demonstrates a
-  material gain without a total-time regression.
-- Related: compiler.core.004, compiler.core.006, compiler.core.016, compiler.core.030.
 
 ### compiler.core.003 — Code-generation invalidation is module-wide
 
@@ -786,25 +813,6 @@ definition provider and does not consume resolved compiler symbols.
 - Clean and incremental workspace builds are covered by equivalent-result tests.
 
 **Related:** compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
-
-### compiler.core.007 — Workspace front ends and code generation run serially
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Evidence.** The workspace computes dependency order, but module front-end and code-generation work is still consumed serially. The current depth-one pipeline can overlap one background link with compilation of the next module; it does not schedule independent ready modules concurrently.
-
-**Intent.** Schedule ready modules concurrently on the dependency DAG through a shared worker pool with explicit memory and CPU limits.
-
-**Complete when.**
-
-- Independent sibling modules overlap front-end and code-generation work, while consumers wait for the required interface or link artifact.
-- Compiler and linker work share a bounded concurrency policy and do not oversubscribe the host.
-- Logs, manifests, diagnostics, and emitted artifacts remain deterministic.
-- The concurrency cap accounts for the memory measurements and budget from compiler.core.005.
-- Workspace tests cover a diamond graph, concurrent failures, cancellation, and deterministic repeated builds.
-
-**Related:** compiler.core.004, compiler.core.005.
 
 ### compiler.core.008 — There is no persistent language-server process
 

@@ -1744,7 +1744,20 @@ TypeRef Cast::castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTyp
     return castAllowedBothWays(sema, castRequest, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, const DiagnosticArguments* errorArguments)
+DiagnosticArguments Cast::callSiteErrorArguments(const TaskContext& ctx, const CastCallSite& callSite)
+{
+    // A call through a function-typed value has no declaration to name, and a receiver has
+    // no position between the parentheses. Leaving them out lets the message fall back to its
+    // form without the callee instead of printing an empty name or a number the user never wrote.
+    DiagnosticArguments arguments;
+    if (!callSite.function || callSite.function->name(ctx).empty() || !callSite.argNumber)
+        return arguments;
+    arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INDEX, callSite.argNumber});
+    arguments.push_back(DiagnosticArgument{Diagnostic::ARG_SYM, Utf8{callSite.function->name(ctx)}});
+    return arguments;
+}
+
+Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, const CastCallSite* callSite)
 {
     CastKind      effectiveKind  = castKind;
     CastFlags     effectiveFlags = castFlags;
@@ -1779,19 +1792,22 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (isConstSourceBinding(sema, sourceBindingView, view.cstRef()))
         effectiveFlags.add(CastFlagsE::ConstSource);
 
-    UserDefinedLiteralSuffixInfo suffixInfo;
-    const bool                   hasUserDefinedLiteralSuffix = resolveUserDefinedLiteralSuffix(sema, view.nodeRef(), suffixInfo);
-    CastRequest                  castRequest(effectiveKind);
+    CastRequest castRequest(effectiveKind);
     castRequest.flags        = effectiveFlags;
     castRequest.errorNodeRef = view.nodeRef();
     castRequest.setConstantFoldingSrc(view.cstRef());
 
-    if (srcTypeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero && !hasUserDefinedLiteralSuffix)
+    if (srcTypeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
     {
-        const Result validationResult = validateNonNullableConstant(sema, castRequest, srcTypeRef, srcTypeRef, dstTypeRef, view.cstRef());
-        if (validationResult != Result::Continue)
-            return emitCastFailure(sema, castRequest.failure);
-        return Result::Continue;
+        // Only an identity cast asks whether the source carries a literal suffix.
+        UserDefinedLiteralSuffixInfo suffixInfo;
+        if (!resolveUserDefinedLiteralSuffix(sema, view.nodeRef(), suffixInfo))
+        {
+            const Result validationResult = validateNonNullableConstant(sema, castRequest, srcTypeRef, srcTypeRef, dstTypeRef, view.cstRef());
+            if (validationResult != Result::Continue)
+                return emitCastFailure(sema, castRequest.failure);
+            return Result::Continue;
+        }
     }
 
     const Result result = castAllowed(sema, castRequest, view.typeRef(), dstTypeRef);
@@ -1931,15 +1947,15 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             castRequest.failure.noteId = DiagnosticId::sema_note_cast_explicit;
     }
 
-    if (errorArguments)
-        castRequest.failure.mergeArguments(*errorArguments);
+    if (callSite)
+        castRequest.failure.mergeArguments(callSiteErrorArguments(sema.ctx(), *callSite));
 
     return emitCastFailure(sema, castRequest.failure);
 }
 
-Result Cast::castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, const DiagnosticArguments* errorArguments)
+Result Cast::castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, const CastCallSite* callSite)
 {
-    return cast(sema, view, dstTypeRef, castKind, castFlags, errorArguments);
+    return cast(sema, view, dstTypeRef, castKind, castFlags, callSite);
 }
 
 Result Cast::castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, CastKind castKind)

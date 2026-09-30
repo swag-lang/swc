@@ -261,7 +261,10 @@ namespace
         }
     }
 
-    Result collect(Sema& sema, MatchContext& lookUpCxt)
+    // 'idRef' is the name the lookup that follows asks for. A scope's own symbols are only ever
+    // matched by that name, so the ones carrying another are left where they are instead of
+    // being judged hidden or not and copied into the context for every identifier resolved.
+    Result collect(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     {
         lookUpCxt.symMaps.clear();
         lookUpCxt.symMapPriorities.clear();
@@ -319,7 +322,7 @@ namespace
 
             for (const Symbol* symbol : scope->symbols())
             {
-                if (sema.frame().isLookupSymbolHidden(symbol))
+                if (symbol->idRef() != idRef || sema.frame().isLookupSymbolHidden(symbol))
                     continue;
 
                 const MatchPriority priority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::LocalScope};
@@ -460,7 +463,7 @@ namespace
 
 Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 {
-    SWC_RESULT(collect(sema, lookUpCxt));
+    SWC_RESULT(collect(sema, lookUpCxt, idRef));
     while (true)
     {
         lookup(lookUpCxt, idRef);
@@ -542,7 +545,7 @@ Result Match::matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCalle
     lookUpCxt.codeRef       = callee.codeRef();
     lookUpCxt.noWaitOnEmpty = true;
 
-    SWC_RESULT(collect(sema, lookUpCxt));
+    SWC_RESULT(collect(sema, lookUpCxt, idRef));
     lookup(lookUpCxt, idRef);
     if (lookUpCxt.empty())
         return Result::Continue;
@@ -579,7 +582,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     if (sym.isFunction() && sym.ownerSymMap())
         lookUpCxt.symMapHint = sym.ownerSymMap();
 
-    collect(sema, lookUpCxt);
+    collect(sema, lookUpCxt, sym.idRef());
     lookup(lookUpCxt, sym.idRef());
     if (lookUpCxt.empty())
         return sema.waitIdentifier(sym.idRef(), sym.codeRef());

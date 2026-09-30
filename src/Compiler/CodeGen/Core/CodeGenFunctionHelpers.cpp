@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
@@ -1425,6 +1426,85 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
         outStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(codeGen.function().callConvKind());
         return true;
     }
+}
+
+// An aggregate literal builds a whole value from scratch: its fields ran their own copy or
+// move hooks as they entered it, and nothing else names the storage it was built in. It is
+// therefore an owned value wherever it goes, never a source to copy from.
+bool CodeGenFunctionHelpers::isFreshAggregateLiteral(CodeGen& codeGen, AstNodeRef nodeRef)
+{
+    // The written node is what matters: the cast that types a literal substitutes for it
+    // without changing where its value came from.
+    while (nodeRef.isValid())
+    {
+        const AstNode& node = codeGen.node(nodeRef);
+        if (node.is(AstNodeId::ParenExpr))
+            nodeRef = node.cast<AstParenExpr>().nodeExprRef;
+        else if (node.is(AstNodeId::InitializerExpr))
+            nodeRef = node.cast<AstInitializerExpr>().nodeExprRef;
+        else
+            return node.is(AstNodeId::StructInitializerList) || node.is(AstNodeId::StructLiteral) || node.is(AstNodeId::ArrayLiteral);
+    }
+
+    return false;
+}
+
+// A call result owns its value, whether the call was emitted or expanded inline, and
+// whatever error-management wrappers stand around it. A reference-returning call is the
+// exception: its address is a borrowed referee.
+bool CodeGenFunctionHelpers::isOwnedCallResult(CodeGen& codeGen, AstNodeRef nodeRef)
+{
+    AstNodeRef resolvedRef = codeGen.viewZero(nodeRef).nodeRef();
+    while (resolvedRef.isValid() && codeGen.node(resolvedRef).is(AstNodeId::ErrorManagementExpr))
+        resolvedRef = codeGen.viewZero(codeGen.node(resolvedRef).cast<AstErrorManagementExpr>().nodeExprRef).nodeRef();
+    if (resolvedRef.isInvalid())
+        return false;
+
+    const SemaInlinePayload* inlinePayload = codeGen.sema().inlinePayload(resolvedRef);
+    if (inlinePayload && inlinePayload->inlineRootRef == resolvedRef)
+        return !inlinePayload->returnsToCallerSite() && inlinePayload->returnTypeRef.isValid() && !codeGen.typeMgr().get(inlinePayload->returnTypeRef).isReference();
+
+    if (codeGen.node(resolvedRef).isNot(AstNodeId::CallExpr))
+        return false;
+
+    const SymbolFunction* calledFunction = CodeGenExprView::singleFunction(codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol));
+    if (!calledFunction)
+        calledFunction = CodeGenExprView::singleFunction(codeGen.viewSymbol(resolvedRef));
+    if (!calledFunction || !calledFunction->returnTypeRef().isValid())
+        return false;
+    return !codeGen.typeMgr().get(calledFunction->returnTypeRef()).isReference();
+}
+
+// An expression-bodied function has no 'return' statement for sema to bind to the return
+// slot, and no local that could read that slot either: a literal body is built in it.
+bool CodeGenFunctionHelpers::tryUseShortBodyReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg)
+{
+    outStorageReg = MicroReg::invalid();
+    if (codeGen.frame().hasCurrentInlineContext() || !typeRef.isValid())
+        return false;
+    if (!functionUsesIndirectReturnStorage(codeGen, codeGen.function()))
+        return false;
+
+    // The cast that types the literal stands between it and the declaration.
+    size_t     parentIndex = 0;
+    AstNodeRef parentRef   = codeGen.visit().parentNodeRef(parentIndex);
+    while (parentRef.isValid() && (codeGen.node(parentRef).is(AstNodeId::CastExpr) || codeGen.node(parentRef).is(AstNodeId::ParenExpr)))
+        parentRef = codeGen.visit().parentNodeRef(++parentIndex);
+    if (parentRef.isInvalid() || parentRef != codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef())
+        return false;
+
+    const auto* functionDecl = codeGen.node(parentRef).safeCast<AstFunctionDecl>();
+    if (!functionDecl || !functionDecl->hasFlag(AstFunctionFlagsE::Short))
+        return false;
+    if (codeGen.viewZero(functionDecl->nodeBodyRef).nodeRef() != codeGen.viewZero(nodeRef).nodeRef())
+        return false;
+
+    const TypeRef returnTypeRef = codeGen.function().returnTypeRef();
+    if (!returnTypeRef.isValid() || codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef) != codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), returnTypeRef))
+        return false;
+
+    outStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(codeGen.function().callConvKind());
+    return true;
 }
 
 void CodeGenFunctionHelpers::emitPersistCompilerRunValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstStorageReg, MicroReg srcStorageReg, MicroReg localStackBaseReg, uint32_t localStackSize)

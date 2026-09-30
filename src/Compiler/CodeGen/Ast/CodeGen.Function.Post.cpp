@@ -544,9 +544,8 @@ namespace
 
     // A call result held in a compiler temporary owns its value: the return transfers
     // it with 'opPostMove' instead of deep-copying it, and nothing drops the abandoned
-    // temporary. Error-management expressions preserve that ownership. Caller-owned
-    // return storages ('retval') stay outside this rule, and so does a reference-returning
-    // call: its address is a borrowed referee, not a temp.
+    // temporary. An aggregate literal that could not be built in the return slot is such
+    // a temporary too. Caller-owned return storages ('retval') stay outside this rule.
     bool returnSourceIsOwnedTemporary(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         if (exprPayload.ownsValue)
@@ -557,23 +556,7 @@ namespace
             return false;
         if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
             return false;
-
-        AstNodeRef resolvedExprRef = codeGen.viewZero(exprRef).nodeRef();
-        while (resolvedExprRef.isValid() && codeGen.node(resolvedExprRef).is(AstNodeId::ErrorManagementExpr))
-        {
-            const auto& errorManagement = codeGen.node(resolvedExprRef).cast<AstErrorManagementExpr>();
-            resolvedExprRef             = codeGen.viewZero(errorManagement.nodeExprRef).nodeRef();
-        }
-
-        if (resolvedExprRef.isInvalid() || codeGen.node(resolvedExprRef).isNot(AstNodeId::CallExpr))
-            return false;
-
-        const SymbolFunction* calledFunction = CodeGenExprView::singleFunction(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
-        if (!calledFunction)
-            calledFunction = CodeGenExprView::singleFunction(codeGen.viewSymbol(resolvedExprRef));
-        if (!calledFunction || !calledFunction->returnTypeRef().isValid())
-            return false;
-        return !codeGen.typeMgr().get(calledFunction->returnTypeRef()).isReference();
+        return CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, exprRef) || CodeGenFunctionHelpers::isOwnedCallResult(codeGen, exprRef);
     }
 
     // The local named by 'return exprRef' when the return can transfer its ownership:

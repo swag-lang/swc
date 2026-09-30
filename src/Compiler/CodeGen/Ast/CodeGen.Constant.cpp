@@ -776,13 +776,27 @@ namespace
         const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
         SWC_INTERNAL_CHECK(totalSize == storageType.sizeOf(codeGen.ctx()));
 
-        const MicroReg  dstBaseReg  = codeGen.runtimeStorageAddressReg(nodeRef);
+        // A literal that initializes a variable, or that is the whole body of a function, is
+        // built straight in that destination: nothing is left to copy, move, or drop
+        // afterwards. Sema already binds the literal of a 'return' statement to the return
+        // slot; the destinations selected here are the ones only lowering knows.
+        MicroReg        dstBaseReg     = MicroReg::invalid();
+        SymbolVariable* destinationSym = nullptr;
+        bool            buildsInPlace  = true;
+        if (!CodeGenFunctionHelpers::tryUseDirectVarInitStorage(codeGen, nodeRef, aggregateTypeRef, dstBaseReg, destinationSym) &&
+            !CodeGenFunctionHelpers::tryUseShortBodyReturnStorage(codeGen, nodeRef, aggregateTypeRef, dstBaseReg))
+        {
+            buildsInPlace = false;
+            dstBaseReg    = codeGen.runtimeStorageAddressReg(nodeRef);
+        }
+
         // Concrete arrays/structs start from their default storage so omitted literal elements keep the
         // correct zeroed or default-initialized bytes.
         if (storageType.isArray() || storageType.isStruct())
             SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
 
-        bool ownsValue = false;
+        const bool canDropFields = codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop);
+        bool       ownsValue     = false;
         for (const AggregateElementLayout& entry : layout)
         {
             CodeGenNodePayload elementPayload;
@@ -796,7 +810,15 @@ namespace
             const TypeRef  sourceTypeRef = elementPayload.effectiveTypeRef(entry.typeRef);
             emitAggregateElementStore(codeGen, dstElementReg, elementPayload, sourceTypeRef, entry.typeRef, static_cast<uint32_t>(elementSize));
 
-            if (elementPayload.ownsValue)
+            // A call result is an owned temporary even though nothing flags its payload: the
+            // drop registered for its storage says so. The field adopts it like any owned
+            // value, or that drop would release what the field now holds. A projection of
+            // such a temporary is an lvalue instead: it is copied, and the temporary dropped.
+            // An aggregate that cannot drop its fields only borrows the temporary.
+            const AstNodeRef sourceRef       = codeGen.viewZero(entry.valueRef).nodeRef();
+            const bool       sourceIsLValue  = sourceRef.isValid() && codeGen.sema().isLValueStored(sourceRef);
+            const bool       adoptsTemporary = canDropFields && !sourceIsLValue && elementPayload.runtimeStorageSym && codeGen.hasTemporaryDrop(*elementPayload.runtimeStorageSym);
+            if (elementPayload.ownsValue || adoptsTemporary)
             {
                 ownsValue = true;
                 if (codeGen.hasLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostMove))
@@ -806,20 +828,25 @@ namespace
                 continue;
             }
 
-            const AstNodeRef sourceRef = codeGen.viewZero(entry.valueRef).nodeRef();
-            if (sourceRef.isValid() &&
-                codeGen.sema().isLValueStored(sourceRef) &&
-                codeGen.hasLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostCopy))
-            {
+            if (sourceIsLValue && codeGen.hasLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostCopy))
                 SWC_RESULT(codeGen.emitLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostCopy, dstElementReg));
-            }
         }
 
         SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, aggregateTypeRef, dstBaseReg));
-        codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef).ownsValue = ownsValue;
-        if (ownsValue && codeGen.runtimeStorageSymbol(nodeRef)->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) &&
-            codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop))
-            codeGen.registerTemporaryDrop(nodeRef, aggregateTypeRef, *codeGen.runtimeStorageSymbol(nodeRef));
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);
+        nodePayload.ownsValue           = ownsValue;
+        if (buildsInPlace)
+        {
+            nodePayload.setRuntimeStorageSymbol(destinationSym);
+            return Result::Continue;
+        }
+
+        // Only a compiler temporary is dropped with its statement. The caller's return slot
+        // belongs to the caller, who drops the value it receives.
+        const SymbolVariable* storageSym  = codeGen.runtimeStorageSymbol(nodeRef);
+        const bool            isTemporary = storageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) && !storageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal);
+        if (ownsValue && isTemporary && codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop))
+            codeGen.registerTemporaryDrop(nodeRef, aggregateTypeRef, *storageSym);
         return Result::Continue;
     }
 

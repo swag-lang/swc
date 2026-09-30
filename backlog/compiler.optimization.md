@@ -1004,24 +1004,6 @@ block, and the hot path keeps the register.
 - Complete when: the sign-mask fixture loads or consumes a verified 128-bit constant without a
   scalar-to-vector shuffle, and relocation/JIT tests cover the allocation boundary.
 
-### compiler.optimization.040 — Returning a fresh aggregate invokes its copy hook
-
-- Recorded: 2026-09-16 14:37
-- Area: compiler/lowering, aggregate return ownership
-- Found while: implementing explicit moves in aggregate fields and conditional arms
-  (`language.design.028`).
-- Evidence: on the unchanged DevMode compiler 0.1.687, a non-inlined factory
-  `func makeOwner(value: s64)->Owner => Owner{value}` invokes `Owner.opPostCopy` once
-  for a fresh 16-byte value with drop, copy, and move hooks. Returning a named local
-  instead adopts its storage. A runtime input and a copy counter reproduce the difference;
-  constant folding can hide the factory's copy from runtime counters.
-- Next: review `returnSourceIsOwnedTemporary` in `CodeGen.Function.Post.cpp` and the
-  destination binding for fresh aggregate literals. Establish which literals can transfer
-  ownership into the caller's result without a copy hook or a second destruction.
-- Complete when: fresh aggregate returns have a documented ownership rule and JIT/native
-  regressions cover their copy/move hooks, source cleanup, and optimized inlining.
-- Related: compiler.optimization.027.
-
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 
 - Recorded: 2026-09-06 14:53

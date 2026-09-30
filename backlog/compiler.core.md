@@ -6,6 +6,22 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.062 — Unlocated EOF diagnostics can suppress another file's error state
+
+- Recorded: 2026-09-30 11:02
+- Evidence: a one-core C++ probe parsed 64 independent in-memory files, every fourth containing
+  only `func`. The first such file acquired its error flag; the next did not. The same batch with
+  `func 0() {}` has a nonempty source span and exercises per-file parser diagnostics instead.
+  `DiagnosticElement::addSpan` drops a zero-length EOF span, so `DiagnosticBuilder::build` omits
+  the source location. `Diagnostic::report` deduplicates the rendered message across the compiler
+  before setting the task and file error flags. Identical unlocated errors from different files
+  therefore share one deduplication key. These diagnostic paths predate the parser worker change.
+- Next: preserve EOF source provenance and separate publication of each task/file's error state
+  from suppression of repeated display text. Add a reduced two-file EOF regression and keep
+  repeated diagnostics for the same source site suppressed.
+- Complete when: both files retain their error state and attributable diagnostics in ordinary and
+  one-line output, with source expectation checking independent of job order and worker count.
+
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 
 - Recorded: 2026-09-30 08:32

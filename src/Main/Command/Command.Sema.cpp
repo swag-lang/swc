@@ -84,13 +84,7 @@ namespace Command
         const ParserJobOptions parserOptions = {
             .emitTrivia = compiler.cmdLine().command == CommandKind::Doc,
         };
-        for (SourceFile* f : inputFiles)
-        {
-            auto* job = compiler.makeJob<ParserJob>(ctx, f, parserOptions);
-            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-        }
-
-        jobMgr.waitAll(clientId);
+        parseSourceFiles(ctx, inputFiles, parserOptions);
         if (Stats::getNumErrors() != errorsBefore)
             return;
 

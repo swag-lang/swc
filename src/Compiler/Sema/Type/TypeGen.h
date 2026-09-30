@@ -78,9 +78,29 @@ public:
             TypeRef                            funcReturnTypeRef = TypeRef::invalid();
         };
 
-        mutable std::shared_mutex          mutex;
+        // Even generations are free; odd generations identify one exclusive owner.
+        // The generation also closes release-before-scheduler-registration races.
+        std::atomic<uint64_t>              ownership{0};
         std::unordered_map<TypeRef, Entry> entries;
         SmallVector<TypeRef>               pendingBackRefs;
+    };
+
+    class CacheLock
+    {
+    public:
+        CacheLock(TypeGenCache& cache, TaskContext& ctx, LockMode mode);
+        CacheLock(const CacheLock&)            = delete;
+        CacheLock& operator=(const CacheLock&) = delete;
+        ~CacheLock();
+
+        bool     ownsLock() const { return owned_; }
+        uint64_t generation() const { return generation_; }
+
+    private:
+        TypeGenCache* cache_;
+        TaskContext*  ctx_;
+        uint64_t      generation_ = 0;
+        bool          owned_      = false;
     };
 
     struct LifecycleFlags

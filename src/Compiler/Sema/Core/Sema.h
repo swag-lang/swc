@@ -586,7 +586,7 @@ public:
     Result waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitConstraintsResolved(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
-    Result waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
+    Result waitTypeInfoGeneration(std::atomic<uint64_t>& owner, uint64_t generation, AstNodeRef nodeRef);
     // Records why this job cannot go on and hands the worker back to the scheduler.
     Result      parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     Result      makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);

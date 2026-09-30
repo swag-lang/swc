@@ -234,18 +234,22 @@ h3 {
 .row .rv { padding-left: 10px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .74rem; white-space: nowrap; }
 .row .rv em { font-style: normal; color: var(--faint); margin-left: 3px; font-size: .9em; }
 
-/* One colour per language. swag keeps the signature; devmode is the same, lighter. */
-.l-swag  { --c: #F7F900; }
-.l-cpp   { --c: #D6457A; }
-.l-rust  { --c: #C8662B; }
-.l-zig   { --c: #D4A017; }
-.l-d     { --c: #9C2F3F; }
-.l-odin  { --c: #2F7FD0; }
-.l-swift { --c: #E8503A; }
-.l-cs    { --c: #2E9E4F; }
-.l-js    { --c: #8A8F1E; }
-.l-lua   { --c: #3B3BB0; }
-.l-py    { --c: #7A4FB5; }
+/* One colour per runtime; two runtimes of one language take neighbouring shades.
+   swag keeps the signature; devmode is the same, lighter. */
+.l-swag   { --c: #F7F900; }
+.l-clang  { --c: #D6457A; }
+.l-msvc   { --c: #0E9AA7; }
+.l-rust   { --c: #C8662B; }
+.l-zig    { --c: #D4A017; }
+.l-d      { --c: #9C2F3F; }
+.l-odin   { --c: #2F7FD0; }
+.l-swift  { --c: #E8503A; }
+.l-csaot  { --c: #1F7A3C; }
+.l-csjit  { --c: #7DBB5E; }
+.l-js     { --c: #8A8F1E; }
+.l-lua    { --c: #3B3BB0; }
+.l-luajit { --c: #8C8CE6; }
+.l-py     { --c: #7A4FB5; }
 
 .row .bar { background: var(--c, var(--g-native)); }
 .row.l-swag .bar { background: var(--g-swag); }
@@ -401,7 +405,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <p class="cap">Moyenne g&eacute;om&eacute;trique du rapport au meilleur de chaque t&acirc;che, &eacute;chelle logarithmique.</p>
     {{ex_chart}}
     <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
-    <p class="cap">Du plus rapide au plus lent, en millisecondes. Une couleur par langage&nbsp;; jaune plein&nbsp;: swag release, jaune p&acirc;le&nbsp;: swag devmode.
+    <p class="cap">Du plus rapide au plus lent, en millisecondes. Une couleur par runtime&nbsp;; jaune plein&nbsp;: swag release, jaune p&acirc;le&nbsp;: swag devmode.
     La colonne swag donne la place de swag release.</p>
     {{ex_native_rank}}
     <h3>Classement par t&acirc;che &mdash; JIT et interpr&eacute;t&eacute;s</h3>

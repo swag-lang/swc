@@ -72,14 +72,14 @@ SHORT = {
     "luajit2.1": ("LuaJIT", ""), "lua5.4": ("Lua", "5.4"), "python3.12": ("Python", "3.12"),
 }
 
-# One colour per language, shared by every chart bar and ranking entry; the two compilers of
-# one language share it, and swag devmode is swag with a lighter fill.
+# One colour per runtime, shared by every chart bar and ranking entry. Two runtimes of one
+# language take neighbouring shades, and swag devmode is swag with a lighter fill.
 LANG = {
     "swag-release": "swag", "swc-jit-release": "swag",
     "swag-fast-debug": "swag dev", "swc-jit-fast-debug": "swag dev",
-    "cpp-clang-cl": "cpp", "cpp-msvc": "cpp", "rust": "rust", "zig": "zig", "d-ldc": "d",
-    "odin": "odin", "swift": "swift", "csharp-aot": "cs", "csharp-jit": "cs", "node20": "js",
-    "luajit2.1": "lua", "lua5.4": "lua", "python3.12": "py",
+    "cpp-clang-cl": "clang", "cpp-msvc": "msvc", "rust": "rust", "zig": "zig", "d-ldc": "d",
+    "odin": "odin", "swift": "swift", "csharp-aot": "csaot", "csharp-jit": "csjit",
+    "node20": "js", "luajit2.1": "luajit", "lua5.4": "lua", "python3.12": "py",
 }
 
 

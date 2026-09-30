@@ -159,6 +159,7 @@
         <ClCompile Include="src\Unittest\Format\Test.Format.Wrap.cpp"/>
         <ClCompile Include="src\Unittest\JIT\Test.JIT.Execution.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.BranchSimplify.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.ColdBlockLayout.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.ConstantFolding.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.CopyElimination.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.DeadCodeElimination.cpp"/>
@@ -237,6 +238,7 @@
         <ClCompile Include="src\Backend\Micro\MicroInstr.cpp"/>
         <ClCompile Include="src\Backend\Micro\MachineCode.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.BranchSimplify.cpp"/>
+        <ClCompile Include="src\Backend\Micro\Passes\Pass.ColdBlockLayout.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.ConstantFolding.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.CopyElimination.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.DeadCodeElimination.cpp"/>
@@ -600,6 +602,7 @@
         <ClInclude Include="src\Backend\Micro\MicroBuilder.h"/>
         <ClInclude Include="src\Backend\Micro\MachineCode.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.BranchSimplify.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.ColdBlockLayout.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantFolding.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.CopyElimination.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.DeadCodeElimination.h"/>

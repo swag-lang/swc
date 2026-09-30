@@ -155,6 +155,9 @@ public:
     MicroInstrRef insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
     MicroInstrRef insertDerivedBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
     MicroInstrRef insertSyntheticBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
+    // Relinks the run [firstRef, lastRef] behind the last instruction. Every reference stays
+    // valid, so whatever is keyed by one - a relocation, a label - follows its instruction.
+    void          moveRangeToEnd(MicroInstrRef firstRef, MicroInstrRef lastRef);
     View          view() noexcept;
     ConstView     view() const noexcept;
 

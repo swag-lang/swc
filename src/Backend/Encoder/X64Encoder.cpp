@@ -4577,6 +4577,9 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
     {
         switch (cpuCond)
         {
+            case MicroCond::Overflow:
+                emitCpuOp(store_, 0x70);
+                break;
             case MicroCond::NotOverflow:
                 emitCpuOp(store_, 0x71);
                 break;
@@ -4645,6 +4648,10 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
 
     switch (cpuCond)
     {
+        case MicroCond::Overflow:
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, 0x80);
+            break;
         case MicroCond::NotOverflow:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x81);

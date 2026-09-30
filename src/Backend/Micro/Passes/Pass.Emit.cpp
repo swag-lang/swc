@@ -604,10 +604,13 @@ void MicroEmitPass::collectLoopHeaders(const MicroPassContext& context)
     if (!alignLoopHeaders_)
         return;
 
-    // A jump to a label already seen closes a loop whose header is that label.
-    for (const MicroInstr& inst : context.instructions->view())
+    // A jump to a label already seen closes a loop whose header is that label. The
+    // blocks laid out behind the body also jump backward, to rejoin it once: aligning
+    // what they return to would pad the straight-line path after every guard.
+    for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt && it.current != context.coldTailRef; ++it)
     {
-        const MicroInstrOperand* ops = inst.ops(*context.operands);
+        const MicroInstr&        inst = *it;
+        const MicroInstrOperand* ops  = inst.ops(*context.operands);
         if (inst.op == MicroInstrOpcode::Label)
         {
             labelInfo(MicroLabelRef(static_cast<uint32_t>(ops[0].valueU64))).seenStamp = functionStamp_;

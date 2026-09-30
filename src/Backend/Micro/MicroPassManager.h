@@ -21,6 +21,7 @@ class MicroLegalizePass;
 class MicroRegisterAllocationPass;
 class MicroPrologEpilogPass;
 class MicroPrologEpilogSanitizePass;
+class MicroColdBlockLayoutPass;
 class MicroEmitPass;
 
 // Pre-RA optimization passes (operate on virtual registers)
@@ -92,6 +93,7 @@ private:
     std::unique_ptr<MicroRegisterAllocationPass>   regAllocPass_;
     std::unique_ptr<MicroPrologEpilogPass>         prologEpilogPass_;
     std::unique_ptr<MicroPrologEpilogSanitizePass> prologEpilogSanitizePass_;
+    std::unique_ptr<MicroColdBlockLayoutPass>      coldBlockLayoutPass_;
     std::unique_ptr<MicroEmitPass>                 emitPass_;
 
     // Pre-RA optimization passes

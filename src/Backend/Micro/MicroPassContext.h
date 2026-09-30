@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Support/Core/RefTypes.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -64,6 +65,11 @@ struct MicroPassContext
     // function whose other frame objects escape. Empty (lo >= hi) when nothing spilled.
     uint64_t spillAreaLo = std::numeric_limits<uint64_t>::max();
     uint64_t spillAreaHi = 0;
+
+    // First instruction of the blocks the final layout moved behind the function's last return
+    // (see MicroColdBlockLayoutPass). Each of them jumps back into the body, and emission must
+    // not read those jumps as the back edges of loops. Invalid when nothing was moved.
+    MicroInstrRef coldTailRef = MicroInstrRef::invalid();
 
     // Shared SSA analysis for pre-RA optimization passes.
     // Built lazily by MicroSsaState::ensureFor and invalidated when a pass mutates the IR.

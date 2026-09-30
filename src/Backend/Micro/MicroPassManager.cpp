@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroVerify.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
+#include "Backend/Micro/Passes/Pass.ColdBlockLayout.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
@@ -493,6 +494,7 @@ MicroPassManager::MicroPassManager()
     regAllocPass_             = std::make_unique<MicroRegisterAllocationPass>();
     prologEpilogPass_         = std::make_unique<MicroPrologEpilogPass>();
     prologEpilogSanitizePass_ = std::make_unique<MicroPrologEpilogSanitizePass>();
+    coldBlockLayoutPass_      = std::make_unique<MicroColdBlockLayoutPass>();
     emitPass_                 = std::make_unique<MicroEmitPass>();
 
     // Pre-RA optimization passes
@@ -661,6 +663,10 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         addPostRaOptimPass(*postRaLoopRotatePass_);
     }
     addFinalPass(*prologEpilogSanitizePass_);
+    // Last, so the prologue and epilogue rewrites above still read a function that ends
+    // with its return.
+    if (optimize)
+        addFinalPass(*coldBlockLayoutPass_);
     emitPass_->setAlignLoopHeaders(optimize);
     addFinalPass(*emitPass_);
 }

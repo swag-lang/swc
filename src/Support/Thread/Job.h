@@ -44,7 +44,7 @@ enum class JobResult : std::uint8_t
 
 // Identifies the exact dependency a sleeping job is waiting on, so that the producer
 // satisfying that dependency can wake only the relevant jobs (instead of waking all).
-// A null target means "not keyable" (wildcard sleeper, woken only by the barrier wakeAll).
+// A null target means "not keyable": the producer uses its completion alias or the barrier wakeAll.
 struct WaitKey
 {
     const void*   target = nullptr;

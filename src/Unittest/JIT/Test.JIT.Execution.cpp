@@ -10,13 +10,17 @@
 #include "Backend/JIT/JITPatchJob.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNode.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Thread/JobManager.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -77,6 +81,269 @@ namespace
 {
     void queuedJitNoop()
     {
+    }
+
+    void queuedJitSetupNoop(Runtime::RuntimeFlags)
+    {
+    }
+
+    class JitTestSignal
+    {
+    public:
+        void signal()
+        {
+            const std::scoped_lock lock(mutex_);
+            signaled_ = true;
+            cv_.notify_all();
+        }
+
+        bool wait()
+        {
+            std::unique_lock lock(mutex_);
+            return cv_.wait_for(lock, std::chrono::seconds(5), [this] { return signaled_; });
+        }
+
+    private:
+        std::mutex              mutex_;
+        std::condition_variable cv_;
+        bool                    signaled_ = false;
+    };
+
+    class UnrelatedJitBlockerJob final : public Job
+    {
+    public:
+        explicit UnrelatedJitBlockerJob(const TaskContext& ctx) :
+            Job(ctx, JobKind::Parser)
+        {
+        }
+
+        JobResult exec() override
+        {
+            started.signal();
+            timedOut = !release.wait();
+            return JobResult::Done;
+        }
+
+        JitTestSignal started;
+        JitTestSignal release;
+        bool          timedOut = false;
+    };
+
+    class PausedJitOwnerJob final : public Job
+    {
+    public:
+        PausedJitOwnerJob(const TaskContext& ctx, const SymbolFunction& function) :
+            Job(ctx, JobKind::Sema)
+        {
+            request_.function    = &function;
+            request_.nodeRef     = AstNodeRef{31};
+            request_.onCompleted = [this](Result) {
+                calls.fetch_add(1, std::memory_order_relaxed);
+            };
+        }
+
+        JobResult exec() override
+        {
+            auto& manager = ctx().compiler().jitExecMgr();
+            if (!submitted_)
+            {
+                submitted_ = true;
+                if (manager.submit(ctx(), request_) == Result::Pause)
+                {
+                    if (beforeParking)
+                        beforeParking();
+                    return JobResult::Sleep;
+                }
+                valid = false;
+                return JobResult::Done;
+            }
+
+            const auto completion = manager.consumeCompletion(ctx(), request_.nodeRef, request_.codeRef);
+            if (!completion.hasValue)
+                return JobResult::Sleep;
+            result    = completion.result;
+            completed = true;
+            ctx().state().setNone();
+            finished.signal();
+            return JobResult::Done;
+        }
+
+        std::function<void()> beforeParking;
+        JitTestSignal         finished;
+        std::atomic<uint32_t> calls{0};
+        Result                result    = Result::Error;
+        bool                  completed = false;
+        bool                  valid     = true;
+
+    private:
+        JITExecManager::Request request_;
+        bool                    submitted_ = false;
+    };
+
+    enum class PausedJitScenario
+    {
+        OtherJobsActive,
+        PublishBeforeParking,
+        PauseAfterParking,
+        IgnoredDependency,
+        FallbackRetries,
+    };
+
+    Result checkPausedJitDependency(TaskContext& ctx, PausedJitScenario scenario)
+    {
+        CompilerInstance compiler(ctx.global(), ctx.cmdLine());
+        TaskContext      localCtx(compiler);
+        SWC_RESULT(compiler.setupSema(localCtx));
+
+        SourceFile& file     = Unittest::addTestSource(localCtx, "JIT", "PausedDependency", "");
+        auto [rootRef, root] = file.ast().makeNode<AstNodeId::File>(TokenRef::invalid());
+        SWC_UNUSED(root);
+        file.ast().setRoot(rootRef);
+        constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+        auto*                 module          = Symbol::make<SymbolModule>(localCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        auto*                 moduleNamespace = Symbol::make<SymbolNamespace>(localCtx, nullptr, TokenRef::invalid(), localCtx.idMgr().addIdentifierOwned("JitDependencyTest"), namespaceFlags);
+        module->addSingleSymbol(localCtx, moduleNamespace);
+        file.setModuleNamespace(*moduleNamespace);
+        file.setFileNamespace(*moduleNamespace);
+
+        const auto setupId   = localCtx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
+        auto*      setupDecl = compiler.allocate<AstNode>(AstNodeId::FunctionDecl, SourceCodeRef{file.ast().srcView().ref(), TokenRef::invalid()});
+        auto*      setup     = Symbol::make<SymbolFunction>(localCtx, setupDecl, TokenRef::invalid(), setupId, SymbolFlagsE::SemaCompleted);
+        // Own the prerequisite explicitly so the request pauses instead of scheduling codegen.
+        setup->tryMarkCodeGenJobScheduled();
+        compiler.registerRuntimeFunctionSymbol(setupId, setup);
+
+        auto* declaration = compiler.allocate<AstNode>(AstNodeId::FunctionDecl, SourceCodeRef::invalid());
+        auto* function    = Symbol::make<SymbolFunction>(localCtx, declaration, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        compiler.publishJitFunctionEntry(*function, reinterpret_cast<void*>(&queuedJitNoop));
+        auto&             manager = compiler.jitExecMgr();
+        auto&             jobs    = ctx.global().jobMgr();
+        PausedJitOwnerJob owner(localCtx, *function);
+        TaskContext       primeCtx(localCtx);
+        std::atomic<bool> parkedBeforePause{false};
+        const bool        primeLane = scenario == PausedJitScenario::PauseAfterParking && !jobs.isSingleThreaded();
+        if (primeLane)
+        {
+            JITExecManager::Request prime;
+            prime.function         = function;
+            prime.nodeRef          = AstNodeRef{43};
+            prime.runtimeSetupMode = JITRuntimeSetupMode::None;
+            prime.onCompleted      = [&](Result result) {
+                const auto        deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+                std::vector<Job*> waiting;
+                while (result == Result::Continue && std::chrono::steady_clock::now() < deadline)
+                {
+                    jobs.waitingJobs(waiting, compiler.jobClientId());
+                    if (std::ranges::find(waiting, &owner) != waiting.end())
+                    {
+                        parkedBeforePause.store(true);
+                        return;
+                    }
+                    std::this_thread::yield();
+                }
+            };
+            if (manager.submit(primeCtx, prime) != Result::Pause)
+                return Result::Error;
+        }
+        if (scenario == PausedJitScenario::PublishBeforeParking)
+        {
+            owner.beforeParking = [&] {
+                // Also drives the lane with one worker. In parallel, its worker may
+                // have claimed the item, so wait for the protected dependency snapshot.
+                manager.executePendingMainThread();
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+                while (true)
+                {
+                    bool paused;
+                    {
+                        const auto wait = manager.acquireOwnerWait(owner.ctx());
+                        paused          = wait.state->kind == TaskStateKind::SemaWaitSymCodeGenCompleted;
+                    }
+                    if (paused)
+                        break;
+                    if (std::chrono::steady_clock::now() >= deadline)
+                    {
+                        owner.valid = false;
+                        break;
+                    }
+                    std::this_thread::yield();
+                }
+                compiler.publishJitFunctionEntry(*setup, reinterpret_cast<void*>(&queuedJitSetupNoop));
+                setup->setCodeGenCompleted(localCtx);
+            };
+        }
+
+        jobs.enqueue(owner, JobPriority::Normal, compiler.jobClientId());
+        jobs.waitAll(compiler.jobClientId());
+        bool valid = owner.valid;
+        if (primeLane)
+        {
+            const auto completion = manager.consumeCompletion(primeCtx, AstNodeRef{43}, SourceCodeRef::invalid());
+            valid &= parkedBeforePause.load() && completion.hasValue && completion.result == Result::Continue;
+        }
+
+        if (scenario != PausedJitScenario::PublishBeforeParking)
+        {
+            valid &= !owner.completed && owner.calls.load() == 0 && manager.hasItem(owner.ctx(), AstNodeRef{31}, SourceCodeRef::invalid()) &&
+                     !manager.hasCompletion(owner.ctx(), AstNodeRef{31}, SourceCodeRef::invalid());
+            if (scenario == PausedJitScenario::FallbackRetries)
+            {
+                for (uint32_t round = 0; round < 4; ++round)
+                {
+                    manager.wakeWaiting();
+                    jobs.wakeAll(compiler.jobClientId());
+                    jobs.waitAll(compiler.jobClientId());
+                    valid &= !owner.completed && owner.calls.load() == 0;
+                }
+            }
+            std::vector<Job*> waiting;
+            jobs.waitingJobs(waiting, compiler.jobClientId());
+            valid &= waiting.size() == 1 && waiting.front() == &owner;
+
+            UnrelatedJitBlockerJob blocker(localCtx);
+            if (!jobs.isSingleThreaded())
+            {
+                jobs.enqueue(blocker, JobPriority::Normal, compiler.jobClientId());
+                valid &= blocker.started.wait();
+            }
+            if (scenario == PausedJitScenario::IgnoredDependency)
+            {
+                setup->setIgnored(localCtx);
+                valid &= manager.completeWaitingOnIgnoredDependency();
+            }
+            else
+            {
+                compiler.publishJitFunctionEntry(*setup, reinterpret_cast<void*>(&queuedJitSetupNoop));
+                setup->setCodeGenCompleted(localCtx);
+            }
+            if (!jobs.isSingleThreaded())
+            {
+                valid &= owner.finished.wait();
+                blocker.release.signal();
+            }
+            jobs.waitAll(compiler.jobClientId());
+            valid &= !blocker.timedOut;
+        }
+        const bool ignored = scenario == PausedJitScenario::IgnoredDependency;
+        valid &= owner.completed && owner.result == (ignored ? Result::Error : Result::Continue);
+
+        // Drain a failing compiler's hidden wait before destroying the fixture.
+        if (!owner.completed)
+        {
+            manager.wakeWaiting();
+            jobs.wakeAll(compiler.jobClientId());
+            jobs.waitAll(compiler.jobClientId());
+        }
+        // Both aliases must be gone, including after ignored completion or a fallback.
+        jobs.wake({&owner.ctx(), TaskStateKind::SemaWaitMainThreadRunJit});
+        jobs.wake({setup, TaskStateKind::SemaWaitSymCodeGenCompleted});
+        jobs.waitAll(compiler.jobClientId());
+        std::vector<Job*> waiting;
+        jobs.waitingJobs(waiting, compiler.jobClientId());
+        if (!valid || owner.rec() || owner.calls.load() != (ignored ? 0u : 1u) || !waiting.empty() ||
+            manager.hasItem(owner.ctx(), AstNodeRef{31}, SourceCodeRef::invalid()))
+            return Result::Error;
+        return Result::Continue;
     }
 
     class JitPublicationJob final : public Job
@@ -1082,6 +1349,36 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     const auto callerFn = reinterpret_cast<CallerFnType>(callerExecMemory.entryPoint());
     SWC_ASSERT(callerFn != nullptr);
     SWC_ASSERT(callerFn() == 8);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_PausedDependencyResumesWhileOtherJobsRemainActive)
+{
+    SWC_RESULT(checkPausedJitDependency(ctx, PausedJitScenario::OtherJobsActive));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_PausedDependencyPublishedBeforeOwnerParking)
+{
+    SWC_RESULT(checkPausedJitDependency(ctx, PausedJitScenario::PublishBeforeParking));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_PauseRetargetsAnAlreadyParkedOwner)
+{
+    SWC_RESULT(checkPausedJitDependency(ctx, PausedJitScenario::PauseAfterParking));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_IgnoredDependencyRemovesEveryOwnerWait)
+{
+    SWC_RESULT(checkPausedJitDependency(ctx, PausedJitScenario::IgnoredDependency));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_FallbackRetriesDoNotLeaveStaleOwnerWaits)
+{
+    SWC_RESULT(checkPausedJitDependency(ctx, PausedJitScenario::FallbackRetries));
 }
 SWC_TEST_END()
 

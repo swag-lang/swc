@@ -46,6 +46,17 @@ public:
         std::shared_ptr<void> completionPayload;
     };
 
+    struct OwnerWait
+    {
+        // Keep the JIT state stable until the scheduler has registered the owner.
+        // The state pointer is valid only while this guard holds the mutex.
+        std::unique_lock<std::mutex> lock;
+        const TaskState*             state     = nullptr;
+        bool                         completed = false;
+    };
+
+    OwnerWait acquireOwnerWait(const TaskContext& owner);
+
     void       setStrategy(Strategy strategy) noexcept { strategy_ = strategy; }
     Strategy   strategy() const noexcept { return strategy_; }
     Result     submit(TaskContext& ctx, const Request& request);
@@ -119,7 +130,8 @@ private:
     static Result executeItem(Item& item);
     void          enqueueWorker();
     void          executePendingWorker();
-    void          notifyCompletion(const TaskContext* ownerCtx);
+    void          publishExecutionResult(Item& item, Result result);
+    void          notifyCompletion(const TaskContext* owner);
     Item*         popPendingLocked();
 
     CompilerInstance*                                               compiler_ = nullptr;

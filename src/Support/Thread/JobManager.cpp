@@ -160,9 +160,8 @@ void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     cv_.notify_one();
 }
 
-std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
+std::optional<WaitKey> JobManager::computeWaitKey(const TaskState& st)
 {
-    const TaskState& st = job.ctx().state();
     switch (st.kind)
     {
         // Symbol-flag waits: the producer is Symbol::set*, which wakes {symbol, kind}.
@@ -184,8 +183,10 @@ std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
         case TaskStateKind::SemaWaitTypeInfoGeneration:
             return WaitKey{typeInfoGenWaitTarget(), st.kind};
 
+        // JIT completion has a separate owner alias, independent of the dependency
+        // that currently occupies this record's intrusive key links.
         case TaskStateKind::SemaWaitMainThreadRunJit:
-            return WaitKey{&job.ctx(), st.kind};
+            return std::nullopt;
 
         // Everything else stays a wildcard sleeper for now (woken by the barrier wakeAll).
         default:
@@ -205,7 +206,7 @@ void JobManager::wakeTypeInfoGeneration()
     wake(WaitKey{typeInfoGenWaitTarget(), TaskStateKind::SemaWaitTypeInfoGeneration});
 }
 
-void JobManager::parkLocked(JobRecord* rec)
+void JobManager::parkLocked(JobRecord* rec, const TaskState& state)
 {
     SWC_ASSERT(rec->state == JobRecord::State::Running);
     rec->state = JobRecord::State::Waiting;
@@ -218,8 +219,19 @@ void JobManager::parkLocked(JobRecord* rec)
         clientHead->clientWaitPrevious = rec;
     clientHead = rec;
 
+    // Keep completion addressable even while the owner waits on an internal JIT
+    // dependency. An opaque context key never dereferences a job that has since ended.
+    const TaskContext& ownerCtx = rec->job->ctx();
+    if (ownerCtx.state().kind == TaskStateKind::SemaWaitMainThreadRunJit)
+    {
+        const WaitKey ownerKey{&ownerCtx, TaskStateKind::SemaWaitMainThreadRunJit};
+        const auto [_, inserted] = waiters_.emplace(ownerKey, rec);
+        SWC_ASSERT(inserted);
+        filterAdd(ownerKey);
+    }
+
     // Unkeyed waits still belong to the client's list for barrier and cycle handling.
-    if (const std::optional<WaitKey> key = computeWaitKey(*rec->job))
+    if (const std::optional<WaitKey> key = computeWaitKey(state))
     {
         rec->waitKey         = *key;
         rec->registered      = true;
@@ -249,6 +261,16 @@ void JobManager::unregisterWaiterLocked(JobRecord* rec)
         rec->clientWaitNext->clientWaitPrevious = rec->clientWaitPrevious;
     rec->clientWaitPrevious = nullptr;
     rec->clientWaitNext     = nullptr;
+
+    const TaskContext& ownerCtx = rec->job->ctx();
+    if (ownerCtx.state().kind == TaskStateKind::SemaWaitMainThreadRunJit)
+    {
+        const WaitKey ownerKey{&ownerCtx, TaskStateKind::SemaWaitMainThreadRunJit};
+        const auto    it = waiters_.find(ownerKey);
+        SWC_ASSERT(it != waiters_.end() && it->second == rec);
+        waiters_.erase(it);
+        filterSub(ownerKey);
+    }
 
     if (rec->registered)
     {
@@ -301,6 +323,15 @@ void JobManager::wake(const WaitKey& key)
     if (it == waiters_.end())
         return;
 
+    if (key.kind == TaskStateKind::SemaWaitMainThreadRunJit)
+    {
+        // This is the owner's unique alias, not its dependency's intrusive list.
+        requeueWaitingLocked(it->second);
+        growWorkersForLoadLocked();
+        cv_.notify_one();
+        return;
+    }
+
     size_t woken = 0;
     for (JobRecord* rec = it->second; rec;)
     {
@@ -313,6 +344,26 @@ void JobManager::wake(const WaitKey& key)
     growWorkersForLoadLocked();
 
     notifyReadyWorkers(cv_, woken, workers_.size());
+}
+
+void JobManager::refreshJitWait(const TaskContext* owner)
+{
+    const WaitKey ownerKey{owner, TaskStateKind::SemaWaitMainThreadRunJit};
+    if (waiterFilter_[waiterShard(ownerKey)].load(std::memory_order_acquire) == 0)
+        return;
+
+    const std::unique_lock lock(mtx_);
+    const auto it = waiters_.find(ownerKey);
+    if (it == waiters_.end())
+        return;
+
+    // The lane paused after its owner parked. Replace the registration in place;
+    // the owner neither executes nor joins the ready queue unless already satisfied.
+    JobRecord* rec = it->second;
+    unregisterWaiterLocked(rec);
+    rec->state = JobRecord::State::Running;
+    bumpClientCountLocked(rec->clientId, +1);
+    handleJobResultLocked(rec, JobResult::Sleep);
 }
 
 void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) const
@@ -648,13 +699,17 @@ void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)
 
         case JobResult::Sleep:
         {
-            parkLocked(rec);
+            TaskContext&                            ctx   = rec->job->ctx();
+            const TaskState*                        state = &ctx.state();
+            std::optional<JITExecManager::OwnerWait> jitWait;
+            if (state->kind == TaskStateKind::SemaWaitMainThreadRunJit)
+            {
+                jitWait.emplace(ctx.compiler().jitExecMgr().acquireOwnerWait(ctx));
+                state = jitWait->state;
+            }
 
-            TaskContext&     ctx   = rec->job->ctx();
-            const TaskState& state = ctx.state();
-            if ((state.symbol && state.symbol->isWaitSatisfied(state.kind)) ||
-                (state.kind == TaskStateKind::SemaWaitMainThreadRunJit &&
-                 ctx.compiler().jitExecMgr().hasCompletion(ctx, state.nodeRef, state.codeRef)))
+            parkLocked(rec, *state);
+            if ((state->symbol && state->symbol->isWaitSatisfied(state->kind)) || (jitWait && jitWait->completed))
             {
                 // Publication can precede registration. Symbol flag RMWs and the JIT
                 // completion mutex close that window without a global barrier retry.

@@ -179,22 +179,7 @@ void JITExecManager::executePendingWorker()
             result = executeItem(*itemToRun);
         }
 
-        if (result == Result::Pause)
-        {
-            const std::scoped_lock lock(mutex_);
-            itemToRun->status = Status::Waiting;
-            continue;
-        }
-
-        const TaskContext* ownerCtx;
-        {
-            const std::scoped_lock lock(mutex_);
-            itemToRun->result = result;
-            itemToRun->status = Status::Completed;
-            ownerCtx          = itemToRun->ownerCtx;
-        }
-
-        notifyCompletion(ownerCtx);
+        publishExecutionResult(*itemToRun, result);
     }
 }
 
@@ -210,32 +195,84 @@ JITExecManager::Item* JITExecManager::popPendingLocked()
     return item;
 }
 
-void JITExecManager::notifyCompletion(const TaskContext* ownerCtx)
+void JITExecManager::publishExecutionResult(Item& item, Result result)
 {
-    // Never enter the scheduler while holding mutex_: parking checks completion in
-    // the opposite order. A resumed owner can already have erased its Item here.
+    const TaskContext* owner;
+    {
+        const std::scoped_lock lock(mutex_);
+        item.result = result;
+        item.status = result == Result::Pause ? Status::Waiting : Status::Completed;
+        owner       = item.ownerCtx;
+    }
+
+    // The owner can consume and erase a completed Item as soon as mutex_ is released.
+    // The address is only a lookup key: the scheduler validates that an owner still waits.
+    if (result == Result::Pause)
+    {
+        compiler_->global().jobMgr().refreshJitWait(owner);
+    }
+    else
+    {
+        notifyCompletion(owner);
+    }
+}
+
+void JITExecManager::notifyCompletion(const TaskContext* owner)
+{
+    // Parking enters mutex_ with the scheduler lock held. Never reverse that order.
     compiler_->notifyAlive();
-    compiler_->global().jobMgr().wake({ownerCtx, TaskStateKind::SemaWaitMainThreadRunJit});
+    compiler_->global().jobMgr().wake({owner, TaskStateKind::SemaWaitMainThreadRunJit});
+}
+
+JITExecManager::OwnerWait JITExecManager::acquireOwnerWait(const TaskContext& ctx)
+{
+    OwnerWait     wait{.lock = std::unique_lock(mutex_)};
+    const ItemKey key = {.ownerCtx = &ctx, .nodeRef = ctx.state().nodeRef, .codeRef = ctx.state().codeRef};
+    const auto    it  = items_.find(key);
+    SWC_ASSERT(it != items_.end() && it->second);
+    const Item& item = *it->second;
+    wait.state       = item.status == Status::Waiting ? &item.waitState : &ctx.state();
+    wait.completed   = item.status == Status::Completed;
+    return wait;
 }
 
 JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
 {
-    const ItemKey          key = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
-    const std::scoped_lock lock(mutex_);
-    const auto             it = items_.find(key);
-    if (it == items_.end() || !it->second)
-        return {};
+    const ItemKey key = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
+    Completion    completion;
+    bool          enqueueWorker = false;
+    {
+        const std::scoped_lock lock(mutex_);
+        const auto             it = items_.find(key);
+        if (it == items_.end() || !it->second)
+            return {};
 
-    const Item& item = *it->second;
-    if (item.status != Status::Completed)
-        return {};
+        Item& item = *it->second;
+        if (item.status == Status::Waiting)
+        {
+            // The owner's dependency wake retries this request alone. Its next park
+            // observes either the queued execution or its newly published dependency.
+            item.status = Status::Pending;
+            pendingItems_.push_back(&item);
+            if (!workerScheduled_)
+            {
+                workerScheduled_ = true;
+                enqueueWorker    = true;
+            }
+        }
+        else if (item.status == Status::Completed)
+        {
+            completion = {
+                .hasValue          = true,
+                .result            = item.result,
+                .completionPayload = item.request.completionPayload,
+            };
+            items_.erase(it);
+        }
+    }
 
-    Completion completion = {
-        .hasValue          = true,
-        .result            = item.result,
-        .completionPayload = item.request.completionPayload,
-    };
-    items_.erase(it);
+    if (enqueueWorker)
+        this->enqueueWorker();
     return completion;
 }
 
@@ -280,24 +317,7 @@ bool JITExecManager::executePendingMainThread()
             result = executeItem(*itemToRun);
         }
 
-        const TaskContext* ownerCtx = nullptr;
-        {
-            const std::scoped_lock lock(mutex_);
-            if (result == Result::Pause)
-            {
-                // Retry only after the compiler reports fresh progress.
-                itemToRun->status = Status::Waiting;
-            }
-            else
-            {
-                itemToRun->result = result;
-                itemToRun->status = Status::Completed;
-                ownerCtx          = itemToRun->ownerCtx;
-            }
-        }
-
-        if (result != Result::Pause)
-            notifyCompletion(ownerCtx);
+        publishExecutionResult(*itemToRun, result);
 
         processedAny = true;
     }
@@ -328,8 +348,8 @@ bool JITExecManager::completeWaitingOnIgnoredDependency()
         }
     }
 
-    for (const TaskContext* ownerCtx : completedOwners)
-        notifyCompletion(ownerCtx);
+    for (const TaskContext* owner : completedOwners)
+        notifyCompletion(owner);
 
     return !completedOwners.empty();
 }
@@ -346,8 +366,8 @@ bool JITExecManager::wakeWaiting()
             if (!item || item->status != Status::Waiting)
                 continue;
 
-            // The scheduler only tells us that compiler progress happened. Requeue every
-            // waiting item and let executeItem re-check its exact dependency.
+            // Barrier fallback for progress that has no exact scheduler dependency.
+            // Ordinary dependency wakes resume their owner and retry just that item.
             item->status = Status::Pending;
             pendingItems_.push_back(item.get());
             woken = true;
@@ -395,7 +415,8 @@ Utf8 JITExecManager::debugDescribeState() const
         }
 
         detail += std::format("jit-item status={} function={}", statusName, item->request.function ? item->request.function->name(*item->ownerCtx) : "<null>");
-        if (item->waitState.hasPauseReason())
+        // The execution lane owns waitState while Running. Waiting publishes it.
+        if (item->status == Status::Waiting && item->waitState.hasPauseReason())
         {
             detail += std::format(" wait={}", TaskState::kindName(item->waitState.kind));
             if (item->waitState.symbol)

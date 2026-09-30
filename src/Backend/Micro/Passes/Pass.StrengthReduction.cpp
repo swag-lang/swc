@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -25,6 +27,14 @@
 // mainstream optimizing compiler performs this rewrite. Signed division by a
 // power of two gets the dedicated sign-bias sequence. Only B32/B64 operands
 // are expanded; B8/B16 divides are too rare to justify the extra forms.
+//
+// A signed division or remainder by a positive constant is the unsigned one
+// when the dividend cannot be negative, and the unsigned forms are the cheap
+// ones: a mask, a shift, a multiply-high with no sign correction. The dividend
+// is proved non-negative by what defines it (a zero extension, a mask, a
+// logical shift, a 32-bit result read at 64 bits) or by a test that every
+// path to the division has passed, as the `cand >= 0` of a loop condition is
+// for the `cand % size` of its body.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -640,6 +650,199 @@ namespace
         }
     };
 
+    // A compare with a constant whose following jump leaves, on one of its two
+    // edges, a value that cannot be negative. `proven` is the first instruction
+    // of that edge and is reached through it alone, so whatever it dominates
+    // has passed the test.
+    struct SignTest
+    {
+        uint32_t    valueId = MicroSsaState::K_INVALID_VALUE;
+        uint32_t    proven  = 0;
+        MicroOpBits bits    = MicroOpBits::Zero;
+    };
+
+    void collectSignTests(std::vector<SignTest>& outTests, const MicroSsaState& ssa, const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands)
+    {
+        const auto     refs = cfg.instructionRefs();
+        const uint32_t n    = cfg.instructionCount();
+        for (uint32_t i = 0; i + 2 < n; ++i)
+        {
+            const MicroInstr* cmp  = storage.ptr(refs[i]);
+            const MicroInstr* jump = storage.ptr(refs[i + 1]);
+            if (!cmp || !jump || cmp->op != MicroInstrOpcode::CmpRegImm || jump->op != MicroInstrOpcode::JumpCond || jump->numOperands < 3)
+                continue;
+            const MicroInstrOperand* cmpOps  = cmp->ops(operands);
+            const MicroInstrOperand* jumpOps = jump->ops(operands);
+            if (!cmpOps || !jumpOps || !cmpOps[0].reg.isVirtualInt() || cmpOps[2].hasWideImmediateValue())
+                continue;
+            const MicroOpBits bits = cmpOps[1].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                continue;
+
+            // The immediate as a signed value of the compared width.
+            const uint32_t width = getNumBits(bits);
+            const int64_t  bound = static_cast<int64_t>(cmpOps[2].valueU64 << (64 - width)) >> (64 - width);
+
+            // Not below `bound` on one edge; that edge proves the sign when
+            // `bound` is not negative, or is minus one for a strict test.
+            uint32_t proven = MicroSsaState::K_INVALID_VALUE;
+            switch (jumpOps[0].cpuCond)
+            {
+                case MicroCond::Less:
+                    if (bound >= 0)
+                        proven = i + 2;
+                    break;
+                case MicroCond::LessOrEqual:
+                    if (bound >= -1)
+                        proven = i + 2;
+                    break;
+                case MicroCond::GreaterOrEqual:
+                    if (bound >= 0)
+                        proven = cfg.indexOfLabel(jumpOps[2].valueU64);
+                    break;
+                case MicroCond::Greater:
+                    if (bound >= -1)
+                        proven = cfg.indexOfLabel(jumpOps[2].valueU64);
+                    break;
+                default:
+                    break;
+            }
+            if (proven >= n || cfg.predecessors(proven).size() != 1 || cfg.predecessors(proven)[0] != i + 1)
+                continue;
+
+            // The test also bounds every value the compared register was copied from.
+            MicroSsaState::ReachingDef tested = ssa.reachingDef(cmpOps[0].reg, refs[i]);
+            for (uint32_t depth = 0; depth < 8 && tested.valid(); ++depth)
+            {
+                outTests.push_back({.valueId = tested.valueId, .proven = proven, .bits = bits});
+                if (tested.isPhi || !tested.inst || tested.inst->op != MicroInstrOpcode::LoadRegReg)
+                    break;
+                const MicroInstrOperand* copyOps = tested.inst->ops(operands);
+                if (!copyOps || getNumBits(copyOps[2].opBits) < getNumBits(bits) || !copyOps[1].reg.isVirtualInt())
+                    break;
+                tested = ssa.reachingDef(copyOps[1].reg, tested.instRef);
+            }
+        }
+    }
+
+    // Whether the value `reg` holds when `atRef` reads it cannot be negative at
+    // `bits`. Copies are followed back to the value they forward.
+    bool isKnownNonNegative(const MicroSsaState& ssa, const MicroPassHelpers::MicroDomTree& dom, std::span<const SignTest> tests, const MicroOperandStorage& operands, MicroReg reg, MicroInstrRef atRef, const uint32_t atIndex, const MicroOpBits bits)
+    {
+        MicroSsaState::ReachingDef reach = ssa.reachingDef(reg, atRef);
+        for (uint32_t depth = 0; depth < 8 && reach.valid(); ++depth)
+        {
+            for (const SignTest& test : tests)
+            {
+                if (test.valueId == reach.valueId && test.bits == bits && dom.dominates(test.proven, atIndex))
+                    return true;
+            }
+
+            if (reach.isPhi || !reach.inst)
+                return false;
+            const MicroInstrOperand* defOps = reach.inst->ops(operands);
+            if (!defOps)
+                return false;
+
+            switch (reach.inst->op)
+            {
+                case MicroInstrOpcode::LoadZeroExtRegReg:
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                {
+                    // Zero bits from the source width up: the top bit read here is one of them.
+                    const bool        indexed = reach.inst->op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+                    const MicroOpBits dstBits = defOps[indexed ? 3 : 2].opBits;
+                    const MicroOpBits srcBits = defOps[indexed ? 4 : 3].opBits;
+                    return getNumBits(dstBits) >= 32 && getNumBits(srcBits) < getNumBits(bits);
+                }
+
+                case MicroInstrOpcode::LoadRegImm:
+                    if (defOps[1].opBits == MicroOpBits::B32 && bits == MicroOpBits::B64)
+                        return true;
+                    return defOps[1].opBits == bits && !defOps[2].hasWideImmediateValue() &&
+                           ((defOps[2].valueU64 >> (getNumBits(bits) - 1)) & 1) == 0;
+
+                case MicroInstrOpcode::OpBinaryRegImm:
+                    if (defOps[1].opBits != bits || defOps[3].hasWideImmediateValue())
+                        return bits == MicroOpBits::B64 && MicroPassHelpers::definesZeroHighBits(*reach.inst, defOps);
+                    if (defOps[2].microOp == MicroOp::And)
+                        return ((defOps[3].valueU64 >> (getNumBits(bits) - 1)) & 1) == 0;
+                    if (defOps[2].microOp == MicroOp::ShiftRight)
+                        return defOps[3].valueU64 >= 1 && defOps[3].valueU64 < getNumBits(bits);
+                    return false;
+
+                case MicroInstrOpcode::LoadRegReg:
+                {
+                    // A full-width copy forwards its source unchanged; a
+                    // 32-bit one read at 64 bits has a clear upper half.
+                    if (getNumBits(defOps[2].opBits) < getNumBits(bits))
+                        return defOps[2].opBits == MicroOpBits::B32 && bits == MicroOpBits::B64;
+                    if (!defOps[1].reg.isVirtualInt())
+                        return false;
+                    reach = ssa.reachingDef(defOps[1].reg, reach.instRef);
+                    continue;
+                }
+
+                default:
+                    // A 32-bit result clears the upper half of its register.
+                    return bits == MicroOpBits::B64 && MicroPassHelpers::definesZeroHighBits(*reach.inst, defOps);
+            }
+        }
+        return false;
+    }
+
+    // Turn every signed division or remainder of a provably non-negative
+    // dividend by a positive constant into its unsigned form, before the
+    // reductions below look at them. Only the operation changes, so the
+    // analyses this reads stay valid for the whole scan.
+    bool useUnsignedDivisionWhereProven(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroSsaState& ssaScratch)
+    {
+        std::vector<MicroInstrRef> candidates;
+        const auto                 view = storage.view();
+        for (auto it = view.begin(), endIt = view.end(); it != endIt; ++it)
+        {
+            if (it->op != MicroInstrOpcode::OpBinaryRegImm)
+                continue;
+            const MicroInstrOperand* ops = it->ops(operands);
+            if (!ops || !ops[0].reg.isVirtualInt() || ops[3].hasWideImmediateValue() ||
+                (ops[2].microOp != MicroOp::DivideSigned && ops[2].microOp != MicroOp::ModuloSigned) ||
+                (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64))
+                continue;
+            const uint64_t immediate = ops[3].valueU64 & getBitsMask(ops[1].opBits);
+            if (immediate != 0 && ((immediate >> (getNumBits(ops[1].opBits) - 1)) & 1) == 0)
+                candidates.push_back(it.current);
+        }
+        if (candidates.empty() || !context.builder)
+            return false;
+
+        const MicroSsaState* ssa = MicroSsaState::ensureFor(context, ssaScratch);
+        if (!ssa || !ssa->isValid())
+            return false;
+        const MicroControlFlowGraph& cfg   = context.builder->controlFlowGraph();
+        const uint32_t               entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+        if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
+            return false;
+        const MicroPassHelpers::MicroDomTree dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+
+        std::vector<SignTest> tests;
+        collectSignTests(tests, *ssa, cfg, storage, operands);
+
+        bool changed = false;
+        for (const MicroInstrRef ref : candidates)
+        {
+            MicroInstr*        inst = storage.ptr(ref);
+            MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            if (!ops)
+                continue;
+            if (!isKnownNonNegative(*ssa, dom, tests, operands, ops[0].reg, ref, cfg.indexOf(ref), ops[1].opBits))
+                continue;
+            ops[2].microOp = ops[2].microOp == MicroOp::DivideSigned ? MicroOp::DivideUnsigned : MicroOp::ModuloUnsigned;
+            changed        = true;
+        }
+        return changed;
+    }
+
     bool tryExpandDivisionByConstant(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef instRef, MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
     {
         const MicroOpBits opBits = ops[1].opBits;
@@ -742,6 +945,9 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
     const MicroSsaState* ssaState               = nullptr;
     uint32_t             nextVirtualIntRegIndex = 0; // computed lazily on the first expansion
 
+    if (useUnsignedDivisionWhereProven(context, storage, operands, ssaScratch))
+        context.passChanged = true;
+
     const auto view  = storage.view();
     const auto endIt = view.end();
     for (auto it = view.begin(); it != endIt;)
@@ -825,6 +1031,8 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
 
             case MicroOp::DivideSigned:
             case MicroOp::ModuloSigned:
+                if (deferSignedDivision_)
+                    break;
                 if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
                     break;
                 changed = tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);

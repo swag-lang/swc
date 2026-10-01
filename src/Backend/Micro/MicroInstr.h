@@ -201,6 +201,7 @@ struct MicroInstr
     MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
     const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;
     MicroInstrUseDef         collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
+    CallFloatArgs           callFloatArgs(const MicroOperandStorage& operands) const;
     // Refills a record the caller keeps. A call names every argument and transient register of
     // its convention, which outgrows the inline lists: a record reused across a walk keeps the
     // storage the first call grew instead of allocating it again for each one.

@@ -114,9 +114,9 @@ public:
     void emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes);
     void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();
-    void emitCallLocal(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
-    void emitCallExtern(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
-    void emitCallReg(MicroReg reg, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitCallLocal(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitCallExtern(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitCallReg(MicroReg reg, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);
     void emitJumpReg(MicroReg reg, std::span<const MicroLabelRef> targetLabels = {});
     void emitLoadLabelAddress(MicroReg reg, MicroLabelRef labelRef);

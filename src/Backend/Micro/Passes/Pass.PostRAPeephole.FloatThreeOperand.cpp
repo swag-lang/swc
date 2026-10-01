@@ -158,14 +158,22 @@ namespace PostRaPeephole
             }
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) && !ctx.isClaimed(ref))
             {
-                // The call replaces transient values and reads only its argument
-                // registers. Preserve every argument lane: its width may be a vector.
+                // The call replaces transient values and reads its argument widths.
+                // Presence-only calls still preserve every argument lane.
                 // Nonvolatile registers carry their actual later demand across it.
-                const auto useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                const auto  useDef    = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                const auto  floatArgs = inst.callFloatArgs(*ctx.operands);
+                const auto& conv      = CallConv::get(useDef.callConv);
                 for (const MicroReg defined : useDef.defs)
                     demand.clear(defined);
                 for (const MicroReg used : useDef.uses)
-                    demand.read(used, 15);
+                {
+                    if (!used.isFloat())
+                        continue;
+                    const auto    argument = std::ranges::find(conv.floatArgRegs, used);
+                    const uint8_t lanes    = argument == conv.floatArgRegs.end() ? 15 : floatArgs.laneMask(static_cast<uint32_t>(argument - conv.floatArgRegs.begin()));
+                    demand.read(used, lanes);
+                }
                 return;
             }
             if (ctx.isClaimed(ref) ||

@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Support/Core/SmallVector.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -43,6 +44,37 @@ struct StructArgPassingInfo
 struct StructReturnPassingInfo
 {
     uint64_t passByValueSizeMask = 0;
+};
+
+struct CallFloatArgs
+{
+    // Two bits per ABI register: absent, f32, f64, or full/unknown width.
+    // Presence-only callers retain the conservative full-register contract.
+    uint16_t widths = 0;
+
+    constexpr CallFloatArgs(uint8_t presence = 0)
+    {
+        for (uint32_t index = 0; index < 8; ++index)
+        {
+            if (presence & (1u << index))
+                widths |= static_cast<uint16_t>(3u << (index * 2));
+        }
+    }
+
+    void setWidth(uint32_t index, uint8_t numBits)
+    {
+        SWC_ASSERT(index < 8 && (numBits == 32 || numBits == 64 || numBits == 128));
+        const uint16_t width = numBits == 32 ? 1 : numBits == 64 ? 2
+                                                                 : 3;
+        widths               = static_cast<uint16_t>((widths & ~(3u << (index * 2))) | (width << (index * 2)));
+    }
+
+    uint8_t laneMask(uint32_t index) const
+    {
+        SWC_ASSERT(index < 8);
+        constexpr uint8_t masks[] = {0, 1, 3, 15};
+        return masks[(widths >> (index * 2)) & 3];
+    }
 };
 
 struct CallConv

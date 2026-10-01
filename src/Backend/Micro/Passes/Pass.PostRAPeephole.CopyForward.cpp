@@ -3293,13 +3293,13 @@ namespace PostRaPeephole
         const MicroInstrOperand* copyOps = copyInst.ops(*ctx.operands);
         if (!copyOps || copyOps[0].reg == copyOps[1].reg)
             return false;
-        // A scalar float copy forwards to float readers of its lane alone.
+        // Float readers can use any lanes covered by the original copy.
         const bool floatCopy = copyOps[0].reg.isFloat() && copyOps[1].reg.isFloat() &&
-                               (copyOps[2].opBits == MicroOpBits::B32 || copyOps[2].opBits == MicroOpBits::B64);
+                               (copyOps[2].opBits == MicroOpBits::B32 || copyOps[2].opBits == MicroOpBits::B64 || copyOps[2].opBits == MicroOpBits::B128);
         if (!floatCopy && (!copyOps[0].reg.isInt() || !copyOps[1].reg.isInt()))
             return false;
         // A byte or word copy forwards too, to readers of no more than its bits.
-        if (copyOps[2].opBits == MicroOpBits::Zero || copyOps[2].opBits == MicroOpBits::B128)
+        if (copyOps[2].opBits == MicroOpBits::Zero || (!floatCopy && copyOps[2].opBits == MicroOpBits::B128))
             return false;
 
         // A 32-bit copy of a register whose upper half is already clear

@@ -194,6 +194,45 @@ SWC_TEST_BEGIN(ABI_AddressedRegisterArgumentLoadsIntoItsLane)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ABI_CallPreservesFloatingArgumentWidths)
+{
+    const std::array args = {
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualIntReg(100), .numBits = 64},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualFloatReg(100), .isFloat = true, .numBits = 32},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualFloatReg(101), .isFloat = true, .numBits = 64},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualFloatReg(102), .isFloat = true, .numBits = 128},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualFloatReg(103), .isFloat = true, .numBits = 32},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualFloatReg(104), .isFloat = true, .numBits = 64},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualFloatReg(105), .isFloat = true, .numBits = 128},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualFloatReg(106), .isFloat = true, .numBits = 64},
+    };
+    for (const CallConvKind kind : {CallConvKind::Swag, CallConvKind::WindowsX64, CallConvKind::C})
+    {
+        MicroBuilder builder(ctx);
+        const auto   prepared = ABICall::prepareArgs(builder, kind, args);
+        builder.emitCallReg(MicroReg::intReg(8), kind, prepared.intArgMask, prepared.floatArgMask);
+        const auto&                  call      = *builder.instructions().ptr(builder.instructions().lastInstructionRef());
+        const auto                   floatArgs = call.callFloatArgs(builder.operands());
+        const auto                   useDef    = call.collectUseDef(builder.operands(), nullptr);
+        const auto&                  conv      = CallConv::get(kind);
+        const std::array<uint8_t, 8> expected  = kind == CallConvKind::Swag
+                                                     ? std::array<uint8_t, 8>{1, 3, 15, 1, 3, 15, 0, 0}
+                                                     : std::array<uint8_t, 8>{0, 1, 3, 15, 0, 0, 0, 0};
+        for (uint32_t index = 0; index < expected.size(); ++index)
+        {
+            if (floatArgs.laneMask(index) != expected[index])
+                return Result::Error;
+            if (index < conv.floatArgRegs.size() &&
+                (std::ranges::find(useDef.uses, conv.floatArgRegs[index]) != useDef.uses.end()) != (expected[index] != 0))
+                return Result::Error;
+        }
+        if (prepared.intArgMask != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A C callee gets its narrow result extended, as the platform ABI has it.
 SWC_TEST_BEGIN(ABI_CReturnedNarrowIntegerIsExtended)
 {

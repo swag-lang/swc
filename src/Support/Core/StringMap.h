@@ -275,16 +275,15 @@ private:
                 {
                     size_t target = (first_tomb != INVALID_POS) ? first_tomb : idx;
 
-                    // Create a moving entry from input
-                    Slot moving;
-                    moving.hash = hash;
-                    moving.key  = key;
-                    moving.dist = dist;
-                    on_insert(moving.value);
-
                     // If using a tombstone target, place it there first.
                     if (target != idx)
                     {
+                        Slot moving;
+                        moving.hash = hash;
+                        moving.key  = key;
+                        moving.dist = dist;
+                        on_insert(moving.value);
+
                         ctrl[target]  = fp;
                         slots[target] = std::move(moving);
 

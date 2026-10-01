@@ -148,13 +148,6 @@ SymbolMap::SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, Iden
 {
 }
 
-uint32_t SymbolMap::shardIndex(IdentifierRef idRef) noexcept
-{
-    // References contain aligned byte offsets: masking their low bits routes every
-    // real identifier to shard zero. Mix the whole reference before choosing a lock.
-    return Math::hash(idRef.get()) & (SHARD_COUNT - 1);
-}
-
 void SymbolMap::addUsingSymMap(TaskContext& ctx, SymbolMap* symMap)
 {
     SWC_ASSERT(symMap != nullptr);
@@ -232,8 +225,9 @@ void SymbolMap::upgradeToSharded(TaskContext& ctx)
         tableReserve(ctx, newShards[i].table, perShard * 2);
 
     forEachHead(&big, [&](uint64_t key, Symbol* head) {
-        const IdentifierRef id{static_cast<uint32_t>(key - 1)};
-        tablePlace(*newShards[shardIndex(id)].table.load(std::memory_order_relaxed), key, head);
+        const uint32_t hash  = Math::hash(static_cast<uint32_t>(key - 1));
+        HeadTable&     table = *newShards[hash & (SHARD_COUNT - 1)].table.load(std::memory_order_relaxed);
+        tablePlace(table, tableSlot(table, key, hash), key, head);
     });
 
     shards_.store(newShards, std::memory_order_release);
@@ -245,10 +239,10 @@ void SymbolMap::notifyInserted(TaskContext& ctx, IdentifierRef idRef)
     ctx.global().jobMgr().wake(WaitKey::name(idRef, TaskStateKind::SemaWaitIdentifier));
 }
 
-uint32_t SymbolMap::tableSlot(const HeadTable& table, uint64_t key) noexcept
+uint32_t SymbolMap::tableSlot(const HeadTable& table, uint64_t key, uint32_t hash) noexcept
 {
     const uint32_t mask = table.capacity - 1;
-    uint32_t       i    = (Math::hash(static_cast<uint32_t>(key - 1)) >> SHARD_BITS) & mask;
+    uint32_t       i    = (hash >> SHARD_BITS) & mask;
     while (true)
     {
         const uint64_t slotKey = table.keys[i].load(std::memory_order_acquire);
@@ -258,20 +252,19 @@ uint32_t SymbolMap::tableSlot(const HeadTable& table, uint64_t key) noexcept
     }
 }
 
-Symbol* SymbolMap::tableFindHead(const HeadTable* table, IdentifierRef idRef) noexcept
+Symbol* SymbolMap::tableFindHead(const HeadTable* table, IdentifierRef idRef, uint32_t hash) noexcept
 {
     if (!table)
         return nullptr;
 
-    const uint32_t slot = tableSlot(*table, shardKey(idRef));
+    const uint32_t slot = tableSlot(*table, shardKey(idRef), hash);
     if (!table->keys[slot].load(std::memory_order_acquire))
         return nullptr;
     return table->heads[slot].load(std::memory_order_acquire);
 }
 
-void SymbolMap::tablePlace(HeadTable& table, uint64_t key, Symbol* head) noexcept
+void SymbolMap::tablePlace(HeadTable& table, uint32_t slot, uint64_t key, Symbol* head) noexcept
 {
-    const uint32_t slot = tableSlot(table, key);
     SWC_ASSERT(!table.keys[slot].load(std::memory_order_relaxed));
 
     // The head goes first: a reader that sees the key must find a complete entry.
@@ -295,15 +288,21 @@ void SymbolMap::tableReserve(TaskContext& ctx, std::atomic<HeadTable*>& publishe
     table->keys     = ctx.compiler().allocateArray<std::atomic<uint64_t>>(capacity);
     table->heads    = ctx.compiler().allocateArray<std::atomic<Symbol*>>(capacity);
     table->capacity = capacity;
-    forEachHead(old, [&](uint64_t key, Symbol* head) { tablePlace(*table, key, head); });
+    forEachHead(old, [&](uint64_t key, Symbol* head) {
+        const uint32_t hash = Math::hash(static_cast<uint32_t>(key - 1));
+        tablePlace(*table, tableSlot(*table, key, hash), key, head);
+    });
 
     // A reader still probing the old table sees a consistent snapshot: tables live in the arena.
     published.store(table, std::memory_order_release);
 }
 
-Symbol* SymbolMap::tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, Symbol* symbol, bool acceptHomonyms)
+Symbol* SymbolMap::tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, uint32_t hash, Symbol* symbol, bool acceptHomonyms)
 {
-    Symbol* head = tableFindHead(published.load(std::memory_order_relaxed), idRef);
+    HeadTable*     table = published.load(std::memory_order_relaxed);
+    const uint64_t key   = shardKey(idRef);
+    uint32_t       slot  = table ? tableSlot(*table, key, hash) : 0;
+    Symbol*        head  = table && table->keys[slot].load(std::memory_order_acquire) ? table->heads[slot].load(std::memory_order_acquire) : nullptr;
     if (head && !acceptHomonyms)
         return head;
 
@@ -315,27 +314,33 @@ Symbol* SymbolMap::tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& publis
     if (!head)
     {
         symbol->setNextHomonym(nullptr);
-        const HeadTable* table = published.load(std::memory_order_relaxed);
         tableReserve(ctx, published, (table ? table->size : 0) + 1);
-        tablePlace(*published.load(std::memory_order_relaxed), shardKey(idRef), symbol);
+        // The writer holds the map or shard lock, so only growth can change this slot.
+        HeadTable* const resized = published.load(std::memory_order_relaxed);
+        if (table != resized)
+        {
+            table = resized;
+            slot  = tableSlot(*table, key, hash);
+        }
+        tablePlace(*table, slot, key, symbol);
         return symbol;
     }
 
     Symbol* const insertedHead = insertSymbolOrdered(head, symbol);
     if (insertedHead == symbol)
-    {
-        HeadTable& table = *published.load(std::memory_order_relaxed);
-        table.heads[tableSlot(table, shardKey(idRef))].store(insertedHead, std::memory_order_release);
-    }
+        table->heads[slot].store(insertedHead, std::memory_order_release);
 
     return insertedHead;
 }
 
 Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms)
 {
-    Shard&                 shard = shards[shardIndex(idRef)];
+    // References contain aligned byte offsets: masking their low bits routes every
+    // real identifier to shard zero. Mix the whole reference before choosing a lock.
+    const uint32_t         hash  = Math::hash(idRef.get());
+    Shard&                 shard = shards[hash & (SHARD_COUNT - 1)];
     const std::unique_lock lock(shard.mutex);
-    return tableInsert(ctx, shard.table, idRef, symbol, acceptHomonyms);
+    return tableInsert(ctx, shard.table, idRef, hash, symbol, acceptHomonyms);
 }
 
 Symbol* SymbolMap::findHead(IdentifierRef idRef) const noexcept
@@ -344,13 +349,16 @@ Symbol* SymbolMap::findHead(IdentifierRef idRef) const noexcept
     // then shards. Each step is published before the next one is announced, so a reader that
     // sees a later step also sees its storage, and a stale step stays a consistent snapshot.
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
-        return tableFindHead(shards[shardIndex(idRef)].table.load(std::memory_order_acquire), idRef);
+    {
+        const uint32_t hash = Math::hash(idRef.get());
+        return tableFindHead(shards[hash & (SHARD_COUNT - 1)].table.load(std::memory_order_acquire), idRef, hash);
+    }
 
     const uint32_t smallSize = smallSize_.load(std::memory_order_acquire);
     if (smallSize <= SMALL_CAP)
         return smallFindHead(idRef, smallSize);
 
-    return tableFindHead(bigTable_.load(std::memory_order_acquire), idRef);
+    return tableFindHead(bigTable_.load(std::memory_order_acquire), idRef, Math::hash(idRef.get()));
 }
 
 void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
@@ -439,13 +447,17 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
                 tableReserve(ctx, bigTable_, SMALL_CAP + 1);
                 HeadTable& table = *bigTable_.load(std::memory_order_relaxed);
                 for (uint32_t i = 0; i < SMALL_CAP; ++i)
-                    tablePlace(table, shardKey(small_[i].key), small_[i].head.load(std::memory_order_relaxed));
+                {
+                    const uint64_t key  = shardKey(small_[i].key);
+                    const uint32_t hash = Math::hash(small_[i].key.get());
+                    tablePlace(table, tableSlot(table, key, hash), key, small_[i].head.load(std::memory_order_relaxed));
+                }
                 smallSize_.store(SMALL_CAP + 1, std::memory_order_release);
-                result = tableInsert(ctx, bigTable_, idRef, symbol, acceptHomonyms);
+                result = tableInsert(ctx, bigTable_, idRef, Math::hash(idRef.get()), symbol, acceptHomonyms);
             }
         }
         else if (bigTable_.load(std::memory_order_relaxed)->size < SHARD_AFTER_KEYS)
-            result = tableInsert(ctx, bigTable_, idRef, symbol, acceptHomonyms);
+            result = tableInsert(ctx, bigTable_, idRef, Math::hash(idRef.get()), symbol, acceptHomonyms);
         else
         {
             upgradeToSharded(ctx);

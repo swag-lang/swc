@@ -260,7 +260,8 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.setSemaCompleted(sema.ctx());
-    sema.setType(sema.curNodeRef(), sym.typeRef());
+    // Keep the declaration symbol: a lazy body can revisit its signature, and
+    // its fields still belong to this aggregate. The symbol also exposes its type.
     return Result::Continue;
 }
 
@@ -290,7 +291,7 @@ Result AstAnonymousUnionDecl::semaPostNode(Sema& sema)
     SWC_RESULT(sym.computeLayout(sema.ctx()));
     SWC_RESULT(checkDynamicFieldLayout(sema, sym));
     sym.setSemaCompleted(sema.ctx());
-    sema.setType(sema.curNodeRef(), sym.typeRef());
+    // As with anonymous structs, replay must reuse the owner of the field symbols.
     return Result::Continue;
 }
 

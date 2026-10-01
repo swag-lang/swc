@@ -27,6 +27,10 @@ impl Event
 impl IEvent for Event {}
 
 // Requests execution of a command identified by `id`.
+//
+// Posting through [[Gui.Application.postEvent]] or [[Gui.Wnd.postEvent]] copies the identifier
+// into the event. Synchronous delivery borrows it from the caller. Handlers that retain only
+// the identifier must copy its bytes before the event is released.
 struct CommandEvent
 {
     public
@@ -34,6 +38,47 @@ struct CommandEvent
         using base: Event          // Routing state shared by every GUI event.
         id:         WndId = ""     // Command identifier.
         source:     *Wnd?          // Window that originated the command, when known.
+    }
+
+    private
+    {
+        ownedId:     String
+        ownedIdView: string = ""
+    }
+}
+
+impl CommandEvent
+{
+    // Rebinds a copied identifier to the copy's owned storage.
+    mtd opPostCopy()
+    {
+        .rebindOwnedId()
+    }
+
+    // Rebinds a moved identifier to its new storage.
+    mtd opPostMove()
+    {
+        .rebindOwnedId()
+    }
+
+    internal mtd retainId()
+    {
+        .ownedId     = .id
+        .ownedIdView = .ownedId.toString()
+        .id          = .ownedIdView
+    }
+
+    private mtd rebindOwnedId()
+    {
+        if .ownedId.isNull() do
+            return
+
+        // A caller can replace the public identifier after copying an event. Preserve that
+        // borrowed value; only repair the view that still names this event's owned bytes.
+        let usesOwnedId = .id.buffer == .ownedIdView.buffer and .id.count == .ownedIdView.count
+        .ownedIdView = .ownedId.toString()
+        if usesOwnedId do
+            .id = .ownedIdView
     }
 }
 

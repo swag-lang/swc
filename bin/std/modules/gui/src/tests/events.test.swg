@@ -25,6 +25,140 @@ impl OffsetOwnedEvent
     }
 }
 
+// Every posting entry point snapshots both inline and allocated command identifiers.
+#test
+{
+    var id: String
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+    host.recordCommands()
+
+    for expected in ["Event.Short", "Event.Command.With.An.Allocated.Identifier"]
+    {
+        for route in 3
+        {
+            id = expected
+            let before = host.commandCount
+            if route == 0 do
+                host.root.postCommandEvent(id.toString())
+            else
+            {
+                let evt = Event.create'CommandEvent()
+                evt.id = id.toString()
+                if route == 1 do
+                    host.root.postEvent(evt)
+                else
+                {
+                    evt.target = &host.root
+                    host.app.postEvent(evt)
+                }
+            }
+
+            // Keep the source alive and mutate it, so a missed copy fails deterministically.
+            id[0] = 'X'
+            Swag.assert(host.commandCount == before)
+            host.pumpPostedEvents()
+            Swag.assert(host.commandCount == before + 1)
+            Swag.assert(host.lastCommand == expected)
+        }
+    }
+
+    let before = host.commandCount
+    host.root.postCommandEvent(null)
+    host.pumpPostedEvents()
+    Swag.assert(host.commandCount == before)
+
+    host.root.postCommandEvent("")
+    host.pumpPostedEvents()
+    Swag.assert(host.commandCount == before + 1)
+    Swag.assert(host.lastCommand == "")
+}
+
+// A handler can copy a posted command before dispatch releases the original allocation.
+#test
+{
+    var retained: CommandEvent
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    host.root.hookOnEvent = func|retained = &retained|(wnd, evt)
+    {
+        if evt is CommandEvent as command
+        {
+            retained[] = command[]
+            return true
+        }
+
+        return false
+    }
+
+    for expected in ["Event.Short", "Event.Command.With.An.Allocated.Identifier"]
+    {
+        var id = String.from(expected)
+        host.root.postCommandEvent(id.toString())
+        id[0] = 'X'
+        host.pumpPostedEvents()
+        Swag.assert(retained.id == expected)
+
+        var copied = retained
+        Swag.assert(copied.id == expected)
+        Swag.assert(copied.id.buffer != retained.id.buffer)
+        var moved = #move copied
+        Swag.assert(moved.id == expected)
+
+        // Posting a copy snapshots a view that already belongs to that same event.
+        let reposted = Event.create'CommandEvent()
+        reposted[] = moved
+        host.root.postEvent(reposted)
+        host.pumpPostedEvents()
+        Swag.assert(retained.id == expected)
+
+        // Replacing the public view does not make it refer to the old owned identifier again.
+        retained.id = "Event.Reassigned"
+        var reassigned = retained
+        Swag.assert(reassigned.id == "Event.Reassigned")
+        var movedReassigned = #move reassigned
+        Swag.assert(movedReassigned.id == "Event.Reassigned")
+    }
+}
+
+// Synchronous events still borrow their identifier; the headless recorder owns its observation.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+    host.recordCommands()
+
+    var id = String.from("Event.Borrowed")
+    var evt = CommandEvent{id: id.toString()}
+    var copied = evt
+    id[0] = 'X'
+    Swag.assert(copied.id == "Xvent.Borrowed")
+
+    host.root.sendEvent(&copied)
+    id[0] = 'Y'
+    Swag.assert(host.commandCount == 1)
+    Swag.assert(host.lastCommand == "Xvent.Borrowed")
+}
+
+// Closing on a command retains the observed identifier after synchronous delivery too.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+    host.closeOnCommand("Event.Close")
+
+    var id = String.from("Event.Close")
+    host.root.sendCommandEvent(id.toString())
+    id[0] = 'X'
+    Swag.assert(host.closed and host.commandCount == 1)
+    Swag.assert(host.lastCommand == "Event.Close")
+}
+
 // Queue ownership uses the complete allocation even when Event is not its first field.
 #test
 {

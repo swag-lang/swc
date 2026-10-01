@@ -263,6 +263,34 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
+// A modal menu's queued command keeps the identifier selected before its caller changes it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+    host.recordCommands()
+
+    for expected in ["Menu.Short", "Menu.Command.With.An.Allocated.Identifier"]
+    {
+        var id = String.from(expected)
+        let popup = MenuCtrl.createPopup(&host.root)
+        popup.addItem("Open", id.toString())
+        host.clickPopupMenuItemWhenShown(expected)
+
+        let before = host.commandCount
+        let selected = popup.doModal({40, 40}, autoDestroy: true)
+        Swag.assert(selected == expected)
+        Swag.assert(host.autoHandled and host.autoFailure.isEmpty())
+        Swag.assert(host.commandCount == before)
+
+        id[0] = 'X'
+        host.pump()
+        Swag.assert(host.commandCount == before + 1)
+        Swag.assert(host.lastCommand == expected)
+    }
+}
+
 // A submenu label keeps its complete measured run beside the reserved chevron band.
 #test
 {

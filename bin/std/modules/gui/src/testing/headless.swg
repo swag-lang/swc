@@ -36,6 +36,9 @@ struct AutoStage
 }
 
 // Hosts deterministic GUI trees, input, timers, modal dialogs, and rendering without an OS window.
+//
+// After [[Gui.Testing.HeadlessHost.setup]], keep the host at the same address until it is
+// dropped: its windows, surfaces, renderer, and callbacks borrow the host's storage.
 struct HeadlessHost
 {
     public
@@ -49,7 +52,7 @@ struct HeadlessHost
         mousePos:     Math.Point      // Last simulated pointer position, in physical screen pixels.
         closed:       bool            // Whether `close` ran, directly or through `closeOnCommand`.
         commandCount: u32             // Commands that reached the root since `recordCommands` or `closeOnCommand`.
-        lastCommand:  WndId?          // Identifier of the last command that reached the root.
+        lastCommand:  WndId?          // Last command identifier, borrowed from this host until the next recorded command.
 
         // Auto UI driver state, armed by `clickModalButtonWhenShown` and its siblings.
         autoHandled:          bool                // Whether every armed stage has completed.
@@ -66,9 +69,10 @@ struct HeadlessHost
         dragData: DragData
     }
 
-    autoSawModal:  bool
-    autoSawButton: bool
-    autoButtonIds: Array'String
+    autoSawModal:        bool
+    autoSawButton:       bool
+    autoButtonIds:       Array'String
+    lastCommandStorage: String
 }
 
 impl HeadlessHost
@@ -470,9 +474,10 @@ impl HeadlessHost
             switch evt
             {
             case CommandEvent as cmd:
-                host.commandCount += 1
-                host.lastCommand  = cmd.id
-                cmd.accepted      = true
+                host.commandCount       += 1
+                host.lastCommandStorage = cmd.id
+                host.lastCommand        = host.lastCommandStorage.toString()
+                cmd.accepted            = true
                 return true
             }
 
@@ -488,8 +493,9 @@ impl HeadlessHost
             switch evt
             {
             case CommandEvent as cmd:
-                host.commandCount += 1
-                host.lastCommand  = cmd.id
+                host.commandCount       += 1
+                host.lastCommandStorage = cmd.id
+                host.lastCommand        = host.lastCommandStorage.toString()
                 if cmd.id == cmdId
                 {
                     cmd.accepted = true

@@ -1462,9 +1462,12 @@ impl Application
     // Queues an event from any thread for delivery during the next frame.
     //
     // Allocate the event with [[Gui.Event.create]]: the queue owns it and releases it after
-    // dispatch.
+    // dispatch. A [[Gui.CommandEvent]] retains a copy of its identifier when it is posted.
     mtd postEvent(event: IEvent)
     {
+        if event is CommandEvent as command do
+            command.retainId()
+
         Sync.scopedLock(&.mutexPostedEvents)
         .postedEvents.add(event)
     }

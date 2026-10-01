@@ -112,6 +112,146 @@ namespace PostRaPeephole
         }
     }
 
+    namespace
+    {
+        struct FloatLaneDemand
+        {
+            // One bit per 32-bit lane. Unknown control flow preserves all lanes.
+            std::array<uint8_t, 32> lanes;
+
+            void reset() { lanes.fill(15); }
+
+            static uint8_t mask(MicroOpBits bits)
+            {
+                if (bits == MicroOpBits::B32)
+                    return 1;
+                if (bits == MicroOpBits::B64)
+                    return 3;
+                return 15;
+            }
+
+            void read(MicroReg reg, uint8_t mask)
+            {
+                if (reg.isFloat())
+                    lanes[reg.index()] |= mask;
+            }
+
+            void clear(MicroReg reg)
+            {
+                if (reg.isFloat())
+                    lanes[reg.index()] = 0;
+            }
+        };
+    }
+
+    // MOVSS/MOVSD merge the old destination's high lanes. If those lanes are
+    // dead, a complete register copy removes that otherwise false dependency.
+    // Track demanded lanes backwards, including the high lanes that scalar
+    // VEX operations carry from their first source into a distinct destination.
+    void widenScalarFloatCopies(Context& ctx)
+    {
+        FloatLaneDemand demand;
+        demand.reset();
+        const auto view = ctx.storage->view();
+        for (auto it = view.end(); it != view.begin();)
+        {
+            --it;
+            const auto& info = MicroInstr::info(it->op);
+            if (ctx.isClaimed(it.current) || it->op == MicroInstrOpcode::Label ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+            {
+                demand.reset();
+                continue;
+            }
+            const auto* ops = it->ops(*ctx.operands);
+            if (!ops)
+                continue;
+
+            if (it->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const uint8_t mask = FloatLaneDemand::mask(ops[2].opBits);
+                if (ops[0].reg.isFloat() && ops[1].reg.isFloat())
+                {
+                    const uint8_t needed = demand.lanes[ops[0].reg.index()];
+                    if (mask != 15 && !(needed & ~mask) && ops[0].reg != ops[1].reg && ctx.claimAll({it.current}))
+                    {
+                        MicroInstrOperand wide[3] = {ops[0], ops[1], ops[2]};
+                        wide[2].opBits            = MicroOpBits::B128;
+                        ctx.emitRewrite(it.current, it->op, wide);
+                    }
+                    demand.lanes[ops[0].reg.index()] &= ~mask;
+                    demand.read(ops[1].reg, needed & mask);
+                }
+                else
+                {
+                    demand.clear(ops[0].reg);
+                    demand.read(ops[1].reg, mask);
+                }
+                continue;
+            }
+
+            if (it->op == MicroInstrOpcode::ClearReg || it->op == MicroInstrOpcode::LoadRegMem ||
+                it->op == MicroInstrOpcode::LoadVolatileRegMem || it->op == MicroInstrOpcode::LoadAmcRegMem ||
+                it->op == MicroInstrOpcode::LoadVecRegMem)
+            {
+                demand.clear(ops[0].reg);
+                continue;
+            }
+            if (it->op == MicroInstrOpcode::LoadMemReg || it->op == MicroInstrOpcode::StoreVecMemReg)
+            {
+                demand.read(ops[1].reg, FloatLaneDemand::mask(ops[2].opBits));
+                continue;
+            }
+            if (it->op == MicroInstrOpcode::CmpRegReg)
+            {
+                const uint8_t mask = FloatLaneDemand::mask(ops[2].opBits);
+                demand.read(ops[0].reg, mask);
+                demand.read(ops[1].reg, mask);
+                continue;
+            }
+
+            if (it->op == MicroInstrOpcode::OpBinaryRegRegReg && ops[0].reg.isFloat() &&
+                (ops[3].opBits == MicroOpBits::B32 || ops[3].opBits == MicroOpBits::B64) &&
+                hasThreeOperandForm(ops[4].microOp) && ops[4].microOp != MicroOp::FloatAnd && ops[4].microOp != MicroOp::FloatXor)
+            {
+                const uint8_t mask  = FloatLaneDemand::mask(ops[3].opBits);
+                const uint8_t upper = demand.lanes[ops[0].reg.index()] & ~mask;
+                demand.clear(ops[0].reg);
+                demand.read(ops[1].reg, mask | upper);
+                demand.read(ops[2].reg, mask);
+                continue;
+            }
+            if ((it->op == MicroInstrOpcode::OpBinaryRegReg || it->op == MicroInstrOpcode::OpBinaryRegMem) &&
+                ops[0].reg.isFloat() && (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
+            {
+                const uint8_t mask = FloatLaneDemand::mask(ops[2].opBits);
+                const MicroOp op   = ops[info.microOpIndex].microOp;
+                if (op == MicroOp::FloatSqrt)
+                {
+                    const uint8_t upper = demand.lanes[ops[0].reg.index()] & ~mask;
+                    demand.clear(ops[0].reg);
+                    if (it->op == MicroInstrOpcode::OpBinaryRegReg)
+                        demand.read(ops[1].reg, mask | upper);
+                    continue;
+                }
+                if (hasThreeOperandForm(op) && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
+                {
+                    demand.read(ops[0].reg, mask);
+                    if (it->op == MicroInstrOpcode::OpBinaryRegReg)
+                        demand.read(ops[1].reg, mask);
+                    continue;
+                }
+            }
+
+            // Unknown partial writes cannot kill an upper-lane demand.
+            const auto useDef = it->collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg used : useDef.uses)
+                demand.read(used, 15);
+        }
+    }
+
     bool tryFoldLoadIntoTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.encoder)

@@ -4237,6 +4237,88 @@ SWC_TEST_BEGIN(PostRAPeephole_SinkRipLoadIntoOneBranchArm)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_WidensOnlyUnobservedScalarCopyLanes)
+{
+    constexpr MicroReg source = MicroReg::floatReg(0);
+    constexpr MicroReg copied = MicroReg::floatReg(1);
+    constexpr MicroReg base   = MicroReg::intReg(8);
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool wideRead : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegReg(copied, source, bits);
+            const MicroInstrRef copy = builder.instructions().lastInstructionRef();
+            builder.emitLoadRegMem(source, base, 0, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 16, copied, wideRead ? MicroOpBits::B128 : bits);
+            builder.emitClearReg(copied, MicroOpBits::B128);
+            builder.emitRet();
+            SWC_RESULT(runPostRaPeepholePass(builder));
+            const MicroInstr* inst = builder.instructions().ptr(copy);
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegReg ||
+                inst->ops(builder.operands())[2].opBits != (wideRead ? bits : MicroOpBits::B128))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyTracksVexUpperLaneConsumers)
+{
+    constexpr MicroReg source = MicroReg::floatReg(0);
+    constexpr MicroReg copied = MicroReg::floatReg(1);
+    constexpr MicroReg result = MicroReg::floatReg(2);
+    constexpr MicroReg base   = MicroReg::intReg(8);
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool wideRead : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegReg(copied, source, bits);
+            const MicroInstrRef copy = builder.instructions().lastInstructionRef();
+            builder.emitLoadRegMem(source, base, 0, bits);
+            builder.emitOpBinaryRegRegReg(result, copied, source, MicroOp::FloatMultiply, bits);
+            builder.emitLoadMemReg(base, 16, result, wideRead ? MicroOpBits::B128 : bits);
+            builder.emitClearReg(result, MicroOpBits::B128);
+            builder.emitClearReg(copied, MicroOpBits::B128);
+            builder.emitRet();
+            SWC_RESULT(runPostRaPeepholePass(builder));
+            const MicroInstr* inst = builder.instructions().ptr(copy);
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegReg ||
+                inst->ops(builder.operands())[2].opBits != (wideRead ? bits : MicroOpBits::B128))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyKeepsWiderAndBoundaryReads)
+{
+    constexpr MicroReg source = MicroReg::floatReg(0);
+    constexpr MicroReg copied = MicroReg::floatReg(1);
+    constexpr MicroReg base   = MicroReg::intReg(8);
+    for (uint32_t boundary = 0; boundary < 3; ++boundary)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(copied, source, MicroOpBits::B32);
+        const MicroInstrRef copy = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegMem(source, base, 0, MicroOpBits::B64);
+        if (boundary == 1)
+            builder.placeLabel(builder.createLabel());
+        else if (boundary == 2)
+            builder.emitRet();
+        builder.emitLoadMemReg(base, 16, copied, MicroOpBits::B64);
+        builder.emitClearReg(copied, MicroOpBits::B128);
+        builder.emitRet();
+        SWC_RESULT(runPostRaPeepholePass(builder));
+        const MicroInstr* inst = builder.instructions().ptr(copy);
+        if (!inst || inst->op != MicroInstrOpcode::LoadRegReg ||
+            inst->ops(builder.operands())[2].opBits != MicroOpBits::B32)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -40,7 +40,7 @@ namespace
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, resultCst));
     }
 
-    bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, double& out)
+    bool getFloatArg(Sema& sema, AstNodeRef argRef, ApFloat& out)
     {
         const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         if (!argView.cstRef().isValid())
@@ -52,7 +52,16 @@ namespace
         const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
         if (!storageType.isFloat())
             return false;
-        out = sema.cstMgr().get(argView.cstRef()).getFloat().asDouble();
+        out = sema.cstMgr().get(argView.cstRef()).getFloat();
+        return true;
+    }
+
+    bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, double& out)
+    {
+        ApFloat value;
+        if (!getFloatArg(sema, argRef, value))
+            return false;
+        out = value.asDouble();
         return true;
     }
 
@@ -622,16 +631,16 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
         case TokenId::IntrinsicMulAdd:
         {
             SWC_ASSERT(args.size() == 3);
-            double a, b, c;
-            if (!getFloatArgAsDouble(sema, args[0], a) || !getFloatArgAsDouble(sema, args[1], b) || !getFloatArgAsDouble(sema, args[2], c))
+            ApFloat a, b, c;
+            if (!getFloatArg(sema, args[0], a) || !getFloatArg(sema, args[1], b) || !getFloatArg(sema, args[2], c))
                 return Result::Continue;
 
-            double                 foldedValue = 0.0;
-            const Math::FoldStatus foldStatus  = Math::foldIntrinsicTernaryFloat(foldedValue, a, b, c, Math::FoldIntrinsicTernaryFloatOp::MulAdd);
+            ApFloat                foldedValue;
+            const Math::FoldStatus foldStatus = Math::foldIntrinsicTernaryFloat(foldedValue, a, b, c, Math::FoldIntrinsicTernaryFloatOp::MulAdd);
             if (foldStatus != Math::FoldStatus::Ok)
                 return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
 
-            return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
+            return makeFloatResult(sema, sema.curNodeRef(), foldedValue.asDouble());
         }
 
         case TokenId::IntrinsicBitCountNz:

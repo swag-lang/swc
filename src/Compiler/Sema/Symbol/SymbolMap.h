@@ -36,9 +36,9 @@ protected:
 
     // Open-addressed and append-only: a key slot, once filled, never changes, and a head only
     // moves to another symbol of the same name. Readers probe it without any lock; writers fill
-    // it under the shard mutex and publish a key after its head. Growing allocates a new table
+    // it under the owning mutex and publish a key after its head. Growing allocates a new table
     // and publishes it whole, leaving the old one (arena memory) valid for readers still on it.
-    struct ShardTable
+    struct HeadTable
     {
         std::atomic<uint64_t>* keys     = nullptr; // identifier reference + 1; zero marks an empty slot
         std::atomic<Symbol*>*  heads    = nullptr;
@@ -50,8 +50,8 @@ protected:
     // Each shard owns its cache line so writers of neighbouring shards do not disturb it either.
     struct alignas(64) Shard
     {
-        std::mutex               mutex; // writers only
-        std::atomic<ShardTable*> table = nullptr;
+        std::mutex              mutex; // writers only
+        std::atomic<HeadTable*> table = nullptr;
     };
 
     struct UsingSymMap
@@ -65,17 +65,17 @@ protected:
     static constexpr uint32_t SHARD_COUNT      = 1u << SHARD_BITS;
     static constexpr uint32_t SHARD_AFTER_KEYS = 64;
 
+    // Every function, struct and namespace owns a map, and most never outgrow 'small_'. Past it,
+    // one table holds the names; past SHARD_AFTER_KEYS, shards spread the writers.
     std::array<Entry, SMALL_CAP> small_;
-    // Every function, struct and namespace owns a map, and most never outgrow 'small_'.
-    // MSVC's empty hash map still allocates buckets and a sentinel, so it is created
-    // only when the map turns big.
-    std::optional<std::unordered_map<IdentifierRef, Symbol*>> bigMap_;
-    std::atomic<Shard*>                                       shards_ = nullptr;
-    mutable std::shared_mutex                                 mutex_;
+    std::atomic<HeadTable*>      bigTable_ = nullptr;
+    std::atomic<Shard*>          shards_   = nullptr;
+    // Serializes writers until the map is sharded. Lookups never take it.
+    mutable std::shared_mutex mutex_;
     // Entries are immutable after publication and live in the compiler's arena.
     // Readers keep a stable prefix while writers append under mutex_.
-    std::atomic<const UsingSymMap*>                            usingSymMaps_ = nullptr;
-    std::atomic<uint32_t>                                     smallSize_ = 0;
+    std::atomic<const UsingSymMap*> usingSymMaps_ = nullptr;
+    std::atomic<uint32_t>           smallSize_    = 0;
     // Different shards publish symbols concurrently; their locks do not protect this total.
     std::atomic<uint32_t> count_ = 0;
 
@@ -83,20 +83,21 @@ protected:
     bool isSharded() const noexcept { return shards_.load(std::memory_order_acquire) != nullptr; }
 
 private:
-    Entry*       smallFind(IdentifierRef key);
-    const Entry* smallFind(IdentifierRef key) const;
-    Symbol*      smallFindHead(IdentifierRef key, uint32_t smallSize) const noexcept;
+    Entry*  smallFind(IdentifierRef key);
+    Symbol* smallFindHead(IdentifierRef key, uint32_t smallSize) const noexcept;
+    Symbol* findHead(IdentifierRef idRef) const noexcept;
 
     static uint32_t shardIndex(IdentifierRef idRef) noexcept;
-    static uint32_t shardSlot(const ShardTable& table, uint64_t key) noexcept;
-    static Symbol*  shardFindHead(const Shard& shard, IdentifierRef idRef) noexcept;
-    static void     shardPlace(ShardTable& table, uint64_t key, Symbol* head) noexcept;
-    static void     shardReserve(TaskContext& ctx, Shard& shard, uint32_t minSize);
+    static uint32_t tableSlot(const HeadTable& table, uint64_t key) noexcept;
+    static Symbol*  tableFindHead(const HeadTable* table, IdentifierRef idRef) noexcept;
+    static void     tablePlace(HeadTable& table, uint64_t key, Symbol* head) noexcept;
+    static void     tableReserve(TaskContext& ctx, std::atomic<HeadTable*>& published, uint32_t minSize);
     template<typename F>
-    static void forEachShardHead(const Shard* shards, const F& fn);
+    static void     forEachHead(const HeadTable* table, const F& fn);
     static void     notifyInserted(TaskContext& ctx, IdentifierRef idRef);
-    void            maybeUpgradeToSharded(TaskContext& ctx);
-    Symbol*         insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
+    Symbol*         tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, Symbol* symbol, bool acceptHomonyms);
+    void            upgradeToSharded(TaskContext& ctx);
+    Symbol*         insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms);
 };
 
 template<SymbolKind K, typename E = void>

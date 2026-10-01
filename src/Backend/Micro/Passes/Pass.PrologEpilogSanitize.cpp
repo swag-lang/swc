@@ -23,9 +23,9 @@
 //       subtract. Encoder conformance is re-checked so we do not produce an
 //       immediate the target cannot encode.
 //
-//   eraseUnusedStackFrame
-//       Drops the local-stack subtract and its releases when the body calls
-//       nothing and no longer addresses the stack.
+//   trimUnusedStackFrame
+//       Trims an unaddressed local frame to the remaining callees' shadow space
+//       and alignment, or drops it completely when neither is needed.
 //
 //   compactUnusedStackPrefix
 //       Trims a fixed call frame with no surviving stack access, or rebases
@@ -546,15 +546,11 @@ namespace
         return true;
     }
 
-    // Lowering reserves the local stack before the body is optimized. Once every
-    // local lives in a register and the body calls nothing, that subtract and its
-    // releases only move the stack pointer down and back up. LLVM sizes the frame
-    // from the objects that survive (X86FrameLowering::emitPrologue emits no
-    // allocation for a leaf without stack objects), so a frame nothing addresses
-    // is dropped here: no call, no stack-pointer operand other than the entry
-    // subtract and the release in front of each Ret. A leaf does not need the
-    // call alignment the subtract may also have carried.
-    bool eraseUnusedStackFrame(const MicroPassContext& context, const CallConv& conv)
+    // Once every local lives in a register, keep only the space needed by the
+    // remaining calls. A non-leaf retains the original alignment and each
+    // callee's shadow space; a leaf needs neither. Any surviving stack address
+    // or dynamic adjustment rejects the rewrite before changing the frame.
+    bool trimUnusedStackFrame(const MicroPassContext& context, const CallConv& conv)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -566,6 +562,8 @@ namespace
         MicroInstrRef              frameRef     = MicroInstrRef::invalid();
         uint64_t                   frameSize    = 0;
         uint32_t                   numRets      = 0;
+        uint64_t                   callShadow   = 0;
+        bool                       hasCall      = false;
         bool                       inEntryRun   = true;
         SmallVector<MicroInstrRef> releaseRefs;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
@@ -609,8 +607,17 @@ namespace
                 continue;
             }
 
-            if (inst.op == MicroInstrOpcode::Push || MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+            if (inst.op == MicroInstrOpcode::Push)
                 return false;
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+            {
+                const CallConv& callee = CallConv::get(ops[info.callConvIndex].callConv);
+                if (!conv.stackAlignment || callee.stackAlignment != conv.stackAlignment)
+                    return false;
+                hasCall    = true;
+                callShadow = std::max(callShadow, static_cast<uint64_t>(callee.stackShadowSpace));
+            }
 
             if (!ops)
                 continue;
@@ -627,9 +634,27 @@ namespace
         if (frameRef.isInvalid() || numRets == 0 || releaseRefs.size() != numRets)
             return false;
 
-        context.instructions->erase(frameRef);
-        for (const MicroInstrRef ref : releaseRefs)
-            context.instructions->erase(ref);
+        uint64_t retainedSize = 0;
+        if (hasCall)
+        {
+            if (frameSize < callShadow)
+                return false;
+            retainedSize = callShadow + (frameSize - callShadow) % conv.stackAlignment;
+        }
+        if (retainedSize == frameSize)
+            return false;
+        if (retainedSize)
+        {
+            context.instructions->ptr(frameRef)->ops(*context.operands)[3].setImmediateValue(ApInt(retainedSize, 64));
+            for (const MicroInstrRef ref : releaseRefs)
+                context.instructions->ptr(ref)->ops(*context.operands)[3].setImmediateValue(ApInt(retainedSize, 64));
+        }
+        else
+        {
+            context.instructions->erase(frameRef);
+            for (const MicroInstrRef ref : releaseRefs)
+                context.instructions->erase(ref);
+        }
         return true;
     }
 
@@ -1427,7 +1452,7 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedStackProlog        = sanitizePrologueStackAdjustments(context, conv);
     const bool      changedStackEpilogue      = sanitizeEpilogueStackAdjustments(context, conv);
     const bool      changedUnusedSaves        = eraseUnusedRegisterSaves(context, conv);
-    const bool      changedUnusedFrame        = eraseUnusedStackFrame(context, conv);
+    const bool      changedUnusedFrame        = trimUnusedStackFrame(context, conv);
     const bool      changedCompactFrame       = compactUnusedStackPrefix(context, conv);
     const bool      changedReservedCallFrame  = reserveBodyCallFrame(context, conv);
     const bool      changedLoopCallFrame      = hoistLoopCallFrame(context, conv);

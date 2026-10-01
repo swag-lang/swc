@@ -209,11 +209,25 @@ private:
         bool operator()(const TypeInfo& lhs, const StoredType& rhs) const noexcept { return lhs == *rhs; }
     };
 
+    // Open-addressed and append-only: a slot, once filled, keeps its type. Readers probe it
+    // without a lock; writers fill it under the stripe mutex, hash before type.
+    struct InternTable
+    {
+        std::unique_ptr<std::atomic<const TypeInfo*>[]> types;
+        std::unique_ptr<std::atomic<size_t>[]>          hashes;
+        uint32_t                                        capacity = 0; // power of two
+        uint32_t                                        size     = 0; // writer-only
+    };
+
     // Each stripe owns its cache line: neighbours locked by other workers must not share it.
+    // 'map' owns the interned payloads; 'table' answers lookups without a lock. Every table
+    // generation stays alive with the stripe, for readers still probing an older one.
     struct alignas(64) InternStripe
     {
         std::unordered_set<StoredType, StoredTypeHash, StoredTypeEqual> map;
-        mutable std::shared_mutex                                       mutex;
+        std::atomic<InternTable*>                                       table = nullptr;
+        std::vector<std::unique_ptr<InternTable>>                       tables;
+        std::mutex                                                      mutex; // writers only
     };
 
     struct Shard
@@ -230,6 +244,9 @@ private:
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     CompilerInstance*         compiler_   = nullptr;
     Shard                     shards_[SHARD_COUNT];
+
+    static TypeRef findInterned(const InternTable* table, const TypeInfo& typeInfo, size_t hash) noexcept;
+    static void    publishInterned(InternStripe& stripe, const TypeInfo* type, size_t hash);
 
     // Runtime types
     std::unordered_map<IdentifierRef, RuntimeTypeKind>                               mapRtKind_;

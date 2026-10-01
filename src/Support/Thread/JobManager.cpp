@@ -9,6 +9,7 @@
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -61,8 +62,9 @@ void JobManager::freeRecord(JobRecord* r)
     // Minimal reset (fields set on reuse anyway).
     r->job      = nullptr;
     r->state    = JobRecord::State::Ready;
-    r->priority = JobPriority::Normal;
-    r->clientId = 0;
+    r->priority       = JobPriority::Normal;
+    r->clientId       = 0;
+    r->wokenByBarrier = false;
 
     // Overflow is dropped back to the heap on purpose: a shared spill pool created
     // cross-thread contention in the scheduler, which cost more than a rare reallocation.
@@ -117,6 +119,36 @@ void JobManager::setup(const CommandLine& cmdLine)
 
     accepting_ = true;
     joined_    = false;
+
+#if SWC_DEV_MODE
+    statsEnabled_ = cmdLine.devSchedStats;
+    statsStart_   = std::chrono::steady_clock::now();
+#endif
+}
+
+void JobManager::noteBarrierRound()
+{
+    const std::unique_lock lk(mtx_);
+    stats_.barrierRounds++;
+}
+
+void JobManager::printStats(const TaskContext& ctx) const
+{
+    const std::unique_lock lk(mtx_);
+
+    const auto     wallNs    = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - statsStart_).count());
+    const uint64_t capacity  = wallNs * std::max<uint64_t>(configuredWorkerCount_, 1);
+    const double   occupancy = capacity ? 100.0 * static_cast<double>(stats_.busyNs) / static_cast<double>(capacity) : 0.0;
+
+    std::vector<Logger::FieldEntry> entries;
+    entries.push_back({.label = "Workers", .value = std::format("{}", configuredWorkerCount_)});
+    entries.push_back({.label = "Jobs executed", .value = std::format("{}", stats_.jobsExecuted)});
+    entries.push_back({.label = "Barrier rounds", .value = std::format("{}", stats_.barrierRounds)});
+    entries.push_back({.label = "Barrier wakes", .value = std::format("{}", stats_.barrierWoken)});
+    entries.push_back({.label = "Barrier re-parks", .value = std::format("{}", stats_.barrierReparked)});
+    entries.push_back({.label = "Dependency wakes", .value = std::format("{}", stats_.dependencyWoken)});
+    entries.push_back({.label = "Worker occupancy", .value = std::format("{:.1f}% of {} ms x {} workers", occupancy, wallNs / 1'000'000, configuredWorkerCount_)});
+    Logger::printFieldGroup(ctx, "Scheduler", entries);
 }
 
 std::optional<size_t> JobManager::currentThreadIndex() const noexcept
@@ -216,6 +248,11 @@ void JobManager::parkLocked(ClientState& client, JobRecord* rec, const TaskState
     SWC_ASSERT(rec->state == JobRecord::State::Running);
     rec->state = JobRecord::State::Waiting;
     bumpClientCountLocked(client, -1);
+    if (rec->wokenByBarrier)
+    {
+        stats_.barrierReparked++;
+        rec->wokenByBarrier = false;
+    }
 
     JobRecord*& clientHead  = client.waitingHead;
     rec->clientWaitPrevious = nullptr;
@@ -346,6 +383,7 @@ void JobManager::wake(const WaitKey& key)
         rec = next;
         ++woken;
     }
+    stats_.dependencyWoken += woken;
 
     growWorkersForLoadLocked();
 
@@ -524,6 +562,7 @@ bool JobManager::wakeAll(JobClientId client)
         for (JobRecord* rec : temp)
         {
             requeueWaitingLocked(clientIt->second, rec);
+            rec->wokenByBarrier = true;
             ++woken;
         }
     }
@@ -532,9 +571,11 @@ bool JobManager::wakeAll(JobClientId client)
         while (JobRecord* rec = clientIt->second.waitingHead)
         {
             requeueWaitingLocked(clientIt->second, rec);
+            rec->wokenByBarrier = true;
             ++woken;
         }
     }
+    stats_.barrierWoken += woken;
 
     if (woken != 0)
     {
@@ -760,8 +801,12 @@ void JobManager::workerLoop()
         rec->state = JobRecord::State::Running;
         ++activeWorkers_;
         lk.unlock();
-        const JobResult res = executeJob(*rec->job);
+        const auto      start = statsEnabled_ ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+        const JobResult res   = executeJob(*rec->job);
+        const auto      end   = statsEnabled_ ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
         lk.lock();
+        stats_.jobsExecuted++;
+        stats_.busyNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
         handleJobResultLocked(rec, res);
         --activeWorkers_;
 

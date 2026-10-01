@@ -263,6 +263,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "all", "--dev-full", "-df",
         &cmdLine_->devFull,
         "Enable every compiled-in development test and validator");
+    add(HelpOptionGroup::Development, "all", "--dev-sched-stats", nullptr,
+        &cmdLine_->devSchedStats,
+        "Report barrier rounds, wakes, and worker occupancy of the job scheduler when the command ends");
 #endif
 
 #if SWC_HAS_UNITTEST

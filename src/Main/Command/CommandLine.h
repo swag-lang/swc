@@ -224,6 +224,7 @@ struct CommandLine
 #endif
 
 #if SWC_DEV_MODE
+    bool     devSchedStats = false;
     bool     randomize = false;
     uint32_t randSeed  = 0;
 #endif

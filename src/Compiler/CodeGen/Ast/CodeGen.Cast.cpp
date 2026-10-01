@@ -1377,7 +1377,6 @@ namespace
         SWC_ASSERT(storageSize <= std::numeric_limits<uint32_t>::max());
         SmallVector<std::byte> storageBytes;
         storageBytes.resize(storageSize);
-        std::memset(storageBytes.data(), 0, storageBytes.size());
         SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, initCstRef, dstTypeRef));
 
         const ConstantRef    initPayloadCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, std::span{storageBytes.data(), storageBytes.size()});
@@ -1539,7 +1538,6 @@ namespace
             // typed zero blob that matches the destination runtime representation.
             SmallVector<std::byte> typedNullBytes;
             typedNullBytes.resize(dstSize);
-            std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
 
             const SemaNodeView srcConstView = codeGen.viewTypeConstant(srcNodeRef);
             const ConstantRef  nullCstRef   = srcConstView.cstRef().isValid() ? srcConstView.cstRef() : codeGen.cstMgr().cstNull();

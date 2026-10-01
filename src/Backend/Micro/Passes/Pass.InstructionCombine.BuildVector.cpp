@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
@@ -612,6 +613,118 @@ namespace InstructionCombine
                 return reg;
             }
         };
+    }
+
+    // A whole-record load followed only by scalar projections need not pass
+    // through the vector file. Read each demanded field at the original load,
+    // so stores and address changes before its later users keep their ordering.
+    // Narrow field reads also let ordinary forwarding remove a wide reload
+    // behind separate field stores without rebuilding an intermediate vector.
+    bool tryScalarizeVectorLoad(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || ctx.isRelocated(loadRef) || !ctx.ssa)
+            return false;
+        const auto* load = loadInst.ops(*ctx.operands);
+        if (!load || load[2].opBits != MicroOpBits::B128 || !load[0].reg.isVirtualFloat() || !load[1].reg.isAnyInt())
+            return false;
+        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+        if (!ctx.ssa->defValue(load[0].reg, loadRef, valueId))
+            return false;
+        const auto* value = ctx.ssa->valueInfo(valueId);
+        if (!value)
+            return false;
+
+        struct Projection
+        {
+            MicroInstrRef ref;
+            uint32_t      lane;
+        };
+        SmallVector<Projection>    projections;
+        SmallVector<MicroInstrRef> shuffles;
+        bool                       needed[2] = {};
+        for (const auto& use : value->uses)
+        {
+            if (use.kind == MicroSsaState::UseSite::Kind::Phi)
+            {
+                const auto* phi = ctx.ssa->phiInfo(use.phiIndex);
+                if (!phi || ctx.ssa->transitiveInstructionUseCount(phi->resultValueId, 1))
+                    return false;
+                continue;
+            }
+            auto        projectionRef = use.instRef;
+            const auto* inst          = ctx.storage->ptr(projectionRef);
+            const auto* ops           = inst ? inst->ops(*ctx.operands) : nullptr;
+            MicroReg    source        = load[0].reg;
+            uint32_t    lane          = 0;
+            if (!inst || !ops || ctx.isClaimed(projectionRef) || ctx.isRelocated(projectionRef))
+                return false;
+            if (inst->op == MicroInstrOpcode::VecShuffleRegRegImm)
+            {
+                // PSHUFD must keep the two dwords of one qword in order.
+                // The other output qword is immaterial to its sole reader.
+                const uint64_t low = ops[3].valueU64 & 15;
+                if (ops[1].reg != source || !ops[0].reg.isVirtualFloat() || ops[2].opBits != MicroOpBits::B128 ||
+                    (low != 4 && low != 14))
+                    return false;
+                uint32_t shuffledValue = MicroSsaState::K_INVALID_VALUE;
+                if (!ctx.ssa->defValue(ops[0].reg, projectionRef, shuffledValue))
+                    return false;
+                shuffles.push_back(projectionRef);
+                source        = ops[0].reg;
+                lane          = low == 14 ? 1 : 0;
+                projectionRef = singleDirectInstructionUse(*ctx.ssa, shuffledValue);
+                if (!projectionRef.isValid() || ctx.isClaimed(projectionRef) || ctx.isRelocated(projectionRef))
+                    return false;
+                inst = ctx.storage->ptr(projectionRef);
+                ops  = inst ? inst->ops(*ctx.operands) : nullptr;
+            }
+            if (!inst || !ops || inst->op != MicroInstrOpcode::LoadRegReg ||
+                !ops[0].reg.isVirtualInt() || ops[1].reg != source || ops[2].opBits != MicroOpBits::B64)
+                return false;
+            projections.push_back({projectionRef, lane});
+            needed[lane] = true;
+        }
+        if (projections.empty())
+            return false;
+        for (uint32_t lane = 0; lane < 2; ++lane)
+            if (needed[lane] && !X64Immediate::canEncodeSigned32(load[3].valueU64 + lane * 8))
+                return false;
+
+        ctx.ensureVirtualIndices();
+        const uint32_t count = static_cast<uint32_t>(needed[0]) + static_cast<uint32_t>(needed[1]);
+        if (ctx.nextVirtualIntRegIndex > MicroReg::K_MAX_INDEX - count)
+            return false;
+        // All references passed the claim checks above, and no mutation has
+        // occurred. Own them together before queuing any part of the rewrite.
+        ctx.claimed.insert(loadRef.get());
+        for (const auto& projection : projections)
+            ctx.claimed.insert(projection.ref.get());
+        for (const auto ref : shuffles)
+            ctx.claimed.insert(ref.get());
+
+        MicroReg fields[2] = {MicroReg::invalid(), MicroReg::invalid()};
+        for (uint32_t lane = 0; lane < 2; ++lane)
+        {
+            if (!needed[lane])
+                continue;
+            fields[lane]                = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+            MicroInstrOperand scalar[4] = {load[0], load[1], load[2], load[3]};
+            scalar[0].reg               = fields[lane];
+            scalar[2].opBits            = MicroOpBits::B64;
+            scalar[3].valueU64 += lane * 8;
+            ctx.emitInsertBefore(loadRef, MicroInstrOpcode::LoadRegMem, scalar);
+        }
+        for (const auto& projection : projections)
+        {
+            const auto*       ops     = ctx.storage->ptr(projection.ref)->ops(*ctx.operands);
+            MicroInstrOperand copy[3] = {ops[0], ops[1], ops[2]};
+            copy[1].reg               = fields[projection.lane];
+            ctx.emitRewrite(projection.ref, MicroInstrOpcode::LoadRegReg, copy);
+        }
+        for (const auto ref : shuffles)
+            ctx.emitErase(ref);
+        ctx.emitErase(loadRef);
+        return true;
     }
 
     bool tryBuildVectorFromStores(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)

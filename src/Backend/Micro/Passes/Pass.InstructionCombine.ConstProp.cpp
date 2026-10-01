@@ -29,7 +29,7 @@ namespace InstructionCombine
     {
         constexpr int K_MAX_PHI_DEPTH = 4;
 
-        bool resolveConstValue(uint64_t& outImm, const Context& ctx, uint32_t valueId, int depth)
+        bool resolveConstValue(uint64_t& outImm, const Context& ctx, uint32_t valueId, MicroOpBits readBits, int depth)
         {
             if (depth <= 0)
                 return false;
@@ -49,7 +49,7 @@ namespace InstructionCombine
                 for (const uint32_t incomingId : phi->incomingValueIds)
                 {
                     uint64_t incomingImm = 0;
-                    if (!resolveConstValue(incomingImm, ctx, incomingId, depth - 1))
+                    if (!resolveConstValue(incomingImm, ctx, incomingId, readBits, depth - 1))
                         return false;
                     if (!hasCandidate)
                     {
@@ -73,37 +73,39 @@ namespace InstructionCombine
             if (!inst)
                 return false;
 
-            // A cleared register is the constant zero. Constant folding used to
-            // stop at it, which left every `x op 0` and every float zero behind
-            // the peepholes that handle the spelled-out immediate.
-            if (inst->op == MicroInstrOpcode::ClearReg)
-            {
-                outImm = 0;
-                return true;
-            }
-
-            if (inst->op != MicroInstrOpcode::LoadRegImm)
+            if (inst->op != MicroInstrOpcode::ClearReg && inst->op != MicroInstrOpcode::LoadRegImm)
                 return false;
 
             const MicroInstrOperand* immOps = inst->ops(*ctx.operands);
-            if (!immOps || immOps[2].hasWideImmediateValue())
+            if (!immOps)
                 return false;
-
-            outImm = immOps[2].valueU64;
+            const MicroOpBits writeBits = immOps[1].opBits;
+            // Byte and word writes leave the remaining register bits unknown.
+            // A dword write defines all 64 bits, with a zero upper half.
+            if (getNumBits(writeBits) < 32 && getNumBits(readBits) > getNumBits(writeBits))
+                return false;
+            if (inst->op == MicroInstrOpcode::ClearReg)
+                outImm = 0;
+            else
+            {
+                if (immOps[2].hasWideImmediateValue())
+                    return false;
+                outImm = immOps[2].valueU64 & getBitsMask(writeBits) & getBitsMask(readBits);
+            }
             return true;
         }
+    }
 
-        bool findImmDef(uint64_t& outImm, const Context& ctx, MicroReg useReg, MicroInstrRef useRef)
-        {
-            if (!useReg.isVirtualInt())
-                return false;
+    bool resolveIntConstant(uint64_t& outImm, const Context& ctx, MicroReg useReg, MicroInstrRef useRef, MicroOpBits readBits)
+    {
+        if (!useReg.isVirtualInt())
+            return false;
 
-            const auto rd = ctx.ssa->reachingDef(useReg, useRef);
-            if (!rd.valid())
-                return false;
+        const auto rd = ctx.ssa->reachingDef(useReg, useRef);
+        if (!rd.valid())
+            return false;
 
-            return resolveConstValue(outImm, ctx, rd.valueId, K_MAX_PHI_DEPTH);
-        }
+        return resolveConstValue(outImm, ctx, rd.valueId, readBits, K_MAX_PHI_DEPTH);
     }
 
     // Materialize small constant selects from a boolean with a scale, negation,
@@ -274,7 +276,7 @@ namespace InstructionCombine
         const uint64_t    storeOff  = storeOps[3].valueU64;
 
         uint64_t rawImm = 0;
-        if (!findImmDef(rawImm, ctx, srcReg, storeRef))
+        if (!resolveIntConstant(rawImm, ctx, srcReg, storeRef, storeBits))
             return false;
 
         if (!ctx.claimAll({storeRef}))
@@ -381,11 +383,11 @@ namespace InstructionCombine
         MicroReg keepReg   = MicroReg::invalid();
         bool     needsSwap = false;
 
-        if (findImmDef(rawImm, ctx, rhs, cmpRef))
+        if (resolveIntConstant(rawImm, ctx, rhs, cmpRef, opBits))
         {
             keepReg = lhs;
         }
-        else if (findImmDef(rawImm, ctx, lhs, cmpRef))
+        else if (resolveIntConstant(rawImm, ctx, lhs, cmpRef, opBits))
         {
             keepReg   = rhs;
             needsSwap = true;
@@ -456,7 +458,7 @@ namespace InstructionCombine
 
         const MicroOpBits opBits = cmpOps[4].opBits;
         uint64_t          rawImm = 0;
-        if (!findImmDef(rawImm, ctx, cmpOps[2].reg, cmpRef))
+        if (!resolveIntConstant(rawImm, ctx, cmpOps[2].reg, cmpRef, opBits))
             return false;
 
         const uint64_t imm = rawImm & getBitsMask(opBits);
@@ -496,7 +498,7 @@ namespace InstructionCombine
             return false;
 
         uint64_t rawImm = 0;
-        if (!findImmDef(rawImm, ctx, rhs, binRef))
+        if (!resolveIntConstant(rawImm, ctx, rhs, binRef, useReadBits(binInst, binOps, rhs)))
             return false;
 
         if (!ctx.claimAll({binRef}))
@@ -534,7 +536,7 @@ namespace InstructionCombine
             return false;
 
         uint64_t rawImm = 0;
-        if (!findImmDef(rawImm, ctx, src, copyRef))
+        if (!resolveIntConstant(rawImm, ctx, src, copyRef, opBits))
             return false;
 
         const uint64_t imm = rawImm & getBitsMask(opBits);
@@ -650,7 +652,7 @@ namespace InstructionCombine
         }
 
         uint64_t indexValue = 0;
-        if (!findImmDef(indexValue, ctx, index, ref))
+        if (!resolveIntConstant(indexValue, ctx, index, ref, MicroOpBits::B64))
             return false;
 
         // The folded displacement must stay a signed 32-bit quantity.
@@ -985,6 +987,8 @@ namespace InstructionCombine
                     return true;
 
                 case MicroInstrOpcode::ClearReg:
+                    if (getNumBits(defOps[1].opBits) < 32)
+                        return false;
                     outBound = 0;
                     return true;
 
@@ -1331,7 +1335,7 @@ namespace InstructionCombine
                 break;
             case MicroInstrOpcode::CmpRegReg:
                 bits        = ops[2].opBits;
-                hasConstant = findImmDef(constant, ctx, ops[1].reg, ref);
+                hasConstant = resolveIntConstant(constant, ctx, ops[1].reg, ref, bits);
                 break;
             case MicroInstrOpcode::OpBinaryRegImm:
                 isSum       = ops[2].microOp == MicroOp::Add;

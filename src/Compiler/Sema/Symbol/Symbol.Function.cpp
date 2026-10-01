@@ -1026,8 +1026,7 @@ void SymbolFunction::appendLifecycleDependencies(SmallVector<SymbolFunction*>& o
     const std::shared_lock lock(callDependenciesMutex_);
     if (!lifecycleDependencies_)
         return;
-    for (SymbolFunction* dependency : *lifecycleDependencies_)
-        out.push_back(dependency);
+    out.append(lifecycleDependencies_->data(), lifecycleDependencies_->size());
 }
 
 SymbolFunction::GenericData* SymbolFunction::genericData() const noexcept

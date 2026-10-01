@@ -251,8 +251,8 @@ namespace
             if (!typeInfo.isArray())
                 return;
 
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                outDims.push_back(dim);
+            const auto& dims = typeInfo.payloadArrayDims();
+            outDims.append(dims.data(), dims.size());
             outFinalElemTypeRef = typeInfo.payloadArrayElemTypeRef();
         }
     }

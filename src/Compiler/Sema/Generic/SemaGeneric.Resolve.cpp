@@ -172,8 +172,8 @@ namespace SemaGeneric
             access = collectSymbolMapNamespacePath(startSymMap, nsPath);
         else
         {
-            for (const IdentifierRef idRef : sema.frame().nsPath())
-                nsPath.push_back(idRef);
+            const auto scopePath = sema.frame().nsPath();
+            nsPath.append(scopePath.data(), scopePath.size());
             access = sema.frame().currentAccess();
         }
         const bool globalCompilerIfEnabled = sema.frame().globalCompilerIfEnabled();

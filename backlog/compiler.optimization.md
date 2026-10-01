@@ -15,6 +15,44 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-01 13:13 — Hoisted the repeatedly used address and compared the remaining spill with the current Zig winner.
+- Area: compiler/backend, register allocation and value ranges.
+- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
+  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its byte-match
+  loop at `0x140001500..0x140001512` has six instructions and two memory reads. The
+  candidate span at `0x1400014F0..0x140001553` has 29 non-NOP instructions and three
+  actual memory operands; two LEAs are address calculations, not memory accesses.
+  Zig retains the outer index in `rdx` and forms the current-position address before
+  entering the candidate loop.
+- Current evidence: the Swag byte-match loop retains six non-label instructions,
+  two memory reads and `CHECK=622942003053`. LICM now recognizes an invariant address
+  consumed by a single textual reader inside a nested loop: when the address runs
+  on every enclosing iteration and no call crosses its lifetime, it can move to the
+  enclosing preheader. The candidate span falls from 30 to 29 non-label instructions
+  (35 to 34 including labels), with the same four actual memory operands and one
+  frame read; its two LEAs become one. This closes the repeated-address gap.
+- Remaining spill: the byte load reuses `rax`, which held the outer index. The latch
+  reloads that index from `[rsp + 0x200]`. The first pre-allocation dump keeps the index
+  as `%1227` without a frame round trip; the first post-allocation dump introduces it.
+  Whole-function totals remain 517 Microinstructions, 479 non-label instructions,
+  106 actual memory operands and 32 actual frame operands. The older 131/34 counts
+  included 25 address calculations, two frame-relative; the counters now distinguish
+  those from memory accesses. These totals do not describe the candidate-loop cost.
+- Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
+  floor-modulo result for a positive power-of-two divisor permits masking even for
+  negative inputs; Swag's signed remainder has a different contract. The previously
+  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
+  remaining remainders requires proving the counters' bounds under its own semantics.
+- Next: follow the outer index's interval and the spill election. Keep it across
+  the match loop without adding per-byte traffic or moving another frequently used
+  value to memory. The address-hoisting change does not resolve this allocation decision.
+- Complete when: the candidate latch no longer reloads the outer index and the match
+  loop retains its six instructions and two memory operands without a loss elsewhere.
+
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
@@ -85,38 +123,6 @@ block, and the hot path keeps the register.
 - Complete when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
-
-### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 11:36 — Removed repeated zero extensions while preserving the remaining outer-index residency lead.
-- Area: compiler/backend, register allocation and value ranges.
-- Comparison: accepted campaign `20260930-195406` names C++/Clang 20.1.8 as the fastest
-  other runtime at 23.2491 ms. Its `/O2 /EHsc /std:c++20` object has a six-instruction,
-  two-memory-operand byte match loop at `main+0x530..0x541`. It keeps the outer index
-  in `r8` while a different register holds the loaded byte.
-- Current evidence: the fresh Release dump keeps that same six-instruction, two-memory
-  match loop and `CHECK=622942003053`. The candidate loop still reloads the outer index
-  from `[rsp + 0x200]` at its latch: the byte load has reused `rax`. Its backedge span
-  has 35 Microinstructions, 30 non-label instructions, six memory operands and one
-  explicit frame operand. Adjacent zero-extension folding removes three repeated
-  byte extensions from each four-byte hash and one from checksum accumulation:
-  whole-function size falls from 524 to 517 Microinstructions (486 to 479 non-label
-  instructions), with the same 131 memory and 34 explicit frame operands
-  (including twelve indexed loads abbreviated in the textual dump). The hash
-  helper falls from 15 to 12 instructions. Those totals are not the candidate-loop
-  cost; the match loop and candidate latch retain their original counts.
-- Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  The `i` and `p` remainders retain sign correction. The current Clang winner also
-  retains sign-corrected remainders on those paths, so the former LLVM comparison
-  does not justify changing Swag's overflow contract. Any future simplification
-  must prove the counters' bounds under the existing semantics.
-- Next: follow the outer index through the dump before register allocation and the
-  spill election. Determine whether its frame round trip is already present before
-  allocation, then keep it across the match loop without adding per-byte traffic or
-  moving another frequently used value to memory.
-- Complete when: the candidate latch no longer reloads the outer index and the match
-  loop retains its six instructions and two memory operands without a loss elsewhere.
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
 

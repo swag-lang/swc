@@ -234,7 +234,7 @@ namespace
         if (countView.cstRef().isInvalid() || !countView.type() || !countView.type()->isIntLike())
             return false;
 
-        const ConstantValue& countCst = codeGen.cstMgr().get(countView.cstRef());
+        const ConstantValue& countCst = *countView.cst();
         const uint64_t       count    = countCst.getIntLike().as64();
         SWC_ASSERT(count <= std::numeric_limits<uint32_t>::max());
         outCount = static_cast<uint32_t>(count);

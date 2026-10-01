@@ -147,7 +147,7 @@ namespace
         if (caseView.cstRef().isInvalid())
             return std::nullopt;
 
-        const ConstantValue& constantValue = codeGen.cstMgr().get(caseView.cstRef());
+        const ConstantValue& constantValue = *caseView.cst();
         if (!constantValue.isString())
             return std::nullopt;
 
@@ -867,7 +867,7 @@ namespace
         if (caseView.cstRef().isInvalid())
             return std::nullopt;
 
-        const ConstantValue* constantValue = &codeGen.cstMgr().get(caseView.cstRef());
+        const ConstantValue* constantValue = caseView.cst();
         if (constantValue->isEnumValue())
             constantValue = &codeGen.cstMgr().get(constantValue->getEnumValue());
 
@@ -997,7 +997,7 @@ namespace
                 if (caseView.cstRef().isInvalid())
                     return false;
 
-                const ConstantValue& constantValue = codeGen.cstMgr().get(caseView.cstRef());
+                const ConstantValue& constantValue = *caseView.cst();
                 if (constantValue.isNull() || (constantValue.isValuePointer() && !constantValue.getValuePointer()))
                 {
                     if (nullLabel.isValid())
@@ -1295,7 +1295,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
     {
         const SemaNodeView        exprView       = codeGen.viewType(exprRef);
         const CodeGenNodePayload& exprPayload    = codeGen.payload(exprRef);
-        const TypeInfo&           exprType       = codeGen.typeMgr().get(exprView.typeRef());
+        const TypeInfo&           exprType       = *exprView.type();
         const TypeRef             compareTypeRef = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
         const TypeInfo&           compareType    = codeGen.typeMgr().get(compareTypeRef);
         if (isDynamicStructSwitch(codeGen, compareTypeRef, *switchState))

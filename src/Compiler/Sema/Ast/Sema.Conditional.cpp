@@ -192,17 +192,16 @@ namespace
         if (!leftType.isSupportsNullableQualifier() || leftType.isNonNullable())
             return leftTypeRef;
 
-        TypeInfo resultType = leftType;
-        resultType.removeFlag(TypeInfoFlagsE::Nullable);
-
         // The left branch is selected only when it is present, so the fallback
         // determines the result contract. An explicit non-null lhs remains non-null.
         const TypeInfo& rawRightType         = sema.typeMgr().get(rightTypeRef);
         const TypeRef   concreteRightTypeRef = rawRightType.isAlias() ? rawRightType.unwrap(sema.ctx(), rightTypeRef, TypeExpandE::Alias) : rightTypeRef;
         const TypeInfo& rightType            = concreteRightTypeRef == rightTypeRef ? rawRightType : sema.typeMgr().get(concreteRightTypeRef);
         if (rightType.isNull() || rightType.isNullable())
-            resultType.addFlag(TypeInfoFlagsE::Nullable);
+            return leftTypeRef;
 
+        TypeInfo resultType = leftType;
+        resultType.removeFlag(TypeInfoFlagsE::Nullable);
         const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
         if (resultTypeRef == concreteLeftTypeRef)
             return leftTypeRef;

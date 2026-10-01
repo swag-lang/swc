@@ -110,6 +110,319 @@ namespace PostRaPeephole
                 return ops[0].reg == loaded && ops[1].reg != loaded;
             return false;
         }
+
+        struct FloatLaneDemand
+        {
+            // One bit per 32-bit lane. Unknown control flow preserves all lanes.
+            std::array<uint8_t, 32> lanes;
+
+            void reset() { lanes.fill(15); }
+
+            static uint8_t mask(MicroOpBits bits)
+            {
+                if (bits == MicroOpBits::B32)
+                    return 1;
+                if (bits == MicroOpBits::B64)
+                    return 3;
+                return 15;
+            }
+
+            void read(MicroReg reg, uint8_t mask)
+            {
+                if (reg.isFloat())
+                    lanes[reg.index()] |= mask;
+            }
+
+            void clear(MicroReg reg)
+            {
+                if (reg.isFloat())
+                    lanes[reg.index()] = 0;
+            }
+        };
+
+        void transferFloatLaneDemand(FloatLaneDemand& demand, const Context& ctx, MicroInstrRef ref)
+        {
+            const MicroInstr& inst = *ctx.storage->ptr(ref);
+            const auto&       info = MicroInstr::info(inst.op);
+            if (inst.op == MicroInstrOpcode::Ret && !ctx.isClaimed(ref) && ctx.passContext)
+            {
+                // Only return values and callee-saved registers survive a return.
+                // Keep every lane of those values, including a vector return.
+                demand.lanes.fill(0);
+                const auto& conv = CallConv::get(ctx.passContext->callConvKind);
+                if (ctx.passContext->usesFloatReturnRegOnRet)
+                    demand.read(conv.floatReturn, 15);
+                for (const MicroReg reg : conv.floatPersistentRegs)
+                    demand.read(reg, 15);
+                return;
+            }
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) && !ctx.isClaimed(ref))
+            {
+                // The call replaces transient values and reads only its argument
+                // registers. Preserve every argument lane: its width may be a vector.
+                // Nonvolatile registers carry their actual later demand across it.
+                const auto useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                for (const MicroReg defined : useDef.defs)
+                    demand.clear(defined);
+                for (const MicroReg used : useDef.uses)
+                    demand.read(used, 15);
+                return;
+            }
+            if (ctx.isClaimed(ref) ||
+                (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !info.flags.has(MicroInstrFlagsE::JumpInstruction)))
+            {
+                demand.reset();
+                return;
+            }
+            const auto* ops = inst.ops(*ctx.operands);
+            if (!ops)
+                return;
+
+            if (inst.op == MicroInstrOpcode::LoadRegReg)
+            {
+                const uint8_t mask = FloatLaneDemand::mask(ops[2].opBits);
+                if (ops[0].reg.isFloat() && ops[1].reg.isFloat())
+                {
+                    const uint8_t needed = demand.lanes[ops[0].reg.index()];
+                    demand.lanes[ops[0].reg.index()] &= ~mask;
+                    demand.read(ops[1].reg, needed & mask);
+                }
+                else
+                {
+                    demand.clear(ops[0].reg);
+                    demand.read(ops[1].reg, mask);
+                }
+                return;
+            }
+
+            if (inst.op == MicroInstrOpcode::ClearReg || inst.op == MicroInstrOpcode::LoadRegMem ||
+                inst.op == MicroInstrOpcode::LoadVolatileRegMem || inst.op == MicroInstrOpcode::LoadAmcRegMem ||
+                inst.op == MicroInstrOpcode::LoadVecRegMem)
+            {
+                demand.clear(ops[0].reg);
+                return;
+            }
+            if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg)
+            {
+                demand.read(ops[1].reg, FloatLaneDemand::mask(ops[2].opBits));
+                return;
+            }
+            if (inst.op == MicroInstrOpcode::CmpRegReg)
+            {
+                const uint8_t mask = FloatLaneDemand::mask(ops[2].opBits);
+                demand.read(ops[0].reg, mask);
+                demand.read(ops[1].reg, mask);
+                return;
+            }
+
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[0].reg.isFloat() &&
+                (ops[3].opBits == MicroOpBits::B32 || ops[3].opBits == MicroOpBits::B64) &&
+                hasThreeOperandForm(ops[4].microOp))
+            {
+                if (ops[4].microOp == MicroOp::FloatAnd || ops[4].microOp == MicroOp::FloatXor)
+                {
+                    // Bitwise operations have no cross-lane or exception effects.
+                    // Capture the output demand before clearing an aliased input.
+                    const uint8_t needed = demand.lanes[ops[0].reg.index()];
+                    demand.clear(ops[0].reg);
+                    demand.read(ops[1].reg, needed);
+                    demand.read(ops[2].reg, needed);
+                    return;
+                }
+                const uint8_t mask  = FloatLaneDemand::mask(ops[3].opBits);
+                const uint8_t upper = demand.lanes[ops[0].reg.index()] & ~mask;
+                demand.clear(ops[0].reg);
+                demand.read(ops[1].reg, mask | upper);
+                demand.read(ops[2].reg, mask);
+                return;
+            }
+            if ((inst.op == MicroInstrOpcode::OpBinaryRegReg || inst.op == MicroInstrOpcode::OpBinaryRegMem) &&
+                ops[0].reg.isFloat() && (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
+            {
+                const uint8_t mask = FloatLaneDemand::mask(ops[2].opBits);
+                const MicroOp op   = ops[info.microOpIndex].microOp;
+                if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
+                {
+                    if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                        demand.read(ops[1].reg, demand.lanes[ops[0].reg.index()]);
+                    return;
+                }
+                if (op == MicroOp::FloatSqrt)
+                {
+                    const uint8_t upper = demand.lanes[ops[0].reg.index()] & ~mask;
+                    demand.clear(ops[0].reg);
+                    if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                        demand.read(ops[1].reg, mask | upper);
+                    return;
+                }
+                if (hasThreeOperandForm(op))
+                {
+                    demand.read(ops[0].reg, mask);
+                    if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                        demand.read(ops[1].reg, mask);
+                    return;
+                }
+            }
+
+            // Unknown partial writes cannot kill an upper-lane demand.
+            const auto useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg used : useDef.uses)
+                demand.read(used, 15);
+        }
+    }
+
+    // MOVSS/MOVSD retain the old destination's upper lanes. A complete copy
+    // removes that dependency whenever no reachable consumer needs those lanes.
+    // Solve demands over straight-line blocks so a scalar use beyond a branch
+    // does not make all four lanes live. Pending rewrites stay opaque.
+    void widenScalarFloatCopies(Context& ctx)
+    {
+        if (!ctx.builder)
+            return;
+        const auto& cfg = ctx.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return;
+        const auto refs      = cfg.instructionRefs();
+        bool       candidate = false;
+        for (const auto ref : refs)
+        {
+            const auto* inst = ctx.storage->ptr(ref);
+            if (inst->op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(ref))
+                continue;
+            const auto* ops = inst->ops(*ctx.operands);
+            if (ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
+                (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
+            {
+                candidate = true;
+                break;
+            }
+        }
+        if (!candidate)
+            return;
+
+        struct LaneBlock
+        {
+            uint32_t        begin;
+            uint32_t        end;
+            FloatLaneDemand input{};
+        };
+        std::vector<LaneBlock> blocks;
+        std::vector<uint32_t>  blockFor(refs.size());
+        uint32_t               begin = 0;
+        for (uint32_t i = 0; i < refs.size(); ++i)
+        {
+            blockFor[i]            = static_cast<uint32_t>(blocks.size());
+            const auto& successors = cfg.successors(i);
+            if (i + 1 < refs.size() && successors.size() == 1 && successors[0] == i + 1 &&
+                cfg.predecessors(i + 1).size() == 1)
+                continue;
+            blocks.push_back({begin, i + 1});
+            begin = i + 1;
+        }
+
+        const auto outputDemand = [&](const LaneBlock& block) {
+            FloatLaneDemand demand{};
+            const auto&     successors = cfg.successors(block.end - 1);
+            if (successors.empty())
+                demand.reset();
+            for (const uint32_t successor : successors)
+                for (size_t reg = 0; reg < demand.lanes.size(); ++reg)
+                    demand.lanes[reg] |= blocks[blockFor[successor]].input.lanes[reg];
+            return demand;
+        };
+
+        std::vector<uint32_t> pending;
+        std::vector<bool>     queued(blocks.size(), true);
+        for (uint32_t i = 0; i < blocks.size(); ++i)
+            pending.push_back(i);
+        while (!pending.empty())
+        {
+            const uint32_t index = pending.back();
+            pending.pop_back();
+            queued[index] = false;
+            auto& block   = blocks[index];
+            auto  demand  = outputDemand(block);
+            for (uint32_t i = block.end; i > block.begin;)
+                transferFloatLaneDemand(demand, ctx, refs[--i]);
+            if (demand.lanes == block.input.lanes)
+                continue;
+            block.input = demand;
+            for (const uint32_t predecessor : cfg.predecessors(block.begin))
+            {
+                const uint32_t predecessorBlock = blockFor[predecessor];
+                if (!queued[predecessorBlock])
+                {
+                    queued[predecessorBlock] = true;
+                    pending.push_back(predecessorBlock);
+                }
+            }
+        }
+
+        for (const auto& block : blocks)
+        {
+            auto demand = outputDemand(block);
+            for (uint32_t i = block.end; i > block.begin;)
+            {
+                const auto  ref   = refs[--i];
+                const auto* inst  = ctx.storage->ptr(ref);
+                const auto* ops   = inst->ops(*ctx.operands);
+                bool        widen = false;
+                if (inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
+                    ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
+                    (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
+                    widen = !(demand.lanes[ops[0].reg.index()] & ~FloatLaneDemand::mask(ops[2].opBits));
+                transferFloatLaneDemand(demand, ctx, ref);
+                if (widen && ctx.claimAll({ref}))
+                {
+                    MicroInstrOperand wide[3] = {ops[0], ops[1], ops[2]};
+                    wide[2].opBits            = MicroOpBits::B128;
+                    ctx.emitRewrite(ref, inst->op, wide);
+                }
+            }
+        }
+    }
+
+    // A retained integer copy need not sit on the floating consumer's path:
+    // load float first, then capture its unchanged bits in the integer cache.
+    // Both values and the memory access stay in place; the immediate consumer
+    // can start without waiting for a general-register-to-XMM transfer.
+    bool tryLoadIntoFirstFloatConsumer(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.encoder)
+            return false;
+        const auto* load = inst.ops(*ctx.operands);
+        if (!load || !load[0].reg.isInt() || ctx.isPrivateFrameBase(load[0].reg) ||
+            (load[2].opBits != MicroOpBits::B32 && load[2].opBits != MicroOpBits::B64))
+            return false;
+        const auto  copyRef  = ctx.nextRef(ref);
+        const auto* copyInst = ctx.instruction(copyRef);
+        const auto* copy     = copyInst ? copyInst->ops(*ctx.operands) : nullptr;
+        if (!copyInst || copyInst->op != MicroInstrOpcode::LoadRegReg || !copy ||
+            !copy[0].reg.isFloat() || copy[1].reg != load[0].reg || copy[2].opBits != load[2].opBits)
+            return false;
+        const auto  consumerRef = ctx.nextRef(copyRef);
+        const auto* consumer    = ctx.instruction(consumerRef);
+        if (!consumer || ctx.isClaimed(consumerRef) ||
+            (consumer->op != MicroInstrOpcode::OpBinaryRegReg && consumer->op != MicroInstrOpcode::OpBinaryRegMem &&
+             consumer->op != MicroInstrOpcode::OpBinaryRegRegReg && consumer->op != MicroInstrOpcode::CmpRegReg))
+            return false;
+        const auto useDef = consumer->collectUseDef(*ctx.operands, ctx.encoder);
+        if (std::ranges::find(useDef.uses, copy[0].reg) == useDef.uses.end() ||
+            std::ranges::find(useDef.uses, load[0].reg) != useDef.uses.end())
+            return false;
+
+        MicroInstrOperand directLoad[4]   = {load[0], load[1], load[2], load[3]};
+        directLoad[0].reg                 = copy[0].reg;
+        MicroInstrOperand retainedCopy[3] = {copy[0], copy[1], copy[2]};
+        retainedCopy[0].reg               = load[0].reg;
+        retainedCopy[1].reg               = copy[0].reg;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, inst, directLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, *copyInst, retainedCopy) || !ctx.claimAll({ref, copyRef}))
+            return false;
+        ctx.emitRewrite(ref, inst.op, directLoad);
+        ctx.emitRewrite(copyRef, copyInst->op, retainedCopy);
+        return true;
     }
 
     bool tryFoldLoadIntoTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

@@ -291,6 +291,50 @@ uint32_t MicroPassHelpers::computeNextVirtualFloatRegIndex(const MicroPassContex
     return computeNextVirtualRegIndex(context, true, 1);
 }
 
+void MicroPassHelpers::collectFrameDerivedRegs(std::unordered_set<MicroReg>& out, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroReg stackPointer)
+{
+    out.clear();
+    if (!stackPointer.isValid())
+        return;
+    out.insert(stackPointer);
+
+    bool changed = true;
+    while (changed)
+    {
+        changed = false;
+        for (const MicroInstr& inst : storage.view())
+        {
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+
+            bool derived = false;
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadRegReg:
+                case MicroInstrOpcode::LoadAddrRegMem:
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                    derived = out.contains(ops[1].reg);
+                    break;
+                case MicroInstrOpcode::OpBinaryRegReg:
+                    derived = ops[3].microOp == MicroOp::Add && out.contains(ops[1].reg);
+                    break;
+                case MicroInstrOpcode::OpBinaryRegRegReg:
+                    derived = ops[4].microOp == MicroOp::Add && (out.contains(ops[1].reg) || out.contains(ops[2].reg));
+                    break;
+                case MicroInstrOpcode::OpBinaryRegRegImm:
+                    derived = (ops[3].microOp == MicroOp::Add || ops[3].microOp == MicroOp::Subtract) && out.contains(ops[1].reg);
+                    break;
+                default:
+                    break;
+            }
+
+            if (derived && out.insert(ops[0].reg).second)
+                changed = true;
+        }
+    }
+}
+
 void MicroPassHelpers::collectFrameVariableExtents(std::vector<std::pair<uint64_t, uint64_t>>& out, const MicroPassContext& context, const MicroReg frameBase)
 {
     out.clear();

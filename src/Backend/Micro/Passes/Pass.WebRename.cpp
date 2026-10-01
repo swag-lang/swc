@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.WebRename.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
@@ -84,6 +85,11 @@ namespace
         if (destructive.empty())
             return false;
 
+        // Value numbering deliberately leaves frame reads to mem-to-reg.
+        // Preserving them here would create single-use integer copies that
+        // instruction combining removes, only to recreate them next sweep.
+        std::unordered_set<MicroReg>                                                           frameDerived;
+        bool                                                                                   frameDerivedReady = false;
         std::unordered_map<MicroReg, std::unordered_map<uint64_t, std::vector<MicroInstrRef>>> loads;
         std::vector<MicroInstrRef>                                                             preserve;
         const auto                                                                             flush = [&] {
@@ -111,7 +117,15 @@ namespace
             if (it->op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
                 ops[0].reg.isVirtualFloat() && ops[1].reg.isVirtualInt() &&
                 destructive.contains(ops[0].reg) && !excluded.contains(ops[0].reg))
-                loads[ops[1].reg][ops[3].valueU64].push_back(it.current);
+            {
+                if (!frameDerivedReady)
+                {
+                    MicroPassHelpers::collectFrameDerivedRegs(frameDerived, storage, operands, CallConv::get(context.callConvKind).stackPointer);
+                    frameDerivedReady = true;
+                }
+                if (!frameDerived.contains(ops[1].reg))
+                    loads[ops[1].reg][ops[3].valueU64].push_back(it.current);
+            }
         }
         flush();
         if (preserve.empty())

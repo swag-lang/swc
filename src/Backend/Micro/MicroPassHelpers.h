@@ -269,6 +269,11 @@ namespace MicroPassHelpers
     bool areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands, uint32_t index);
     bool areCpuFlagsDeadAfterInCfg(MicroBuilder& builder, MicroInstrRef afterRef);
 
+    // Flow-insensitive closure of frame-derived addresses through copies,
+    // address computations and additions. Consumers use the same conservative
+    // set when coordinating memory forwarding with scalar stack promotion.
+    void collectFrameDerivedRegs(std::unordered_set<MicroReg>& out, const MicroStorage& storage, const MicroOperandStorage& operands, MicroReg stackPointer);
+
     // The frame extents [lo, hi) of the function's stack locals, as offsets from the frame base
     // the code generator names (MicroPassContext::debugStackBaseVirtualReg). Frame objects are
     // disjoint, and an address formed from one object reaches that object alone, so these are

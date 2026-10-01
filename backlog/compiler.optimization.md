@@ -15,6 +15,92 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-01 10:10 — Compared the current loop with the latest Clang winner and narrowed the remaining register gap.
+- Area: compiler/backend, register allocation and value ranges.
+- Comparison: accepted campaign `20260930-195406` names C++/Clang 20.1.8 as the fastest
+  other runtime at 23.2491 ms. Its `/O2 /EHsc /std:c++20` object has a six-instruction,
+  two-memory-operand byte match loop at `main+0x530..0x541`. It keeps the outer index
+  in `r8` while a different register holds the loaded byte.
+- Current evidence: the fresh Release dump keeps that same six-instruction, two-memory
+  match loop and `CHECK=622942003053`. The candidate loop still reloads the outer index
+  from `[rsp + 0x200]` at its latch: the byte load has reused `rax`. Its backedge span
+  has 35 Microinstructions, 30 non-label instructions, six memory operands and one
+  explicit frame operand. Whole-function size is 524 Microinstructions; that total
+  is not the candidate-loop cost.
+- Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  The `i` and `p` remainders retain sign correction. The current Clang winner also
+  retains sign-corrected remainders on those paths, so the former LLVM comparison
+  does not justify changing Swag's overflow contract. Any future simplification
+  must prove the counters' bounds under the existing semantics.
+- Next: follow the outer index through the dump before register allocation and the
+  spill election. Determine whether its frame round trip is already present before
+  allocation, then keep it across the match loop without adding per-byte traffic or
+  moving another frequently used value to memory.
+- Complete when: the candidate latch no longer reloads the outer index and the match
+  loop retains its six instructions and two memory operands without a loss elsewhere.
+
+### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-01 09:25 — Narrowed the native regression to the inlined shape and updated the remaining packing gap.
+- Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
+- Comparison: accepted campaign `20260930-195406` reports Zig 0.15.2 at 15.2582 ms and
+  Swag native Release at 30.3729 ms, with `CHECK=169096566666`. The inspected Zig
+  `ReleaseFast` timestep has 348 machine instructions and 101 memory operands, retains
+  body state across timesteps, and executes four packed and two scalar square roots.
+- Regression evidence: the preceding accepted campaign `20260930-152655` reports Swag
+  native at 24.8768 ms; the raw increase is 22.1%, amplified to 38.5% by the campaigns'
+  different control factors. JIT moves from 25.6579 to 24.8732 ms. A fresh dump from the
+  preserved `f0a34dcf4` compiler shows why the two modes are not the same code: `#run`
+  retains the call to `advance`, while `#main` inlines it. JIT's 470 non-label Micro
+  operations in `advance` exactly match the native function from `819dd7872`, before
+  borrowed-slice inlining. An accepted controlled comparison must still separate the
+  earlier register/forwarding changes, inlining, and the current scalar dependency fixes.
+- Current shape: main's timestep is 449/131/24 Microinstructions/memory operands/explicit
+  frame operands, including the 16/6/0 position loop. The prior inlined shape was
+  464/117/24. The slice-header vector round trip is gone, as are the timestep's transfers
+  between the integer and floating register files. The fourteen extra memory operands
+  replace cached integer bits; this is a code-level tradeoff, not a measured speedup.
+  All 32 register-to-register scalar copies in the timestep are full-width copies with
+  no dependency on the old destination's unused lanes. Its ten roots are encoded as
+  actual scalar roots, rather than computing an unused second lane.
+- Remaining gap: the pair roots and divisions still operate on one interaction at a
+  time. A useful pack must share the coordinate producers and scalar consumers without
+  retaining more live state than the register file can hold. The position loop already
+  packs x/y updates and has no frame traffic inside it.
+- Rejected root-pair scheduling after inlining: hoist the second independent distance's
+  proven pure producers across disjoint same-base stores, rename their SSA values, then
+  pack two scalar square roots. Main's timestep uses three packed and four scalar roots,
+  but changes from 464/117/24 to 511/148/76 instructions/memory operands/frame operands.
+  The standalone step reaches five packed roots, at 529/176/107 instead of 473/134/44.
+  Both checksums remain exact; Raytrace remains unchanged. Extending coordinate lifetimes
+  costs more memory than the packed roots save, so the prototype was removed.
+- A second schedule caches the hoisted coordinates and upper root lane in integer registers
+  until their original uses. Main's loop still regresses to 532/145/73; the standalone step
+  is 575/172/103. The integer transfers do not remove enough XMM interference and add more
+  instructions. This prototype was also removed. A profitable next design needs packed
+  coordinate producers and their scalar consumers planned together, with a register-pressure
+  estimate; pairing the expensive operations alone is not sufficient.
+- Rejected scalar-prefix trial: capturing common magnitudes before store-tree vectorization,
+  and allowing untouched prefix/suffix roots, grows the step from 464/152/44 to 576/222/119
+  instructions/memory operands/frame operands. Scalar coordinate work remains live for the
+  distance reductions, while packed velocity trees recompute it and keep the captures live.
+  The checksum stays exact, but the static regression rejects this approach. Packing needs
+  shared scalar/vector producers or independent pair scheduling, not late store trees alone.
+- Failed earlier trials: outer-unroll temporary renaming alone changed no benchmark function.
+  Broad LICM address reassociation grew SHA-256 main from 370 to 553 instructions by hiding
+  the four-byte swap idiom; keep the narrowed reassociation guard.
+- Next: finish the controlled historical attribution, then plan packed producers and
+  consumers together with a register-pressure estimate. Compare each interaction region
+  and the position loop separately; fewer memory operands alone did not settle the
+  previous integer-cache tradeoff.
+- Complete when: the step retains or packs body state with no redundant pair work and
+  matches the winner's packed roots/divisions without a generated-code loss in other tasks.
+- Related: compiler.optimization.016, language.design.037.
+
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
 
 - Recorded: 2026-09-28 09:58
@@ -43,79 +129,6 @@ block, and the hot path keeps the register.
   prototypes restores the accepted instruction counts. No new timing campaign was run.
 - Next: represent unwind ranges and parent links in `MachineCode`, emit them from the final physical instruction stream, and publish all ranges in native `.pdata` and the JIT function table. Then move only saves for registers first defined below the guard, with a proof for each path to a restore. Test both arms, nested calls and exceptional unwinding before and after the delayed saves in native and JIT output; compare no-hit and hit paths against MSVC.
 - Complete when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
-
-### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-09-30 19:52 — Rejected two root-packing schedules that increased spills.
-- Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
-- Comparison: accepted campaign `20260930-152655` reports Zig at 17.0078 ms and Swag native
-  Release at 24.8768 ms, with `CHECK=169096566666`. The locally inspected Zig 0.15.2
-  `ReleaseFast` assembly inlines the step, retains body state across timesteps, and executes
-  four packed and two scalar square roots per unrolled step. No new timing campaign was run.
-- Current scalar shape: ten straight-line pairs with direct offsets, one slice-base load,
-  and no branch in the interaction section. SLP now supports two f64 lanes and broadcasting
-  a stable block-entry scalar. The position-update loop falls from 21 to 16 Microinstructions
-  and nine to six memory operands, with packed multiplication/addition and no spill inside
-  that loop. The whole step changes from 467 to 463 instructions and 179 to 176 memory
-  operands, retaining ten saved XMM registers and twenty frame references.
-- Stored-value experiment: separating independent scalar-double webs only where register
-  reuse blocks a later load from forwarding brings the step to 464 instructions and 152
-  memory operands. Frame references rise from twenty to 44, while body-memory traffic falls;
-  the position-update loop remains packed. This is a static tradeoff with a net reduction in
-  memory operations, not a measured speedup. The straight-line interaction region changes
-  from 416 instructions/149 memory operands to 417/125, including 24 frame operands.
-  Raytrace, ChaCha and SHA-256 retain their code counts and checksums. C++ tests, the release
-  optimizer suite and the guarded regression pass; the benchmark checksum is unchanged.
-- Repeated-load preservation now gives loads destroyed by scalar updates stable integer
-  names before value numbering. Across straight lines without stores or address changes,
-  the bits stay reusable without extending XMM interference. The step is 473/134/44
-  instructions/memory operands/frame operands; its interaction region is 426/107/24.
-  Eighteen memory operands disappear for nine extra register-transfer instructions, with
-  unchanged frame references. Energy changes from 237/97/10 to 246/79/10. The floating-cache
-  alternative was rejected at 499/148/58 for the step: added XMM residency caused spills.
-  The five benchmark checksums, 1204 C++ tests and 3530 release tests in JIT/native pass.
-- Borrowed-slice inlining now admits non-null slices of named element types under the
-  existing same-module, body-cost and single-call-site policy. Nbody's timestep is in main:
-  its loop is 464/117/24 instructions/memory operands/frame operands, including the unchanged
-  16/6/0 position loop. The former out-of-line step was 473/134/44 plus the caller's loop;
-  twenty XMM save/restore frame references and the per-step call/return disappear. The
-  interaction arithmetic remains scalar. Other inspected benchmark functions are unchanged.
-  Enabling this exposed a detached array-literal argument whose element conversions were
-  lost during re-analysis. Reapplying its resolved implicit slice conversion fixes the root
-  cause; operator and argument side effects remain single. The 3532 release JIT/native tests,
-  27 devmode slice tests, semantic positive/negative suites, scripts and five checksums pass.
-- Remaining gap: all ten pair roots and divisions remain scalar. The slice-header root
-  and derived data root prevent the current whole-block SLP alias proof. The retained f64
-  SLP step is an enabler, not vectorization of the interactions.
-- Next: pack independent interaction computations while preserving their shared scalar
-  magnitudes and reducing register pressure. Prove the read-only prefix/root relationship
-  before moving memory operations; compare each pair section and position loop separately.
-- Rejected root-pair scheduling after inlining: hoist the second independent distance's
-  proven pure producers across disjoint same-base stores, rename their SSA values, then
-  pack two scalar square roots. Main's timestep uses three packed and four scalar roots,
-  but changes from 464/117/24 to 511/148/76 instructions/memory operands/frame operands.
-  The standalone step reaches five packed roots, at 529/176/107 instead of 473/134/44.
-  Both checksums remain exact; Raytrace remains unchanged. Extending coordinate lifetimes
-  costs more memory than the packed roots save, so the prototype was removed.
-- A second schedule caches the hoisted coordinates and upper root lane in integer registers
-  until their original uses. Main's loop still regresses to 532/145/73; the standalone step
-  is 575/172/103. The integer transfers do not remove enough XMM interference and add more
-  instructions. This prototype was also removed. A profitable next design needs packed
-  coordinate producers and their scalar consumers planned together, with a register-pressure
-  estimate; pairing the expensive operations alone is not sufficient.
-- Rejected scalar-prefix trial: capturing common magnitudes before store-tree vectorization,
-  and allowing untouched prefix/suffix roots, grows the step from 464/152/44 to 576/222/119
-  instructions/memory operands/frame operands. Scalar coordinate work remains live for the
-  distance reductions, while packed velocity trees recompute it and keep the captures live.
-  The checksum stays exact, but the static regression rejects this approach. Packing needs
-  shared scalar/vector producers or independent pair scheduling, not late store trees alone.
-- Failed earlier trials: outer-unroll temporary renaming alone changed no benchmark function.
-  Broad LICM address reassociation grew SHA-256 main from 370 to 553 instructions by hiding
-  the four-byte swap idiom; keep the narrowed reassociation guard.
-- Complete when: the step retains or packs body state with no redundant pair work and matches
-  the winner's packed roots/divisions without a generated-code loss in other tasks.
-- Related: compiler.optimization.016, language.design.037.
 
 ### compiler.optimization.016 — General value-web normalization still extends live ranges too far
 
@@ -169,28 +182,6 @@ block, and the hot path keeps the register.
 - Complete when: no function of `bin/std`, tests included, needs more than sixteen sweeps in
   either configuration, or the chain that does is identified and bounded.
 - Related: compiler.optimization.029, compiler.core.004.
-
-### compiler.optimization.105 — The lz77 chain loop still divides two counters as signed
-
-- Recorded: 2026-09-30 08:42
-- Area: compiler/backend, value ranges and register allocation
-- Evidence: the accepted campaign `20260929-203640` names Odin as lz77's fastest other runtime
-  (20.594 ms against Swag's 23.693, 1.150x). In the Release chain loop, `cand % WINDOW` is now
-  one `and`: the loop condition `cand >= 0` proves the dividend, and the late strength-reduction
-  instance no longer expands it first. The match loop compares `[root + l]` against a byte
-  through two rooted addresses, six instructions a trip where it was seven. `Lz77.__main_0`
-  goes from 531 to 526 Micro instructions; `CHECK=622942003053` is unchanged. No timing was taken.
-- What is left on that path: `prev[i % WINDOW]` and `prev[p % WINDOW]` keep the five-instruction
-  sign-corrected remainder, because `i` and `p` are loop-carried sums with no test that bounds
-  them from below. LLVM proves them from the `nsw` additions that start at zero; Swag defines no
-  such fact for a release build. The chain loop also reloads `i` from `[rsp + 0x200]` once per
-  candidate: the byte read of the match loop takes `rax`, which held it.
-- Next: decide whether a counter that starts at a non-negative constant and only grows by
-  non-negative steps may be treated as non-negative when the overflow guard is off, and state
-  the rule in the language reference before the backend relies on it. Separately, find why the
-  allocator evicts `i` instead of the match loop's one-instruction temporary.
-- Complete when: both remainders are masks under a documented rule, or the rule is rejected and
-  this lead is cut down to the reload.
 
 ### compiler.optimization.103 — The CABAC significance loop reloads two pointers at its latch
 

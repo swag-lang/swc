@@ -413,7 +413,9 @@ namespace
                 // we still track the bit pattern so cvtf2f folding can see it.
                 if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
                     return false;
-                outValue.value  = ops[2].valueU64;
+                if (getNumBits(ops[1].opBits) > 64 || ops[2].hasWideImmediateValue())
+                    return false;
+                outValue.value  = ops[2].valueU64 & getBitsMask(ops[1].opBits);
                 outValue.opBits = ops[1].opBits;
                 return true;
 
@@ -438,8 +440,10 @@ namespace
                     return false;
 
                 const MicroOpBits moveBits = ops[2].opBits;
-                outValue.value             = src.value & getBitsMask(moveBits);
-                outValue.opBits            = moveBits;
+                if (!src.covers(moveBits, ops[1].reg))
+                    return false;
+                outValue.value  = src.value & getBitsMask(moveBits);
+                outValue.opBits = moveBits;
                 return true;
             }
 
@@ -452,6 +456,8 @@ namespace
                 if (!tryGetKnownReachingValue(inputValue, context, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
                     return false;
 
+                if (!inputValue.covers(ops[1].opBits, ops[0].reg))
+                    return false;
                 uint64_t   foldedValue = 0;
                 const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, inputValue.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
                 if (status != Math::FoldStatus::Ok)
@@ -524,6 +530,9 @@ namespace
                 if (!tryGetKnownReachingValue(rhs, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                     return false;
 
+                const MicroOpBits rhsBits = MicroPassHelpers::isVariableScalarShiftOp(ops[3].microOp) ? MicroOpBits::B8 : ops[2].opBits;
+                if (!lhs.covers(ops[2].opBits, ops[0].reg) || !rhs.covers(rhsBits, ops[1].reg))
+                    return false;
                 uint64_t   foldedValue = 0;
                 const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, lhs.value, rhs.value, ops[3].microOp, ops[2].opBits);
                 if (status != Math::FoldStatus::Ok)
@@ -546,6 +555,8 @@ namespace
                 if (!tryGetKnownReachingValue(base, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                     return false;
 
+                if (!base.covers(ops[2].opBits, ops[1].reg))
+                    return false;
                 outValue.value  = (base.value + ops[3].valueU64) & getBitsMask(ops[2].opBits);
                 outValue.opBits = ops[2].opBits;
                 return true;
@@ -561,6 +572,8 @@ namespace
                 if (!tryGetKnownReachingValue(src, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                     return false;
 
+                if (!src.covers(ops[3].opBits, ops[1].reg))
+                    return false;
                 const bool isSigned = inst->op == MicroInstrOpcode::LoadSignedExtRegReg;
                 outValue.value      = MicroPassHelpers::extendImmediateBits(src.value, ops[3].opBits, ops[2].opBits, isSigned);
                 outValue.opBits     = ops[2].opBits;
@@ -590,7 +603,8 @@ namespace
             return false;
 
         KnownValue sourceValue;
-        if (!tryGetKnownReachingValue(sourceValue, ssaState, knownValues, knownFlags, ops[1].reg, instRef))
+        if (!tryGetKnownReachingValue(sourceValue, ssaState, knownValues, knownFlags, ops[1].reg, instRef) ||
+            !sourceValue.covers(ops[2].opBits, ops[1].reg))
             return false;
 
         inst.op          = MicroInstrOpcode::LoadRegImm;

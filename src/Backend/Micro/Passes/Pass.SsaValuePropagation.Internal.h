@@ -9,6 +9,13 @@ struct MicroSsaKnownValue
 {
     uint64_t    value  = 0;
     MicroOpBits opBits = MicroOpBits::B64;
+
+    bool covers(MicroOpBits readBits, MicroReg reg) const
+    {
+        // Only an integer dword definition also proves its zero upper half.
+        return getNumBits(readBits) <= getNumBits(opBits) ||
+               (reg.isAnyInt() && opBits == MicroOpBits::B32 && readBits == MicroOpBits::B64);
+    }
 };
 
 struct MicroSsaKnownValueTraits

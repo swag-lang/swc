@@ -814,12 +814,15 @@ Result NativeArtifactBuilder::partitionObjects() const
     builder_->pdbPath      = paths.pdbPath;
 
     // Object 0 owns shared sections/startup, so the remaining objects only need code.
+    const size_t functionsPerObject = functionCount / numJobs;
+    const size_t extraFunctions     = functionCount % numJobs;
     for (uint32_t i = 0; i < numJobs; ++i)
     {
         builder_->objectDescriptions[i].index              = i;
         builder_->objectDescriptions[i].includeData        = i == 0;
         builder_->objectDescriptions[i].includeMergedRData = i == 0;
         builder_->objectDescriptions[i].objPath            = paths.objectPaths[i];
+        builder_->objectDescriptions[i].functions.reserve(functionsPerObject + (i < extraFunctions ? 1 : 0));
     }
 
     if (builder_->startup)

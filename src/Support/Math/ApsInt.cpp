@@ -73,16 +73,15 @@ int ApsInt::compare(const ApsInt& other) const
     if (unsigned_ != other.unsigned_)
         return unsigned_ ? -1 : 1;
 
-    // ApInt::compare is an unsigned word comparison, which is wrong for signed
-    // negative values (e.g. -1 would compare greater than 0). Dispatch on the
-    // signedness, mirroring lt/gt.
+    // Equal signs have the same order under an unsigned word comparison.
+    // Compare signs first so a negative value still precedes a nonnegative one.
     if (!unsigned_)
     {
-        if (slt(other))
-            return -1;
-        if (sgt(other))
-            return 1;
-        return 0;
+        SWC_ASSERT(bitWidth() == other.bitWidth());
+        const bool negative      = isNegative();
+        const bool otherNegative = other.isNegative();
+        if (negative != otherNegative)
+            return negative ? -1 : 1;
     }
 
     return ApInt::compare(other);

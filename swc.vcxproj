@@ -195,6 +195,7 @@
         <ClCompile Include="src\Unittest\Support\Test.Support.JobManager.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.AppendOnlyLookupTable.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.PagedStore.cpp"/>
+        <ClCompile Include="src\Unittest\Support\Test.Support.StringMap.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.Logger.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.Os.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.Utf8.cpp"/>

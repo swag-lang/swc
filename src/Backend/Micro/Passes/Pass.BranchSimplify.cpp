@@ -10,7 +10,7 @@
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/TaskContext.h"
-#include "Support/Math/ApsInt.h"
+#include "Support/Math/ApInt.h"
 #include "Support/Report/Assert.h"
 #include <optional>
 
@@ -521,54 +521,52 @@ namespace
         if (!bitWidth)
             return false;
 
-        const ApsInt lhsUnsigned(std::bit_cast<int64_t>(lhsValue), bitWidth, true);
-        const ApsInt rhsUnsigned(std::bit_cast<int64_t>(rhsValue), bitWidth, true);
-        const ApsInt lhsSigned(std::bit_cast<int64_t>(lhsValue), bitWidth, false);
-        const ApsInt rhsSigned(std::bit_cast<int64_t>(rhsValue), bitWidth, false);
+        const ApInt lhs(lhsValue, bitWidth);
+        const ApInt rhs(rhsValue, bitWidth);
 
         switch (cond)
         {
             case MicroCond::Equal:
             case MicroCond::Zero:
-                outTaken = lhsUnsigned.eq(rhsUnsigned);
+                outTaken = lhs.eq(rhs);
                 return true;
 
             case MicroCond::NotEqual:
             case MicroCond::NotZero:
-                outTaken = !lhsUnsigned.eq(rhsUnsigned);
+                outTaken = !lhs.eq(rhs);
                 return true;
 
             case MicroCond::Above:
-                outTaken = lhsUnsigned.gt(rhsUnsigned);
+                outTaken = lhs.ugt(rhs);
                 return true;
 
             case MicroCond::AboveOrEqual:
-                outTaken = lhsUnsigned.ge(rhsUnsigned);
+                outTaken = lhs.uge(rhs);
                 return true;
 
             case MicroCond::Below:
-                outTaken = lhsUnsigned.lt(rhsUnsigned);
+                outTaken = lhs.ult(rhs);
                 return true;
 
             case MicroCond::BelowOrEqual:
             case MicroCond::NotAbove:
-                outTaken = lhsUnsigned.le(rhsUnsigned);
+                outTaken = lhs.ule(rhs);
                 return true;
 
             case MicroCond::Greater:
-                outTaken = lhsSigned.gt(rhsSigned);
+                outTaken = lhs.sgt(rhs);
                 return true;
 
             case MicroCond::GreaterOrEqual:
-                outTaken = lhsSigned.ge(rhsSigned);
+                outTaken = lhs.sge(rhs);
                 return true;
 
             case MicroCond::Less:
-                outTaken = lhsSigned.lt(rhsSigned);
+                outTaken = lhs.slt(rhs);
                 return true;
 
             case MicroCond::LessOrEqual:
-                outTaken = lhsSigned.le(rhsSigned);
+                outTaken = lhs.sle(rhs);
                 return true;
 
             case MicroCond::Unconditional:

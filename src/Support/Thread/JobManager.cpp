@@ -149,12 +149,12 @@ void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     rec->priority  = priority;
     rec->clientId  = client;
     rec->state     = JobRecord::State::Ready;
-    rec->index     = nextIndex_.fetch_add(1);
+    rec->index     = nextIndex_++;
 
     job.setOwner(this);
     job.setRec(rec);
 
-    bumpClientCountLocked(client, +1);
+    bumpClientCountLocked(clients_[client], +1);
     pushReady(rec, priority);
     growWorkersForLoadLocked();
 
@@ -211,13 +211,13 @@ std::optional<WaitKey> JobManager::computeWaitKey(const TaskState& st)
     }
 }
 
-void JobManager::parkLocked(JobRecord* rec, const TaskState& state)
+void JobManager::parkLocked(ClientState& client, JobRecord* rec, const TaskState& state)
 {
     SWC_ASSERT(rec->state == JobRecord::State::Running);
     rec->state = JobRecord::State::Waiting;
-    bumpClientCountLocked(rec->clientId, -1);
+    bumpClientCountLocked(client, -1);
 
-    JobRecord*& clientHead  = clients_[rec->clientId].waitingHead;
+    JobRecord*& clientHead  = client.waitingHead;
     rec->clientWaitPrevious = nullptr;
     rec->clientWaitNext     = clientHead;
     if (clientHead)
@@ -251,10 +251,10 @@ void JobManager::parkLocked(JobRecord* rec, const TaskState& state)
     }
 }
 
-void JobManager::unregisterWaiterLocked(JobRecord* rec)
+void JobManager::unregisterWaiterLocked(ClientState& client, JobRecord* rec)
 {
     SWC_ASSERT(rec->state == JobRecord::State::Waiting);
-    JobRecord*& clientHead = clients_[rec->clientId].waitingHead;
+    JobRecord*& clientHead = client.waitingHead;
     if (rec->clientWaitPrevious)
         rec->clientWaitPrevious->clientWaitNext = rec->clientWaitNext;
     else
@@ -302,11 +302,11 @@ void JobManager::unregisterWaiterLocked(JobRecord* rec)
     }
 }
 
-void JobManager::requeueWaitingLocked(JobRecord* rec)
+void JobManager::requeueWaitingLocked(ClientState& client, JobRecord* rec)
 {
-    unregisterWaiterLocked(rec);
+    unregisterWaiterLocked(client, rec);
     rec->state = JobRecord::State::Ready;
-    bumpClientCountLocked(rec->clientId, +1);
+    bumpClientCountLocked(client, +1);
     pushReady(rec, rec->priority);
 }
 
@@ -331,7 +331,7 @@ void JobManager::wake(const WaitKey& key)
     if (key.kind == TaskStateKind::SemaWaitMainThreadRunJit)
     {
         // This is the owner's unique alias, not its dependency's intrusive list.
-        requeueWaitingLocked(it->second);
+        requeueWaitingLocked(clients_[it->second->clientId], it->second);
         growWorkersForLoadLocked();
         lk.unlock();
         cv_.notify_one();
@@ -342,7 +342,7 @@ void JobManager::wake(const WaitKey& key)
     for (JobRecord* rec = it->second; rec;)
     {
         JobRecord* next = rec->keyWaitNext;
-        requeueWaitingLocked(rec);
+        requeueWaitingLocked(clients_[rec->clientId], rec);
         rec = next;
         ++woken;
     }
@@ -367,10 +367,11 @@ void JobManager::refreshJitWait(const TaskContext* owner)
 
     // The lane paused after its owner parked. Replace the registration in place;
     // the owner neither executes nor joins the ready queue unless already satisfied.
-    JobRecord* rec = it->second;
-    unregisterWaiterLocked(rec);
+    JobRecord*   rec    = it->second;
+    ClientState& client = clients_[rec->clientId];
+    unregisterWaiterLocked(client, rec);
     rec->state = JobRecord::State::Running;
-    bumpClientCountLocked(rec->clientId, +1);
+    bumpClientCountLocked(client, +1);
     handleJobResultLocked(rec, JobResult::Sleep);
 }
 
@@ -522,7 +523,7 @@ bool JobManager::wakeAll(JobClientId client)
         std::ranges::sort(temp, {}, &JobRecord::index);
         for (JobRecord* rec : temp)
         {
-            requeueWaitingLocked(rec);
+            requeueWaitingLocked(clientIt->second, rec);
             ++woken;
         }
     }
@@ -530,7 +531,7 @@ bool JobManager::wakeAll(JobClientId client)
     {
         while (JobRecord* rec = clientIt->second.waitingHead)
         {
-            requeueWaitingLocked(rec);
+            requeueWaitingLocked(clientIt->second, rec);
             ++woken;
         }
     }
@@ -692,13 +693,14 @@ JobResult JobManager::executeJob(Job& job)
 
 void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)
 {
+    ClientState& client = clients_[rec->clientId];
     switch (res)
     {
         case JobResult::Done:
         case JobResult::Error:
         {
             rec->state = JobRecord::State::Done;
-            bumpClientCountLocked(rec->clientId, -1);
+            bumpClientCountLocked(client, -1);
 
             // Detach and recycle the record
             rec->job->setRec(nullptr);
@@ -718,7 +720,7 @@ void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)
                 state = jitWait->state;
             }
 
-            parkLocked(rec, *state);
+            parkLocked(client, rec, *state);
             // The no-op RMW either observes the owner's release or publishes this
             // registration to that release before the producer checks the waiter filter.
             const bool typeInfoReleased = state->kind == TaskStateKind::SemaWaitTypeInfoGeneration &&
@@ -727,7 +729,7 @@ void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)
             {
                 // Publication can precede registration. Symbol flag RMWs and the JIT
                 // completion mutex close that window without a global barrier retry.
-                requeueWaitingLocked(rec);
+                requeueWaitingLocked(client, rec);
                 cv_.notify_one();
             }
             break;
@@ -770,9 +772,9 @@ void JobManager::workerLoop()
     }
 }
 
-void JobManager::bumpClientCountLocked(JobClientId client, int delta)
+void JobManager::bumpClientCountLocked(ClientState& client, int delta)
 {
-    std::size_t& c = clients_[client].readyRunning;
+    std::size_t& c = client.readyRunning;
     c              = static_cast<std::size_t>(static_cast<long long>(c) + delta);
     if (c == 0)
         idleCv_.notify_all();

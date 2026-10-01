@@ -618,14 +618,15 @@ namespace
         if (castedCstRef.isInvalid())
             return ConstantRef::invalid();
 
-        if (sema.cstMgr().get(castedCstRef).typeRef() != dstTypeRef)
+        const ConstantValue& castedValue = sema.cstMgr().get(castedCstRef);
+        if (castedValue.typeRef() != dstTypeRef)
         {
             const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
             const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
             if (!srcType.isAnyTypeInfo(sema.ctx()) || !dstType.isAnyTypeInfo(sema.ctx()))
                 return ConstantRef::invalid();
 
-            ConstantValue castedCst = sema.cstMgr().get(castedCstRef);
+            ConstantValue castedCst = castedValue;
             castedCst.setTypeRef(dstTypeRef);
             castedCstRef = sema.cstMgr().addConstant(sema.ctx(), castedCst);
         }

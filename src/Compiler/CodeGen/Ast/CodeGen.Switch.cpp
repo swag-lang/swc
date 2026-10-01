@@ -351,13 +351,12 @@ namespace
 
     bool caseBodyEndsWithFallthrough(CodeGen& codeGen, const AstSwitchCaseStmt& node)
     {
-        SmallVector<AstNodeRef>  statements;
         const AstSwitchCaseBody& caseBody = codeGen.node(node.nodeBodyRef).cast<AstSwitchCaseBody>();
-        codeGen.ast().appendNodes(statements, caseBody.spanChildrenRef);
-        if (statements.empty())
+        const size_t            count    = codeGen.ast().spanSize(caseBody.spanChildrenRef);
+        if (!count)
             return false;
 
-        return codeGen.node(statements.back()).is(AstNodeId::FallThroughStmt);
+        return codeGen.node(codeGen.ast().nthNode(caseBody.spanChildrenRef, count - 1)).is(AstNodeId::FallThroughStmt);
     }
 
     SmallVector<AstNodeRef> collectSwitchCaseRefs(CodeGen& codeGen, const AstSwitchStmt& switchNode)
@@ -766,6 +765,8 @@ namespace
         // One target per value the chunk takes; the cases that share a value go on to the next chunk.
         SmallVector<SwitchDispatchEntry> entries;
         SmallVector<size_t>              partitionStarts;
+        entries.reserve(splitCount);
+        partitionStarts.reserve(splitCount);
         for (size_t index = 0; index < sorted.size(); ++index)
         {
             const uint64_t value = chunkKey(sorted[index]);
@@ -1156,7 +1157,7 @@ namespace
 
         const auto&        switchNode     = codeGen.node(codeGen.curNodeRef()).cast<AstSwitchStmt>();
         const SemaNodeView sourceConstant = codeGen.viewConstant(switchNode.nodeExprRef);
-        if (sourceConstant.hasConstant() && codeGen.cstMgr().get(sourceConstant.cstRef()).isNullValue(codeGen.ctx()))
+        if (sourceConstant.hasConstant() && sourceConstant.cst()->isNullValue(codeGen.ctx()))
         {
             builder.emitLoadRegImm(switchState.dynamicSourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
             builder.emitLoadRegImm(switchState.dynamicSourcePtrReg, ApInt(0, 64), MicroOpBits::B64);
@@ -1235,27 +1236,27 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
         switchState.caseStates.insert_or_assign(caseRef, caseState);
     }
 
-    for (size_t i = 0; i < caseRefs.size(); ++i)
+    if (caseRefs.size() > 1)
     {
-        const AstNodeRef caseRef = caseRefs[i];
-        const auto       itCase  = switchState.caseStates.find(caseRef);
+        auto itCase = switchState.caseStates.find(caseRefs.front());
         SWC_ASSERT(itCase != switchState.caseStates.end());
 
-        SwitchCaseCodeGenPayload& caseState = itCase->second;
-        if (i + 1 < caseRefs.size())
+        for (size_t i = 1; i < caseRefs.size(); ++i)
         {
-            const AstNodeRef nextCaseRef = caseRefs[i + 1];
+            const AstNodeRef nextCaseRef = caseRefs[i];
             const auto       itNextCase  = switchState.caseStates.find(nextCaseRef);
             SWC_ASSERT(itNextCase != switchState.caseStates.end());
 
+            SwitchCaseCodeGenPayload& caseState = itCase->second;
             caseState.hasNextCase   = true;
             caseState.nextCaseRef   = nextCaseRef;
             caseState.nextTestLabel = itNextCase->second.testLabel;
             caseState.nextBodyLabel = itNextCase->second.bodyLabel;
+            itCase                 = itNextCase;
         }
     }
 
-    codeGen.setNodePayload(codeGen.curNodeRef(), switchState);
+    codeGen.ensureNodePayload<SwitchStmtCodeGenPayload>(codeGen.curNodeRef()) = std::move(switchState);
 
     CodeGenFrame frame = codeGen.frame();
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Switch);

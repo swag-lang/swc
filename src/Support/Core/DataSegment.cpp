@@ -235,14 +235,12 @@ std::vector<DataSegmentRelocation> DataSegment::copyRelocations() const
 
 void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, const uint32_t offset, const uint32_t size) const
 {
-    outRelocations.clear();
-    if (!size)
-        return;
+    copyRelocationsImpl(outRelocations, offset, size);
+}
 
-    // Readers only ever take a shared lock: the query walks the sorted prefix plus the unsorted tail, so
-    // no exclusive index rebuild is needed. This keeps concurrent readers off the writer's critical path.
-    const std::shared_lock lock(relocationsMutex_);
-    copyRelocationsLocked(outRelocations, offset, size);
+void DataSegment::copyRelocations(SmallVector<DataSegmentRelocation, 4>& outRelocations, const uint32_t offset, const uint32_t size) const
+{
+    copyRelocationsImpl(outRelocations, offset, size);
 }
 
 bool DataSegment::findRelocation(DataSegmentRelocation& outRelocation, const uint32_t offset, const DataSegmentRelocationKind kind) const
@@ -262,8 +260,17 @@ bool DataSegment::hasRelocations(const uint32_t offset, const uint32_t size) con
     return hasRelocationsLocked(offset, size);
 }
 
-void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, const uint32_t offset, const uint32_t size) const
+template<typename T>
+void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, const uint32_t size) const
 {
+    outRelocations.clear();
+    if (!size)
+        return;
+
+    // Readers only ever take a shared lock: the query walks the sorted prefix plus the unsorted tail, so
+    // no exclusive index rebuild is needed. This keeps concurrent readers off the writer's critical path.
+    const std::shared_lock lock(relocationsMutex_);
+
     const RelocationOffsetProjection projection{.relocations = &relocations_};
 
     const auto appendRange = [&](const std::vector<uint32_t>& index) {
@@ -282,7 +289,9 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
 
     // Both ranges are sorted on their own, so the result only needs the two of them merged. The
     // merge is stable: relocations sharing an offset keep the order they were recorded in.
-    if (outRelocations.size() != indexedCount)
+    // An ordered boundary makes the concatenation sorted already.
+    if (indexedCount && outRelocations.size() != indexedCount &&
+        outRelocations[indexedCount].offset < outRelocations[indexedCount - 1].offset)
         std::ranges::inplace_merge(outRelocations, outRelocations.begin() + indexedCount, {}, &DataSegmentRelocation::offset);
 }
 

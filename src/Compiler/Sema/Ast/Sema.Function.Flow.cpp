@@ -25,12 +25,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef)
+    bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef, const SemaNodeView& view)
     {
-        if (nodeRef.isInvalid())
-            return false;
-
-        const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
         if (view.sym())
         {
             if (view.sym()->isNamespace() || view.sym()->isModule())
@@ -51,6 +47,13 @@ namespace
         return false;
     }
 
+    bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+        return isNestedUfcsReceiverValue(sema, nodeRef, sema.viewTypeSymbol(nodeRef));
+    }
+
     AstNodeRef resolvedUfcsReceiverArg(Sema& sema, AstNodeRef nodeRef)
     {
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
@@ -66,13 +69,16 @@ namespace
             return AstNodeRef::invalid();
 
         const auto& outerMember = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();
-        if (isNestedUfcsReceiverValue(sema, outerMember.nodeLeftRef))
+        if (outerMember.nodeLeftRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const SemaNodeView outerLeftView = sema.viewTypeSymbol(outerMember.nodeLeftRef);
+        if (isNestedUfcsReceiverValue(sema, outerMember.nodeLeftRef, outerLeftView))
         {
-            const SemaNodeView outerLeftView = sema.viewNodeTypeSymbol(outerMember.nodeLeftRef);
             if (outerLeftView.type() && outerLeftView.type()->isInterface())
                 return AstNodeRef::invalid();
 
-            if (outerMember.nodeLeftRef.isValid() && sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
+            if (sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
             {
                 const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
                 if ((outerLeftView.sym() && outerLeftView.sym()->isImpl()) ||
@@ -86,8 +92,7 @@ namespace
             return resolvedUfcsReceiverArg(sema, outerMember.nodeLeftRef);
         }
 
-        if (outerMember.nodeLeftRef.isInvalid() ||
-            sema.node(outerMember.nodeLeftRef).isNot(AstNodeId::MemberAccessExpr))
+        if (sema.node(outerMember.nodeLeftRef).isNot(AstNodeId::MemberAccessExpr))
             return AstNodeRef::invalid();
 
         const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
@@ -246,7 +251,7 @@ namespace
         for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
         {
             const auto* sourceFunction = payload->sourceFunction;
-            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return false;
         }
 
@@ -1485,7 +1490,9 @@ namespace
 
         SmallVector<AstNodeRef> args;
         node.collectArguments(args, sema.ast());
-        SmallVector<AstNodeRef> sourceArgs = args;
+        SmallVector<AstNodeRef> sourceArgs;
+        if (!tryIntrinsicFold)
+            sourceArgs = args;
         for (auto& arg : args)
             arg = Match::resolveCallArgumentRef(sema, arg);
 
@@ -1501,7 +1508,8 @@ namespace
             if (trailingBlockSiblingRef.isValid())
                 sema.markImplicitCodeBlockArg(sema.visit().parentNodeRef(), trailingBlockSiblingRef);
             args.push_back(trailingBlockArgRef);
-            sourceArgs.push_back(trailingBlockArgRef);
+            if (!tryIntrinsicFold)
+                sourceArgs.push_back(trailingBlockArgRef);
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -1520,9 +1528,10 @@ namespace
         const Result lazyResult = sema.completeLazyFunction(calledFn);
         SWC_RESULT(lazyResult);
 
-        const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
-        const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-        auto*      currentFn   = sema.currentFunction();
+        const AttributeList& attributes  = calledFn.attributes();
+        const bool           isMixinCall = attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
+        const bool           isMacroCall = attributes.hasRtFlag(RtAttributeFlagsE::Macro);
+        auto*                currentFn   = sema.currentFunction();
         if (currentFn &&
             currentFn->decl() &&
             calledFn.decl() &&

@@ -138,16 +138,12 @@ bool SemaFrame::queryNarrowFact(std::span<const SemaNarrowFact> facts, std::span
     for (size_t factIndex = facts.size(); factIndex > 0; --factIndex)
     {
         const SemaNarrowFact& fact = facts[factIndex - 1];
-        if (fact.path.size() == path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
-        {
-            // A kill drops every kind; a proof of another kind says nothing about this
-            // one, so keep looking for an older proof of the requested kind.
-            if (!fact.holds)
-                return false;
-            if (fact.kind == kind)
-                return true;
+        // Proofs of another kind cannot answer this query, even when their paths match.
+        if (fact.holds && fact.kind != kind)
             continue;
-        }
+
+        if (fact.path.size() == path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
+            return fact.holds;
 
         // A kill on a path also invalidates everything reached through it
         // (assigning `x` re-nullifies `x.y.z`).

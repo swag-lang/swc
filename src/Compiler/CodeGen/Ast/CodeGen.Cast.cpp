@@ -904,10 +904,14 @@ namespace
         TypeRef                  targetTypeRef = TypeRef::invalid();
         if (resultType.isInterface())
         {
-            TypeInfo interfaceType = resultType;
-            interfaceType.removeFlag(TypeInfoFlagsE::Nullable);
-            interfaceType.removeFlag(TypeInfoFlagsE::Const);
-            targetTypeRef = codeGen.typeMgr().addType(interfaceType);
+            targetTypeRef = resultTypeRef;
+            if (resultType.isNullable() || resultType.isConst())
+            {
+                TypeInfo interfaceType = resultType;
+                interfaceType.removeFlag(TypeInfoFlagsE::Nullable);
+                interfaceType.removeFlag(TypeInfoFlagsE::Const);
+                targetTypeRef = codeGen.typeMgr().addType(interfaceType);
+            }
         }
         else
             targetTypeRef = resultType.payloadTypeRef();
@@ -918,7 +922,7 @@ namespace
         MicroReg      sourceTypeReg = MicroReg::invalid();
 
         const SemaNodeView sourceConstant = codeGen.viewConstant(sourceRef);
-        if (sourceConstant.hasConstant() && codeGen.cstMgr().get(sourceConstant.cstRef()).isNullValue(codeGen.ctx()))
+        if (sourceConstant.hasConstant() && sourceConstant.cst()->isNullValue(codeGen.ctx()))
         {
             // Folded null interfaces and boxes have no addressable two-word payload.
             sourceTypeReg = codeGen.nextVirtualIntRegister();

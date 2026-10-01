@@ -1717,9 +1717,10 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         castRequest.isConstantFolding() &&
         castRequest.outConstRef.isValid())
     {
-        ConstantValue resCst = sema.cstMgr().get(castRequest.outConstRef);
-        if (resCst.typeRef() != dstTypeRef)
+        const ConstantValue& source = sema.cstMgr().get(castRequest.outConstRef);
+        if (source.typeRef() != dstTypeRef)
         {
+            ConstantValue resCst = source;
             resCst.setTypeRef(dstTypeRef);
             castRequest.outConstRef = sema.cstMgr().addConstant(sema.ctx(), resCst);
         }

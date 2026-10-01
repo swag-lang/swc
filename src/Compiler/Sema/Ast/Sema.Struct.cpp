@@ -72,7 +72,7 @@ namespace
 
     Result specializeGenericStructInitializerTarget(Sema& sema, AstNodeRef nodeWhatRef)
     {
-        const SemaNodeView nodeWhatView = sema.viewNodeTypeSymbol(nodeWhatRef);
+        const SemaNodeView nodeWhatView = sema.viewSymbol(nodeWhatRef);
         if (!nodeWhatView.sym() || !nodeWhatView.sym()->isStruct())
             return Result::Continue;
 

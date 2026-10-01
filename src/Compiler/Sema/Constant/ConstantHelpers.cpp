@@ -35,11 +35,8 @@ namespace
 
     Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited);
 
-    Result waitStaticPayloadTypeReadyRecImpl(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited)
+    Result waitStaticPayloadTypeReadyRecImpl(Sema& sema, const TypeInfo& typeInfo, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited)
     {
-        TaskContext&    ctx      = sema.ctx();
-        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-
         if (typeInfo.isAlias())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, waitNodeRef));
@@ -86,10 +83,25 @@ namespace
     {
         if (typeRef.isInvalid())
             return Result::Continue;
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        switch (typeInfo.kind())
+        {
+            case TypeInfoKind::Alias:
+            case TypeInfoKind::Enum:
+            case TypeInfoKind::TypeValue:
+            case TypeInfoKind::Slice:
+            case TypeInfoKind::Array:
+            case TypeInfoKind::Struct:
+            case TypeInfoKind::AggregateStruct:
+            case TypeInfoKind::AggregateArray:
+                break;
+            default:
+                return Result::Continue;
+        }
         if (!visited.insert(typeRef).second)
             return Result::Continue;
 
-        const Result result = waitStaticPayloadTypeReadyRecImpl(sema, typeRef, waitNodeRef, visited);
+        const Result result = waitStaticPayloadTypeReadyRecImpl(sema, typeInfo, waitNodeRef, visited);
         visited.erase(typeRef);
         return result;
     }

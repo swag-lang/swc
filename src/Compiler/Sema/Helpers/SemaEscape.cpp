@@ -1770,7 +1770,7 @@ namespace
         // A macro or a mixin is a different matter: it is expanded from source before this
         // point, and its parameters are code rather than values, so there is no summary to
         // pair them against.
-        if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
             return false;
 
         const auto& params = fn->parameters();
@@ -2597,8 +2597,7 @@ namespace
         {
             const SymbolFunction* sourceFunction = payload->sourceFunction;
             if (!sourceFunction ||
-                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
+                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin) ||
                 sourceVar.isFunctionLocalVariable(*sourceFunction) ||
                 sourceFunction->containsLocalVariable(sourceVar))
                 return false;
@@ -4638,12 +4637,12 @@ namespace SemaEscape
                         if (!entry.second.complete)
                             return;
 
-                        const auto callee       = returns.find(edge.callee);
-                        const bool missingGuard = std::ranges::any_of(edge.returnGuards, [&returns](const SemaEscapeDeferredGuard& guard) {
-                            const auto source = returns.find(guard.callee);
-                            return source == returns.end() || !source->second.complete;
-                        });
-                        if (callee == returns.end() || !callee->second.complete || missingGuard)
+                        const auto callee = returns.find(edge.callee);
+                        if (callee == returns.end() || !callee->second.complete ||
+                            std::ranges::any_of(edge.returnGuards, [&returns](const SemaEscapeDeferredGuard& guard) {
+                                const auto source = returns.find(guard.callee);
+                                return source == returns.end() || !source->second.complete;
+                            }))
                         {
                             entry.second.complete = false;
                             changed               = true;
@@ -4768,8 +4767,8 @@ namespace SemaEscape
                 }
 
                 // Imported/opaque summaries currently carry only the conservative bit.
-                const bool unknown = payloadGuard ? payloadGuard->callee->returnsPayloadParamProjectionUnknown(sourceParam) : edge.callee->reallocatesParamProjectionUnknown(sourceParam);
-                if (!copiedField || unknown)
+                if (!copiedField ||
+                    (payloadGuard ? payloadGuard->callee->returnsPayloadParamProjectionUnknown(sourceParam) : edge.callee->reallocatesParamProjectionUnknown(sourceParam)))
                     edge.caller->addReallocatesParam(edge.callerParamIndex);
             }
 

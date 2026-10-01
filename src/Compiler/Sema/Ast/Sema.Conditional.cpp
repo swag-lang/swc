@@ -192,17 +192,16 @@ namespace
         if (!leftType.isSupportsNullableQualifier() || leftType.isNonNullable())
             return leftTypeRef;
 
-        TypeInfo resultType = leftType;
-        resultType.removeFlag(TypeInfoFlagsE::Nullable);
-
         // The left branch is selected only when it is present, so the fallback
         // determines the result contract. An explicit non-null lhs remains non-null.
         const TypeInfo& rawRightType         = sema.typeMgr().get(rightTypeRef);
         const TypeRef   concreteRightTypeRef = rawRightType.isAlias() ? rawRightType.unwrap(sema.ctx(), rightTypeRef, TypeExpandE::Alias) : rightTypeRef;
         const TypeInfo& rightType            = concreteRightTypeRef == rightTypeRef ? rawRightType : sema.typeMgr().get(concreteRightTypeRef);
         if (rightType.isNull() || rightType.isNullable())
-            resultType.addFlag(TypeInfoFlagsE::Nullable);
+            return leftTypeRef;
 
+        TypeInfo resultType = leftType;
+        resultType.removeFlag(TypeInfoFlagsE::Nullable);
         const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
         if (resultTypeRef == concreteLeftTypeRef)
             return leftTypeRef;
@@ -401,9 +400,15 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
         {
             // Nullability qualifiers do not change representation. Retag the selected
             // constant so '#typeof' observes the same contract as the expression.
-            ConstantValue resultCst = sema.cstMgr().get(selectedCst);
-            resultCst.setTypeRef(resultTypeRef);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), resultCst));
+            const ConstantValue& source       = sema.cstMgr().get(selectedCst);
+            ConstantRef          resultCstRef = selectedCst;
+            if (source.typeRef() != resultTypeRef)
+            {
+                ConstantValue resultCst = source;
+                resultCst.setTypeRef(resultTypeRef);
+                resultCstRef = sema.cstMgr().addConstant(sema.ctx(), resultCst);
+            }
+            sema.setConstant(sema.curNodeRef(), resultCstRef);
         }
         else
             sema.setSubstitute(sema.curNodeRef(), selectedRef);

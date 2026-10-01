@@ -669,15 +669,15 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
     // Prefer stripping the Nullable flag from the type IN PLACE so the narrowed type
     // keeps its exact structure (alias identity included); unwrap aliases only to find
     // a flag hidden behind them.
-    TypeRef  nullableTypeRef = typeRef;
-    TypeInfo nullableType    = sema.typeMgr().get(typeRef);
-    if (!nullableType.isNullable())
+    TypeRef         nullableTypeRef = typeRef;
+    const TypeInfo* nullableType    = &sema.typeMgr().get(typeRef);
+    if (!nullableType->isNullable())
     {
         nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
         if (nullableTypeRef.isInvalid())
             return TypeRef::invalid();
-        nullableType = sema.typeMgr().get(nullableTypeRef);
-        if (!nullableType.isNullable())
+        nullableType = &sema.typeMgr().get(nullableTypeRef);
+        if (!nullableType->isNullable())
             return TypeRef::invalid();
     }
 
@@ -688,7 +688,7 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
     if (!sema.frame().queryNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull))
         return TypeRef::invalid();
 
-    TypeInfo resultType = nullableType;
+    TypeInfo resultType = *nullableType;
     resultType.removeFlag(TypeInfoFlagsE::Nullable);
     return sema.typeMgr().addType(resultType);
 }
@@ -736,11 +736,12 @@ namespace
         if (bodyRef.isInvalid())
             return false;
 
-        SmallVector<AstNodeRef> children;
-        sema.node(bodyRef).collectChildrenFromAst(children, sema.ast());
-        if (children.empty())
+        const auto&  body  = sema.node(bodyRef).cast<AstSwitchCaseBody>();
+        const size_t count = sema.ast().spanSize(body.spanChildrenRef);
+        if (!count)
             return false;
-        return children.back().isValid() && sema.node(children.back()).is(AstNodeId::FallThroughStmt);
+        const AstNodeRef lastRef = sema.ast().nthNode(body.spanChildrenRef, count - 1);
+        return lastRef.isValid() && sema.node(lastRef).is(AstNodeId::FallThroughStmt);
     }
 
     // A 'switch' leaves the function when no value can walk past it: every case body leaves,
@@ -753,15 +754,15 @@ namespace
         if (!SemaSwitch::alwaysMatchesACase(sema, switchRef, switchStmt))
             return false;
 
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sema.ast());
-
         SmallVector<AstNodeRef> caseBodies;
-        for (const AstNodeRef childRef : children)
+        sema.ast().appendNodes(caseBodies, switchStmt.spanChildrenRef);
+        size_t count = 0;
+        for (const AstNodeRef childRef : caseBodies)
         {
             if (childRef.isValid() && sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
-                caseBodies.push_back(sema.node(childRef).cast<AstSwitchCaseStmt>().nodeBodyRef);
+                caseBodies[count++] = sema.node(childRef).cast<AstSwitchCaseStmt>().nodeBodyRef;
         }
+        caseBodies.resize(count);
 
         for (uint32_t i = 0; i < caseBodies.size32(); i++)
         {

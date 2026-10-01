@@ -67,7 +67,7 @@ bool DocApi::hasNoDocAttribute(const Symbol& symbol)
     const Symbol* scan = &symbol;
     while (scan)
     {
-        if (scan->hasAttributes() && scan->attributes().hasRtFlag(RtAttributeFlagsE::NoDoc))
+        if (const AttributeList* attrs = scan->attributesIfAny(); attrs && attrs->hasRtFlag(RtAttributeFlagsE::NoDoc))
             return true;
         scan = scan->ownerSymMap();
     }

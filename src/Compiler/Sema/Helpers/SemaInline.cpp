@@ -775,25 +775,25 @@ namespace
         if (inlineRootRef.isInvalid())
             return false;
 
-        const AstNode&          rootNode = sema.node(inlineRootRef);
-        SmallVector<AstNodeRef> statements;
+        const AstNode& rootNode = sema.node(inlineRootRef);
+        SpanRef        statementsRef;
         if (rootNode.is(AstNodeId::EmbeddedBlock))
         {
-            sema.ast().appendNodes(statements, rootNode.cast<AstEmbeddedBlock>().spanChildrenRef);
+            statementsRef = rootNode.cast<AstEmbeddedBlock>().spanChildrenRef;
         }
         else if (rootNode.is(AstNodeId::FunctionBody))
         {
-            sema.ast().appendNodes(statements, rootNode.cast<AstFunctionBody>().spanChildrenRef);
+            statementsRef = rootNode.cast<AstFunctionBody>().spanChildrenRef;
         }
         else
         {
             return false;
         }
 
-        if (statements.size() != 1)
+        if (sema.ast().spanSize(statementsRef) != 1)
             return false;
 
-        const AstNode& stmtNode = sema.node(statements.front());
+        const AstNode& stmtNode = sema.node(sema.ast().nthNode(statementsRef, 0));
         if (!stmtNode.is(AstNodeId::ReturnStmt))
             return false;
 
@@ -814,10 +814,11 @@ namespace
         if (!ioConstant.isValid() || !targetTypeRef.isValid())
             return;
 
-        ConstantValue constantValue = sema.cstMgr().get(ioConstant);
-        if (constantValue.typeRef() == targetTypeRef)
+        const ConstantValue& source = sema.cstMgr().get(ioConstant);
+        if (source.typeRef() == targetTypeRef)
             return;
 
+        ConstantValue constantValue = source;
         constantValue.setTypeRef(targetTypeRef);
         ioConstant = sema.cstMgr().addConstant(sema.ctx(), constantValue);
     }
@@ -1163,7 +1164,7 @@ namespace
         return IdentifierRef::invalid();
     }
 
-    void collectIdentifierUses(Sema& sema, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    void checkInlineLocalIdentifierUses(Sema& sema, AstNodeRef nodeRef, const std::unordered_set<IdentifierRef>& localIdentifiers, bool& found)
     {
         if (nodeRef.isInvalid())
             return;
@@ -1171,14 +1172,17 @@ namespace
         const AstNode& node = sema.node(nodeRef);
         if (node.is(AstNodeId::Identifier))
         {
-            if (const IdentifierRef idRef = collectResolvedIdentifier(sema, nodeRef); idRef.isValid())
-                outIdentifiers.push_back(idRef);
+            const IdentifierRef idRef = collectResolvedIdentifier(sema, nodeRef);
+            if (!found && idRef.isValid())
+                found = localIdentifiers.contains(idRef);
         }
 
+        // Resolve the remaining identifiers even after a match: compiler-unique names can
+        // be allocated by that resolution, and their order must stay unchanged.
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sema.ast());
         for (const AstNodeRef childRef : children)
-            collectIdentifierUses(sema, childRef, outIdentifiers);
+            checkInlineLocalIdentifierUses(sema, childRef, localIdentifiers, found);
     }
 
     void collectSourceIdentifierUses(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
@@ -1227,15 +1231,9 @@ namespace
         if (exprRef.isInvalid() || localIdentifiers.empty())
             return false;
 
-        SmallVector<IdentifierRef> exprIdentifiers;
-        collectIdentifierUses(sema, exprRef, exprIdentifiers);
-        for (const IdentifierRef exprIdRef : exprIdentifiers)
-        {
-            if (localIdentifiers.contains(exprIdRef))
-                return true;
-        }
-
-        return false;
+        bool found = false;
+        checkInlineLocalIdentifierUses(sema, exprRef, localIdentifiers, found);
+        return found;
     }
 
     struct InlineBindingUse
@@ -2740,8 +2738,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Keep an ordinary function call instead of shifting every written argument by one.
     if (ufcsArg.isValid() &&
         (resolvedArgs.empty() || !resolvedArgs[0].isUfcsReceiver) &&
-        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
-        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
         return Result::Continue;
 
     // A flow-proven argument - a nullable-declared place the caller's flow narrowed
@@ -2750,7 +2747,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // deliberately dropped, and a re-derivation from bare syntax cannot reconstruct
     // them. The real call validated the argument once and needs no replay, so keep the
     // call. Macros and mixins cannot fall back to a real call and keep their behavior.
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
     {
         bool carriesFlowProof = ufcsArg.isValid() && inlineBindingCarriesFlowProvenNonNull(sema, ufcsArg);
         for (size_t i = 0; !carriesFlowProof && i < resolvedArgs.size(); ++i)
@@ -2764,7 +2761,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // carries the guard is never lowered and the body runs on a null receiver. The
     // real call keeps the short circuit. Macros and mixins cannot fall back to one and
     // expand as before.
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
     {
         const AstNodeRef guardedRef         = sema.node(callRef).is(AstNodeId::CallExpr) ? sema.node(callRef).cast<AstCallExpr>().nodeExprRef : AstNodeRef::invalid();
         const AstNodeRef resolvedGuardedRef = guardedRef.isValid() ? sema.viewZero(guardedRef).nodeRef() : AstNodeRef::invalid();
@@ -2793,7 +2790,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             const bool bindsCopyToMove = resolvedArg.bindsReferenceToValue && params[i]->type(sema.ctx()).isMoveReference();
             if (!bindsCopyToMove && !resolvedArg.movesValueToParam)
                 continue;
-            if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return SemaError::raise(sema, bindsCopyToMove ? DiagnosticId::sema_err_move_arg_macro : DiagnosticId::sema_err_move_arg_macro_value, resolvedArg.argRef);
             return Result::Continue;
         }
@@ -2805,9 +2802,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         return Result::Continue;
     SWC_ASSERT(declAst != nullptr);
 
-    const bool isMacro          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-    const bool isMixin          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
-    const bool isCrossAstInline = declAst != &sema.ast();
+    const AttributeList& attributes       = fn.attributes();
+    const bool           isMacro          = attributes.hasRtFlag(RtAttributeFlagsE::Macro);
+    const bool           isMixin          = attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
+    const bool           isCrossAstInline = declAst != &sema.ast();
 
     // An "ordinary" inline is any inline that is not a macro/mixin expansion: an explicit
     // #[Inline] callee or an auto-selected one. Macros/mixins keep their established re-resolving
@@ -2819,7 +2817,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // (callee-completion wait, preserved resolved symbols, isolated inline scope). Marked /
     // macro / mixin inlines keep their established behavior to avoid any regression.
     const bool isAutoSelected = isOrdinaryInline &&
-                                !fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) &&
+                                !attributes.hasRtFlag(RtAttributeFlagsE::Inline) &&
                                 sema.buildCfgBackend().inlineMode == Runtime::BuildCfgBackendInlineMode::Auto;
 
     // A defer body is emitted again at each control-flow exit where it applies. Auto-inlining an

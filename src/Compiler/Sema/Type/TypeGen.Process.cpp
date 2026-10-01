@@ -29,9 +29,7 @@ namespace
         // TypeInfo generation because no concrete method entry will be emitted.
         if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
             return false;
-        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
-            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin | RtAttributeFlagsE::Compiler))
             return false;
 
         const SymbolStruct* ownerStruct = symFunc.ownerStruct();
@@ -191,8 +189,8 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
         {
             if (type.isAggregateStruct())
             {
-                for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
-                    deps.push_back(fieldTypeRef);
+                const auto& fieldTypes = type.payloadAggregate().types;
+                deps.append(fieldTypes.data(), fieldTypes.size());
                 break;
             }
 
@@ -379,10 +377,15 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
             entry.deps = computeDeps(tm, sema, type, kind);
             // The payload is itself a DynCast instance of its concrete metadata struct.
             entry.deps.push_back(entry.rtTypeRef);
-            TypeInfo unqualified = type;
-            unqualified.removeFlag(TypeInfoFlagsE::Const);
-            unqualified.removeFlag(TypeInfoFlagsE::Nullable);
-            entry.deps.push_back(sema.typeMgr().addType(unqualified));
+            TypeRef unqualifiedTypeRef = key;
+            if (type.isConst() || type.isNullable())
+            {
+                TypeInfo unqualified = type;
+                unqualified.removeFlag(TypeInfoFlagsE::Const);
+                unqualified.removeFlag(TypeInfoFlagsE::Nullable);
+                unqualifiedTypeRef = tm.addType(unqualified);
+            }
+            entry.deps.push_back(unqualifiedTypeRef);
             it = cache.entries.emplace(key, std::move(entry)).first;
         }
 

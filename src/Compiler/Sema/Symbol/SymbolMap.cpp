@@ -64,10 +64,14 @@ namespace
         }
 
         Symbol* current = head;
-        while (current->nextHomonym() && !symbolDeclaredBefore(*symbol, *current->nextHomonym()))
-            current = current->nextHomonym();
+        Symbol* next    = current->nextHomonym();
+        while (next && !symbolDeclaredBefore(*symbol, *next))
+        {
+            current = next;
+            next    = current->nextHomonym();
+        }
 
-        symbol->setNextHomonym(current->nextHomonym());
+        symbol->setNextHomonym(next);
         current->setNextHomonym(symbol);
         return head;
     }

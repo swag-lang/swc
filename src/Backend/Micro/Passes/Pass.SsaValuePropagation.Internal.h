@@ -96,28 +96,22 @@ inline bool tryGetKnownReachingValue(MicroSsaKnownValue& outValue, const MicroSs
 template<typename T_VALUE, typename T_TRAITS>
 bool tryInferSsaPhiValue(T_VALUE& outValue, const MicroSsaState::PhiInfo& phiInfo, const std::vector<T_VALUE>& values, const std::vector<uint8_t>& flags)
 {
-    bool    hasCandidate = false;
-    T_VALUE candidate{};
+    if (phiInfo.incomingValueIds.empty())
+        return false;
 
-    for (const uint32_t incomingValueId : phiInfo.incomingValueIds)
+    T_VALUE candidate{};
+    if (!tryGetSsaValue<T_VALUE, T_TRAITS>(candidate, values, flags, phiInfo.incomingValueIds.front()))
+        return false;
+
+    for (size_t i = 1; i < phiInfo.incomingValueIds.size(); ++i)
     {
         T_VALUE incomingValue{};
-        if (!tryGetSsaValue<T_VALUE, T_TRAITS>(incomingValue, values, flags, incomingValueId))
+        if (!tryGetSsaValue<T_VALUE, T_TRAITS>(incomingValue, values, flags, phiInfo.incomingValueIds[i]))
             return false;
-
-        if (!hasCandidate)
-        {
-            candidate    = incomingValue;
-            hasCandidate = true;
-            continue;
-        }
 
         if (!T_TRAITS::same(candidate, incomingValue))
             return false;
     }
-
-    if (!hasCandidate)
-        return false;
 
     outValue = candidate;
     return true;

@@ -3411,6 +3411,15 @@ namespace PostRaPeephole
                     {
                         if (rewritten[i].reg == copyOps[0].reg)
                         {
+                            // VEX scalar arithmetic copies its first input's upper
+                            // lanes; sqrt and bitwise forms also read beyond the
+                            // declared scalar width. A narrow copy cannot forward
+                            // those lanes unless the result leaves them unobserved.
+                            const auto microOp     = binary || three ? ops[three ? 4 : 3].microOp : MicroOp::Move;
+                            const bool bitwise     = (binary || three) && (microOp == MicroOp::FloatAnd || microOp == MicroOp::FloatXor);
+                            const bool upperSource = floatCopy && ((three && i == 1) || bitwise || (binary && microOp == MicroOp::FloatSqrt));
+                            if (upperSource && !areFloatUpperLanesDeadAfter(ctx, nextRef, ops[0].reg, copyOps[2].opBits))
+                                continue;
                             rewritten[i].reg = copyOps[1].reg;
                             changed          = true;
                         }

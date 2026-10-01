@@ -1778,8 +1778,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 if (!placeable || defStores.empty() || defStoreCost > resolutionStoreCost[denseIndex])
                     continue;
                 std::erase_if(connectors, [&](const Connector& connector) { return connector.denseIndex == denseIndex && !connector.dst.isValid() && !isParkStore(connector); });
-                for (const Connector& store : defStores)
-                    connectors.push_back(store);
+                connectors.insert(connectors.end(), defStores.begin(), defStores.end());
                 rewritten = true;
             }
             if (rewritten)

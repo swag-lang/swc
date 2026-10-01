@@ -1404,11 +1404,13 @@ bool TypeInfo::isConvertibleToBoolAliasAware(const TaskContext& ctx) const noexc
 
 TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExpand expandFlags) const noexcept
 {
-    auto result = typeRef_;
+    SWC_ASSERT(typeRef_.isValid());
+    TypeRef         result = typeRef_;
+    const TypeInfo* type   = this;
 
     while (true)
     {
-        const TypeInfo& ty  = ctx.typeMgr().get(result);
+        const TypeInfo& ty  = *type;
         TypeRef         sub = TypeRef::invalid();
 
         if (expandFlags.has(TypeExpandE::Alias) && ty.isAlias())
@@ -1429,6 +1431,7 @@ TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExp
         if (sub.isInvalid())
             break;
         result = sub;
+        type   = &ctx.typeMgr().get(sub);
     }
 
     if (result == typeRef_)

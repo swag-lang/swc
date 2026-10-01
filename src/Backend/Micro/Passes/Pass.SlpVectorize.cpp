@@ -1162,18 +1162,18 @@ namespace
 
         bool isValueDead(uint32_t valueId)
         {
-            const auto it = states_.find(valueId);
-            if (it != states_.end())
+            const auto [it, inserted] = states_.try_emplace(valueId, State::InProgress);
+            if (!inserted)
                 return it->second != State::Live;
 
-            // Optimistic for cycles: SSA values without phis cannot cycle, and
-            // phi uses are rejected outright below.
-            states_[valueId] = State::InProgress;
+            // Optimistic for cycles until a use pins the value live. The reference
+            // remains valid when recursive queries grow the table.
+            State& state = it->second;
 
             const MicroSsaState::ValueInfo* info = fn_->ssa->valueInfo(valueId);
             if (!info)
             {
-                states_[valueId] = State::Live;
+                state = State::Live;
                 return false;
             }
 
@@ -1189,7 +1189,7 @@ namespace
                     const MicroSsaState::PhiInfo* phi = fn_->ssa->phiInfo(use.phiIndex);
                     if (!phi || phi->resultValueId == MicroSsaState::K_INVALID_VALUE || !isValueDead(phi->resultValueId))
                     {
-                        states_[valueId] = State::Live;
+                        state = State::Live;
                         return false;
                     }
                     continue;
@@ -1200,12 +1200,12 @@ namespace
 
                 if (!isInstructionDead(use.instRef))
                 {
-                    states_[valueId] = State::Live;
+                    state = State::Live;
                     return false;
                 }
             }
 
-            states_[valueId] = State::Dead;
+            state = State::Dead;
             return true;
         }
 

@@ -603,15 +603,15 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             const auto* ops = it->ops(operands);
             if (!ops)
                 continue;
+            auto found = addrRegOffset.find(ops[0].reg);
             if (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
                 ops[0].reg.isVirtualInt() && ops[0].reg != frameBase && definitions[ops[0].reg] == 1 &&
-                !addrRegOffset.contains(ops[0].reg) && available.contains(ops[1].reg))
+                found == addrRegOffset.end() && available.contains(ops[1].reg))
             {
                 const uint64_t offset = addrRegOffset.at(ops[1].reg).offset;
-                addrRegOffset.emplace(ops[0].reg, AddrRegInfo{offset, it.current});
+                found = addrRegOffset.emplace(ops[0].reg, AddrRegInfo{offset, it.current}).first;
                 addressCopies.insert(it.current.get());
             }
-            const auto found = addrRegOffset.find(ops[0].reg);
             if (found != addrRegOffset.end() && !found->second.ambiguous && found->second.defRef == it.current)
                 available.insert(found->first);
         }

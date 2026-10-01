@@ -1977,7 +1977,10 @@ namespace
                 const auto*    varBase     = declNode.is(AstNodeId::SingleVarDecl)
                                                  ? static_cast<const AstVarDeclBase*>(&declNode.cast<AstSingleVarDecl>())
                                                  : static_cast<const AstVarDeclBase*>(&declNode.cast<AstMultiVarDecl>());
-                const bool     hasInitExpr = varBase->nodeInitRef.isValid();
+                // Only declarations without an initializer can lose their default
+                // construction and therefore need final lifecycle facts here.
+                if (varBase->nodeInitRef.isValid())
+                    return Result::Continue;
 
                 const SemaNodeView view = sema.viewSymbol(ref);
                 if (!view.hasSymbol())
@@ -1989,10 +1992,6 @@ namespace
                     if (!sym || !sym->isVariable())
                         continue;
                     const auto& symVar = sym->cast<SymbolVariable>();
-                    // A declaration without an initializer may have its default
-                    // construction removed, so the pass needs final lifecycle facts.
-                    if (hasInitExpr)
-                        continue;
                     TypeRef typeRef = symVar.typeRef();
                     for (uint32_t guard = 0; guard < 8 && typeRef.isValid(); guard++)
                     {

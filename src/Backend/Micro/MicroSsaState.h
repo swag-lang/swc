@@ -101,7 +101,6 @@ private:
         uint32_t                    renamePosition = K_INVALID_VALUE;
         MicroInstrUseDef            useDef;
         SmallVector4<RegValueEntry> defValues;
-        SmallVector4<uint32_t>      useRegIndices;
         SmallVector4<uint32_t>      defRegIndices;
 
         // Incremental use/def cache. `useDef` is a pure function of the instruction's

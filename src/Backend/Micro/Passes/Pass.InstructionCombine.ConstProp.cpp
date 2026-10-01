@@ -40,7 +40,7 @@ namespace InstructionCombine
 
             if (info->isPhi())
             {
-                const auto* phi = ctx.ssa->phiInfoForValue(valueId);
+                const auto* phi = ctx.ssa->phiInfo(info->phiIndex);
                 if (!phi || phi->incomingValueIds.empty())
                     return false;
 
@@ -133,12 +133,9 @@ namespace InstructionCombine
         const uint64_t sourceValue = sourceOps[2].valueU64 & getBitsMask(bits);
 
         const auto destinationDef = ctx.ssa->reachingDef(dst, ref);
-        if (!destinationDef.valid())
+        if (!destinationDef.valid() || destinationDef.isPhi)
             return false;
-        const auto* destinationValue = ctx.ssa->valueInfo(destinationDef.valueId);
-        if (!destinationValue || destinationValue->isPhi())
-            return false;
-        const MicroInstr* initial = ctx.instruction(destinationValue->instRef);
+        const MicroInstr* initial = destinationDef.inst;
         if (!initial || initial->op != MicroInstrOpcode::LoadRegImm)
             return false;
         const MicroInstrOperand* initialOps = initial->ops(*ctx.operands);

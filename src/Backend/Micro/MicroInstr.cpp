@@ -52,22 +52,8 @@ namespace
         }
     }
 
-    uint8_t resolveCallArgMask(const MicroInstr& inst, const MicroInstrOperand* ops, const bool floatMask)
+    uint8_t resolveCallArgMask(const MicroInstr& inst, const MicroInstrOperand* ops, const uint8_t maskOperandIndex)
     {
-        uint8_t maskOperandIndex = 0xFF;
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::CallLocal:
-            case MicroInstrOpcode::CallExtern:
-                maskOperandIndex = floatMask ? 2 : 1;
-                break;
-            case MicroInstrOpcode::CallIndirect:
-                maskOperandIndex = floatMask ? 3 : 2;
-                break;
-            default:
-                return K_CALL_ARG_MASK_ALL;
-        }
-
         if (!ops || inst.numOperands <= maskOperandIndex)
             return K_CALL_ARG_MASK_ALL;
 
@@ -118,8 +104,9 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
         // register allocation and later rewrites cannot reuse them before the call.
         const CallConv& callConv        = CallConv::get(useDef.callConv);
         const size_t    defaultArgCount = callConv.numArgRegisterSlots();
-        addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, false), defaultArgCount);
-        addMaskedCallArgRegs(useDef, callConv.floatArgRegs, resolveCallArgMask(*this, ops, true), defaultArgCount);
+        // Every call stores its integer and float masks immediately after the convention.
+        addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, opcodeInfo.callConvIndex + 1), defaultArgCount);
+        addMaskedCallArgRegs(useDef, callConv.floatArgRegs, resolveCallArgMask(*this, ops, opcodeInfo.callConvIndex + 2), defaultArgCount);
         for (const MicroReg reg : callConv.intTransientRegs)
             useDef.addDef(reg);
         for (const MicroReg reg : callConv.floatTransientRegs)

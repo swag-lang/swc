@@ -380,16 +380,13 @@ namespace
         stackAdjustOps[3].valueU64 = frameSize;
         context.instructions->insertSyntheticBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
 
-        std::vector<MicroInstrRef> retRefs;
+        stackAdjustOps[2].microOp = MicroOp::Add;
+        // Inserting before the current instruction preserves its successor and iterator.
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             if (it->op == MicroInstrOpcode::Ret)
-                retRefs.push_back(it.current);
+                context.instructions->insertSyntheticBefore(*context.operands, it.current, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
         }
-
-        stackAdjustOps[2].microOp = MicroOp::Add;
-        for (const MicroInstrRef retRef : retRefs)
-            context.instructions->insertSyntheticBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
     }
 
     void removeInstruction(const MicroPassContext& context, MicroInstrRef instRef)

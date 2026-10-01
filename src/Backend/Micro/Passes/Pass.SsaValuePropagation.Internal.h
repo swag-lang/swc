@@ -140,7 +140,7 @@ void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint
 
             if (valueInfo.isPhi())
             {
-                const auto* phiInfo = ssaState.phiInfoForValue(valueId);
+                const auto* phiInfo = ssaState.phiInfo(valueInfo.phiIndex);
                 if (phiInfo)
                     inferred = tryInferSsaPhiValue<T_VALUE, T_TRAITS>(inferredValue, *phiInfo, outValues, outFlags);
             }

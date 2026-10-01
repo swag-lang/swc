@@ -19,8 +19,7 @@ namespace
 {
     Result emitDynamicIdentityRec(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, bool initializeUsingSlots)
     {
-        if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), typeRef))
-            return Result::Continue;
+        // The caller has established dynamic storage; array elements retain that property.
         typeRef                 = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef);
         const TypeInfo& type    = codeGen.typeMgr().get(typeRef);
         MicroBuilder&   builder = codeGen.builder();
@@ -849,6 +848,8 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
 
 Result CodeGenMemoryHelpers::emitDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg)
 {
+    if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), typeRef))
+        return Result::Continue;
     return emitDynamicIdentityRec(codeGen, typeRef, dstReg, true);
 }
 

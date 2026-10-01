@@ -142,7 +142,9 @@ namespace
         if (!nodeRef.isValid())
             return nullptr;
 
-        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        // A contextual conversion substitutes the wrapper's result, but the raw catch or
+        // expect still owns the handler while its operand is being evaluated.
+        const AstNodeRef resolvedNodeRef = isFallibleWrapperOwnerNode(codeGen.node(nodeRef).id()) ? nodeRef : codeGen.viewZero(nodeRef).nodeRef();
         if (!resolvedNodeRef.isValid())
             return nullptr;
 
@@ -160,7 +162,7 @@ namespace
         if (!nodeRef.isValid())
             return nullptr;
 
-        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedNodeRef = isFallibleWrapperBreadcrumbNode(codeGen.node(nodeRef).id()) ? nodeRef : codeGen.viewZero(nodeRef).nodeRef();
         if (!resolvedNodeRef.isValid())
             return nullptr;
 
@@ -1524,7 +1526,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
 
     const FallibleHandlerKind kind           = fallibleHandlerKind(payload->fallibleWrapperTokenId);
     const AstNodeRef          ownerRef       = payload->fallibleWrapperOwnerRef.isValid() ? payload->fallibleWrapperOwnerRef : nodeRef;
-    const TypeRef             resultType     = codeGen.curViewType().typeRef();
+    const TypeRef             resultType     = codeGen.transparentPayloadTypeRef();
     const bool                hasResult      = resultType.isValid() && resultType != codeGen.typeMgr().typeVoid();
     const bool                hasFallthrough = !codeGen.currentInstructionBlocksFallthrough();
     MicroBuilder&             builder        = codeGen.builder();
@@ -1557,6 +1559,18 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     if (hasResult)
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
+        const SymbolVariable*     resultStorage = resultPayload.runtimeStorageSym;
+        if (const auto* expression = codeGen.node(ownerRef).safeCast<AstErrorManagementExpr>())
+        {
+            // The wrapper shares its payload slot with a contextual conversion. That slot
+            // can name the conversion's smaller result buffer while its register still
+            // addresses the operand. Reconstruct the operand's address on failure.
+            const SymbolVariable* operandStorage = codeGen.payload(expression->nodeExprRef).runtimeStorageSym;
+            if (!operandStorage)
+                operandStorage = codeGen.runtimeStorageSymbol(expression->nodeExprRef);
+            if (operandStorage)
+                resultStorage = operandStorage;
+        }
 
         // An address-backed result register is defined by the success path, and
         // when the managed expression never falls through — an inlined callee
@@ -1565,10 +1579,10 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         // undefined register. Define it on this path too, from the storage
         // symbol: the same address the success path computes, rooted at the
         // local stack base whose definition dominates both arms.
-        if (resultPayload.isAddress() && resultPayload.runtimeStorageSym && codeGen.localStackBaseReg().isValid() &&
-            resultPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+        if (resultPayload.isAddress() && resultStorage && codeGen.localStackBaseReg().isValid() &&
+            resultStorage->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
-            builder.emitLoadAddressRegMem(resultPayload.reg, codeGen.localStackBaseReg(), resultPayload.runtimeStorageSym->offset(), MicroOpBits::B64);
+            builder.emitLoadAddressRegMem(resultPayload.reg, codeGen.localStackBaseReg(), resultStorage->offset(), MicroOpBits::B64);
         }
 
         SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));

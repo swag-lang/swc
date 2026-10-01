@@ -250,8 +250,7 @@ namespace SemaGeneric
             if (!loadOwnerStructGenericArgs(sema, function, ownerParams, ownerArgs))
                 return;
 
-            for (const GenericInstanceKey& arg : ownerArgs)
-                outKeys.push_back(arg);
+            outKeys.append(ownerArgs.data(), ownerArgs.size());
         }
 
         SymbolStructFlags clonedGenericStructFlags(const SymbolStruct& root)

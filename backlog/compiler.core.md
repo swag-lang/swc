@@ -6,6 +6,23 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.069 — Measure where a module build loses its workers beyond six cores
+
+- Recorded: 2026-10-01 07:35
+- Updated: 2026-10-01 10:41 — the DevMode compiler now reports scheduler counters; narrow to the measurement
+- Evidence: compile time stops improving after a few workers. `--dev-sched-stats` (DevMode
+  compiler) prints, when the command ends, the semantic barrier rounds, the sleepers a barrier
+  moved and how many parked again, the sleepers their dependency woke, and the share of worker time
+  spent running jobs. A first `std.swgs dm build core --rebuild` at six workers (2026-10-01, loaded
+  machine) reported 18 barrier rounds moving 118 sleepers (113 parked again), 11 476 dependency
+  wakes, and 77% worker occupancy over the whole command, serial modules included.
+- Next: run the same build at 1, 6, 12, and every logical core on an idle machine, with both the
+  counters and wall time, and attribute the lost occupancy: serial modules (compiler.core.007),
+  barrier rounds (compiler.core.065), or scheduler contention (compiler.core.068).
+- Complete when: the dominant cause of the parallel ceiling is named from those figures and the
+  matching entry carries them.
+- Related: compiler.core.065, compiler.core.068, compiler.core.007
+
 ### compiler.core.065 — Remaining barrier rounds still drain the whole module
 
 - Recorded: 2026-10-01 07:35
@@ -48,20 +65,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   scheduler lock (VTune or ETW contention view), with the scheduler unit tests and both compiler
   executables green.
 - Related: compiler.core.069
-
-### compiler.core.069 — Measure how much of a module build runs below full worker occupancy
-
-- Recorded: 2026-10-01 07:35
-- Evidence: compile time stops improving after a few workers. A static audit (2026-10-01) found
-  the structural causes recorded in compiler.core.065 and compiler.core.068, but the compiler has
-  no counter that says which one dominates. `--stats` timers are wall-clock per region and are
-  inflated by preemption, so they cannot answer it.
-- Next: count, per module, the `Sema::waitDone` rounds, the sleepers each `wakeAll` moves, the
-  sleepers that park again without progress, and the wall time during which fewer than a quarter
-  of the workers are running a job. Report them under `--stats`.
-- Complete when: `--stats` shows those four figures for a std module build, and the dominant cause
-  of the parallel ceiling is named from them.
-- Related: compiler.core.065, compiler.core.068, compiler.core.007
 
 ### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
 

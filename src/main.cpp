@@ -10,6 +10,7 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
 #include "Support/Report/ScopedTimedLog.h"
+#include "Support/Thread/JobManager.h"
 #if SWC_HAS_UNITTEST
 #include "Unittest/Unittest.h"
 #endif
@@ -98,6 +99,10 @@ int main(int argc, char* argv[])
     swc::CompilerInstance compiler(global, cmdLine);
 
     const auto result = static_cast<int>(compiler.run());
+#if SWC_DEV_MODE
+    if (cmdLine.devSchedStats)
+        global.jobMgr().printStats(startupCtx);
+#endif
     removeOwnDefaultSandboxRoot();
     std::cout.flush();
     std::cerr.flush();

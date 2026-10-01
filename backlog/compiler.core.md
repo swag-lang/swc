@@ -19,14 +19,13 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   barrier first drains the client: the tail of each wave runs on a few workers, then the driver
   does serial work before the next one. Any symbol transition still sets `changed_`, so most
   rounds end in a full `wakeAll`. The same barrier separates the declaration pass from the full
-  pass and closes native code generation (`scheduleCodeGen`). A lazy function body whose run
-  pauses (`finishLazyBodyRun` with `Pause`) leaves its other callers parked on `SemaCompleted`;
-  only `hasPausedLazyBodyWait` in the barrier loop wakes them so one can adopt the paused run, so
-  each paused lazy body costs a full drain.
+  pass and closes native code generation (`scheduleCodeGen`). A paused lazy function body is
+  normally resumed by the job that paused it; when that job does not come back to it, its other
+  callers stay parked on `SemaCompleted` until `hasPausedLazyBodyWait` wakes them in a barrier
+  round so one can adopt the run. How often that fallback fires is unknown.
 - Next: count rounds and re-parked sleepers per wait kind (compiler.core.069) on a std module, then
   give the dominant remaining kind a recheckable publication (a per-name generation counter for
-  identifier waits closes the park race; a paused lazy run can wake one waiter on its function's
-  key so it adopts the run) so it no longer needs the barrier.
+  identifier waits closes the park race) so it no longer needs the barrier.
 - Complete when: a std module build needs no barrier round to resolve forward identifier and
   type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
   green under both compiler executables.

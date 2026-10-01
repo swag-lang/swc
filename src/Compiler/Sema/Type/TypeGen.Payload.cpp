@@ -467,9 +467,9 @@ namespace
         return it->second;
     }
 
-    const TypeGen::TypeGenCache::Entry& payloadDepEntry(const TypeManager& typeMgr, const TypeGen::TypeGenCache& cache, TypeRef key)
+    const TypeGen::TypeGenCache::Entry& payloadDepEntry(const TypeGen::TypeGenCache& cache, const TypeInfo& type)
     {
-        return requireCacheEntry(cache, typeMgr.get(key).payloadTypeRef());
+        return requireCacheEntry(cache, type.payloadTypeRef());
     }
 
     TypeRef pointerLayoutDepTypeRef(const TypeManager& typeMgr, const TypeInfo& type)
@@ -1191,16 +1191,22 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 {
     const TaskContext& ctx     = sema.ctx();
     TypeManager&       typeMgr = sema.typeMgr();
+    const TypeInfo&     keyType = typeMgr.get(key);
 
     const auto& metadataEntry = requireCacheEntry(cache, entry.rtTypeRef);
     const auto* metadata      = storage.ptr<Runtime::TypeInfoStruct>(metadataEntry.offset);
     SWC_ASSERT(metadata->dynamicSlots.count == 1);
     SWC_ASSERT(metadata->dynamicSlots.ptr[0].offset == offsetof(Runtime::TypeInfo, dynamicIdentity));
-    auto*    payload     = storage.ptr<Runtime::TypeInfo>(entry.offset);
-    TypeInfo unqualified = typeMgr.get(key);
-    unqualified.removeFlag(TypeInfoFlagsE::Const);
-    unqualified.removeFlag(TypeInfoFlagsE::Nullable);
-    const auto& unqualifiedEntry = requireCacheEntry(cache, typeMgr.addType(unqualified));
+    auto*   payload           = storage.ptr<Runtime::TypeInfo>(entry.offset);
+    TypeRef unqualifiedTypeRef = key;
+    if (keyType.isConst() || keyType.isNullable())
+    {
+        TypeInfo unqualified = keyType;
+        unqualified.removeFlag(TypeInfoFlagsE::Const);
+        unqualified.removeFlag(TypeInfoFlagsE::Nullable);
+        unqualifiedTypeRef = typeMgr.addType(unqualified);
+    }
+    const auto& unqualifiedEntry = requireCacheEntry(cache, unqualifiedTypeRef);
     addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfo, unqualified), unqualifiedEntry.offset);
 
     // A copied or user-created descriptor must not acquire a compiler type's identity.
@@ -1218,7 +1224,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
     {
         case LayoutKind::Enum:
         {
-            const SymbolEnum& symEnum = typeMgr.get(key).payloadSymEnum();
+            const SymbolEnum& symEnum = keyType.payloadSymEnum();
             const TypeRef     depKey  = symEnum.underlyingTypeRef();
             const auto&       dep     = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoEnum, rawType), dep.offset);
@@ -1242,46 +1248,45 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Pointer:
         {
-            const TypeRef depKey = pointerLayoutDepTypeRef(typeMgr, typeMgr.get(key));
+            const TypeRef depKey = pointerLayoutDepTypeRef(typeMgr, keyType);
             const auto&   dep    = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
             break;
         }
 
         case LayoutKind::Slice:
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), payloadDepEntry(typeMgr, cache, key).offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), payloadDepEntry(cache, keyType).offset);
             break;
 
         case LayoutKind::Simd:
         {
-            const auto& dep = requireCacheEntry(cache, typeMgr.get(key).payloadSimdLaneTypeRef());
+            const auto& dep = requireCacheEntry(cache, keyType.payloadSimdLaneTypeRef());
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSimd, laneType), dep.offset);
             break;
         }
 
         case LayoutKind::Array:
         {
-            const TypeInfo& type           = typeMgr.get(key);
-            const TypeRef   pointedTypeRef = resolveArrayPointedTypeRef(typeMgr, type);
-            const auto&     dep            = requireCacheEntry(cache, pointedTypeRef);
+            const TypeRef pointedTypeRef = resolveArrayPointedTypeRef(typeMgr, keyType);
+            const auto&   dep            = requireCacheEntry(cache, pointedTypeRef);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
-            const TypeRef finalTypeRef = resolveArrayFinalTypeRef(typeMgr, ctx, type);
+            const TypeRef finalTypeRef = resolveArrayFinalTypeRef(typeMgr, ctx, keyType);
             const auto&   fin          = requireCacheEntry(cache, finalTypeRef);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), fin.offset);
             break;
         }
 
         case LayoutKind::Alias:
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), payloadDepEntry(typeMgr, cache, key).offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), payloadDepEntry(cache, keyType).offset);
             break;
 
         case LayoutKind::TypedVariadic:
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), payloadDepEntry(typeMgr, cache, key).offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), payloadDepEntry(cache, keyType).offset);
             break;
 
         case LayoutKind::CodeBlock:
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoCodeBlock, rawType), payloadDepEntry(typeMgr, cache, key).offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoCodeBlock, rawType), payloadDepEntry(cache, keyType).offset);
             break;
 
         case LayoutKind::Struct:
@@ -1303,7 +1308,6 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoStruct, fromGeneric), dep.offset);
             }
 
-            const TypeInfo& keyType = typeMgr.get(key);
             if (keyType.isAggregateStruct())
                 break;
 
@@ -1354,7 +1358,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoFunc, returnType), dep.offset);
             }
 
-            const SymbolFunction& symFunc = typeMgr.get(key).payloadSymFunction();
+            const SymbolFunction& symFunc = keyType.payloadSymFunction();
             if (!symFunc.isAttribute())
                 exportAttributes(sema, cache, storage, entry.offset, offsetof(Runtime::TypeInfoFunc, attributes), symFunc.attributes());
 

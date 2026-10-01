@@ -282,7 +282,9 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
 
     // Both ranges are sorted on their own, so the result only needs the two of them merged. The
     // merge is stable: relocations sharing an offset keep the order they were recorded in.
-    if (outRelocations.size() != indexedCount)
+    // An ordered boundary makes the concatenation sorted already.
+    if (indexedCount && outRelocations.size() != indexedCount &&
+        outRelocations[indexedCount].offset < outRelocations[indexedCount - 1].offset)
         std::ranges::inplace_merge(outRelocations, outRelocations.begin() + indexedCount, {}, &DataSegmentRelocation::offset);
 }
 

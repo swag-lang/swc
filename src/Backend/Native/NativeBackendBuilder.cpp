@@ -463,7 +463,7 @@ namespace
         return appendCodeGenDependencies(builder, functions, seenFunctions, nextFunctionIndex);
     }
 
-    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset)
+    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset, std::unordered_set<SymbolFunction*>* rejected = nullptr)
     {
         const DataSegment&    segment = builder.compiler().cstMgr().shardDataSegment(shardIndex);
         DataSegmentAllocation allocation;
@@ -482,8 +482,14 @@ namespace
             if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
             {
                 auto target = const_cast<SymbolFunction*>(relocation.targetSymbol);
-                if (!target || !isIncludableDependency(builder, *target))
+                if (!target)
                     continue;
+                if (!isIncludableDependency(builder, *target))
+                {
+                    if (rejected)
+                        rejected->insert(target);
+                    continue;
+                }
                 if (!seenFunctions.insert(target).second)
                     continue;
 
@@ -493,7 +499,7 @@ namespace
             }
 
             const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
-            changed                         = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, targetShardIndex, relocation.targetOffset) || changed;
+            changed                         = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, targetShardIndex, relocation.targetOffset, rejected) || changed;
         }
 
         return changed;
@@ -528,12 +534,66 @@ namespace
         return changed;
     }
 
-    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
+    // What the code-generation rounds have already learned from constant data. The data graph does
+    // not change once an allocation exists, and a function's relocations only appear when its code
+    // does, so each round walks only what is new. A target that was not includable yet (a lazy body
+    // or generic instance still being analysed) is checked again every round.
+    struct ConstantDependencyScan
     {
-        std::unordered_set           seenFunctions(functions.begin(), functions.end());
-        std::unordered_set<uint64_t> visitedAllocations;
-        size_t                       nextFunctionIndex = 0;
-        return appendConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations, nextFunctionIndex);
+        std::unordered_set<uint64_t>                      visitedAllocations;
+        std::unordered_map<const SymbolFunction*, size_t> scannedRelocations;
+        std::unordered_set<SymbolFunction*>               rejected;
+    };
+
+    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, ConstantDependencyScan& scan)
+    {
+        std::unordered_set seenFunctions(functions.begin(), functions.end());
+        bool               changed = false;
+        for (auto it = scan.rejected.begin(); it != scan.rejected.end();)
+        {
+            SymbolFunction* target = *it;
+            if (!seenFunctions.contains(target))
+            {
+                if (!isIncludableDependency(builder, *target))
+                {
+                    ++it;
+                    continue;
+                }
+
+                seenFunctions.insert(target);
+                functions.push_back(target);
+                changed = true;
+            }
+
+            it = scan.rejected.erase(it);
+        }
+
+        for (size_t index = 0; index < functions.size(); ++index)
+        {
+            const SymbolFunction* function = functions[index];
+            if (!function)
+                continue;
+
+            const MachineCode& code    = function->loweredCode();
+            size_t&            scanned = scan.scannedRelocations[function];
+            if (scanned == code.codeRelocations.size())
+                continue;
+            scanned = code.codeRelocations.size();
+
+            for (const MicroRelocation& relocation : code.codeRelocations)
+            {
+                if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
+                    continue;
+
+                DataSegmentRef sourceRef;
+                if (!builder.tryResolveConstantSourceRef(sourceRef, relocation))
+                    continue;
+
+                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, scan.visitedAllocations, sourceRef.shardIndex, sourceRef.offset, &scan.rejected) || changed;
+            }
+        }
+
+        return changed;
     }
 
     bool appendGlobalFunctionInitDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
@@ -1396,6 +1456,7 @@ Result NativeBackendBuilder::prepare()
     }
 
     SWC_SCHED_PHASE(ctx_.global().jobMgr(), "codegen");
+    ConstantDependencyScan constantScan;
     while (true)
     {
         appendCodeGenDependencies(*this, functions);
@@ -1403,7 +1464,7 @@ Result NativeBackendBuilder::prepare()
         SWC_RESULT(scheduleCodeGen(*this, functions));
 
         const bool addedCallDeps     = appendCodeGenDependencies(*this, functions);
-        const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions);
+        const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions, constantScan);
         if (!addedCallDeps && !addedConstantDeps)
         {
             if (discardIgnoredCallers(*this, functions))

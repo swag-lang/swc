@@ -36,23 +36,31 @@ namespace
     // become 'input_mouse_position' and the linker silently binds one call to the other.
     constexpr std::string_view PUBLIC_API_IDENTIFIER_SEPARATOR = "__";
 
-    Utf8 sanitizePublicApiSymbolText(const std::string_view text)
+    void appendPublicApiSymbolFragment(Utf8& out, const std::string_view text)
     {
         // Public API names are exported outside the compiler. Normalize every
         // fragment to a stable, linker-friendly snake_case token independent of
         // punctuation in source-level names.
-        Utf8 out;
-        bool lastWasUnderscore       = true;
-        bool previousWasLowerOrDigit = false;
+        const size_t fragmentStart           = out.size();
+        bool         fragmentStarted         = false;
+        bool         lastWasUnderscore       = true;
+        bool         previousWasLowerOrDigit = false;
         for (const char c : text)
         {
             const auto uc = static_cast<unsigned char>(c);
             if (isPublicApiSymbolAlphaNumeric(c))
             {
+                if (!fragmentStarted)
+                {
+                    if (!out.empty())
+                        out += PUBLIC_API_IDENTIFIER_SEPARATOR;
+                    fragmentStarted = true;
+                }
+
                 const bool isUpper = std::isupper(uc) != 0;
                 const bool isLower = std::islower(uc) != 0;
                 const bool isDigit = std::isdigit(uc) != 0;
-                if (isUpper && !out.empty() && !lastWasUnderscore && previousWasLowerOrDigit)
+                if (isUpper && !lastWasUnderscore && previousWasLowerOrDigit)
                     out += '_';
 
                 out += static_cast<char>(std::tolower(uc));
@@ -72,20 +80,8 @@ namespace
             previousWasLowerOrDigit = false;
         }
 
-        while (!out.empty() && out.back() == '_')
+        while (out.size() > fragmentStart && out.back() == '_')
             out.pop_back();
-        return out;
-    }
-
-    void appendPublicApiSymbolFragment(Utf8& out, const std::string_view text)
-    {
-        const Utf8 fragment = sanitizePublicApiSymbolText(text);
-        if (fragment.empty())
-            return;
-
-        if (!out.empty())
-            out += PUBLIC_API_IDENTIFIER_SEPARATOR;
-        out += fragment;
     }
 
     void appendPublicApiTypeFragment(Utf8& out, const TaskContext& ctx, TypeRef typeRef);
@@ -398,9 +394,8 @@ namespace
         return candidate.isPublic() && candidate.supportsPublicApiForeignExport();
     }
 
-    void collectPublicApiOverloads(const SymbolFunction& symbol, const TaskContext& ctx, std::vector<const SymbolFunction*>& outOverloads)
+    void collectPublicApiOverloads(const SymbolFunction& symbol, std::vector<const SymbolFunction*>& outOverloads)
     {
-        SWC_UNUSED(ctx);
         outOverloads.clear();
         if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
         {
@@ -446,13 +441,6 @@ namespace
                     outOverloads.push_back(candidate);
             }
         }
-    }
-
-    bool publicApiNeedsOverloadSuffix(const SymbolFunction& symbol, const TaskContext& ctx)
-    {
-        std::vector<const SymbolFunction*> overloads;
-        collectPublicApiOverloads(symbol, ctx, overloads);
-        return overloads.size() > 1;
     }
 
     Utf8 buildPublicApiParameterSignature(const TaskContext& ctx, const SymbolFunction& symbol)
@@ -514,16 +502,14 @@ namespace
         return result;
     }
 
-    bool publicApiSignatureCollides(const SymbolFunction& symbol, const TaskContext& ctx, const Utf8& expectedSignature, const bool detailed)
+    bool publicApiParameterSignatureCollides(const SymbolFunction& symbol, const TaskContext& ctx, const Utf8& expectedSignature, std::span<const SymbolFunction* const> overloads)
     {
-        std::vector<const SymbolFunction*> overloads;
-        collectPublicApiOverloads(symbol, ctx, overloads);
         for (const SymbolFunction* candidate : overloads)
         {
             if (!candidate || candidate == &symbol)
                 continue;
 
-            const Utf8 candidateSignature = detailed ? buildPublicApiDetailedSignature(ctx, *candidate) : buildPublicApiParameterSignature(ctx, *candidate);
+            const Utf8 candidateSignature = buildPublicApiParameterSignature(ctx, *candidate);
             if (candidateSignature == expectedSignature)
                 return true;
         }
@@ -531,10 +517,10 @@ namespace
         return false;
     }
 
-    void appendPublicApiOverloadSuffix(Utf8& out, const TaskContext& ctx, const SymbolFunction& symbol)
+    void appendPublicApiOverloadSuffix(Utf8& out, const TaskContext& ctx, const SymbolFunction& symbol, std::span<const SymbolFunction* const> overloads)
     {
         Utf8 signature = buildPublicApiParameterSignature(ctx, symbol);
-        if (publicApiSignatureCollides(symbol, ctx, signature, false))
+        if (publicApiParameterSignatureCollides(symbol, ctx, signature, overloads))
             signature = buildPublicApiDetailedSignature(ctx, symbol);
 
         // One level deeper than the identifier separator, so an overload signature can
@@ -676,8 +662,10 @@ Utf8 SymbolFunction::computePublicApiBaseSymbolName(const TaskContext& ctx) cons
 Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
 {
     Utf8 apiName = computePublicApiBaseSymbolName(ctx);
-    if (publicApiNeedsOverloadSuffix(*this, ctx))
-        appendPublicApiOverloadSuffix(apiName, ctx, *this);
+    std::vector<const SymbolFunction*> overloads;
+    collectPublicApiOverloads(*this, overloads);
+    if (overloads.size() > 1)
+        appendPublicApiOverloadSuffix(apiName, ctx, *this, overloads);
     return apiName;
 }
 
@@ -879,37 +867,45 @@ void SymbolFunction::addParameter(SymbolVariable* sym)
 
 uint64_t SymbolFunction::returnBorrowsParamsMask() const noexcept
 {
-    return returnBorrowsParamsMask_ | (hasAttributes() ? attributes().returnBorrowsParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return returnBorrowsParamsMask_ | (attrs ? attrs->returnBorrowsParamsMask : 0);
 }
 
 uint64_t SymbolFunction::storesParamsMask() const noexcept
 {
-    return storesParamsMask_ | (hasAttributes() ? attributes().storesParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return storesParamsMask_ | (attrs ? attrs->storesParamsMask : 0);
 }
 
 uint64_t SymbolFunction::returnsStorageParamsMask() const noexcept
 {
-    return returnsStorageParamsMask_ | (hasAttributes() ? attributes().returnsStorageParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return returnsStorageParamsMask_ | (attrs ? attrs->returnsStorageParamsMask : 0);
 }
 
 uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
 {
-    return storesIntoParamPairs_ | (hasAttributes() ? attributes().storesIntoParamPairs : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return storesIntoParamPairs_ | (attrs ? attrs->storesIntoParamPairs : 0);
 }
 
 uint64_t SymbolFunction::freesParamsMask() const noexcept
 {
-    return freesParamsMask_.load(std::memory_order_acquire) | (hasAttributes() ? attributes().freesParamsMask : 0);
+    const uint64_t       inferred = freesParamsMask_.load(std::memory_order_acquire);
+    const AttributeList* attrs    = attributesIfAny();
+    return inferred | (attrs ? attrs->freesParamsMask : 0);
 }
 
 uint64_t SymbolFunction::reallocatesParamsMask() const noexcept
 {
-    return reallocatesParamsMask_ | (hasAttributes() ? attributes().reallocatesParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return reallocatesParamsMask_ | (attrs ? attrs->reallocatesParamsMask : 0);
 }
 
 uint64_t SymbolFunction::returnsPayloadParamsMask() const noexcept
 {
-    return returnsPayloadParamsMask_ | (hasAttributes() ? attributes().returnsPayloadParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return returnsPayloadParamsMask_ | (attrs ? attrs->returnsPayloadParamsMask : 0);
 }
 
 bool SymbolFunction::tryGetParameterIndexByName(size_t& outIndex, const IdentifierRef name, const size_t startIndex) const noexcept

@@ -17,7 +17,7 @@ namespace
 {
     SymbolStruct* genericRootStructFromExplicitTypeArg(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
     {
-        const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
+        const SemaNodeView view = sema.viewSymbol(nodeRef);
         if (auto* genericRoot = SemaGenericRootAlias::resolve(view.sym()))
         {
             if (!genericRoot->isGenericInstance())

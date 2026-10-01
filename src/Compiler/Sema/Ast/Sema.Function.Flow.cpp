@@ -25,12 +25,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef)
+    bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef, const SemaNodeView& view)
     {
-        if (nodeRef.isInvalid())
-            return false;
-
-        const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
         if (view.sym())
         {
             if (view.sym()->isNamespace() || view.sym()->isModule())
@@ -51,6 +47,13 @@ namespace
         return false;
     }
 
+    bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+        return isNestedUfcsReceiverValue(sema, nodeRef, sema.viewTypeSymbol(nodeRef));
+    }
+
     AstNodeRef resolvedUfcsReceiverArg(Sema& sema, AstNodeRef nodeRef)
     {
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
@@ -66,13 +69,16 @@ namespace
             return AstNodeRef::invalid();
 
         const auto& outerMember = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();
-        if (isNestedUfcsReceiverValue(sema, outerMember.nodeLeftRef))
+        if (outerMember.nodeLeftRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const SemaNodeView outerLeftView = sema.viewTypeSymbol(outerMember.nodeLeftRef);
+        if (isNestedUfcsReceiverValue(sema, outerMember.nodeLeftRef, outerLeftView))
         {
-            const SemaNodeView outerLeftView = sema.viewNodeTypeSymbol(outerMember.nodeLeftRef);
             if (outerLeftView.type() && outerLeftView.type()->isInterface())
                 return AstNodeRef::invalid();
 
-            if (outerMember.nodeLeftRef.isValid() && sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
+            if (sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
             {
                 const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
                 if ((outerLeftView.sym() && outerLeftView.sym()->isImpl()) ||
@@ -86,8 +92,7 @@ namespace
             return resolvedUfcsReceiverArg(sema, outerMember.nodeLeftRef);
         }
 
-        if (outerMember.nodeLeftRef.isInvalid() ||
-            sema.node(outerMember.nodeLeftRef).isNot(AstNodeId::MemberAccessExpr))
+        if (sema.node(outerMember.nodeLeftRef).isNot(AstNodeId::MemberAccessExpr))
             return AstNodeRef::invalid();
 
         const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();

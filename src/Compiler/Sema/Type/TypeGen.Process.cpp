@@ -191,8 +191,8 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
         {
             if (type.isAggregateStruct())
             {
-                for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
-                    deps.push_back(fieldTypeRef);
+                const auto& fieldTypes = type.payloadAggregate().types;
+                deps.append(fieldTypes.data(), fieldTypes.size());
                 break;
             }
 
@@ -379,10 +379,15 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
             entry.deps = computeDeps(tm, sema, type, kind);
             // The payload is itself a DynCast instance of its concrete metadata struct.
             entry.deps.push_back(entry.rtTypeRef);
-            TypeInfo unqualified = type;
-            unqualified.removeFlag(TypeInfoFlagsE::Const);
-            unqualified.removeFlag(TypeInfoFlagsE::Nullable);
-            entry.deps.push_back(sema.typeMgr().addType(unqualified));
+            TypeRef unqualifiedTypeRef = key;
+            if (type.isConst() || type.isNullable())
+            {
+                TypeInfo unqualified = type;
+                unqualified.removeFlag(TypeInfoFlagsE::Const);
+                unqualified.removeFlag(TypeInfoFlagsE::Nullable);
+                unqualifiedTypeRef = tm.addType(unqualified);
+            }
+            entry.deps.push_back(unqualifiedTypeRef);
             it = cache.entries.emplace(key, std::move(entry)).first;
         }
 

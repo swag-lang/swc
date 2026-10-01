@@ -148,22 +148,17 @@ namespace
             if (lowLinks_[nodeIndex] != indices_[nodeIndex])
                 return;
 
-            SmallVector<uint32_t> component;
+            // The root is the only member exactly when it is already on top of the stack.
+            const bool isCycle = stack_.back() != nodeIndex || std::ranges::find(edges_[nodeIndex], nodeIndex) != edges_[nodeIndex].end();
             for (;;)
             {
                 const uint32_t memberIndex = stack_.back();
                 stack_.pop_back();
                 onStack_[memberIndex] = false;
-                component.push_back(memberIndex);
+                if (isCycle)
+                    cyclic_[memberIndex] = true;
                 if (memberIndex == nodeIndex)
                     break;
-            }
-
-            const bool selfCycle = component.size() == 1 && std::ranges::find(edges_[nodeIndex], nodeIndex) != edges_[nodeIndex].end();
-            if (component.size() > 1 || selfCycle)
-            {
-                for (const uint32_t memberIndex : component)
-                    cyclic_[memberIndex] = true;
             }
         }
 
@@ -341,21 +336,24 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             // materialization one call deeper.
             if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.callsBlockedFunction(name))
                 continue;
-            if (callGraphIt != callGraphs.end() && callGraphIt->second.isCyclic(name) && bodyHasCall)
+            if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.isCyclic(name))
             {
                 mutableDecl->flags().remove(AstFunctionFlagsE::AutoInlineBody);
                 continue;
             }
 
             const auto it               = callCounts.find(name);
-            const auto useIt            = useCounts.find(name);
-            const bool hasLastCallBonus = it != callCounts.end() && it->second == 1 &&
-                                          useIt != useCounts.end() && useIt->second == 1;
+            bool       hasLastCallBonus = false;
+            if (it != callCounts.end() && it->second == 1)
+            {
+                const auto useIt = useCounts.find(name);
+                hasLastCallBonus = useIt != useCounts.end() && useIt->second == 1;
+            }
             // Volunteer a small wrapper with calls when at least one site is in a loop.
             // Bound total duplication, including its cold call sites.
-            const bool hotCallBody = bodyHasCall && hotCallCounts.contains(name) &&
-                                     decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS && it != callCounts.end() &&
-                                     uint64_t{decl->autoInlineCost} * it->second <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS;
+            const bool hotCallBody = bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS &&
+                                     it != callCounts.end() && uint64_t{decl->autoInlineCost} * it->second <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS &&
+                                     hotCallCounts.contains(name);
             if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hotCallBody || hasLastCallBonus)
                 mutableDecl->addFlag(AstFunctionFlagsE::AutoInlineBody);
         }

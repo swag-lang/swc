@@ -247,8 +247,8 @@ namespace
 
             uint32_t externalPredCount = 0;
             for (const uint32_t p : cfg.predecessors(header))
-                if (p < n && !loop.inBody[p])
-                    ++externalPredCount;
+                if (p < n && !loop.inBody[p] && ++externalPredCount > 1)
+                    return true;
             if (externalPredCount != 1)
                 return true;
 
@@ -655,8 +655,13 @@ namespace
 
                 uint32_t carrierIx = K_INVALID;
                 for (uint32_t k = 0; k < carriers.size(); ++k)
+                {
                     if (sameFamily(carriers[k], candidate))
+                    {
                         carrierIx = k;
+                        break;
+                    }
+                }
 
                 if (carrierIx == K_INVALID)
                 {

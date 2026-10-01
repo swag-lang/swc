@@ -36,9 +36,9 @@ the latest entry was removed. The removal itself lives in Git.
 | File | Area | Updated |
 | --- | --- | --- |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-01 13:08 |
-| [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-10-01 11:36 |
+| [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-10-01 12:54 |
+| [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-10-01 12:54 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-30 19:29 |
-| [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-30 18:59 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-30 16:13 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-30 10:20 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-29 18:46 |

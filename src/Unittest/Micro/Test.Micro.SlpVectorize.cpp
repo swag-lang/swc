@@ -33,6 +33,82 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(SlpVectorize_PacksZeroStoresWithoutConstantLoads)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const uint32_t chunks : {1u, 2u})
+        {
+            MicroBuilder   builder(ctx);
+            X64Encoder     encoder(ctx);
+            MicroSsaState  ssa;
+            const MicroReg sp    = encoder.stackPointerReg();
+            const uint32_t bytes = getNumBytes(bits);
+            for (uint32_t offset = 0; offset < chunks * 16; offset += bytes)
+                builder.emitLoadMemImm(sp, 0x40 + offset, ApInt(0, getNumBits(bits)), bits);
+            builder.emitRet();
+            SWC_RESULT(runSlpPass(builder, ssa, encoder, &ctx));
+            uint32_t clears = 0;
+            uint32_t stores = 0;
+            MicroReg zero   = MicroReg::invalid();
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                const auto* ops = inst.ops(builder.operands());
+                if (inst.op == MicroInstrOpcode::ClearReg)
+                {
+                    if (!ops[0].reg.isVirtualFloat() || ops[1].opBits != MicroOpBits::B128)
+                        return Result::Error;
+                    zero = ops[0].reg;
+                    ++clears;
+                }
+                if (inst.op == MicroInstrOpcode::StoreVecMemReg)
+                {
+                    if (ops[0].reg != sp || ops[1].reg != zero || ops[2].opBits != MicroOpBits::B128 || ops[3].valueU64 != 0x40 + stores * 16)
+                        return Result::Error;
+                    ++stores;
+                }
+            }
+            if (clears != 1 || stores != chunks || !builder.codeRelocations().empty() ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_ZeroStoresKeepObservableBoundaries)
+{
+    for (uint32_t variant = 0; variant < 6; ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        X64Encoder     encoder(ctx);
+        MicroSsaState  ssa;
+        const MicroReg sp       = encoder.stackPointerReg();
+        const MicroReg observed = MicroReg::virtualIntReg(1);
+        builder.emitLoadMemImm(sp, 0x40, ApInt(variant == 5 ? 7 : 0, 64), MicroOpBits::B64);
+        if (variant == 2)
+        {
+            builder.emitLoadRegMem(observed, sp, 0x48, MicroOpBits::B64);
+            builder.emitLoadMemReg(sp, 0x80, observed, MicroOpBits::B64);
+        }
+        if (variant == 3)
+            builder.placeLabel(builder.createLabel());
+        if (variant == 4)
+            builder.emitLoadVolatileRegMem(observed, sp, 0x48, MicroOpBits::B64);
+        if (variant != 0)
+            builder.emitLoadMemImm(sp, variant == 1 ? 0x50 : 0x48, ApInt(variant == 5 ? 7 : 0, 64), MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runSlpPass(builder, ssa, encoder, &ctx));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 0 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != (variant == 0 ? 1u : 2u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_PacksDoubleArithmeticAndSqrt)
 {
     for (const MicroOp operation : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide, MicroOp::FloatMin, MicroOp::FloatMax})

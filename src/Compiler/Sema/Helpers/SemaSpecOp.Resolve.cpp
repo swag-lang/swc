@@ -672,27 +672,26 @@ namespace
 
     SymbolFunction* selectReceiverOnlyCandidate(Sema& sema, std::span<Symbol* const> candidates, bool receiverIsConst)
     {
-        SmallVector<Symbol*> mutableCandidates;
-        SmallVector<Symbol*> constCandidates;
-        splitMutableReceiverCandidates(sema, candidates, mutableCandidates, constCandidates);
-
-        const auto preferredCandidates = receiverIsConst || mutableCandidates.empty() ? constCandidates.span() : mutableCandidates.span();
-        for (Symbol* sym : preferredCandidates)
+        SymbolFunction* firstConstCandidate = nullptr;
+        for (Symbol* sym : candidates)
         {
-            if (auto* symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr)
-                return symFunc;
-        }
+            auto* symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr;
+            if (!symFunc)
+                continue;
 
-        if (!receiverIsConst)
-        {
-            for (Symbol* sym : constCandidates)
+            const SymbolVariable* receiver = symFunc->parameters().empty() ? nullptr : symFunc->parameters().front();
+            if (receiver && !sema.typeMgr().get(receiver->typeRef()).isConst())
             {
-                if (auto* symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr)
+                if (!receiverIsConst)
                     return symFunc;
             }
+            else if (receiverIsConst)
+                return symFunc;
+            else if (!firstConstCandidate)
+                firstConstCandidate = symFunc;
         }
 
-        return nullptr;
+        return firstConstCandidate;
     }
 
     AstNodeRef normalizeIndexSpecOpArgRef(Sema& sema, AstNodeRef argRef)

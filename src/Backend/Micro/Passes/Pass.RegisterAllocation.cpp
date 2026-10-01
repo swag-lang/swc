@@ -3110,20 +3110,22 @@ bool MicroRegisterAllocationPass::isStraightLineRange(const uint32_t lo, const u
     if (intervalHasCall(lo, hi))
         return false;
 
-    uint32_t idx = 0;
-    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
+    // Live ranges use the original CFG positions. Earlier rewrites have
+    // already inserted saves and restores into storage, so counting that
+    // mutated listing would inspect a different range.
+    const auto refs = controlFlowGraph_->instructionRefs();
+    SWC_ASSERT(hi < refs.size());
+    for (uint32_t idx = lo; idx <= hi; ++idx)
     {
-        if (idx > hi)
-            break;
-        if (idx < lo)
-            continue;
-        if (it->op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(*it))
+        const MicroInstr* inst = instructions_->ptr(refs[idx]);
+        SWC_ASSERT(inst != nullptr);
+        if (inst->op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(*inst))
             return false;
-        if (it->op == MicroInstrOpcode::Push || it->op == MicroInstrOpcode::Pop)
+        if (inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop)
             return false;
 
         int64_t probeDepth = 0;
-        applyStackPointerDelta(probeDepth, *it);
+        applyStackPointerDelta(probeDepth, *inst);
         if (probeDepth != 0)
             return false;
     }

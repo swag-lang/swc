@@ -682,40 +682,39 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
              !ops[1].reg.isInstructionPointer()))
             continue;
 
-        if (!relocationsReady && (shape.readsMemory || shape.keyedByRelocationToo))
+        const MicroRelocation* instReloc = nullptr;
+        if (shape.readsMemory || shape.keyedByRelocationToo)
         {
-            // Both lookups below need the same snapshot. Relocations remain
-            // untouched until the queued rewrites are applied after this scan.
-            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            if (!relocationsReady)
             {
-                if (reloc.instructionRef.isValid())
-                    relocationByInstruction[reloc.instructionRef] = &reloc;
+                // Relocations remain untouched until the queued rewrites are
+                // applied after this scan, so all consumers share this snapshot.
+                for (const MicroRelocation& reloc : context.builder->codeRelocations())
+                {
+                    if (reloc.instructionRef.isValid())
+                        relocationByInstruction[reloc.instructionRef] = &reloc;
+                }
+                relocationsReady = true;
             }
-            relocationsReady = true;
+
+            const auto relocIt = relocationByInstruction.find(instRef);
+            if (relocIt != relocationByInstruction.end())
+                instReloc = relocIt->second;
         }
 
         if (inst->op == MicroInstrOpcode::OpBinaryRegMem)
         {
-            const auto relocIt = relocationByInstruction.find(instRef);
-            if (relocIt == relocationByInstruction.end() ||
-                relocIt->second->kind != MicroRelocation::Kind::ConstantAddress ||
-                relocIt->second->form != MicroRelocation::Form::Relative32)
+            if (!instReloc || instReloc->kind != MicroRelocation::Kind::ConstantAddress ||
+                instReloc->form != MicroRelocation::Form::Relative32)
                 continue;
         }
 
         // A RIP-relative load names its cell through the relocation, rather
         // than through an SSA base. Keep other physical bases opaque.
-        const MicroRelocation* loadReloc = nullptr;
-        if (shape.readsMemory)
-        {
-            const auto relocIt = relocationByInstruction.find(instRef);
-            if (relocIt != relocationByInstruction.end())
-                loadReloc = relocIt->second;
-        }
-        const bool ripLoad = loadReloc && inst->op == MicroInstrOpcode::LoadRegMem &&
-                             ops[1].reg.isInstructionPointer() && loadReloc->form == MicroRelocation::Form::Relative32;
-        const bool constantPoolLoad = ripLoad && loadReloc->kind == MicroRelocation::Kind::ConstantAddress;
-        if (shape.readsMemory && loadReloc && !ripLoad)
+        const bool ripLoad = instReloc && inst->op == MicroInstrOpcode::LoadRegMem &&
+                             ops[1].reg.isInstructionPointer() && instReloc->form == MicroRelocation::Form::Relative32;
+        const bool constantPoolLoad = ripLoad && instReloc->kind == MicroRelocation::Kind::ConstantAddress;
+        if (shape.readsMemory && instReloc && !ripLoad)
             continue;
         if (shape.readsMemory && !ripLoad && !isNumberableReg(ops[shape.useSlots[0]].reg))
             continue;
@@ -791,16 +790,15 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (ripLoad)
         {
             key.push_back(K_RELOCATED_MEMORY_KEY);
-            appendRelocationIdentity(key, *loadReloc);
+            appendRelocationIdentity(key, *instReloc);
         }
         if (shape.hasImmediate)
             key.push_back(ops[shape.immediateSlot].valueU64);
         if (shape.keyedByRelocationToo)
         {
-            const auto relocIt = relocationByInstruction.find(instRef);
-            if (relocIt == relocationByInstruction.end())
+            if (!instReloc)
                 continue;
-            appendRelocationIdentity(key, *relocIt->second);
+            appendRelocationIdentity(key, *instReloc);
         }
 
         uint32_t myValueId = MicroSsaState::K_INVALID_VALUE;

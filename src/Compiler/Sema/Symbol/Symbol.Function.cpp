@@ -36,23 +36,31 @@ namespace
     // become 'input_mouse_position' and the linker silently binds one call to the other.
     constexpr std::string_view PUBLIC_API_IDENTIFIER_SEPARATOR = "__";
 
-    Utf8 sanitizePublicApiSymbolText(const std::string_view text)
+    void appendPublicApiSymbolFragment(Utf8& out, const std::string_view text)
     {
         // Public API names are exported outside the compiler. Normalize every
         // fragment to a stable, linker-friendly snake_case token independent of
         // punctuation in source-level names.
-        Utf8 out;
-        bool lastWasUnderscore       = true;
-        bool previousWasLowerOrDigit = false;
+        const size_t fragmentStart           = out.size();
+        bool         fragmentStarted         = false;
+        bool         lastWasUnderscore       = true;
+        bool         previousWasLowerOrDigit = false;
         for (const char c : text)
         {
             const auto uc = static_cast<unsigned char>(c);
             if (isPublicApiSymbolAlphaNumeric(c))
             {
+                if (!fragmentStarted)
+                {
+                    if (!out.empty())
+                        out += PUBLIC_API_IDENTIFIER_SEPARATOR;
+                    fragmentStarted = true;
+                }
+
                 const bool isUpper = std::isupper(uc) != 0;
                 const bool isLower = std::islower(uc) != 0;
                 const bool isDigit = std::isdigit(uc) != 0;
-                if (isUpper && !out.empty() && !lastWasUnderscore && previousWasLowerOrDigit)
+                if (isUpper && !lastWasUnderscore && previousWasLowerOrDigit)
                     out += '_';
 
                 out += static_cast<char>(std::tolower(uc));
@@ -72,20 +80,8 @@ namespace
             previousWasLowerOrDigit = false;
         }
 
-        while (!out.empty() && out.back() == '_')
+        while (out.size() > fragmentStart && out.back() == '_')
             out.pop_back();
-        return out;
-    }
-
-    void appendPublicApiSymbolFragment(Utf8& out, const std::string_view text)
-    {
-        const Utf8 fragment = sanitizePublicApiSymbolText(text);
-        if (fragment.empty())
-            return;
-
-        if (!out.empty())
-            out += PUBLIC_API_IDENTIFIER_SEPARATOR;
-        out += fragment;
     }
 
     void appendPublicApiTypeFragment(Utf8& out, const TaskContext& ctx, TypeRef typeRef);

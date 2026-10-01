@@ -98,6 +98,9 @@ struct InvalidVersion
 // error embeds as its first field; an error type without one, or with an empty message,
 // answers with its type name instead, so the result is always printable. A `null` error
 // answers with an empty string.
+//
+// The returned view does not retain the error. Copy it into [[Core.String]] before its
+// catch scope ends, or retain the typed error with [[Swag.Error]] and inspect a later capture.
 func message(err: any?)->string
 {
     if err == null do

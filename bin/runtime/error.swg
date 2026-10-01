@@ -4,6 +4,87 @@ using Swag
 
 namespace Swag
 {
+    // Owns a captured error beyond its original catch scope.
+    //
+    // A default value is empty. Capture a caught value while its scope is still alive, then
+    // use [[Swag.Error.raise]] to propagate or inspect the same dynamic error type later.
+    // Copying an owner shares its retained payload; resetting one copy leaves the others valid.
+    // Copied runtime message storage survives the originating context and thread.
+    //
+    // Capturing copies the payload using its ordinary copy behavior. Other borrowed fields
+    // still require their original owners, and every backing allocator must outlive all error
+    // owners and raised captures that use it. Synchronize publication and access to the same
+    // owner across threads. Distinct copies can be used independently when the payload's copy
+    // and destruction behavior and its allocators support those threads.
+    //
+    // ```swag
+    // var saved: Swag.Error
+    // {
+    //     catch { fail 42's32 } as error
+    //     saved.capture(error)
+    // }
+    // catch saved.raise() as error
+    // Swag.assert(error is s32)
+    // ```
+    #[Opaque]
+    public struct Error
+    {
+        private record: *ErrorRecord?
+    }
+
+    public impl Error
+    {
+        // Releases this owner's reference when it leaves scope.
+        mtd opDrop()
+        {
+            __releaseErrRecord(.record)
+        }
+
+        // Shares the retained payload with the copied owner.
+        mtd opPostCopy()
+        {
+            if .record do
+                .record.references.add(1)
+        }
+
+        // Replaces the retained error with a copy of a live caught value.
+        //
+        // Call while `error` still belongs to its catch scope on the current thread.
+        // Its dynamic payload and copied message storage are retained independently of that
+        // scope. A null value resets this owner. The new copy is made before the old one drops.
+        mtd capture(error: any?)
+        {
+            var record: *ErrorRecord?
+            if error do
+                record = __copyErrRecord(error)
+            .reset()
+            .record = record
+        }
+
+        // Releases this owner's reference and restores the empty state.
+        //
+        // Other owner copies and errors already raised from them remain valid.
+        mtd reset()
+        {
+            Swag.drop(me, 1)
+            Swag.init(me, 1)
+        }
+
+        // Reports whether this owner has no retained error.
+        mtd const isEmpty()->bool => .record == null
+
+        // Raises a copy of the retained error, or succeeds when this owner is empty.
+        //
+        // The raised value preserves its dynamic type and copied message storage. This owner
+        // stays valid and can be raised again. To inspect it, catch this call and inspect that
+        // lexical capture; the new capture survives a reset or drop of this owner.
+        mtd const raise() fail
+        {
+            if .record do
+                __setOwnedErrRecord(.record)
+        }
+    }
+
     // Runtime-only owners. An 'any' remains a borrowed view; the compiler gives each catch
     // capture a hidden lexical owner, and each handler a temporary owner for every exit path.
     #[NoDoc]

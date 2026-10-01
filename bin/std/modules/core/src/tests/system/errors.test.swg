@@ -205,3 +205,63 @@ func consumeThreadMessages(_thread: Threading.Thread)
     Swag.assert(copiedThreadMessagesValid.isRaised())
     Swag.assert(afterThread == baseline)
 }
+
+struct OwnedThreadError
+{
+    error: Swag.Error
+}
+
+func publishOwnedThreadError(thread: Threading.Thread)
+{
+    let state = cast(*OwnedThreadError) thread.userParam!
+
+    // The text is allocated in the producer's root storage, before its catch frame begins.
+    let message = Errors.mkString("the public error owner retains text beyond producer exit")
+    catch
+    {
+        fail Errors.BadParameterError{message}
+    } as error
+    state.error.capture(error)
+}
+
+// Public ownership crosses an actual joined thread and preserves arbitrary dynamic types.
+// Resetting each transport copy leaves the final lexical capture alive until its own exit.
+#test
+{
+    if Swag.jit() do
+        return
+    var allocator: Swag.Allocator
+    allocator.setup()
+    allocator.configure(false, false, false, false, false)
+    defer allocator.release()
+    let previous = Swag.getContext()
+    defer Swag.setContext(previous)
+    var context: Swag.Context
+    context.allocator        = Swag.makeInterface(&allocator, #typeof(allocator), Swag.IAllocator)
+    context.defaultAllocator = context.allocator
+    context.runtimeFlags     = previous.runtimeFlags
+    Swag.setContext(context)
+    defer context.releaseErrorStorage()
+
+    let baseline = allocator.stats().countAlloc
+    var state: OwnedThreadError
+    {
+        var thread: Threading.Thread
+        expect thread.init(&publishOwnedThreadError, &state)
+        expect thread.start()
+        thread.wait()
+    }
+
+    var copied = state.error
+    state.error.reset()
+    var valid: bool
+    {
+        catch copied.raise() as error
+        copied.reset()
+        valid = (error is Errors.BadParameterError) and Errors.message(error) == "the public error owner retains text beyond producer exit"
+    }
+
+    let afterOwner = allocator.stats().countAlloc
+    Swag.assert(valid)
+    Swag.assert(afterOwner == baseline)
+}

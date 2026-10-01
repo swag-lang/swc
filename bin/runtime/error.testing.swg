@@ -1,12 +1,12 @@
 #global if #command == Swag.CompilerCommand.Test
 #global namespace Swag
 
-// This test seam keeps private record transport inside the bootstrap. Its caller receives
-// only the outcome, never a raw record or a shutdown operation on the process worker pool.
+// This test seam uses the public owner across a real producer-thread teardown. Its caller
+// receives only the outcome, never native handles or a shutdown of the process worker pool.
 private struct ErrorTransportTestState
 {
     context:        Context
-    owned:          *ErrorRecord?
+    owned:          Error
     drops:          [16] AtomicValue'u32
     generation:     u32
     producerThread: u64
@@ -56,7 +56,7 @@ private func errorTransportTestThread(param: *void?)->u32
         if error is ErrorTransportTestPayload as value
         {
             state.generation = value.generation
-            state.owned      = __copyErrRecord(error!)
+            state.owned.capture(error)
         }
     }
 
@@ -64,11 +64,6 @@ private func errorTransportTestThread(param: *void?)->u32
     releaseAllocatorThreadCache()
     state.released = true
     return 0
-}
-
-private func raiseTransportTestRecord(record: *ErrorRecord) fail
-{
-    __setOwnedErrRecord(record)
 }
 
 #[Swag.NoDoc]
@@ -96,7 +91,6 @@ public func testErrorTransportAfterThreadExit()->bool
     state.context.defaultAllocator = allocatorInterface
     state.context.runtimeFlags     = previous.runtimeFlags
     state.context.errorAllocator.setCapacity(16, allocatorInterface)
-    defer __releaseErrRecord(state.owned)
     let baseline     = allocator.stats().countAlloc
     let callerThread = __hostCurrentThreadId()
     let thread       = __hostThreadCreate(&errorTransportTestThread, &state)
@@ -104,15 +98,17 @@ public func testErrorTransportAfterThreadExit()->bool
         return false
     __hostThreadJoin(thread)
 
-    var valid = state.released and state.producerThread != callerThread and state.owned != null
+    var valid = state.released and state.producerThread != callerThread and not state.owned.isEmpty()
     if not valid do
         return false
     let generation = state.generation
     valid = valid and state.drops[generation].load() == 1
+    var copied = state.owned
+    state.owned.reset()
+    valid = valid and state.drops[generation + 1].load() == 0
     {
-        catch raiseTransportTestRecord(state.owned!) as error
-        __releaseErrRecord(state.owned)
-        state.owned = null
+        catch copied.raise() as error
+        copied.reset()
         if error is ErrorTransportTestPayload as value do
             valid = valid and value.message == "the joined producer's pending copied message" and value.generation == generation + 2
         else do

@@ -31,6 +31,7 @@ capture in a given scope needs its own name.
 The captured payload stays alive until that scope ends, including across later
 failures. Copies of the 'any' view and pointers derived from it borrow that lifetime
 and cannot escape it. Use 'fail err' to propagate the captured error to a caller.
+To retain an error after its capture ends, give it an explicit [[Swag.Error]] owner.
 */
 #test
 {
@@ -38,6 +39,36 @@ and cannot escape it. Use 'fail err' to propagate the captured error to a caller
     Swag.assert(value == 0)
     Swag.assert(err != null)
 
+    let e = cast #assume(MyError) err
+    Swag.assert(e.code == 7)
+    Swag.assert(e.message == "name cannot be null")
+}
+
+/**
+# Retaining Errors
+[[Swag.Error.capture]] copies a live caught payload and retains its runtime message
+storage. The owner may then outlive the catch scope, including a worker thread.
+Other borrowed fields in the payload still need their original owners, and the
+backing allocator must remain alive until every error owner and raised capture ends.
+
+'try saved.raise()' propagates the retained error with its original dynamic type.
+To inspect it, catch that call. The new capture owns its own lifetime, so resetting
+'saved' does not invalidate it. An empty owner raises no error. Copying an owner
+shares its retained payload; access to the same owner across threads needs
+synchronization.
+*/
+#test
+{
+    var saved: Swag.Error
+    {
+        discard catch count(null) as err
+        saved.capture(err)
+    }
+
+    catch saved.raise() as err
+    saved.reset()
+    Swag.assert(saved.isEmpty())
+    Swag.assert(err is MyError)
     let e = cast #assume(MyError) err
     Swag.assert(e.code == 7)
     Swag.assert(e.message == "name cannot be null")

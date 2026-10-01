@@ -1787,15 +1787,20 @@ namespace
             }
         }
         vectorized.resize(retainedGroups);
+        if (vectorized.empty())
+            return false;
 
         // A zero vector needs one register clear and no constant memory read.
         // Even without arithmetic, packing its stores removes memory operands
         // without increasing the instruction count for one complete chunk.
-        const bool onlyZeroStores = plan.loads.empty() && std::ranges::all_of(plan.ops, [](const PlanInstr& operation) {
-                                        return operation.kind == PlanInstr::Kind::LoadSplat && operation.imm == 0;
-                                    });
-        if (vectorized.empty() || (plan.arithmeticOps == 0 && !onlyZeroStores))
-            return false;
+        if (plan.arithmeticOps == 0)
+        {
+            const bool onlyZeroStores = plan.loads.empty() && std::ranges::all_of(plan.ops, [](const PlanInstr& operation) {
+                                            return operation.kind == PlanInstr::Kind::LoadSplat && operation.imm == 0;
+                                        });
+            if (!onlyZeroStores)
+                return false;
+        }
 
         // The deleted set: every plain lane-sized store to a vectorized location.
         std::unordered_set<LocationKey, LocationKeyHash> vectorizedLocations;

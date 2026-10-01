@@ -127,6 +127,7 @@ void JobManager::setup(const CommandLine& cmdLine)
     statsStart_     = std::chrono::steady_clock::now();
     poolIdleSince_  = statsStart_;
     lastAccounting_ = statsStart_;
+    phaseSince_     = statsStart_;
 #endif
 }
 
@@ -145,6 +146,54 @@ void JobManager::lockCounted(std::unique_lock<std::mutex>& lk)
     stats_.lockWaitNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
 }
 
+JobManager::PhaseStats& JobManager::phaseStatsLocked(const char* name)
+{
+    for (PhaseStats& phase : phaseStats_)
+    {
+        if (phase.name == name || std::string_view{phase.name} == name)
+            return phase;
+    }
+
+    phaseStats_.push_back({.name = name});
+    return phaseStats_.back();
+}
+
+const char* JobManager::setStatsPhase(const char* name)
+{
+    const std::unique_lock lk(mtx_);
+    const char*            previous = statsPhase_;
+    if (!statsEnabled_)
+        return previous;
+
+    // Close the interval the previous phase owned: its wall time, and the pool idle time so far.
+    accountStarvationLocked();
+    const auto now = std::chrono::steady_clock::now();
+    PhaseStats& old = phaseStatsLocked(previous);
+    old.wallNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - phaseSince_).count());
+    if (activeWorkers_ == 0)
+    {
+        const auto idleNs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - poolIdleSince_).count());
+        old.serialNs += idleNs;
+        stats_.poolIdleNs += idleNs;
+        poolIdleSince_ = now;
+    }
+
+    phaseSince_ = now;
+    statsPhase_ = name;
+    return previous;
+}
+
+JobManager::StatsPhase::StatsPhase(JobManager& manager, const char* name) :
+    manager_(&manager),
+    previous_(manager.setStatsPhase(name))
+{
+}
+
+JobManager::StatsPhase::~StatsPhase()
+{
+    manager_->setStatsPhase(previous_);
+}
+
 void JobManager::accountStarvationLocked()
 {
     if (!statsEnabled_)
@@ -160,6 +209,7 @@ void JobManager::accountStarvationLocked()
         return;
 
     const uint64_t idleNs = dt * (workers - activeWorkers_);
+    phaseStatsLocked(statsPhase_).starvedNs += idleNs;
     for (KindStats& kind : kindStats_)
     {
         if (kind.running)
@@ -177,7 +227,11 @@ void JobManager::noteActiveWorkersLocked(size_t before)
     if (activeWorkers_ == 0)
         poolIdleSince_ = now;
     else
-        stats_.poolIdleNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - poolIdleSince_).count());
+    {
+        const auto idleNs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - poolIdleSince_).count());
+        stats_.poolIdleNs += idleNs;
+        phaseStatsLocked(statsPhase_).serialNs += idleNs;
+    }
 }
 
 void JobManager::noteBarrierRound()
@@ -219,6 +273,19 @@ void JobManager::printStats(const TaskContext& ctx) const
     entries.push_back({.label = "Serial phases", .value = std::format("{:.1f}% ({} ms with no job running)", percentOf(serialNs), poolIdleNs / 1'000'000)});
     entries.push_back({.label = "Scheduler lock wait", .value = std::format("{:.1f}%", percentOf(stats_.lockWaitNs))});
     entries.push_back({.label = "Starved while others run", .value = std::format("{:.1f}%", percentOf(starvedNs))});
+    // Phases whose serial or starved time matters, largest loss first. Times are worker time,
+    // as a share of the whole pool over the whole command.
+    std::vector<PhaseStats> phases = phaseStats_;
+    std::ranges::sort(phases, [&](const PhaseStats& a, const PhaseStats& b) { return a.serialNs * workers + a.starvedNs > b.serialNs * workers + b.starvedNs; });
+    for (const PhaseStats& phase : phases)
+    {
+        const uint64_t lostNs = phase.serialNs * workers + phase.starvedNs;
+        if (percentOf(lostNs) < 0.1)
+            continue;
+        entries.push_back({.label = std::format("Phase {}", phase.name),
+                           .value = std::format("{} ms, serial {:.1f}%, starved {:.1f}%", phase.wallNs / 1'000'000, percentOf(phase.serialNs * workers), percentOf(phase.starvedNs))});
+    }
+
     for (size_t i = 0; i < NUM_JOB_KINDS; ++i)
     {
         const KindStats& kind = kindStats_[i];

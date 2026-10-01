@@ -58,6 +58,7 @@ namespace Command
         }
         else
         {
+            SWC_SCHED_PHASE(jobMgr, "module setup");
             if (compiler.collectFiles(ctx) == Result::Error)
                 return;
             if (compiler.runModuleSetup(ctx) == Result::Error)
@@ -84,7 +85,10 @@ namespace Command
         const ParserJobOptions parserOptions = {
             .emitTrivia = compiler.cmdLine().command == CommandKind::Doc,
         };
-        parseSourceFiles(ctx, inputFiles, parserOptions);
+        {
+            SWC_SCHED_PHASE(jobMgr, "parse");
+            parseSourceFiles(ctx, inputFiles, parserOptions);
+        }
         if (Stats::getNumErrors() != errorsBefore)
             return;
 
@@ -107,6 +111,7 @@ namespace Command
         moduleAsts.reserve(files.size());
         for (SourceFile* f : files)
             moduleAsts.push_back(&f->ast());
+        SWC_SCHED_PHASE(jobMgr, "sema setup");
         Parser::finalizeAutoInlineCandidates(moduleAsts.span());
 
         if (compiler.setupSema(ctx) == Result::Error)
@@ -135,17 +140,27 @@ namespace Command
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
-        jobMgr.waitAll(clientId);
-
-        for (SourceFile* f : files)
         {
-            auto* job = compiler.makeJob<SemaJob>(ctx, f->nodePayloadContext(), false);
-            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+            SWC_SCHED_PHASE(jobMgr, "sema declarations");
+            jobMgr.waitAll(clientId);
         }
 
-        Sema::waitDone(ctx, clientId);
-        if (!Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
-            return;
+        {
+            SWC_SCHED_PHASE(jobMgr, "sema");
+            for (SourceFile* f : files)
+            {
+                auto* job = compiler.makeJob<SemaJob>(ctx, f->nodePayloadContext(), false);
+                jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+            }
+
+            Sema::waitDone(ctx, clientId);
+        }
+
+        {
+            SWC_SCHED_PHASE(jobMgr, "api export");
+            if (!Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
+                return;
+        }
 
         if (stage)
         {

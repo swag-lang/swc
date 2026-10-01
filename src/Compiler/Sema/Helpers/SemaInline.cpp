@@ -3054,6 +3054,12 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         return Result::Continue;
     });
 
+    // Nested expansions keep the frame's function, so the whole expanded body is charged to the
+    // function that will be generated with it.
+    const SymbolFunction* owner = sema.currentFunction();
+    if (owner && decl->autoInlineCost != UINT32_MAX)
+        owner->noteInlinedCost(decl->autoInlineCost);
+
     sema.setSubstitute(callRef, inlineRootRef);
     sema.restartCurrentNode(inlineRootRef);
     return Result::Continue;

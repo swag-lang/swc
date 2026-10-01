@@ -3401,8 +3401,11 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         setupCmdLine.files.clear();
         CommandLineParser::refreshBuildCfg(setupCmdLine);
 
-        if (resolveModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild.name, moduleBuild.moduleFile, moduleBuild.setup) != Result::Continue)
-            return ExitCode::CompileError;
+        {
+            SWC_SCHED_PHASE(ctx.global().jobMgr(), "workspace module setup");
+            if (resolveModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild.name, moduleBuild.moduleFile, moduleBuild.setup) != Result::Continue)
+                return ExitCode::CompileError;
+        }
 
         moduleBuild.ignoreInWorkspace = moduleBuild.setup.buildCfg.ignoreInWorkspace;
         for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
@@ -3643,6 +3646,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         if (!pendingLink)
             return Result::Continue;
         const std::unique_ptr<WorkspaceModuleLink> link = std::move(pendingLink);
+        SWC_SCHED_PHASE(global().jobMgr(), "workspace link wait");
         return finalizeWorkspaceModuleLink(*link);
     };
 
@@ -3906,7 +3910,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     {
         TaskContext    moduleCtx(*moduleCompiler);
         ScopedTimedLog moduleStage(moduleCtx, ScopedTimedLog::Stage::Module);
-        moduleCompiler->processCommand();
+        {
+            SWC_SCHED_PHASE(global().jobMgr(), "module command");
+            moduleCompiler->processCommand();
+        }
         if (moduleCompiler->flushGeneratedSourceDumps(moduleCtx) != Result::Continue)
             return Result::Error;
         moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, *moduleCompiler, moduleStage.delta()));

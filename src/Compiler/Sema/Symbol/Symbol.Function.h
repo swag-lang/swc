@@ -341,6 +341,12 @@ public:
     void     noteOwnCallGraphChanged() noexcept { callGraphEpoch_.fetch_add(1, std::memory_order_release); }
     uint32_t callGraphEpoch() const noexcept { return callGraphEpoch_.load(std::memory_order_acquire); }
 
+    // Body size, in auto-inline cost units, that semantic analysis inlined into this function.
+    // With the function's own size it estimates its code-generation work, so the native backend
+    // can start the longest jobs first instead of leaving one of them as the module's tail.
+    void     noteInlinedCost(uint32_t cost) const noexcept { inlinedCost_.fetch_add(cost, std::memory_order_relaxed); }
+    uint32_t inlinedCost() const noexcept { return inlinedCost_.load(std::memory_order_relaxed); }
+
     bool hasLoweredCode() const noexcept;
 
     // Offsets of the global-init slots this function's code refers to. Its lowered code no longer
@@ -454,6 +460,7 @@ private:
     mutable std::atomic<uint64_t>                 jitOrderCacheVersion_  = 0;
     mutable uint64_t                              jitOrderCacheEpochSum_ = 0;
     std::atomic<uint32_t>                         callGraphEpoch_        = 0;
+    mutable std::atomic<uint32_t>                 inlinedCost_           = 0;
     mutable std::shared_mutex                     jitOrderCacheMutex_;
     mutable std::vector<uint64_t>                 globalInitOffsetsCache_;
     mutable bool                                  globalInitOffsetsComputed_ = false;

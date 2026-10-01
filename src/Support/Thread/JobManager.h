@@ -88,6 +88,12 @@ public:
     std::optional<size_t> currentThreadIndex() const noexcept;
 
 private:
+    struct ClientState
+    {
+        size_t     readyRunning = 0;
+        JobRecord* waitingHead  = nullptr;
+    };
+
     void       pushReady(JobRecord* rec, JobPriority priority);
     JobRecord* popReadyLocked();
     JobRecord* popReadyForClientLocked(JobClientId client);
@@ -97,9 +103,9 @@ private:
     void                          handleJobResultLocked(JobRecord* rec, JobResult res);
     void                          workerLoop();
     static std::optional<WaitKey> computeWaitKey(const TaskState& state);
-    void                          parkLocked(JobRecord* rec, const TaskState& state);
-    void                          unregisterWaiterLocked(JobRecord* rec);
-    void                          requeueWaitingLocked(JobRecord* rec);
+    void                          parkLocked(ClientState& client, JobRecord* rec, const TaskState& state);
+    void                          unregisterWaiterLocked(ClientState& client, JobRecord* rec);
+    void                          requeueWaitingLocked(ClientState& client, JobRecord* rec);
     void                          growWorkersForLoadLocked();
 
     void shutdown() noexcept;
@@ -131,17 +137,12 @@ private:
     std::atomic<bool> accepting_{false};
     std::atomic<bool> joined_{false};
 
-    struct ClientState
-    {
-        size_t     readyRunning = 0;
-        JobRecord* waitingHead  = nullptr;
-    };
-
     // Client counters and sleeping lists share mtx_. Ready/running jobs need no
     // secondary live-record registry or per-job hash node.
     std::atomic<JobClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
     std::unordered_map<JobClientId, ClientState> clients_;
-    std::atomic<uint32_t>                        nextIndex_{0};
+    // Enqueue assigns every index while holding mtx_.
+    uint32_t                                    nextIndex_ = 0;
 
     // Sleeping jobs indexed by the exact dependency they wait on, for targeted wakeups.
     // JIT owners also have a unique completion alias in this map. Its record is not
@@ -163,7 +164,7 @@ private:
     void          filterAdd(const WaitKey& key) noexcept { waiterFilter_[waiterShard(key)].fetch_add(1, std::memory_order_release); }
     void          filterSub(const WaitKey& key) noexcept { waiterFilter_[waiterShard(key)].fetch_sub(1, std::memory_order_release); }
 
-    void bumpClientCountLocked(JobClientId client, int delta);
+    void bumpClientCountLocked(ClientState& client, int delta);
 
     struct RecordPool;
     static JobRecord* allocRecord();

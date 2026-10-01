@@ -81,6 +81,9 @@ namespace
                     destructive.insert(reg);
             }
         }
+        if (destructive.empty())
+            return false;
+
         std::unordered_map<MicroReg, std::unordered_map<uint64_t, std::vector<MicroInstrRef>>> loads;
         std::vector<MicroInstrRef>                                                             preserve;
         const auto                                                                             flush = [&] {
@@ -228,9 +231,11 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
                 excluded.insert(reg);
                 continue;
             }
+            uint32_t inputValue = MicroSsaState::K_INVALID_VALUE;
             if (modes[operand] == MicroInstrRegMode::Use || modes[operand] == MicroInstrRegMode::UseDef)
             {
-                if (!ssa->reachingDef(reg, it.current).valid())
+                inputValue = ssa->reachingDef(reg, it.current).valueId;
+                if (inputValue == MicroSsaState::K_INVALID_VALUE)
                     excluded.insert(reg);
             }
             if (modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef)
@@ -241,12 +246,8 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
                     excluded.insert(reg);
                     continue;
                 }
-                if (modes[operand] == MicroInstrRegMode::UseDef)
-                {
-                    const auto input = ssa->reachingDef(reg, it.current);
-                    if (input.valid())
-                        webs.merge(definition, input.valueId);
-                }
+                if (modes[operand] == MicroInstrRegMode::UseDef && inputValue != MicroSsaState::K_INVALID_VALUE)
+                    webs.merge(definition, inputValue);
             }
         }
     }

@@ -922,7 +922,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (view.cstRef().isInvalid())
         return Result::Continue;
 
-    const ConstantValue& cst     = cstMgr().get(view.cstRef());
+    const ConstantValue& cst     = *view.cst();
     CodeGenNodePayload&  payload = setPayload(nodeRef, view.typeRef());
     bool                 handled = false;
     SWC_RESULT(tryEmitRuntimeArrayFill(*this, nodeRef, payload, view.typeRef(), handled));

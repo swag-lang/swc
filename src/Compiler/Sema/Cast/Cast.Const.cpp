@@ -481,9 +481,9 @@ bool Cast::foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRe
 
 bool Cast::foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef)
 {
-    TaskContext&        ctx     = sema.ctx();
-    const TypeInfo&     dstType = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
+    TaskContext&         ctx     = sema.ctx();
+    const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
+    const ConstantValue& src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
 
     ApsInt value = src.getIntLike();
     value.resize(64);
@@ -502,9 +502,9 @@ bool Cast::foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, Ty
 
 bool Cast::foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef)
 {
-    const TaskContext&  ctx     = sema.ctx();
-    const TypeInfo&     dstType = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
+    const TaskContext&   ctx     = sema.ctx();
+    const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
+    const ConstantValue& src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
 
     uint64_t ptrValue = 0;
     if (src.isValuePointer())

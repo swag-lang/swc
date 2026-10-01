@@ -2261,7 +2261,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
     nextUsePositionCursor_.assign(virtualRegs.size(), 0);
     nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);
-    liveStampByDenseIndex_.assign(virtualRegs.size(), 0);
     // No call can mark a live-across value or require a call spill. Readers
     // already interpret an empty array as no such value.
     if (!callPositions_.empty())
@@ -3381,27 +3380,8 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
     return physReg;
 }
 
-void MicroRegisterAllocationPass::spillMappedVirtualsForConcreteTouches(const MicroInstrUseDef& useDef, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
+void MicroRegisterAllocationPass::spillMappedVirtualsForConcreteTouches(MicroRegSpan touchedRegs, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
 {
-    SmallVector<MicroReg> touchedRegs;
-    touchedRegs.reserve(useDef.uses.size() + useDef.defs.size());
-
-    for (const MicroReg reg : useDef.uses)
-    {
-        if ((!reg.isInt() && !reg.isFloat()) || containsKey(touchedRegs, reg))
-            continue;
-
-        touchedRegs.push_back(reg);
-    }
-
-    for (const MicroReg reg : useDef.defs)
-    {
-        if ((!reg.isInt() && !reg.isFloat()) || containsKey(touchedRegs, reg))
-            continue;
-
-        touchedRegs.push_back(reg);
-    }
-
     if (touchedRegs.empty())
         return;
 
@@ -3818,7 +3798,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // 1) assign physical registers for each virtual operand,
     // 2) queue spill loads/stores around the instruction,
     // 3) release dead mappings.
-    std::ranges::fill(liveStampByDenseIndex_, 0);
+    liveStampByDenseIndex_.assign(denseVirtualRegs_.regs().size(), 0);
     uint32_t stamp      = 1;
     uint32_t idx        = 0;
     int64_t  stackDepth = 0;
@@ -4114,7 +4094,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         pending_.clear();
 
-        spillMappedVirtualsForConcreteTouches(instructionUseDefs_[idx], protectedKeys, stamp, stackDepth, pending_);
+        spillMappedVirtualsForConcreteTouches(mentionedConcreteRegs, protectedKeys, stamp, stackDepth, pending_);
 
         struct AssignedPhysReg
         {
@@ -4217,11 +4197,6 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 request.needsPersistent = liveAcrossCall && !conv_->intPersistentRegs.empty();
             else
                 request.needsPersistent = isLiveAcrossHotCall(request.virtKey) && !conv_->floatPersistentRegs.empty();
-
-            // If no persistent class exists, remember to spill around call boundaries.
-            clearCallSpill(request.virtKey);
-            if (liveAcrossCall && !request.needsPersistent)
-                markCallSpill(request.virtKey);
 
             const auto      physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, remapForbiddenPhysRegs, stamp, stackDepth, pending_);
             AssignedPhysReg assignedPhysReg;

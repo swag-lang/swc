@@ -519,14 +519,14 @@ namespace
             if (!symImpl)
                 continue;
 
-            std::vector<Symbol*> symbols;
+            std::vector<const Symbol*> symbols;
             symImpl->getAllSymbols(symbols);
-            for (Symbol* symbol : symbols)
+            for (const Symbol* symbol : symbols)
             {
                 if (!symbol || !symbol->isFunction())
                     continue;
 
-                out.push_back(&symbol->cast<SymbolFunction>());
+                out.push_back(const_cast<SymbolFunction*>(&symbol->cast<SymbolFunction>()));
             }
         }
     }

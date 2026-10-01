@@ -103,7 +103,7 @@ namespace
             if (MicroInstrInfo::isTerminatorInstruction(*inst) && !jumpsAway)
                 return false;
 
-            hasReport |= reportCalls.contains(ref.get());
+            hasReport = hasReport || reportCalls.contains(ref.get());
             lastRef = ref;
         }
 

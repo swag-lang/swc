@@ -239,15 +239,11 @@ private:
     VRegState&        stateForVirtual(MicroReg key);
     const VRegState&  stateForVirtual(MicroReg key) const;
     bool              isLiveOut(MicroReg key, uint32_t stamp) const;
-    bool              isLiveAcrossCall(MicroReg key) const;
-    bool              isLiveAcrossHotCall(MicroReg key) const;
     void              markLiveAcrossCall(MicroReg key);
     void              computeGuardedCallPositions();
     bool              intervalHasHotCall(uint32_t lo, uint32_t hi) const;
     bool              isGuardedCall(uint32_t instructionIndex) const;
     bool              requiresCallSpill(MicroReg key) const;
-    void              markCallSpill(MicroReg key);
-    void              clearCallSpill(MicroReg key);
     static uint32_t   allocRequestPriority(const AllocRequest& request);
     static bool       compareAllocRequests(const AllocRequest& lhs, const AllocRequest& rhs);
     static bool       containsKey(MicroRegSpan keys, MicroReg key);

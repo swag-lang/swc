@@ -95,7 +95,7 @@ namespace InstructionCombine
                 const MicroInstr* inst = ref.isValid() ? ctx.instruction(ref) : nullptr;
                 if (!inst || inst->op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(*inst))
                     return false;
-                hasReport |= ctx.isReportCall(ref);
+                hasReport = hasReport || ctx.isReportCall(ref);
             }
             return hasReport;
         }

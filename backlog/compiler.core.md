@@ -6,6 +6,25 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.072 — Link preparation lowers the native image on one thread
+
+- Recorded: 2026-10-01 14:25
+- Updated: 2026-10-01 15:41 — per-object jobs replaced by indexed loops; narrow to the image lowering
+- Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
+  jobs, but `buildNativeImage` lowers every object description into the image on the driver
+  thread, and `resolveSymbols`, `appendSymbolTable`, and `finishImage` follow serially. Probed
+  phases in a 16-worker DevMode `gui` rebuild: image lowering about 0.6 s and resolution 0.2 s of
+  wall time over the five native modules. The side static archive of each shared library used to
+  enqueue one job per object and per archive member (about 117 000 of each); both now run as
+  indexed parallel loops, which halved the `link prepare` phase and removed its starvation.
+  Each description's text bytes, code relocations, and unwind sections (`DebugInfo::buildObject`)
+  are independent; only their placement in the image is ordered.
+- Next: build each description's sections in parallel, then place them in description order on
+  the driver, and check that the produced images are byte-identical apart from the timestamp.
+- Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
+  linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
+- Related: compiler.core.069
+
 ### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
 
 - Recorded: 2026-10-01 14:25
@@ -21,22 +40,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: a dependent's semantic analysis overlaps its dependency's link in a `gui`
   rebuild, with the workspace suite and `std` tests green under both compiler executables.
 - Related: compiler.core.069, compiler.core.007
-
-### compiler.core.072 — Link preparation lowers the native image on one thread
-
-- Recorded: 2026-10-01 14:25
-- Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
-  jobs, but `buildNativeImage` lowers every object description into the image on the driver
-  thread, and `resolveSymbols`, `appendSymbolTable`, and `finishImage` follow serially. In
-  16-worker DevMode `gui` rebuilds, the `link prepare` phase is 2.5–4.6% of worker time spent
-  with no job running. Each description's text bytes, code relocations, and unwind sections
-  (`DebugInfo::buildObject`) are independent; only their placement in the image is ordered.
-- Next: build each description's sections in parallel jobs, then place them in description
-  order on the driver, and check that the produced images are byte-identical apart from the
-  timestamp.
-- Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
-  linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
-- Related: compiler.core.069
 
 ### compiler.core.071 — WebP's macroblock reconstruction takes seconds to generate and holds back `pixel`
 

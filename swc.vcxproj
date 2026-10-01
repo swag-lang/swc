@@ -225,7 +225,6 @@
         <ClCompile Include="src\Backend\Linker\PdbWriter.cpp"/>
         <ClCompile Include="src\Backend\Linker\LinkDebugMerge.cpp"/>
         <ClCompile Include="src\Backend\Debug\SymbolTable.cpp"/>
-        <ClCompile Include="src\Backend\Native\NativeObjJob.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp"/>
         <ClCompile Include="src\Backend\ABI\CallConv.cpp"/>
@@ -836,7 +835,6 @@
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>
         <ClInclude Include="src\Backend\Linker\PEWriter.h"/>
-        <ClInclude Include="src\Backend\Native\NativeObjJob.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriter.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriterCoff.h"/>
         <ClInclude Include="src\Backend\Native\NativeNames.h"/>

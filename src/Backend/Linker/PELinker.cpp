@@ -852,31 +852,6 @@ namespace
         std::vector<SymbolTable::Entry>* outSymbols_ = nullptr;
     };
 
-    class StaticArchiveMemberJob final : public LinkPrepareJobBase
-    {
-    public:
-        StaticArchiveMemberJob(const TaskContext& ctx, const NativeObjDescription& description, LinkArchiveMember& outMember) :
-            LinkPrepareJobBase(ctx),
-            description_(&description),
-            outMember_(&outMember)
-        {
-        }
-
-        JobResult exec() override
-        {
-            ctx().state().setNone();
-            SWC_ASSERT(description_ != nullptr);
-            SWC_ASSERT(outMember_ != nullptr);
-            outMember_->name  = Utf8(description_->objPath.filename());
-            outMember_->bytes = description_->objBytes;
-            return JobResult::Done;
-        }
-
-    private:
-        const NativeObjDescription* description_ = nullptr;
-        LinkArchiveMember*          outMember_   = nullptr;
-    };
-
     void collectPeLibrarySearch(NativeBackendBuilder& builder, std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs)
     {
         // Library names: every foreign-function and dependency-hook module.
@@ -1546,33 +1521,24 @@ Result PELinker::collectArchiveMembers(std::vector<LinkArchiveMember>& outMember
 {
     SWC_ASSERT(builder_ != nullptr);
 
-    outMembers.resize(builder_->objectDescriptions.size());
-    if (!canPrepareLinkInParallel() || builder_->objectDescriptions.size() <= 1)
+    const auto count = static_cast<uint32_t>(builder_->objectDescriptions.size());
+    outMembers.resize(count);
+    const auto fillMember = [&](TaskContext&, uint32_t i) {
+        const NativeObjDescription& description = builder_->objectDescriptions[i];
+        outMembers[i]                           = {.name = Utf8(description.objPath.filename()), .bytes = description.objBytes};
+    };
+
+    if (!canPrepareLinkInParallel())
     {
-        for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
-        {
-            const NativeObjDescription& description = builder_->objectDescriptions[i];
-            outMembers[i]                           = {.name = Utf8(description.objPath.filename()), .bytes = description.objBytes};
-        }
+        for (uint32_t i = 0; i < count; ++i)
+            fillMember(builder_->ctx(), i);
         return Result::Continue;
     }
 
-    JobManager&       jobMgr   = builder_->ctx().global().jobMgr();
-    const JobClientId clientId = jobMgr.newClientId();
-
-    std::vector<std::unique_ptr<StaticArchiveMemberJob>> jobs;
-    jobs.reserve(builder_->objectDescriptions.size());
-    for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
-    {
-        auto                    job = std::make_unique<StaticArchiveMemberJob>(builder_->ctx(), builder_->objectDescriptions[i], outMembers[i]);
-        StaticArchiveMemberJob& ref = *job;
-        jobs.push_back(std::move(job));
-        jobMgr.enqueue(ref, JobPriority::Normal, clientId);
-    }
-
-    jobMgr.waitAll(clientId);
-    for (const std::unique_ptr<StaticArchiveMemberJob>& job : jobs)
-        SWC_RESULT(job->result());
+    // One member per object, each a small copy: workers claim indices rather than the driver
+    // enqueuing a job per member.
+    JobManager& jobMgr = builder_->ctx().global().jobMgr();
+    jobMgr.parallelForIndexed(builder_->ctx(), count, JobKind::NativeLinkPrepare, jobMgr.newClientId(), fillMember);
     return Result::Continue;
 }
 

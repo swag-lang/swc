@@ -4358,28 +4358,19 @@ void MicroRegisterAllocationPass::insertSpillFrame() const
 
     const MicroInstrRef firstRef = beginIt.current;
 
-    MicroInstrOperand subOps[4];
-    subOps[0].reg      = conv_->stackPointer;
-    subOps[1].opBits   = MicroOpBits::B64;
-    subOps[2].microOp  = MicroOp::Subtract;
-    subOps[3].valueU64 = spillFrameSize;
-    instructions_->insertSyntheticBefore(*operands_, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+    MicroInstrOperand stackAdjustOps[4];
+    stackAdjustOps[0].reg      = conv_->stackPointer;
+    stackAdjustOps[1].opBits   = MicroOpBits::B64;
+    stackAdjustOps[2].microOp  = MicroOp::Subtract;
+    stackAdjustOps[3].valueU64 = spillFrameSize;
+    instructions_->insertSyntheticBefore(*operands_, firstRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
 
-    SmallVector<MicroInstrRef> retRefs;
+    stackAdjustOps[2].microOp = MicroOp::Add;
+    // Inserting before the current instruction preserves its successor and iterator.
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt; ++it)
     {
         if (it->op == MicroInstrOpcode::Ret)
-            retRefs.push_back(it.current);
-    }
-
-    for (const auto retRef : retRefs)
-    {
-        MicroInstrOperand addOps[4];
-        addOps[0].reg      = conv_->stackPointer;
-        addOps[1].opBits   = MicroOpBits::B64;
-        addOps[2].microOp  = MicroOp::Add;
-        addOps[3].valueU64 = spillFrameSize;
-        instructions_->insertSyntheticBefore(*operands_, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+            instructions_->insertSyntheticBefore(*operands_, it.current, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
     }
 }
 

@@ -670,7 +670,7 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
         const SemaNodeView rightConstView = codeGen.viewConstant(shiftCtx.countOperandRef);
         if (rightConstView.hasConstant())
         {
-            const ConstantValue& rightConst = codeGen.cstMgr().get(rightConstView.cstRef());
+            const ConstantValue& rightConst = *rightConstView.cst();
             if (rightConst.isInt())
             {
                 const ApsInt& amount = rightConst.getInt();

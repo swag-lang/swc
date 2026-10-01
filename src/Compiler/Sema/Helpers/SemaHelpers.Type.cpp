@@ -1062,7 +1062,7 @@ Result SemaHelpers::checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef
     if (canonicalOp != TokenId::SymSlash && canonicalOp != TokenId::SymPercent)
         return Result::Continue;
 
-    const TypeRef aliasTypeRef = sema.typeMgr().get(nodeRightView.typeRef()).unwrap(sema.ctx(), nodeRightView.typeRef(), TypeExpandE::Alias);
+    const TypeRef aliasTypeRef = nodeRightView.type()->unwrap(sema.ctx(), nodeRightView.typeRef(), TypeExpandE::Alias);
     SWC_ASSERT(aliasTypeRef.isValid());
     const TypeInfo& type = sema.typeMgr().get(aliasTypeRef);
 

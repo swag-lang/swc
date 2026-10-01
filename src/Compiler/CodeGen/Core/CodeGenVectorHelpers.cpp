@@ -549,7 +549,7 @@ MicroReg CodeGenVectorHelpers::emitConstantShift(CodeGen& codeGen, TokenId tokId
     const SemaNodeView countView = codeGen.viewConstant(countOperandRef);
     if (!countView.hasConstant())
         return MicroReg::invalid();
-    const ConstantValue& countConst = codeGen.cstMgr().get(countView.cstRef());
+    const ConstantValue& countConst = *countView.cst();
     if (!countConst.isInt())
         return MicroReg::invalid();
 

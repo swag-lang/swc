@@ -99,18 +99,6 @@ namespace
         return payload.cases.back();
     }
 
-    bool compilerSwitchSpanContains(const Ast& ast, SpanRef spanRef, AstNodeRef childRef)
-    {
-        const size_t count = ast.spanSize(spanRef);
-        for (size_t i = 0; i < count; ++i)
-        {
-            if (ast.nthNode(spanRef, i) == childRef)
-                return true;
-        }
-
-        return false;
-    }
-
     AstNodeRef compilerSwitchCaseRefFromExpression(const Sema& sema, const AstCompilerSwitch& node, AstNodeRef exprRef)
     {
         const size_t count = sema.ast().spanSize(node.spanCasesRef);
@@ -118,7 +106,7 @@ namespace
         {
             const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
             const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
-            if (compilerSwitchSpanContains(sema.ast(), caseNode.spanExprRef, exprRef))
+            if (sema.ast().findNodeIndex(caseNode.spanExprRef, exprRef).has_value())
                 return caseRef;
         }
 
@@ -660,12 +648,9 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
     CompilerSwitchSemaPayload& payload    = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
     const ConstantRef          caseCstRef = sema.viewConstant(childRef).cstRef();
-    const auto                 it         = payload.seen.find(caseCstRef);
-    if (it == payload.seen.end())
-    {
-        payload.seen.emplace(caseCstRef, childRef);
+    const auto [it, inserted] = payload.seen.try_emplace(caseCstRef, childRef);
+    if (inserted)
         return Result::Continue;
-    }
 
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_static_switch_case_duplicate, childRef);
     diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(caseCstRef).toString(sema.ctx()));

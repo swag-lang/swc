@@ -756,7 +756,7 @@ namespace
         outPayload.reg     = codeGen.nextVirtualRegisterForType(targetTypeRef);
         outPayload.typeRef = targetTypeRef;
         outPayload.setIsValue();
-        return emitConstantToPayload(codeGen, outPayload, valueView.cstRef(), codeGen.cstMgr().get(valueView.cstRef()), targetTypeRef);
+        return emitConstantToPayload(codeGen, outPayload, valueView.cstRef(), *valueView.cst(), targetTypeRef);
     }
 
     Result resolveAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)

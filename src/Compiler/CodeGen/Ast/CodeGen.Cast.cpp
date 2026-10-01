@@ -704,7 +704,7 @@ namespace
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
         if (srcConstView.hasConstant())
         {
-            const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
+            const ConstantValue& srcConst = *srcConstView.cst();
             if (srcConst.isArray())
             {
                 const std::span<const std::byte> arrayBytes       = srcConst.getArray();
@@ -745,7 +745,7 @@ namespace
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
         if (srcConstView.hasConstant())
         {
-            const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
+            const ConstantValue& srcConst = *srcConstView.cst();
             if (srcConst.isArray())
             {
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, srcConstView.cstRef(), srcConst.typeRef());
@@ -782,7 +782,7 @@ namespace
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
         if (srcConstView.hasConstant())
         {
-            const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
+            const ConstantValue& srcConst = *srcConstView.cst();
             if (srcConst.isArray())
             {
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, srcConstView.cstRef(), srcConst.typeRef());

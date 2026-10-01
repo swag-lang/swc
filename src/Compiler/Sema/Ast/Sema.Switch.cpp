@@ -188,33 +188,6 @@ namespace
         return ast.spanSize(spanRef);
     }
 
-    bool switchSpanContainsNodeRef(const Ast& ast, SpanRef spanRef, AstNodeRef targetRef)
-    {
-        const size_t count = switchSpanNodeCount(ast, spanRef);
-        for (size_t i = 0; i < count; ++i)
-        {
-            if (ast.nthNode(spanRef, i) == targetRef)
-                return true;
-        }
-
-        return false;
-    }
-
-    AstNodeRef switchSpanNextNodeRef(const Ast& ast, SpanRef spanRef, AstNodeRef currentRef)
-    {
-        const size_t count = switchSpanNodeCount(ast, spanRef);
-        for (size_t i = 0; i < count; ++i)
-        {
-            if (ast.nthNode(spanRef, i) != currentRef)
-                continue;
-            if (i + 1 >= count)
-                return AstNodeRef::invalid();
-            return ast.nthNode(spanRef, i + 1);
-        }
-
-        return AstNodeRef::invalid();
-    }
-
     SpanRef fallthroughContainerSpan(const AstNode& node)
     {
         if (const auto* embeddedBlock = node.safeCast<AstEmbeddedBlock>())
@@ -307,12 +280,9 @@ namespace
         auto* seenSet = sema.semaPayload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
-        const auto it = seenSet->seenDynamicTypes.find(targetStructTypeRef);
-        if (it == seenSet->seenDynamicTypes.end())
-        {
-            seenSet->seenDynamicTypes.emplace(targetStructTypeRef, caseExprRef);
+        const auto [it, inserted] = seenSet->seenDynamicTypes.try_emplace(targetStructTypeRef, caseExprRef);
+        if (inserted)
             return Result::Continue;
-        }
         if (it->second == caseExprRef)
             return Result::Continue;
 
@@ -376,7 +346,7 @@ namespace
                 expr.castRef = castRef;
         if (bindingIdentRef.isValid())
         {
-            TypeInfo bindingType = sema.typeMgr().get(castView.typeRef());
+            TypeInfo bindingType = *castView.type();
             bindingType.removeFlag(TypeInfoFlagsE::Nullable);
             SWC_RESULT(registerDynamicStructSwitchBinding(sema, caseRef, caseExprRef, bindingIdentRef, sema.typeMgr().addType(bindingType)));
             SWC_RESULT(SemaEscape::checkVariableInitializer(sema, *casePayload.bindingSymbol, castRef, casePayload.bindingSymbol->typeRef()));
@@ -541,10 +511,8 @@ bool SemaSwitch::alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstS
         if (sema.node(resolved).isNot(AstNodeId::SwitchCaseStmt))
             continue;
 
-        const auto&             caseStmt = sema.node(resolved).cast<AstSwitchCaseStmt>();
-        SmallVector<AstNodeRef> matchExprs;
-        AstNode::collectChildren(matchExprs, sema.ast(), caseStmt.spanExprRef);
-        if (matchExprs.empty() && caseStmt.nodeWhereRef.isInvalid())
+        const auto& caseStmt = sema.node(resolved).cast<AstSwitchCaseStmt>();
+        if (caseStmt.nodeWhereRef.isInvalid() && (!sema.ast().hasSpan(caseStmt.spanExprRef) || sema.ast().spanSize(caseStmt.spanExprRef) == 0))
             return true;
     }
 
@@ -695,7 +663,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
     if (!spanExprRef.isValid())
         return Result::Continue;
 
-    if (!switchSpanContainsNodeRef(sema.ast(), spanExprRef, childRef))
+    if (!sema.ast().findNodeIndex(spanExprRef, childRef))
         return Result::Continue;
 
     if (isDynamicStructSwitchCase(sema, switchRef) && sema.node(childRef).is(AstNodeId::AsCastExpr))
@@ -783,15 +751,12 @@ namespace
 
         const SemaNodeView exprView = sema.viewConstant(caseExprRef);
 
-        const auto it = seenSet->seen.find(exprView.cstRef());
-        if (it == seenSet->seen.end())
-        {
-            seenSet->seen.emplace(exprView.cstRef(), caseExprRef);
+        const auto [it, inserted] = seenSet->seen.try_emplace(exprView.cstRef(), caseExprRef);
+        if (inserted)
             return Result::Continue;
-        }
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
-        diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef()).toString(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_VALUE, exprView.cst()->toString(sema.ctx()));
         diag.addNote(DiagnosticId::sema_note_previous_case_value);
         diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
@@ -857,9 +822,10 @@ namespace
 
             if (parentRef == caseStmt.nodeBodyRef)
             {
-                if (!switchSpanContainsNodeRef(sema.ast(), caseBody.spanChildrenRef, currentRef))
+                const auto nodeIndex = sema.ast().findNodeIndex(caseBody.spanChildrenRef, currentRef);
+                if (!nodeIndex)
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-                if (switchSpanNextNodeRef(sema.ast(), caseBody.spanChildrenRef, currentRef).isValid())
+                if (sema.ast().nthNode(caseBody.spanChildrenRef, *nodeIndex + 1).isValid())
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
                 return Result::Continue;
             }
@@ -868,9 +834,10 @@ namespace
             const SpanRef  spanRef    = fallthroughContainerSpan(parentNode);
             if (spanRef.isValid())
             {
-                if (!switchSpanContainsNodeRef(sema.ast(), spanRef, currentRef))
+                const auto nodeIndex = sema.ast().findNodeIndex(spanRef, currentRef);
+                if (!nodeIndex)
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-                if (switchSpanNextNodeRef(sema.ast(), spanRef, currentRef).isValid())
+                if (sema.ast().nthNode(spanRef, *nodeIndex + 1).isValid())
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
                 currentRef = parentRef;
                 continue;
@@ -889,9 +856,10 @@ namespace
     Result validateFallthroughHasNextCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
         const auto& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
-        if (!switchSpanContainsNodeRef(sema.ast(), switchStmt.spanChildrenRef, caseRef))
+        const auto nodeIndex = sema.ast().findNodeIndex(switchStmt.spanChildrenRef, caseRef);
+        if (!nodeIndex)
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-        if (switchSpanNextNodeRef(sema.ast(), switchStmt.spanChildrenRef, caseRef).isInvalid())
+        if (sema.ast().nthNode(switchStmt.spanChildrenRef, *nodeIndex + 1).isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_in_last_case, stmtRef);
 
         return Result::Continue;

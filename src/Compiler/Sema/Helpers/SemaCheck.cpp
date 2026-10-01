@@ -666,7 +666,7 @@ Result SemaCheck::castToBool(Sema& sema, SemaNodeView& view)
     if (representedTypeValue)
     {
         const SemaNodeView castView = sema.viewNodeTypeConstant(view.nodeRef());
-        if (castView.cstRef().isInvalid() || !sema.cstMgr().get(castView.cstRef()).isBool())
+        if (!castView.cst() || !castView.cst()->isBool())
         {
             sema.setConstant(view.nodeRef(), sema.cstMgr().cstTrue());
             view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);

@@ -88,6 +88,13 @@ void CodeGenJob::initSemaAndCodeGen()
     codeGen_ = std::make_unique<CodeGen>(*ownedSema_);
 }
 
+#if SWC_DEV_MODE
+Utf8 CodeGenJob::statsLabel() const
+{
+    return symbolFunc_->getFullScopedName(ctx());
+}
+#endif
+
 JobResult CodeGenJob::exec()
 {
     const JobResult result = execImpl();

@@ -407,7 +407,7 @@ namespace
         if (constIndex >= dims[0])
             return ConstantRef::invalid();
 
-        const uint64_t stride = sema.typeMgr().get(view.typeRef()).sizeOf(sema.ctx());
+        const uint64_t stride = view.type()->sizeOf(sema.ctx());
         if (stride && constIndex > std::numeric_limits<uint64_t>::max() / stride)
             return ConstantRef::invalid();
 

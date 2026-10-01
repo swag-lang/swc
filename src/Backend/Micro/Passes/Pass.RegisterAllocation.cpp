@@ -2855,17 +2855,9 @@ void MicroRegisterAllocationPass::applyStackPointerDelta(int64_t& stackDepth, co
 
 void MicroRegisterAllocationPass::mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth)
 {
-    const auto it = labelStackDepth.find(labelRef);
-    if (it == labelStackDepth.end())
-    {
-        labelStackDepth.emplace(labelRef, stackDepth);
-        return;
-    }
-
     // Keep the first observed depth. Mismatches can happen on dead edges
     // (for example, after a return in linearized IR).
-    if (it->second != stackDepth)
-        return;
+    labelStackDepth.try_emplace(labelRef, stackDepth);
 }
 
 bool MicroRegisterAllocationPass::isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const

@@ -114,6 +114,10 @@ public:
     virtual ~Job() = default;
 
     virtual JobResult  exec() = 0;
+#if SWC_DEV_MODE
+    // Names what a long-running job worked on in scheduler statistics.
+    virtual Utf8 statsLabel() const { return {}; }
+#endif
     TaskContext&       ctx() { return ctx_; }
     const TaskContext& ctx() const { return ctx_; }
     JobManager*        owner() const { return owner_; }

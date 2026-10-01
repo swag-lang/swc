@@ -68,16 +68,14 @@ public:
         if (auto* existing = findNoLock(args))
             return existing;
 
-        const auto it = genericInstanceIndices_.find(instance);
-        if (it != genericInstanceIndices_.end())
+        const size_t index = genericInstances_.size();
+        const auto [it, inserted] = genericInstanceIndices_.try_emplace(instance, index);
+        if (!inserted)
             return genericInstances_[it->second].symbol;
 
-        GenericInstanceEntry entry;
+        GenericInstanceEntry& entry = genericInstances_.emplace_back();
         entry.symbol = instance;
         entry.args.assign(args.begin(), args.end());
-        const size_t index                = genericInstances_.size();
-        genericInstanceIndices_[instance] = index;
-        genericInstances_.push_back(std::move(entry));
 
         if (genericArgumentIndices_)
             genericArgumentIndices_->emplace(hashArgs(genericInstances_[index].args.span()), index);

@@ -546,7 +546,7 @@ Result AstSimdType::semaPostNode(Sema& sema) const
 {
     TaskContext&       ctx       = sema.ctx();
     const SemaNodeView view      = sema.viewType(nodeArrayTypeRef);
-    const TypeInfo&    arrayType = sema.typeMgr().get(view.typeRef());
+    const TypeInfo&    arrayType = *view.type();
 
     if (!arrayType.isArray() || arrayType.payloadArrayDims().size() != 1)
     {

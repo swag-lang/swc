@@ -462,7 +462,7 @@ namespace SemaGeneric
         {
             if (!cache)
                 cache = std::make_shared<MAP>();
-            return *std::static_pointer_cast<MAP>(cache);
+            return *static_cast<MAP*>(cache.get());
         }
 
         std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>& genericNodeRuns(TaskContext& ctx)

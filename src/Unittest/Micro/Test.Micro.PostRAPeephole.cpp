@@ -2194,6 +2194,102 @@ SWC_TEST_BEGIN(PostRAPeephole_KeepsByteMultiplyReload)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_RepeatedZeroExtendUsesKnownWidth)
+{
+    constexpr MicroReg value = MicroReg::intReg(8);
+    constexpr MicroReg base  = MicroReg::intReg(2);
+    constexpr MicroReg index = MicroReg::intReg(9);
+    for (uint32_t kind = 0; kind < 3; ++kind)
+    {
+        for (const MicroOpBits sourceBits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32})
+        {
+            for (const MicroOpBits firstBits : {MicroOpBits::B32, MicroOpBits::B64})
+            {
+                if (getNumBits(firstBits) <= getNumBits(sourceBits))
+                    continue;
+                for (const MicroOpBits secondSource : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32})
+                {
+                    for (uint32_t mode = 0; mode < 4; ++mode)
+                    {
+                        const MicroOpBits resultBits = mode < 2 ? MicroOpBits::B32 : MicroOpBits::B64;
+                        if (getNumBits(secondSource) >= getNumBits(resultBits))
+                            continue;
+                        const MicroReg result = mode & 1 ? value : MicroReg::intReg(10);
+                        MicroBuilder   builder(ctx);
+                        if (kind == 0)
+                            builder.emitLoadZeroExtendRegReg(value, MicroReg::intReg(0), firstBits, sourceBits);
+                        else
+                            builder.emitLoadZeroExtendRegMem(value, base, 8, firstBits, sourceBits);
+                        if (kind == 2)
+                        {
+                            const auto        old        = builder.instructions().lastInstructionRef();
+                            MicroInstrOperand indexed[7] = {};
+                            indexed[0].reg               = value;
+                            indexed[1].reg               = base;
+                            indexed[2].reg               = index;
+                            indexed[3].opBits            = firstBits;
+                            indexed[4].opBits            = sourceBits;
+                            indexed[5].valueU64          = 2;
+                            indexed[6].valueU64          = 8;
+                            builder.instructions().insertDerivedBefore(builder.operands(), old, MicroInstrOpcode::LoadZeroExtAmcRegMem, indexed);
+                            builder.instructions().erase(old);
+                        }
+                        builder.emitLoadZeroExtendRegReg(result, value, resultBits, secondSource);
+                        const auto second = builder.instructions().lastInstructionRef();
+                        builder.emitLoadMemReg(base, 16, result, MicroOpBits::B64);
+                        builder.emitRet();
+                        SWC_RESULT(runPostRaPeepholePass(builder));
+                        const auto* remaining = builder.instructions().ptr(second);
+                        const bool  redundant = getNumBits(sourceBits) <= getNumBits(secondSource);
+                        if (redundant && remaining && remaining->op == MicroInstrOpcode::LoadZeroExtRegReg)
+                            return Result::Error;
+                        if (!redundant && (!remaining || remaining->op != MicroInstrOpcode::LoadZeroExtRegReg))
+                            return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_RepeatedZeroExtendKeepsPartialAndChangedValues)
+{
+    constexpr MicroReg value = MicroReg::intReg(8);
+    constexpr MicroReg base  = MicroReg::intReg(2);
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        const auto   join = builder.createLabel();
+        if (variant == 2)
+        {
+            builder.emitCmpRegImm(base, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, join);
+        }
+        if (variant == 0)
+            builder.emitLoadSignedExtendRegMem(value, base, 0, MicroOpBits::B64, MicroOpBits::B8);
+        else
+            builder.emitLoadZeroExtendRegMem(value, base, 0, variant == 1 ? MicroOpBits::B16 : MicroOpBits::B32, MicroOpBits::B8);
+        if (variant == 2)
+            builder.placeLabel(join);
+        if (variant == 3)
+            builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        if (variant == 4)
+            builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+        builder.emitLoadZeroExtendRegReg(value, value, MicroOpBits::B64, MicroOpBits::B8);
+        const auto second = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runPostRaPeepholePass(builder));
+        const auto* remaining = builder.instructions().ptr(second);
+        if (!remaining || remaining->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_SelfCopy_B64_Erased)
 {
     const CallConv& conv = CallConv::get(CallConvKind::Swag);
@@ -3374,19 +3470,29 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatCopyForwardsIntoThreeOperandOp)
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);
     constexpr MicroReg xmm1 = MicroReg::floatReg(1);
     constexpr MicroReg xmm2 = MicroReg::floatReg(2);
-    MicroBuilder       builder(ctx);
-    builder.emitLoadRegReg(xmm1, xmm2, MicroOpBits::B32);
-    builder.emitOpBinaryRegRegReg(xmm0, xmm0, xmm1, MicroOp::FloatMultiply, MicroOpBits::B32);
-    builder.emitRet();
-    SWC_RESULT(runPostRaPeepholePass(builder));
-
-    for (const MicroInstr& inst : builder.instructions().view())
+    for (const MicroOpBits copyBits : {MicroOpBits::B32, MicroOpBits::B64, MicroOpBits::B128})
     {
-        const MicroInstrOperand* ops = inst.ops(builder.operands());
-        if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops && ops[2].reg == xmm2)
-            return Result::Continue;
+        for (const MicroOpBits readBits : {MicroOpBits::B32, MicroOpBits::B64})
+        {
+            for (const bool clobbered : {false, true})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegReg(xmm1, xmm2, copyBits);
+                if (clobbered)
+                    builder.emitLoadRegMem(xmm2, MicroReg::intReg(8), 0, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegReg(xmm0, xmm0, xmm1, MicroOp::FloatMultiply, readBits);
+                const auto multiply = builder.instructions().lastInstructionRef();
+                builder.emitRet();
+                SWC_RESULT(runPostRaPeepholePass(builder));
+                const auto* inst    = builder.instructions().ptr(multiply);
+                const bool  forward = !clobbered && getNumBits(copyBits) >= getNumBits(readBits);
+                if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegRegReg ||
+                    inst->ops(builder.operands())[2].reg != (forward ? xmm2 : xmm1))
+                    return Result::Error;
+            }
+        }
     }
-    return Result::Error;
+    return Result::Continue;
 }
 SWC_TEST_END()
 
@@ -4438,16 +4544,19 @@ SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyTransfersCallLaneDemands)
     {
         for (uint32_t callKind = 0; callKind < 3; ++callKind)
         {
-            for (uint32_t variant = 0; variant < 5; ++variant)
+            for (uint32_t variant = 0; variant < 8; ++variant)
             {
                 for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
                 {
                     // A transient value used before the call, explicit/default
                     // argument masks, and scalar/vector reads of a saved value.
-                    const MicroReg copied       = MicroReg::floatReg(variant < 3 ? 1 : 6);
-                    const uint8_t  argumentMask = variant == 1 ? 2 : variant == 2 ? MicroBuilder::K_CALL_ARG_MASK_ALL
-                                                                                  : 0;
-                    MicroBuilder   builder(ctx);
+                    const MicroReg copied = MicroReg::floatReg(variant == 3 || variant == 4 ? 6 : 1);
+                    CallFloatArgs  argumentMask(variant == 1 ? 2 : variant == 2 ? MicroBuilder::K_CALL_ARG_MASK_ALL
+                                                                                : 0);
+                    if (variant >= 5)
+                        argumentMask.setWidth(1, variant == 5 ? 32 : variant == 6 ? 64
+                                                                                  : 128);
+                    MicroBuilder builder(ctx);
                     builder.emitLoadRegReg(copied, source, bits);
                     const auto copy = builder.instructions().lastInstructionRef();
                     builder.emitLoadRegMem(source, base, 0, bits);
@@ -4458,13 +4567,13 @@ SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyTransfersCallLaneDemands)
                         builder.emitCallLocal(&callee, convention, 0, argumentMask);
                     else
                         builder.emitCallExtern(&foreign, convention, 0, argumentMask);
-                    if (variant >= 3)
+                    if (variant == 3 || variant == 4)
                         builder.emitLoadMemReg(base, 32, copied, variant == 4 ? MicroOpBits::B128 : bits);
                     builder.emitClearReg(copied, MicroOpBits::B128);
                     builder.emitRet();
                     SWC_RESULT(runPostRaPeepholePass(builder));
                     const auto* inst = builder.instructions().ptr(copy);
-                    const bool  wide = variant == 0 || variant == 3;
+                    const bool  wide = variant == 0 || variant == 3 || variant == 5 || (variant == 6 && bits == MicroOpBits::B64);
                     if (!inst || inst->op != MicroInstrOpcode::LoadRegReg ||
                         inst->ops(builder.operands())[2].opBits != (wide ? MicroOpBits::B128 : bits))
                         return Result::Error;

@@ -40,10 +40,10 @@ namespace
 
     struct CallArgMasks
     {
-        uint8_t ints                = 0;
-        uint8_t floats              = 0;
-        bool    hasStackArgs        = false;
-        bool    hasRegisterHomeSlot = false;
+        uint8_t       ints = 0;
+        CallFloatArgs floats;
+        bool          hasStackArgs        = false;
+        bool          hasRegisterHomeSlot = false;
     };
 
     CallArgMasks computeCallArgMasks(const CallConv& conv, std::span<const ABICall::ArgLayout> argLayouts)
@@ -67,7 +67,7 @@ namespace
 
             const uint8_t mask = static_cast<uint8_t>(1u << regIndex);
             if (arg.isFloat)
-                result.floats |= mask;
+                result.floats.setWidth(regIndex, arg.numBits);
             else
                 result.ints |= mask;
         }

@@ -30,6 +30,97 @@ namespace
 
 }
 
+// A partial constant must not define bits its write preserved from an
+// unknown input. Dword writes, in contrast, define a zero upper half.
+SWC_TEST_BEGIN(ConstantFolding_PartialDefinitionsKeepUnknownBits)
+{
+    constexpr MicroReg value  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg other  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg result = MicroReg::virtualIntReg(3);
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool clear : {false, true})
+        {
+            for (uint32_t consumer = 0; consumer < 6; ++consumer)
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegReg(value, MicroReg::intReg(0), MicroOpBits::B64);
+                if (clear)
+                    builder.emitClearReg(value, bits);
+                else
+                    builder.emitLoadRegImm(value, ApInt(7, getNumBits(bits)), bits);
+                builder.emitLoadRegImm(other, ApInt(3, 64), MicroOpBits::B64);
+                switch (consumer)
+                {
+                    case 0: builder.emitLoadRegReg(result, value, MicroOpBits::B64); break;
+                    case 1: builder.emitOpBinaryRegImm(value, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64); break;
+                    case 2: builder.emitOpBinaryRegReg(value, other, MicroOp::Add, MicroOpBits::B64); break;
+                    case 3: builder.emitOpBinaryRegReg(other, value, MicroOp::Add, MicroOpBits::B64); break;
+                    case 4: builder.emitLoadAddressRegMem(result, value, 3, MicroOpBits::B64); break;
+                    case 5: builder.emitLoadZeroExtendRegReg(result, value, MicroOpBits::B64, MicroOpBits::B32); break;
+                }
+                const auto use      = builder.instructions().lastInstructionRef();
+                const auto original = builder.instructions().ptr(use)->op;
+                builder.emitRet();
+                SWC_RESULT(runConstantFoldingPass(builder));
+                const auto* folded = builder.instructions().ptr(use);
+                if (!folded || folded->op != (getNumBits(bits) >= 32 ? MicroInstrOpcode::LoadRegImm : original))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantFolding_PartialDefinitionsStillFoldNarrowReads)
+{
+    constexpr MicroReg value  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result = MicroReg::virtualIntReg(2);
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(value, ApInt(7, getNumBits(bits)), bits);
+        builder.emitOpBinaryRegImm(value, ApInt(3, getNumBits(bits)), MicroOp::Add, bits);
+        builder.emitLoadZeroExtendRegReg(result, value, MicroOpBits::B64, bits);
+        const auto extend = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+        SWC_RESULT(runConstantFoldingPass(builder));
+        const auto* inst = builder.instructions().ptr(extend);
+        if (!inst || inst->op != MicroInstrOpcode::LoadRegImm || inst->ops(builder.operands())[2].valueU64 != 10)
+            return Result::Error;
+    }
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegImm(value, ApInt(1, 8), MicroOpBits::B8);
+    builder.emitLoadRegImm(result, ApInt(0x100, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(result, value, MicroOp::ShiftLeft, MicroOpBits::B64);
+    const auto shift = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    SWC_RESULT(runConstantFoldingPass(builder));
+    const auto* inst = builder.instructions().ptr(shift);
+    return inst && inst->op == MicroInstrOpcode::LoadRegImm && inst->ops(builder.operands())[2].valueU64 == 0x200 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantFolding_ScalarFloatCopyDoesNotDefineUpperBits)
+{
+    constexpr MicroReg input  = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg value  = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg result = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegMem(value, MicroReg::intReg(2), 0, MicroOpBits::B128);
+    builder.emitClearReg(input, MicroOpBits::B32);
+    builder.emitLoadRegReg(value, input, MicroOpBits::B32);
+    builder.emitLoadRegReg(result, value, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(result, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto add = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    SWC_RESULT(runConstantFoldingPass(builder));
+    const auto* inst = builder.instructions().ptr(add);
+    return inst && inst->op == MicroInstrOpcode::OpBinaryRegImm ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // load v1, 5; add v1, 3  ->  load v1, 8 (folded semantically)
 SWC_TEST_BEGIN(ConstantFolding_FoldBinaryRegImm)
 {

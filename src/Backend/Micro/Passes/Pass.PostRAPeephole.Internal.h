@@ -168,6 +168,7 @@ namespace PostRaPeephole
     bool tryNarrowShiftCountCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowCopyBefore32BitWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowCopyOf32BitResult(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldRepeatedZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryHoistNarrowZeroExtendAcrossUnary(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryRetargetNarrowZeroSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryRetargetNarrowAbsoluteDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

@@ -528,25 +528,6 @@ namespace InstructionCombine
             return left->op != MicroInstrOpcode::CmpRegReg || (leftOps[1].reg.isVirtualInt() && sameValue(leftOps[1].reg));
         }
 
-        bool constantAt(uint64_t& outValue, const Context& ctx, MicroReg reg, MicroInstrRef atRef)
-        {
-            if (!reg.isVirtualInt())
-                return false;
-            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
-            if (!def.valid() || def.isPhi || !def.inst)
-                return false;
-            if (def.inst->op == MicroInstrOpcode::ClearReg)
-            {
-                outValue = 0;
-                return true;
-            }
-            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
-            if (def.inst->op != MicroInstrOpcode::LoadRegImm || ops[2].hasWideImmediateValue())
-                return false;
-            outValue = ops[2].valueU64 & getBitsMask(ops[1].opBits);
-            return true;
-        }
-
         // Whether `reg`, where `atRef` reads it, is `cond ? value : 0` at
         // `bits`: a select over a zero, or, for 1, a widened setcc. Returns the
         // compare the selection read.
@@ -568,8 +549,8 @@ namespace InstructionCombine
             {
                 uint64_t initial  = 0;
                 uint64_t selected = 0;
-                if (ops[2].cpuCond != cond || getNumBits(ops[3].opBits) < getNumBits(bits) || !constantAt(initial, ctx, ops[0].reg, def.instRef) ||
-                    !constantAt(selected, ctx, ops[1].reg, def.instRef))
+                if (ops[2].cpuCond != cond || getNumBits(ops[3].opBits) < getNumBits(bits) || !resolveIntConstant(initial, ctx, ops[0].reg, def.instRef, bits) ||
+                    !resolveIntConstant(selected, ctx, ops[1].reg, def.instRef, bits))
                     return MicroInstrRef::invalid();
                 if ((initial & getBitsMask(bits)) != 0 || (selected & getBitsMask(bits)) != (value & getBitsMask(bits)))
                     return MicroInstrRef::invalid();
@@ -635,7 +616,7 @@ namespace InstructionCombine
         const bool     outerIsLess = ops[2].cpuCond == less;
         const uint64_t minusOne    = getBitsMask(bits);
         uint64_t       selected    = 0;
-        if (!constantAt(selected, ctx, ops[1].reg, ref) || selected != (outerIsLess ? minusOne : 1))
+        if (!resolveIntConstant(selected, ctx, ops[1].reg, ref, bits) || selected != (outerIsLess ? minusOne : 1))
             return false;
 
         const MicroInstrRef outerCompare = findFlagSource(ctx, ref);

@@ -86,6 +86,16 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
     return useDef;
 }
 
+CallFloatArgs MicroInstr::callFloatArgs(const MicroOperandStorage& operands) const
+{
+    SWC_ASSERT(info(op).flags.has(MicroInstrFlagsE::IsCallInstruction));
+    const uint32_t index = info(op).callConvIndex + 2;
+    CallFloatArgs  result(K_CALL_ARG_MASK_ALL);
+    if (numOperands > index)
+        result.widths = static_cast<uint16_t>(ops(operands)[index].valueU32);
+    return result;
+}
+
 void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStorage& operands, const Encoder* encoder) const
 {
     const MicroInstrDef&     opcodeInfo = info(op);
@@ -106,7 +116,12 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
         const size_t    defaultArgCount = callConv.numArgRegisterSlots();
         // Every call stores its integer and float masks immediately after the convention.
         addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, opcodeInfo.callConvIndex + 1), defaultArgCount);
-        addMaskedCallArgRegs(useDef, callConv.floatArgRegs, resolveCallArgMask(*this, ops, opcodeInfo.callConvIndex + 2), defaultArgCount);
+        const CallFloatArgs floatArgs = callFloatArgs(operands);
+        for (uint32_t index = 0; index < std::min<size_t>(callConv.floatArgRegs.size(), 8); ++index)
+        {
+            if (floatArgs.laneMask(index))
+                useDef.addUse(callConv.floatArgRegs[index]);
+        }
         for (const MicroReg reg : callConv.intTransientRegs)
             useDef.addDef(reg);
         for (const MicroReg reg : callConv.floatTransientRegs)

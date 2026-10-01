@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 10:10 — Compared the current loop with the latest Clang winner and narrowed the remaining register gap.
+- Updated: 2026-10-01 11:36 — Removed repeated zero extensions while preserving the remaining outer-index residency lead.
 - Area: compiler/backend, register allocation and value ranges.
 - Comparison: accepted campaign `20260930-195406` names C++/Clang 20.1.8 as the fastest
   other runtime at 23.2491 ms. Its `/O2 /EHsc /std:c++20` object has a six-instruction,
@@ -28,8 +28,13 @@ block, and the hot path keeps the register.
   match loop and `CHECK=622942003053`. The candidate loop still reloads the outer index
   from `[rsp + 0x200]` at its latch: the byte load has reused `rax`. Its backedge span
   has 35 Microinstructions, 30 non-label instructions, six memory operands and one
-  explicit frame operand. Whole-function size is 524 Microinstructions; that total
-  is not the candidate-loop cost.
+  explicit frame operand. Adjacent zero-extension folding removes three repeated
+  byte extensions from each four-byte hash and one from checksum accumulation:
+  whole-function size falls from 524 to 517 Microinstructions (486 to 479 non-label
+  instructions), with the same 131 memory and 34 explicit frame operands
+  (including twelve indexed loads abbreviated in the textual dump). The hash
+  helper falls from 15 to 12 instructions. Those totals are not the candidate-loop
+  cost; the match loop and candidate latch retain their original counts.
 - Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
   The `i` and `p` remainders retain sign correction. The current Clang winner also
   retains sign-corrected remainders on those paths, so the former LLVM comparison
@@ -45,7 +50,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 09:25 — Narrowed the native regression to the inlined shape and updated the remaining packing gap.
+- Updated: 2026-10-01 11:36 — Retained the code-level attribution and recorded the rejected controlled timing cohorts.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20260930-195406` reports Zig 0.15.2 at 15.2582 ms and
   Swag native Release at 30.3729 ms, with `CHECK=169096566666`. The inspected Zig
@@ -59,6 +64,12 @@ block, and the hot path keeps the register.
   operations in `advance` exactly match the native function from `819dd7872`, before
   borrowed-slice inlining. An accepted controlled comparison must still separate the
   earlier register/forwarding changes, inlining, and the current scalar dependency fixes.
+- Measurement limit: the October 1 historical comparisons at 07:36, 10:21 and 11:23
+  all fail the declared control gates. Even after a 30-second warmup, nbody's
+  control p90/p10 is 1.304 and its half-window median drift is 1.243; raytrace's
+  control p90/p10 is 1.298. The gates remain 1.20 and 15% respectively, with every
+  sample retained. These cohorts cannot quantify the regression's individual causes
+  or establish a speedup from the retained changes. Repeat on a stable machine.
 - Current shape: main's timestep is 449/131/24 Microinstructions/memory operands/explicit
   frame operands, including the 16/6/0 position loop. The prior inlined shape was
   464/117/24. The slice-header vector round trip is gone, as are the timestep's transfers

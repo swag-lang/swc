@@ -247,6 +247,7 @@ namespace InstructionCombine
     bool tryDropNonNegativeSignExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDivideBoundedByConstant(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryWidenMaskedNarrowValue(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool resolveIntConstant(uint64_t& outImm, const Context& ctx, MicroReg useReg, MicroInstrRef useRef, MicroOpBits readBits);
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryEraseStoreOfLoadedValue(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryFoldConstCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);

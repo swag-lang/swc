@@ -80,10 +80,12 @@ namespace ABICall
             uint32_t numPreparedArgs = 0;
             uint32_t stackAdjust;
         };
-        bool    stackAlreadyAdjusted = false;
-        uint8_t intArgMask           = 0;
-        uint8_t floatArgMask         = 0;
+        bool          stackAlreadyAdjusted = false;
+        uint8_t       intArgMask           = 0;
+        CallFloatArgs floatArgMask;
     };
+
+    static_assert(sizeof(PreparedCall) == 8);
 
     PreparedCall prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args);
     PreparedCall prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args, const ABITypeNormalize::NormalizedType& ret, MicroReg hiddenRetStorageReg = MicroReg::invalid());

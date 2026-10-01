@@ -107,7 +107,7 @@ namespace InstructionCombine
             switch (inst.op)
             {
                 case MicroInstrOpcode::ClearReg:
-                    return true;
+                    return getNumBits(ops[1].opBits) >= 32;
                 case MicroInstrOpcode::LoadRegImm:
                     return ops[1].opBits == MicroOpBits::B32 ||
                            (ops[1].opBits == MicroOpBits::B64 && !ops[2].hasWideImmediateValue() && ops[2].valueU64 <= UINT32_MAX);
@@ -290,14 +290,14 @@ namespace InstructionCombine
             switch (inst->op)
             {
                 case MicroInstrOpcode::ClearReg:
-                    return 0;
+                    return getNumBits(ops[1].opBits) >= 32 ? 0 : K_UNBOUNDED;
 
                 case MicroInstrOpcode::LoadRegImm:
-                    return ops[2].hasWideImmediateValue() ? K_UNBOUNDED : ops[2].valueU64 & getBitsMask(ops[1].opBits);
+                    return getNumBits(ops[1].opBits) < 32 || ops[2].hasWideImmediateValue() ? K_UNBOUNDED : ops[2].valueU64 & getBitsMask(ops[1].opBits);
 
                 case MicroInstrOpcode::LoadZeroExtRegReg:
                 case MicroInstrOpcode::LoadZeroExtRegMem:
-                    return getBitsMask(ops[3].opBits);
+                    return getNumBits(ops[2].opBits) >= 32 ? getBitsMask(ops[3].opBits) : K_UNBOUNDED;
 
                 // A 32-bit move clears the upper half; a byte or word move keeps it.
                 case MicroInstrOpcode::LoadRegReg:

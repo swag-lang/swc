@@ -1352,6 +1352,72 @@ SWC_TEST_BEGIN(InstCombine_ZeroExtendOfDwordLoad_BecomesCopy)
 }
 SWC_TEST_END()
 
+// A byte or word constant defines only its low bits, even after an earlier
+// full-register load. Wider reads must retain the unknown upper bits.
+SWC_TEST_BEGIN(InstCombine_PartialConstantWrites_KeepUnknownUpperBits)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value = MicroReg::virtualIntReg(2);
+    constexpr MicroReg wide  = MicroReg::virtualIntReg(3);
+    for (const MicroOpBits writeBits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool clear : {false, true})
+        {
+            for (const bool extend : {false, true})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                if (clear)
+                    builder.emitClearReg(value, writeBits);
+                else
+                    builder.emitLoadRegImm(value, ApInt(7, getNumBits(writeBits)), writeBits);
+                if (extend)
+                    builder.emitLoadZeroExtendRegReg(wide, value, MicroOpBits::B64, MicroOpBits::B32);
+                builder.emitLoadMemReg(base, 8, extend ? wide : value, MicroOpBits::B64);
+                builder.emitRet();
+
+                SWC_RESULT(runInstCombinePass(builder));
+                const bool partial = getNumBits(writeBits) < 32;
+                if (extend && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != (partial ? 1u : 0u))
+                    return Result::Error;
+                if (!extend && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != (partial ? 0u : 1u))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_PartialConstantWrites_FoldOnlyDefinedBits)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value = MicroReg::virtualIntReg(2);
+    for (const MicroOpBits writeBits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const MicroOpBits readBits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+        {
+            for (const bool clear : {false, true})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                if (clear)
+                    builder.emitClearReg(value, writeBits);
+                else
+                    builder.emitLoadRegImm(value, ApInt(0xAB, getNumBits(writeBits)), writeBits);
+                builder.emitLoadMemReg(base, 8, value, readBits);
+                builder.emitRet();
+                SWC_RESULT(runInstCombinePass(builder));
+                const bool known = getNumBits(writeBits) >= 32 || getNumBits(readBits) <= getNumBits(writeBits);
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != (known ? 1u : 0u))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A 64-bit definition says nothing about its upper half: the extend stays.
 SWC_TEST_BEGIN(InstCombine_ZeroExtendOfQwordLoad_Kept)
 {
@@ -2573,6 +2639,33 @@ SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_WideMaskKept)
 SWC_TEST_END()
 
 // A byte-wide source write merges with stale upper bits and proves nothing.
+SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_PartialClearKept)
+{
+    constexpr MicroReg count = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value = MicroReg::virtualIntReg(2);
+    constexpr MicroReg zero  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg base  = MicroReg::virtualIntReg(4);
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegMem(count, base, 0, MicroOpBits::B64);
+        builder.emitClearReg(count, bits);
+        builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+        builder.emitClearReg(zero, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(64, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(value, zero, MicroCond::AboveOrEqual, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        const uint32_t remaining = getNumBits(bits) < 32 ? 1 : 0;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != remaining ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != remaining)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_NarrowWriteKept)
 {
     constexpr MicroReg count   = MicroReg::virtualIntReg(1);

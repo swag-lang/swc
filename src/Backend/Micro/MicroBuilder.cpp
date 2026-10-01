@@ -350,7 +350,7 @@ void MicroBuilder::emitRet()
     addInstruction(MicroInstrOpcode::Ret, 0);
 }
 
-void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
+void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const CallFloatArgs floatArgMask)
 {
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
@@ -360,7 +360,7 @@ void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind 
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
     ops[1].valueU32        = intArgMask;
-    ops[2].valueU32        = floatArgMask;
+    ops[2].valueU32        = floatArgMask.widths;
 
     addRelocation({
         .kind           = MicroRelocation::Kind::LocalFunctionAddress,
@@ -371,7 +371,7 @@ void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind 
     });
 }
 
-void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
+void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const CallFloatArgs floatArgMask)
 {
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
@@ -381,7 +381,7 @@ void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
     ops[1].valueU32        = intArgMask;
-    ops[2].valueU32        = floatArgMask;
+    ops[2].valueU32        = floatArgMask.widths;
 
     addRelocation({
         .kind           = MicroRelocation::Kind::ForeignFunctionAddress,
@@ -392,7 +392,7 @@ void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind
     });
 }
 
-void MicroBuilder::emitCallReg(const MicroReg reg, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
+void MicroBuilder::emitCallReg(const MicroReg reg, const CallConvKind callConv, const uint8_t intArgMask, const CallFloatArgs floatArgMask)
 {
     // Micro IR models calls as indirect calls carrying the selected calling convention.
     const auto&        inst = addInstruction(MicroInstrOpcode::CallIndirect, 4);
@@ -400,7 +400,7 @@ void MicroBuilder::emitCallReg(const MicroReg reg, const CallConvKind callConv, 
     ops[0].reg              = reg;
     ops[1].callConv         = callConv;
     ops[2].valueU32         = intArgMask;
-    ops[3].valueU32         = floatArgMask;
+    ops[3].valueU32         = floatArgMask.widths;
 }
 
 void MicroBuilder::emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef)

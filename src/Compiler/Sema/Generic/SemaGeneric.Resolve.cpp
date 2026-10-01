@@ -24,21 +24,21 @@ namespace
                 return genericRoot;
         }
 
-        TypeRef representedTypeRef = TypeRef::invalid();
-        if (typeRef.isValid())
-        {
-            const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-            if (typeInfo.isTypeValue())
-                representedTypeRef = typeInfo.payloadTypeRef();
-            else if (typeInfo.isStruct())
-                representedTypeRef = typeRef;
-        }
-
-        if (!representedTypeRef.isValid())
+        if (typeRef.isInvalid())
             return nullptr;
 
-        Symbol* representedSym = sema.typeMgr().get(representedTypeRef).getSymbol();
-        auto* genericRoot = SemaGenericRootAlias::resolve(representedSym);
+        const TypeInfo* representedType = &sema.typeMgr().get(typeRef);
+        if (representedType->isTypeValue())
+        {
+            const TypeRef representedTypeRef = representedType->payloadTypeRef();
+            if (representedTypeRef.isInvalid())
+                return nullptr;
+            representedType = &sema.typeMgr().get(representedTypeRef);
+        }
+        else if (!representedType->isStruct())
+            return nullptr;
+
+        auto* genericRoot = SemaGenericRootAlias::resolve(representedType->getSymbol());
         return genericRoot && !genericRoot->isGenericInstance() ? genericRoot : nullptr;
     }
 

@@ -139,13 +139,12 @@ namespace
             if (value.empty())
                 return 0;
 
-            const auto it = offsets.find(value);
-            if (it != offsets.end())
+            const auto [it, inserted] = offsets.try_emplace(value, size);
+            if (!inserted)
                 return it->second;
 
             const uint32_t offset = size;
-            offsets.emplace(value, offset);
-            entries.push_back(value);
+            entries.push_back(it->first.view());
             size += static_cast<uint32_t>(value.size()) + 1;
             return offset;
         }
@@ -153,21 +152,22 @@ namespace
         void commit(ByteArray& outBytes) const
         {
             outBytes.pushBack(std::byte{0});
-            for (const Utf8& entry : entries)
-                outBytes.appendCString(entry.view());
+            for (const std::string_view entry : entries)
+                outBytes.appendCString(entry);
         }
 
+        // Map keys own the bytes and remain stable across insertions and rehashes.
         uint32_t                           size = 1;
         std::unordered_map<Utf8, uint32_t> offsets;
-        std::vector<Utf8>                  entries;
+        std::vector<std::string_view>      entries;
     };
 
     struct FileChecksumBuilder
     {
         uint32_t insert(const TaskContext& ctx, const Utf8& fileName, const uint32_t stringOffset, const SourceFile* sourceFile)
         {
-            const auto it = offsets.find(fileName);
-            if (it != offsets.end())
+            const auto [it, inserted] = offsets.try_emplace(fileName, size);
+            if (!inserted)
                 return it->second;
 
             const uint32_t entryOffset = size;
@@ -183,7 +183,6 @@ namespace
                 std::memcpy(entry.checksum.data(), hash.data(), hash.size());
             }
             entries.push_back(entry);
-            offsets.emplace(fileName, entryOffset);
             size += Math::alignUpU32(6 + entry.checksumSize, 4);
             return entryOffset;
         }
@@ -1171,10 +1170,10 @@ namespace
                         fieldName = std::format("_{}", i);
 
                     FieldDesc field;
-                    field.name      = fieldName;
+                    field.name      = std::move(fieldName);
                     field.typeIndex = typeIndexFor(fieldTypeRef);
                     field.offset    = offset;
-                    fields.push_back(field);
+                    fields.push_back(std::move(field));
                     offset += fieldType.sizeOf(*ctx);
                 }
 
@@ -1206,7 +1205,7 @@ namespace
                     desc.name      = Utf8(field->name(*ctx));
                     desc.typeIndex = typeIndexFor(field->typeRef(), field->hasExtraFlag(SymbolVariableFlagsE::Let));
                     desc.offset    = field->offset();
-                    fields.push_back(desc);
+                    fields.push_back(std::move(desc));
                 }
 
                 const uint32_t fieldListType = fields.empty() ? 0 : appendFieldList(fields);
@@ -1329,14 +1328,12 @@ namespace
         for (size_t i = 0; i < request.functions.size(); ++i)
         {
             const DebugInfoFunctionRecord& function = request.functions[i];
-            const FunctionLines            lines    = function.machineCode ? collectFunctionLines(*request.ctx, *function.machineCode) : FunctionLines{};
+            const FunctionLines&           lines    = functionLines.emplace_back(function.machineCode ? collectFunctionLines(*request.ctx, *function.machineCode) : FunctionLines{});
             for (const auto& block : lines.blocks)
             {
                 const uint32_t stringOffset = strings.insert(block.fileName);
                 checksums.insert(*request.ctx, block.fileName, stringOffset, block.sourceFile);
             }
-
-            functionLines.push_back(lines);
 
             FunctionSymbolTypes& symbolTypes = functionSymbolTypes[i];
             symbolTypes.parameterTypes.reserve(function.parameters.size());

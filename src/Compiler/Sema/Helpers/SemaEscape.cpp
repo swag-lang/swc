@@ -926,7 +926,16 @@ namespace
         if (children.empty())
             return {};
 
-        return borrowInfoFromStorageExpression(sema, children.front(), expressionTypeRef(sema, intrinsicRef), budget);
+        SemaEscapeInfo info = borrowInfoFromStorageExpression(sema, children.front(), expressionTypeRef(sema, intrinsicRef), budget);
+        if (info.hasBorrow() && intrinsic.intrinsicId == TokenId::IntrinsicDataOf)
+        {
+            // `any.buffer` opens the same erased payload as a dynamic cast. A raw
+            // pointer cast after this projection must not erase that lifetime.
+            const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, children.front()));
+            if (operandTypeRef.isValid() && sema.typeMgr().get(unwrapAliasEnum(sema, operandTypeRef)).isAny())
+                info.viaErasedPayload = true;
+        }
+        return info;
     }
 
     SemaEscapeInfo opCastEscapeInfo(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef, TypeRef resultTypeRef, uint32_t& budget)
@@ -1029,6 +1038,8 @@ namespace
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
+            if (sourceTypeRef.isValid() && sema.typeMgr().get(unwrapAliasEnum(sema, sourceTypeRef)).isAny())
+                info.viaErasedPayload = true;
             return info;
         }
 
@@ -1142,18 +1153,18 @@ namespace
 
             // Copying a slot preserves the borrow of the value stored there, but not
             // a borrow of the container storage holding that slot.
-            const bool viewOfContainerStorage = projectedInfo.viaOwnedPayload &&
+            const bool viewOfContainerStorage = projectedInfo.viaOwnedPayload && !projectedInfo.viaErasedPayload &&
                                                 indexReadsElementByValue(sema, indexRef, indexedRef);
             if (projectedInfo.hasBorrow() && !viewOfContainerStorage)
                 return projectedInfo;
         }
 
-        // Run this BEFORE propagating the indexed expression's borrow: the list form
-        // reaches here without passing the projection.
-        if (indexReadsElementByValue(sema, indexRef, indexedRef))
+        SemaEscapeInfo info = expressionEscapeInfoRec(sema, indexedRef, budget);
+        // A slot copy normally has an independent pointee. An erased payload's
+        // elements may point back into the payload, so retain its lifetime instead.
+        if (indexReadsElementByValue(sema, indexRef, indexedRef) && !info.viaErasedPayload)
             return {};
 
-        SemaEscapeInfo info = expressionEscapeInfoRec(sema, indexedRef, budget);
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
@@ -1626,15 +1637,16 @@ namespace
     // still in use. Within one scope, a container with a destructor also outlives sources
     // declared after it: cleanup runs in reverse declaration order.
     //
-    // A container reached through one of THIS function's parameters is deliberately NOT
-    // judged here. It does outlive the frame, but "an object holds a pointer to a caller
-    // buffer for the duration of one operation" is an ordinary design (a codec keeping
-    // its input and output spans in its state), and the pair still propagates to this
-    // function's own summary, to be judged where the container's real lifetime is known.
+    // A caller-owned destination outlives this function's local storage. Parameter-to-
+    // parameter stores still propagate to the caller, where their actual lifetimes are
+    // known; only a stored frame borrow is judged here.
     bool intoArgumentOutlivesStored(Sema& sema, const SemaEscapeInfo& intoInfo, const SemaEscapeInfo& storedInfo)
     {
         if (intoInfo.kind == SemaEscapeKind::Static)
             return true;
+
+        if (intoInfo.kind == SemaEscapeKind::Parameter)
+            return storedInfo.isLocalBorrow() || storedInfo.isTemporaryBorrow() || storedInfo.isMaterializedBorrow();
 
         if (!intoInfo.isLocalBorrow())
             return false;
@@ -2413,11 +2425,11 @@ namespace
                 SemaEscapeInfo info = expressionEscapeInfoRec(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, budget);
                 if (info.hasBorrow())
                 {
-                    // Reading a carrier member copies its value: the copy does not alias
-                    // the borrowed storage. Only a composite member designates storage
-                    // inside it and keeps the borrow alive.
+                    // Ordinary carrier members copy an independent pointee. An erased
+                    // payload may contain views into itself or into its owned storage;
+                    // copying such a view must preserve the payload's lifetime.
                     const TypeRef memberTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef));
-                    if (isDirectBorrowCarrier(sema, memberTypeRef))
+                    if (isDirectBorrowCarrier(sema, memberTypeRef) && !info.viaErasedPayload)
                         return {};
 
                     info.typeRef = expressionTypeRef(sema, resolvedRef);

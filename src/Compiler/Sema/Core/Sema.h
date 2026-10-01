@@ -1,4 +1,4 @@
-﻿// ReSharper disable CppMemberFunctionMayBeStatic
+// ReSharper disable CppMemberFunctionMayBeStatic
 #pragma once
 #include "Backend/RuntimeBuildConfig.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -82,6 +82,10 @@ struct SemaEscapeInfo
     // what the owner is for, so it must not feed the "this callee frees the pointer you
     // handed it" summary.
     bool viaOwnedPayload = false;
+    // Members of a dynamically typed payload may refer back into that payload or to
+    // storage released with it. Copying a carrier member does not establish an
+    // independent lifetime, unlike reading a pointer out of an ordinary container.
+    bool viaErasedPayload = false;
     // The borrow WAS such a payload until the owner replaced its carrier ('old = .table;
     // .table = alloc(...)'): it no longer follows the owner's new allocation, but what
     // it addresses is still memory the owner released, never the owner's own storage.
@@ -101,6 +105,9 @@ struct SemaEscapeInfo
 
     void mergeFrom(const SemaEscapeInfo& other)
     {
+        if (kind == other.kind && sourceVar == other.sourceVar)
+            viaErasedPayload = viaErasedPayload || other.viaErasedPayload;
+
         if (kind == SemaEscapeKind::Parameter && other.kind == SemaEscapeKind::Parameter)
         {
             parameterOriginsMask |= other.parameterOriginsMask;
@@ -108,6 +115,7 @@ struct SemaEscapeInfo
             // possible after the join. An unconditional carrier replacement clears it
             // before the join; a conditional replacement must not hide the other path.
             viaOwnedPayload      = viaOwnedPayload || other.viaOwnedPayload;
+            viaErasedPayload     = viaErasedPayload || other.viaErasedPayload;
             detachedOwnedPayload = detachedOwnedPayload || other.detachedOwnedPayload;
             // One direct borrow among the merged facts is enough to make the value stand
             // for the parameter's storage.

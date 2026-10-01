@@ -63,13 +63,11 @@ func storeTaskMemberCapture()
     }
 }
 
-// GAP language.parallelism.005: storing through a caller-owned parameter is exempted by
-// intoArgumentOutlivesStored, even with an ordinary named capture. The local origin cannot
-// propagate into a caller-parameter summary, so this currently escapes without a diagnostic.
-func storeTaskParameterGap(task: *Swag.Task)
+// A caller-owned task survives this function's local capture.
+func storeTaskParameterCapture(task: *Swag.Task)
 {
     var box = Box{7}
-    task.submit(func|&box|() { box.value = 9 })
+    task.submit(func|&box|() { box.value = 9 })     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Borrow rejection is a language rule even when optional lifecycle sanity is disabled.

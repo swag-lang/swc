@@ -540,10 +540,11 @@ namespace
         borrow.kind = SemaEscapeKind::Local;
         // The visible binding has exactly the hidden owner's lexical lifetime. Use its name
         // and source token in diagnostics rather than exposing compiler-generated storage.
-        borrow.sourceVar       = errSym;
-        borrow.sourceRef       = sema.curNodeRef();
-        borrow.typeRef         = errTypeRef;
-        borrow.viaOwnedPayload = true;
+        borrow.sourceVar        = errSym;
+        borrow.sourceRef        = sema.curNodeRef();
+        borrow.typeRef          = errTypeRef;
+        borrow.viaOwnedPayload  = true;
+        borrow.viaErasedPayload = true;
         sema.setVariableEscapeInfo(*errSym, borrow);
 
         return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::ClearErr, node.codeRef());

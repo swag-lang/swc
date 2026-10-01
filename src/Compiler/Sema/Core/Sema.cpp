@@ -465,14 +465,19 @@ bool Sema::localStorageOutlives(const SymbolVariable& destination, const SymbolV
 
 void Sema::mergeEscapeInfo(SemaEscapeInfo& destination, const SemaEscapeInfo& source) const
 {
+    // A projection may still depend on an erased payload from either alternative,
+    // even when the representative origin changes to a shorter ordinary local.
+    const bool viaErasedPayload = destination.viaErasedPayload || source.viaErasedPayload;
+
     // Severity alone cannot order two locals. Keeping the first origin made a longer
     // borrow hide a shorter one when captures, aggregate fields or branches merged.
     if (destination.isLocalBorrow() && source.isLocalBorrow() && destination.sourceVar != source.sourceVar && localStorageOutlives(*destination.sourceVar, *source.sourceVar))
     {
         destination = source;
-        return;
     }
-    destination.mergeFrom(source);
+    else
+        destination.mergeFrom(source);
+    destination.viaErasedPayload = viaErasedPayload;
 }
 
 namespace

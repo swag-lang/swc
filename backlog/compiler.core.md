@@ -31,22 +31,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   green under both compiler executables.
 - Related: compiler.core.069, compiler.core.007
 
-### compiler.core.070 — Constant interning still takes a stripe lock per lookup
-
-- Recorded: 2026-10-01 09:37
-- Evidence: symbol maps, type interning, and identifier interning now answer lookups from
-  append-only tables without a lock. `ConstantManager` still reads its `InternStripe` maps under a
-  `std::shared_mutex` in `addCstSpanPayload`, `addCstString`, and `addCstOther`, so folding a
-  literal writes a lock line shared by every worker. The same table cannot simply be layered on:
-  `addCstOther` updates a canonical constant's `dataSegmentRef` under the exclusive lock while it
-  is published, so a lock-free reader comparing values would race with that write.
-- Next: move the enriched location out of the interned `ConstantValue` (a side table keyed by
-  `ConstantRef`, or a write-once atomic), then publish canonical constants through an append-only
-  table as `TypeManager::findInterned` does.
-- Complete when: interning an existing constant performs no interlocked operation, with the
-  `ConstantManager` C++ tests and the sema and jit suites green under both compiler executables.
-- Related: compiler.core.069
-
 ### compiler.core.068 — The job scheduler serializes every transition on one mutex
 
 - Recorded: 2026-10-01 07:35

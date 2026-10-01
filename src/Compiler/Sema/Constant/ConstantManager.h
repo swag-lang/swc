@@ -143,11 +143,27 @@ public:
         bool operator()(const ConstantValue& lhs, const StoredConstant& rhs) const noexcept { return lhs == *rhs; }
     };
 
+    // Open-addressed and append-only: a slot, once filled, keeps its constant. Readers probe it
+    // without a lock; writers fill it under the stripe mutex, hash and reference before value.
+    // Identity never reads the enriched data-segment location, the one field written in place.
+    struct InternTable
+    {
+        std::unique_ptr<std::atomic<const ConstantValue*>[]> values;
+        std::unique_ptr<std::atomic<uint32_t>[]>             hashes;
+        std::unique_ptr<std::atomic<uint32_t>[]>             refs;
+        uint32_t                                             capacity = 0; // power of two
+        uint32_t                                             size     = 0; // writer-only
+    };
+
     // Each stripe owns its cache line: neighbours locked by other workers must not share it.
+    // 'map' owns the canonical constants; 'table' answers lookups without a lock. Every table
+    // generation stays alive with the stripe, for readers still probing an older one.
     struct alignas(64) InternStripe
     {
         std::unordered_map<StoredConstant, ConstantRef, StoredConstantHash, StoredConstantEqual> map;
-        mutable std::shared_mutex                                                                mutex;
+        std::atomic<InternTable*>                                                                table = nullptr;
+        std::vector<std::unique_ptr<InternTable>>                                                tables;
+        std::mutex                                                                               mutex; // writers only
     };
 
     struct Shard

@@ -945,12 +945,25 @@ namespace
             MicroReg      source;
         };
 
+        struct CachedReload
+        {
+            MicroInstrRef beforeRef;
+            MicroReg      reg;
+            MicroReg      base;
+            MicroOpBits   bits;
+            uint64_t      offset;
+        };
+        uint64_t unavailableCacheRegs = 0;
+        bool     cacheRegsComputed    = false;
+
+        thread_local std::vector<CachedReload>    cachedReloads;
         thread_local std::vector<Hoist>           hoists;
         thread_local std::vector<MicroInstrRef>   erasures;
         thread_local std::vector<Rewrite>         rewrites;
         thread_local std::vector<Carried>         carried;
         thread_local std::vector<SunkStore>       sunkStores;
         thread_local std::unordered_set<uint32_t> claimed;
+        cachedReloads.clear();
         hoists.clear();
         erasures.clear();
         rewrites.clear();
@@ -1081,16 +1094,55 @@ namespace
                 if (aliased)
                     continue;
 
-                // The destination must be written by nothing else in the body,
-                // or the value carried across iterations is not this one, and
-                // it must hold nothing live where the load is about to land.
-                if (liveness.isLiveOut(preheaderIndex, dst))
-                    continue;
-                // Unrepresentable registers are always live in the shared analysis.
+                // Reuse the assigned destination only when it survives the whole
+                // loop and is free at the preheader. Otherwise use a separate cache.
                 const uint32_t dstBit = MicroPhysLiveness::bitOf(dst);
                 SWC_ASSERT(dstBit < MicroPhysLiveness::K_INVALID_BIT);
-                if (multiplyDefinedRegs & (1ull << dstBit))
-                    continue;
+                MicroReg   cachedReg  = dst;
+                const bool needsCache = liveness.isLiveOut(preheaderIndex, dst) || (multiplyDefinedRegs & (1ull << dstBit));
+                if (needsCache)
+                {
+                    // Integer pressure need not repeat an invariant frame read when
+                    // the function leaves a caller-saved SIMD register unused. A
+                    // scalar bank transfer replaces the reload; no ABI save is added.
+                    // Existing float operands reserve their registers globally so
+                    // separately planned hoists cannot overlap a newly chosen cache.
+                    if (!dst.isInt() || (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
+                        continue;
+                    if (!cacheRegsComputed)
+                    {
+                        for (const auto& useDef : liveness.useDefs)
+                        {
+                            if (useDef.isCall)
+                                continue;
+                            for (const MicroReg reg : useDef.uses)
+                            {
+                                if (reg.isFloat())
+                                    unavailableCacheRegs |= 1ull << MicroPhysLiveness::bitOf(reg);
+                            }
+                            for (const MicroReg reg : useDef.defs)
+                            {
+                                if (reg.isFloat())
+                                    unavailableCacheRegs |= 1ull << MicroPhysLiveness::bitOf(reg);
+                            }
+                        }
+                        cacheRegsComputed = true;
+                    }
+                    cachedReg = MicroReg::invalid();
+                    for (const MicroReg reg : conv.floatTransientRegs)
+                    {
+                        const uint64_t bit = 1ull << MicroPhysLiveness::bitOf(reg);
+                        if ((unavailableCacheRegs & bit) || liveness.isLiveOut(preheaderIndex, reg))
+                            continue;
+                        cachedReg = reg;
+                        unavailableCacheRegs |= bit;
+                        break;
+                    }
+                    if (!cachedReg.isValid())
+                        continue;
+                    cachedReloads.push_back({headerRef, cachedReg, ops[1].reg, ops[2].opBits, ops[3].valueU64});
+                    rewrites.push_back({instrRefs[i], cachedReg});
+                }
 
                 // The hoisted register now holds this slot for the whole body:
                 // nothing in the body writes the slot, and nothing writes the
@@ -1098,7 +1150,8 @@ namespace
                 // reading a value already in a register — redundant when it
                 // targets that same register, and a register copy rather than a
                 // memory access when it targets another one.
-                hoists.push_back({instrRefs[i], headerRef});
+                if (!needsCache)
+                    hoists.push_back({instrRefs[i], headerRef});
                 claimed.insert(i);
                 for (uint32_t k = 0; k < n; ++k)
                 {
@@ -1113,7 +1166,7 @@ namespace
                         continue;
                     if (otherSlot.base != slot.base || otherSlot.lo != slot.lo || otherSlot.hi != slot.hi)
                         continue;
-                    if (otherOps[0].reg == dst)
+                    if (otherOps[0].reg == cachedReg)
                     {
                         erasures.push_back(instrRefs[k]);
                     }
@@ -1130,8 +1183,8 @@ namespace
                         // else, which is the shape that makes the copy pure
                         // overhead — and freeing it is what lets a later pass
                         // keep a loop-carried value there.
-                        if (!redirectUsesToHoistedRegister(storage, operands, cfg, liveness, inBody, k, dst, context.encoder))
-                            rewrites.push_back({instrRefs[k], dst});
+                        if (needsCache || !redirectUsesToHoistedRegister(storage, operands, cfg, liveness, inBody, k, cachedReg, context.encoder))
+                            rewrites.push_back({instrRefs[k], cachedReg});
                         else
                             erasures.push_back(instrRefs[k]);
                     }
@@ -1149,8 +1202,18 @@ namespace
             promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, reach, restrictToUnreachable, context, carried, sunkStores);
         }
 
-        if (hoists.empty() && carried.empty() && sunkStores.empty())
+        if (hoists.empty() && carried.empty() && sunkStores.empty() && cachedReloads.empty())
             return false;
+
+        for (const CachedReload& reload : cachedReloads)
+        {
+            MicroInstrOperand ops[4] = {};
+            ops[0].reg               = reload.reg;
+            ops[1].reg               = reload.base;
+            ops[2].opBits            = reload.bits;
+            ops[3].valueU64          = reload.offset;
+            storage.insertDerivedBefore(operands, reload.beforeRef, MicroInstrOpcode::LoadRegMem, ops);
+        }
 
         for (const MicroInstrRef ref : erasures)
             storage.erase(ref);

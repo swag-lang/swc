@@ -15,6 +15,32 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.105 — Prove lz77's signed remainder bounds
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-01 15:46 — Closed the candidate-loop spill gap and narrowed the remaining work to signed bounds.
+- Area: compiler/backend, value ranges and signed remainder lowering.
+- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
+  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
+  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
+  loop has six instructions and two reads. Swag now matches those counts after
+  caching the invariant index in an otherwise unused caller-saved SIMD register.
+  The latch transfers its bits back to a GP register; one seed load runs before
+  the loop. These static changes have not been timed in a new full campaign.
+- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
+  floor-modulo result for a positive power-of-two divisor permits masking even for
+  negative inputs; Swag's signed remainder has a different contract. The previously
+  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
+  remaining remainders requires proving the counters' bounds under its own semantics.
+- Next: follow the loop-carried counters through SSA ranges and exit conditions.
+  Establish nonnegativity before replacing sign correction; retain negative-input
+  controls and do not infer a bound merely from this benchmark's current inputs.
+- Complete when: each removable sign correction has a sound range proof, exact
+  checksums and unrelated positive/negative coverage, with the candidate and byte
+  loops retaining their instruction and memory counts without a loss elsewhere.
+
+
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
@@ -102,45 +128,6 @@ block, and the hot path keeps the register.
 - Complete when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
-
-
-### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 13:13 — Hoisted the repeatedly used address and compared the remaining spill with the current Zig winner.
-- Area: compiler/backend, register allocation and value ranges.
-- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
-  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its byte-match
-  loop at `0x140001500..0x140001512` has six instructions and two memory reads. The
-  candidate span at `0x1400014F0..0x140001553` has 29 non-NOP instructions and three
-  actual memory operands; two LEAs are address calculations, not memory accesses.
-  Zig retains the outer index in `rdx` and forms the current-position address before
-  entering the candidate loop.
-- Current evidence: the Swag byte-match loop retains six non-label instructions,
-  two memory reads and `CHECK=622942003053`. LICM now recognizes an invariant address
-  consumed by a single textual reader inside a nested loop: when the address runs
-  on every enclosing iteration and no call crosses its lifetime, it can move to the
-  enclosing preheader. The candidate span falls from 30 to 29 non-label instructions
-  (35 to 34 including labels), with the same four actual memory operands and one
-  frame read; its two LEAs become one. This closes the repeated-address gap.
-- Remaining spill: the byte load reuses `rax`, which held the outer index. The latch
-  reloads that index from `[rsp + 0x200]`. The first pre-allocation dump keeps the index
-  as `%1227` without a frame round trip; the first post-allocation dump introduces it.
-  Whole-function totals remain 517 Microinstructions, 479 non-label instructions,
-  106 actual memory operands and 32 actual frame operands. The older 131/34 counts
-  included 25 address calculations, two frame-relative; the counters now distinguish
-  those from memory accesses. These totals do not describe the candidate-loop cost.
-- Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
-  floor-modulo result for a positive power-of-two divisor permits masking even for
-  negative inputs; Swag's signed remainder has a different contract. The previously
-  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
-  remaining remainders requires proving the counters' bounds under its own semantics.
-- Next: follow the outer index's interval and the spill election. Keep it across
-  the match loop without adding per-byte traffic or moving another frequently used
-  value to memory. The address-hoisting change does not resolve this allocation decision.
-- Complete when: the candidate latch no longer reloads the outer index and the match
-  loop retains its six instructions and two memory operands without a loss elsewhere.
 
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit

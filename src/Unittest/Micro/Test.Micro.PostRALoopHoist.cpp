@@ -397,6 +397,9 @@ SWC_TEST_BEGIN(PostRALoopHoist_DestinationLiveAtPreheader_Blocks)
     const MicroLabelRef top = builder.createLabel();
     builder.emitLoadRegImm(cnt, ApInt(0, 64), MicroOpBits::B64);
     builder.emitLoadRegImm(base, ApInt(7, 64), MicroOpBits::B64);
+    // No otherwise unused SIMD register can hold this invariant either.
+    for (const MicroReg reg : conv.floatTransientRegs)
+        builder.emitClearReg(reg, MicroOpBits::B128);
     builder.placeLabel(top);
     builder.emitOpBinaryRegReg(cnt, base, MicroOp::Add, MicroOpBits::B64);
     builder.emitLoadRegMem(base, sp, 0x40, MicroOpBits::B64);
@@ -521,6 +524,9 @@ SWC_TEST_BEGIN(PostRALoopHoist_SecondDefinitionOfDestinationBlocks)
     MicroBuilder        builder(ctx);
     const MicroLabelRef top = builder.createLabel();
     builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    // No otherwise unused SIMD register can hold this invariant either.
+    for (const MicroReg reg : conv.floatTransientRegs)
+        builder.emitClearReg(reg, MicroOpBits::B128);
     builder.placeLabel(top);
     builder.emitLoadRegMem(base, conv.stackPointer, 0x40, MicroOpBits::B64);
     builder.emitOpBinaryRegReg(counter, base, MicroOp::Add, MicroOpBits::B64);
@@ -566,6 +572,85 @@ SWC_TEST_BEGIN(PostRALoopHoist_TransientFloatArgumentCopyStaysInLoop)
         SWC_RESULT(runPostRaLoopHoistPass(builder));
         if (builder.instructions().ptr(copy) == nullptr)
             return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A reused GP destination does not prevent caching in an otherwise unused SIMD
+// register. Calls, writes, narrow values, and register liveness still bar the move.
+SWC_TEST_BEGIN(PostRALoopHoist_IntegerReloadUsesUnusedFloatRegister)
+{
+    const CallConv& conv    = CallConv::get(CallConvKind::Swag);
+    const MicroReg  base    = conv.intTransientRegs[3];
+    const MicroReg  counter = conv.intTransientRegs[4];
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (uint32_t mode = 0; mode < 7; ++mode)
+        {
+            MicroBuilder      builder(ctx);
+            const auto        top      = builder.createLabel();
+            const MicroOpBits loadBits = mode == 6 ? MicroOpBits::B16 : bits;
+            builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(base, ApInt(7, 64), MicroOpBits::B64);
+            if (mode == 2)
+            {
+                for (const MicroReg reg : conv.floatTransientRegs)
+                    builder.emitClearReg(reg, MicroOpBits::B128);
+            }
+            builder.placeLabel(top);
+            if (mode == 1)
+                builder.emitOpBinaryRegReg(counter, base, MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadRegMem(base, conv.stackPointer, 0x40, loadBits);
+            builder.emitOpBinaryRegReg(counter, base, MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadRegImm(base, ApInt(1, 64), MicroOpBits::B64);
+            if (mode == 3)
+                builder.emitLoadMemReg(conv.stackPointer, 0x40, counter, loadBits);
+            builder.emitLoadRegMem(base, conv.stackPointer, 0x40, loadBits);
+            builder.emitOpBinaryRegReg(counter, base, MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadRegImm(base, ApInt(2, 64), MicroOpBits::B64);
+            builder.emitCmpRegImm(counter, ApInt(100, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+            if (mode == 4)
+                builder.emitCallReg(conv.intReturn, CallConvKind::Swag, 0);
+            if (mode == 5)
+                builder.emitClearReg(conv.floatTransientRegs[0], MicroOpBits::B128);
+            builder.emitRet();
+            SWC_RESULT(runPostRaLoopHoistPass(builder));
+            const bool cached    = mode == 0 || mode == 1 || mode == 5;
+            uint32_t   loads     = 0;
+            uint32_t   transfers = 0;
+            bool       inLoop    = false;
+            MicroReg   cache;
+            for (const auto& inst : builder.instructions().view())
+            {
+                const auto* ops = inst.ops(builder.operands());
+                if (inst.op == MicroInstrOpcode::Label)
+                    inLoop = true;
+                if (inst.op == MicroInstrOpcode::LoadRegMem)
+                {
+                    ++loads;
+                    if (cached)
+                    {
+                        if (inLoop || !ops[0].reg.isFloat() || ops[2].opBits != bits)
+                            return Result::Error;
+                        cache = ops[0].reg;
+                        if (mode == 5 && cache == conv.floatTransientRegs[0])
+                            return Result::Error;
+                    }
+                    else if (!inLoop || ops[0].reg != base)
+                        return Result::Error;
+                }
+                if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == base && ops[1].reg.isFloat())
+                {
+                    if (!cached || !inLoop || ops[1].reg != cache || ops[2].opBits != bits)
+                        return Result::Error;
+                    ++transfers;
+                }
+            }
+            if (loads != (cached ? 1u : 2u) || transfers != (cached ? 2u : 0u))
+                return Result::Error;
+        }
     }
     return Result::Continue;
 }

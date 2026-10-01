@@ -148,6 +148,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::TerminatorInstruction | MicroInstrFlagsE::JumpInstruction | MicroInstrFlagsE::ConditionalJump | MicroInstrFlagsE::UsesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 SWC_MICRO_INSTR_DEF(
     JumpReg,
@@ -170,6 +171,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::TerminatorInstruction | MicroInstrFlagsE::JumpInstruction | MicroInstrFlagsE::ConditionalJump | MicroInstrFlagsE::UsesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -182,6 +184,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     LoadRegImm,
@@ -193,6 +196,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 SWC_MICRO_INSTR_DEF(
     LoadRegPtrImm,
@@ -204,6 +208,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 SWC_MICRO_INSTR_DEF(
     LoadRegPtrReloc,
@@ -215,6 +220,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 SWC_MICRO_INSTR_DEF(
     LoadRegMem,
@@ -226,6 +232,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 // A load the optimizer leaves where it is: never hoisted, merged with another read,
 // dropped, or reordered with a memory access. It carries the memory-writer flag for
@@ -241,6 +248,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     LoadMemReg,
@@ -252,6 +260,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     LoadMemImm,
@@ -263,6 +272,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 2,
+        .opBitsMask            = (1 << 1),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -275,6 +285,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 4,
+        .opBitsMask            = (1 << 2) | (1 << 3),
     })
 SWC_MICRO_INSTR_DEF(
     LoadZeroExtRegMem,
@@ -286,6 +297,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 4,
+        .opBitsMask            = (1 << 2) | (1 << 3),
     })
 SWC_MICRO_INSTR_DEF(
     LoadSignedExtRegReg,
@@ -297,6 +309,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2) | (1 << 3),
     })
 SWC_MICRO_INSTR_DEF(
     LoadZeroExtRegReg,
@@ -308,6 +321,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2) | (1 << 3),
     })
 
 // Reads bits 8..15 of the source and zero-extends them to the destination.
@@ -333,6 +347,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -345,6 +360,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 SWC_MICRO_INSTR_DEF(
     LoadSignedExtAmcRegMem,
@@ -356,6 +372,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 SWC_MICRO_INSTR_DEF(
     LoadAmcMemReg,
@@ -367,6 +384,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 SWC_MICRO_INSTR_DEF(
     LoadAmcMemImm,
@@ -378,6 +396,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 SWC_MICRO_INSTR_DEF(
     LoadAddrAmcRegMem,
@@ -389,6 +408,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -401,6 +421,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     TestRegImm,
@@ -412,6 +433,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 SWC_MICRO_INSTR_DEF(
     CmpRegReg,
@@ -423,6 +445,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     CmpRegImm,
@@ -434,6 +457,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 SWC_MICRO_INSTR_DEF(
     CmpMemReg,
@@ -445,6 +469,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     CmpMemImm,
@@ -456,6 +481,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 2,
+        .opBitsMask            = (1 << 1),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -479,6 +505,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -491,6 +518,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 1),
     })
 // Carry arithmetic reads the incoming flags and defines the outgoing flags.
 SWC_MICRO_INSTR_DEF(
@@ -503,6 +531,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::UsesCpuFlags | MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -515,6 +544,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::UsesCpuFlags | MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 
 // Carry arithmetic reads the incoming flags and defines the outgoing flags.
@@ -528,6 +558,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::UsesCpuFlags | MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -540,6 +571,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -552,6 +584,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::UsesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -564,6 +597,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2),
     })
 // Non-destructive three-operand arithmetic: dst = src1 op src2. The destination
 // can be independent of both inputs. Legacy SSE only writes back into
@@ -583,6 +617,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3),
     })
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegImm,
@@ -594,6 +629,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 1),
     })
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegMem,
@@ -605,6 +641,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 4,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegAmcMem,
@@ -616,6 +653,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 SWC_MICRO_INSTR_DEF(
     OpUnaryAmcMem,
@@ -627,6 +665,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 SWC_MICRO_INSTR_DEF(
     OpBinaryAmcMemReg,
@@ -638,6 +677,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 SWC_MICRO_INSTR_DEF(
     OpBinaryAmcMemImm,
@@ -649,6 +689,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2) | (1 << 3),
     })
 SWC_MICRO_INSTR_DEF(
     OpBinaryMemReg,
@@ -660,6 +701,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 4,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     OpBinaryMemImm,
@@ -671,6 +713,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 1),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -683,6 +726,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3),
     })
 
 // lock cmpxchg [op1 + op4], op2: compares the memory word with op0, stores op2 on a
@@ -698,6 +742,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 4,
+        .opBitsMask            = (1 << 3),
     })
 SWC_MICRO_INSTR_DEF(
     LoadVecRegMem,
@@ -709,6 +754,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 
 SWC_MICRO_INSTR_DEF(
@@ -721,6 +767,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 
 // Appended after the vector forms to keep prior opcode values stable.
@@ -736,6 +783,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 
 // Indexed compare against an immediate:
@@ -750,6 +798,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2) | (1 << 3),
     })
 
 // Indexed compare against a register:
@@ -764,6 +813,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 
 // Packed four-lane permute (pshufd): dst = shuffle(src, control), with dst
@@ -780,6 +830,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2),
     })
 
 // Non-destructive shift-by-immediate: dst = src <op> imm, with dst distinct
@@ -799,6 +850,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2),
     })
 
 // Non-destructive packed unary: dst = op(src), with dst distinct from src.
@@ -815,6 +867,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 2),
     })
 
 // Non-destructive three-operand form with an immediate: dst = op(src1, src2,
@@ -831,6 +884,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3),
     })
 
 // AVX2 four-dword gather: dst = base[indices], with the scale fixed at four.
@@ -843,7 +897,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::Zero | MicroInstrFlagsE::EncoderRegUseDef,
+        .flags                 = MicroInstrFlagsE::Fixed128BitOperands | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -891,6 +945,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 
 // The indexed form of VecUnaryRegMem: dst = op([base + index * mul + add]),
@@ -907,6 +962,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })
 
 // dst = the thread-local slot `index` of the calling thread, read straight from
@@ -938,6 +994,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(
     TestMemImm,
@@ -949,6 +1006,7 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 2,
+        .opBitsMask            = (1 << 1),
     })
 
 // Compare a scalar float register with an indexed memory operand:
@@ -963,4 +1021,5 @@ SWC_MICRO_INSTR_DEF(
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 3) | (1 << 4),
     })

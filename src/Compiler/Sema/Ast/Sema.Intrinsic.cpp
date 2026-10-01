@@ -64,6 +64,18 @@ namespace
         return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, sema.node(whatRef).codeRef(), fillTypeRef);
     }
 
+    Result failIntrinsicInitArgumentCount(Sema& sema, std::span<AstNodeRef> args, size_t expectedCount)
+    {
+        SWC_ASSERT(args.size() > expectedCount);
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, args[expectedCount]);
+        diag.addArgument(Diagnostic::ARG_SYM, Token::toName(TokenId::IntrinsicInit));
+        diag.addArgument(Diagnostic::ARG_COUNT, expectedCount);
+        diag.addArgument(Diagnostic::ARG_WHAT, std::format("{} argument{}", expectedCount, expectedCount == 1 ? "" : "s"));
+        diag.addArgument(Diagnostic::ARG_VALUE, args.size());
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     const TypeInfo* normalizedIntrinsicOperandType(Sema& sema, const SemaNodeView& operandView)
     {
         if (!operandView.type())
@@ -140,7 +152,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
 
         const auto& fields = fillType.payloadSymStruct().fields();
         if (args.size() > fields.size())
-            return SemaError::raise(sema, DiagnosticId::sema_err_too_many_arguments, sema.curNodeRef());
+            return failIntrinsicInitArgumentCount(sema, args.span(), fields.size());
 
         for (size_t i = 0; i < args.size(); ++i)
         {
@@ -164,7 +176,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
     }
 
     if (args.size() != 1)
-        return SemaError::raise(sema, DiagnosticId::sema_err_too_many_arguments, sema.curNodeRef());
+        return failIntrinsicInitArgumentCount(sema, args.span(), 1);
 
     SemaNodeView argView = sema.viewNodeTypeConstant(args.front());
     return Cast::cast(sema, argView, fillTypeRef, CastKind::Initialization);

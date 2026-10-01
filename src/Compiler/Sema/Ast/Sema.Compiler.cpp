@@ -660,12 +660,9 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
     CompilerSwitchSemaPayload& payload    = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
     const ConstantRef          caseCstRef = sema.viewConstant(childRef).cstRef();
-    const auto                 it         = payload.seen.find(caseCstRef);
-    if (it == payload.seen.end())
-    {
-        payload.seen.emplace(caseCstRef, childRef);
+    const auto [it, inserted] = payload.seen.try_emplace(caseCstRef, childRef);
+    if (inserted)
         return Result::Continue;
-    }
 
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_static_switch_case_duplicate, childRef);
     diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(caseCstRef).toString(sema.ctx()));

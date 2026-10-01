@@ -307,12 +307,9 @@ namespace
         auto* seenSet = sema.semaPayload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
-        const auto it = seenSet->seenDynamicTypes.find(targetStructTypeRef);
-        if (it == seenSet->seenDynamicTypes.end())
-        {
-            seenSet->seenDynamicTypes.emplace(targetStructTypeRef, caseExprRef);
+        const auto [it, inserted] = seenSet->seenDynamicTypes.try_emplace(targetStructTypeRef, caseExprRef);
+        if (inserted)
             return Result::Continue;
-        }
         if (it->second == caseExprRef)
             return Result::Continue;
 
@@ -541,10 +538,8 @@ bool SemaSwitch::alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstS
         if (sema.node(resolved).isNot(AstNodeId::SwitchCaseStmt))
             continue;
 
-        const auto&             caseStmt = sema.node(resolved).cast<AstSwitchCaseStmt>();
-        SmallVector<AstNodeRef> matchExprs;
-        AstNode::collectChildren(matchExprs, sema.ast(), caseStmt.spanExprRef);
-        if (matchExprs.empty() && caseStmt.nodeWhereRef.isInvalid())
+        const auto& caseStmt = sema.node(resolved).cast<AstSwitchCaseStmt>();
+        if (caseStmt.nodeWhereRef.isInvalid() && (!sema.ast().hasSpan(caseStmt.spanExprRef) || sema.ast().spanSize(caseStmt.spanExprRef) == 0))
             return true;
     }
 
@@ -783,12 +778,9 @@ namespace
 
         const SemaNodeView exprView = sema.viewConstant(caseExprRef);
 
-        const auto it = seenSet->seen.find(exprView.cstRef());
-        if (it == seenSet->seen.end())
-        {
-            seenSet->seen.emplace(exprView.cstRef(), caseExprRef);
+        const auto [it, inserted] = seenSet->seen.try_emplace(exprView.cstRef(), caseExprRef);
+        if (inserted)
             return Result::Continue;
-        }
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
         diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef()).toString(sema.ctx()));

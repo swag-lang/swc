@@ -245,12 +245,8 @@ namespace
         SWC_ASSERT(allowedIndex < argRegs.size());
         SmallVector<MicroReg> forbiddenRegs;
         forbiddenRegs.reserve(!argRegs.empty() ? argRegs.size() - 1 : 0);
-        for (uint32_t idx = 0; idx < argRegs.size(); ++idx)
-        {
-            if (idx == allowedIndex)
-                continue;
-            forbiddenRegs.push_back(argRegs[idx]);
-        }
+        forbiddenRegs.append(argRegs.data(), allowedIndex);
+        forbiddenRegs.append(argRegs.data() + allowedIndex + 1, argRegs.size() - allowedIndex - 1);
 
         builder.addVirtualRegForbiddenPhysRegs(virtualReg, forbiddenRegs);
     }
@@ -766,8 +762,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     hiddenRetArg.numBits = 64;
     preparedArgsWithHiddenRetArg.push_back(hiddenRetArg);
 
-    for (const PreparedArg& arg : args)
-        preparedArgsWithHiddenRetArg.push_back(arg);
+    preparedArgsWithHiddenRetArg.append(args.data(), args.size());
 
     return prepareArgs(builder, callConvKind, preparedArgsWithHiddenRetArg);
 }

@@ -212,6 +212,28 @@ namespace
         return false;
     }
 
+    std::span<Symbol* const> callableSymbolsForMode(std::span<Symbol* const> symbols, Match::ResolveCallMode mode, SmallVector<Symbol*>& storage)
+    {
+        storage.clear();
+        for (size_t i = 0; i < symbols.size(); ++i)
+        {
+            if (symbols[i] && isCallableForMode(*symbols[i], mode))
+                continue;
+
+            // Borrow the original list until a rejected entry actually makes a copy necessary.
+            storage.reserve(symbols.size());
+            storage.append(symbols.data(), i);
+            for (++i; i < symbols.size(); ++i)
+            {
+                if (symbols[i] && isCallableForMode(*symbols[i], mode))
+                    storage.push_back(symbols[i]);
+            }
+            return storage.span();
+        }
+
+        return symbols;
+    }
+
     bool isIntrinsicAliasStorageMatch(Sema& sema, Match::ResolveCallMode mode, const SymbolFunction& fn, TypeRef argTypeRef, TypeRef paramTypeRef)
     {
         if (mode != Match::ResolveCallMode::Intrinsic || !argTypeRef.isValid() || !paramTypeRef.isValid())
@@ -2276,7 +2298,7 @@ namespace
                 }
 
                 if (!a.viable)
-                    a.fail = fail;
+                    a.fail = std::move(fail);
 
                 outAttempts.push_back(std::move(a));
                 continue;
@@ -2306,13 +2328,13 @@ namespace
                 else
                 {
                     a.viable = false;
-                    a.fail   = fail;
+                    a.fail   = std::move(fail);
                 }
             }
             else
             {
                 a.viable = false;
-                a.fail   = fail;
+                a.fail   = std::move(fail);
             }
 
             outAttempts.push_back(std::move(a));
@@ -3149,19 +3171,12 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
 {
     outProbe = {};
 
-    SmallVector<Symbol*> filteredSymbols;
-    filteredSymbols.reserve(symbols.size());
-    for (Symbol* sym : symbols)
-    {
-        if (!sym)
-            continue;
-        if (isCallableForMode(*sym, mode))
-            filteredSymbols.push_back(sym);
-    }
+    SmallVector<Symbol*> filteredStorage;
+    const auto          filteredSymbols = callableSymbolsForMode(symbols, mode, filteredStorage);
 
     SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
-    SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols.span(), runtimeSymbols));
+    SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols, runtimeSymbols));
     removeEmptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
@@ -3189,19 +3204,12 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
 
 Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs, ResolveCallMode mode)
 {
-    SmallVector<Symbol*> filteredSymbols;
-    filteredSymbols.reserve(symbols.size());
-    for (Symbol* sym : symbols)
-    {
-        if (!sym)
-            continue;
-        if (isCallableForMode(*sym, mode))
-            filteredSymbols.push_back(sym);
-    }
+    SmallVector<Symbol*> filteredStorage;
+    const auto          filteredSymbols = callableSymbolsForMode(symbols, mode, filteredStorage);
 
     SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
-    SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols.span(), runtimeSymbols));
+    SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols, runtimeSymbols));
     removeEmptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())

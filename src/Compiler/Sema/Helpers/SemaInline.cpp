@@ -775,25 +775,25 @@ namespace
         if (inlineRootRef.isInvalid())
             return false;
 
-        const AstNode&          rootNode = sema.node(inlineRootRef);
-        SmallVector<AstNodeRef> statements;
+        const AstNode& rootNode = sema.node(inlineRootRef);
+        SpanRef        statementsRef;
         if (rootNode.is(AstNodeId::EmbeddedBlock))
         {
-            sema.ast().appendNodes(statements, rootNode.cast<AstEmbeddedBlock>().spanChildrenRef);
+            statementsRef = rootNode.cast<AstEmbeddedBlock>().spanChildrenRef;
         }
         else if (rootNode.is(AstNodeId::FunctionBody))
         {
-            sema.ast().appendNodes(statements, rootNode.cast<AstFunctionBody>().spanChildrenRef);
+            statementsRef = rootNode.cast<AstFunctionBody>().spanChildrenRef;
         }
         else
         {
             return false;
         }
 
-        if (statements.size() != 1)
+        if (sema.ast().spanSize(statementsRef) != 1)
             return false;
 
-        const AstNode& stmtNode = sema.node(statements.front());
+        const AstNode& stmtNode = sema.node(sema.ast().nthNode(statementsRef, 0));
         if (!stmtNode.is(AstNodeId::ReturnStmt))
             return false;
 
@@ -814,10 +814,11 @@ namespace
         if (!ioConstant.isValid() || !targetTypeRef.isValid())
             return;
 
-        ConstantValue constantValue = sema.cstMgr().get(ioConstant);
-        if (constantValue.typeRef() == targetTypeRef)
+        const ConstantValue& source = sema.cstMgr().get(ioConstant);
+        if (source.typeRef() == targetTypeRef)
             return;
 
+        ConstantValue constantValue = source;
         constantValue.setTypeRef(targetTypeRef);
         ioConstant = sema.cstMgr().addConstant(sema.ctx(), constantValue);
     }
@@ -1163,7 +1164,7 @@ namespace
         return IdentifierRef::invalid();
     }
 
-    void collectIdentifierUses(Sema& sema, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    void checkInlineLocalIdentifierUses(Sema& sema, AstNodeRef nodeRef, const std::unordered_set<IdentifierRef>& localIdentifiers, bool& found)
     {
         if (nodeRef.isInvalid())
             return;
@@ -1171,14 +1172,17 @@ namespace
         const AstNode& node = sema.node(nodeRef);
         if (node.is(AstNodeId::Identifier))
         {
-            if (const IdentifierRef idRef = collectResolvedIdentifier(sema, nodeRef); idRef.isValid())
-                outIdentifiers.push_back(idRef);
+            const IdentifierRef idRef = collectResolvedIdentifier(sema, nodeRef);
+            if (!found && idRef.isValid())
+                found = localIdentifiers.contains(idRef);
         }
 
+        // Resolve the remaining identifiers even after a match: compiler-unique names can
+        // be allocated by that resolution, and their order must stay unchanged.
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sema.ast());
         for (const AstNodeRef childRef : children)
-            collectIdentifierUses(sema, childRef, outIdentifiers);
+            checkInlineLocalIdentifierUses(sema, childRef, localIdentifiers, found);
     }
 
     void collectSourceIdentifierUses(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
@@ -1227,15 +1231,9 @@ namespace
         if (exprRef.isInvalid() || localIdentifiers.empty())
             return false;
 
-        SmallVector<IdentifierRef> exprIdentifiers;
-        collectIdentifierUses(sema, exprRef, exprIdentifiers);
-        for (const IdentifierRef exprIdRef : exprIdentifiers)
-        {
-            if (localIdentifiers.contains(exprIdRef))
-                return true;
-        }
-
-        return false;
+        bool found = false;
+        checkInlineLocalIdentifierUses(sema, exprRef, localIdentifiers, found);
+        return found;
     }
 
     struct InlineBindingUse

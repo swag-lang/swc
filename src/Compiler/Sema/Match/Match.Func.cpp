@@ -101,17 +101,12 @@ namespace
 
     const SymbolFunction* attributeFunctionFromView(Sema& sema, const SemaNodeView& view)
     {
-        SmallVector<Symbol*> symbols;
-        view.getSymbols(symbols);
-        if (symbols.size() == 1)
+        const Symbol* sym = view.singleSymbol();
+        if (sym && sym->isFunction())
         {
-            const Symbol* sym = symbols[0];
-            if (sym && sym->isFunction())
-            {
-                const auto& function = sym->cast<SymbolFunction>();
-                if (function.isAttribute())
-                    return &function;
-            }
+            const auto& function = sym->cast<SymbolFunction>();
+            if (function.isAttribute())
+                return &function;
         }
 
         if (!view.typeRef().isValid())

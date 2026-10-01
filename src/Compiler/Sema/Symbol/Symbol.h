@@ -192,8 +192,10 @@ public:
     bool acceptOverloads() const noexcept { return isFunction(); }
     bool deepCompare(const Symbol* other) const noexcept;
 
-    Symbol* nextHomonym() const noexcept { return nextHomonym_; }
-    void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }
+    // Sharded symbol maps are read without a lock while writers link homonyms: a link is
+    // published with release, after the symbol it points to is complete.
+    Symbol* nextHomonym() const noexcept { return nextHomonym_.load(std::memory_order_acquire); }
+    void    setNextHomonym(Symbol* next) noexcept { nextHomonym_.store(next, std::memory_order_release); }
 
     std::string_view name(const TaskContext& ctx) const;
     Utf8             getFullScopedName(const TaskContext& ctx) const;
@@ -251,7 +253,7 @@ public:
 
 protected:
     std::atomic<const AttributeList*>    attributes_  = nullptr;
-    Symbol*                              nextHomonym_ = nullptr;
+    std::atomic<Symbol*>                 nextHomonym_ = nullptr;
     SymbolMap*                           ownerSymMap_ = nullptr;
     const AstNode*                       decl_        = nullptr;
     IdentifierRef                        idRef_       = IdentifierRef::invalid();

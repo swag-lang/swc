@@ -24,8 +24,11 @@ namespace
 
             uint32_t result = 0;
             for (uint32_t i = 0; i < SHARD_COUNT; ++i)
-                if (!shards[i].map.empty())
+            {
+                const ShardTable* table = shards[i].table.load(std::memory_order_acquire);
+                if (table && table->size)
                     ++result;
+            }
             return result;
         }
     };
@@ -111,6 +114,85 @@ SWC_TEST_BEGIN(SymbolMap_ConcurrentShardsPreserveCountAndTraversal)
     SymbolVariable duplicate(nullptr, TokenRef::invalid(), storage.back()->idRef(), {});
     if (symbols.addSymbol(ctx, &duplicate, false) != storage.back().get() || symbols.count() != NUM_SYMBOLS)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SymbolMap_LockFreeLookupsSeeEveryPublishedSymbol)
+{
+    // Readers probe the shard tables without a lock while writers grow them and link homonyms
+    // in front of and behind existing ones. A symbol published before a lookup starts must be
+    // found, whatever table generation the reader lands on.
+    constexpr uint32_t NUM_WRITERS = 2;
+    constexpr uint32_t NUM_READERS = 2;
+    constexpr uint32_t NUM_NAMES   = 2048;
+    constexpr uint32_t NUM_SEEDS   = 65;
+
+    SymbolMap                                    symbols(nullptr, TokenRef::invalid(), SymbolKind::Namespace, IdentifierRef::invalid(), {});
+    std::vector<IdentifierRef>                   ids;
+    std::vector<std::unique_ptr<SymbolVariable>> firsts;
+    std::vector<std::unique_ptr<SymbolVariable>> earlier;
+    for (uint32_t index = 0; index < NUM_NAMES; ++index)
+    {
+        ids.push_back(ctx.idMgr().addIdentifierOwned(std::format("lock_free_symbol_{}", index)));
+        // Token order decides homonym order: 'earlier' is linked in front of 'first'.
+        firsts.push_back(std::make_unique<SymbolVariable>(nullptr, TokenRef{2 * NUM_NAMES + index}, ids.back(), SymbolFlags{}));
+        earlier.push_back(std::make_unique<SymbolVariable>(nullptr, TokenRef{index}, ids.back(), SymbolFlags{}));
+    }
+    for (uint32_t index = 0; index < NUM_SEEDS; ++index)
+        symbols.addSymbol(ctx, firsts[index].get(), true);
+
+    std::array<std::atomic<uint32_t>, NUM_WRITERS> published{};
+    std::atomic<uint32_t>                          finished{0};
+    std::atomic<bool>                              valid{true};
+    std::vector<std::thread>                       threads;
+    for (uint32_t writer = 0; writer < NUM_WRITERS; ++writer)
+    {
+        threads.emplace_back([&, writer] {
+            TaskContext workerCtx(ctx);
+            uint32_t    count = 0;
+            for (uint32_t index = NUM_SEEDS + writer; index < NUM_NAMES; index += NUM_WRITERS)
+            {
+                symbols.addSymbol(workerCtx, firsts[index].get(), true);
+                symbols.addSymbol(workerCtx, earlier[index].get(), true);
+                published[writer].store(++count, std::memory_order_release);
+            }
+            finished.fetch_add(1, std::memory_order_release);
+        });
+    }
+
+    for (uint32_t reader = 0; reader < NUM_READERS; ++reader)
+    {
+        threads.emplace_back([&, reader] {
+            uint32_t probe = reader;
+            while (finished.load(std::memory_order_acquire) != NUM_WRITERS)
+            {
+                for (uint32_t writer = 0; writer < NUM_WRITERS; ++writer)
+                {
+                    const uint32_t count = published[writer].load(std::memory_order_acquire);
+                    if (!count)
+                        continue;
+                    const uint32_t index = NUM_SEEDS + writer + NUM_WRITERS * (probe++ % count);
+                    if (symbols.findFirstSymbol(ids[index]) != earlier[index].get())
+                        valid.store(false, std::memory_order_relaxed);
+                    const Symbol* second = earlier[index]->nextHomonym();
+                    if (second != firsts[index].get() || second->nextHomonym())
+                        valid.store(false, std::memory_order_relaxed);
+                }
+                for (uint32_t index = 0; index < NUM_SEEDS; ++index)
+                    if (symbols.findFirstSymbol(ids[index]) != firsts[index].get())
+                        valid.store(false, std::memory_order_relaxed);
+            }
+        });
+    }
+
+    for (auto& thread : threads)
+        thread.join();
+
+    if (!valid.load() || symbols.count() != 2 * NUM_NAMES - NUM_SEEDS)
+        return Result::Error;
+    for (uint32_t index = NUM_SEEDS; index < NUM_NAMES; ++index)
+        if (symbols.findFirstSymbol(ids[index]) != earlier[index].get())
+            return Result::Error;
 }
 SWC_TEST_END()
 

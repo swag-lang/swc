@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/SourceFile.h"
+#include "Compiler/Verify.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
@@ -21,6 +22,8 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/Diagnostic.h"
+#include "Support/Report/DiagnosticBuilder.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
@@ -146,6 +149,147 @@ SWC_TEST_BEGIN(Compiler_ParserWorkersKeepFileDiagnosticsIsolated)
         {
             std::println(stderr, "parser input {} has no clean function declaration: error={}", i, files[i]->hasError());
             return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_EofDiagnosticsKeepFileAndTaskState)
+{
+    for (const bool oneLine : {false, true})
+    {
+        CommandLine cmdLine;
+        cmdLine.diagOneLine = oneLine;
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      compilerCtx(compiler);
+        compilerCtx.setMuteOutput(true);
+        compilerCtx.setReportToStats(false);
+
+        for (uint32_t index = 0; index < 2; ++index)
+        {
+            SourceFile& file = Unittest::addTestSource(compilerCtx, "Compiler", std::format("EofOwner_{}", index), "func");
+            TaskContext fileCtx(compilerCtx);
+            SWC_RESULT(file.loadContent(fileCtx));
+            SWC_RESULT(parseLoadedSourceFile(fileCtx, file, {}));
+            if (!file.hasError() || !fileCtx.hasError() || !file.hasErrorLineInRange(1, 1))
+                return Result::Error;
+        }
+        if (compilerCtx.hasError())
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_ZeroLengthDiagnosticRangesKeepEofLocations)
+{
+    struct TestCase
+    {
+        std::string_view source;
+        uint32_t         line;
+        uint32_t         column;
+    };
+    constexpr TestCase cases[] = {
+        {"", 1, 1},
+        {"func", 1, 5},
+        {"func\n", 2, 1},
+        {"func\r\n", 2, 1},
+        {"\tfoo", 1, 8},
+        {"// \xC3\xA9", 1, 5},
+    };
+    for (const bool oneLine : {false, true})
+    {
+        CommandLine cmdLine;
+        cmdLine.logColor        = false;
+        cmdLine.diagOneLine     = oneLine;
+        cmdLine.tabSize         = 4;
+        cmdLine.filePathDisplay = FileSystem::FilePathDisplayMode::AsIs;
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      compilerCtx(compiler);
+        compilerCtx.setMuteOutput(true);
+        compilerCtx.setReportToStats(false);
+
+        for (uint32_t index = 0; index < std::size(cases); ++index)
+        {
+            const TestCase& test = cases[index];
+            SourceFile&     file = Unittest::addTestSource(compilerCtx, "Compiler", std::format("EofLocation_{}", index), test.source);
+            SWC_RESULT(file.loadContent(compilerCtx));
+            SourceView& view = file.ast().srcView();
+            Lexer       lexer;
+            lexer.tokenize(compilerCtx, view, LexerFlagsE::Default);
+            view.setLineOffset(7);
+            SourceCodeRange range;
+            range.fromOffset(compilerCtx, view, static_cast<uint32_t>(test.source.size()), 0);
+            if (range.srcView != &view || range.offset != test.source.size() || range.len || range.line != test.line + 7 || range.column != test.column)
+                return Result::Error;
+
+            const SourceCodeRange tokenRange = view.tokenCodeRange(compilerCtx, TokenRef{view.numTokens() - 1});
+            if (tokenRange.srcView != &view || tokenRange.offset != range.offset || tokenRange.len || tokenRange.line != range.line || tokenRange.column != range.column)
+                return Result::Error;
+
+            Utf8 previous;
+            for (uint32_t overload = 0; overload < 3; ++overload)
+            {
+                Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_expr_not_const, file.ref());
+                if (overload == 0)
+                    diag.last().addSpan(&view, range.offset, 0);
+                else if (overload == 1)
+                    diag.last().addSpan(range);
+                else
+                    diag.last().addSpan(range, DiagnosticId::None);
+                if (!diag.last().hasSpans())
+                    return Result::Error;
+                const Utf8 text     = DiagnosticBuilder(compilerCtx, diag).build();
+                const Utf8 location = file.formatFileLocation(&compilerCtx, range.line, range.column, range.column);
+                if (text.find(location) == Utf8::npos || (overload && text != previous))
+                    return Result::Error;
+                previous = text;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_DuplicateDisplayStillVerifiesEachOwner)
+{
+    for (const bool oneLine : {false, true})
+    {
+        CommandLine cmdLine;
+        cmdLine.sourceDrivenTest = true;
+        cmdLine.diagOneLine      = oneLine;
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      compilerCtx(compiler);
+        compilerCtx.setMuteOutput(true);
+        const uint64_t    errorsBefore = Stats::getNumErrors();
+        RestoreErrorCount restoreErrors{errorsBefore};
+        Utf8              firstText;
+        for (uint32_t index = 0; index < 2; ++index)
+        {
+            SourceFile& file = Unittest::addTestSource(compilerCtx, "Compiler", std::format("DuplicateDisplay_{}", index), "// swc-expected-error@* {{sema_err_expr_not_const}}\n");
+            TaskContext fileCtx(compilerCtx);
+            SWC_RESULT(file.loadContent(fileCtx));
+            file.unitTest().tokenize(fileCtx);
+            if (!file.unitTest().hasUntouchedErrorDirectiveInLineRange(1, 1, "sema_err_"))
+                return Result::Error;
+
+            // Deliberately unlocated text keeps the display key identical across owners even
+            // after EOF ranges become located. Publication must not depend on that key.
+            const Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_expr_not_const, file.ref());
+            const Utf8       text = DiagnosticBuilder(fileCtx, diag).build();
+            if (index && text != firstText)
+                return Result::Error;
+            firstText = text;
+            diag.report(fileCtx);
+            if (!file.hasError() || !fileCtx.hasError() || file.unitTest().hasUntouchedErrorDirectiveInLineRange(1, 1, "sema_err_"))
+                return Result::Error;
+            if (compiler.tryRegisterReportedDiagnostic(text))
+                return Result::Error;
+
+            // A second task reporting the same site still fails, but adds neither display text
+            // nor an unexpected-error statistic after the expectation has been consumed.
+            TaskContext repeatedCtx(compilerCtx);
+            diag.report(repeatedCtx);
+            if (!repeatedCtx.hasError() || Stats::getNumErrors() != errorsBefore)
+                return Result::Error;
         }
     }
 }

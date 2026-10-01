@@ -344,8 +344,9 @@ void Diagnostic::report(TaskContext& ctx) const
     const Utf8        msg     = eng.build();
     bool              dismiss = false;
 
-    if (ctx.hasCompiler() && !ctx.compiler().tryRegisterReportedDiagnostic(msg))
-        return;
+    // Display deduplication does not own source expectation matching or task/file state.
+    // Distinct owners can report identical text, including diagnostics without a span.
+    const bool firstReport = !ctx.hasCompiler() || ctx.compiler().tryRegisterReportedDiagnostic(msg);
 
     // Check that diagnostic was not awaited
     if (fileOwner_.isValid())
@@ -373,7 +374,7 @@ void Diagnostic::report(TaskContext& ctx) const
     switch (reportedDiagnostic.elements_.front()->severity())
     {
         case DiagnosticSeverity::Error:
-            if (!dismiss && ctx.reportToStats())
+            if (firstReport && !dismiss && ctx.reportToStats())
                 Stats::addError();
             ctx.setHasError();
             if (ctx.hasCompiler())
@@ -389,7 +390,7 @@ void Diagnostic::report(TaskContext& ctx) const
             }
             break;
         case DiagnosticSeverity::Warning:
-            if (!dismiss && ctx.reportToStats())
+            if (firstReport && !dismiss && ctx.reportToStats())
                 Stats::get().numWarnings.fetch_add(1);
             ctx.setHasWarning();
             if (ctx.hasCompiler())
@@ -405,6 +406,9 @@ void Diagnostic::report(TaskContext& ctx) const
         default:
             break;
     }
+
+    if (!firstReport)
+        return;
 
     // In tests, suppress diagnostics unless verbose errors are explicitly requested and match the filter.
     const bool orgDismissed = dismiss;

@@ -10,3 +10,13 @@ func modInts(a, b: #simd [4] s32)
 {
     let c = a % b     // swc-expected-error {{sema_err_simd_operator}}
 }
+
+func modFloats(a, b: #simd [4] f32)
+{
+    let c = a % b     // swc-expected-error {{sema_err_simd_operator}}
+}
+
+func bitwiseFloats(a, b: #simd [4] f32)
+{
+    let c = a & b     // swc-expected-error {{sema_err_simd_operator}}
+}

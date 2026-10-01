@@ -27,8 +27,6 @@ void DiagnosticElement::addSpan(const SourceView* srcView, uint32_t offset, uint
         return;
     srcView_ = srcView;
 
-    if (!len)
-        return;
     DiagnosticSpan span;
     span.offset   = offset;
     span.len      = len;
@@ -43,8 +41,6 @@ void DiagnosticElement::addSpan(const SourceCodeRange& codeRange, const Utf8& me
         return;
     srcView_ = codeRange.srcView;
 
-    if (!codeRange.len)
-        return;
     DiagnosticSpan span;
     span.offset   = codeRange.offset;
     span.len      = codeRange.len;

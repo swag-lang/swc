@@ -44,9 +44,10 @@ namespace
 
 void SourceCodeRange::fromOffset(const TaskContext& ctx, const SourceView& view, uint32_t inOffset, uint32_t inLen)
 {
-    if (inLen == 0)
-        return;
-    if (inOffset >= view.stringView().size())
+    // A zero-length range denotes a source position, including the position after the
+    // final byte. EOF diagnostics still need their file, line, and column.
+    const size_t sourceSize = view.stringView().size();
+    if (inOffset > sourceSize || inLen > sourceSize - inOffset)
         return;
 
     srcView = &view;

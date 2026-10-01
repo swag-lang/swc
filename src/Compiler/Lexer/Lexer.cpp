@@ -1447,11 +1447,12 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     srcView_ = &srcView;
     srcView_->tokens().clear();
     srcView_->lines().clear();
+    srcView_->lines().push_back(0);
     prevTokenWasWhitespace_ = false;
     prevTokenHadEolInside_  = false;
     prevCodeTokenId_        = TokenId::Invalid;
-    hasFileError_    = false;
-    hasUtf8Error_    = false;
+    hasFileError_           = false;
+    hasUtf8Error_           = false;
 
     langSpec_   = &ctx.global().langSpec();
     ctx_        = &ctx;
@@ -1470,7 +1471,6 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     srcView_->tokens().reserve(srcView.stringView().size() / 10);
     if (!isRawMode())
         srcView_->lines().reserve(srcView.stringView().size() / 60);
-    srcView_->lines().push_back(0);
 
     while (buffer_ < endBuffer_)
     {

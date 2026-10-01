@@ -21,7 +21,8 @@ uint32_t Token::crc(const SourceView& srcView) const
 SourceCodeRange Token::codeRange(const TaskContext& ctx, const SourceView& srcView) const
 {
     SourceCodeRange codeRange;
-    codeRange.fromOffset(ctx, srcView, srcView.tokenByteStart(*this), byteLength);
+    // The lexer gives its EOF sentinel a byte, but that byte is outside the source.
+    codeRange.fromOffset(ctx, srcView, srcView.tokenByteStart(*this), id == TokenId::EndOfFile ? 0 : byteLength);
     return codeRange;
 }
 

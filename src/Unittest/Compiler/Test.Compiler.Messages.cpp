@@ -163,6 +163,40 @@ SWC_TEST_BEGIN(Compiler_DiagnosticCatalogFollowsSwagMessageStyle)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DiagnosticSimdOperatorReportsOnlyCurrentContract)
+{
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.logColor    = false;
+    cmdLine.syntaxColor = false;
+
+    const TaskContext localCtx(ctx.global(), cmdLine);
+    struct OperatorCase
+    {
+        const char* type;
+        const char* op;
+    };
+    constexpr OperatorCase cases[] = {
+        {"#simd [4] s32", "/"},
+        {"#simd [4] f32", "%"},
+        {"#simd [4] f32", "&"},
+    };
+
+    for (const auto& test : cases)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_simd_operator);
+        diag.addArgument(Diagnostic::ARG_TYPE, test.type);
+        diag.addArgument(Diagnostic::ARG_TOK, test.op);
+
+        DiagnosticBuilder builder(localCtx, diag);
+        const Utf8        text     = builder.build();
+        const Utf8        expected = Utf8("'") + test.type + "' does not support operator '" + test.op + "' on its lanes";
+        if (text.find(expected) == Utf8::npos || text.find("help:") != Utf8::npos || text.find("do not exist on the target") != Utf8::npos)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_AssertDiagnosticPreservesLiteralSuffixQuotes)
 {
     CommandLine cmdLine;
@@ -210,8 +244,8 @@ SWC_TEST_BEGIN(Compiler_DiagnosticArgumentCountDoesNotRepeatUnit)
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     for (const DiagnosticId id : {DiagnosticId::parser_err_too_many_arguments, DiagnosticId::parser_err_too_few_arguments,
-                                 DiagnosticId::sema_err_too_many_arguments, DiagnosticId::sema_err_too_few_arguments,
-                                 DiagnosticId::sema_note_overload_candidate_too_many_arguments, DiagnosticId::sema_note_overload_candidate_too_few_arguments})
+                                  DiagnosticId::sema_err_too_many_arguments, DiagnosticId::sema_err_too_few_arguments,
+                                  DiagnosticId::sema_note_overload_candidate_too_many_arguments, DiagnosticId::sema_note_overload_candidate_too_few_arguments})
     {
         for (const char* quantity : {"1 argument", "2 arguments", "at least 1 argument"})
         {
@@ -232,6 +266,30 @@ SWC_TEST_BEGIN(Compiler_DiagnosticArgumentCountDoesNotRepeatUnit)
                     return Result::Error;
             }
         }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_ExpectedTokenBeforeEofNamesTheBoundary)
+{
+    CommandLine cmdLine;
+    cmdLine.logColor    = false;
+    cmdLine.syntaxColor = false;
+    const TaskContext localCtx(ctx.global(), cmdLine);
+    for (const DiagnosticId id : {DiagnosticId::parser_err_expected_token_before, DiagnosticId::parser_err_expected_token_fam_before})
+    {
+        Diagnostic diag = Diagnostic::get(id);
+        diag.addArgument(Diagnostic::ARG_EXPECT_TOK, "(");
+        diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, "an identifier");
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, "end of file");
+        if (DiagnosticBuilder(localCtx, diag).build().find("before end of file") == Utf8::npos)
+            return Result::Error;
+
+        // A real following token keeps its spelling and the original message variant.
+        diag.addArgument(Diagnostic::ARG_TOK, "{");
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, "symbol");
+        if (DiagnosticBuilder(localCtx, diag).build().find("before '{'") == Utf8::npos)
+            return Result::Error;
     }
 }
 SWC_TEST_END()

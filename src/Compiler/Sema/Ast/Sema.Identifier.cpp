@@ -359,10 +359,9 @@ namespace
         if (!call.hasFlag(AstCallExprFlagsE::AttributeContext))
             return false;
 
-        SmallVector<Symbol*> calleeSymbols;
-        sema.viewNodeSymbolList(call.nodeExprRef).getSymbols(calleeSymbols);
+        const SemaNodeView   calleeView  = sema.viewNodeSymbolList(call.nodeExprRef);
         const IdentifierRef operatorsId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Operators);
-        for (const Symbol* symbol : calleeSymbols)
+        for (const Symbol* symbol : calleeView.symbols())
         {
             if (!symbol || !symbol->isFunction())
                 continue;
@@ -464,8 +463,8 @@ namespace
         else
             SemaGeneric::appendQuotedGenericArgs(sema.ast(), node, genericArgs);
 
-        SmallVector<Symbol*> baseSymbols;
-        sema.viewNodeSymbolList(node.nodeExprRef).getSymbols(baseSymbols);
+        const SemaNodeView baseView    = sema.viewNodeSymbolList(node.nodeExprRef);
+        const auto         baseSymbols = baseView.symbols();
 
         SmallVector<Symbol*> specializedFunctions;
         SymbolStruct*        specializedStruct = nullptr;
@@ -539,7 +538,7 @@ namespace
         if (sawFunction)
         {
             SmallVector<Symbol*> functions;
-            if (collectFunctionSymbols(baseSymbols.span(), functions))
+            if (collectFunctionSymbols(baseSymbols, functions))
             {
                 if (functions.size() == 1)
                     sema.setSymbol(sema.curNodeRef(), functions.front());

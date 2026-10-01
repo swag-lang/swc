@@ -22,14 +22,12 @@ SWC_BEGIN_NAMESPACE();
 
 const CodeGenNodePayload& CodeGen::conditionBindingPayload(TypeRef& outTypeRef, AstNodeRef nodeRef)
 {
-    SmallVector<Symbol*> symbols;
-    viewSymbol(nodeRef).getSymbols(symbols);
-    SWC_ASSERT(symbols.size() == 1);
-    const Symbol& symbol = *symbols.front();
-    outTypeRef           = symbol.typeRef();
-    if (symbol.isVariable())
+    const Symbol* symbol = viewSymbol(nodeRef).singleSymbol();
+    SWC_ASSERT(symbol);
+    outTypeRef = symbol->typeRef();
+    if (symbol->isVariable())
     {
-        const auto* value = variablePayload(symbol.cast<SymbolVariable>());
+        const auto* value = variablePayload(symbol->cast<SymbolVariable>());
         SWC_ASSERT(value);
         return *value;
     }

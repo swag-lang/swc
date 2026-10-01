@@ -734,12 +734,17 @@ namespace
     void collectCalleeSymbolsWithFallback(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols)
     {
         nodeCallee.getSymbols(outSymbols);
-        if (!hasCallableCalleeSymbols(sema, outSymbols))
+        if (hasCallableCalleeSymbols(sema, outSymbols))
+            return;
+
         {
             SmallVector<Symbol*> quotedSymbols;
             collectQuotedCalleeBaseSymbols(sema, *nodeCallee.node(), quotedSymbols);
             if (hasCallableCalleeSymbols(sema, quotedSymbols.span()))
+            {
                 outSymbols = std::move(quotedSymbols);
+                return;
+            }
         }
 
         if (!hasCallableCalleeSymbols(sema, outSymbols))

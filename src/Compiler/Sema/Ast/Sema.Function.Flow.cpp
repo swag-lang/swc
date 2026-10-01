@@ -251,7 +251,7 @@ namespace
         for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
         {
             const auto* sourceFunction = payload->sourceFunction;
-            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return false;
         }
 
@@ -1490,7 +1490,9 @@ namespace
 
         SmallVector<AstNodeRef> args;
         node.collectArguments(args, sema.ast());
-        SmallVector<AstNodeRef> sourceArgs = args;
+        SmallVector<AstNodeRef> sourceArgs;
+        if (!tryIntrinsicFold)
+            sourceArgs = args;
         for (auto& arg : args)
             arg = Match::resolveCallArgumentRef(sema, arg);
 
@@ -1506,7 +1508,8 @@ namespace
             if (trailingBlockSiblingRef.isValid())
                 sema.markImplicitCodeBlockArg(sema.visit().parentNodeRef(), trailingBlockSiblingRef);
             args.push_back(trailingBlockArgRef);
-            sourceArgs.push_back(trailingBlockArgRef);
+            if (!tryIntrinsicFold)
+                sourceArgs.push_back(trailingBlockArgRef);
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -1525,9 +1528,10 @@ namespace
         const Result lazyResult = sema.completeLazyFunction(calledFn);
         SWC_RESULT(lazyResult);
 
-        const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
-        const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-        auto*      currentFn   = sema.currentFunction();
+        const AttributeList& attributes  = calledFn.attributes();
+        const bool           isMixinCall = attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
+        const bool           isMacroCall = attributes.hasRtFlag(RtAttributeFlagsE::Macro);
+        auto*                currentFn   = sema.currentFunction();
         if (currentFn &&
             currentFn->decl() &&
             calledFn.decl() &&

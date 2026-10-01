@@ -1770,7 +1770,7 @@ namespace
         // A macro or a mixin is a different matter: it is expanded from source before this
         // point, and its parameters are code rather than values, so there is no summary to
         // pair them against.
-        if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
             return false;
 
         const auto& params = fn->parameters();
@@ -2597,8 +2597,7 @@ namespace
         {
             const SymbolFunction* sourceFunction = payload->sourceFunction;
             if (!sourceFunction ||
-                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
+                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin) ||
                 sourceVar.isFunctionLocalVariable(*sourceFunction) ||
                 sourceFunction->containsLocalVariable(sourceVar))
                 return false;

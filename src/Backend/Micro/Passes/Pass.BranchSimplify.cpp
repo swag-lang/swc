@@ -1621,10 +1621,11 @@ namespace
                         const MicroReg reg = instOps[i].reg;
                         if (!reg.isVirtualInt())
                             continue;
+                        RegSites& sitesForReg = (*sites)[reg.index()];
                         if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
-                            (*sites)[reg.index()].uses.push_back(ordinal);
+                            sitesForReg.uses.push_back(ordinal);
                         if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
-                            (*sites)[reg.index()].defs.push_back(ordinal);
+                            sitesForReg.defs.push_back(ordinal);
                     }
                 }
             }
@@ -1726,13 +1727,13 @@ namespace
             // the join; nothing touches E from there up to the copy; every
             // reader of either takes no more bits than the copy moves.
             auto&           siteMap = regSites();
-            const RegSites& dSites  = siteMap[d.index()];
+            RegSites&       dSites  = siteMap[d.index()];
             const RegSites& eSites  = siteMap[e.index()];
             if (!allWithin(dSites.defs, start, j) || !allWithin(dSites.uses, j + 1, cmpOrdinal + 1) ||
                 !noneWithin(eSites.uses, start, copyOrdinal) || !noneWithin(eSites.defs, start, copyOrdinal))
                 continue;
             bool narrowReaders = true;
-            for (const SmallVector<uint32_t, 4>* list : {&dSites.uses, &eSites.uses})
+            for (const SmallVector<uint32_t, 4>* list : {&std::as_const(dSites).uses, &eSites.uses})
             {
                 for (const uint32_t ordinal : *list)
                 {
@@ -1742,8 +1743,13 @@ namespace
                     const MicroReg    reg    = list == &dSites.uses ? d : e;
                     const uint32_t    bits   = reader ? booleanReadBits(*reader, reader->ops(operands), reg) : 0;
                     if (!bits || bits > width)
+                    {
                         narrowReaders = false;
+                        break;
+                    }
                 }
+                if (!narrowReaders)
+                    break;
             }
             if (!narrowReaders)
                 continue;
@@ -1770,24 +1776,20 @@ namespace
             }
             storage.erase(layout.order[copyOrdinal]);
 
-            RegSites merged = siteMap[d.index()];
-            for (const uint32_t ordinal : siteMap[e.index()].uses)
-                merged.uses.push_back(ordinal);
-            for (const uint32_t ordinal : siteMap[e.index()].defs)
+            const auto usesEnd = std::remove(dSites.uses.begin(), dSites.uses.end(), copyOrdinal);
+            dSites.uses.resize(usesEnd - dSites.uses.begin());
+            for (const uint32_t ordinal : eSites.uses)
             {
                 if (ordinal != copyOrdinal)
-                    merged.defs.push_back(ordinal);
+                    dSites.uses.push_back(ordinal);
             }
-            SmallVector<uint32_t, 4> uses;
-            for (const uint32_t ordinal : merged.uses)
+            for (const uint32_t ordinal : eSites.defs)
             {
                 if (ordinal != copyOrdinal)
-                    uses.push_back(ordinal);
+                    dSites.defs.push_back(ordinal);
             }
-            merged.uses = uses;
             siteMap.erase(e.index());
-            siteMap[d.index()] = merged;
-            changed            = true;
+            changed = true;
         }
 
         return changed;

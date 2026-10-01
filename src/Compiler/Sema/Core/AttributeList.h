@@ -127,7 +127,7 @@ struct AttributeList
                generatedOperators.none();
     }
 
-    bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
+    bool hasRtFlag(RtAttributeFlags fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
     bool hasGeneratedOperators() const { return generatedOperators.any(); }
     void addGeneratedOperator(GeneratedOperatorFlags fl, const SourceCodeRef& codeRef)

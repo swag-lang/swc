@@ -24,14 +24,12 @@ namespace
         return ConstantHelpers::hasSourceFunctionRelocation(sema, ptr);
     }
 
-    Result makeScalarFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, std::span<const std::byte> bytes, ConstantRef& outCstRef)
+    Result makeScalarFieldConstantFromBytes(Sema& sema, const TypeInfo& fieldType, std::span<const std::byte> bytes, ConstantRef& outCstRef)
     {
         outCstRef = ConstantRef::invalid();
-        if (!fieldTypeRef.isValid())
-            return Result::Continue;
 
-        TaskContext&    ctx       = sema.ctx();
-        const TypeInfo& fieldType = sema.typeMgr().get(fieldTypeRef);
+        TaskContext&  ctx          = sema.ctx();
+        const TypeRef fieldTypeRef = fieldType.typeRef();
         if (fieldType.isAlias())
         {
             const TypeRef unwrappedTypeRef = fieldType.unwrap(ctx, fieldTypeRef, TypeExpandE::Alias);
@@ -39,7 +37,7 @@ namespace
                 return Result::Continue;
 
             ConstantRef scalarCstRef = ConstantRef::invalid();
-            SWC_RESULT(makeScalarFieldConstantFromBytes(sema, unwrappedTypeRef, bytes, scalarCstRef));
+            SWC_RESULT(makeScalarFieldConstantFromBytes(sema, sema.typeMgr().get(unwrappedTypeRef), bytes, scalarCstRef));
             if (!scalarCstRef.isValid())
                 return Result::Continue;
 
@@ -51,8 +49,11 @@ namespace
 
         if (fieldType.isEnum())
         {
+            const TypeRef underlyingTypeRef = fieldType.payloadSymEnum().underlyingTypeRef();
+            if (!underlyingTypeRef.isValid())
+                return Result::Continue;
             ConstantRef underlyingCstRef = ConstantRef::invalid();
-            SWC_RESULT(makeScalarFieldConstantFromBytes(sema, fieldType.payloadSymEnum().underlyingTypeRef(), bytes, underlyingCstRef));
+            SWC_RESULT(makeScalarFieldConstantFromBytes(sema, sema.typeMgr().get(underlyingTypeRef), bytes, underlyingCstRef));
             if (!underlyingCstRef.isValid())
                 return Result::Continue;
 
@@ -157,8 +158,7 @@ namespace
     Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, std::span<const std::byte> bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, fieldTypeRef, nodeMemberRef));
-        SWC_UNUSED(typeField);
-        SWC_RESULT(makeScalarFieldConstantFromBytes(sema, fieldTypeRef, bytes, outCstRef));
+        SWC_RESULT(makeScalarFieldConstantFromBytes(sema, typeField, bytes, outCstRef));
         if (outCstRef.isValid())
             return Result::Continue;
 

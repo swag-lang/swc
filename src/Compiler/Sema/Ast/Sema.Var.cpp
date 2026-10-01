@@ -839,8 +839,7 @@ namespace
         {
             const auto* currentFn        = sema.currentFunction();
             const bool  allowedCodeParam = isParameter && currentFn &&
-                                          (currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-                                           currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));
+                                          currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin);
             if (!allowedCodeParam)
             {
                 const SourceCodeRef errorRef = context.nodeTypeRef.isValid() ? sema.node(context.nodeTypeRef).codeRef() : sema.node(context.nodeInitRef).codeRef();

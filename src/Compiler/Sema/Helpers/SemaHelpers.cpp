@@ -736,11 +736,12 @@ namespace
         if (bodyRef.isInvalid())
             return false;
 
-        SmallVector<AstNodeRef> children;
-        sema.node(bodyRef).collectChildrenFromAst(children, sema.ast());
-        if (children.empty())
+        const auto&  body  = sema.node(bodyRef).cast<AstSwitchCaseBody>();
+        const size_t count = sema.ast().spanSize(body.spanChildrenRef);
+        if (!count)
             return false;
-        return children.back().isValid() && sema.node(children.back()).is(AstNodeId::FallThroughStmt);
+        const AstNodeRef lastRef = sema.ast().nthNode(body.spanChildrenRef, count - 1);
+        return lastRef.isValid() && sema.node(lastRef).is(AstNodeId::FallThroughStmt);
     }
 
     // A 'switch' leaves the function when no value can walk past it: every case body leaves,
@@ -753,15 +754,15 @@ namespace
         if (!SemaSwitch::alwaysMatchesACase(sema, switchRef, switchStmt))
             return false;
 
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sema.ast());
-
         SmallVector<AstNodeRef> caseBodies;
-        for (const AstNodeRef childRef : children)
+        sema.ast().appendNodes(caseBodies, switchStmt.spanChildrenRef);
+        size_t count = 0;
+        for (const AstNodeRef childRef : caseBodies)
         {
             if (childRef.isValid() && sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
-                caseBodies.push_back(sema.node(childRef).cast<AstSwitchCaseStmt>().nodeBodyRef);
+                caseBodies[count++] = sema.node(childRef).cast<AstSwitchCaseStmt>().nodeBodyRef;
         }
+        caseBodies.resize(count);
 
         for (uint32_t i = 0; i < caseBodies.size32(); i++)
         {

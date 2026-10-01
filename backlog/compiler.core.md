@@ -6,6 +6,27 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.074 — Repeated native rebuilds choose different prologues
+
+- Recorded: 2026-10-01 17:08
+- Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
+  Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
+  3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
+  records without addresses finds eleven changed groups, including one removed leaf record,
+  different saved registers, and stack allocations changing from `0x700` to `0xAF0`.
+  Both commands cap the outer script and inner compiler at six workers and use isolated
+  temporary caches. No compiler rebuild occurs between them.
+- Scope: this was observed while removing the redundant sort in `X64UnwindWindows::buildInfo`.
+  That routine serializes already generated prologue operations; the record differences also
+  occur between runs of the same changed binary. This does not establish when the variation
+  was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
+- Next: identify the affected functions from their native symbols, reduce one differing
+  prologue to a standalone input, and compare its semantic and Micro instruction streams
+  across repeated builds. Check whether a single worker or explicit inline decisions remove
+  the variation before changing any optimizer policy.
+- Complete when: the source of the different prologues is explained and corrected at its
+  owning boundary, with stable normalized output and the affected native tests green.
+
 ### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
 
 - Recorded: 2026-10-01 14:25

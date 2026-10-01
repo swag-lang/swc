@@ -229,9 +229,7 @@ TypeRef TypeGen::getBackTypeRef(const void* ptr) const
 
 TypeRef TypeGen::reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc)
 {
-    if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-        symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
-        symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+    if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin | RtAttributeFlagsE::Compiler))
         return TypeRef::invalid();
 
     std::unordered_set<TypeRef> visiting;

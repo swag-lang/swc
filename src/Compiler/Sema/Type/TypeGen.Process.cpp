@@ -29,9 +29,7 @@ namespace
         // TypeInfo generation because no concrete method entry will be emitted.
         if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
             return false;
-        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
-            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin | RtAttributeFlagsE::Compiler))
             return false;
 
         const SymbolStruct* ownerStruct = symFunc.ownerStruct();

@@ -96,7 +96,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(WebRename_RepeatedDoubleLoadsKeepStableBits)
 {
-    for (uint32_t variant = 0; variant < 11; ++variant)
+    for (uint32_t variant = 0; variant < 14; ++variant)
     {
         MicroBuilder                 builder(ctx);
         X64Encoder                   encoder(ctx);
@@ -106,6 +106,16 @@ SWC_TEST_BEGIN(WebRename_RepeatedDoubleLoadsKeepStableBits)
         std::array<MicroInstrRef, 2> loads;
         if (variant == 5)
             builder.addVirtualRegForbiddenPhysReg(value, MicroReg::floatReg(0));
+        if (variant == 11)
+            builder.emitLoadRegReg(base, encoder.stackPointerReg(), MicroOpBits::B64);
+        if (variant == 12)
+            builder.emitLoadAddressRegMem(base, encoder.stackPointerReg(), 32, MicroOpBits::B64);
+        if (variant == 13)
+        {
+            const auto address = MicroReg::virtualIntReg(2);
+            builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, encoder.stackPointerReg(), MicroReg::intReg(1), 8, 16, MicroOpBits::B64);
+            builder.emitLoadRegReg(base, address, MicroOpBits::B64);
+        }
         for (uint32_t index = 0; index < 2; ++index)
         {
             if (index && variant == 1)

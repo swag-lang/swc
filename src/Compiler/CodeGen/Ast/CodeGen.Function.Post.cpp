@@ -467,7 +467,6 @@ namespace
 
         SmallVector<std::byte> rawBytes;
         rawBytes.resize(sizeOf);
-        std::memset(rawBytes.data(), 0, rawBytes.size());
 
         ConstantValue zeroValue;
         if (typeInfo.isStruct() || typeInfo.isAny() || typeInfo.isInterface())

@@ -314,7 +314,7 @@ namespace SemaGeneric
 
         if (outArg.typeRef.isValid())
         {
-            const TypeInfo& typeInfo = sema.typeMgr().get(outArg.typeRef);
+            const TypeInfo& typeInfo = *view.type();
             if (typeInfo.isScalarUnsized() && outArg.cstRef.isValid())
             {
                 ConstantRef newCstRef = ConstantRef::invalid();

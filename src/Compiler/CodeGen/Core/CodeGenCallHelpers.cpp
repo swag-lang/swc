@@ -114,7 +114,6 @@ namespace
 
                         SmallVector<std::byte> rawBytes;
                         rawBytes.resize(rawSize);
-                        std::memset(rawBytes.data(), 0, rawBytes.size());
                         SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, cstRef, targetTypeRef) == Result::Continue);
 
                         ConstantRef typedNullCstRef = ConstantRef::invalid();
@@ -215,7 +214,6 @@ namespace
 
             SmallVector<std::byte> rawBytes;
             rawBytes.resize(rawSize);
-            std::memset(rawBytes.data(), 0, rawBytes.size());
             if (ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
                 return false;
 
@@ -264,7 +262,6 @@ namespace
 
         SmallVector<std::byte> rawBytes;
         rawBytes.resize(rawSize);
-        std::memset(rawBytes.data(), 0, rawBytes.size());
         if (ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
             return false;
 

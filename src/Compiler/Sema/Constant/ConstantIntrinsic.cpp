@@ -52,7 +52,7 @@ namespace
         const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
         if (!storageType.isFloat())
             return false;
-        out = sema.cstMgr().get(argView.cstRef()).getFloat();
+        out = argView.cst()->getFloat();
         return true;
     }
 
@@ -70,10 +70,9 @@ namespace
         if (!std::isfinite(value))
             return Result::Continue;
 
-        const TypeRef  resultTypeRef  = sema.viewType(callRef).typeRef();
-        const TypeInfo resultTy       = sema.typeMgr().get(resultTypeRef);
-        const TypeRef  storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, resultTypeRef);
-        const TypeInfo storageTy      = sema.typeMgr().get(storageTypeRef);
+        const TypeRef   resultTypeRef  = sema.viewType(callRef).typeRef();
+        const TypeRef   storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, resultTypeRef);
+        const TypeInfo& storageTy      = sema.typeMgr().get(storageTypeRef);
         if (!storageTy.isFloat())
             return Result::Continue;
 
@@ -178,7 +177,7 @@ namespace
         const uint32_t bits = storageType.payloadIntLikeBits();
         if (bits == 0)
             return false;
-        const ConstantValue& cst = sema.cstMgr().get(argView.cstRef());
+        const ConstantValue& cst = *argView.cst();
         const ApsInt         v   = cst.getIntLike();
         outValue                 = v.as64();
         outBitWidth              = bits;
@@ -537,7 +536,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                     const uint32_t  bits           = storageType.isIntLike() ? storageType.payloadIntLikeBits() : 0;
                     if (bits > 0)
                     {
-                        const ConstantValue& cst      = sema.cstMgr().get(argView.cstRef());
+                        const ConstantValue& cst      = *argView.cst();
                         ApsInt               v        = cst.getIntLike();
                         bool                 overflow = false;
                         v.abs(overflow);

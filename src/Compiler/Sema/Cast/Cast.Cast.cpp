@@ -668,7 +668,7 @@ namespace
         SWC_RESULT(SemaJIT::tryRunConstCall(sema, *castData.calledFn, callRef, resolvedArgs.span(), forceConstEval));
         const SemaNodeView callView(sema, callRef, SemaNodeViewPartE::Constant);
         if (callView.cstRef().isValid() &&
-            sema.cstMgr().get(callView.cstRef()).typeRef() == castData.calledFn->returnTypeRef())
+            callView.cst()->typeRef() == castData.calledFn->returnTypeRef())
             outConstRef = callView.cstRef();
         return Result::Continue;
     }
@@ -797,7 +797,7 @@ namespace
         SWC_RESULT(SemaJIT::tryRunConstSetCall(sema, *castData.calledFn, callRef, resolvedArgs.span(), dstTypeRef, castData.receiverInitCstRef, true));
         const SemaNodeView callView(sema, callRef, SemaNodeViewPartE::Constant);
         if (callView.cstRef().isValid() &&
-            sema.cstMgr().get(callView.cstRef()).typeRef() == dstTypeRef)
+            callView.cst()->typeRef() == dstTypeRef)
             outConstRef = callView.cstRef();
         return Result::Continue;
     }

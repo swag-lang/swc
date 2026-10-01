@@ -2984,11 +2984,12 @@ void MicroRegisterAllocationPass::mapVirtReg(MicroReg virtKey, MicroReg physReg)
 {
     SWC_ASSERT(!isPhysRegForbiddenForVirtual(virtKey, physReg));
 
-    auto& regState = stateForVirtual(virtKey);
+    const uint32_t denseIndex = denseVirtualIndex(virtKey);
+    auto&          regState   = states_[denseIndex];
     if (!regState.mapped)
     {
         regState.mappedListIndex = static_cast<uint32_t>(mappedVirtualIndices_.size());
-        mappedVirtualIndices_.push_back(denseVirtualIndex(virtKey));
+        mappedVirtualIndices_.push_back(denseIndex);
         regState.mapped = true;
     }
 
@@ -3319,16 +3320,15 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
     SWC_ASSERT(!isReservedByGlobalFor(request.virtKey, physReg, request.instructionIndex));
     mapVirtReg(request.virtKey, physReg);
 
-    auto& mappedState = stateForVirtual(request.virtKey);
     if (request.isUse)
     {
         PendingInsert loadPending;
-        if (mappedState.rematerializable)
-            queueRematerializedLoad(loadPending, physReg, mappedState);
+        if (regState.rematerializable)
+            queueRematerializedLoad(loadPending, physReg, regState);
         else
-            queueSpillLoad(loadPending, physReg, mappedState, stackDepth);
+            queueSpillLoad(loadPending, physReg, regState, stackDepth);
         pending.push_back(loadPending);
-        mappedState.dirty = false;
+        regState.dirty = false;
     }
 
     return physReg;

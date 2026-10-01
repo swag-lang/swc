@@ -29,6 +29,18 @@ std::pair<MicroOperandRef, MicroInstrOperand*> MicroOperandStorage::emplaceUnini
     return {first, operands_.data() + first.get()};
 }
 
+MicroOperandRef MicroOperandStorage::append(const std::span<const MicroInstrOperand> values)
+{
+    if (values.empty())
+        return MicroOperandRef::invalid();
+
+    const MicroOperandRef first(static_cast<uint32_t>(operands_.size()));
+    // Rewrite operands live outside this storage, so construct them directly
+    // from their source instead of default-initializing and then assigning.
+    operands_.insert(operands_.end(), values.begin(), values.end());
+    return first;
+}
+
 MicroStorage::Iterator MicroStorage::Iterator::operator++(int)
 {
     const Iterator copy = *this;
@@ -199,17 +211,7 @@ MicroInstrRef MicroStorage::insertBefore(MicroOperandStorage& operands, MicroIns
     inst.numOperands     = static_cast<uint8_t>(opsData.size());
     inst.debugSourceInfo = debugSourceInfo;
 
-    if (!opsData.empty())
-    {
-        auto [opsRef, dstOps] = operands.emplaceUninitArray(inst.numOperands);
-        inst.opsRef           = opsRef;
-        for (uint32_t i = 0; i < inst.numOperands; ++i)
-            dstOps[i] = opsData[i];
-    }
-    else
-    {
-        inst.opsRef = MicroOperandRef::invalid();
-    }
+    inst.opsRef = operands.append(opsData);
 
     return insertBefore(beforeRef, inst);
 }

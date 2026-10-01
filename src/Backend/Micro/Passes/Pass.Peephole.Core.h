@@ -130,10 +130,7 @@ namespace MicroPeephole
 
         if (action.allocOps)
         {
-            const auto [newRef, opsBlock] = ctx.operands->emplaceUninitArray(action.numOps);
-            for (uint8_t idx = 0; idx < action.numOps; ++idx)
-                opsBlock[idx] = action.ops[idx];
-            inst->opsRef = newRef;
+            inst->opsRef = ctx.operands->append(std::span(action.ops, action.numOps));
         }
         else if (action.numOps)
         {

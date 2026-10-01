@@ -964,7 +964,7 @@ namespace InstructionCombine
 
     // A pure result copied straight into an accumulator can define that
     // accumulator itself. Indexed addresses, three-operand arithmetic and
-    // packed square roots read their explicit inputs before writing the destination.
+    // scalar square roots read their explicit inputs before writing the destination.
     bool tryFoldPureResultCopy(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
         if (!ctx.ssa || ctx.isClaimed(ref))
@@ -998,8 +998,8 @@ namespace InstructionCombine
         if (sqrt)
         {
             // MOVSS/MOVSD retain the copy destination's higher lanes, while
-            // SQRTPS/SQRTPD replace them. Retarget only when every floating
-            // read in the function stays within the scalar width; unknown or
+            // an out-of-place scalar square root defines them. Retarget only
+            // when every floating read stays within the scalar width; unknown or
             // wider consumers keep the original copy and its preserved lanes.
             if (!ctx.allFloatReadsFit(bits))
                 return false;

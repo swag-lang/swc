@@ -179,9 +179,7 @@ void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
 
     if (hasSymList_)
     {
-        symbols.reserve(symList_.size());
-        for (auto* s : symList_)
-            symbols.push_back(s);
+        symbols.append(symList_.data(), symList_.size());
     }
     else if (hasSymbol_)
     {

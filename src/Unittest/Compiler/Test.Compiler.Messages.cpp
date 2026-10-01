@@ -209,17 +209,21 @@ SWC_TEST_BEGIN(Compiler_DiagnosticArgumentCountDoesNotRepeatUnit)
     cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
-    for (const DiagnosticId id : {DiagnosticId::parser_err_too_many_arguments, DiagnosticId::parser_err_too_few_arguments})
+    for (const DiagnosticId id : {DiagnosticId::parser_err_too_many_arguments, DiagnosticId::parser_err_too_few_arguments,
+                                 DiagnosticId::sema_err_too_many_arguments, DiagnosticId::sema_err_too_few_arguments,
+                                 DiagnosticId::sema_note_overload_candidate_too_many_arguments, DiagnosticId::sema_note_overload_candidate_too_few_arguments})
     {
         for (const char* quantity : {"1 argument", "2 arguments", "at least 1 argument"})
         {
-            for (const bool named : {false, true})
+            for (const uint32_t namedDetail : {0u, 1u, 2u})
             {
                 Diagnostic diag = Diagnostic::get(id);
                 diag.addArgument(Diagnostic::ARG_WHAT, quantity);
                 diag.addArgument(Diagnostic::ARG_VALUE, 3);
-                if (named)
+                if (namedDetail)
                     diag.addArgument(Diagnostic::ARG_SYM, "assert");
+                if (namedDetail == 2)
+                    diag.addArgument(Diagnostic::ARG_TOK, "value");
 
                 DiagnosticBuilder builder(localCtx, diag);
                 const Utf8        text     = builder.build();

@@ -357,8 +357,9 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
         if (instructionIndex + 1 < instructionRefs_.size())
         {
             const bool isLinearFallthrough = successors.size() == 1 && successors.front() == instructionIndex + 1;
-            if (!isLinearFallthrough)
-                leaders[instructionIndex + 1] = 1;
+            if (isLinearFallthrough)
+                continue;
+            leaders[instructionIndex + 1] = 1;
         }
 
         for (const uint32_t successorIndex : successors)

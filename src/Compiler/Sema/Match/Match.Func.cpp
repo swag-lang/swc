@@ -101,17 +101,12 @@ namespace
 
     const SymbolFunction* attributeFunctionFromView(Sema& sema, const SemaNodeView& view)
     {
-        SmallVector<Symbol*> symbols;
-        view.getSymbols(symbols);
-        if (symbols.size() == 1)
+        const Symbol* sym = view.singleSymbol();
+        if (sym && sym->isFunction())
         {
-            const Symbol* sym = symbols[0];
-            if (sym && sym->isFunction())
-            {
-                const auto& function = sym->cast<SymbolFunction>();
-                if (function.isAttribute())
-                    return &function;
-            }
+            const auto& function = sym->cast<SymbolFunction>();
+            if (function.isAttribute())
+                return &function;
         }
 
         if (!view.typeRef().isValid())
@@ -591,13 +586,10 @@ namespace
         const uint32_t paramStart = ufcsArg.isValid() ? 1u : 0u;
 
         outMapping.paramArgs.resize(numParams);
-        for (CallArgEntry& entry : outMapping.paramArgs)
-            entry.callArgIndex = 0;
 
         if (ufcsArg.isValid() && numParams > 0)
         {
-            outMapping.paramArgs[0].argRef       = ufcsArg;
-            outMapping.paramArgs[0].callArgIndex = 0;
+            outMapping.paramArgs[0].argRef = ufcsArg;
         }
 
         bool     seenNamed = false;
@@ -1030,20 +1022,21 @@ namespace
         switch (fail.kind)
         {
             case MatchFailKind::TooManyArguments:
-                if (!isNote)
-                    diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
-                diagElement.addArgument(Diagnostic::ARG_COUNT, writtenArgCount(fail.expectedCount, ufcsArg));
-                diagElement.addArgument(Diagnostic::ARG_VALUE, writtenArgCount(fail.providedCount, ufcsArg));
-                break;
-
             case MatchFailKind::TooFewArguments:
+            {
+                const uint32_t expectedCount = writtenArgCount(fail.expectedCount, ufcsArg);
                 if (!isNote)
                     diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
-                diagElement.addArgument(Diagnostic::ARG_COUNT, writtenArgCount(fail.expectedCount, ufcsArg));
+                diagElement.addArgument(Diagnostic::ARG_COUNT, expectedCount);
+                diagElement.addArgument(Diagnostic::ARG_WHAT, std::format("{} argument{}", expectedCount, expectedCount == 1 ? "" : "s"));
                 diagElement.addArgument(Diagnostic::ARG_VALUE, writtenArgCount(fail.providedCount, ufcsArg));
-                if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
-                    diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
+                if (fail.kind == MatchFailKind::TooFewArguments)
+                {
+                    if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
+                        diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
+                }
                 break;
+            }
 
             case MatchFailKind::InvalidArgumentType:
                 if (fail.castFailure.diagId != DiagnosticId::None)
@@ -2486,9 +2479,7 @@ namespace
     void fillFunctionCandidateProbe(Match::FunctionCandidateProbe& outProbe, const Attempt& selectedAttempt)
     {
         outProbe.perArgRanks.clear();
-        outProbe.perArgRanks.reserve(selectedAttempt.candidate.perArg.size());
-        for (const ConvRank rank : selectedAttempt.candidate.perArg)
-            outProbe.perArgRanks.push_back(rank);
+        outProbe.perArgRanks.append(selectedAttempt.candidate.perArg.data(), selectedAttempt.candidate.perArg.size());
 
         outProbe.fn              = selectedAttempt.candidate.fn;
         outProbe.usedDefaults    = selectedAttempt.candidate.usedDefaults;

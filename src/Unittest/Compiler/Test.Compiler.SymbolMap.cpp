@@ -189,6 +189,21 @@ SWC_TEST_BEGIN(SymbolMap_LockFreeLookupsSeeEveryPublishedSymbol)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(IdentifierManager_RepeatedInterningKeepsDebugPointer)
+{
+    IdentifierManager&  manager   = ctx.idMgr();
+    const IdentifierRef first     = manager.addIdentifierOwned("debug_pointer_after_interned_lookup");
+    const IdentifierRef duplicate = manager.addIdentifierOwned("debug_pointer_after_interned_lookup");
+    if (duplicate != first)
+        return Result::Error;
+#if SWC_HAS_REF_DEBUG_INFO
+    const Identifier& stored = manager.get(first);
+    if (first.dbgPtr != &stored || duplicate.dbgPtr != &stored)
+        return Result::Error;
+#endif
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(IdentifierManager_ConcurrentInterningYieldsOneReference)
 {
     // Lookups probe the intern tables without a lock while other jobs insert and grow them.

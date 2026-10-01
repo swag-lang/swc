@@ -18,6 +18,81 @@ namespace
         const uint32_t index = (routingHash >> ConstantManager::SHARD_BITS) & (ConstantManager::INTERN_STRIPE_COUNT - 1);
         return shard.internStripes[index];
     }
+
+    uint32_t internSlot(uint32_t hash, uint32_t capacity)
+    {
+        // The low bits already chose the shard and the stripe.
+        return (hash >> (ConstantManager::SHARD_BITS + ConstantManager::INTERN_STRIPE_BITS)) & (capacity - 1);
+    }
+
+    // Every worker folds literals and asks for the same common constants, so the lookup of an
+    // existing one takes no lock. Only the insertion path locks the stripe.
+    ConstantRef findInterned(const ConstantManager::InternStripe& stripe, const ConstantValue& value)
+    {
+        const ConstantManager::InternTable* table = stripe.table.load(std::memory_order_acquire);
+        if (!table)
+            return ConstantRef::invalid();
+
+        const uint32_t hash = Math::hash(value.hash());
+        const uint32_t mask = table->capacity - 1;
+        for (uint32_t i = internSlot(hash, table->capacity);; i = (i + 1) & mask)
+        {
+            const ConstantValue* stored = table->values[i].load(std::memory_order_acquire);
+            if (!stored)
+                return ConstantRef::invalid();
+            if (table->hashes[i].load(std::memory_order_relaxed) != hash || !(*stored == value))
+                continue;
+
+            ConstantRef ref{table->refs[i].load(std::memory_order_relaxed)};
+#if SWC_HAS_REF_DEBUG_INFO
+            ref.dbgPtr = stored;
+#endif
+            return ref;
+        }
+    }
+
+    void placeInterned(ConstantManager::InternTable& table, const ConstantValue* value, uint32_t hash, uint32_t ref)
+    {
+        const uint32_t mask = table.capacity - 1;
+        uint32_t       i    = internSlot(hash, table.capacity);
+        while (table.values[i].load(std::memory_order_relaxed))
+            i = (i + 1) & mask;
+        // Hash and reference go first: a reader that sees the value reads a complete slot.
+        table.hashes[i].store(hash, std::memory_order_relaxed);
+        table.refs[i].store(ref, std::memory_order_relaxed);
+        table.values[i].store(value, std::memory_order_release);
+        table.size++;
+    }
+
+    // Called under the stripe mutex, once the canonical constant is in 'map'.
+    ConstantRef publishInterned(ConstantManager::InternStripe& stripe, const ConstantValue& value, ConstantRef ref)
+    {
+        // Keeping the load at or below one half bounds every probe and guarantees an empty slot.
+        ConstantManager::InternTable* table = stripe.table.load(std::memory_order_relaxed);
+        if (!table || (table->size + 1) * 2 > table->capacity)
+        {
+            auto grown      = std::make_unique<ConstantManager::InternTable>();
+            grown->capacity = table ? table->capacity * 2 : 64;
+            grown->values   = std::make_unique<std::atomic<const ConstantValue*>[]>(grown->capacity);
+            grown->hashes   = std::make_unique<std::atomic<uint32_t>[]>(grown->capacity);
+            grown->refs     = std::make_unique<std::atomic<uint32_t>[]>(grown->capacity);
+            if (table)
+            {
+                for (uint32_t i = 0; i < table->capacity; ++i)
+                {
+                    if (const ConstantValue* old = table->values[i].load(std::memory_order_relaxed))
+                        placeInterned(*grown, old, table->hashes[i].load(std::memory_order_relaxed), table->refs[i].load(std::memory_order_relaxed));
+                }
+            }
+
+            table = grown.get();
+            stripe.tables.push_back(std::move(grown));
+            stripe.table.store(table, std::memory_order_release);
+        }
+
+        placeInterned(*table, &value, Math::hash(value.hash()), ref.get());
+        return ref;
+    }
 }
 
 ConstantManager::ConstantManager()
@@ -176,12 +251,9 @@ namespace
     ConstantRef addCstSpanPayload(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t routingHash, const ConstantValue& value)
     {
         ConstantManager::InternStripe& stripe = internStripe(shard, routingHash);
-        {
-            const std::shared_lock lk(stripe.mutex);
-            const auto             it = stripe.map.find(value);
-            if (it != stripe.map.end())
-                return it->second;
-        }
+        const ConstantRef              found  = findInterned(stripe, value);
+        if (found.isValid())
+            return found;
 
         ConstantValue stored     = value;
         uint32_t      localIndex = INVALID_REF;
@@ -219,18 +291,15 @@ namespace
         result                    = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
         const auto [it, inserted] = stripe.map.emplace(std::move(canonical), result);
         SWC_ASSERT(inserted);
-        return it->second;
+        return publishInterned(stripe, *it->first, it->second);
     }
 
     ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t routingHash, const TaskContext& ctx, const ConstantValue& value)
     {
         ConstantManager::InternStripe& stripe = internStripe(shard, routingHash);
-        {
-            const std::shared_lock lk(stripe.mutex);
-            const auto             it = stripe.map.find(value);
-            if (it != stripe.map.end())
-                return it->second;
-        }
+        const ConstantRef              found  = findInterned(stripe, value);
+        if (found.isValid())
+            return found;
 
         uint32_t    localIndex = INVALID_REF;
         ConstantRef result;
@@ -264,7 +333,7 @@ namespace
             result                            = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
             const auto [insertedIt, inserted] = stripe.map.emplace(std::move(canonical), result);
             SWC_ASSERT(inserted);
-            result = insertedIt->second;
+            result = publishInterned(stripe, *insertedIt->first, insertedIt->second);
         }
 
         return result;
@@ -336,10 +405,9 @@ namespace
         ConstantManager::InternStripe* stripe  = canDeduplicateByValue ? &internStripe(shard, Math::hash(stored.hash())) : nullptr;
         if (canDeduplicateByValue && dataRef.isInvalid())
         {
-            const std::shared_lock lk(stripe->mutex);
-            const auto             it = stripe->map.find(stored);
-            if (it != stripe->map.end())
-                return it->second;
+            const ConstantRef found = findInterned(*stripe, stored);
+            if (found.isValid())
+                return found;
         }
 
         uint32_t    localIndex = INVALID_REF;
@@ -362,7 +430,7 @@ namespace
                 result                            = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
                 const auto [insertedIt, inserted] = stripe->map.emplace(std::move(canonical), result);
                 SWC_ASSERT(inserted);
-                return insertedIt->second;
+                return publishInterned(*stripe, *insertedIt->first, insertedIt->second);
             }
             else
             {

@@ -1052,6 +1052,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryEraseRepeatedImmediate);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
+        r.add(MicroInstrOpcode::LoadRegMem, tryLoadIntoFirstFloatConsumer);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldDeadScalarIncrement);
         r.add(MicroInstrOpcode::LoadRegMem, tryErasePrivateFrameReloadAfterBranch);
@@ -1176,6 +1177,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     eraseRedundantUpperHalfClears(ctx);
     forwardPrivateFrameReloads(ctx);
     runPerInstructionPatterns(ctx);
+    widenScalarFloatCopies(ctx);
 
     if (ctx.actions.empty())
         return Result::Continue;

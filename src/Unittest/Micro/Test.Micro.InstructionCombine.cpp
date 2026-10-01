@@ -5651,6 +5651,120 @@ SWC_TEST_BEGIN(InstCombine_RepeatedGuard_ResolvedOnlyBehindTheSameGuard)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_ScalarVectorProjectionsKeepTheOriginalMemorySnapshot)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg low     = MicroReg::virtualIntReg(2);
+    constexpr MicroReg high    = MicroReg::virtualIntReg(3);
+    constexpr MicroReg whole   = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg shifted = MicroReg::virtualFloatReg(2);
+    for (const bool vectorLoad : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        if (vectorLoad)
+            builder.emitLoadVecRegMem(whole, base, 16, MicroOpBits::B128);
+        else
+            builder.emitLoadRegMem(whole, base, 16, MicroOpBits::B128);
+        builder.emitLoadMemImm(base, 16, ApInt(99, 64), MicroOpBits::B64);
+        const auto overwrite = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegReg(base, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegReg(low, whole, MicroOpBits::B64);
+        const auto lowCopy = builder.instructions().lastInstructionRef();
+        builder.emitVecShuffleRegRegImm(shifted, whole, 0xEE, MicroOpBits::B128);
+        builder.emitLoadRegReg(high, shifted, MicroOpBits::B64);
+        const auto highCopy = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(base, 0, low, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 8, high, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+
+        MicroReg fields[2]  = {MicroReg::invalid(), MicroReg::invalid()};
+        bool     afterWrite = false;
+        uint32_t loads      = 0;
+        for (auto it = builder.instructions().view().begin(), end = builder.instructions().view().end(); it != end; ++it)
+        {
+            afterWrite |= it.current == overwrite;
+            if (it->op == MicroInstrOpcode::VecShuffleRegRegImm || it->op == MicroInstrOpcode::LoadVecRegMem)
+                return Result::Error;
+            if (it->op != MicroInstrOpcode::LoadRegMem)
+                continue;
+            const auto* ops = it->ops(builder.operands());
+            if (afterWrite || ops[2].opBits != MicroOpBits::B64 || ops[1].reg != base ||
+                (ops[3].valueU64 != 16 && ops[3].valueU64 != 24))
+                return Result::Error;
+            fields[(ops[3].valueU64 - 16) / 8] = ops[0].reg;
+            ++loads;
+        }
+        if (loads != 2 || !fields[0].isVirtualInt() || !fields[1].isVirtualInt() || fields[0] == fields[1] ||
+            builder.instructions().ptr(lowCopy)->ops(builder.operands())[1].reg != fields[0] ||
+            builder.instructions().ptr(highCopy)->ops(builder.operands())[1].reg != fields[1])
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ScalarVectorProjectionsKeepUnsupportedShapes)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg whole   = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg shifted = MicroReg::virtualFloatReg(2);
+    for (uint32_t variant = 0; variant < 7; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        if (variant == 3)
+            builder.emitLoadVolatileRegMem(whole, base, 0, MicroOpBits::B128);
+        else
+            builder.emitLoadRegMem(whole, variant == 5 ? MicroReg::instructionPointer() : base, variant == 6 ? 0x7FFFFFFF : 0, MicroOpBits::B128);
+        const auto load = builder.instructions().lastInstructionRef();
+        builder.emitVecShuffleRegRegImm(shifted, whole, variant == 1 ? 0xB1 : 0xEE, MicroOpBits::B128);
+        builder.emitLoadRegReg(result, shifted, variant == 2 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 32, result, MicroOpBits::B64);
+        if (variant == 0)
+            builder.emitStoreVecMemReg(base, 48, whole, MicroOpBits::B128);
+        if (variant == 4)
+            builder.emitStoreVecMemReg(base, 48, shifted, MicroOpBits::B128);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        const auto* inst = builder.instructions().ptr(load);
+        if (!inst || inst->op != (variant == 3 ? MicroInstrOpcode::LoadVolatileRegMem : MicroInstrOpcode::LoadRegMem) ||
+            inst->ops(builder.operands())[2].opBits != MicroOpBits::B128)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ScalarVectorProjectionsPreserveLiveLoopJoins)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value = MicroReg::virtualIntReg(2);
+    constexpr MicroReg whole = MicroReg::virtualFloatReg(1);
+    for (const bool readBeforeLoad : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        const auto   loop = builder.createLabel();
+        builder.emitLoadRegReg(whole, MicroReg::floatReg(0), MicroOpBits::B128);
+        builder.placeLabel(loop);
+        if (readBeforeLoad)
+            builder.emitStoreVecMemReg(base, 32, whole, MicroOpBits::B128);
+        builder.emitLoadRegMem(whole, base, 0, MicroOpBits::B128);
+        builder.emitLoadRegReg(value, whole, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+        builder.emitCmpRegImm(base, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loop);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        uint32_t wideLoads = 0;
+        for (const auto& inst : builder.instructions().view())
+            if (inst.op == MicroInstrOpcode::LoadRegMem && inst.ops(builder.operands())[2].opBits == MicroOpBits::B128)
+                ++wideLoads;
+        if (wideLoads != static_cast<uint32_t>(readBeforeLoad))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

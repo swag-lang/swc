@@ -190,6 +190,7 @@ namespace InstructionCombine
     bool tryFoldAmcLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldVecLoadIntoWiden(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldVecLoadIntoFullUnary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryScalarizeVectorLoad(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryBuildVectorFromStores(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcLoadIntoSignExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcLoadIntoZeroExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);

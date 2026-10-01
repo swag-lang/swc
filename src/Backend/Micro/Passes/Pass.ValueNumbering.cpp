@@ -441,53 +441,6 @@ namespace
         return true;
     }
 
-    // Registers that hold an address into the frame: the stack pointer and
-    // every copy, lea or addition chained from one. Flow-insensitive and
-    // transitive, so it over-approximates — which only withholds numbering
-    // from a load, never numbers one it should not.
-    void collectFrameDerivedRegs(std::unordered_set<MicroReg>& out, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroReg stackPointer)
-    {
-        if (!stackPointer.isValid())
-            return;
-        out.insert(stackPointer);
-
-        bool changed = true;
-        while (changed)
-        {
-            changed = false;
-            for (const MicroInstr& inst : storage.view())
-            {
-                const MicroInstrOperand* ops = inst.ops(operands);
-                if (!ops)
-                    continue;
-
-                bool derived = false;
-                switch (inst.op)
-                {
-                    case MicroInstrOpcode::LoadRegReg:
-                    case MicroInstrOpcode::LoadAddrRegMem:
-                    case MicroInstrOpcode::LoadAddrAmcRegMem:
-                        derived = out.contains(ops[1].reg);
-                        break;
-                    case MicroInstrOpcode::OpBinaryRegReg:
-                        derived = ops[3].microOp == MicroOp::Add && out.contains(ops[1].reg);
-                        break;
-                    case MicroInstrOpcode::OpBinaryRegRegReg:
-                        derived = ops[4].microOp == MicroOp::Add && (out.contains(ops[1].reg) || out.contains(ops[2].reg));
-                        break;
-                    case MicroInstrOpcode::OpBinaryRegRegImm:
-                        derived = (ops[3].microOp == MicroOp::Add || ops[3].microOp == MicroOp::Subtract) && out.contains(ops[1].reg);
-                        break;
-                    default:
-                        break;
-                }
-
-                if (derived && out.insert(ops[0].reg).second)
-                    changed = true;
-            }
-        }
-    }
-
     struct NumberingEntry
     {
         uint32_t                 index      = 0;
@@ -726,7 +679,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             {
                 // Rewrites are queued, so even a late first load sees the same
                 // whole-function closure, including definitions after the load.
-                collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
+                MicroPassHelpers::collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
                 frameDerivedRegsReady = true;
             }
             if (!ripLoad && frameDerivedRegs.contains(ops[shape.useSlots[0]].reg))

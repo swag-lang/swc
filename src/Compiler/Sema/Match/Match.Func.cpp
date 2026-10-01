@@ -2276,7 +2276,7 @@ namespace
                 }
 
                 if (!a.viable)
-                    a.fail = fail;
+                    a.fail = std::move(fail);
 
                 outAttempts.push_back(std::move(a));
                 continue;
@@ -2306,13 +2306,13 @@ namespace
                 else
                 {
                     a.viable = false;
-                    a.fail   = fail;
+                    a.fail   = std::move(fail);
                 }
             }
             else
             {
                 a.viable = false;
-                a.fail   = fail;
+                a.fail   = std::move(fail);
             }
 
             outAttempts.push_back(std::move(a));

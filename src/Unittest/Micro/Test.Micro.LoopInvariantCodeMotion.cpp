@@ -1041,6 +1041,64 @@ SWC_TEST_BEGIN(LICM_HoistsMultiplyUsedAddressOnlyWhenEveryIterationComputesIt)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LICM_HoistsAddressWithOneReaderInNestedLoop)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg offset  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg output  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg outer   = MicroReg::virtualIntReg(4);
+    constexpr MicroReg inner   = MicroReg::virtualIntReg(5);
+    constexpr MicroReg address = MicroReg::virtualIntReg(6);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(7);
+
+    for (const bool indexed : {false, true})
+    {
+        for (uint32_t variant = 0; variant < 4; ++variant)
+        {
+            MicroBuilder builder(ctx);
+            SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            const auto     outerLoop = builder.createLabel();
+            const auto     innerLoop = builder.createLabel();
+            builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+            builder.emitLoadRegReg(offset, MicroReg::intReg(3), MicroOpBits::B64);
+            builder.emitLoadRegReg(output, MicroReg::intReg(8), MicroOpBits::B64);
+            builder.emitLoadRegImm(outer, ApInt(0, 64), MicroOpBits::B64);
+            builder.placeLabel(outerLoop);
+            if (indexed)
+                builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, base, offset, 1, 0, MicroOpBits::B64);
+            else
+                builder.emitLoadAddressRegMem(address, base, 0x30, MicroOpBits::B64);
+            builder.emitLoadRegImm(inner, ApInt(0, 64), MicroOpBits::B64);
+            if (variant != 1)
+                builder.placeLabel(innerLoop);
+            builder.emitLoadAmcRegMem(value, MicroOpBits::B64, address, inner, 8, 0, MicroOpBits::B64);
+            builder.emitLoadMemReg(output, 0, value, MicroOpBits::B64);
+            if (variant == 3)
+                builder.emitCallLocal(&callee, CallConvKind::Swag, 0, 0);
+            if (variant != 1)
+            {
+                builder.emitOpBinaryRegImm(inner, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+                builder.emitCmpRegImm(inner, ApInt(3, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, innerLoop);
+            }
+            if (variant == 2)
+                builder.emitOpBinaryRegImm(base, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(outer, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitCmpRegImm(outer, ApInt(8, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, outerLoop);
+            builder.emitRet();
+
+            SWC_RESULT(runLicmPass(builder));
+            const auto opcode  = indexed ? MicroInstrOpcode::LoadAddrAmcRegMem : MicroInstrOpcode::LoadAddrRegMem;
+            const bool hoisted = firstPositionOf(builder, opcode) < firstPositionOf(builder, MicroInstrOpcode::Label);
+            if (hoisted != (variant == 0))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NaturalLoop_CollectBody_CountsMembersOnceAcrossTailsAndRebuilds)
 {
     MicroBuilder        builder(ctx);

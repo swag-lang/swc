@@ -382,9 +382,19 @@ namespace
         if (loops.empty())
             return false;
 
+        std::vector<uint32_t> innermostLoopSizes(n, n + 1);
+        for (const auto& nested : loopsByHeader | std::views::values)
+        {
+            for (uint32_t i = 0; i < n; ++i)
+            {
+                if (nested.inBody[i])
+                    innermostLoopSizes[i] = std::min(innermostLoopSizes[i], nested.bodySize);
+            }
+        }
+
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
-        thread_local std::vector<MicroInstrUseDef> useDefs;
+        thread_local std::vector<MicroInstrUseDef>                      useDefs;
         thread_local std::unordered_map<MicroReg, RegDefinitionSummary> definitions;
         useDefs.resize(n); // every instruction effect is replaced below
         definitions.clear();
@@ -975,6 +985,7 @@ namespace
             // not. A violating register is banned and the whole pipeline reruns
             // without it, cascading until stable.
             thread_local std::unordered_map<MicroReg, uint32_t> inLoopUse;
+            std::unordered_set<MicroReg> nestedLoopUses;
             inLoopUse.clear();
             bool countedLoopUses = false;
             for (;;)
@@ -1001,7 +1012,11 @@ namespace
                         for (const uint32_t i : bodyIndices)
                         {
                             for (const MicroReg use : useDefs[i].uses)
+                            {
                                 ++inLoopUse[use];
+                                if (innermostLoopSizes[i] < loop->bodySize)
+                                    nestedLoopUses.insert(use);
+                            }
                         }
                         countedLoopUses = true;
                     }
@@ -1041,7 +1056,14 @@ namespace
                             }
                         }
 
-                        if (opcodeReadsMemory(inst->op) || (multiplyUsed && runsEveryIteration) || isCostlyMaterialization(*inst, instOps))
+                        // One textual reader in a nested loop can consume this
+                        // address repeatedly. Moving an address computed on every
+                        // iteration keeps the inner loop's live values unchanged;
+                        // calls still make the longer lifetime too costly.
+                        const bool nestedAddress = !loopHasCall && !loopHasReadOnlyCall &&
+                                                   (inst->op == MicroInstrOpcode::LoadAddrRegMem || inst->op == MicroInstrOpcode::LoadAddrAmcRegMem) &&
+                                                   nestedLoopUses.contains(ud->defs[0]);
+                        if (opcodeReadsMemory(inst->op) || ((multiplyUsed || nestedAddress) && runsEveryIteration) || isCostlyMaterialization(*inst, instOps))
                         {
                             if (keep.insert(i).second)
                                 worklist.push_back(i);

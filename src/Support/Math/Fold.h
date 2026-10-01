@@ -90,7 +90,7 @@ namespace Math
     FoldStatus   foldBinaryFloat(ApFloat& outResult, const ApFloat& left, const ApFloat& right, FoldBinaryOp op);
     FoldStatus   foldIntrinsicUnaryFloat(double& outResult, double value, FoldIntrinsicUnaryFloatOp op);
     FoldStatus   foldIntrinsicBinaryFloat(double& outResult, double left, double right, FoldIntrinsicBinaryFloatOp op);
-    FoldStatus   foldIntrinsicTernaryFloat(double& outResult, double first, double second, double third, FoldIntrinsicTernaryFloatOp op);
+    FoldStatus   foldIntrinsicTernaryFloat(ApFloat& outResult, const ApFloat& first, const ApFloat& second, const ApFloat& third, FoldIntrinsicTernaryFloatOp op);
 }
 
 SWC_END_NAMESPACE();

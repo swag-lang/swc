@@ -6,6 +6,48 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool MicroInstr::has128BitOperands(const MicroInstrOperand* operands) const
+{
+    const MicroInstrDef& definition = info(op);
+    if (definition.flags.has(MicroInstrFlagsE::Fixed128BitOperands))
+        return true;
+    uint8_t remaining = definition.opBitsMask;
+    for (uint8_t index = 0; remaining; ++index, remaining >>= 1)
+    {
+        if (!(remaining & 1))
+            continue;
+        SWC_ASSERT(index < numOperands);
+        if (operands[index].opBits == MicroOpBits::B128)
+            return true;
+    }
+    return false;
+}
+
+MicroOpBits MicroInstr::packedFloatInputBits(const MicroInstrOperand* operands) const
+{
+    switch (op)
+    {
+        case MicroInstrOpcode::OpBinaryRegReg:
+        case MicroInstrOpcode::OpBinaryRegRegReg:
+        {
+            const MicroOp operation = operands[info(op).microOpIndex].microOp;
+            // Every low-half interleave consumes eight bytes from each input,
+            // regardless of the element width; only its result needs 16 bytes.
+            if (operation >= MicroOp::VecUnpackLo8 && operation <= MicroOp::VecUnpackLo64)
+                return MicroOpBits::B64;
+            break;
+        }
+        case MicroInstrOpcode::VecShuffleRegRegImm:
+            // The high bit of each two-bit selector chooses an upper dword.
+            if (!(operands[3].valueU64 & 0xAA))
+                return MicroOpBits::B64;
+            break;
+        default:
+            break;
+    }
+    return MicroOpBits::B128;
+}
+
 void MicroInstrUseDef::addUse(MicroReg reg)
 {
     if (reg.isValid() && !reg.isNoBase())

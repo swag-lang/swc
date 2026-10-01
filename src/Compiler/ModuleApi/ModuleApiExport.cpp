@@ -359,7 +359,6 @@ namespace ModuleApi
     Result exportFiles(TaskContext& ctx)
     {
         using ModuleApiExport::appendGeneratedRootsForFile;
-        using ModuleApiExport::appendGeneratedRootUnique;
         using ModuleApiExport::buildExportedModuleApiContent;
         using ModuleApiExport::buildGeneratedModuleApiSingleFileContent;
         using ModuleApiExport::buildModuleNamespaceName;
@@ -426,8 +425,8 @@ namespace ModuleApi
             return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
         // Extract each file's generated roots in parallel (independent per file), then merge
-        // sequentially in file order. The merge feeds appendGeneratedRootUnique in exactly the
-        // same order as the linear path, so the deduplicated result is identical.
+        // sequentially in file order. The merge keeps the first occurrence of each root in that
+        // order, as the linear path did, so the deduplicated result is identical.
         const auto&                                      entries = collectedEntries;
         std::vector<std::vector<ModuleApiGeneratedRoot>> perFileRoots(moduleFiles.size());
         jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(moduleFiles.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
@@ -444,9 +443,7 @@ namespace ModuleApi
         });
 
         std::vector<ModuleApiGeneratedRoot> generatedRoots;
-        for (auto& fileRoots : perFileRoots)
-            for (ModuleApiGeneratedRoot& root : fileRoots)
-                appendGeneratedRootUnique(generatedRoots, std::move(root));
+        ModuleApiExport::mergeGeneratedRootsUnique(generatedRoots, perFileRoots);
 
         // Sequential pass: resolve destination paths and detect duplicate names (needs the
         // shared name map). The expensive content build + disk write is dispatched afterwards.

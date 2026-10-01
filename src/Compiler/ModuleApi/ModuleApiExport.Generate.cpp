@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -890,6 +891,42 @@ namespace ModuleApiExport
         }
 
         outRoots.push_back(std::move(root));
+    }
+
+    void mergeGeneratedRootsUnique(std::vector<ModuleApiGeneratedRoot>& outRoots, std::vector<std::vector<ModuleApiGeneratedRoot>>& perFileRoots)
+    {
+        // The same filter and first-occurrence order as appendGeneratedRootUnique, but a module
+        // carries thousands of roots: compare each one only with those sharing its hash.
+        std::unordered_map<uint32_t, SmallVector<uint32_t>> rootsByHash;
+        for (std::vector<ModuleApiGeneratedRoot>& fileRoots : perFileRoots)
+        {
+            for (ModuleApiGeneratedRoot& root : fileRoots)
+            {
+                if (!root.file || root.nodeRef.isInvalid())
+                    continue;
+
+                uint32_t hash = Math::hashCombine(Math::hash(root.nodeRef.get()), reinterpret_cast<uint64_t>(root.file));
+                for (const IdentifierRef idRef : root.namespacePath)
+                    hash = Math::hashCombine(hash, idRef.get());
+
+                SmallVector<uint32_t>& bucket    = rootsByHash[hash];
+                bool                   duplicate = false;
+                for (const uint32_t index : bucket)
+                {
+                    if (sameGeneratedRoot(outRoots[index], *root.file, root.nodeRef, root.namespacePath))
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+
+                if (duplicate)
+                    continue;
+
+                bucket.push_back(static_cast<uint32_t>(outRoots.size()));
+                outRoots.push_back(std::move(root));
+            }
+        }
     }
 
     void appendGeneratedRootsForFile(TaskContext& ctx, const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots)

@@ -128,7 +128,7 @@ namespace SemaRuntime
     }
 
     template<typename T>
-    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, SmallVector<T>& outSymbols)
+    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, SmallVector<std::remove_const_t<T>>& outSymbols)
     {
         outSymbols.clear();
         outSymbols.reserve(inSymbols.size());

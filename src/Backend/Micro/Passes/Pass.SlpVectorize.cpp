@@ -1658,7 +1658,7 @@ namespace
 
     bool vectorizeBlock(SlpFunctionContext& fn, std::optional<MicroSsaState>& localSsa, std::span<const BlockInstr> blockInstrs)
     {
-        if (blockInstrs.size() < static_cast<size_t>(fn.shape.count()) * 2)
+        if (blockInstrs.size() < fn.shape.count())
             return false;
 
         BlockScan scan;
@@ -1788,7 +1788,13 @@ namespace
         }
         vectorized.resize(retainedGroups);
 
-        if (vectorized.empty() || plan.arithmeticOps == 0)
+        // A zero vector needs one register clear and no constant memory read.
+        // Even without arithmetic, packing its stores removes memory operands
+        // without increasing the instruction count for one complete chunk.
+        const bool onlyZeroStores = plan.loads.empty() && std::ranges::all_of(plan.ops, [](const PlanInstr& operation) {
+                                        return operation.kind == PlanInstr::Kind::LoadSplat && operation.imm == 0;
+                                    });
+        if (vectorized.empty() || (plan.arithmeticOps == 0 && !onlyZeroStores))
             return false;
 
         // The deleted set: every plain lane-sized store to a vectorized location.
@@ -2041,6 +2047,14 @@ namespace
                 }
                 case PlanInstr::Kind::LoadSplat:
                 {
+                    if (!planInstr.imm)
+                    {
+                        MicroInstrOperand clear[2];
+                        clear[0].reg    = planRegs[planInstr.dst];
+                        clear[1].opBits = MicroOpBits::B128;
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::ClearReg, clear);
+                        break;
+                    }
                     if (canLoadMask)
                     {
                         // One read of the repeated constant instead of an
@@ -2216,7 +2230,7 @@ namespace
         const Runtime::BuildCfgBackend& backendCfg = context.builder->backendBuildCfg();
         if (!backendCfg.optimizes() || !backendCfg.vectorize)
             return Result::Continue;
-        if (context.instructions->count() < shape.count() * 2)
+        if (context.instructions->count() < shape.count())
             return Result::Continue;
 
         SlpFunctionContext fn;

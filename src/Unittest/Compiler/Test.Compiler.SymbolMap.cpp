@@ -189,6 +189,40 @@ SWC_TEST_BEGIN(SymbolMap_LockFreeLookupsSeeEveryPublishedSymbol)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(IdentifierManager_ConcurrentInterningYieldsOneReference)
+{
+    // Lookups probe the intern tables without a lock while other jobs insert and grow them.
+    // Every job interning the same spelling must get the same reference, and it must name it.
+    constexpr uint32_t NUM_JOBS  = 4;
+    constexpr uint32_t NUM_NAMES = 4096;
+
+    std::vector<std::string> names;
+    for (uint32_t index = 0; index < NUM_NAMES; ++index)
+        names.push_back(std::format("interned_concurrently_{}", index));
+
+    std::array<std::vector<IdentifierRef>, NUM_JOBS> refs;
+    ctx.global().jobMgr().parallelForIndexed(ctx, NUM_JOBS, JobKind::Sema, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t job) {
+        refs[job].resize(NUM_NAMES);
+        // Each job walks the names from a different start, so insertions and lookups interleave.
+        for (uint32_t step = 0; step < NUM_NAMES; ++step)
+        {
+            const uint32_t index = (step + job * (NUM_NAMES / NUM_JOBS)) % NUM_NAMES;
+            refs[job][index]     = workerCtx.idMgr().addIdentifierOwned(names[index]);
+        }
+    });
+
+    for (uint32_t index = 0; index < NUM_NAMES; ++index)
+    {
+        const IdentifierRef idRef = refs[0][index];
+        if (ctx.idMgr().get(idRef).name != names[index])
+            return Result::Error;
+        for (uint32_t job = 1; job < NUM_JOBS; ++job)
+            if (refs[job][index] != idRef)
+                return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SymbolMap_ConcurrentUsingPublicationPreservesSnapshots)
 {
     constexpr uint32_t NUM_IMPORTS = 128;

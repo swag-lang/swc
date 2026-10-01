@@ -126,6 +126,9 @@ namespace
         view.cstRef                        = storedView.cstRef();
         view.sym                           = storedView.sym();
         view.hasSymbol                     = storedView.hasSymbol();
+        view.hasSymbolList                 = storedView.hasSymbolList();
+        if (view.hasSymbolList)
+            view.symList = {const_cast<const Symbol**>(storedView.symList().data()), storedView.symList().size()};
 
         uint16_t flags = 0;
         if (sema.isValueStored(sourceRef))
@@ -143,7 +146,9 @@ namespace
         // Keep the source node's original semantic payload without importing a
         // Substitute target that still belongs to the uncloned source expression.
         const NodePayload::StoredView storedView = currentStoredView(sema, sourceRef);
-        if (storedView.hasSymbol)
+        if (storedView.hasSymbolList)
+            sema.setSymbolList(clonedRef, storedView.symList);
+        else if (storedView.hasSymbol)
             sema.setSymbol(clonedRef, storedView.sym);
         else if (storedView.cstRef.isValid())
             sema.setConstant(clonedRef, storedView.cstRef);
@@ -994,9 +999,13 @@ namespace
             // fallback the cloned `.` is symbolless and re-resolves by name in the callee frame
             // (caller `me` gone) and stalls. Stored-first keeps already-resolved identifiers (the
             // common case) byte-for-byte unchanged.
-            const Symbol* symbol = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym();
+            SemaNodeView  symbolView = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol);
+            const Symbol* symbol     = symbolView.sym();
             if (!symbol)
-                symbol = sema.viewSymbol(sourceRef).sym();
+            {
+                symbolView = sema.viewSymbol(sourceRef);
+                symbol     = symbolView.sym();
+            }
             // A cloned callable owns fresh locals and captures. Pinning its
             // identifiers back to the source callable shares mutable storage
             // metadata between the two independent code-generation jobs.
@@ -1009,7 +1018,10 @@ namespace
             }
             if (symbol)
             {
-                sema.setSymbol(clonedRef, symbol);
+                if (symbolView.hasSymbolList())
+                    sema.setSymbolList(clonedRef, symbolView.symList());
+                else
+                    sema.setSymbol(clonedRef, symbol);
                 sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
             }
             else
@@ -1394,7 +1406,12 @@ namespace
                                                 sema.token(node.codeRef()).id != TokenId::Identifier)));
         if (preserveSyntheticSymbol)
         {
-            sema.setSymbol(nodeRef, storedView->sym);
+            // A folded call may no longer carry its selected function. Keep the identifier's
+            // complete overload set so that rechecking the cloned call can select it again.
+            if (storedView->hasSymbolList)
+                sema.setSymbolList(nodeRef, storedView->symList);
+            else
+                sema.setSymbol(nodeRef, storedView->sym);
             // When pinning resolved symbols (a cross-Ast clone, or a same-Ast inline that opted
             // in) the cloned identifier must not be re-resolved by name in the destination
             // scope: the source symbol may be private/internal, an overload that name-lookup

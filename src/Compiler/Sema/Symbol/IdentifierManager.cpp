@@ -320,9 +320,13 @@ IdentifierRef IdentifierManager::findInterned(const InternTable* table, std::str
         if (static_cast<uint32_t>(slot >> 32) != hash)
             continue;
 
-        const IdentifierRef idRef{static_cast<uint32_t>(slot) - 1};
-        if (get(idRef).name == name)
-            return idRef;
+        IdentifierRef idRef{static_cast<uint32_t>(slot) - 1};
+        if (get(idRef).name != name)
+            continue;
+#if SWC_HAS_REF_DEBUG_INFO
+        idRef.dbgPtr = &get(idRef);
+#endif
+        return idRef;
     }
 }
 

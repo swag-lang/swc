@@ -45,12 +45,8 @@ namespace
         return typeRef.isValid() && sema.typeMgr().get(typeRef).isNullable();
     }
 
-    Result checkPointerArithmeticOperand(Sema& sema, AstNodeRef nodeRef, AstNodeRef operandRef, const SemaNodeView& operandView)
+    Result checkPointerArithmeticOperand(Sema& sema, AstNodeRef nodeRef, AstNodeRef operandRef, const SemaNodeView& operandView, const TypeInfo& operandType)
     {
-        if (!operandView.type())
-            return Result::Continue;
-
-        const TypeInfo& operandType = SemaHelpers::aliasEnumType(sema, operandView);
         if (!operandType.isAnyPointer())
             return Result::Continue;
 
@@ -72,11 +68,8 @@ namespace
         return sema.waitSemaCompleted(&sema.typeMgr().get(payloadTypeRef), operandRef);
     }
 
-    bool blockPointerPayloadsMatch(Sema& sema, const SemaNodeView& leftOperandView, const SemaNodeView& rightOperandView)
+    bool blockPointerPayloadsMatch(Sema& sema, const TypeInfo& leftType, const TypeInfo& rightType)
     {
-        const TypeInfo& leftType  = SemaHelpers::aliasEnumType(sema, leftOperandView);
-        const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, rightOperandView);
-
         TypeRef leftPayloadTypeRef  = leftType.payloadTypeRef();
         TypeRef rightPayloadTypeRef = rightType.payloadTypeRef();
         if (leftPayloadTypeRef == rightPayloadTypeRef)
@@ -393,13 +386,14 @@ IdentifierRef SemaHelpers::resolveUniqIdentifier(Sema& sema, const TokenId token
 
 Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView)
 {
-    const TypeInfo& leftType  = aliasEnumType(sema, leftView);
-    const TypeInfo& rightType = aliasEnumType(sema, rightView);
     switch (op)
     {
         case TokenId::SymPlus:
-            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView));
-            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView));
+        {
+            const TypeInfo& leftType  = aliasEnumType(sema, leftView);
+            const TypeInfo& rightType = aliasEnumType(sema, rightView);
+            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView, leftType));
+            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView, rightType));
 
             if (leftType.isBlockPointer() && aliasType(sema, rightView).isIntLike())
                 return Result::Continue;
@@ -408,18 +402,23 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
             if (aliasType(sema, leftView).isIntLike() && rightType.isBlockPointer())
                 return Result::Continue;
             break;
+        }
 
         case TokenId::SymMinus:
-            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView));
-            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView));
+        {
+            const TypeInfo& leftType  = aliasEnumType(sema, leftView);
+            const TypeInfo& rightType = aliasEnumType(sema, rightView);
+            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView, leftType));
+            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView, rightType));
 
             if (leftType.isBlockPointer() && aliasType(sema, rightView).isIntLike())
                 return Result::Continue;
-            if (leftType.isBlockPointer() && rightType.isBlockPointer() && blockPointerPayloadsMatch(sema, leftView, rightView))
+            if (leftType.isBlockPointer() && rightType.isBlockPointer() && blockPointerPayloadsMatch(sema, leftType, rightType))
                 return Result::Continue;
             if (leftType.isBlockPointer() && rightType.isBlockPointer())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
             break;
+        }
 
         default:
             break;
@@ -429,13 +428,13 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
     // one side is a scalar broadcasting over the other's lanes (a shift count
     // stays a plain integer). Each operator is limited to the lane set the
     // hardware provides on every target.
-    if (aliasType(sema, leftView).isSimd() || aliasType(sema, rightView).isSimd())
+    const TypeInfo& leftAliasType  = aliasType(sema, leftView);
+    const TypeInfo& rightAliasType = aliasType(sema, rightView);
+    if (leftAliasType.isSimd() || rightAliasType.isSimd())
     {
-        const TypeInfo& leftType2  = aliasType(sema, leftView);
-        const TypeInfo& rightType2 = aliasType(sema, rightView);
-        const bool      leftSimd   = leftType2.isSimd();
-        const bool      rightSimd  = rightType2.isSimd();
-        const TypeInfo& vecType    = leftSimd ? leftType2 : rightType2;
+        const bool      leftSimd   = leftAliasType.isSimd();
+        const bool      rightSimd  = rightAliasType.isSimd();
+        const TypeInfo& vecType    = leftSimd ? leftAliasType : rightAliasType;
         const TypeInfo& laneType   = sema.typeMgr().get(vecType.payloadSimdLaneTypeRef());
         const bool      floatLanes = laneType.isFloat();
         const uint32_t  laneBits   = floatLanes ? laneType.payloadFloatBits() : laneType.payloadIntBits();
@@ -443,21 +442,21 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         const bool isShift = op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater;
         if (isShift)
         {
-            if (!leftSimd || rightSimd || !aliasType(sema, rightView).isIntLike())
+            if (!leftSimd || rightSimd || !rightAliasType.isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
         }
         else if (leftSimd && rightSimd)
         {
-            const bool sameShape = leftType2.payloadSimdLaneTypeRef() == rightType2.payloadSimdLaneTypeRef() &&
-                                   leftType2.payloadSimdLaneCount() == rightType2.payloadSimdLaneCount();
+            const bool sameShape = leftAliasType.payloadSimdLaneTypeRef() == rightAliasType.payloadSimdLaneTypeRef() &&
+                                   leftAliasType.payloadSimdLaneCount() == rightAliasType.payloadSimdLaneCount();
             if (!sameShape)
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
         }
         else
         {
-            const SemaNodeView& scalarView = leftSimd ? rightView : leftView;
-            const AstNodeRef    scalarRef  = leftSimd ? rightRef : leftRef;
-            if (!aliasType(sema, scalarView).isScalarNumeric())
+            const TypeInfo&  scalarType = leftSimd ? rightAliasType : leftAliasType;
+            const AstNodeRef scalarRef  = leftSimd ? rightRef : leftRef;
+            if (!scalarType.isScalarNumeric())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, scalarRef, leftView.typeRef(), rightView.typeRef());
         }
 
@@ -505,21 +504,21 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
     // both sides are the very same flags enum, where they combine enumerators.
     if (Token::isOpArithmetic(op))
     {
-        if (!aliasType(sema, leftView).isScalarNumeric())
+        if (!leftAliasType.isScalarNumeric())
             return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef(), rightView.typeRef());
-        if (!aliasType(sema, rightView).isScalarNumeric())
+        if (!rightAliasType.isScalarNumeric())
             return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
     }
     else if (Token::isOpBitwise(op))
     {
         const bool sameFlagsEnum = op != TokenId::SymGreaterGreater && op != TokenId::SymLowerLower &&
-                                   aliasType(sema, leftView).isEnumFlags() && aliasType(sema, rightView).isEnumFlags() &&
+                                   leftAliasType.isEnumFlags() && rightAliasType.isEnumFlags() &&
                                    leftView.typeRef() == rightView.typeRef();
         if (!sameFlagsEnum)
         {
-            if (!aliasType(sema, leftView).isIntLike())
+            if (!leftAliasType.isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef(), rightView.typeRef());
-            if (!aliasType(sema, rightView).isIntLike())
+            if (!rightAliasType.isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
         }
     }

@@ -557,10 +557,10 @@ namespace
         return prefixCount;
     }
 
-    bool tryGetSwagLayoutAttributeValue(uint32_t& outValue, TaskContext& ctx, const AttributeList& attributes, const std::string_view attrName)
+    bool tryGetSwagLayoutAttributeValue(uint32_t& outValue, TaskContext& ctx, std::span<const AttributeInstance> attributes, const std::string_view attrName)
     {
         outValue = 0;
-        for (const AttributeInstance& attribute : attributes.attributes)
+        for (const AttributeInstance& attribute : attributes)
         {
             if (!isSwagAttribute(ctx, attribute, attrName))
                 continue;
@@ -582,46 +582,11 @@ namespace
         return false;
     }
 
-    bool tryGetFieldAlignAttributeValue(uint32_t& outValue, TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field)
+    bool tryGetFieldOffsetAttributeValue(std::string_view& outValue, TaskContext& ctx, std::span<const AttributeInstance> attributes)
     {
-        outValue                             = 0;
-        const AttributeList& fieldAttributes = field.attributes();
-        const AttributeList& ownerAttributes = owner.attributes();
-        const size_t         startIndex      = inheritedAttributePrefixCount(fieldAttributes, ownerAttributes);
-
-        for (size_t i = startIndex; i < fieldAttributes.attributes.size(); ++i)
+        outValue = {};
+        for (const AttributeInstance& attribute : attributes)
         {
-            const AttributeInstance& attribute = fieldAttributes.attributes[i];
-            if (!isSwagAttribute(ctx, attribute, "Align"))
-                continue;
-
-            for (const AttributeParamInstance& param : attribute.params)
-            {
-                if (!param.valueCstRef.isValid())
-                    continue;
-
-                const ConstantValue& cst = ctx.cstMgr().get(param.valueCstRef);
-                if (!cst.isInt())
-                    continue;
-
-                outValue = static_cast<uint32_t>(cst.getInt().as64());
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    bool tryGetFieldOffsetAttributeValue(std::string_view& outValue, TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field)
-    {
-        outValue                             = {};
-        const AttributeList& fieldAttributes = field.attributes();
-        const AttributeList& ownerAttributes = owner.attributes();
-        const size_t         startIndex      = inheritedAttributePrefixCount(fieldAttributes, ownerAttributes);
-
-        for (size_t i = startIndex; i < fieldAttributes.attributes.size(); ++i)
-        {
-            const AttributeInstance& attribute = fieldAttributes.attributes[i];
             if (!isSwagAttribute(ctx, attribute, "Offset"))
                 continue;
 
@@ -657,16 +622,15 @@ namespace
         return nullptr;
     }
 
-    uint32_t effectiveFieldAlignment(TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field, const uint32_t structPack)
+    uint32_t effectiveFieldAlignment(TaskContext& ctx, const TypeInfo& fieldType, std::span<const AttributeInstance> fieldAttributes, const uint32_t structPack)
     {
-        const TypeInfo& fieldType = field.typeInfo(ctx);
-        uint32_t        alignOf   = std::max<uint32_t>(fieldType.alignOf(ctx), 1);
+        uint32_t alignOf = std::max<uint32_t>(fieldType.alignOf(ctx), 1);
 
         if (structPack != 0)
             alignOf = std::min(alignOf, structPack);
 
         uint32_t fieldAlign = 0;
-        if (tryGetFieldAlignAttributeValue(fieldAlign, ctx, owner, field) && fieldAlign != 0)
+        if (tryGetSwagLayoutAttributeValue(fieldAlign, ctx, fieldAttributes, "Align") && fieldAlign != 0)
             alignOf = std::max(alignOf, fieldAlign);
 
         return std::max<uint32_t>(alignOf, 1);
@@ -892,31 +856,29 @@ const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) co
     return nullptr;
 }
 
-bool SymbolStruct::typeHasDynamicStorage(const TaskContext& ctx, TypeRef typeRef)
+const TypeInfo* SymbolStruct::dynamicStorageLeafType(const TaskContext& ctx, TypeRef typeRef)
 {
-    typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, typeRef);
-    while (ctx.typeMgr().get(typeRef).isArray())
-        typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, ctx.typeMgr().get(typeRef).payloadArrayElemTypeRef());
-    const TypeInfo& type = ctx.typeMgr().get(typeRef);
-    return type.isStruct() && type.payloadSymStruct().hasDynamicStorage();
+    typeRef              = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, typeRef);
+    const TypeInfo* type = &ctx.typeMgr().get(typeRef);
+    while (type->isArray())
+    {
+        typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, type->payloadArrayElemTypeRef());
+        type    = &ctx.typeMgr().get(typeRef);
+    }
+    return type->isStruct() && type->payloadSymStruct().hasDynamicStorage() ? type : nullptr;
 }
 
 Result SymbolStruct::prepareDynamicMetadata(Sema& sema, TypeRef typeRef)
 {
-    if (!typeHasDynamicStorage(sema.ctx(), typeRef))
-        return Result::Continue;
-    typeRef              = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-    const TypeInfo& type = sema.typeMgr().get(typeRef);
-    if (type.isArray())
-        return prepareDynamicMetadata(sema, type.payloadArrayElemTypeRef());
-    if (!type.isStruct() || !type.payloadSymStruct().hasDynamicStorage())
+    const TypeInfo* type = dynamicStorageLeafType(sema.ctx(), typeRef);
+    if (!type)
         return Result::Continue;
 
-    const SymbolStruct& symStruct = type.payloadSymStruct();
+    const SymbolStruct& symStruct = type->payloadSymStruct();
     if (symStruct.isDynamic())
     {
         ConstantRef typeInfoRef = ConstantRef::invalid();
-        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoRef, typeRef, sema.curNodeRef()));
+        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoRef, type->typeRef(), sema.curNodeRef()));
     }
     for (const SymbolVariable* field : symStruct.fields())
         SWC_RESULT(prepareDynamicMetadata(sema, field->typeRef()));
@@ -1280,8 +1242,8 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     uint32_t alignment   = 1;
     uint32_t structPack  = 0;
     uint32_t structAlign = 0;
-    tryGetSwagLayoutAttributeValue(structPack, ctx, attributes(), "Pack");
-    tryGetSwagLayoutAttributeValue(structAlign, ctx, attributes(), "Align");
+    tryGetSwagLayoutAttributeValue(structPack, ctx, attributes().attributes, "Pack");
+    tryGetSwagLayoutAttributeValue(structAlign, ctx, attributes().attributes, "Align");
 
     SmallVector<uint64_t> fieldOffsets;
     fieldOffsets.reserve(fields_.size());
@@ -1292,8 +1254,10 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         auto&       symVar = field->cast<SymbolVariable>();
         const auto& type   = symVar.typeInfo(ctx);
 
+        const AttributeList& fieldAttributes = symVar.attributes();
+        const auto ownAttributes = std::span{fieldAttributes.attributes}.subspan(inheritedAttributePrefixCount(fieldAttributes, attributes()));
         const uint64_t sizeOf  = type.sizeOf(ctx);
-        const uint32_t alignOf = effectiveFieldAlignment(ctx, *this, symVar, structPack);
+        const uint32_t alignOf = effectiveFieldAlignment(ctx, type, ownAttributes, structPack);
         alignment              = std::max(alignment, alignOf);
 
         if (isUnion())
@@ -1306,7 +1270,7 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
             std::string_view      offsetTargetName;
             const SymbolVariable* offsetTarget = nullptr;
             uint64_t              fieldOffset  = sizeInBytes;
-            if (tryGetFieldOffsetAttributeValue(offsetTargetName, ctx, *this, symVar))
+            if (tryGetFieldOffsetAttributeValue(offsetTargetName, ctx, ownAttributes))
             {
                 offsetTarget = findOffsetTargetField(ctx, *this, symVar, offsetTargetName);
                 SWC_ASSERT(offsetTarget != nullptr);
@@ -1366,14 +1330,16 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     dynamicSlotOffsets_ = std::move(dynamicSlotOffsets);
     if (isDynamic())
         addExtraFlag(SymbolStructFlagsE::DynamicStorage);
-    for (const SymbolVariable* field : fields_)
+    else
     {
-        TypeRef fieldTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, field->typeRef());
-        while (ctx.typeMgr().get(fieldTypeRef).isArray())
-            fieldTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, ctx.typeMgr().get(fieldTypeRef).payloadArrayElemTypeRef());
-        const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
-        if (fieldType.isStruct() && fieldType.payloadSymStruct().hasDynamicStorage())
-            addExtraFlag(SymbolStructFlagsE::DynamicStorage);
+        for (const SymbolVariable* field : fields_)
+        {
+            if (typeHasDynamicStorage(ctx, field->typeRef()))
+            {
+                addExtraFlag(SymbolStructFlagsE::DynamicStorage);
+                break;
+            }
+        }
     }
     alignment_.store(alignment, std::memory_order_release);
     sizeInBytes_.store(sizeInBytes, std::memory_order_release);

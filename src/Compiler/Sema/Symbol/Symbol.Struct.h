@@ -18,6 +18,7 @@ class SymbolFunction;
 class SymbolInterface;
 class Sema;
 class TaskContext;
+class TypeInfo;
 
 struct SymbolStructUsingPathStep
 {
@@ -99,7 +100,7 @@ public:
     std::span<const uint32_t> dynamicSlotOffsets() const noexcept { return dynamicSlotOffsets_; }
     Result                    computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRef& outRef);
     static Result             prepareDynamicMetadata(Sema& sema, TypeRef typeRef);
-    static bool               typeHasDynamicStorage(const TaskContext& ctx, TypeRef typeRef);
+    static bool               typeHasDynamicStorage(const TaskContext& ctx, TypeRef typeRef) { return dynamicStorageLeafType(ctx, typeRef) != nullptr; }
     static Result             initializeDynamicIdentityBytes(Sema& sema, std::span<std::byte> bytes, TypeRef typeRef);
     void                      computeImplicitDefaultFlags(Sema& sema) const;
     bool                      hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
@@ -173,6 +174,9 @@ private:
     GenericData& ensureGenericData() const noexcept;
     GenericData* genericData() const noexcept;
     void         rebuildFieldIndexMap() noexcept;
+
+    // Resolves the contained struct through aliases and array layers, if it carries dynamic identity.
+    static const TypeInfo* dynamicStorageLeafType(const TaskContext& ctx, TypeRef typeRef);
 
     std::vector<SymbolVariable*>                      fields_;
     std::vector<uint32_t>                             dynamicSlotOffsets_;

@@ -591,13 +591,10 @@ namespace
         const uint32_t paramStart = ufcsArg.isValid() ? 1u : 0u;
 
         outMapping.paramArgs.resize(numParams);
-        for (CallArgEntry& entry : outMapping.paramArgs)
-            entry.callArgIndex = 0;
 
         if (ufcsArg.isValid() && numParams > 0)
         {
-            outMapping.paramArgs[0].argRef       = ufcsArg;
-            outMapping.paramArgs[0].callArgIndex = 0;
+            outMapping.paramArgs[0].argRef = ufcsArg;
         }
 
         bool     seenNamed = false;
@@ -2486,9 +2483,7 @@ namespace
     void fillFunctionCandidateProbe(Match::FunctionCandidateProbe& outProbe, const Attempt& selectedAttempt)
     {
         outProbe.perArgRanks.clear();
-        outProbe.perArgRanks.reserve(selectedAttempt.candidate.perArg.size());
-        for (const ConvRank rank : selectedAttempt.candidate.perArg)
-            outProbe.perArgRanks.push_back(rank);
+        outProbe.perArgRanks.append(selectedAttempt.candidate.perArg.data(), selectedAttempt.candidate.perArg.size());
 
         outProbe.fn              = selectedAttempt.candidate.fn;
         outProbe.usedDefaults    = selectedAttempt.candidate.usedDefaults;

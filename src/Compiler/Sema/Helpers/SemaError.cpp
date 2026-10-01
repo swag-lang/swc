@@ -177,11 +177,9 @@ namespace
         const auto addPayloadChain = [&](const SemaInlinePayload* payload) {
             while (payload && expansionCount < expansionLimit)
             {
+                // A visited payload has already contributed its parent chain.
                 if (!seenPayloads.insert(payload).second)
-                {
-                    payload = payload->parentInlinePayload;
-                    continue;
-                }
+                    break;
 
                 const SymbolFunction* function = payload->sourceFunction;
                 if (function && payload->callRef.isValid())

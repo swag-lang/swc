@@ -648,9 +648,13 @@ namespace SemaGeneric
 
         const SymbolStruct* genericStructInstanceFromInlinePayload(const Sema& sema, const SymbolStruct& genericRoot)
         {
+            const SemaInlinePayload* previousPayload = nullptr;
             for (size_t i = sema.frames().size(); i > 0; --i)
             {
                 const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
+                if (inlinePayload == previousPayload)
+                    continue;
+                previousPayload = inlinePayload;
                 while (inlinePayload)
                 {
                     if (const SymbolStruct* instance = genericStructInstanceFromFunctionOwner(genericRoot, inlinePayload->sourceFunction))

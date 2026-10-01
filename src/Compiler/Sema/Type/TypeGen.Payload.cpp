@@ -161,10 +161,27 @@ namespace
         if (typeRef.isInvalid())
             return {};
 
+        // Terminal types cannot lead back to a type already being visited.
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        switch (type.kind())
+        {
+            case TypeInfoKind::Void:
+            case TypeInfoKind::Null:
+                return {.canCopy = false};
+            case TypeInfoKind::Alias:
+            case TypeInfoKind::Array:
+            case TypeInfoKind::AggregateStruct:
+            case TypeInfoKind::AggregateArray:
+            case TypeInfoKind::Struct:
+                break;
+            default:
+                return {};
+        }
+
         if (!visiting.insert(typeRef).second)
             return {};
 
-        const TypeGen::LifecycleFlags flags = lifecycleFlagsOfTypeRec(ctx, ctx.typeMgr().get(typeRef), visiting);
+        const TypeGen::LifecycleFlags flags = lifecycleFlagsOfTypeRec(ctx, type, visiting);
         visiting.erase(typeRef);
         return flags;
     }
@@ -179,10 +196,23 @@ namespace
 
     TypeRef owningDropTypeRefRec(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
-        if (typeRef.isInvalid() || !visiting.insert(typeRef).second)
+        if (typeRef.isInvalid())
             return TypeRef::invalid();
 
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        switch (type.kind())
+        {
+            case TypeInfoKind::Alias:
+            case TypeInfoKind::Array:
+            case TypeInfoKind::AggregateStruct:
+            case TypeInfoKind::AggregateArray:
+            case TypeInfoKind::Struct:
+                break;
+            default:
+                return TypeRef::invalid();
+        }
+        if (!visiting.insert(typeRef).second)
+            return TypeRef::invalid();
 
         if (type.isAlias())
             return owningDropTypeRefRec(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);

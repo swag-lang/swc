@@ -98,6 +98,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
 
         std::vector<SymbolTable::Relocation> relocations;
         SymbolTable::build(section.data.bytes, relocations, runtimeNames);
+        section.data.relocations.reserve(relocations.size());
         for (SymbolTable::Relocation& relocation : relocations)
             section.data.relocations.push_back({.offset = relocation.offset, .symbolName = std::move(relocation.symbolName), .type = IMAGE_REL_AMD64_ADDR32NB});
         SWC_RESULT(applySectionRelocations(section));

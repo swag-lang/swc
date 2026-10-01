@@ -138,9 +138,13 @@ namespace SemaGeneric
             // Inline expansion can nest generic instances inside other generic
             // instances. Walk from the innermost frame outward so value/type
             // bindings prefer the most local instantiation context.
+            const SemaInlinePayload* previousPayload = nullptr;
             for (size_t i = sema.frames().size(); i > 0; --i)
             {
                 const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
+                if (inlinePayload == previousPayload)
+                    continue;
+                previousPayload = inlinePayload;
                 while (inlinePayload)
                 {
                     if (const SymbolFunction* function = genericFunctionInstanceOrNull(inlinePayload->sourceFunction))
@@ -458,7 +462,7 @@ namespace SemaGeneric
         {
             if (!cache)
                 cache = std::make_shared<MAP>();
-            return *std::static_pointer_cast<MAP>(cache);
+            return *static_cast<MAP*>(cache.get());
         }
 
         std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>& genericNodeRuns(TaskContext& ctx)

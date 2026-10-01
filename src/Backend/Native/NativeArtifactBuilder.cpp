@@ -730,6 +730,7 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
         const std::vector<DataSegmentRelocation> relocations = compiler.globalInitSegment().copyRelocations();
         Utf8                                     dataBaseName;
         Utf8                                     rdataBaseName;
+        builder_->mergedData.relocations.reserve(builder_->mergedData.relocations.size() + relocations.size());
         for (const auto& relocation : relocations)
         {
             NativeSectionRelocation record;

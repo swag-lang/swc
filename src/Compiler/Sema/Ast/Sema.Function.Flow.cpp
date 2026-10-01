@@ -787,39 +787,39 @@ namespace
         if (args.empty())
             return ufcsArg.isValid() && params.size() == 1;
 
-        std::vector<uint8_t> assigned(params.size(), 0);
-        if (ufcsArg.isValid())
-            assigned[0] = 1;
+        std::vector<uint8_t> assigned;
+        size_t               positionalCount = 0;
+        size_t               unassignedCount = params.size() - (ufcsArg.isValid() ? 1 : 0);
 
         for (const AstNodeRef argRef : args)
         {
             const AstNode& argNode = sema.node(argRef);
             if (!argNode.is(AstNodeId::NamedArgument))
+            {
+                ++positionalCount;
                 continue;
+            }
 
             const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
             size_t              paramIndex = 0;
             if (fn.tryGetParameterIndexByName(paramIndex, idRef))
-                assigned[paramIndex] = 1;
+            {
+                if (assigned.empty())
+                {
+                    assigned.resize(params.size(), 0);
+                    if (ufcsArg.isValid())
+                        assigned[0] = 1;
+                }
+                if (!assigned[paramIndex])
+                {
+                    assigned[paramIndex] = 1;
+                    --unassignedCount;
+                }
+            }
         }
 
-        size_t nextParam = ufcsArg.isValid() ? 1 : 0;
-        for (const AstNodeRef argRef : args)
-        {
-            const AstNode& argNode = sema.node(argRef);
-            if (argNode.is(AstNodeId::NamedArgument))
-                continue;
-
-            while (nextParam < params.size() && assigned[nextParam])
-                ++nextParam;
-            if (nextParam >= params.size())
-                break;
-
-            assigned[nextParam] = 1;
-            ++nextParam;
-        }
-
-        return assigned.back() != 0;
+        // An unnamed argument reaches the last parameter only after filling every remaining slot.
+        return (!assigned.empty() && assigned.back() != 0) || positionalCount >= unassignedCount;
     }
 
     bool hasExplicitLastArgumentBinding(Sema& sema, std::span<const SemaGeneric::GenericFunctionParamDesc> params, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)
@@ -829,43 +829,41 @@ namespace
         if (args.empty())
             return ufcsArg.isValid() && params.size() == 1;
 
-        std::vector<uint8_t> assigned(params.size(), 0);
-        if (ufcsArg.isValid())
-            assigned[0] = 1;
+        std::vector<uint8_t> assigned;
+        size_t               positionalCount = 0;
+        size_t               unassignedCount = params.size() - (ufcsArg.isValid() ? 1 : 0);
 
         for (const AstNodeRef argRef : args)
         {
             const AstNode& argNode = sema.node(argRef);
             if (!argNode.is(AstNodeId::NamedArgument))
+            {
+                ++positionalCount;
                 continue;
+            }
 
             const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
             for (size_t paramIndex = 0; paramIndex < params.size(); ++paramIndex)
             {
                 if (params[paramIndex].idRef == idRef)
                 {
-                    assigned[paramIndex] = 1;
+                    if (assigned.empty())
+                    {
+                        assigned.resize(params.size(), 0);
+                        if (ufcsArg.isValid())
+                            assigned[0] = 1;
+                    }
+                    if (!assigned[paramIndex])
+                    {
+                        assigned[paramIndex] = 1;
+                        --unassignedCount;
+                    }
                     break;
                 }
             }
         }
 
-        size_t nextParam = ufcsArg.isValid() ? 1 : 0;
-        for (const AstNodeRef argRef : args)
-        {
-            if (sema.node(argRef).is(AstNodeId::NamedArgument))
-                continue;
-
-            while (nextParam < params.size() && assigned[nextParam])
-                ++nextParam;
-            if (nextParam >= params.size())
-                break;
-
-            assigned[nextParam] = 1;
-            ++nextParam;
-        }
-
-        return assigned.back() != 0;
+        return (!assigned.empty() && assigned.back() != 0) || positionalCount >= unassignedCount;
     }
 
     TypeRef consumableTrailingCodeBlockPayloadType(Sema& sema, const SymbolFunction& fn, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)

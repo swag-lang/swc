@@ -1786,11 +1786,24 @@ Result AstErrorManagementStmt::semaPostNode(Sema& sema) const
 
 Result AstFailExpr::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
+    SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
     SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
 
     if (!canPropagateFallibleResult(sema))
         return reportFailOutsideFallibleContext(sema, sema.curNodeRef());
+
+    // A failed value needs concrete storage and runtime type information, just
+    // like a constant boxed into 'any'; unsized literals have no runtime size.
+    if (exprView.hasConstant())
+    {
+        ConstantRef concreteCstRef = ConstantRef::invalid();
+        SWC_RESULT(Cast::concretizeConstant(sema, concreteCstRef, exprView.nodeRef(), exprView.cstRef(), TypeInfo::Sign::Unknown));
+        if (concreteCstRef != exprView.cstRef())
+        {
+            sema.setConstant(exprView.nodeRef(), concreteCstRef);
+            exprView = sema.viewNodeTypeConstant(nodeExprRef);
+        }
+    }
 
     auto& payload            = ensureErrorManagementPayload(sema, sema.curNodeRef());
     payload.containsFallible = true;

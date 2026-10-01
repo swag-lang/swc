@@ -163,8 +163,10 @@ public:
         if (paramIndex >= 64)
             return true;
         const uint64_t bit = 1ULL << paramIndex;
-        return (returnsPayloadUnknownProjectionParamsMask_ & bit) ||
-               (hasAttributes() && (attributes().returnsPayloadParamsMask & bit));
+        if (returnsPayloadUnknownProjectionParamsMask_ & bit)
+            return true;
+        const AttributeList* attrs = attributesIfAny();
+        return attrs && (attrs->returnsPayloadParamsMask & bit);
     }
 
     // Bit i set = the call may MOVE OR RELEASE the heap payload that parameter #i owns
@@ -197,8 +199,10 @@ public:
         if (paramIndex >= 64)
             return true;
         const uint64_t bit = 1ULL << paramIndex;
-        return (reallocatesUnknownProjectionParamsMask_ & bit) ||
-               (hasAttributes() && (attributes().reallocatesParamsMask & bit));
+        if (reallocatesUnknownProjectionParamsMask_ & bit)
+            return true;
+        const AttributeList* attrs = attributesIfAny();
+        return attrs && (attrs->reallocatesParamsMask & bit);
     }
 
     // Bit (into*8 + stored) = parameter #stored may be stored into storage reachable

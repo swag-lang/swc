@@ -879,37 +879,45 @@ void SymbolFunction::addParameter(SymbolVariable* sym)
 
 uint64_t SymbolFunction::returnBorrowsParamsMask() const noexcept
 {
-    return returnBorrowsParamsMask_ | (hasAttributes() ? attributes().returnBorrowsParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return returnBorrowsParamsMask_ | (attrs ? attrs->returnBorrowsParamsMask : 0);
 }
 
 uint64_t SymbolFunction::storesParamsMask() const noexcept
 {
-    return storesParamsMask_ | (hasAttributes() ? attributes().storesParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return storesParamsMask_ | (attrs ? attrs->storesParamsMask : 0);
 }
 
 uint64_t SymbolFunction::returnsStorageParamsMask() const noexcept
 {
-    return returnsStorageParamsMask_ | (hasAttributes() ? attributes().returnsStorageParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return returnsStorageParamsMask_ | (attrs ? attrs->returnsStorageParamsMask : 0);
 }
 
 uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
 {
-    return storesIntoParamPairs_ | (hasAttributes() ? attributes().storesIntoParamPairs : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return storesIntoParamPairs_ | (attrs ? attrs->storesIntoParamPairs : 0);
 }
 
 uint64_t SymbolFunction::freesParamsMask() const noexcept
 {
-    return freesParamsMask_.load(std::memory_order_acquire) | (hasAttributes() ? attributes().freesParamsMask : 0);
+    const uint64_t       inferred = freesParamsMask_.load(std::memory_order_acquire);
+    const AttributeList* attrs    = attributesIfAny();
+    return inferred | (attrs ? attrs->freesParamsMask : 0);
 }
 
 uint64_t SymbolFunction::reallocatesParamsMask() const noexcept
 {
-    return reallocatesParamsMask_ | (hasAttributes() ? attributes().reallocatesParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return reallocatesParamsMask_ | (attrs ? attrs->reallocatesParamsMask : 0);
 }
 
 uint64_t SymbolFunction::returnsPayloadParamsMask() const noexcept
 {
-    return returnsPayloadParamsMask_ | (hasAttributes() ? attributes().returnsPayloadParamsMask : 0);
+    const AttributeList* attrs = attributesIfAny();
+    return returnsPayloadParamsMask_ | (attrs ? attrs->returnsPayloadParamsMask : 0);
 }
 
 bool SymbolFunction::tryGetParameterIndexByName(size_t& outIndex, const IdentifierRef name, const size_t startIndex) const noexcept

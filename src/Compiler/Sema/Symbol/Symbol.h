@@ -158,7 +158,7 @@ public:
 
     SymbolExtraFlagsStorage extraFlags() const noexcept { return extraFlags_.load(std::memory_order_acquire); }
 
-    bool                 hasAttributes() const noexcept { return attributes_.load(std::memory_order_acquire) != nullptr; }
+    const AttributeList* attributesIfAny() const noexcept { return attributes_.load(std::memory_order_acquire); }
     const AttributeList& attributes() const;
     void                 setAttributes(TaskContext& ctx, const AttributeList& attrs);
 

@@ -1944,6 +1944,94 @@ SWC_TEST_BEGIN(RegAlloc_LiveIntervalRangeStartSearchBoundaries)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_PackedInputsKeepScalarSpillSlots)
+{
+    struct Case
+    {
+        MicroInstrOpcode opcode;
+        MicroOp          operation;
+        uint8_t          shuffle;
+        bool             aliasDestination;
+        bool             fullWidthReader;
+        uint32_t         scalarSpills;
+    };
+    const Case cases[] = {
+        {MicroInstrOpcode::OpBinaryRegRegReg, MicroOp::VecUnpackLo8, 0, false, false, 2},
+        {MicroInstrOpcode::OpBinaryRegRegReg, MicroOp::VecUnpackLo16, 0, false, false, 2},
+        {MicroInstrOpcode::OpBinaryRegRegReg, MicroOp::VecUnpackLo32, 0, false, false, 2},
+        {MicroInstrOpcode::OpBinaryRegRegReg, MicroOp::VecUnpackLo64, 0, false, false, 2},
+        {MicroInstrOpcode::OpBinaryRegRegReg, MicroOp::VecUnpackHi64, 0, false, false, 0},
+        {MicroInstrOpcode::OpBinaryRegRegReg, MicroOp::VecAdd64, 0, false, false, 0},
+        {MicroInstrOpcode::OpBinaryRegRegReg, MicroOp::VecUnpackLo64, 0, true, false, 1},
+        {MicroInstrOpcode::OpBinaryRegRegReg, MicroOp::VecUnpackLo64, 0, false, true, 1},
+        {MicroInstrOpcode::OpBinaryRegReg, MicroOp::VecUnpackLo64, 0, true, false, 1},
+        {MicroInstrOpcode::VecShuffleRegRegImm, MicroOp::Move, 0x44, false, false, 2},
+        {MicroInstrOpcode::VecShuffleRegRegImm, MicroOp::Move, 0x55, false, false, 2},
+        {MicroInstrOpcode::VecShuffleRegRegImm, MicroOp::Move, 0xEE, false, false, 1},
+        {MicroInstrOpcode::VecShuffleRegRegImm, MicroOp::Move, 0xE4, false, false, 1},
+        {MicroInstrOpcode::VecShuffleRegRegImm, MicroOp::Move, 0x44, true, false, 1},
+    };
+    for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
+    {
+        for (const auto callConvKind : testedCallConvs())
+        {
+            const auto& conv = CallConv::get(callConvKind);
+            for (const auto& testCase : cases)
+            {
+                MicroBuilder builder(ctx);
+                builder.setBackendBuildCfg({.optimLevel = level});
+                constexpr MicroReg first  = MicroReg::virtualFloatReg(7000);
+                constexpr MicroReg second = MicroReg::virtualFloatReg(7001);
+                const MicroReg     result = testCase.aliasDestination ? first : MicroReg::virtualFloatReg(7002);
+                builder.addVirtualRegForbiddenPhysRegs(first, conv.floatPersistentRegs.span());
+                builder.addVirtualRegForbiddenPhysRegs(second, conv.floatPersistentRegs.span());
+                // Loaded inputs cannot be rematerialized, and the call forces both to spill.
+                builder.emitLoadRegMem(first, conv.intArgRegs[0], 0, MicroOpBits::B64);
+                builder.emitLoadRegMem(second, conv.intArgRegs[0], 8, MicroOpBits::B64);
+                builder.emitCallReg(conv.intArgRegs[1], callConvKind, 0, 0);
+                if (testCase.opcode == MicroInstrOpcode::VecShuffleRegRegImm)
+                    builder.emitVecShuffleRegRegImm(result, first, testCase.shuffle, MicroOpBits::B128);
+                else if (testCase.opcode == MicroInstrOpcode::OpBinaryRegReg)
+                    builder.emitOpBinaryRegReg(result, second, testCase.operation, MicroOpBits::B128);
+                else
+                    builder.emitOpBinaryRegRegReg(result, first, second, testCase.operation, MicroOpBits::B128);
+                builder.emitLoadMemReg(conv.intArgRegs[0], 0, result, MicroOpBits::B128);
+                builder.emitLoadMemReg(conv.intArgRegs[0], 16, second, MicroOpBits::B64);
+                if (testCase.fullWidthReader)
+                    builder.emitLoadMemReg(conv.intArgRegs[0], 32, first, MicroOpBits::B128);
+                builder.emitRet();
+
+                MicroRegisterAllocationPass regAllocPass;
+                MicroPassManager            passes;
+                passes.addStartPass(regAllocPass);
+                MicroPassContext passCtx;
+                passCtx.callConvKind = callConvKind;
+                SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+                SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+                SWC_RESULT(verifyCallConvConformity(builder, conv));
+                if (passCtx.intervalAllocated != (level != Runtime::BuildCfgBackendOptimLevel::O0))
+                    return Result::Error;
+                uint32_t scalarSpills = 0;
+                uint32_t wideSpills   = 0;
+                for (const auto& inst : builder.instructions().view())
+                {
+                    if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                        break;
+                    const auto* ops = inst.ops(builder.operands());
+                    if (inst.op != MicroInstrOpcode::LoadMemReg || ops[0].reg != conv.stackPointer || !ops[1].reg.isFloat())
+                        continue;
+                    scalarSpills += ops[2].opBits == MicroOpBits::B64;
+                    wideSpills += ops[2].opBits == MicroOpBits::B128;
+                }
+                if (scalarSpills != testCase.scalarSpills || wideSpills != 2 - testCase.scalarSpills)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

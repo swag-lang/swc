@@ -6,6 +6,31 @@
 
 SWC_BEGIN_NAMESPACE();
 
+MicroOpBits MicroInstr::packedFloatInputBits(const MicroInstrOperand* operands) const
+{
+    switch (op)
+    {
+        case MicroInstrOpcode::OpBinaryRegReg:
+        case MicroInstrOpcode::OpBinaryRegRegReg:
+        {
+            const MicroOp operation = operands[info(op).microOpIndex].microOp;
+            // Every low-half interleave consumes eight bytes from each input,
+            // regardless of the element width; only its result needs 16 bytes.
+            if (operation >= MicroOp::VecUnpackLo8 && operation <= MicroOp::VecUnpackLo64)
+                return MicroOpBits::B64;
+            break;
+        }
+        case MicroInstrOpcode::VecShuffleRegRegImm:
+            // The high bit of each two-bit selector chooses an upper dword.
+            if (!(operands[3].valueU64 & 0xAA))
+                return MicroOpBits::B64;
+            break;
+        default:
+            break;
+    }
+    return MicroOpBits::B128;
+}
+
 void MicroInstrUseDef::addUse(MicroReg reg)
 {
     if (reg.isValid() && !reg.isNoBase())

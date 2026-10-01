@@ -201,12 +201,14 @@ struct MicroInstr
     MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
     const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;
     MicroInstrUseDef         collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
-    CallFloatArgs           callFloatArgs(const MicroOperandStorage& operands) const;
+    CallFloatArgs            callFloatArgs(const MicroOperandStorage& operands) const;
+    // Conservatively describes all float inputs of a packed instruction.
+    MicroOpBits packedFloatInputBits(const MicroInstrOperand* operands) const;
     // Refills a record the caller keeps. A call names every argument and transient register of
     // its convention, which outgrows the inline lists: a record reused across a walk keeps the
     // storage the first call grew instead of allocating it again for each one.
-    void                     collectUseDef(MicroInstrUseDef& outUseDef, const MicroOperandStorage& operands, const Encoder* encoder) const;
-    void                     collectRegOperands(MicroOperandStorage& operands, MicroInstrRegOperandRefs& out, const Encoder* encoder) const;
+    void collectUseDef(MicroInstrUseDef& outUseDef, const MicroOperandStorage& operands, const Encoder* encoder) const;
+    void collectRegOperands(MicroOperandStorage& operands, MicroInstrRegOperandRefs& out, const Encoder* encoder) const;
 
     static constexpr const MicroInstrDef& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
 };

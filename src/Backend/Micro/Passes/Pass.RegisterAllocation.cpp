@@ -2218,16 +2218,18 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
     definitionCounts_.assign(virtualRegs.size(), 0);
 
-    // Size each float value's spill slot from the widest operand that ever names
-    // it. Sizing every one of them for a vector is safe — a float register can
-    // hold 128 bits — and it is what this pass used to do, but it makes a scalar
-    // double pay a 16-byte movdqu and 16 bytes of frame for eight bytes of
-    // value, on every spill and every reload. An instruction carrying a 128-bit
-    // operand marks everything it names as wide; anything else is a scalar.
+    // Packed construction can consume scalar inputs. Keep those spill slots at
+    // eight bytes unless another reader or definition needs the upper half.
+    // Definitions stay wide even when they alias a narrow input: the same
+    // virtual register must hold the instruction's complete result afterwards.
     for (const uint32_t wideScanIndex : wideInstructionPositions)
     {
-        for (const uint32_t denseIndex : useVirtualIndices_[wideScanIndex])
-            states_[denseIndex].wideFloat = true;
+        const MicroInstr* inst = instructions_->ptr(instructionRefs[wideScanIndex]);
+        if (inst->packedFloatInputBits(inst->ops(*operands_)) == MicroOpBits::B128)
+        {
+            for (const uint32_t denseIndex : useVirtualIndices_[wideScanIndex])
+                states_[denseIndex].wideFloat = true;
+        }
         for (const uint32_t denseIndex : defVirtualIndices_[wideScanIndex])
             states_[denseIndex].wideFloat = true;
     }

@@ -188,33 +188,6 @@ namespace
         return ast.spanSize(spanRef);
     }
 
-    bool switchSpanContainsNodeRef(const Ast& ast, SpanRef spanRef, AstNodeRef targetRef)
-    {
-        const size_t count = switchSpanNodeCount(ast, spanRef);
-        for (size_t i = 0; i < count; ++i)
-        {
-            if (ast.nthNode(spanRef, i) == targetRef)
-                return true;
-        }
-
-        return false;
-    }
-
-    AstNodeRef switchSpanNextNodeRef(const Ast& ast, SpanRef spanRef, AstNodeRef currentRef)
-    {
-        const size_t count = switchSpanNodeCount(ast, spanRef);
-        for (size_t i = 0; i < count; ++i)
-        {
-            if (ast.nthNode(spanRef, i) != currentRef)
-                continue;
-            if (i + 1 >= count)
-                return AstNodeRef::invalid();
-            return ast.nthNode(spanRef, i + 1);
-        }
-
-        return AstNodeRef::invalid();
-    }
-
     SpanRef fallthroughContainerSpan(const AstNode& node)
     {
         if (const auto* embeddedBlock = node.safeCast<AstEmbeddedBlock>())
@@ -690,7 +663,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
     if (!spanExprRef.isValid())
         return Result::Continue;
 
-    if (!switchSpanContainsNodeRef(sema.ast(), spanExprRef, childRef))
+    if (!sema.ast().findNodeIndex(spanExprRef, childRef))
         return Result::Continue;
 
     if (isDynamicStructSwitchCase(sema, switchRef) && sema.node(childRef).is(AstNodeId::AsCastExpr))
@@ -849,9 +822,10 @@ namespace
 
             if (parentRef == caseStmt.nodeBodyRef)
             {
-                if (!switchSpanContainsNodeRef(sema.ast(), caseBody.spanChildrenRef, currentRef))
+                const auto nodeIndex = sema.ast().findNodeIndex(caseBody.spanChildrenRef, currentRef);
+                if (!nodeIndex)
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-                if (switchSpanNextNodeRef(sema.ast(), caseBody.spanChildrenRef, currentRef).isValid())
+                if (sema.ast().nthNode(caseBody.spanChildrenRef, *nodeIndex + 1).isValid())
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
                 return Result::Continue;
             }
@@ -860,9 +834,10 @@ namespace
             const SpanRef  spanRef    = fallthroughContainerSpan(parentNode);
             if (spanRef.isValid())
             {
-                if (!switchSpanContainsNodeRef(sema.ast(), spanRef, currentRef))
+                const auto nodeIndex = sema.ast().findNodeIndex(spanRef, currentRef);
+                if (!nodeIndex)
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-                if (switchSpanNextNodeRef(sema.ast(), spanRef, currentRef).isValid())
+                if (sema.ast().nthNode(spanRef, *nodeIndex + 1).isValid())
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
                 currentRef = parentRef;
                 continue;
@@ -881,9 +856,10 @@ namespace
     Result validateFallthroughHasNextCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
         const auto& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
-        if (!switchSpanContainsNodeRef(sema.ast(), switchStmt.spanChildrenRef, caseRef))
+        const auto nodeIndex = sema.ast().findNodeIndex(switchStmt.spanChildrenRef, caseRef);
+        if (!nodeIndex)
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-        if (switchSpanNextNodeRef(sema.ast(), switchStmt.spanChildrenRef, caseRef).isInvalid())
+        if (sema.ast().nthNode(switchStmt.spanChildrenRef, *nodeIndex + 1).isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_in_last_case, stmtRef);
 
         return Result::Continue;

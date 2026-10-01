@@ -99,18 +99,6 @@ namespace
         return payload.cases.back();
     }
 
-    bool compilerSwitchSpanContains(const Ast& ast, SpanRef spanRef, AstNodeRef childRef)
-    {
-        const size_t count = ast.spanSize(spanRef);
-        for (size_t i = 0; i < count; ++i)
-        {
-            if (ast.nthNode(spanRef, i) == childRef)
-                return true;
-        }
-
-        return false;
-    }
-
     AstNodeRef compilerSwitchCaseRefFromExpression(const Sema& sema, const AstCompilerSwitch& node, AstNodeRef exprRef)
     {
         const size_t count = sema.ast().spanSize(node.spanCasesRef);
@@ -118,7 +106,7 @@ namespace
         {
             const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
             const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
-            if (compilerSwitchSpanContains(sema.ast(), caseNode.spanExprRef, exprRef))
+            if (sema.ast().findNodeIndex(caseNode.spanExprRef, exprRef).has_value())
                 return caseRef;
         }
 

@@ -20,7 +20,6 @@ public:
     void          copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
-    void          getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored = false) const;
     void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     bool          empty() const noexcept;
     uint32_t      count() const noexcept { return count_.load(std::memory_order_relaxed); }

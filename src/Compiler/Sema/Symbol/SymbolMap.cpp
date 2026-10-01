@@ -363,17 +363,6 @@ const Symbol* SymbolMap::findFirstSymbol(IdentifierRef idRef, bool includeIgnore
     return firstVisibleSymbol(findHead(idRef), includeIgnored);
 }
 
-void SymbolMap::getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored) const
-{
-    std::vector<const Symbol*> symbols;
-    getAllSymbols(symbols, includeIgnored);
-
-    out.clear();
-    out.reserve(symbols.size());
-    for (const Symbol* symbol : symbols)
-        out.push_back(const_cast<Symbol*>(symbol));
-}
-
 void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
     out.clear();

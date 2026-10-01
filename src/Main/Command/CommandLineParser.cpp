@@ -1195,6 +1195,21 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
             return reportConflictingArgument(ctx, "--workspace", "--export-api-dir");
     }
 
+    // A module directory selects its setup file and conventional sources. Normalize it before
+    // resolving relative inputs so setup execution and imports use the same root. Cleaning a
+    // module only needs its directory; it must also work after the setup file was removed.
+    if (!cmdLine_->modulePath.empty() && cmdLine_->moduleFilePath.empty() && cmdLine_->command != CommandKind::Clean)
+    {
+        fs::path moduleFile = cmdLine_->modulePath / "module.swg";
+        SWC_RESULT(FileSystem::resolveFile(ctx, moduleFile));
+        cmdLine_->moduleFilePath = std::move(moduleFile);
+
+        fs::path sourceDir = cmdLine_->modulePath / "src";
+        Utf8     because;
+        if (FileSystem::resolveExistingFolder(sourceDir, because) == Result::Continue)
+            cmdLine_->directories.insert(std::move(sourceDir));
+    }
+
     const fs::path inputBaseDir = commandInputBaseDir(*cmdLine_);
 
     SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->directories, FileSystem::resolveFolder));

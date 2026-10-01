@@ -156,6 +156,90 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NewCommandCreatesAndExtendsWorkspace)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ModuleDirectoryRunsSetupAndDefaultSources)
+{
+    NewCommandTestDirectory directory("ModuleDirectorySetup");
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "module.swg", "#load(\"setup/loaded.swg\")\n"));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "setup" / "loaded.swg", "const LoadedSetupValue = 37\n"));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "src" / "probe.swg", "#assert(LoadedSetupValue == 37)\n"));
+
+    const std::vector<Utf8> args = {"sema", "--module", Utf8(directory.path().string()), "--num-cores", "1", "--no-log-color"};
+    std::string             output;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 15000;
+    uint32_t exitCode      = UINT32_MAX;
+    if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    {
+        std::println(stderr, "[module directory setup] {}", output);
+        return Result::Error;
+    }
+
+    // A successful setup alone is insufficient: the conventional source directory must run.
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "src" / "probe.swg", "#assert(LoadedSetupValue == 38)\n"));
+    output.clear();
+    exitCode = UINT32_MAX;
+    if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode == 0)
+        return Result::Error;
+    if (output.find("compile-time assertion evaluated to false") == std::string::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ModuleFilePreservesExplicitInputs)
+{
+    NewCommandTestDirectory directory("ModuleFileExplicitInputs");
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "custom.swg", ""));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "selected.swg", "const Selected = 1\n"));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "src" / "excluded.swg", "#assert(false)\n"));
+
+    CommandLine parserCmdLine;
+    parserCmdLine.silent    = true;
+    char        arg0[]     = "swc.dm";
+    char        arg1[]     = "sema";
+    char        arg2[]     = "--module-file";
+    std::string moduleFile = (directory.path() / "custom.swg").string();
+    char        arg4[]     = "--file";
+    char        arg5[]     = "selected.swg";
+    char*       argv[]     = {arg0, arg1, arg2, moduleFile.data(), arg4, arg5};
+
+    CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
+    SWC_RESULT(parser.parse(std::size(argv), argv));
+    if (!FileSystem::pathEquals(parserCmdLine.moduleFilePath, directory.path() / "custom.swg"))
+        return Result::Error;
+    if (!parserCmdLine.directories.empty() || parserCmdLine.files.size() != 1)
+        return Result::Error;
+    if (!FileSystem::pathEquals(*parserCmdLine.files.begin(), directory.path() / "selected.swg"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_CleanModuleDoesNotRequireSetupFile)
+{
+    NewCommandTestDirectory directory("CleanModuleWithoutSetup");
+    std::error_code         ec;
+    fs::create_directories(directory.path(), ec);
+    if (ec)
+        return Result::Error;
+
+    CommandLine parserCmdLine;
+    parserCmdLine.silent = true;
+    char        arg0[]  = "swc.dm";
+    char        arg1[]  = "clean";
+    char        arg2[]  = "--module";
+    std::string module = directory.path().string();
+    char*       argv[]  = {arg0, arg1, arg2, module.data()};
+
+    CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
+    SWC_RESULT(parser.parse(std::size(argv), argv));
+    if (!FileSystem::pathEquals(parserCmdLine.modulePath, directory.path()))
+        return Result::Error;
+    if (!parserCmdLine.moduleFilePath.empty() || !parserCmdLine.directories.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

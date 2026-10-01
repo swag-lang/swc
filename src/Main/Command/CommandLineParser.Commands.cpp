@@ -48,16 +48,16 @@ void CommandLineParser::registerCommands()
         false);
     add(HelpOptionGroup::Input, "all", "--directory", "-d",
         &cmdLine_->directories,
-        "Process one or more directories recursively for input files; with --module-file, resolve relative paths from the module file directory");
+        "Process one or more directories recursively for input files; with --module or --module-file, resolve relative paths from the module root");
     add(HelpOptionGroup::Input, "all", "--file", "-f",
         &cmdLine_->files,
-        "Process one or more individual files directly; with --module-file, resolve relative paths from the module file directory");
+        "Process one or more individual files directly; with --module or --module-file, resolve relative paths from the module root");
     add(HelpOptionGroup::Input, "all", "--file-filter", "-ff",
         &cmdLine_->fileFilter,
         "Keep input paths that contain this substring");
     add(HelpOptionGroup::Input, "all", "--module", "-mf",
         &cmdLine_->modulePath,
-        "Compile the module at this path");
+        "Compile this module directory: run module.swg as setup and include src when present; resolve relative input paths from this directory");
     add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
         &cmdLine_->moduleFilePath,
         "Run this module setup file before compiling the rest of the module; derive the module root and relative input paths from its parent directory");

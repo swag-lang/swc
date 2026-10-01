@@ -4499,7 +4499,6 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
     {
         fs::path dependencyRoot;
         SWC_RESULT(resolveSwagStdOutputRoot(dependencyRoot, ctx));
-        dependencyRoot = (dependencyRoot / "dep").lexically_normal();
         for (const Utf8& moduleName : cmdLine.importApiModules)
         {
             fs::path importDir;

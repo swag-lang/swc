@@ -9,8 +9,8 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
-#include "Unittest/Unittest.h"
 #include "Unittest/Compiler/CompilerTestFile.h"
+#include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -116,6 +116,62 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_IncompletePublicationIsRejectedAndCanBeRebui
     runPublicationImporter(complete, directory);
     if (complete.process != Os::ProcessRunResult::Ok || complete.exitCode != 0)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_NamedStandardImportUsesWorkspaceOutputRoot)
+{
+    ApiPublicationTestDirectory directory("NamedStandardImport");
+    const fs::path              compilerPath = directory.path() / Os::getExeFullName().filename();
+    const fs::path              runtimePath  = directory.path() / "runtime";
+    const fs::path              apiPath      = directory.path() / "std" / ".output" / "health_import" / "export" / "devmode" / "x86_64";
+
+    std::error_code ec;
+    fs::create_directories(runtimePath, ec);
+    if (ec)
+        return Result::Error;
+    fs::copy_file(Os::getExeFullName(), compilerPath, ec);
+    if (ec)
+        return Result::Error;
+
+    // A private compiler/resource tree tests the actual CLI without publishing anything
+    // into the checkout's standard-library outputs or changing process-wide environment.
+    const fs::path sourceRuntime = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "runtime";
+    for (const auto& entry : fs::directory_iterator(sourceRuntime, ec))
+    {
+        if (!entry.is_regular_file() || entry.path().extension() != ".swg")
+            continue;
+        fs::copy_file(entry.path(), runtimePath / entry.path().filename(), ec);
+        if (ec)
+            return Result::Error;
+    }
+    if (ec)
+        return Result::Error;
+
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", CONSUMER_SOURCE));
+    fs::create_directories(apiPath, ec);
+    if (ec)
+        return Result::Error;
+    {
+        Utf8                       because;
+        ModuleApi::DirectoryAccess publication;
+        SWC_RESULT(publication.beginPublication(because, apiPath));
+        SWC_RESULT(CompilerTestFile::writeText(apiPath / "value.swg", API_SOURCE));
+        SWC_RESULT(publication.completePublication(because));
+    }
+
+    const std::vector<Utf8> args = {"sema", "--num-cores", "6", "-f", Utf8((directory.path() / "consumer.swg").string()), "--import-api-module", "health_import"};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 15000;
+    result.process         = Os::runProcess(result.exitCode, compilerPath, args, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[named standard import] {}", result.output);
+        return Result::Error;
+    }
 }
 SWC_TEST_END()
 

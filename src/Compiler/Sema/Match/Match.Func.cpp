@@ -1278,7 +1278,7 @@ namespace
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
             castFlags.add(CastFlagsE::FoldedTypedConst);
         const bool readOnlyParamPath         = SemaCheck::isReadOnlyParameterPath(sema, argNodeView.nodeRef());
-        const bool targetBindsMutableStorage = to.isValid() && (sema.typeMgr().get(to).isReference() || sema.typeMgr().get(to).isAnyPointer() || sema.typeMgr().get(to).isMoveReference());
+        const bool targetBindsMutableStorage = to.isValid() && sema.typeMgr().get(to).isPointerOrReference();
         if ((argNodeView.sym() && argNodeView.sym()->isConstant()) ||
             SemaCheck::isConstAssignmentTarget(sema, argNodeView.nodeRef(), argNodeView) ||
             (readOnlyParamPath && (isUfcsArgument || targetBindsMutableStorage)) ||

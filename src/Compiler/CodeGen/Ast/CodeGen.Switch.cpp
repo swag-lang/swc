@@ -766,6 +766,8 @@ namespace
         // One target per value the chunk takes; the cases that share a value go on to the next chunk.
         SmallVector<SwitchDispatchEntry> entries;
         SmallVector<size_t>              partitionStarts;
+        entries.reserve(splitCount);
+        partitionStarts.reserve(splitCount);
         for (size_t index = 0; index < sorted.size(); ++index)
         {
             const uint64_t value = chunkKey(sorted[index]);
@@ -1235,27 +1237,27 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
         switchState.caseStates.insert_or_assign(caseRef, caseState);
     }
 
-    for (size_t i = 0; i < caseRefs.size(); ++i)
+    if (caseRefs.size() > 1)
     {
-        const AstNodeRef caseRef = caseRefs[i];
-        const auto       itCase  = switchState.caseStates.find(caseRef);
+        auto itCase = switchState.caseStates.find(caseRefs.front());
         SWC_ASSERT(itCase != switchState.caseStates.end());
 
-        SwitchCaseCodeGenPayload& caseState = itCase->second;
-        if (i + 1 < caseRefs.size())
+        for (size_t i = 1; i < caseRefs.size(); ++i)
         {
-            const AstNodeRef nextCaseRef = caseRefs[i + 1];
+            const AstNodeRef nextCaseRef = caseRefs[i];
             const auto       itNextCase  = switchState.caseStates.find(nextCaseRef);
             SWC_ASSERT(itNextCase != switchState.caseStates.end());
 
+            SwitchCaseCodeGenPayload& caseState = itCase->second;
             caseState.hasNextCase   = true;
             caseState.nextCaseRef   = nextCaseRef;
             caseState.nextTestLabel = itNextCase->second.testLabel;
             caseState.nextBodyLabel = itNextCase->second.bodyLabel;
+            itCase                 = itNextCase;
         }
     }
 
-    codeGen.setNodePayload(codeGen.curNodeRef(), switchState);
+    codeGen.ensureNodePayload<SwitchStmtCodeGenPayload>(codeGen.curNodeRef()) = std::move(switchState);
 
     CodeGenFrame frame = codeGen.frame();
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Switch);

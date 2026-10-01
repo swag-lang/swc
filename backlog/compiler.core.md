@@ -24,21 +24,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   executables green.
 - Related: compiler.core.069
 
-### compiler.core.066 — Mid-size symbol maps still take a shared lock per lookup
-
-- Recorded: 2026-10-01 07:35
-- Updated: 2026-10-01 08:00 — sharded and small maps now read without a lock; narrow to the mid-size map path
-- Evidence: an unqualified lookup walks the module namespace, the import root, every persisted
-  `using`, and each namespace-path step (`Match.cpp`). MSVC implements `std::shared_mutex` as an
-  SRWLOCK, whose shared acquire and release are interlocked writes to the lock line. Sharded maps
-  (more than 64 keys) and small maps (up to eight) now resolve with acquire loads only. A map
-  holding nine to 64 keys still lives in a `std::unordered_map` read under `mutex_` in shared mode.
-- Next: replace the mid-size `bigMap_` with the same append-only open-addressed table the shards
-  use (one table, no sharding), so every `lookupAppend` and `findFirstSymbol` is lock-free.
-- Complete when: no `SymbolMap` lookup performs an interlocked operation, with the `SymbolMap` C++
-  tests and the sema suite green under both compiler executables.
-- Related: compiler.core.069
-
 ### compiler.core.065 — Remaining barrier rounds still drain the whole module
 
 - Recorded: 2026-10-01 07:35
@@ -65,7 +50,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 - Recorded: 2026-10-01 07:35
 - Evidence: compile time stops improving after a few workers. A static audit (2026-10-01) found
-  the structural causes recorded in compiler.core.065, compiler.core.066, and compiler.core.068, but the compiler has
+  the structural causes recorded in compiler.core.065 and compiler.core.068, but the compiler has
   no counter that says which one dominates. `--stats` timers are wall-clock per region and are
   inflated by preemption, so they cannot answer it.
 - Next: count, per module, the `Sema::waitDone` rounds, the sleepers each `wakeAll` moves, the
@@ -73,7 +58,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   of the workers are running a job. Report them under `--stats`.
 - Complete when: `--stats` shows those four figures for a std module build, and the dominant cause
   of the parallel ceiling is named from them.
-- Related: compiler.core.065, compiler.core.066, compiler.core.068, compiler.core.007
+- Related: compiler.core.065, compiler.core.068, compiler.core.007
 
 ### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
 

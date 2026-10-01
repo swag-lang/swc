@@ -33,23 +33,6 @@ uint32_t MicroControlFlowGraph::indexOfLabel(const uint64_t labelRef) const
     return labelToInstructionIndex_[labelRef];
 }
 
-void MicroControlFlowGraph::clear()
-{
-    instructionRefs_.clear();
-    indexBySlot_.clear();
-    maxSlot_ = 0;
-    // Rebuilds keep overflow storage for high-fanout branches and joins.
-    for (auto& edges : successors_)
-        edges.clear();
-    for (auto& edges : predecessors_)
-        edges.clear();
-    labelToInstructionIndex_.clear();
-    addressTakenLabelIndices_.clear();
-    hasUnsupportedControlFlowForCfgLiveness_ = false;
-    supportsDeadCodeLiveness_                = true;
-    hasLoop_                                 = false;
-}
-
 void MicroControlFlowGraph::addEdge(const uint32_t source, const uint32_t target)
 {
     SWC_ASSERT(source < successors_.size());
@@ -70,12 +53,23 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     // Resizing down destroys those lists, so walking them first only repeats work.
     successors_.resize(instructionCount);
     predecessors_.resize(instructionCount);
-    clear();
+    instructionRefs_.clear();
+    indexBySlot_.clear();
+    maxSlot_ = 0;
+    labelToInstructionIndex_.clear();
+    addressTakenLabelIndices_.clear();
+    hasUnsupportedControlFlowForCfgLiveness_ = false;
+    supportsDeadCodeLiveness_                = true;
+    hasLoop_                                 = false;
     instructionRefs_.reserve(instructionCount);
 
     for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
     {
         const uint32_t instructionIndex = static_cast<uint32_t>(instructionRefs_.size());
+        // No edges are read or added until the second walk. Clear their lists
+        // here to avoid separate sweeps, retaining overflow storage for joins.
+        successors_[instructionIndex].clear();
+        predecessors_[instructionIndex].clear();
         instructionRefs_.push_back(it.current);
         maxSlot_               = std::max(maxSlot_, it.current.get());
         const MicroInstr& inst = *it;

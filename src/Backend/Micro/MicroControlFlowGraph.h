@@ -41,7 +41,6 @@ public:
     uint64_t buildId() const { return buildId_; }
 
 private:
-    void clear();
     void addEdge(uint32_t source, uint32_t target);
     void build(const MicroStorage& storage, const MicroOperandStorage& operands);
 

@@ -490,3 +490,148 @@ func editHeadlessEscape(eb: *EditBox)
         host.sendRune(Input.Key.A, digit)
     Swag.assert(edit.text() == "123")
 }
+
+func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResult)
+{
+    // setText filters rejected runes before validation; seed the whole candidate to check its result.
+    edit.textStorage = text
+    let result = edit.checkContent()
+    Swag.assert(result == expected, text)
+    Swag.assert(edit.isInvalid == (expected == .InvalidVisible), text)
+}
+
+// Signed overflow is invalid even when the configured range already spans every s64 value.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 60)
+    defer host.shutdown()
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
+    edit.setSignedIntegerRange()
+
+    assertEditContent(edit, "42", .Valid)
+    assertEditContent(edit, "-9223372036854775808", .Valid)
+    assertEditContent(edit, "9223372036854775807", .Valid)
+    assertEditContent(edit, "9223372036854775808", .InvalidVisible)
+    assertEditContent(edit, "9223372036854775808tail", .InvalidSilent)
+    assertEditContent(edit, "-9223372036854775809", .InvalidVisible)
+    assertEditContent(edit, "-", .Incomplete)
+    assertEditContent(edit, "+", .Incomplete)
+    assertEditContent(edit, "", .InvalidSilent)
+    assertEditContent(edit, "word", .InvalidSilent)
+    assertEditContent(edit, "42tail", .InvalidSilent)
+
+    edit.setSignedIntegerRange(-5, 5)
+    assertEditContent(edit, "-5", .Valid)
+    assertEditContent(edit, "5", .Valid)
+    assertEditContent(edit, "-6", .InvalidVisible)
+    assertEditContent(edit, "6", .InvalidVisible)
+    assertEditContent(edit, "0", .Valid)
+}
+
+// Saturation to U64.Max must not turn overflow into an accepted value at the default upper bound.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 60)
+    defer host.shutdown()
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
+    edit.setUnsignedIntegerRange()
+
+    assertEditContent(edit, "0", .Valid)
+    assertEditContent(edit, "18446744073709551615", .Valid)
+    assertEditContent(edit, "18446744073709551616", .InvalidVisible)
+    assertEditContent(edit, "18446744073709551616tail", .InvalidSilent)
+    assertEditContent(edit, "0xFF", .Valid)
+    assertEditContent(edit, "0b101", .Valid)
+    assertEditContent(edit, "0x10000000000000000", .InvalidVisible)
+    assertEditContent(edit, "", .InvalidSilent)
+    assertEditContent(edit, "-1", .InvalidSilent)
+    assertEditContent(edit, "word", .InvalidSilent)
+    assertEditContent(edit, "12tail", .InvalidSilent)
+
+    // parseU64 only recognizes a base prefix when at least one digit follows it.
+    assertEditContent(edit, "0x", .InvalidSilent)
+
+    edit.setUnsignedIntegerRange(3, 9)
+    assertEditContent(edit, "3", .Valid)
+    assertEditContent(edit, "9", .Valid)
+    assertEditContent(edit, "2", .InvalidVisible)
+    assertEditContent(edit, "10", .InvalidVisible)
+    assertEditContent(edit, "5", .Valid)
+}
+
+// Hexadecimal mode parses bare digits and preserves the parser's overflow result.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 60)
+    defer host.shutdown()
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
+    edit.setHexadecimalRange()
+
+    assertEditContent(edit, "aF", .Valid)
+    assertEditContent(edit, "FFFFFFFFFFFFFFFF", .Valid)
+    assertEditContent(edit, "10000000000000000", .InvalidVisible)
+    assertEditContent(edit, "10000000000000000tail", .InvalidSilent)
+    assertEditContent(edit, "", .InvalidSilent)
+    assertEditContent(edit, "G", .InvalidSilent)
+    assertEditContent(edit, "AFtail", .InvalidSilent)
+    assertEditContent(edit, "0x", .InvalidSilent)
+    assertEditContent(edit, "0xFF", .InvalidSilent)
+
+    edit.setHexadecimalRange(0x10, 0x20)
+    assertEditContent(edit, "10", .Valid)
+    assertEditContent(edit, "20", .Valid)
+    assertEditContent(edit, "F", .InvalidVisible)
+    assertEditContent(edit, "21", .InvalidVisible)
+    assertEditContent(edit, "1A", .Valid)
+}
+
+// Floating-point input keeps editable exponent prefixes distinct from malformed or overflowing values.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 60)
+    defer host.shutdown()
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
+    edit.setFloatingPointRange()
+
+    assertEditContent(edit, "-1.25", .Valid)
+    assertEditContent(edit, "1.7976931348623157e308", .Valid)
+    assertEditContent(edit, "1e999", .InvalidVisible)
+    assertEditContent(edit, "1e999tail", .InvalidSilent)
+    assertEditContent(edit, "-1e999", .InvalidVisible)
+    assertEditContent(edit, "-", .Incomplete)
+    assertEditContent(edit, "+", .Incomplete)
+    assertEditContent(edit, "1e", .Incomplete)
+    assertEditContent(edit, "1e+", .Incomplete)
+    assertEditContent(edit, "1e-", .Incomplete)
+    assertEditContent(edit, "", .InvalidSilent)
+    assertEditContent(edit, "word", .InvalidSilent)
+    assertEditContent(edit, "1e+word", .InvalidSilent)
+    assertEditContent(edit, "1.25tail", .InvalidSilent)
+
+    edit.setFloatingPointRange(-2.5, 2.5)
+    assertEditContent(edit, "-2.5", .Valid)
+    assertEditContent(edit, "2.5", .Valid)
+    assertEditContent(edit, "-2.75", .InvalidVisible)
+    assertEditContent(edit, "2.75", .InvalidVisible)
+    assertEditContent(edit, "0", .Valid)
+}
+
+// Unrestricted text remains valid, including after leaving an invalid numeric field.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 60)
+    defer host.shutdown()
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
+
+    assertEditContent(edit, "plain text", .Valid)
+    edit.setSignedIntegerRange(-5, 5)
+    assertEditContent(edit, "6", .InvalidVisible)
+    edit.setTextInput()
+    assertEditContent(edit, "6", .Valid)
+    assertEditContent(edit, "words + 42tail", .Valid)
+}

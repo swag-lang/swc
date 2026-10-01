@@ -24,7 +24,7 @@ enum EditBoxInputMode
 // Reports the outcome of validating the content of an [[Gui.EditBox]].
 enum EditBoxCheckResult
 {
-    Incomplete         // Allows an incomplete prefix, such as "-" or "0x", while editing.
+    Incomplete         // Allows an incomplete prefix, such as "-" or an exponent prefix, while editing.
     Valid              // Accepts the content.
     InvalidSilent      // Rejects the latest edit without showing an error state.
     InvalidVisible     // Keeps the content and shows an error state.
@@ -650,6 +650,20 @@ private impl EditBox
         .countRunes += 1
     }
 
+    // Classifies a borrowed parse error while its catch capture still owns the payload.
+    mtd classifyParseResult(err: any?, eat: u32, overflow: bool)->EditBoxCheckResult
+    {
+        if err is Errors.ParseIncompleteError do
+            return .Incomplete
+        if err is Errors.OverflowError do
+            return .InvalidVisible
+        if err != null or eat != .textStorage.length do
+            return .InvalidSilent
+        if overflow do
+            return .InvalidVisible
+        return .Valid
+    }
+
     // Validates the current content according to inputMode or custom callback.
     mtd checkContent()->EditBoxCheckResult
     {
@@ -660,47 +674,31 @@ private impl EditBox
         }
         else
         {
-            var eat = 0'u32
-            var parseErr: any?
             switch .inputMode
             {
             case .SignedInteger:
                 let val = catch StrConv.parseS64(.textStorage) as err
-                parseErr = err
-                eat      = val.eat
-                if err == null and eat == .textStorage.length and (val.value < .minMaxS64.min or val.value > .minMaxS64.max) do
+                res = .classifyParseResult(err, val.eat, val.ovf)
+                if res == .Valid and (val.value < .minMaxS64.min or val.value > .minMaxS64.max) do
                     res = .InvalidVisible
 
             case .UnsignedInteger:
                 let val = catch StrConv.parseU64(.textStorage) as err
-                parseErr = err
-                eat      = val.eat
-                if err == null and eat == .textStorage.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
+                res = .classifyParseResult(err, val.eat, val.ovf)
+                if res == .Valid and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
                     res = .InvalidVisible
 
             case .Hexadecimal:
                 let val = catch StrConv.parseX64(.textStorage) as err
-                parseErr = err
-                eat      = val.eat
-                if err == null and eat == .textStorage.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
+                res = .classifyParseResult(err, val.eat, val.ovf)
+                if res == .Valid and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
                     res = .InvalidVisible
 
             case .FloatingPoint:
                 let val = catch StrConv.parseF64(.textStorage) as err
-                parseErr = err
-                eat      = val.eat
-                if err == null and eat == .textStorage.length and (val.value < .minMaxF64.min or val.value > .minMaxF64.max) do
+                res = .classifyParseResult(err, val.eat, val.ovf)
+                if res == .Valid and (val.value < .minMaxF64.min or val.value > .minMaxF64.max) do
                     res = .InvalidVisible
-            }
-
-            if res == .Valid
-            {
-                if parseErr is Errors.ParseIncompleteError do
-                    res = .Incomplete
-                elif parseErr is Errors.OverflowError do
-                    res = .InvalidVisible
-                elif parseErr != null or eat != .textStorage.length do
-                    res = .InvalidSilent
             }
         }
 

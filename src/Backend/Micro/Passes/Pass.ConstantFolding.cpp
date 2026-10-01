@@ -331,16 +331,20 @@ namespace
         const uint32_t count = allocation.size / width;
         if (count > K_MAX_UNIFORM_TABLE_ENTRIES)
             return false;
+        // The table is one complete immutable allocation. Validate its whole byte
+        // range once instead of resolving and locking the same segment per element.
+        if (segment.hasRelocations(allocation.offset, allocation.size))
+            return false;
 
         const double limit = decodeScalarFloatBits(threshold.value, bits);
+        const auto*  data  = reinterpret_cast<const std::byte*>(address);
 
         bool allAbove = true;
         bool allNotAbove = true;
         for (uint32_t i = 0; i < count; ++i)
         {
             uint64_t elementBits = 0;
-            if (!readConstantBytes(elementBits, *memoryContext.taskContext, address + uint64_t(i) * width, width))
-                return false;
+            std::memcpy(&elementBits, data + static_cast<size_t>(i) * width, width);
             const double element = decodeScalarFloatBits(elementBits, bits);
             const bool above = element > limit;
             allAbove &= above;

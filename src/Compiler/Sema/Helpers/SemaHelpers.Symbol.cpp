@@ -791,9 +791,8 @@ namespace
 
     const SymbolStruct* genericStructRootFromQuotedBase(Sema& sema, AstNodeRef exprRef)
     {
-        SmallVector<Symbol*> symbols;
-        sema.viewNodeTypeSymbol(exprRef).getSymbols(symbols);
-        for (const Symbol* sym : symbols)
+        const SemaNodeView view = sema.viewNodeTypeSymbol(exprRef);
+        for (const Symbol* sym : view.symbols())
         {
             if (!sym)
                 continue;

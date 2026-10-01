@@ -923,9 +923,7 @@ namespace
             const SemaNodeView view = sema_->viewSymbol(declRef);
             if (!view.hasSymbol())
                 return;
-            SmallVector<Symbol*> symbols;
-            view.getSymbols(symbols);
-            for (Symbol* sym : symbols)
+            for (Symbol* sym : view.symbols())
             {
                 if (sym && sym->isVariable())
                     trackDecl(state, declRef, sym->cast<SymbolVariable>(), hasInitExpr);
@@ -945,9 +943,7 @@ namespace
             const SemaNodeView view = sema_->viewSymbol(declRef);
             if (!view.hasSymbol())
                 return;
-            SmallVector<Symbol*> symbols;
-            view.getSymbols(symbols);
-            for (Symbol* sym : symbols)
+            for (Symbol* sym : view.symbols())
             {
                 if (!sym || !sym->isVariable())
                     continue;
@@ -1985,9 +1981,7 @@ namespace
                 const SemaNodeView view = sema.viewSymbol(ref);
                 if (!view.hasSymbol())
                     return Result::Continue;
-                SmallVector<Symbol*> symbols;
-                view.getSymbols(symbols);
-                for (Symbol* sym : symbols)
+                for (Symbol* sym : view.symbols())
                 {
                     if (!sym || !sym->isVariable())
                         continue;

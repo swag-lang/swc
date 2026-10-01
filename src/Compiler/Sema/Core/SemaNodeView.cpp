@@ -187,6 +187,16 @@ void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
     }
 }
 
+std::span<Symbol* const> SemaNodeView::symbols() const&
+{
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
+    if (hasSymList_)
+        return symList_;
+    if (hasSymbol_)
+        return {&sym_, 1};
+    return {};
+}
+
 Symbol* SemaNodeView::singleSymbol() const
 {
     SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));

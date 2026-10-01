@@ -894,11 +894,14 @@ const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) co
 
 bool SymbolStruct::typeHasDynamicStorage(const TaskContext& ctx, TypeRef typeRef)
 {
-    typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, typeRef);
-    while (ctx.typeMgr().get(typeRef).isArray())
-        typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, ctx.typeMgr().get(typeRef).payloadArrayElemTypeRef());
-    const TypeInfo& type = ctx.typeMgr().get(typeRef);
-    return type.isStruct() && type.payloadSymStruct().hasDynamicStorage();
+    typeRef              = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, typeRef);
+    const TypeInfo* type = &ctx.typeMgr().get(typeRef);
+    while (type->isArray())
+    {
+        typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, type->payloadArrayElemTypeRef());
+        type    = &ctx.typeMgr().get(typeRef);
+    }
+    return type->isStruct() && type->payloadSymStruct().hasDynamicStorage();
 }
 
 Result SymbolStruct::prepareDynamicMetadata(Sema& sema, TypeRef typeRef)
@@ -1366,14 +1369,16 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     dynamicSlotOffsets_ = std::move(dynamicSlotOffsets);
     if (isDynamic())
         addExtraFlag(SymbolStructFlagsE::DynamicStorage);
-    for (const SymbolVariable* field : fields_)
+    else
     {
-        TypeRef fieldTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, field->typeRef());
-        while (ctx.typeMgr().get(fieldTypeRef).isArray())
-            fieldTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, ctx.typeMgr().get(fieldTypeRef).payloadArrayElemTypeRef());
-        const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
-        if (fieldType.isStruct() && fieldType.payloadSymStruct().hasDynamicStorage())
-            addExtraFlag(SymbolStructFlagsE::DynamicStorage);
+        for (const SymbolVariable* field : fields_)
+        {
+            if (typeHasDynamicStorage(ctx, field->typeRef()))
+            {
+                addExtraFlag(SymbolStructFlagsE::DynamicStorage);
+                break;
+            }
+        }
     }
     alignment_.store(alignment, std::memory_order_release);
     sizeInBytes_.store(sizeInBytes, std::memory_order_release);

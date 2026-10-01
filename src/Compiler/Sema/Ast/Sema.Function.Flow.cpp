@@ -784,6 +784,8 @@ namespace
         const auto& params = fn.parameters();
         if (params.empty())
             return false;
+        if (args.empty())
+            return ufcsArg.isValid() && params.size() == 1;
 
         std::vector<uint8_t> assigned(params.size(), 0);
         if (ufcsArg.isValid())
@@ -824,6 +826,8 @@ namespace
     {
         if (params.empty())
             return false;
+        if (args.empty())
+            return ufcsArg.isValid() && params.size() == 1;
 
         std::vector<uint8_t> assigned(params.size(), 0);
         if (ufcsArg.isValid())

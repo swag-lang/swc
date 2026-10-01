@@ -123,12 +123,63 @@ void JobManager::setup(const CommandLine& cmdLine)
     joined_    = false;
 
 #if SWC_DEV_MODE
-    statsEnabled_ = cmdLine.devSchedStats;
-    statsStart_   = std::chrono::steady_clock::now();
+    statsEnabled_   = cmdLine.devSchedStats;
+    statsStart_     = std::chrono::steady_clock::now();
+    poolIdleSince_  = statsStart_;
+    lastAccounting_ = statsStart_;
 #endif
 }
 
 #if SWC_DEV_MODE
+void JobManager::lockCounted(std::unique_lock<std::mutex>& lk)
+{
+    if (!statsEnabled_ || lk.try_lock())
+    {
+        if (!lk.owns_lock())
+            lk.lock();
+        return;
+    }
+
+    const auto start = std::chrono::steady_clock::now();
+    lk.lock();
+    stats_.lockWaitNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
+}
+
+void JobManager::accountStarvationLocked()
+{
+    if (!statsEnabled_)
+        return;
+
+    // Charge the interval since the last scheduler transition. Workers sitting idle while some
+    // jobs run and none is ready are starved; split that idle time over the running kinds.
+    const auto     now     = std::chrono::steady_clock::now();
+    const auto     dt      = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - lastAccounting_).count());
+    const uint64_t workers = configuredWorkerCount_;
+    lastAccounting_        = now;
+    if (!activeWorkers_ || activeWorkers_ >= workers || readyCount_)
+        return;
+
+    const uint64_t idleNs = dt * (workers - activeWorkers_);
+    for (KindStats& kind : kindStats_)
+    {
+        if (kind.running)
+            kind.starvedNs += idleNs * kind.running / activeWorkers_;
+    }
+}
+
+void JobManager::noteActiveWorkersLocked(size_t before)
+{
+    // Only the transitions between "some job runs" and "none runs" matter.
+    if (!statsEnabled_ || (before != 0) == (activeWorkers_ != 0))
+        return;
+
+    const auto now = std::chrono::steady_clock::now();
+    if (activeWorkers_ == 0)
+        poolIdleSince_ = now;
+    else
+        stats_.poolIdleNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - poolIdleSince_).count());
+}
+
 void JobManager::noteBarrierRound()
 {
     const std::unique_lock lk(mtx_);
@@ -139,9 +190,23 @@ void JobManager::printStats(const TaskContext& ctx) const
 {
     const std::unique_lock lk(mtx_);
 
-    const auto     wallNs    = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - statsStart_).count());
-    const uint64_t capacity  = wallNs * std::max<uint64_t>(configuredWorkerCount_, 1);
-    const double   occupancy = capacity ? 100.0 * static_cast<double>(stats_.busyNs) / static_cast<double>(capacity) : 0.0;
+    const auto     now       = std::chrono::steady_clock::now();
+    const auto     wallNs    = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - statsStart_).count());
+    const uint64_t workers   = std::max<uint64_t>(configuredWorkerCount_, 1);
+    const uint64_t capacity  = wallNs * workers;
+    const auto     percentOf = [&](uint64_t ns) { return capacity ? 100.0 * static_cast<double>(ns) / static_cast<double>(capacity) : 0.0; };
+
+    // The pool is idle since its last job when the command reports: count that tail too.
+    uint64_t poolIdleNs = stats_.poolIdleNs;
+    if (activeWorkers_ == 0)
+        poolIdleNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - poolIdleSince_).count());
+
+    // Worker time splits into running jobs, waiting while no job runs anywhere (serial phases),
+    // waiting for the scheduler lock, and the rest: waiting while other jobs run, for want of
+    // ready work.
+    const uint64_t serialNs    = poolIdleNs * workers;
+    const uint64_t accountedNs = stats_.busyNs + serialNs + stats_.lockWaitNs;
+    const uint64_t starvedNs   = capacity > accountedNs ? capacity - accountedNs : 0;
 
     std::vector<Logger::FieldEntry> entries;
     entries.push_back({.label = "Workers", .value = std::format("{}", configuredWorkerCount_)});
@@ -150,7 +215,18 @@ void JobManager::printStats(const TaskContext& ctx) const
     entries.push_back({.label = "Barrier wakes", .value = std::format("{}", stats_.barrierWoken)});
     entries.push_back({.label = "Barrier re-parks", .value = std::format("{}", stats_.barrierReparked)});
     entries.push_back({.label = "Dependency wakes", .value = std::format("{}", stats_.dependencyWoken)});
-    entries.push_back({.label = "Worker occupancy", .value = std::format("{:.1f}% of {} ms x {} workers", occupancy, wallNs / 1'000'000, configuredWorkerCount_)});
+    entries.push_back({.label = "Worker occupancy", .value = std::format("{:.1f}% of {} ms x {} workers", percentOf(stats_.busyNs), wallNs / 1'000'000, configuredWorkerCount_)});
+    entries.push_back({.label = "Serial phases", .value = std::format("{:.1f}% ({} ms with no job running)", percentOf(serialNs), poolIdleNs / 1'000'000)});
+    entries.push_back({.label = "Scheduler lock wait", .value = std::format("{:.1f}%", percentOf(stats_.lockWaitNs))});
+    entries.push_back({.label = "Starved while others run", .value = std::format("{:.1f}%", percentOf(starvedNs))});
+    for (size_t i = 0; i < NUM_JOB_KINDS; ++i)
+    {
+        const KindStats& kind = kindStats_[i];
+        if (!kind.jobs)
+            continue;
+        entries.push_back({.label = Job::kindName(static_cast<JobKind>(i)),
+                           .value = std::format("{} jobs, {} ms busy, longest {} ms{}, starved others {:.1f}%", kind.jobs, kind.busyNs / 1'000'000, kind.maxNs / 1'000'000, kind.longest.empty() ? "" : std::format(" ({})", kind.longest.view()), percentOf(kind.starvedNs))});
+    }
     Logger::printFieldGroup(ctx, "Scheduler", entries);
 }
 #endif
@@ -173,7 +249,12 @@ JobClientId JobManager::newClientId()
 
 void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
 {
-    std::unique_lock lk(mtx_);
+    std::unique_lock lk(mtx_, std::defer_lock);
+#if SWC_DEV_MODE
+    lockCounted(lk);
+#else
+    lk.lock();
+#endif
     SWC_ASSERT(accepting_);
 
     // If already scheduled on this manager, refuse (simplifies invariants).
@@ -365,7 +446,12 @@ void JobManager::wake(const WaitKey& key)
     if (waiterFilter_[waiterShard(key)].load(std::memory_order_acquire) == 0)
         return;
 
-    std::unique_lock lk(mtx_);
+    std::unique_lock lk(mtx_, std::defer_lock);
+#if SWC_DEV_MODE
+    lockCounted(lk);
+#else
+    lk.lock();
+#endif
 
     const auto it = waiters_.find(key);
     if (it == waiters_.end())
@@ -670,6 +756,9 @@ void JobManager::shutdown() noexcept
 
 void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 {
+#if SWC_DEV_MODE
+    accountStarvationLocked();
+#endif
     readyQ_[static_cast<int>(priority)].push_back(rec);
     ++readyCount_;
 }
@@ -813,7 +902,15 @@ void JobManager::workerLoop()
         JobRecord* rec = popReadyLocked();
         SWC_ASSERT(rec && rec->state == JobRecord::State::Ready);
         rec->state = JobRecord::State::Running;
+#if SWC_DEV_MODE
+        accountStarvationLocked();
+        const JobKind kind = rec->job->kind();
+        kindStats_[static_cast<size_t>(kind)].running++;
+#endif
         ++activeWorkers_;
+#if SWC_DEV_MODE
+        noteActiveWorkersLocked(activeWorkers_ - 1);
+#endif
         lk.unlock();
 #if SWC_DEV_MODE
         const auto start = statsEnabled_ ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
@@ -821,14 +918,35 @@ void JobManager::workerLoop()
         const JobResult res = executeJob(*rec->job);
 #if SWC_DEV_MODE
         const auto end = statsEnabled_ ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+        // Naming can take compiler locks, so it happens before the scheduler lock, and only for
+        // the slices long enough to matter.
+        Utf8 label;
+        if (statsEnabled_ && end - start > std::chrono::milliseconds(50))
+            label = rec->job->statsLabel();
 #endif
-        lk.lock();
 #if SWC_DEV_MODE
+        lockCounted(lk);
+        accountStarvationLocked();
+        const auto jobNs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
         stats_.jobsExecuted++;
-        stats_.busyNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
+        stats_.busyNs += jobNs;
+        KindStats& kindStats = kindStats_[static_cast<size_t>(kind)];
+        kindStats.running--;
+        kindStats.jobs++;
+        kindStats.busyNs += jobNs;
+        if (jobNs > kindStats.maxNs)
+        {
+            kindStats.maxNs   = jobNs;
+            kindStats.longest = std::move(label);
+        }
+#else
+        lk.lock();
 #endif
         handleJobResultLocked(rec, res);
         --activeWorkers_;
+#if SWC_DEV_MODE
+        noteActiveWorkersLocked(activeWorkers_ + 1);
+#endif
 
         // Publish the idle predicate under the waiter's mutex. Updating the active
         // count outside it can lose the notification between its check and wait.

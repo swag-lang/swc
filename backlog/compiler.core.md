@@ -6,22 +6,60 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.071 — Generating `Pixel.Webp.decodeLossy` takes seconds and holds back the module
+
+- Recorded: 2026-10-01 13:08
+- Evidence: in a 16-worker DevMode `gui` rebuild, the longest code-generation job is
+  `Pixel.Webp.decodeLossy`, 6.6–8.2 s in one slice, while the whole `pixel` module takes about
+  6 s of wall time at 16 workers on a quiet machine. Nothing else in the module can use the idle
+  workers during that tail: code generation causes 10–12% of the pool's starvation.
+- Next: time each Micro pass on that function alone to find the one that grows faster than the
+  function, then fix that pass's complexity.
+- Complete when: no single function's code generation in `bin/std` takes more than a tenth of its
+  module's wall time at 16 workers.
+- Related: compiler.core.069
+
 ### compiler.core.069 — Measure where a module build loses its workers beyond six cores
 
 - Recorded: 2026-10-01 07:35
-- Updated: 2026-10-01 10:41 — the DevMode compiler now reports scheduler counters; narrow to the measurement
-- Evidence: compile time stops improving after a few workers. `--dev-sched-stats` (DevMode
-  compiler) prints, when the command ends, the semantic barrier rounds, the sleepers a barrier
-  moved and how many parked again, the sleepers their dependency woke, and the share of worker time
-  spent running jobs. A first `std.swgs dm build core --rebuild` at six workers (2026-10-01, loaded
-  machine) reported 18 barrier rounds moving 118 sleepers (113 parked again), 11 476 dependency
-  wakes, and 77% worker occupancy over the whole command, serial modules included.
-- Next: run the same build at 1, 6, 12, and every logical core on an idle machine, with both the
-  counters and wall time, and attribute the lost occupancy: serial modules (compiler.core.007),
-  barrier rounds (compiler.core.065), or scheduler contention (compiler.core.068).
-- Complete when: the dominant cause of the parallel ceiling is named from those figures and the
-  matching entry carries them.
-- Related: compiler.core.065, compiler.core.068, compiler.core.007
+- Updated: 2026-10-01 13:08 — first breakdown at 6 and 16 workers; one function's code generation is the largest tail
+- Evidence: `--dev-sched-stats` (DevMode compiler) splits worker time into running jobs, serial
+  phases (no job running), scheduler lock waits, and starvation (jobs run elsewhere, nothing is
+  ready), and reports per job kind its work, its longest slice with what it worked on, and the
+  starvation charged to it. `std.swgs dm build gui --rebuild`, 2026-10-01, DevMode compiler:
+  - 6 workers, loaded machine: 70 s, 81% running, 11% serial, 0.3% lock, 7.5% starved.
+  - 16 workers: 26–54 s depending on load, 58–66% running, 13–16% serial, 0.5–0.9% lock,
+    20–25% starved. CodeGen alone causes 10–12% starvation: `Pixel.Webp.decodeLossy` is one job
+    of 6.6–8.2 s. Sema's longest slice is 1–2.6 s; the five native links cost 4% together.
+  - Barrier rounds no longer matter: 65 rounds moved about 500 sleepers, against 78 000–91 000
+    dependency wakes.
+- Next: run Release-equivalent numbers once the counters exist outside DevMode, or compare the
+  DevMode shares at 1, 6, 12, and every logical core on an idle machine; then attribute the
+  serial-phase time per module stage (setup, link, artifact publication).
+- Complete when: each share above has an owning entry, and the serial phases are broken down by
+  module stage.
+- Related: compiler.core.071, compiler.core.065, compiler.core.068, compiler.core.007
+
+### compiler.core.068 — The job scheduler serializes every transition on one mutex
+
+- Recorded: 2026-10-01 07:35
+- Updated: 2026-10-01 13:08 — measured: lock waits cost under 1% of worker time at 16 workers
+- Evidence: `JobManager` keeps one `mtx_` for the three ready deques, the client counters, the
+  waiter map, and the worker list. Jobs are fine-grained (one per top-level declaration, one per
+  function in code generation) and every enqueue, dequeue, park, and wake takes that lock.
+  `growWorkersForLoadLocked` still creates threads while holding it. The queue is a global FIFO:
+  a resumed job lands on any worker with a cold cache. The default worker count is
+  `hardware_concurrency()`, which on a hybrid CPU includes efficiency cores and SMT siblings, so
+  critical-path jobs can run on the slowest cores.
+- Measured: `--dev-sched-stats` on a 16-worker DevMode `gui` rebuild charges 0.5–0.9% of worker
+  time to waiting for this lock (compiler.core.069). It is not the ceiling today; revisit when
+  starvation and serial phases shrink.
+- Next: prototype per-worker deques with stealing behind the same `JobManager` interface, keeping
+  the waiter map and client counters under their own lock, and spawn workers outside it.
+- Complete when: a std module build at 16 workers spends no measurable time waiting on the
+  scheduler lock (VTune or ETW contention view), with the scheduler unit tests and both compiler
+  executables green.
+- Related: compiler.core.069
 
 ### compiler.core.065 — Remaining barrier rounds still drain the whole module
 
@@ -47,24 +85,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
   green under both compiler executables.
 - Related: compiler.core.069, compiler.core.007
-
-### compiler.core.068 — The job scheduler serializes every transition on one mutex
-
-- Recorded: 2026-10-01 07:35
-- Updated: 2026-10-01 08:00 — enqueue and wake now notify after releasing the lock; narrow to the remaining work
-- Evidence: `JobManager` keeps one `mtx_` for the three ready deques, the client counters, the
-  waiter map, and the worker list. Jobs are fine-grained (one per top-level declaration, one per
-  function in code generation) and every enqueue, dequeue, park, and wake takes that lock.
-  `growWorkersForLoadLocked` still creates threads while holding it. The queue is a global FIFO:
-  a resumed job lands on any worker with a cold cache. The default worker count is
-  `hardware_concurrency()`, which on a hybrid CPU includes efficiency cores and SMT siblings, so
-  critical-path jobs can run on the slowest cores.
-- Next: prototype per-worker deques with stealing behind the same `JobManager` interface, keeping
-  the waiter map and client counters under their own lock, and spawn workers outside it.
-- Complete when: a std module build at 16 workers spends no measurable time waiting on the
-  scheduler lock (VTune or ETW contention view), with the scheduler unit tests and both compiler
-  executables green.
-- Related: compiler.core.069
 
 ### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
 

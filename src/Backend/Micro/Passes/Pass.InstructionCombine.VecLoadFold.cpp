@@ -101,7 +101,7 @@ namespace InstructionCombine
             const MicroSsaState::ValueInfo& info = values[valueId];
             if (info.isPhi())
             {
-                const MicroSsaState::PhiInfo* phi = ctx.ssa->phiInfoForValue(valueId);
+                const MicroSsaState::PhiInfo* phi = ctx.ssa->phiInfo(info.phiIndex);
                 if (!phi || phi->incomingValueIds.empty())
                     return false;
                 for (const uint32_t incoming : phi->incomingValueIds)

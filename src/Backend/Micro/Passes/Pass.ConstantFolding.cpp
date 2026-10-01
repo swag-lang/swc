@@ -152,7 +152,6 @@ namespace
     struct ConstantMemoryContext
     {
         const MicroSsaState*                   ssaState      = nullptr;
-        const MicroStorage*                    storage       = nullptr;
         const MicroOperandStorage*             operands      = nullptr;
         const TaskContext*                     taskContext   = nullptr;
         const MicroBuilder*                    addressSource = nullptr;
@@ -170,7 +169,7 @@ namespace
         if (!def.valid() || def.isPhi || !def.instRef.isValid())
             return false;
 
-        const MicroInstr* inst = context.storage->ptr(def.instRef);
+        const MicroInstr* inst = def.inst;
         if (!inst)
             return false;
         const MicroInstrOperand* ops = inst->ops(*context.operands);
@@ -301,7 +300,7 @@ namespace
         const MicroSsaState::ReachingDef valueDef = context.ssa.reachingDef(cmpOps[0].reg, cmpRef);
         if (!valueDef.valid() || valueDef.isPhi || !valueDef.instRef.isValid())
             return false;
-        const MicroInstr* load = storage.ptr(valueDef.instRef);
+        const MicroInstr* load = valueDef.inst;
         if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem)
             return false;
         const MicroInstrOperand* loadOps = load->ops(operands);
@@ -932,7 +931,6 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     // addresses and context pointers to the constant-load folds.
     thread_local ConstantMemoryContext memoryContext;
     memoryContext.ssaState      = ssaState;
-    memoryContext.storage       = &storage;
     memoryContext.operands      = &operands;
     memoryContext.taskContext   = nullptr;
     memoryContext.addressSource = nullptr;

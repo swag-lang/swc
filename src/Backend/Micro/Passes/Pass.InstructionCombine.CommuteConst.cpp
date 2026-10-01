@@ -78,7 +78,7 @@ namespace InstructionCombine
         if (!dstReach.valid() || dstReach.isPhi || !dstReach.instRef.isValid())
             return false;
 
-        const MicroInstr* immInst = ctx.storage->ptr(dstReach.instRef);
+        const MicroInstr* immInst = dstReach.inst;
         if (!immInst || immInst->op != MicroInstrOpcode::LoadRegImm)
             return false;
 

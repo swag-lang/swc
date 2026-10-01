@@ -200,16 +200,7 @@ namespace SemaGeneric
 
     TypeRef unwrapGenericDeductionType(TaskContext& ctx, TypeRef typeRef)
     {
-        while (typeRef.isValid())
-        {
-            const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
-            const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
-            if (!unwrapped.isValid() || unwrapped == typeRef)
-                return typeRef;
-            typeRef = unwrapped;
-        }
-
-        return typeRef;
+        return ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, typeRef);
     }
 
     void collectGenericParams(Sema& sema, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)

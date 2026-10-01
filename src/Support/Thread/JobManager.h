@@ -82,6 +82,21 @@ public:
     // The driver counts each semantic barrier round; the rest is counted under the scheduler lock.
     void noteBarrierRound();
     void printStats(const TaskContext& ctx) const;
+
+    // Names what the driver is doing, so serial and starved worker time can be charged to it.
+    // Phases nest; the innermost one owns the time. The name must outlive the report.
+    class StatsPhase
+    {
+    public:
+        StatsPhase(JobManager& manager, const char* name);
+        ~StatsPhase();
+        StatsPhase(const StatsPhase&)            = delete;
+        StatsPhase& operator=(const StatsPhase&) = delete;
+
+    private:
+        JobManager* manager_  = nullptr;
+        const char* previous_ = nullptr;
+    };
 #endif
 
     uint32_t      numWorkers() const noexcept { return configuredWorkerCount_; }
@@ -191,7 +206,21 @@ private:
     void                                  lockCounted(std::unique_lock<std::mutex>& lk);
     void                                  noteActiveWorkersLocked(size_t before);
     void                                  accountStarvationLocked();
+    const char*                           setStatsPhase(const char* name);
     std::chrono::steady_clock::time_point poolIdleSince_;
+
+    struct PhaseStats
+    {
+        const char* name      = nullptr;
+        uint64_t    wallNs    = 0;
+        uint64_t    serialNs  = 0;
+        uint64_t    starvedNs = 0;
+    };
+
+    PhaseStats&                           phaseStatsLocked(const char* name);
+    std::vector<PhaseStats>               phaseStats_;
+    const char*                           statsPhase_ = "other";
+    std::chrono::steady_clock::time_point phaseSince_;
 
     // Per job kind: how much work it does, its longest single job, and the worker time left
     // idle while only jobs of that kind (and others) run and nothing is ready. A long tail of
@@ -219,5 +248,13 @@ private:
     static JobRecord* allocRecord();
     static void       freeRecord(JobRecord* r);
 };
+
+#if SWC_DEV_MODE
+#define SWC_SCHED_PHASE_NAME2(__line) schedPhase##__line
+#define SWC_SCHED_PHASE_NAME(__line)  SWC_SCHED_PHASE_NAME2(__line)
+#define SWC_SCHED_PHASE(__manager, __name) const JobManager::StatsPhase SWC_SCHED_PHASE_NAME(__LINE__)((__manager), (__name))
+#else
+#define SWC_SCHED_PHASE(__manager, __name)
+#endif
 
 SWC_END_NAMESPACE();

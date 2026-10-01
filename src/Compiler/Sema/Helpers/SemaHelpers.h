@@ -233,7 +233,7 @@ namespace SemaHelpers
     // Aliases stripped, an enum wrapper kept.
     inline const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
     {
-        const TypeInfo& typeInfo = sema.typeMgr().get(view.typeRef());
+        const TypeInfo& typeInfo = *view.type();
         if (!typeInfo.isAlias())
             return typeInfo;
         const TypeRef typeRef = typeInfo.unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
@@ -246,10 +246,14 @@ namespace SemaHelpers
         if (!typeRef.isValid())
             return nullptr;
 
-        const TypeRef   enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
-        if (enumType.isEnum())
-            return &enumType.payloadSymEnum();
+        const TypeInfo* enumType = &sema.typeMgr().get(typeRef);
+        if (enumType->isAlias())
+        {
+            const TypeRef enumTypeRef = enumType->unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+            enumType                  = &sema.typeMgr().get(enumTypeRef);
+        }
+        if (enumType->isEnum())
+            return &enumType->payloadSymEnum();
 
         return nullptr;
     }
@@ -264,7 +268,7 @@ namespace SemaHelpers
 
     inline const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
     {
-        const TypeInfo& typeInfo = sema.typeMgr().get(view.typeRef());
+        const TypeInfo& typeInfo = *view.type();
         if (!typeInfo.isAlias() && !typeInfo.isEnum())
             return typeInfo;
         const TypeRef typeRef = typeInfo.unwrapAliasEnum(sema.ctx(), view.typeRef());

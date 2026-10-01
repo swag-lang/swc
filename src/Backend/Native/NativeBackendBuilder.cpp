@@ -705,9 +705,23 @@ namespace
         if (!firstFile)
             return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
 
+        // Start the largest functions first. Jobs leave the queue in the order they enter it, and a
+        // large function started late is the tail every other worker waits on at the end of the
+        // round. The order changes when each function is generated, never what is generated.
+        std::vector<uint32_t> order(functions.size());
+        std::vector<uint64_t> estimates(functions.size());
+        for (uint32_t index = 0; index < functions.size(); ++index)
+        {
+            const auto* decl  = functions[index]->decl() ? functions[index]->decl()->safeCast<AstFunctionDecl>() : nullptr;
+            const auto  own   = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;
+            order[index]      = index;
+            estimates[index]  = uint64_t{own} + functions[index]->inlinedCost();
+        }
+        std::ranges::stable_sort(order, [&](uint32_t lhs, uint32_t rhs) { return estimates[lhs] > estimates[rhs]; });
+
         Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);
         JobManager& jobMgr = builder.ctx().global().jobMgr();
-        for (size_t index = 0; index < functions.size(); ++index)
+        for (const uint32_t index : order)
         {
             SymbolFunction* symbol = functions[index];
             SWC_ASSERT(symbol != nullptr);
@@ -1194,12 +1208,21 @@ Result NativeBackendBuilder::run()
                 buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
             stage->setStat(std::move(buildStat));
         }
-        SWC_RESULT(artifactBuilder.build());
-        SWC_RESULT(buildObjects());
+        {
+            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native artifact");
+            SWC_RESULT(artifactBuilder.build());
+        }
+        {
+            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native objects");
+            SWC_RESULT(buildObjects());
+        }
 
         const auto linker = Linker::create(*this);
         SWC_ASSERT(linker != nullptr);
-        SWC_RESULT(linker->link());
+        {
+            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native link");
+            SWC_RESULT(linker->link());
+        }
         artifactLinked_ = true;
     }
 
@@ -1213,7 +1236,10 @@ Result NativeBackendBuilder::run()
 Result NativeBackendBuilder::prepareForLink()
 {
     SWC_ASSERT(compiler_ != nullptr);
-    SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
+    {
+        SWC_SCHED_PHASE(ctx_.global().jobMgr(), "before output messages");
+        SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
+    }
     SWC_RESULT(validateTarget());
 
     const NativeArtifactBuilder artifactBuilder(*this);
@@ -1232,13 +1258,20 @@ Result NativeBackendBuilder::prepareForLink()
                 buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
             stage->setStat(std::move(buildStat));
         }
-        SWC_RESULT(artifactBuilder.build());
-        SWC_RESULT(buildObjects());
+        {
+            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native artifact");
+            SWC_RESULT(artifactBuilder.build());
+        }
+        {
+            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native objects");
+            SWC_RESULT(buildObjects());
+        }
     }
 
     deferredLinker_ = Linker::create(*this);
     SWC_ASSERT(deferredLinker_ != nullptr);
     deferredToolRun_ = {};
+    SWC_SCHED_PHASE(ctx_.global().jobMgr(), "link prepare");
     return deferredLinker_->prepareLink(deferredToolRun_);
 }
 
@@ -1300,6 +1333,7 @@ Result NativeBackendBuilder::runExistingArtifact()
 
 Result NativeBackendBuilder::prepare()
 {
+    SWC_SCHED_PHASE(ctx_.global().jobMgr(), "backend prepare");
     SWC_ASSERT(compiler_ != nullptr);
     compiler_->setActiveNativeBuilder(nullptr);
     runtimeDependencies.clear();
@@ -1361,6 +1395,7 @@ Result NativeBackendBuilder::prepare()
         microStage.emplace(ctx_, ScopedTimedLog::Stage::Micro);
     }
 
+    SWC_SCHED_PHASE(ctx_.global().jobMgr(), "codegen");
     while (true)
     {
         appendCodeGenDependencies(*this, functions);
@@ -1416,6 +1451,7 @@ Result NativeBackendBuilder::prepare()
 
             // Code generation only needs symbols. Build artifact names and lookup tables
             // once the dependency set and executable reachability have stopped changing.
+            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "function infos");
             SWC_RESULT(rebuildFunctionInfos(*this, functions));
             if (microStage)
             {

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 
@@ -30,8 +31,18 @@ SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayl
 {
 }
 
+#if SWC_DEV_MODE
+Utf8 SemaJob::statsLabel() const
+{
+    return file_ ? Utf8{file_->path().filename().string()} : Utf8{};
+}
+#endif
+
 JobResult SemaJob::exec()
 {
+#if SWC_DEV_MODE
+    file_ = sema_->file();
+#endif
     const JobResult result = sema_->exec();
     if (result == JobResult::Sleep)
         return result;

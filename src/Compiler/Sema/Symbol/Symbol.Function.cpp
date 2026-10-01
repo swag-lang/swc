@@ -394,9 +394,8 @@ namespace
         return candidate.isPublic() && candidate.supportsPublicApiForeignExport();
     }
 
-    void collectPublicApiOverloads(const SymbolFunction& symbol, const TaskContext& ctx, std::vector<const SymbolFunction*>& outOverloads)
+    void collectPublicApiOverloads(const SymbolFunction& symbol, std::vector<const SymbolFunction*>& outOverloads)
     {
-        SWC_UNUSED(ctx);
         outOverloads.clear();
         if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
         {
@@ -442,13 +441,6 @@ namespace
                     outOverloads.push_back(candidate);
             }
         }
-    }
-
-    bool publicApiNeedsOverloadSuffix(const SymbolFunction& symbol, const TaskContext& ctx)
-    {
-        std::vector<const SymbolFunction*> overloads;
-        collectPublicApiOverloads(symbol, ctx, overloads);
-        return overloads.size() > 1;
     }
 
     Utf8 buildPublicApiParameterSignature(const TaskContext& ctx, const SymbolFunction& symbol)
@@ -510,16 +502,14 @@ namespace
         return result;
     }
 
-    bool publicApiSignatureCollides(const SymbolFunction& symbol, const TaskContext& ctx, const Utf8& expectedSignature, const bool detailed)
+    bool publicApiParameterSignatureCollides(const SymbolFunction& symbol, const TaskContext& ctx, const Utf8& expectedSignature, std::span<const SymbolFunction* const> overloads)
     {
-        std::vector<const SymbolFunction*> overloads;
-        collectPublicApiOverloads(symbol, ctx, overloads);
         for (const SymbolFunction* candidate : overloads)
         {
             if (!candidate || candidate == &symbol)
                 continue;
 
-            const Utf8 candidateSignature = detailed ? buildPublicApiDetailedSignature(ctx, *candidate) : buildPublicApiParameterSignature(ctx, *candidate);
+            const Utf8 candidateSignature = buildPublicApiParameterSignature(ctx, *candidate);
             if (candidateSignature == expectedSignature)
                 return true;
         }
@@ -527,10 +517,10 @@ namespace
         return false;
     }
 
-    void appendPublicApiOverloadSuffix(Utf8& out, const TaskContext& ctx, const SymbolFunction& symbol)
+    void appendPublicApiOverloadSuffix(Utf8& out, const TaskContext& ctx, const SymbolFunction& symbol, std::span<const SymbolFunction* const> overloads)
     {
         Utf8 signature = buildPublicApiParameterSignature(ctx, symbol);
-        if (publicApiSignatureCollides(symbol, ctx, signature, false))
+        if (publicApiParameterSignatureCollides(symbol, ctx, signature, overloads))
             signature = buildPublicApiDetailedSignature(ctx, symbol);
 
         // One level deeper than the identifier separator, so an overload signature can
@@ -672,8 +662,10 @@ Utf8 SymbolFunction::computePublicApiBaseSymbolName(const TaskContext& ctx) cons
 Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
 {
     Utf8 apiName = computePublicApiBaseSymbolName(ctx);
-    if (publicApiNeedsOverloadSuffix(*this, ctx))
-        appendPublicApiOverloadSuffix(apiName, ctx, *this);
+    std::vector<const SymbolFunction*> overloads;
+    collectPublicApiOverloads(*this, overloads);
+    if (overloads.size() > 1)
+        appendPublicApiOverloadSuffix(apiName, ctx, *this, overloads);
     return apiName;
 }
 

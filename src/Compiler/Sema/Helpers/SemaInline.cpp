@@ -2738,8 +2738,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Keep an ordinary function call instead of shifting every written argument by one.
     if (ufcsArg.isValid() &&
         (resolvedArgs.empty() || !resolvedArgs[0].isUfcsReceiver) &&
-        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
-        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
         return Result::Continue;
 
     // A flow-proven argument - a nullable-declared place the caller's flow narrowed
@@ -2748,7 +2747,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // deliberately dropped, and a re-derivation from bare syntax cannot reconstruct
     // them. The real call validated the argument once and needs no replay, so keep the
     // call. Macros and mixins cannot fall back to a real call and keep their behavior.
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
     {
         bool carriesFlowProof = ufcsArg.isValid() && inlineBindingCarriesFlowProvenNonNull(sema, ufcsArg);
         for (size_t i = 0; !carriesFlowProof && i < resolvedArgs.size(); ++i)
@@ -2762,7 +2761,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // carries the guard is never lowered and the body runs on a null receiver. The
     // real call keeps the short circuit. Macros and mixins cannot fall back to one and
     // expand as before.
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
     {
         const AstNodeRef guardedRef         = sema.node(callRef).is(AstNodeId::CallExpr) ? sema.node(callRef).cast<AstCallExpr>().nodeExprRef : AstNodeRef::invalid();
         const AstNodeRef resolvedGuardedRef = guardedRef.isValid() ? sema.viewZero(guardedRef).nodeRef() : AstNodeRef::invalid();
@@ -2791,7 +2790,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             const bool bindsCopyToMove = resolvedArg.bindsReferenceToValue && params[i]->type(sema.ctx()).isMoveReference();
             if (!bindsCopyToMove && !resolvedArg.movesValueToParam)
                 continue;
-            if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return SemaError::raise(sema, bindsCopyToMove ? DiagnosticId::sema_err_move_arg_macro : DiagnosticId::sema_err_move_arg_macro_value, resolvedArg.argRef);
             return Result::Continue;
         }

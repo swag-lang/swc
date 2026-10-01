@@ -356,7 +356,7 @@ namespace
         root.visitJitOrder([&out, &seen](SymbolFunction* function) {
             if (!function)
                 return;
-            if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return;
             if (!seen.insert(function))
                 return;
@@ -385,7 +385,7 @@ namespace
             return false;
         if (fn.isForeign() || fn.isEmpty() || fn.isAttribute())
             return false;
-        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
             return false;
         if (fn.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
@@ -402,7 +402,7 @@ namespace
         return root.allInJitOrder([](const SymbolFunction* dependency) {
             if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
                 return true;
-            if (dependency->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || dependency->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            if (dependency->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return true;
             return isIncludableConstantJitDependency(*dependency);
         });
@@ -722,7 +722,7 @@ namespace
             symFn.visitJitOrder([&out](SymbolFunction* function) {
                 if (!function)
                     return;
-                if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                     return;
 
                 out.push_back(function);
@@ -1023,15 +1023,16 @@ namespace
     {
         SWC_UNUSED(forceEvaluation);
 
-        if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        const AttributeList& attributes = calledFn.attributes();
+        if (attributes.hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
             return false;
         // Fallible calls depend on the runtime error context and must preserve
         // their TLS-visible side effects instead of being folded to a plain value.
         if (calledFn.isFallible())
             return false;
-        if (!calledFn.isPure() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+        if (!calledFn.isPure() && !attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
-        if (calledFn.isForeign() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+        if (calledFn.isForeign() && !attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
         if (calledFn.isEmpty() && !calledFn.isForeign())
             return false;
@@ -1049,11 +1050,12 @@ namespace
 
     bool supportsConstSetCallJit(Sema& sema, const SymbolFunction& calledFn, const TypeRef receiverTypeRef)
     {
-        if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        const AttributeList& attributes = calledFn.attributes();
+        if (attributes.hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
             return false;
         if (calledFn.isFallible())
             return false;
-        if (!calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+        if (!attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
         if (calledFn.isEmpty() && !calledFn.isForeign())
             return false;

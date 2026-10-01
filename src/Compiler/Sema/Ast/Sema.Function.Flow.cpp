@@ -251,7 +251,7 @@ namespace
         for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
         {
             const auto* sourceFunction = payload->sourceFunction;
-            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return false;
         }
 

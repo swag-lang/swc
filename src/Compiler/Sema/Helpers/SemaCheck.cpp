@@ -977,7 +977,7 @@ Result SemaCheck::missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRe
 
     // A macro or a mixin has no frame of its own: its body is spliced into the caller, which
     // is where the flow question belongs.
-    if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
         return Result::Continue;
 
     const TypeRef returnTypeRef = sym.returnTypeRef();

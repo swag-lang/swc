@@ -67,10 +67,10 @@ namespace
     // on their full structural hash so structurally-equal-but-distinct symbols land in the
     // same shard and dedupe; that recursive hash is itself now allocation-free thanks to
     // the per-symbol name-hash memoization.
-    uint32_t stableShardHash(CompilerInstance* compiler, const TypeInfo& typeInfo)
+    uint32_t stableShardHash(CompilerInstance* compiler, const TypeInfo& typeInfo, uint32_t hash)
     {
         if (!compiler)
-            return typeInfo.hash();
+            return hash;
 
         const auto nominalShardHash = [&](const Symbol& sym) {
             const TaskContext ctx(*compiler);
@@ -99,7 +99,7 @@ namespace
             }
 
             default:
-                return typeInfo.hash();
+                return hash;
         }
     }
 }
@@ -270,7 +270,8 @@ TypeRef TypeManager::typeFloat(uint32_t bits) const
 
 TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 {
-    const uint32_t stableHash = stableShardHash(compiler_, typeInfo);
+    const uint32_t hash       = typeInfo.hash();
+    const uint32_t stableHash = stableShardHash(compiler_, typeInfo, hash);
     const uint32_t shardIndex = stableHash & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     auto&          shard       = shards_[shardIndex];
@@ -280,7 +281,6 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     // Intern lookup takes no lock: most requests name a type that already exists, and every
     // worker asks for the common ones. Only the insertion path locks the stripe and appends to
     // the shard store.
-    const size_t hash = typeInfo.hash();
     const TypeRef found = findInterned(stripe.table.load(std::memory_order_acquire), typeInfo, hash);
     if (found.isValid())
         return found;

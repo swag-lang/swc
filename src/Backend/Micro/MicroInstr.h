@@ -42,7 +42,8 @@ enum class MicroInstrFlagsE : uint16_t
     IsCallInstruction        = 1 << 6,
     WritesMemory             = 1 << 7,
     // An encoder may add implicit register uses or definitions for this opcode.
-    EncoderRegUseDef = 1 << 8,
+    EncoderRegUseDef    = 1 << 8,
+    Fixed128BitOperands = 1 << 9,
 };
 using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
 
@@ -55,6 +56,8 @@ struct MicroInstrDef
     MicroInstrFlags                  flags                 = MicroInstrFlagsE::Zero;
     uint8_t                          memBaseOperandIndex   = 0;
     uint8_t                          memOffsetOperandIndex = 0;
+    // Only these union operands contain MicroOpBits, never immediates or registers.
+    uint8_t opBitsMask = 0;
 
     std::array<MicroInstrRegMode, 3> resolvedRegModes(const MicroInstrOperand* ops) const;
 };
@@ -202,6 +205,7 @@ struct MicroInstr
     const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;
     MicroInstrUseDef         collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
     CallFloatArgs            callFloatArgs(const MicroOperandStorage& operands) const;
+    bool                     has128BitOperands(const MicroInstrOperand* operands) const;
     // Conservatively describes all float inputs of a packed instruction.
     MicroOpBits packedFloatInputBits(const MicroInstrOperand* operands) const;
     // Refills a record the caller keeps. A call names every argument and transient register of

@@ -2198,13 +2198,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
         const MicroInstr*        inst = instructions_->ptr(instructionRefs[idx]);
         const MicroInstrOperand* ops  = inst ? inst->ops(*operands_) : nullptr;
-        for (uint8_t opIndex = 0; inst && opIndex < inst->numOperands; ++opIndex)
-        {
-            if (ops[opIndex].opBits != MicroOpBits::B128)
-                continue;
+        if (inst && inst->has128BitOperands(ops))
             wideInstructionPositions.push_back(idx);
-            break;
-        }
     }
 
     const uint32_t virtualWordCount  = denseVirtualRegs_.wordCount();

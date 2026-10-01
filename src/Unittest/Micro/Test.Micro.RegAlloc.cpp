@@ -2032,6 +2032,58 @@ SWC_TEST_BEGIN(RegAlloc_PackedInputsKeepScalarSpillSlots)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_ScalarSpillIgnoresNonWidthOperands)
+{
+    struct Case
+    {
+        uint32_t registerIndex;
+        uint64_t memoryOffset;
+    };
+    const Case cases[] = {{7000, 0}, {7000, 128}, {7000, 384}, {128, 0}, {384, 0}};
+    for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
+    {
+        for (const auto callConvKind : testedCallConvs())
+        {
+            const auto& conv = CallConv::get(callConvKind);
+            for (const auto& testCase : cases)
+            {
+                MicroBuilder builder(ctx);
+                builder.setBackendBuildCfg({.optimLevel = level});
+                const MicroReg scalar = MicroReg::virtualFloatReg(testCase.registerIndex);
+                builder.addVirtualRegForbiddenPhysRegs(scalar, conv.floatPersistentRegs.span());
+                builder.emitLoadRegMem(scalar, conv.intArgRegs[0], testCase.memoryOffset, MicroOpBits::B64);
+                builder.emitCallReg(conv.intArgRegs[1], callConvKind, 0, 0);
+                builder.emitLoadMemReg(conv.intArgRegs[0], 0, scalar, MicroOpBits::B64);
+                builder.emitRet();
+
+                MicroRegisterAllocationPass regAllocPass;
+                MicroPassManager            passes;
+                passes.addStartPass(regAllocPass);
+                MicroPassContext passCtx;
+                passCtx.callConvKind = callConvKind;
+                SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+                SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+                if (passCtx.intervalAllocated != (level != Runtime::BuildCfgBackendOptimLevel::O0))
+                    return Result::Error;
+                uint32_t scalarSpills = 0;
+                for (const auto& inst : builder.instructions().view())
+                {
+                    const auto* ops = inst.ops(builder.operands());
+                    if (inst.op != MicroInstrOpcode::LoadMemReg || ops[0].reg != conv.stackPointer || !ops[1].reg.isFloat())
+                        continue;
+                    if (ops[2].opBits != MicroOpBits::B64)
+                        return Result::Error;
+                    ++scalarSpills;
+                }
+                if (scalarSpills != 1)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

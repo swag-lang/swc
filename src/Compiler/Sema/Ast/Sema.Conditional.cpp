@@ -400,9 +400,15 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
         {
             // Nullability qualifiers do not change representation. Retag the selected
             // constant so '#typeof' observes the same contract as the expression.
-            ConstantValue resultCst = sema.cstMgr().get(selectedCst);
-            resultCst.setTypeRef(resultTypeRef);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), resultCst));
+            const ConstantValue& source       = sema.cstMgr().get(selectedCst);
+            ConstantRef          resultCstRef = selectedCst;
+            if (source.typeRef() != resultTypeRef)
+            {
+                ConstantValue resultCst = source;
+                resultCst.setTypeRef(resultTypeRef);
+                resultCstRef = sema.cstMgr().addConstant(sema.ctx(), resultCst);
+            }
+            sema.setConstant(sema.curNodeRef(), resultCstRef);
         }
         else
             sema.setSubstitute(sema.curNodeRef(), selectedRef);

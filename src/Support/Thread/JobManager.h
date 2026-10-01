@@ -78,9 +78,11 @@ public:
         waitAll(clientId);
     }
 
+#if SWC_DEV_MODE
     // The driver counts each semantic barrier round; the rest is counted under the scheduler lock.
     void noteBarrierRound();
     void printStats(const TaskContext& ctx) const;
+#endif
 
     uint32_t      numWorkers() const noexcept { return configuredWorkerCount_; }
     uint32_t      randSeed() const noexcept { return randSeed_; }
@@ -170,6 +172,7 @@ private:
 
     void bumpClientCountLocked(ClientState& client, int delta);
 
+#if SWC_DEV_MODE
     // Where a parallel build loses its workers: rounds that drain the whole client, sleepers a
     // barrier moves and that park again afterwards, sleepers a dependency wakes precisely,
     // and the share of worker time spent running jobs. Updated under mtx_.
@@ -186,6 +189,7 @@ private:
     SchedulerStats                        stats_;
     bool                                  statsEnabled_ = false;
     std::chrono::steady_clock::time_point statsStart_;
+#endif
 
     struct RecordPool;
     static JobRecord* allocRecord();

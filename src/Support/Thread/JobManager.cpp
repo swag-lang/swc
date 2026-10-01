@@ -62,9 +62,11 @@ void JobManager::freeRecord(JobRecord* r)
     // Minimal reset (fields set on reuse anyway).
     r->job      = nullptr;
     r->state    = JobRecord::State::Ready;
-    r->priority       = JobPriority::Normal;
-    r->clientId       = 0;
+    r->priority = JobPriority::Normal;
+    r->clientId = 0;
+#if SWC_DEV_MODE
     r->wokenByBarrier = false;
+#endif
 
     // Overflow is dropped back to the heap on purpose: a shared spill pool created
     // cross-thread contention in the scheduler, which cost more than a rare reallocation.
@@ -126,6 +128,7 @@ void JobManager::setup(const CommandLine& cmdLine)
 #endif
 }
 
+#if SWC_DEV_MODE
 void JobManager::noteBarrierRound()
 {
     const std::unique_lock lk(mtx_);
@@ -150,6 +153,7 @@ void JobManager::printStats(const TaskContext& ctx) const
     entries.push_back({.label = "Worker occupancy", .value = std::format("{:.1f}% of {} ms x {} workers", occupancy, wallNs / 1'000'000, configuredWorkerCount_)});
     Logger::printFieldGroup(ctx, "Scheduler", entries);
 }
+#endif
 
 std::optional<size_t> JobManager::currentThreadIndex() const noexcept
 {
@@ -248,11 +252,13 @@ void JobManager::parkLocked(ClientState& client, JobRecord* rec, const TaskState
     SWC_ASSERT(rec->state == JobRecord::State::Running);
     rec->state = JobRecord::State::Waiting;
     bumpClientCountLocked(client, -1);
+#if SWC_DEV_MODE
     if (rec->wokenByBarrier)
     {
         stats_.barrierReparked++;
         rec->wokenByBarrier = false;
     }
+#endif
 
     JobRecord*& clientHead  = client.waitingHead;
     rec->clientWaitPrevious = nullptr;
@@ -383,7 +389,9 @@ void JobManager::wake(const WaitKey& key)
         rec = next;
         ++woken;
     }
+#if SWC_DEV_MODE
     stats_.dependencyWoken += woken;
+#endif
 
     growWorkersForLoadLocked();
 
@@ -562,7 +570,9 @@ bool JobManager::wakeAll(JobClientId client)
         for (JobRecord* rec : temp)
         {
             requeueWaitingLocked(clientIt->second, rec);
+#if SWC_DEV_MODE
             rec->wokenByBarrier = true;
+#endif
             ++woken;
         }
     }
@@ -571,11 +581,15 @@ bool JobManager::wakeAll(JobClientId client)
         while (JobRecord* rec = clientIt->second.waitingHead)
         {
             requeueWaitingLocked(clientIt->second, rec);
+#if SWC_DEV_MODE
             rec->wokenByBarrier = true;
+#endif
             ++woken;
         }
     }
+#if SWC_DEV_MODE
     stats_.barrierWoken += woken;
+#endif
 
     if (woken != 0)
     {
@@ -801,12 +815,18 @@ void JobManager::workerLoop()
         rec->state = JobRecord::State::Running;
         ++activeWorkers_;
         lk.unlock();
-        const auto      start = statsEnabled_ ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
-        const JobResult res   = executeJob(*rec->job);
-        const auto      end   = statsEnabled_ ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+#if SWC_DEV_MODE
+        const auto start = statsEnabled_ ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+#endif
+        const JobResult res = executeJob(*rec->job);
+#if SWC_DEV_MODE
+        const auto end = statsEnabled_ ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+#endif
         lk.lock();
+#if SWC_DEV_MODE
         stats_.jobsExecuted++;
         stats_.busyNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
+#endif
         handleJobResultLocked(rec, res);
         --activeWorkers_;
 

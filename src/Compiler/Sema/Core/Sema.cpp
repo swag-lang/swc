@@ -1889,7 +1889,9 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     {
         SWC_DEV_LOOP_TICK(loopGuard);
         jobMgr.waitAll(clientId);
+#if SWC_DEV_MODE
         jobMgr.noteBarrierRound();
+#endif
 
         // Compiler messages, lazy bodies, and type-info publication can unblock
         // semantic jobs without another worker finishing. JIT calls run through a

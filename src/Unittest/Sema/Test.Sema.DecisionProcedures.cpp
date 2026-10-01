@@ -277,6 +277,57 @@ SWC_TEST_BEGIN(Sema_GenericMethodSignaturePublishesLazyBody)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sema_CompletedLazySignatureReplayDoesNotRepublishBody)
+{
+    SemaDecisionFixture fixture(ctx, "CompletedLazySignatureReplayDoesNotRepublishBody");
+    Sema&               sema = fixture.sema();
+    auto [declRef, decl]     = sema.ast().makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
+    auto [paramsRef, params] = sema.ast().makeNode<AstNodeId::FunctionParamList>(TokenRef::invalid());
+    auto [bodyRef, body]     = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(TokenRef::invalid());
+    SWC_UNUSED(params);
+    SWC_UNUSED(body);
+    decl->nodeParamsRef = paramsRef;
+    decl->nodeBodyRef   = bodyRef;
+
+    constexpr SymbolFlags ownerFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+    const IdentifierRef   ownerId    = ctx.idMgr().addIdentifierOwned("LazySignatureOwner");
+    const IdentifierRef   methodId   = ctx.idMgr().addIdentifierOwned("lazySignatureMethod");
+    auto*                 root       = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), ownerId, ownerFlags);
+    auto*                 owner      = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), ownerId, ownerFlags);
+    owner->setGenericInstance(root, {});
+
+    auto* function = Symbol::make<SymbolFunction>(ctx, decl, TokenRef::invalid(), methodId, SymbolFlagsE::Declared);
+    function->addExtraFlag(SymbolFunctionFlagsE::Method);
+    function->setDeclNodeRef(declRef);
+    function->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
+    owner->addSingleSymbol(ctx, function);
+    sema.setSymbol(declRef, function);
+
+    // Stop exactly where signature-only preparation publishes the callable symbol.
+    // The declaring walk has not visited the body, so a caller must already know
+    // that it needs to complete that body before using its borrow summary.
+    Sema functionSema(ctx, sema, declRef);
+    SWC_RESULT(decl->semaPostNodeChild(functionSema, paramsRef));
+    if (!function->isTyped() || function->isSemaCompleted())
+        return Result::Error;
+    if (!function->hasExtraFlag(SymbolFunctionFlagsE::LazyBody))
+        return Result::Error;
+
+    // Model the runner's completion before the declaring walk reaches its own
+    // signature callback. A published signature must not acquire deferred work again.
+    function->removeExtraFlag(SymbolFunctionFlagsE::LazyBody);
+    function->setSemaCompleted(ctx);
+    Sema replay(ctx, sema, declRef);
+    SWC_RESULT(decl->semaPostNodeChild(replay, paramsRef));
+    if (function->hasExtraFlag(SymbolFunctionFlagsE::LazyBody))
+        return Result::Error;
+    if (decl->semaPreNodeChild(replay, bodyRef) != Result::SkipChildren)
+        return Result::Error;
+    if (function->hasExtraFlag(SymbolFunctionFlagsE::LazyBody))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Sema_DeclarationReplayPreservesPublishedAttributeStorage)
 {
     SemaDecisionFixture fixture(ctx, "DeclarationReplayPreservesPublishedAttributeStorage");

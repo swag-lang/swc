@@ -223,6 +223,16 @@ namespace PostRaPeephole
                 return;
             }
 
+            if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg && (ops[4].microOp == MicroOp::FloatAddProduct || ops[4].microOp == MicroOp::FloatSubtractProduct ||
+                                                                    ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom))
+            {
+                const uint8_t mask = FloatLaneDemand::mask(ops[3].opBits);
+                demand.read(ops[0].reg, mask);
+                demand.read(ops[1].reg, mask);
+                demand.read(ops[2].reg, mask);
+                return;
+            }
+
             if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[0].reg.isFloat() &&
                 (ops[3].opBits == MicroOpBits::B32 || ops[3].opBits == MicroOpBits::B64) &&
                 hasThreeOperandForm(ops[4].microOp))
@@ -244,10 +254,12 @@ namespace PostRaPeephole
                 demand.read(ops[2].reg, mask);
                 return;
             }
-            if ((inst.op == MicroInstrOpcode::OpBinaryRegReg || inst.op == MicroInstrOpcode::OpBinaryRegMem) &&
-                ops[0].reg.isFloat() && (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
+            const bool indexedBinary = inst.op == MicroInstrOpcode::OpBinaryRegAmcMem;
+            const bool scalarBinary  = inst.op == MicroInstrOpcode::OpBinaryRegReg || inst.op == MicroInstrOpcode::OpBinaryRegMem || indexedBinary;
+            const auto binaryBits    = scalarBinary ? ops[indexedBinary ? 3 : 2].opBits : MicroOpBits::Zero;
+            if (scalarBinary && ops[0].reg.isFloat() && (binaryBits == MicroOpBits::B32 || binaryBits == MicroOpBits::B64))
             {
-                const uint8_t mask = FloatLaneDemand::mask(ops[2].opBits);
+                const uint8_t mask = FloatLaneDemand::mask(binaryBits);
                 const MicroOp op   = ops[info.microOpIndex].microOp;
                 if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
                 {
@@ -279,23 +291,253 @@ namespace PostRaPeephole
         }
     }
 
+    namespace
+    {
+        struct FloatLaneAnalysis
+        {
+            struct Block
+            {
+                uint32_t        begin;
+                uint32_t        end;
+                FloatLaneDemand input{};
+            };
+
+            const MicroControlFlowGraph*   cfg = nullptr;
+            std::span<const MicroInstrRef> refs;
+            std::vector<Block>             blocks;
+            std::vector<uint32_t>          blockFor;
+            std::vector<uint32_t>          pending;
+            std::vector<bool>              queued;
+
+            FloatLaneDemand outputDemand(const Block& block) const
+            {
+                FloatLaneDemand demand{};
+                const auto&     successors = cfg->successors(block.end - 1);
+                if (successors.empty())
+                    demand.reset();
+                for (const uint32_t successor : successors)
+                    for (size_t reg = 0; reg < demand.lanes.size(); ++reg)
+                        demand.lanes[reg] |= blocks[blockFor[successor]].input.lanes[reg];
+                return demand;
+            }
+
+            bool build(Context& ctx)
+            {
+                if (!ctx.builder)
+                    return false;
+                cfg = &ctx.builder->controlFlowGraph();
+                if (!cfg->supportsDeadCodeLiveness() || cfg->hasUnsupportedControlFlowForCfgLiveness())
+                    return false;
+                refs = cfg->instructionRefs();
+                blocks.clear();
+                blockFor.resize(refs.size());
+                uint32_t begin = 0;
+                for (uint32_t i = 0; i < refs.size(); ++i)
+                {
+                    blockFor[i]            = static_cast<uint32_t>(blocks.size());
+                    const auto& successors = cfg->successors(i);
+                    if (i + 1 < refs.size() && successors.size() == 1 && successors[0] == i + 1 &&
+                        cfg->predecessors(i + 1).size() == 1)
+                        continue;
+                    blocks.push_back({begin, i + 1});
+                    begin = i + 1;
+                }
+                pending.clear();
+                queued.assign(blocks.size(), true);
+                for (uint32_t i = 0; i < blocks.size(); ++i)
+                    pending.push_back(i);
+                while (!pending.empty())
+                {
+                    const uint32_t index = pending.back();
+                    pending.pop_back();
+                    queued[index] = false;
+                    auto& block   = blocks[index];
+                    auto  demand  = outputDemand(block);
+                    for (uint32_t i = block.end; i > block.begin;)
+                        transferFloatLaneDemand(demand, ctx, refs[--i]);
+                    if (demand.lanes == block.input.lanes)
+                        continue;
+                    block.input = demand;
+                    for (const uint32_t predecessor : cfg->predecessors(block.begin))
+                    {
+                        const uint32_t predecessorBlock = blockFor[predecessor];
+                        if (!queued[predecessorBlock])
+                        {
+                            queued[predecessorBlock] = true;
+                            pending.push_back(predecessorBlock);
+                        }
+                    }
+                }
+                return true;
+            }
+
+            FloatLaneDemand after(Context& ctx, MicroInstrRef ref) const
+            {
+                const uint32_t index = cfg->indexOf(ref);
+                SWC_ASSERT(index < refs.size());
+                const auto& block  = blocks[blockFor[index]];
+                auto        demand = outputDemand(block);
+                for (uint32_t i = block.end; i > index + 1;)
+                    transferFloatLaneDemand(demand, ctx, refs[--i]);
+                return demand;
+            }
+        };
+
+        uint8_t floatLanesReadAfter(Context& ctx, MicroInstrRef afterRef, MicroReg reg, uint8_t requested = 15)
+        {
+            if (!reg.isFloat() || ctx.isClaimed(afterRef))
+                return 15;
+            // Stop where another edge may enter or leave. Unknown successors keep
+            // every lane live; intervening complete definitions can still kill it.
+            // Pending rewrites are opaque, as in the function-wide lane analysis.
+            thread_local std::vector<MicroInstrRef> suffix;
+            suffix.clear();
+            for (auto ref = ctx.nextRef(afterRef); ref.isValid(); ref = ctx.nextRef(ref))
+            {
+                const auto* inst = ctx.instruction(ref);
+                if (!inst || inst->op == MicroInstrOpcode::Label)
+                    break;
+                suffix.push_back(ref);
+                const auto flags = MicroInstr::info(inst->op).flags;
+                if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                    break;
+            }
+            FloatLaneDemand demand;
+            demand.reset();
+            for (const auto ref : std::views::reverse(suffix))
+                transferFloatLaneDemand(demand, ctx, ref);
+            if (!(demand.lanes[reg.index()] & requested))
+                return 0;
+            // A branch is not itself a use. Reuse the full lane solver when the
+            // local suffix cannot decide, rebuilding against current queued claims.
+            thread_local FloatLaneAnalysis analysis;
+            if (analysis.build(ctx))
+                return analysis.after(ctx, afterRef).lanes[reg.index()] & requested;
+            return demand.lanes[reg.index()] & requested;
+        }
+    }
+
+    bool areFloatUpperLanesDeadAfter(Context& ctx, MicroInstrRef afterRef, MicroReg reg, MicroOpBits copiedBits)
+    {
+        if (copiedBits == MicroOpBits::B128)
+            return true;
+        return !floatLanesReadAfter(ctx, afterRef, reg, static_cast<uint8_t>(15 & ~FloatLaneDemand::mask(copiedBits)));
+    }
+
+    namespace
+    {
+        struct ScalarFloatBinary
+        {
+            MicroReg    dst;
+            MicroReg    left;
+            MicroReg    right;
+            MicroOpBits bits;
+            MicroOp     op;
+        };
+
+        bool scalarFloatBinary(ScalarFloatBinary& out, const MicroInstr& inst, const MicroOperandStorage& operands)
+        {
+            const auto* ops = inst.ops(operands);
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                out = {ops[0].reg, ops[0].reg, ops[1].reg, ops[2].opBits, ops[3].microOp};
+            else if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg)
+                out = {ops[0].reg, ops[1].reg, ops[2].reg, ops[3].opBits, ops[4].microOp};
+            else
+                return false;
+            return out.dst.isFloat() && out.left.isFloat() && out.right.isFloat() &&
+                   (out.bits == MicroOpBits::B32 || out.bits == MicroOpBits::B64);
+        }
+
+        bool tryFuseScalarFloatProduct(Context& ctx, FloatLaneDemand& demand, MicroInstrRef multiplyRef, MicroInstrRef accumulateRef)
+        {
+            if (ctx.isClaimed(multiplyRef) || ctx.isClaimed(accumulateRef))
+                return false;
+            ScalarFloatBinary multiply;
+            ScalarFloatBinary accumulate;
+            if (!scalarFloatBinary(multiply, *ctx.storage->ptr(multiplyRef), *ctx.operands) ||
+                !scalarFloatBinary(accumulate, *ctx.storage->ptr(accumulateRef), *ctx.operands) ||
+                multiply.op != MicroOp::FloatMultiply || (accumulate.op != MicroOp::FloatAdd && accumulate.op != MicroOp::FloatSubtract) || multiply.bits != accumulate.bits)
+                return false;
+
+            MicroReg addend;
+            if (accumulate.right == multiply.dst)
+                addend = accumulate.left;
+            else if (accumulate.op == MicroOp::FloatAdd && accumulate.left == multiply.dst)
+                addend = accumulate.right;
+            else
+                return false;
+            if (addend == multiply.dst)
+                return false;
+
+            MicroInstrOperand fused[5] = {};
+            fused[0].reg               = accumulate.dst;
+            fused[3].opBits            = accumulate.bits;
+            if (accumulate.dst == addend)
+            {
+                fused[1].reg     = multiply.left;
+                fused[2].reg     = multiply.right;
+                fused[4].microOp = accumulate.op == MicroOp::FloatAdd ? MicroOp::FloatAddProduct : MicroOp::FloatSubtractProduct;
+            }
+            else if (accumulate.dst == multiply.left || accumulate.dst == multiply.right)
+            {
+                fused[1].reg     = accumulate.dst == multiply.left ? multiply.right : multiply.left;
+                fused[2].reg     = addend;
+                fused[4].microOp = accumulate.op == MicroOp::FloatAdd ? MicroOp::FloatProductAdd : MicroOp::FloatProductSubtractFrom;
+            }
+            else
+                return false;
+
+            // A distinct product must die in every lane, including lanes retained by
+            // later scalar writes. Reusing its register for the final result is safe.
+            if (multiply.dst != accumulate.dst && demand.lanes[multiply.dst.index()])
+                return false;
+            // Scalar binary forms copy upper lanes from their first input. Fused
+            // forms retain dst instead, so any different upper source must die.
+            const MicroReg upperSource = accumulate.left == multiply.dst ? multiply.left : accumulate.left;
+            if (upperSource != accumulate.dst && (demand.lanes[accumulate.dst.index()] & ~FloatLaneDemand::mask(accumulate.bits)))
+                return false;
+            if (!encoderAcceptsAsIs(ctx, MicroInstrOpcode::OpTernaryRegRegReg, fused))
+                return false;
+            auto before = demand;
+            transferFloatLaneDemand(before, ctx, accumulateRef);
+            transferFloatLaneDemand(before, ctx, multiplyRef);
+            if (!ctx.claimAll({multiplyRef, accumulateRef}))
+                return false;
+            demand = before;
+            ctx.emitErase(multiplyRef);
+            ctx.emitRewrite(accumulateRef, MicroInstrOpcode::OpTernaryRegRegReg, fused, true);
+            return true;
+        }
+    }
+
     // MOVSS/MOVSD retain the old destination's upper lanes. A complete copy
     // removes that dependency whenever no reachable consumer needs those lanes.
     // Solve demands over straight-line blocks so a scalar use beyond a branch
-    // does not make all four lanes live. Pending rewrites stay opaque.
-    void widenScalarFloatCopies(Context& ctx)
+    // does not make all four lanes live. The same proof permits contraction when
+    // the product is dead in every lane and the floating policy allows FMA.
+    // Pending rewrites stay opaque.
+    void optimizeScalarFloatInstructions(Context& ctx)
     {
         if (!ctx.builder)
             return;
         const auto& cfg = ctx.builder->controlFlowGraph();
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return;
+        const bool allowFusion = ctx.encoder && ctx.encoder->supportsFusedFloatMultiplyAdd() && ctx.builder->backendBuildCfg().fpMathFma;
         const auto refs      = cfg.instructionRefs();
         bool       candidate = false;
         for (const auto ref : refs)
         {
             const auto* inst = ctx.storage->ptr(ref);
-            if (inst->op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(ref))
+            if (ctx.isClaimed(ref))
+                continue;
+            ScalarFloatBinary binary;
+            if (allowFusion && scalarFloatBinary(binary, *inst, *ctx.operands) && (binary.op == MicroOp::FloatAdd || binary.op == MicroOp::FloatSubtract))
+            {
+                candidate = true;
+                break;
+            }
+            if (inst->op != MicroInstrOpcode::LoadRegReg)
                 continue;
             const auto* ops = inst->ops(*ctx.operands);
             if (ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
@@ -308,72 +550,23 @@ namespace PostRaPeephole
         if (!candidate)
             return;
 
-        struct LaneBlock
-        {
-            uint32_t        begin;
-            uint32_t        end;
-            FloatLaneDemand input{};
-        };
-        std::vector<LaneBlock> blocks;
-        std::vector<uint32_t>  blockFor(refs.size());
-        uint32_t               begin = 0;
-        for (uint32_t i = 0; i < refs.size(); ++i)
-        {
-            blockFor[i]            = static_cast<uint32_t>(blocks.size());
-            const auto& successors = cfg.successors(i);
-            if (i + 1 < refs.size() && successors.size() == 1 && successors[0] == i + 1 &&
-                cfg.predecessors(i + 1).size() == 1)
-                continue;
-            blocks.push_back({begin, i + 1});
-            begin = i + 1;
-        }
+        thread_local FloatLaneAnalysis analysis;
+        if (!analysis.build(ctx))
+            return;
 
-        const auto outputDemand = [&](const LaneBlock& block) {
-            FloatLaneDemand demand{};
-            const auto&     successors = cfg.successors(block.end - 1);
-            if (successors.empty())
-                demand.reset();
-            for (const uint32_t successor : successors)
-                for (size_t reg = 0; reg < demand.lanes.size(); ++reg)
-                    demand.lanes[reg] |= blocks[blockFor[successor]].input.lanes[reg];
-            return demand;
-        };
-
-        std::vector<uint32_t> pending;
-        std::vector<bool>     queued(blocks.size(), true);
-        for (uint32_t i = 0; i < blocks.size(); ++i)
-            pending.push_back(i);
-        while (!pending.empty())
+        for (const auto& block : analysis.blocks)
         {
-            const uint32_t index = pending.back();
-            pending.pop_back();
-            queued[index] = false;
-            auto& block   = blocks[index];
-            auto  demand  = outputDemand(block);
-            for (uint32_t i = block.end; i > block.begin;)
-                transferFloatLaneDemand(demand, ctx, refs[--i]);
-            if (demand.lanes == block.input.lanes)
-                continue;
-            block.input = demand;
-            for (const uint32_t predecessor : cfg.predecessors(block.begin))
-            {
-                const uint32_t predecessorBlock = blockFor[predecessor];
-                if (!queued[predecessorBlock])
-                {
-                    queued[predecessorBlock] = true;
-                    pending.push_back(predecessorBlock);
-                }
-            }
-        }
-
-        for (const auto& block : blocks)
-        {
-            auto demand = outputDemand(block);
+            auto demand = analysis.outputDemand(block);
             for (uint32_t i = block.end; i > block.begin;)
             {
                 const auto  ref   = refs[--i];
                 const auto* inst  = ctx.storage->ptr(ref);
                 const auto* ops   = inst->ops(*ctx.operands);
+                if (allowFusion && i > block.begin && tryFuseScalarFloatProduct(ctx, demand, refs[i - 1], ref))
+                {
+                    --i;
+                    continue;
+                }
                 bool        widen = false;
                 if (inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
                     ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
@@ -1273,7 +1466,7 @@ namespace PostRaPeephole
         MicroInstrOperand newOps[5] = {};
         if (opInst->op == MicroInstrOpcode::OpBinaryRegReg)
         {
-            if (opOps[2].opBits != copyBits || !foldableIntoThreeOperand(opOps[3].microOp, copyBits) ||
+            if ((opOps[2].opBits != copyBits && copyBits != MicroOpBits::B128) || !foldableIntoThreeOperand(opOps[3].microOp, opOps[2].opBits) ||
                 !opOps[0].reg.isFloat() || !opOps[1].reg.isFloat())
                 return false;
             if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())
@@ -1285,12 +1478,17 @@ namespace PostRaPeephole
         }
         else
         {
-            if (opOps[3].opBits != copyBits || !opOps[1].reg.isFloat() || !opOps[2].reg.isFloat())
+            if ((opOps[3].opBits != copyBits && copyBits != MicroOpBits::B128) || !opOps[1].reg.isFloat() || !opOps[2].reg.isFloat())
                 return false;
             std::ranges::copy(std::span{opOps, 5}, newOps);
         }
 
-        if (!ctx.claimAll({opRef, copyRef}))
+        // A scalar VEX producer already carries the final destination's upper
+        // lanes when that destination is its first input. Bitwise forms write
+        // every lane and cannot use that identity.
+        const bool preservesUpperLanes = newOps[1].reg == dst && newOps[4].microOp != MicroOp::FloatAnd && newOps[4].microOp != MicroOp::FloatXor;
+        if ((!preservesUpperLanes && !areFloatUpperLanesDeadAfter(ctx, copyRef, dst, copyBits)) || floatLanesReadAfter(ctx, copyRef, src) ||
+            !ctx.claimAll({opRef, copyRef}))
             return false;
 
         newOps[0].reg = dst;
@@ -1544,9 +1742,10 @@ namespace PostRaPeephole
             return false;
 
         const MicroOpBits opBits = binOps[2].opBits;
-        if (opBits != copyOps[2].opBits)
+        if (opBits != copyOps[2].opBits && copyOps[2].opBits != MicroOpBits::B128)
             return false;
-        if (!foldableIntoThreeOperand(binOps[3].microOp, opBits))
+        if (!foldableIntoThreeOperand(binOps[3].microOp, opBits) ||
+            !areFloatUpperLanesDeadAfter(ctx, opRef, dst, copyOps[2].opBits))
             return false;
 
         if (!ctx.claimAll({copyRef, opRef}))

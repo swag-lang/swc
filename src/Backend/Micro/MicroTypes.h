@@ -94,14 +94,18 @@ enum class MicroOp : uint8_t
     DivideUnsigned,
     Exchange,
     FloatAdd,
+    FloatAddProduct, // Fused dst + src1 * src2; scalar upper lanes retain dst.
     FloatAnd,
     FloatDivide,
     FloatMax,
     FloatMin,
     FloatMultiply,
+    FloatProductAdd,          // Fused dst * src1 + src2; scalar upper lanes retain dst.
+    FloatProductSubtractFrom, // Fused src2 - dst * src1; scalar upper lanes retain dst.
     FloatRound,
     FloatSqrt,
     FloatSubtract,
+    FloatSubtractProduct, // Fused dst - src1 * src2; scalar upper lanes retain dst.
     FloatXor,
     LeadingZeroCount,
     LoadEffectiveAddress,

@@ -136,6 +136,8 @@ namespace
                 return "div";
             case MicroOp::Exchange:
                 return "xchg";
+            case MicroOp::FloatAddProduct:
+                return "faddproduct";
             case MicroOp::FloatAdd:
                 return "fadd";
             case MicroOp::FloatAnd:
@@ -148,10 +150,16 @@ namespace
                 return "fmin";
             case MicroOp::FloatMultiply:
                 return "fmul";
+            case MicroOp::FloatProductAdd:
+                return "fproductadd";
+            case MicroOp::FloatProductSubtractFrom:
+                return "fproductsubfrom";
             case MicroOp::FloatRound:
                 return "fround";
             case MicroOp::FloatSqrt:
                 return "fsqrt";
+            case MicroOp::FloatSubtractProduct:
+                return "fsubproduct";
             case MicroOp::FloatSubtract:
                 return "fsub";
             case MicroOp::FloatXor:
@@ -994,6 +1002,16 @@ namespace
 
             case MicroInstrOpcode::OpTernaryRegRegReg:
             {
+                if (ops[4].microOp == MicroOp::FloatAddProduct || ops[4].microOp == MicroOp::FloatSubtractProduct ||
+                    ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom)
+                {
+                    const bool     productDestination = ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom;
+                    const bool     subtract           = ops[4].microOp == MicroOp::FloatSubtractProduct || ops[4].microOp == MicroOp::FloatProductSubtractFrom;
+                    const MicroReg first              = ops[productDestination ? 0 : 1].reg;
+                    const MicroReg second             = ops[productDestination ? 1 : 2].reg;
+                    const MicroReg addend             = ops[productDestination ? 2 : 0].reg;
+                    return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(subtract ? "fnma" : "fma"), regName(first, regPrintMode, encoder), regName(second, regPrintMode, encoder), regName(addend, regPrintMode, encoder));
+                }
                 const auto infixOp = binaryInfixOperator(ops[4].microOp);
                 if (!infixOp.empty())
                     return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, regName(ops[2].reg, regPrintMode, encoder));

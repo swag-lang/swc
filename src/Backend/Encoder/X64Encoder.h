@@ -120,6 +120,7 @@ protected:
     // AVX is the baseline for generated code, so the three-operand VEX forms are
     // always available.
     bool supportsNonDestructiveFloatBinary() const override { return true; }
+    bool supportsFusedFloatMultiplyAdd() const override { return true; }
 
     std::unique_ptr<X64Unwind> unwind_;
 };

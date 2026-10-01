@@ -127,6 +127,10 @@ namespace
             case MicroOp::ConvertInt64ToFloat32:
             case MicroOp::ConvertInt32ToFloat64:
             case MicroOp::ConvertUIntToFloat64:
+            case MicroOp::FloatAddProduct:
+            case MicroOp::FloatSubtractProduct:
+            case MicroOp::FloatProductAdd:
+            case MicroOp::FloatProductSubtractFrom:
             case MicroOp::FloatAdd:
             case MicroOp::FloatAnd:
             case MicroOp::FloatDivide:

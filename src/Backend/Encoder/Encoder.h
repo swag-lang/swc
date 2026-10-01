@@ -69,6 +69,7 @@ public:
     // writing into one of its inputs. Where it cannot, the post-RA peephole
     // leaves the copy-then-operate pair alone.
     virtual bool                    supportsNonDestructiveFloatBinary() const { return false; }
+    virtual bool                    supportsFusedFloatMultiplyAdd() const { return false; }
     virtual bool                    supportsCarryArithmetic() const { return false; }
     virtual bool                    supportsHighByteExtract(MicroReg, MicroReg) const { return false; }
     void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }

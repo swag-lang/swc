@@ -18,129 +18,83 @@ block, and the hot path keeps the register.
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 13:50 — Kept narrow scalar spills and bounded the remaining scalar-capture experiment.
+- Updated: 2026-10-01 17:32 — Reused factor destinations for scalar contraction without changing live upper lanes.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
-- Comparison: accepted campaign `20260930-195406` reports Zig 0.15.2 at 15.2582 ms and
-  Swag native Release at 30.3729 ms, with `CHECK=169096566666`. The inspected Zig
-  `ReleaseFast` timestep has 348 machine instructions and 101 memory operands, retains
-  body state across timesteps, and executes four packed and two scalar square roots.
-- Regression evidence: the preceding accepted campaign `20260930-152655` reports Swag
-  native at 24.8768 ms; the raw increase is 22.1%, amplified to 38.5% by the campaigns'
-  different control factors. JIT moves from 25.6579 to 24.8732 ms. A fresh dump from the
-  preserved `f0a34dcf4` compiler shows why the two modes are not the same code: `#run`
-  retains the call to `advance`, while `#main` inlines it. JIT's 470 non-label Micro
-  operations in `advance` exactly match the native function from `819dd7872`, before
-  borrowed-slice inlining. An accepted controlled comparison must still separate the
-  earlier register/forwarding changes, inlining, and the current scalar dependency fixes.
-- Latest accepted campaign `20261001-103647`, built from `49f7e665d`, reports native
-  at 23.5431 ms (23.1885 after its task normalization), JIT at 25.9971 ms and the same
-  Zig 0.15.2 winner at 16.45 ms. The native raw result is below the September 30 evening
-  result again; it is still 1.431x the current winner. This full-campaign observation
-  is not a same-session causal comparison of the retained batches. Its calibration
-  drift is 17.35%, so the separate historical attribution below remains necessary.
-- Measurement limit: the October 1 historical comparisons at 07:36, 10:21 and 11:23
-  all fail the declared control gates. Even after a 30-second warmup, nbody's
-  control p90/p10 is 1.304 and its half-window median drift is 1.243; raytrace's
-  control p90/p10 is 1.298. The gates remain 1.20 and 15% respectively, with every
-  sample retained. These cohorts cannot quantify the regression's individual causes
-  or establish a speedup from the retained changes. The 13:16 cohort also fails:
-  nbody control spread is 1.292 and raytrace 1.549, with every sample retained.
-  Repeat on a stable machine; none of these failed cohorts supports attribution.
-- Current shape: main's timestep is 449/131/24 Microinstructions/memory operands/explicit
-  frame operands, including the 16/6/0 position loop. The prior inlined shape was
-  464/117/24. The slice-header vector round trip is gone, as are the timestep's transfers
-  between the integer and floating register files. The fourteen extra memory operands
-  replace cached integer bits; this is a code-level tradeoff, not a measured speedup.
-  All 32 register-to-register scalar copies in the timestep are full-width copies with
-  no dependency on the old destination's unused lanes. Its ten roots are encoded as
-  actual scalar roots, rather than computing an unused second lane.
-- Scalar packing now preserves narrow input spills: low-half interleaves consume only
-  eight bytes per input, and a dword shuffle selecting only the low two dwords does too.
-  Full-width readers and definitions still require 16-byte slots, including aliased
-  destinations. In the existing standalone `advance`, the timestep broadcast's spill and
-  reload become 64-bit, and the frame falls from 384 to 368 bytes without changing
-  470 non-label instructions, 134 memory accesses or 44 frame accesses. Main's timestep,
-  ChaCha, SHA-256 and raytrace keep their instruction/memory counts. C++ pressure cases
-  exercise both allocators and three conventions, plus full-width and aliased controls.
-- A further scalar-capture prototype slices failed f64 store trees after scalar divisions
-  and packs two distinct entry values. It replaces only the final x/y velocity pair:
-  main's timestep stays at 445 non-label instructions, with 131 to 130 memory accesses.
-  Two needless 128-bit spills initially added 16 frame bytes; the input-width fix above
-  removes that loss. The prototype is set aside until its setup cost is bounded against
-  scalar work that actually dies. It still has ten scalar roots, and does not close the
-  winner's shared packed-producer gap. Its exact-checksum dump remains experiment evidence.
-- Remaining gap: the pair roots and divisions still operate on one interaction at a
-  time. A useful pack must share the coordinate producers and scalar consumers without
-  retaining more live state than the register file can hold. The position loop already
-  packs x/y updates and has no frame traffic inside it.
-- Rejected root-pair scheduling after inlining: hoist the second independent distance's
-  proven pure producers across disjoint same-base stores, rename their SSA values, then
-  pack two scalar square roots. Main's timestep uses three packed and four scalar roots,
-  but changes from 464/117/24 to 511/148/76 instructions/memory operands/frame operands.
-  The standalone step reaches five packed roots, at 529/176/107 instead of 473/134/44.
-  Both checksums remain exact; Raytrace remains unchanged. Extending coordinate lifetimes
-  costs more memory than the packed roots save, so the prototype was removed.
-- A second schedule caches the hoisted coordinates and upper root lane in integer registers
-  until their original uses. Main's loop still regresses to 532/145/73; the standalone step
-  is 575/172/103. The integer transfers do not remove enough XMM interference and add more
-  instructions. This prototype was also removed. A profitable next design needs packed
-  coordinate producers and their scalar consumers planned together, with a register-pressure
-  estimate; pairing the expensive operations alone is not sufficient.
-- Rejected scalar-prefix trial: capturing common magnitudes before store-tree vectorization,
-  and allowing untouched prefix/suffix roots, grows the step from 464/152/44 to 576/222/119
-  instructions/memory operands/frame operands. Scalar coordinate work remains live for the
-  distance reductions, while packed velocity trees recompute it and keep the captures live.
-  The checksum stays exact, but the static regression rejects this approach. Packing needs
-  shared scalar/vector producers or independent pair scheduling, not late store trees alone.
-- Failed earlier trials: outer-unroll temporary renaming alone changed no benchmark function.
-  Broad LICM address reassociation grew SHA-256 main from 370 to 553 instructions by hiding
-  the four-byte swap idiom; keep the narrowed reassociation guard.
-- Next: finish the controlled historical attribution, then plan packed producers and
-  consumers together with a register-pressure estimate. Compare each interaction region
-  and the position loop separately; fewer memory operands alone did not settle the
-  previous integer-cache tradeoff.
+- Comparison: accepted campaign `20261001-103647`, built from `49f7e665d`, reports
+  native at 23.5431 ms, JIT at 25.9971 ms and Zig 0.15.2 at 16.45 ms, with
+  `CHECK=169096566666`. Native is 1.431x the current winner. The inspected Zig
+  `ReleaseFast` timestep has 348 non-NOP machine instructions, 101 memory operands,
+  four packed and two scalar square roots. This campaign predates the afternoon changes.
+- Current shape: main's timestep has 395 non-label Microinstructions (399 with labels),
+  131 actual memory accesses and 24 frame accesses. The position loop within it has
+  15 non-label instructions, six memory accesses and no frame access.
+  Contracting 31 additions and 19 subtractions of products removes 50 instructions from
+  the previous 445, with no extra memory access or larger frame. Nine benchmark checksums
+  stay exact; six other tasks keep their instruction/access counts, while raytrace and
+  csvagg also lose instructions. Contraction requires `fpMathFma`, a supported encoder and proof
+  that a distinct product is dead in every lane. Reusing a factor destination also preserves
+  the original upper-lane source or proves those output lanes dead. Explicit `Swag.muladd`
+  keeps its separate rounding.
+- The timestep's ten roots remain scalar. Its 33 register copies use the full width,
+  avoiding dependencies on old unused destination lanes. Earlier removal of integer/float
+  transfers replaced cached integer bits with fourteen more memory accesses (117 to 131);
+  that tradeoff still needs an accepted runtime comparison. The standalone `advance`
+  uses 422 non-label instructions, 134 memory and 44 frame accesses in a 368-byte frame.
+- Regression evidence: `20260930-152655` to `20260930-195406` changes native raw time
+  from 24.8768 to 30.3729 ms (+22.1%); different control factors amplify that to +38.5%
+  after normalization. JIT changes from 25.6579 to 24.8732 ms. At `f0a34dcf4`, native
+  `#main` inlines `advance`, but JIT `#run` retains its call. JIT's 470 non-label Micro
+  operations exactly match the native function at `819dd7872`, before borrowed-slice
+  inlining. The old inlined timestep's partial register copies and packed encodings of
+  scalar roots expose dependencies absent from the out-of-line shape. These are concrete
+  code differences; their individual runtime contributions have not been established.
+- Measurement limit: all four historical comparison cohorts on October 1 fail their
+  declared control gates (p90/p10 <= 1.20, half-window drift <= 15%). The 13:16 cohort,
+  after a 30-second warmup, has control spreads 1.292 for nbody and 1.549 for raytrace.
+  All samples remain recorded. The accepted noon campaign observes a lower native time
+  again, but its 17.35% calibration drift and different revision cannot establish a causal
+  speedup for one fix. Repeat attribution on a stable machine without relaxing the gates.
+- Rejected designs bound the next step: pairing roots after inlining extends coordinate
+  lifetimes and raises hot frame accesses from 24 to 76; retaining them in GP registers
+  still needs 73 and adds transfers. Late store-tree packing keeps scalar producers alive
+  while rebuilding vector producers, reaching 119 frame accesses. A narrower scalar-capture
+  trial removes one memory access but no instruction and leaves ten roots, with setup cost
+  not yet justified. These prototypes were removed.
+- Remaining gap: pack coordinate producers, roots/divisions and their scalar consumers as
+  one plan, with a register-pressure estimate. Pairing only the expensive operations is
+  insufficient. The position loop already packs x/y updates without frame traffic.
+- Next: compare each interaction region against the winner and design shared producer
+  ownership before another SLP rewrite. Keep historical timing attribution separate from
+  the static optimization loop; a stable controlled cohort is still required for it.
 - Complete when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
 
 
-### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
+### compiler.optimization.105 — Prove lz77's signed remainder bounds
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 13:13 — Hoisted the repeatedly used address and compared the remaining spill with the current Zig winner.
-- Area: compiler/backend, register allocation and value ranges.
+- Updated: 2026-10-01 15:46 — Closed the candidate-loop spill gap and narrowed the remaining work to signed bounds.
+- Area: compiler/backend, value ranges and signed remainder lowering.
 - Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
-  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its byte-match
-  loop at `0x140001500..0x140001512` has six instructions and two memory reads. The
-  candidate span at `0x1400014F0..0x140001553` has 29 non-NOP instructions and three
-  actual memory operands; two LEAs are address calculations, not memory accesses.
-  Zig retains the outer index in `rdx` and forms the current-position address before
-  entering the candidate loop.
-- Current evidence: the Swag byte-match loop retains six non-label instructions,
-  two memory reads and `CHECK=622942003053`. LICM now recognizes an invariant address
-  consumed by a single textual reader inside a nested loop: when the address runs
-  on every enclosing iteration and no call crosses its lifetime, it can move to the
-  enclosing preheader. The candidate span falls from 30 to 29 non-label instructions
-  (35 to 34 including labels), with the same four actual memory operands and one
-  frame read; its two LEAs become one. This closes the repeated-address gap.
-- Remaining spill: the byte load reuses `rax`, which held the outer index. The latch
-  reloads that index from `[rsp + 0x200]`. The first pre-allocation dump keeps the index
-  as `%1227` without a frame round trip; the first post-allocation dump introduces it.
-  Whole-function totals remain 517 Microinstructions, 479 non-label instructions,
-  106 actual memory operands and 32 actual frame operands. The older 131/34 counts
-  included 25 address calculations, two frame-relative; the counters now distinguish
-  those from memory accesses. These totals do not describe the candidate-loop cost.
-- Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
+  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
+  loop has six instructions and two reads. Swag now matches those counts after
+  caching the invariant index in an otherwise unused caller-saved SIMD register.
+  The latch transfers its bits back to a GP register; one seed load runs before
+  the loop. These static changes have not been timed in a new full campaign.
+- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
   Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
   floor-modulo result for a positive power-of-two divisor permits masking even for
   negative inputs; Swag's signed remainder has a different contract. The previously
   inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
   remaining remainders requires proving the counters' bounds under its own semantics.
-- Next: follow the outer index's interval and the spill election. Keep it across
-  the match loop without adding per-byte traffic or moving another frequently used
-  value to memory. The address-hoisting change does not resolve this allocation decision.
-- Complete when: the candidate latch no longer reloads the outer index and the match
-  loop retains its six instructions and two memory operands without a loss elsewhere.
+- Next: follow the loop-carried counters through SSA ranges and exit conditions.
+  Establish nonnegativity before replacing sign correction; retain negative-input
+  controls and do not infer a bound merely from this benchmark's current inputs.
+- Complete when: each removable sign correction has a sound range proof, exact
+  checksums and unrelated positive/negative coverage, with the candidate and byte
+  loops retaining their instruction and memory counts without a loss elsewhere.
 
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit

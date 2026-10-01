@@ -923,9 +923,7 @@ namespace
             const SemaNodeView view = sema_->viewSymbol(declRef);
             if (!view.hasSymbol())
                 return;
-            SmallVector<Symbol*> symbols;
-            view.getSymbols(symbols);
-            for (Symbol* sym : symbols)
+            for (Symbol* sym : view.symbols())
             {
                 if (sym && sym->isVariable())
                     trackDecl(state, declRef, sym->cast<SymbolVariable>(), hasInitExpr);
@@ -945,9 +943,7 @@ namespace
             const SemaNodeView view = sema_->viewSymbol(declRef);
             if (!view.hasSymbol())
                 return;
-            SmallVector<Symbol*> symbols;
-            view.getSymbols(symbols);
-            for (Symbol* sym : symbols)
+            for (Symbol* sym : view.symbols())
             {
                 if (!sym || !sym->isVariable())
                     continue;
@@ -1977,22 +1973,19 @@ namespace
                 const auto*    varBase     = declNode.is(AstNodeId::SingleVarDecl)
                                                  ? static_cast<const AstVarDeclBase*>(&declNode.cast<AstSingleVarDecl>())
                                                  : static_cast<const AstVarDeclBase*>(&declNode.cast<AstMultiVarDecl>());
-                const bool     hasInitExpr = varBase->nodeInitRef.isValid();
+                // Only declarations without an initializer can lose their default
+                // construction and therefore need final lifecycle facts here.
+                if (varBase->nodeInitRef.isValid())
+                    return Result::Continue;
 
                 const SemaNodeView view = sema.viewSymbol(ref);
                 if (!view.hasSymbol())
                     return Result::Continue;
-                SmallVector<Symbol*> symbols;
-                view.getSymbols(symbols);
-                for (Symbol* sym : symbols)
+                for (Symbol* sym : view.symbols())
                 {
                     if (!sym || !sym->isVariable())
                         continue;
                     const auto& symVar = sym->cast<SymbolVariable>();
-                    // A declaration without an initializer may have its default
-                    // construction removed, so the pass needs final lifecycle facts.
-                    if (hasInitExpr)
-                        continue;
                     TypeRef typeRef = symVar.typeRef();
                     for (uint32_t guard = 0; guard < 8 && typeRef.isValid(); guard++)
                     {

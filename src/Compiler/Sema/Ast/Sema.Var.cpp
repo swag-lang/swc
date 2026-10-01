@@ -78,14 +78,11 @@ namespace
         if (sema.token(unaryExpr->codeRef()).id != TokenId::SymAmpersand)
             return false;
 
-        SmallVector<Symbol*> symbols;
-        sema.viewSymbol(unaryExpr->nodeExprRef).getSymbols(symbols);
-        if (symbols.size() != 1)
-            return false;
-        if (!symbols.front()->isFunction())
+        Symbol* symbol = sema.viewSymbol(unaryExpr->nodeExprRef).singleSymbol();
+        if (!symbol || !symbol->isFunction())
             return false;
 
-        outTargetFunction = &symbols.front()->cast<SymbolFunction>();
+        outTargetFunction = &symbol->cast<SymbolFunction>();
         return true;
     }
 

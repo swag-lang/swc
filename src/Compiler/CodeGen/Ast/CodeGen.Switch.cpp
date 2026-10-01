@@ -756,9 +756,7 @@ namespace
         const StringCompareChunk& splitChunk = chunks[splitIndex];
 
         SmallVector<SwitchStringCase> sorted;
-        sorted.reserve(cases.size());
-        for (const SwitchStringCase& stringCase : cases)
-            sorted.push_back(stringCase);
+        sorted.append(cases.data(), cases.size());
 
         const auto chunkKey = [&splitChunk](const SwitchStringCase& stringCase) {
             return stringChunkValue(stringCase.text, splitChunk);

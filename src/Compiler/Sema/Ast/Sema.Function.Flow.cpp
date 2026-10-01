@@ -734,12 +734,17 @@ namespace
     void collectCalleeSymbolsWithFallback(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols)
     {
         nodeCallee.getSymbols(outSymbols);
-        if (!hasCallableCalleeSymbols(sema, outSymbols))
+        if (hasCallableCalleeSymbols(sema, outSymbols))
+            return;
+
         {
             SmallVector<Symbol*> quotedSymbols;
             collectQuotedCalleeBaseSymbols(sema, *nodeCallee.node(), quotedSymbols);
             if (hasCallableCalleeSymbols(sema, quotedSymbols.span()))
+            {
                 outSymbols = std::move(quotedSymbols);
+                return;
+            }
         }
 
         if (!hasCallableCalleeSymbols(sema, outSymbols))
@@ -779,6 +784,8 @@ namespace
         const auto& params = fn.parameters();
         if (params.empty())
             return false;
+        if (args.empty())
+            return ufcsArg.isValid() && params.size() == 1;
 
         std::vector<uint8_t> assigned(params.size(), 0);
         if (ufcsArg.isValid())
@@ -819,6 +826,8 @@ namespace
     {
         if (params.empty())
             return false;
+        if (args.empty())
+            return ufcsArg.isValid() && params.size() == 1;
 
         std::vector<uint8_t> assigned(params.size(), 0);
         if (ufcsArg.isValid())

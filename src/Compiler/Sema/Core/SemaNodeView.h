@@ -36,6 +36,10 @@ struct SemaNodeView
     void    getSymbols(SmallVector<Symbol*>& symbols) const;
     Symbol* singleSymbol() const;
 
+    // A singleton span borrows this view's storage; keep the view alive while using it.
+    std::span<Symbol* const> symbols() const&;
+    std::span<Symbol* const> symbols() const&& = delete;
+
     const AstNode*           node() const;
     const AstNode*&          node();
     const ConstantValue*     cst() const;

@@ -160,14 +160,16 @@ void PEWriter::buildImports()
     // .text, and the loader-visible import tables in .idata. User code references the
     // thunk symbol; the OS loader patches only the IAT slot it jumps through.
     // Group imports by DLL, preserving first-seen order.
-    std::vector<Utf8>                                        dllOrder;
-    std::unordered_map<Utf8, std::vector<const LinkImport*>> byDll;
+    using ImportsByDll = std::unordered_map<Utf8, std::vector<const LinkImport*>>;
+    ImportsByDll                                byDll;
+    std::vector<const ImportsByDll::value_type*> dllOrder;
     for (const LinkImport& imp : image_->imports)
     {
-        const Utf8 dll = normalizedDllName(imp.dll);
-        if (!byDll.contains(dll))
-            dllOrder.push_back(dll);
-        byDll[dll].push_back(&imp);
+        const Utf8 dll            = normalizedDllName(imp.dll);
+        const auto [it, inserted] = byDll.try_emplace(dll);
+        if (inserted)
+            dllOrder.push_back(&*it);
+        it->second.push_back(&imp);
     }
 
     // Build the .idata section: import descriptors, ILTs, IATs, hint/name table and DLL names.
@@ -190,7 +192,7 @@ void PEWriter::buildImports()
     for (uint32_t d = 0; d < descCount; ++d)
     {
         dllLayouts[d].iltOffset = static_cast<uint32_t>(idata.size());
-        idata.resize(idata.size() + (byDll[dllOrder[d]].size() + 1) * sizeof(uint64_t), std::byte{0});
+        idata.resize(idata.size() + (dllOrder[d]->second.size() + 1) * sizeof(uint64_t), std::byte{0});
     }
 
     // IATs (the loader patches these in place; they start as a copy of the ILT contents).
@@ -201,7 +203,7 @@ void PEWriter::buildImports()
     for (uint32_t d = 0; d < descCount; ++d)
     {
         dllLayouts[d].iatOffset = static_cast<uint32_t>(idata.size());
-        for (const LinkImport* imp : byDll[dllOrder[d]])
+        for (const LinkImport* imp : dllOrder[d]->second)
         {
             // Emit each thunk with its IAT slot while both offsets are available.
             if (text.bytes.size() % 16 != 0)
@@ -223,7 +225,7 @@ void PEWriter::buildImports()
     {
         uint32_t iltCursor = dllLayouts[d].iltOffset;
         uint32_t iatCursor = dllLayouts[d].iatOffset;
-        for (const LinkImport* imp : byDll[dllOrder[d]])
+        for (const LinkImport* imp : dllOrder[d]->second)
         {
             if (imp->byOrdinal)
             {
@@ -252,7 +254,7 @@ void PEWriter::buildImports()
     for (uint32_t d = 0; d < descCount; ++d)
     {
         dllLayouts[d].nameOffset = static_cast<uint32_t>(idata.size());
-        idata.appendCString(dllOrder[d].view());
+        idata.appendCString(dllOrder[d]->first.view());
         if (idata.size() % 2 != 0)
             idata.pushBack(std::byte{0});
     }

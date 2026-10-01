@@ -90,8 +90,10 @@ struct JobRecord
     // Dependency registration while Waiting (only set when registered in the wait registry).
     WaitKey waitKey{};
     bool    registered = false;
+#if SWC_DEV_MODE
     // Moved back by a barrier wakeAll and not parked since; scheduler statistics only.
     bool wokenByBarrier = false;
+#endif
 
     // Intrusive wait indexes, mutated only under the owning manager's mutex.
     JobRecord* clientWaitPrevious = nullptr;

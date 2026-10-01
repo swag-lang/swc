@@ -422,10 +422,8 @@ namespace
         if (const auto* ident = sema.node(exprRef).safeCast<AstIdentifier>())
             outGenericRootIdRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
 
-        SmallVector<Symbol*> baseSymbols;
-        const SemaNodeView   baseView(sema, exprRef, SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
-        baseView.getSymbols(baseSymbols);
-        for (auto* sym : baseSymbols)
+        const SemaNodeView baseView(sema, exprRef, SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+        for (auto* sym : baseView.symbols())
         {
             if (!sym || !sym->isStruct())
                 continue;

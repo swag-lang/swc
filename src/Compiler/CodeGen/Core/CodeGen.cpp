@@ -22,14 +22,12 @@ SWC_BEGIN_NAMESPACE();
 
 const CodeGenNodePayload& CodeGen::conditionBindingPayload(TypeRef& outTypeRef, AstNodeRef nodeRef)
 {
-    SmallVector<Symbol*> symbols;
-    viewSymbol(nodeRef).getSymbols(symbols);
-    SWC_ASSERT(symbols.size() == 1);
-    const Symbol& symbol = *symbols.front();
-    outTypeRef           = symbol.typeRef();
-    if (symbol.isVariable())
+    const Symbol* symbol = viewSymbol(nodeRef).singleSymbol();
+    SWC_ASSERT(symbol);
+    outTypeRef = symbol->typeRef();
+    if (symbol->isVariable())
     {
-        const auto* value = variablePayload(symbol.cast<SymbolVariable>());
+        const auto* value = variablePayload(symbol->cast<SymbolVariable>());
         SWC_ASSERT(value);
         return *value;
     }
@@ -1789,9 +1787,7 @@ void CodeGen::setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<con
     gvtdScratchOffset_ = offset;
     gvtdScratchSize_   = size;
     gvtdScratchEntries_.clear();
-    gvtdScratchEntries_.reserve(entries.size());
-    for (const auto& entry : entries)
-        gvtdScratchEntries_.push_back(entry);
+    gvtdScratchEntries_.append(entries.data(), entries.size());
 }
 
 void CodeGen::pushFrame(const CodeGenFrame& frame)

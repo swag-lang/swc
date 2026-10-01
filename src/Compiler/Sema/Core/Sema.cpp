@@ -1824,13 +1824,10 @@ JobResult Sema::exec()
 
 namespace
 {
-    bool resolveCompilerDefined(const TaskContext& ctx, JobClientId clientId)
+    bool resolveCompilerDefined(std::span<Job* const> waiting)
     {
-        std::vector<Job*> jobs;
-        ctx.global().jobMgr().waitingJobs(jobs, clientId);
-
         bool doneSomething = false;
-        for (Job* job : jobs)
+        for (Job* job : waiting)
         {
             const TaskState& state = job->ctx().state();
             if (state.kind == TaskStateKind::SemaWaitCompilerDefined)
@@ -1845,12 +1842,9 @@ namespace
         return doneSomething;
     }
 
-    bool hasPausedLazyBodyWait(const TaskContext& ctx, JobClientId clientId)
+    bool hasPausedLazyBodyWait(std::span<Job* const> waiting)
     {
-        std::vector<Job*> jobs;
-        ctx.global().jobMgr().waitingJobs(jobs, clientId);
-
-        for (Job* job : jobs)
+        for (const Job* job : waiting)
         {
             const TaskState& state    = job->ctx().state();
             const auto*      function = state.symbol ? state.symbol->safeCast<SymbolFunction>() : nullptr;
@@ -1868,12 +1862,9 @@ namespace
         return false;
     }
 
-    bool hasPausedTypeInfoGenWait(const TaskContext& ctx, JobClientId clientId)
+    bool hasPausedTypeInfoGenWait(std::span<Job* const> waiting)
     {
-        std::vector<Job*> jobs;
-        ctx.global().jobMgr().waitingJobs(jobs, clientId);
-
-        for (Job* job : jobs)
+        for (const Job* job : waiting)
         {
             if (job->ctx().state().kind == TaskStateKind::SemaWaitTypeInfoGeneration)
                 return true;
@@ -1892,6 +1883,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     uint32_t           pausedLazyBodyWakes       = 0;
     constexpr uint32_t maxPausedTypeInfoGenWakes = 1024;
     uint32_t           pausedTypeInfoGenWakes    = 0;
+    std::vector<Job*>  waiting;
 
     while (true)
     {
@@ -1937,7 +1929,9 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             continue;
         }
 
-        if (resolveCompilerDefined(ctx, clientId))
+        // Nothing runs between these checks, so one snapshot of the sleepers serves all three.
+        jobMgr.waitingJobs(waiting, clientId);
+        if (resolveCompilerDefined(waiting))
         {
             SWC_DEV_LOOP_RESET(loopGuard);
             pausedLazyBodyWakes    = 0;
@@ -1946,7 +1940,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             continue;
         }
 
-        if (pausedLazyBodyWakes < maxPausedLazyBodyWakes && hasPausedLazyBodyWait(ctx, clientId))
+        if (pausedLazyBodyWakes < maxPausedLazyBodyWakes && hasPausedLazyBodyWait(waiting))
         {
             pausedLazyBodyWakes++;
             SWC_DEV_LOOP_RESET(loopGuard);
@@ -1958,7 +1952,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         // not a semantic dependency: the owning worker publishes and clears it. Re-drive these
         // waiters (bounded, to still surface a genuine cycle) instead of breaking out and
         // letting SemaCycle misreport the contention as an unresolvable dependency.
-        if (pausedTypeInfoGenWakes < maxPausedTypeInfoGenWakes && hasPausedTypeInfoGenWait(ctx, clientId))
+        if (pausedTypeInfoGenWakes < maxPausedTypeInfoGenWakes && hasPausedTypeInfoGenWait(waiting))
         {
             pausedTypeInfoGenWakes++;
             SWC_DEV_LOOP_RESET(loopGuard);

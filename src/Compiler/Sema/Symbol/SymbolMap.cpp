@@ -4,9 +4,11 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -109,6 +111,25 @@ namespace
             symbols.push_back(entry.symbol);
     }
 
+    void appendHomonyms(MatchContext& lookUpCxt, const Symbol* head)
+    {
+        for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
+        {
+            if (cur->isIgnored())
+            {
+                if (!cur->isExcludedByCondition())
+                    lookUpCxt.addIgnoredSymbol();
+            }
+            else
+                lookUpCxt.addSymbol(cur);
+        }
+    }
+
+    uint64_t shardKey(IdentifierRef idRef) noexcept
+    {
+        return static_cast<uint64_t>(idRef.get()) + 1;
+    }
+
     const Symbol* firstVisibleSymbol(const Symbol* head, bool includeIgnored)
     {
         for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
@@ -164,197 +185,182 @@ void SymbolMap::copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const
 
 bool SymbolMap::empty() const noexcept
 {
-    if (isSharded())
-        return false;
-    const std::shared_lock lk(mutex_);
-    return smallSize_ == 0 && (!bigMap_ || bigMap_->empty());
+    return count() == 0;
 }
 
 SymbolMap::Entry* SymbolMap::smallFind(IdentifierRef key)
 {
-    for (uint32_t i = 0; i < smallSize_; ++i)
+    const uint32_t smallSize = smallSize_.load(std::memory_order_relaxed);
+    for (uint32_t i = 0; i < smallSize; ++i)
         if (small_[i].key == key)
             return &small_[i];
     return nullptr;
 }
 
-const SymbolMap::Entry* SymbolMap::smallFind(IdentifierRef key) const
+Symbol* SymbolMap::smallFindHead(IdentifierRef key, uint32_t smallSize) const noexcept
 {
-    for (uint32_t i = 0; i < smallSize_; ++i)
+    // Turning big copies the entries and leaves them in place, so a reader that saw a small
+    // size still scans a consistent snapshot; it simply misses insertions made after it.
+    for (uint32_t i = 0; i < smallSize; ++i)
         if (small_[i].key == key)
-            return &small_[i];
+            return small_[i].head.load(std::memory_order_acquire);
     return nullptr;
 }
 
-void SymbolMap::maybeUpgradeToSharded(TaskContext& ctx)
+template<typename F>
+void SymbolMap::forEachHead(const HeadTable* table, const F& fn)
 {
-    // Fast path: already sharded.
-    if (isSharded())
+    if (!table)
         return;
 
-    // Not enough keys yet - stay unsharded.
-    if (!bigMap_ || bigMap_->size() < SHARD_AFTER_KEYS)
-        return;
+    for (uint32_t i = 0; i < table->capacity; ++i)
+    {
+        if (const uint64_t key = table->keys[i].load(std::memory_order_acquire))
+            fn(key, table->heads[i].load(std::memory_order_acquire));
+    }
+}
 
-    // Large symbol maps are read by many sema jobs. Publish immutable shard storage
-    // with release/acquire semantics so readers can switch from the monolithic map
-    // without holding the original mutex forever.
-    auto* newShards = ctx.compiler().allocateArray<Shard>(SHARD_COUNT);
+void SymbolMap::upgradeToSharded(TaskContext& ctx)
+{
+    // Large symbol maps are read by many sema jobs and written by many declarations. Shards
+    // spread the writers; readers keep probing without a lock, on whichever table they loaded.
+    const HeadTable& big       = *bigTable_.load(std::memory_order_relaxed);
+    auto*            newShards = ctx.compiler().allocateArray<Shard>(SHARD_COUNT);
 
-    const size_t totalKeys = bigMap_->size();
-    const size_t perShard  = (totalKeys / SHARD_COUNT) + 1;
+    const auto perShard = (big.size / SHARD_COUNT) + 1;
     for (uint32_t i = 0; i < SHARD_COUNT; ++i)
-        newShards[i].map.reserve(perShard);
+        tableReserve(ctx, newShards[i].table, perShard * 2);
 
-    for (const auto& [id, head] : *bigMap_)
-        newShards[shardIndex(id)].map.emplace(id, head);
+    forEachHead(&big, [&](uint64_t key, Symbol* head) {
+        const IdentifierRef id{static_cast<uint32_t>(key - 1)};
+        tablePlace(*newShards[shardIndex(id)].table.load(std::memory_order_relaxed), key, head);
+    });
 
-    bigMap_.reset();
     shards_.store(newShards, std::memory_order_release);
 }
 
-Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify)
+void SymbolMap::notifyInserted(TaskContext& ctx, IdentifierRef idRef)
 {
-    SWC_ASSERT(shards != nullptr);
+    ctx.compiler().notifyAlive();
+    ctx.global().jobMgr().wake(WaitKey::name(idRef, TaskStateKind::SemaWaitIdentifier));
+}
 
+uint32_t SymbolMap::tableSlot(const HeadTable& table, uint64_t key) noexcept
+{
+    const uint32_t mask = table.capacity - 1;
+    uint32_t       i    = (Math::hash(static_cast<uint32_t>(key - 1)) >> SHARD_BITS) & mask;
+    while (true)
+    {
+        const uint64_t slotKey = table.keys[i].load(std::memory_order_acquire);
+        if (slotKey == key || !slotKey)
+            return i;
+        i = (i + 1) & mask;
+    }
+}
+
+Symbol* SymbolMap::tableFindHead(const HeadTable* table, IdentifierRef idRef) noexcept
+{
+    if (!table)
+        return nullptr;
+
+    const uint32_t slot = tableSlot(*table, shardKey(idRef));
+    if (!table->keys[slot].load(std::memory_order_acquire))
+        return nullptr;
+    return table->heads[slot].load(std::memory_order_acquire);
+}
+
+void SymbolMap::tablePlace(HeadTable& table, uint64_t key, Symbol* head) noexcept
+{
+    const uint32_t slot = tableSlot(table, key);
+    SWC_ASSERT(!table.keys[slot].load(std::memory_order_relaxed));
+
+    // The head goes first: a reader that sees the key must find a complete entry.
+    table.heads[slot].store(head, std::memory_order_relaxed);
+    table.keys[slot].store(key, std::memory_order_release);
+    table.size++;
+}
+
+void SymbolMap::tableReserve(TaskContext& ctx, std::atomic<HeadTable*>& published, uint32_t minSize)
+{
+    // Keeping the load at or below one half bounds every probe and guarantees an empty slot.
+    const HeadTable* old = published.load(std::memory_order_relaxed);
+    if (old && minSize * 2 <= old->capacity)
+        return;
+
+    uint32_t capacity = old ? old->capacity * 2 : 8;
+    while (capacity < minSize * 2)
+        capacity *= 2;
+
+    auto* table     = ctx.compiler().allocateArray<HeadTable>(1);
+    table->keys     = ctx.compiler().allocateArray<std::atomic<uint64_t>>(capacity);
+    table->heads    = ctx.compiler().allocateArray<std::atomic<Symbol*>>(capacity);
+    table->capacity = capacity;
+    forEachHead(old, [&](uint64_t key, Symbol* head) { tablePlace(*table, key, head); });
+
+    // A reader still probing the old table sees a consistent snapshot: tables live in the arena.
+    published.store(table, std::memory_order_release);
+}
+
+Symbol* SymbolMap::tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, Symbol* symbol, bool acceptHomonyms)
+{
+    Symbol* head = tableFindHead(published.load(std::memory_order_relaxed), idRef);
+    if (head && !acceptHomonyms)
+        return head;
+
+    // Readers walk the published chain without the lock, so the symbol is complete, owner
+    // included, before any link to it is stored.
+    if (symbol->ownerSymMap() != this)
+        count_.fetch_add(1, std::memory_order_relaxed);
+    symbol->setOwnerSymMap(this);
+    if (!head)
+    {
+        symbol->setNextHomonym(nullptr);
+        const HeadTable* table = published.load(std::memory_order_relaxed);
+        tableReserve(ctx, published, (table ? table->size : 0) + 1);
+        tablePlace(*published.load(std::memory_order_relaxed), shardKey(idRef), symbol);
+        return symbol;
+    }
+
+    Symbol* const insertedHead = insertSymbolOrdered(head, symbol);
+    if (insertedHead == symbol)
+    {
+        HeadTable& table = *published.load(std::memory_order_relaxed);
+        table.heads[tableSlot(table, shardKey(idRef))].store(insertedHead, std::memory_order_release);
+    }
+
+    return insertedHead;
+}
+
+Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms)
+{
     Shard&                 shard = shards[shardIndex(idRef)];
     const std::unique_lock lock(shard.mutex);
+    return tableInsert(ctx, shard.table, idRef, symbol, acceptHomonyms);
+}
 
-    const auto [it, inserted] = shard.map.try_emplace(idRef, nullptr);
-    if (!acceptHomonyms && !inserted)
-        return it->second;
+Symbol* SymbolMap::findHead(IdentifierRef idRef) const noexcept
+{
+    // No lookup takes a lock. The representation only grows: small entries, then one table,
+    // then shards. Each step is published before the next one is announced, so a reader that
+    // sees a later step also sees its storage, and a stale step stays a consistent snapshot.
+    if (const Shard* shards = shards_.load(std::memory_order_acquire))
+        return tableFindHead(shards[shardIndex(idRef)].table.load(std::memory_order_acquire), idRef);
 
-    Symbol*& head         = it->second;
-    Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
-    symbol->setOwnerSymMap(this);
+    const uint32_t smallSize = smallSize_.load(std::memory_order_acquire);
+    if (smallSize <= SMALL_CAP)
+        return smallFindHead(idRef, smallSize);
 
-    if (notify)
-        ctx.compiler().notifyAlive();
-    return insertedHead;
+    return tableFindHead(bigTable_.load(std::memory_order_acquire), idRef);
 }
 
 void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
 {
-    if (const Shard* shards = shards_.load(std::memory_order_acquire))
-    {
-        // Once sharded, the per-key lock is enough: homonym chains remain ordered
-        // and the old big map is no longer the lookup source.
-        const Shard&           shard = shards[shardIndex(idRef)];
-        const std::shared_lock lock(shard.mutex);
-
-        const auto it = shard.map.find(idRef);
-        if (it == shard.map.end())
-            return;
-
-        for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
-        {
-            if (cur->isIgnored())
-            {
-                if (!cur->isExcludedByCondition())
-                    lookUpCxt.addIgnoredSymbol();
-            }
-            else
-                lookUpCxt.addSymbol(cur);
-        }
-
-        return;
-    }
-
-    std::shared_lock lk(mutex_);
-
-    // Check sharded again after locking: another writer may have upgraded between
-    // the optimistic atomic load and this shared lock.
-    if (const Shard* shards = shards_.load(std::memory_order_acquire))
-    {
-        lk.unlock();
-        const Shard&           shard = shards[shardIndex(idRef)];
-        const std::shared_lock lock(shard.mutex);
-        const auto             it = shard.map.find(idRef);
-        if (it == shard.map.end())
-            return;
-        for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
-        {
-            if (cur->isIgnored())
-            {
-                if (!cur->isExcludedByCondition())
-                    lookUpCxt.addIgnoredSymbol();
-            }
-            else
-                lookUpCxt.addSymbol(cur);
-        }
-        return;
-    }
-
-    const Symbol* head = nullptr;
-    if (isBig())
-    {
-        if (bigMap_)
-        {
-            const auto it = bigMap_->find(idRef);
-            if (it != bigMap_->end())
-                head = it->second;
-        }
-    }
-    else if (const Entry* e = smallFind(idRef))
-    {
-        head = e->head;
-    }
-
-    for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
-    {
-        if (cur->isIgnored())
-        {
-            if (!cur->isExcludedByCondition())
-                lookUpCxt.addIgnoredSymbol();
-        }
-        else
-            lookUpCxt.addSymbol(cur);
-    }
+    appendHomonyms(lookUpCxt, findHead(idRef));
 }
 
 const Symbol* SymbolMap::findFirstSymbol(IdentifierRef idRef, bool includeIgnored) const
 {
-    if (const Shard* shards = shards_.load(std::memory_order_acquire))
-    {
-        const Shard&           shard = shards[shardIndex(idRef)];
-        const std::shared_lock lock(shard.mutex);
-        const auto             it = shard.map.find(idRef);
-        if (it == shard.map.end())
-            return nullptr;
-
-        return firstVisibleSymbol(it->second, includeIgnored);
-    }
-
-    std::shared_lock lk(mutex_);
-
-    if (const Shard* shards = shards_.load(std::memory_order_acquire))
-    {
-        lk.unlock();
-        const Shard&           shard = shards[shardIndex(idRef)];
-        const std::shared_lock lock(shard.mutex);
-        const auto             it = shard.map.find(idRef);
-        if (it == shard.map.end())
-            return nullptr;
-
-        return firstVisibleSymbol(it->second, includeIgnored);
-    }
-
-    const Symbol* head = nullptr;
-    if (isBig())
-    {
-        if (bigMap_)
-        {
-            const auto it = bigMap_->find(idRef);
-            if (it != bigMap_->end())
-                head = it->second;
-        }
-    }
-    else if (const Entry* e = smallFind(idRef))
-    {
-        head = e->head;
-    }
-
-    return firstVisibleSymbol(head, includeIgnored);
+    return firstVisibleSymbol(findHead(idRef), includeIgnored);
 }
 
 void SymbolMap::getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored) const
@@ -374,48 +380,22 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
     std::vector<SymbolSortEntry> ordered;
     ordered.reserve(count());
 
-    if (Shard* shards = shards_.load(std::memory_order_acquire))
+    const auto append = [&](uint64_t, Symbol* head) { appendSymbolsForSort(ordered, head, includeIgnored); };
+    if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
         for (uint32_t i = 0; i < SHARD_COUNT; ++i)
-        {
-            Shard&                 shard = shards[i];
-            const std::shared_lock lock(shard.mutex);
-            for (const auto& val : shard.map | std::views::values)
-                appendSymbolsForSort(ordered, val, includeIgnored);
-        }
-
-        sortSymbolsByDeclaration(out, ordered);
-        return;
-    }
-
-    std::shared_lock lk(mutex_);
-
-    // Check sharded again after lock
-    if (Shard* shards = shards_.load(std::memory_order_acquire))
-    {
-        lk.unlock();
-        for (uint32_t i = 0; i < SHARD_COUNT; ++i)
-        {
-            Shard&                 shard = shards[i];
-            const std::shared_lock lock(shard.mutex);
-            for (const auto& val : shard.map | std::views::values)
-                appendSymbolsForSort(ordered, val, includeIgnored);
-        }
-
-        sortSymbolsByDeclaration(out, ordered);
-        return;
-    }
-
-    if (isBig())
-    {
-        if (bigMap_)
-            for (const auto& val : *bigMap_ | std::views::values)
-            appendSymbolsForSort(ordered, val, includeIgnored);
+            forEachHead(shards[i].table.load(std::memory_order_acquire), append);
     }
     else
     {
-        for (uint32_t i = 0; i < smallSize_; ++i)
-            appendSymbolsForSort(ordered, small_[i].head, includeIgnored);
+        const uint32_t smallSize = smallSize_.load(std::memory_order_acquire);
+        if (smallSize <= SMALL_CAP)
+        {
+            for (uint32_t i = 0; i < smallSize; ++i)
+                appendSymbolsForSort(ordered, small_[i].head.load(std::memory_order_acquire), includeIgnored);
+        }
+        else
+            forEachHead(bigTable_.load(std::memory_order_acquire), append);
     }
 
     sortSymbolsByDeclaration(out, ordered);
@@ -426,94 +406,68 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     SWC_ASSERT(symbol != nullptr);
 
     const IdentifierRef idRef = symbol->idRef();
+    Symbol*             result;
 
-    // Sharded fast path.
     if (Shard* shards = shards_.load(std::memory_order_acquire))
+        result = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms);
+    else
     {
-        const bool hadOwner    = symbol->ownerSymMap() == this;
-        Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
-        if (!hadOwner && symbol->ownerSymMap() == this)
-        {
-            count_.fetch_add(1, std::memory_order_relaxed);
-        }
+        std::unique_lock lk(mutex_);
 
-        return insertedSym;
+        // Another writer may have upgraded the representation while this one waited.
+        if (Shard* upgraded = shards_.load(std::memory_order_acquire))
+        {
+            lk.unlock();
+            result = insertIntoShard(upgraded, idRef, symbol, ctx, acceptHomonyms);
+        }
+        else if (!isBig())
+        {
+            const uint32_t smallSize = smallSize_.load(std::memory_order_relaxed);
+            if (Entry* e = smallFind(idRef))
+            {
+                Symbol* head = e->head.load(std::memory_order_relaxed);
+                if (!acceptHomonyms)
+                    return head;
+                count_.fetch_add(1, std::memory_order_relaxed);
+                symbol->setOwnerSymMap(this);
+                result = insertSymbolOrdered(head, symbol);
+                e->head.store(result, std::memory_order_release);
+            }
+            else if (smallSize < SMALL_CAP)
+            {
+                count_.fetch_add(1, std::memory_order_relaxed);
+                symbol->setOwnerSymMap(this);
+                symbol->setNextHomonym(nullptr);
+                small_[smallSize].key = idRef;
+                small_[smallSize].head.store(symbol, std::memory_order_relaxed);
+                smallSize_.store(smallSize + 1, std::memory_order_release);
+                result = symbol;
+            }
+            else
+            {
+                // Turn big: the table is published before the size announces it, and the small
+                // entries stay intact for readers still scanning them.
+                tableReserve(ctx, bigTable_, SMALL_CAP + 1);
+                HeadTable& table = *bigTable_.load(std::memory_order_relaxed);
+                for (uint32_t i = 0; i < SMALL_CAP; ++i)
+                    tablePlace(table, shardKey(small_[i].key), small_[i].head.load(std::memory_order_relaxed));
+                smallSize_.store(SMALL_CAP + 1, std::memory_order_release);
+                result = tableInsert(ctx, bigTable_, idRef, symbol, acceptHomonyms);
+            }
+        }
+        else if (bigTable_.load(std::memory_order_relaxed)->size < SHARD_AFTER_KEYS)
+            result = tableInsert(ctx, bigTable_, idRef, symbol, acceptHomonyms);
+        else
+        {
+            upgradeToSharded(ctx);
+            lk.unlock();
+            result = insertIntoShard(shards_.load(std::memory_order_relaxed), idRef, symbol, ctx, acceptHomonyms);
+        }
     }
 
-    std::unique_lock lk(mutex_);
-
-    // If upgraded to sharded while waiting for lock
-    if (Shard* shards = shards_.load(std::memory_order_acquire))
-    {
-        lk.unlock();
-        const bool hadOwner    = symbol->ownerSymMap() == this;
-        Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
-        if (!hadOwner && symbol->ownerSymMap() == this)
-        {
-            count_.fetch_add(1, std::memory_order_relaxed);
-        }
-
-        return insertedSym;
-    }
-
-    if (!isBig())
-    {
-        if (Entry* e = smallFind(idRef))
-        {
-            if (!acceptHomonyms)
-                return e->head;
-            count_.fetch_add(1, std::memory_order_relaxed);
-            symbol->setOwnerSymMap(this);
-            Symbol* insertedHead = insertSymbolOrdered(e->head, symbol);
-            ctx.compiler().notifyAlive();
-            return insertedHead;
-        }
-
-        if (smallSize_ < SMALL_CAP)
-        {
-            count_.fetch_add(1, std::memory_order_relaxed);
-            symbol->setOwnerSymMap(this);
-            symbol->setNextHomonym(nullptr);
-            small_[smallSize_++] = Entry{.head = symbol, .key = idRef};
-            ctx.compiler().notifyAlive();
-            return symbol;
-        }
-
-        // Transition to big
-        bigMap_.emplace();
-        bigMap_->reserve(SMALL_CAP * 2ull);
-        for (uint32_t i = 0; i < smallSize_; ++i)
-            bigMap_->emplace(small_[i].key, small_[i].head);
-        smallSize_ = SMALL_CAP + 1; // Mark as big
-    }
-
-    maybeUpgradeToSharded(ctx);
-
-    // If upgraded to sharded during, maybeUpgradeToSharded
-    if (Shard* shards = shards_.load(std::memory_order_acquire))
-    {
-        lk.unlock();
-        const bool hadOwner    = symbol->ownerSymMap() == this;
-        Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
-        if (!hadOwner && symbol->ownerSymMap() == this)
-        {
-            count_.fetch_add(1, std::memory_order_relaxed);
-        }
-
-        return insertedSym;
-    }
-
-    // Still unsharded big map.
-    const auto [it, inserted] = bigMap_->try_emplace(idRef, nullptr);
-    if (!acceptHomonyms && !inserted)
-        return it->second;
-
-    Symbol*& head         = it->second;
-    Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
-    count_.fetch_add(1, std::memory_order_relaxed);
-    symbol->setOwnerSymMap(this);
-    ctx.compiler().notifyAlive();
-    return insertedHead;
+    if (result == symbol || symbol->ownerSymMap() == this)
+        notifyInserted(ctx, idRef);
+    return result;
 }
 
 Symbol* SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)

@@ -52,6 +52,12 @@ struct WaitKey
 
     bool operator==(const WaitKey&) const = default;
     bool valid() const { return target != nullptr; }
+
+    // A job that waits for something to happen to a name (a symbol spelled that way, the impl
+    // blocks registering on it) waits on the name itself. The target is the identifier index
+    // offset by one, a value no object address takes. Identifier indices are per compiler, so a
+    // shared pool can see a spurious wake from another module; the job then checks and parks again.
+    static WaitKey name(IdentifierRef idRef, TaskStateKind kind) { return {reinterpret_cast<const void*>(static_cast<uintptr_t>(idRef.get()) + 1), kind}; }
 };
 
 struct WaitKeyHash

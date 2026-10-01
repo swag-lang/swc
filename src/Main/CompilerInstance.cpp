@@ -553,7 +553,10 @@ void CompilerInstance::decPendingImplRegistrations(const IdentifierRef idRef)
     }
 
     if (notify)
+    {
         notifyAlive();
+        global().jobMgr().wake(WaitKey::name(idRef, TaskStateKind::SemaWaitImplRegistrations));
+    }
 }
 
 void CompilerInstance::logBefore()

@@ -137,7 +137,7 @@ JobClientId JobManager::newClientId()
 
 void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
 {
-    const std::unique_lock lk(mtx_);
+    std::unique_lock lk(mtx_);
     SWC_ASSERT(accepting_);
 
     // If already scheduled on this manager, refuse (simplifies invariants).
@@ -157,6 +157,10 @@ void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     bumpClientCountLocked(clients_[client], +1);
     pushReady(rec, priority);
     growWorkersForLoadLocked();
+
+    // The predicate changed under the lock, so notifying after releasing it cannot be lost, and
+    // the woken worker does not immediately block again on the mutex this thread still holds.
+    lk.unlock();
     cv_.notify_one();
 }
 
@@ -181,6 +185,20 @@ std::optional<WaitKey> JobManager::computeWaitKey(const TaskState& st)
         case TaskStateKind::SemaWaitTypeInfoGeneration:
             SWC_ASSERT(st.typeInfoOwner != nullptr);
             return WaitKey{st.typeInfoOwner, st.kind};
+
+        // These have a producer that can name them, but no flag to recheck at registration.
+        // A publication racing the park is therefore caught by the barrier wakeAll, which still
+        // moves keyed sleepers; the key only lets the common case resume without a full drain.
+        case TaskStateKind::SemaWaitIdentifier:
+        case TaskStateKind::SemaWaitImplRegistrations:
+            if (st.idRef.isValid())
+                return WaitKey::name(st.idRef, st.kind);
+            return std::nullopt;
+
+        case TaskStateKind::SemaWaitTypeCompleted:
+            if (st.symbol)
+                return WaitKey{st.symbol, st.kind};
+            return std::nullopt;
 
         // JIT completion has a separate owner alias, independent of the dependency
         // that currently occupies this record's intrusive key links.
@@ -304,7 +322,7 @@ void JobManager::wake(const WaitKey& key)
     if (waiterFilter_[waiterShard(key)].load(std::memory_order_acquire) == 0)
         return;
 
-    const std::unique_lock lk(mtx_);
+    std::unique_lock lk(mtx_);
 
     const auto it = waiters_.find(key);
     if (it == waiters_.end())
@@ -315,6 +333,7 @@ void JobManager::wake(const WaitKey& key)
         // This is the owner's unique alias, not its dependency's intrusive list.
         requeueWaitingLocked(clients_[it->second->clientId], it->second);
         growWorkersForLoadLocked();
+        lk.unlock();
         cv_.notify_one();
         return;
     }
@@ -330,7 +349,9 @@ void JobManager::wake(const WaitKey& key)
 
     growWorkersForLoadLocked();
 
-    notifyReadyWorkers(cv_, woken, workers_.size());
+    const size_t workerCount = workers_.size();
+    lk.unlock();
+    notifyReadyWorkers(cv_, woken, workerCount);
 }
 
 void JobManager::refreshJitWait(const TaskContext* owner)
@@ -484,7 +505,7 @@ void JobManager::waitAll()
 
 bool JobManager::wakeAll(JobClientId client)
 {
-    const std::unique_lock lk(mtx_);
+    std::unique_lock lk(mtx_);
 
     const auto clientIt = clients_.find(client);
     if (clientIt == clients_.end() || !clientIt->second.waitingHead)
@@ -518,7 +539,9 @@ bool JobManager::wakeAll(JobClientId client)
     if (woken != 0)
     {
         growWorkersForLoadLocked();
-        notifyReadyWorkers(cv_, woken, workers_.size());
+        const size_t workerCount = workers_.size();
+        lk.unlock();
+        notifyReadyWorkers(cv_, woken, workerCount);
     }
 
     return woken != 0;

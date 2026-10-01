@@ -4382,6 +4382,56 @@ SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyPropagatesLoopCarriedLaneDemands)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyTransfersCallLaneDemands)
+{
+    constexpr MicroReg source = MicroReg::floatReg(2);
+    constexpr MicroReg base   = MicroReg::intReg(8);
+    SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolFunction     foreign(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    AttributeList      attributes;
+    attributes.hasForeign = true;
+    foreign.setAttributes(ctx, attributes);
+    for (const auto convention : {CallConvKind::Swag, CallConvKind::WindowsX64, CallConvKind::C})
+    {
+        for (uint32_t callKind = 0; callKind < 3; ++callKind)
+        {
+            for (uint32_t variant = 0; variant < 5; ++variant)
+            {
+                for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+                {
+                    // A transient value used before the call, explicit/default
+                    // argument masks, and scalar/vector reads of a saved value.
+                    const MicroReg copied       = MicroReg::floatReg(variant < 3 ? 1 : 6);
+                    const uint8_t  argumentMask = variant == 1 ? 2 : variant == 2 ? MicroBuilder::K_CALL_ARG_MASK_ALL
+                                                                                  : 0;
+                    MicroBuilder   builder(ctx);
+                    builder.emitLoadRegReg(copied, source, bits);
+                    const auto copy = builder.instructions().lastInstructionRef();
+                    builder.emitLoadRegMem(source, base, 0, bits);
+                    builder.emitLoadMemReg(base, 16, copied, bits);
+                    if (callKind == 0)
+                        builder.emitCallReg(base, convention, 0, argumentMask);
+                    else if (callKind == 1)
+                        builder.emitCallLocal(&callee, convention, 0, argumentMask);
+                    else
+                        builder.emitCallExtern(&foreign, convention, 0, argumentMask);
+                    if (variant >= 3)
+                        builder.emitLoadMemReg(base, 32, copied, variant == 4 ? MicroOpBits::B128 : bits);
+                    builder.emitClearReg(copied, MicroOpBits::B128);
+                    builder.emitRet();
+                    SWC_RESULT(runPostRaPeepholePass(builder));
+                    const auto* inst = builder.instructions().ptr(copy);
+                    const bool  wide = variant == 0 || variant == 3;
+                    if (!inst || inst->op != MicroInstrOpcode::LoadRegReg ||
+                        inst->ops(builder.operands())[2].opBits != (wide ? MicroOpBits::B128 : bits))
+                        return Result::Error;
+                }
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyPreservesReturnAndCalleeSavedLanes)
 {
     constexpr MicroReg source = MicroReg::floatReg(2);

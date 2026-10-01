@@ -156,8 +156,19 @@ namespace PostRaPeephole
                     demand.read(reg, 15);
                 return;
             }
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) && !ctx.isClaimed(ref))
+            {
+                // The call replaces transient values and reads only its argument
+                // registers. Preserve every argument lane: its width may be a vector.
+                // Nonvolatile registers carry their actual later demand across it.
+                const auto useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                for (const MicroReg defined : useDef.defs)
+                    demand.clear(defined);
+                for (const MicroReg used : useDef.uses)
+                    demand.read(used, 15);
+                return;
+            }
             if (ctx.isClaimed(ref) ||
-                info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !info.flags.has(MicroInstrFlagsE::JumpInstruction)))
             {
                 demand.reset();
@@ -247,7 +258,7 @@ namespace PostRaPeephole
     // MOVSS/MOVSD retain the old destination's upper lanes. A complete copy
     // removes that dependency whenever no reachable consumer needs those lanes.
     // Solve demands over straight-line blocks so a scalar use beyond a branch
-    // does not make all four lanes live. Calls and pending rewrites stay opaque.
+    // does not make all four lanes live. Pending rewrites stay opaque.
     void widenScalarFloatCopies(Context& ctx)
     {
         if (!ctx.builder)

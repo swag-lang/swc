@@ -161,7 +161,7 @@ void PEWriter::buildImports()
     // thunk symbol; the OS loader patches only the IAT slot it jumps through.
     // Group imports by DLL, preserving first-seen order.
     using ImportsByDll = std::unordered_map<Utf8, std::vector<const LinkImport*>>;
-    ImportsByDll                                byDll;
+    ImportsByDll                                 byDll;
     std::vector<const ImportsByDll::value_type*> dllOrder;
     for (const LinkImport& imp : image_->imports)
     {
@@ -1196,9 +1196,9 @@ bool PEWriter::buildStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, cons
     return buildCoffStaticArchive(outBytes, outDiag, members);
 }
 
-void PEWriter::buildImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
+bool PEWriter::buildImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
 {
-    buildCoffImportLibrary(outBytes, dllFileName, exportNames);
+    return buildCoffImportLibrary(outBytes, outDiag, dllFileName, exportNames);
 }
 
 SWC_END_NAMESPACE();

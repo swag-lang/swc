@@ -125,23 +125,28 @@ SWC_TEST_BEGIN(Linker_ArchivePreservesMemberLayout)
 {
     Diagnostic diag;
     ByteArray  bytes;
-    if (!buildCoffStaticArchive(bytes, diag, {}) || bytes.size() != 72 || bytes.readBe32(68) != 0 || !matchesArchiveHeader(bytes, 8, "/", 4))
+    if (!buildCoffStaticArchive(bytes, diag, {}) || bytes.size() != 140 || bytes.readBe32(68) != 0 ||
+        !matchesArchiveHeader(bytes, 8, "/", 4) || !matchesArchiveHeader(bytes, 72, "/", 8) || bytes.readLe32(132) || bytes.readLe32(136))
         return Result::Error;
 
     const std::vector<LinkArchiveMember> shortMembers = {{.name = "f.obj", .bytes = makeArchiveTestObject("a", std::byte{0xC3})}};
-    if (!buildCoffStaticArchive(bytes, diag, shortMembers) || bytes.size() != 222 || !bytes.contains("!<arch>\n") ||
-        !matchesArchiveHeader(bytes, 8, "/", 10) || !matchesArchiveHeader(bytes, 78, "f.obj/", 83) ||
-        bytes.readBe32(68) != 1 || bytes.readBe32(72) != 78 || bytes[76] != std::byte{'a'} || bytes[77] != std::byte{0} || bytes[221] != std::byte{'\n'} ||
-        !std::ranges::equal(bytes.span().subspan(138, 83), shortMembers[0].bytes))
+    if (!buildCoffStaticArchive(bytes, diag, shortMembers) || bytes.size() != 298 || !bytes.contains("!<arch>\n") ||
+        !matchesArchiveHeader(bytes, 8, "/", 10) || !matchesArchiveHeader(bytes, 78, "/", 16) || !matchesArchiveHeader(bytes, 154, "f.obj/", 83) ||
+        bytes.readBe32(68) != 1 || bytes.readBe32(72) != 154 || bytes[76] != std::byte{'a'} || bytes[77] != std::byte{0} || bytes[297] != std::byte{'\n'} ||
+        bytes.readLe32(138) != 1 || bytes.readLe32(142) != 154 || bytes.readLe32(146) != 1 || bytes.readLe16(150) != 1 ||
+        bytes[152] != std::byte{'a'} || bytes[153] != std::byte{0} || !std::ranges::equal(bytes.span().subspan(214, 83), shortMembers[0].bytes))
         return Result::Error;
 
-    // The linker member, long-names table and object all need an alignment byte.
+    // Both linker directories, the long-names table and the object need separate alignment bytes.
     const std::vector<LinkArchiveMember> longMembers = {{.name = "0123456789abcdef", .bytes = makeArchiveTestObject("bb", std::byte{0x90})}};
-    if (!buildCoffStaticArchive(bytes, diag, longMembers) || bytes.size() != 302 ||
-        !matchesArchiveHeader(bytes, 8, "/", 11) || !matchesArchiveHeader(bytes, 80, "//", 17) || !matchesArchiveHeader(bytes, 158, "/0", 83) ||
-        bytes.readBe32(68) != 1 || bytes.readBe32(72) != 158 || bytes[76] != std::byte{'b'} || bytes[77] != std::byte{'b'} || bytes[78] != std::byte{0} ||
-        bytes[79] != std::byte{'\n'} || bytes[157] != std::byte{'\n'} || bytes[301] != std::byte{'\n'} ||
-        std::memcmp(bytes.data() + 140, "0123456789abcdef\n", 17) != 0 || !std::ranges::equal(bytes.span().subspan(218, 83), longMembers[0].bytes))
+    if (!buildCoffStaticArchive(bytes, diag, longMembers) || bytes.size() != 380 ||
+        !matchesArchiveHeader(bytes, 8, "/", 11) || !matchesArchiveHeader(bytes, 80, "/", 17) ||
+        !matchesArchiveHeader(bytes, 158, "//", 17) || !matchesArchiveHeader(bytes, 236, "/0", 83) ||
+        bytes.readBe32(68) != 1 || bytes.readBe32(72) != 236 || bytes[76] != std::byte{'b'} || bytes[77] != std::byte{'b'} || bytes[78] != std::byte{0} ||
+        bytes.readLe32(140) != 1 || bytes.readLe32(144) != 236 || bytes.readLe32(148) != 1 || bytes.readLe16(152) != 1 ||
+        std::memcmp(bytes.data() + 154, "bb\0", 3) != 0 || bytes[79] != std::byte{'\n'} || bytes[157] != std::byte{'\n'} ||
+        bytes[235] != std::byte{'\n'} || bytes[379] != std::byte{'\n'} ||
+        std::memcmp(bytes.data() + 218, "0123456789abcdef\0", 17) != 0 || !std::ranges::equal(bytes.span().subspan(296, 83), longMembers[0].bytes))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -158,25 +163,89 @@ SWC_TEST_BEGIN(Linker_ArchiveNamesPreserveInlineBoundariesAndOffsets)
             {.name = Utf8(16, 'd'), .bytes = makeArchiveTestObject("e", std::byte{0x90})},
             {.name = "end.obj", .bytes = makeArchiveTestObject("f", std::byte{0xC3})},
         };
-        const Utf8                longNames   = Utf8(16, 'b') + "\n" + Utf8(middleNameSize, 'c') + "\n" + Utf8(16, 'd') + "\n";
+        ByteArray longNames;
+        longNames.appendCString(Utf8(16, 'b').view());
+        longNames.appendCString(Utf8(middleNameSize, 'c').view());
+        longNames.appendCString(Utf8(16, 'd').view());
         const std::array<Utf8, 6> headerNames = {"/", "aaaaaaaaaaaaaaa/", "/0", "/17", middleNameSize == 100 ? "/118" : "/119", "end.obj/"};
         Diagnostic                diag;
         ByteArray                 bytes;
-        if (!buildCoffStaticArchive(bytes, diag, members) || bytes.size() != 1168 || bytes.readBe32(68) != 6 ||
-            !matchesArchiveHeader(bytes, 8, "/", 40) || !matchesArchiveHeader(bytes, 108, "//", static_cast<uint32_t>(longNames.size())))
+        if (!buildCoffStaticArchive(bytes, diag, members) || bytes.size() != 1284 || bytes.readBe32(68) != 6 ||
+            !matchesArchiveHeader(bytes, 8, "/", 40) || !matchesArchiveHeader(bytes, 108, "/", 56) ||
+            !matchesArchiveHeader(bytes, 224, "//", static_cast<uint32_t>(longNames.size())))
             return Result::Error;
-        if (std::memcmp(bytes.data() + 168, longNames.data(), longNames.size()) != 0 || bytes[303] != std::byte{'\n'})
+        if (!std::ranges::equal(bytes.span().subspan(284, longNames.size()), longNames) || bytes[419] != (middleNameSize == 100 ? std::byte{'\n'} : std::byte{0}))
             return Result::Error;
 
-        // Both table sizes end at offset 304: one needs padding, the other ends on its own newline.
+        // Both tables end at offset 420: one needs padding, the other ends on its last NUL.
         for (size_t index = 0; index < members.size(); ++index)
         {
-            const uint32_t offset = 304 + static_cast<uint32_t>(index) * 144;
+            const uint32_t offset = 420 + static_cast<uint32_t>(index) * 144;
             if (bytes.readBe32(72 + index * 4) != offset || !matchesArchiveHeader(bytes, offset, headerNames[index].view(), 83) ||
                 !std::ranges::equal(bytes.span().subspan(offset + 60, 83), members[index].bytes) || bytes[offset + 143] != std::byte{'\n'})
                 return Result::Error;
         }
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Linker_ArchiveSecondDirectorySortsNamesAndPreservesFirstDefinition)
+{
+    std::vector<LinkArchiveMember> members = {
+        {.name = "one.obj", .bytes = makeArchiveTestObject("zeta", std::byte{0xC3})},
+        {.name = "empty.obj", .bytes = makeArchiveTestObject("unused", std::byte{0x90})},
+        {.name = "three.obj", .bytes = makeArchiveTestObject("alpha", std::byte{0xC3})},
+        {.name = "four.obj", .bytes = makeArchiveTestObject("zeta", std::byte{0x90})},
+    };
+    members[1].bytes.writeLe32(8, 0);
+    members[1].bytes.writeLe32(12, 0);
+    Diagnostic diag;
+    ByteArray  bytes;
+    if (!buildCoffStaticArchive(bytes, diag, members) || bytes.size() != 776 ||
+        !matchesArchiveHeader(bytes, 8, "/", 32) || !matchesArchiveHeader(bytes, 100, "/", 39))
+        return Result::Error;
+    // The first directory follows object order, including the later duplicate definition.
+    if (bytes.readBe32(68) != 3 || bytes.readBe32(72) != 200 || bytes.readBe32(76) != 488 || bytes.readBe32(80) != 632 ||
+        std::memcmp(bytes.data() + 84, "zeta\0alpha\0zeta\0", 16) != 0)
+        return Result::Error;
+    // Every object has an offset, including the one with no symbols. The lexical directory
+    // selects member three for alpha and the earliest defining member, one, for zeta.
+    if (bytes.readLe32(160) != 4 || bytes.readLe32(164) != 200 || bytes.readLe32(168) != 344 || bytes.readLe32(172) != 488 || bytes.readLe32(176) != 632 ||
+        bytes.readLe32(180) != 2 || bytes.readLe16(184) != 3 || bytes.readLe16(186) != 1 ||
+        std::memcmp(bytes.data() + 188, "alpha\0zeta\0", 11) != 0 || bytes[199] != std::byte{'\n'})
+        return Result::Error;
+    Archive archive;
+    if (!archive.load(diag, std::move(bytes)) || archive.memberOffsetForSymbol("alpha") != 488 || archive.memberOffsetForSymbol("zeta") != 200)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Linker_ImportSecondDirectoryMapsThunkAndIatNames)
+{
+    Diagnostic diag;
+    ByteArray  bytes;
+    if (!buildCoffImportLibrary(bytes, diag, "names.dll", {"z", "a"}) ||
+        !matchesArchiveHeader(bytes, 8, "/", 40) || !matchesArchiveHeader(bytes, 108, "/", 44))
+        return Result::Error;
+    if (bytes.readLe32(168) != 2 || bytes.readLe32(172) != 212 || bytes.readLe32(176) != 304 || bytes.readLe32(180) != 4 ||
+        bytes.readLe16(184) != 2 || bytes.readLe16(186) != 1 || bytes.readLe16(188) != 2 || bytes.readLe16(190) != 1 ||
+        std::memcmp(bytes.data() + 192, "__imp_a\0__imp_z\0a\0z\0", 20) != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Linker_ArchiveRejectsUnrepresentableMemberIndices)
+{
+    const std::vector<LinkArchiveMember> members(65536);
+    const std::vector<Utf8>              exports(65536);
+    Diagnostic                           diag;
+    ByteArray                            bytes{std::byte{0xAA}};
+    if (buildCoffStaticArchive(bytes, diag, members) || diag.elements().empty() || diag.elements().front()->id() != DiagnosticId::cmd_err_link_archive_member_limit ||
+        bytes.size() != 1 || bytes[0] != std::byte{0xAA})
+        return Result::Error;
+    if (buildCoffImportLibrary(bytes, diag, "limit.dll", exports) || diag.elements().empty() || diag.elements().front()->id() != DiagnosticId::cmd_err_link_archive_member_limit ||
+        bytes.size() != 1 || bytes[0] != std::byte{0xAA})
+        return Result::Error;
 }
 SWC_TEST_END()
 
@@ -191,7 +260,9 @@ SWC_TEST_BEGIN(Linker_ImportLibraryNamesSurviveAliasedOutput)
         ByteArray bytes;
         bytes.append(dll.view());
         const std::string_view aliasedDll{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
-        buildCoffImportLibrary(bytes, aliasedDll, exports);
+        Diagnostic             diag;
+        if (!buildCoffImportLibrary(bytes, diag, aliasedDll, exports))
+            return Result::Error;
         if (bytes.readBe32(68) != exports.size() * 2)
             return Result::Error;
 
@@ -208,7 +279,7 @@ SWC_TEST_BEGIN(Linker_ImportLibraryNamesSurviveAliasedOutput)
             for (size_t index = 0; index < exports.size(); ++index)
             {
                 const size_t offset = tableOffset + 60 + index * (dll.size() + 1);
-                if (std::memcmp(bytes.data() + offset, dll.data(), dll.size()) != 0 || bytes[offset + dll.size()] != std::byte{'\n'})
+                if (std::memcmp(bytes.data() + offset, dll.data(), dll.size()) != 0 || bytes[offset + dll.size()] != std::byte{0})
                     return Result::Error;
             }
         }
@@ -222,8 +293,7 @@ SWC_TEST_BEGIN(Linker_ImportLibraryNamesSurviveAliasedOutput)
                 return Result::Error;
         }
 
-        Diagnostic diag;
-        Archive    archive;
+        Archive archive;
         if (!archive.load(diag, std::move(bytes)))
             return Result::Error;
         for (const Utf8& name : exports)
@@ -246,9 +316,10 @@ SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
 
     const Utf8 symbol = "archive_symbol_longer_than_small_string_storage";
     ByteArray  bytes;
-    buildCoffImportLibrary(bytes, "archive-test.dll", {symbol, symbol, "other"});
+    Diagnostic diag;
+    if (!buildCoffImportLibrary(bytes, diag, "archive-test.dll", {symbol, symbol, "other"}))
+        return Result::Error;
     const uint32_t firstOffset = bytes.readBe32(72);
-    Diagnostic     diag;
     Archive        archive;
     if (!archive.load(diag, std::move(bytes)))
         return Result::Error;
@@ -257,7 +328,8 @@ SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
     archives.push_back(std::move(archive));
     archives.reserve(archives.capacity() + 1);
     Archive assigned;
-    buildCoffImportLibrary(bytes, "previous.dll", {"previous"});
+    if (!buildCoffImportLibrary(bytes, diag, "previous.dll", {"previous"}))
+        return Result::Error;
     if (!assigned.load(diag, std::move(bytes)))
         return Result::Error;
     assigned = std::move(archives.front());
@@ -268,7 +340,8 @@ SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
     if (!assigned.tryReadImport(imported, diag, firstOffset) || imported.importName != symbol || imported.dll != "archive-test.dll")
         return Result::Error;
 
-    buildCoffImportLibrary(bytes, "replacement.dll", {"replacement"});
+    if (!buildCoffImportLibrary(bytes, diag, "replacement.dll", {"replacement"}))
+        return Result::Error;
     if (!assigned.load(diag, std::move(bytes)) || assigned.memberOffsetForSymbol(symbol) || !assigned.memberOffsetForSymbol("replacement"))
         return Result::Error;
     if (assigned.load(diag, {}) || assigned.memberOffsetForSymbol("replacement"))

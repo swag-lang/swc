@@ -17,7 +17,7 @@ class PEWriter final : public ImageWriter
 public:
     bool writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath) override;
     bool buildStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) override;
-    void buildImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) override;
+    bool buildImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::string_view dllFileName, const std::vector<Utf8>& exportNames) override;
 
 private:
     struct OutSection

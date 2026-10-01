@@ -118,7 +118,8 @@ namespace
                 exportNames.push_back(exported.name);
 
             ByteArray libBytes;
-            writer.buildImportLibrary(libBytes, Utf8(job.outputPath.filename()).view(), exportNames);
+            if (!writer.buildImportLibrary(libBytes, job.error, Utf8(job.outputPath.filename()).view(), exportNames))
+                return false;
 
             const fs::path libPath = fs::path(job.outputPath).replace_extension(".lib");
             if (!writeJobArtifact(job, libPath, libBytes))

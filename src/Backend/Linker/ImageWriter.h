@@ -32,7 +32,7 @@ public:
     virtual bool buildStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) = 0;
 
     // Import library that accompanies a shared library so dependents can resolve its exports by name.
-    virtual void buildImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) = 0;
+    virtual bool buildImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::string_view dllFileName, const std::vector<Utf8>& exportNames) = 0;
 };
 
 SWC_END_NAMESPACE();

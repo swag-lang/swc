@@ -54,12 +54,13 @@ private:
     fs::path                                       sourcePath_;
 };
 
-// Builds a COFF static library (`!<arch>`) from prepared object members: a symbol-directory linker
-// member, a long-names member, and the object members. Returns false and fills outDiag on failure.
+// Builds a COFF static library (`!<arch>`) from prepared object members: both linker directories,
+// an optional long-names member, and the object members. Returns false and fills outDiag on failure.
 bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers);
 
 // Builds an import library: a COFF archive of short-import records, one per exported name, so a
-// dependent link resolves those names as by-name imports from the given DLL file.
-void buildCoffImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
+// dependent link resolves those names as by-name imports from the given DLL file. Returns false
+// and fills outDiag when the member count exceeds the COFF directory limit.
+bool buildCoffImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
 
 SWC_END_NAMESPACE();

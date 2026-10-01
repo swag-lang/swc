@@ -234,6 +234,7 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
     ctx.compiler().onSymbolSemaCompleted(ctx, *this);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymSemaCompleted});
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitTypeCompleted});
 }
 
 void Symbol::setCodeGenCompleted(TaskContext& ctx)

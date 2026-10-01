@@ -209,7 +209,8 @@ private:
         bool operator()(const TypeInfo& lhs, const StoredType& rhs) const noexcept { return lhs == *rhs; }
     };
 
-    struct InternStripe
+    // Each stripe owns its cache line: neighbours locked by other workers must not share it.
+    struct alignas(64) InternStripe
     {
         std::unordered_set<StoredType, StoredTypeHash, StoredTypeEqual> map;
         mutable std::shared_mutex                                       mutex;

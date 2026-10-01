@@ -358,7 +358,7 @@ namespace
         // A reference or a non-null single-value pointer to a container is looked through,
         // like member access: the operator receiver is the pointed-to object.
         TypeRef         unwrappedTypeRef = view.typeRef();
-        const TypeInfo& valueType        = sema.typeMgr().get(unwrappedTypeRef);
+        const TypeInfo& valueType        = *view.type();
         if (valueType.isReference() || (valueType.isValuePointer() && !valueType.isNullable()))
             unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), valueType.payloadTypeRef());
         else
@@ -1794,7 +1794,7 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
         return Result::Continue;
 
     TypeRef         unwrappedTypeRef = operandView.typeRef();
-    const TypeInfo& operandValueType = sema.typeMgr().get(unwrappedTypeRef);
+    const TypeInfo& operandValueType = *operandView.type();
     if (operandValueType.isReference())
         unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), operandValueType.payloadTypeRef());
     else

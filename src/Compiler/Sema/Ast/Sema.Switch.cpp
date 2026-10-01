@@ -346,7 +346,7 @@ namespace
                 expr.castRef = castRef;
         if (bindingIdentRef.isValid())
         {
-            TypeInfo bindingType = sema.typeMgr().get(castView.typeRef());
+            TypeInfo bindingType = *castView.type();
             bindingType.removeFlag(TypeInfoFlagsE::Nullable);
             SWC_RESULT(registerDynamicStructSwitchBinding(sema, caseRef, caseExprRef, bindingIdentRef, sema.typeMgr().addType(bindingType)));
             SWC_RESULT(SemaEscape::checkVariableInitializer(sema, *casePayload.bindingSymbol, castRef, casePayload.bindingSymbol->typeRef()));
@@ -756,7 +756,7 @@ namespace
             return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
-        diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef()).toString(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_VALUE, exprView.cst()->toString(sema.ctx()));
         diag.addNote(DiagnosticId::sema_note_previous_case_value);
         diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());

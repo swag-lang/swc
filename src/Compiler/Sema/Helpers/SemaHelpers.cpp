@@ -197,7 +197,7 @@ Result SemaHelpers::checkConstantShiftAmount(Sema& sema, AstNodeRef nodeRef, con
     if (!amountView.hasConstant() || !valueType.isInt() || valueType.isIntUnsized())
         return Result::Continue;
 
-    const ConstantValue& amountCst = sema.cstMgr().get(amountView.cstRef());
+    const ConstantValue& amountCst = *amountView.cst();
     if (!amountCst.isInt())
         return Result::Continue;
 

@@ -100,7 +100,7 @@ namespace
         return pointeeTypeRef;
     }
 
-    const SymbolFunction* attributeFunctionFromView(Sema& sema, const SemaNodeView& view)
+    const SymbolFunction* attributeFunctionFromView(const SemaNodeView& view)
     {
         const Symbol* sym = view.singleSymbol();
         if (sym && sym->isFunction())
@@ -113,7 +113,7 @@ namespace
         if (!view.typeRef().isValid())
             return nullptr;
 
-        const TypeInfo& type = sema.typeMgr().get(view.typeRef());
+        const TypeInfo& type = *view.type();
         if (!type.isFunction())
             return nullptr;
 
@@ -124,7 +124,7 @@ namespace
     Result makeAttributeTypeInfoCallArgument(Sema& sema, AstNodeRef argValueRef, SemaNodeView& argView)
     {
         SemaNodeView          attributeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        const SymbolFunction* attribute = attributeFunctionFromView(sema, attributeView);
+        const SymbolFunction* attribute = attributeFunctionFromView(attributeView);
         if (!attribute)
             return Result::Continue;
 
@@ -153,7 +153,7 @@ namespace
             return false;
 
         const SemaNodeView attributeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        return attributeFunctionFromView(sema, attributeView) != nullptr;
+        return attributeFunctionFromView(attributeView) != nullptr;
     }
 
     Result normalizeTypeInfoCallArgument(Sema& sema, AstNodeRef argValueRef, TypeRef paramTypeRef, SemaNodeView& argView)
@@ -170,7 +170,7 @@ namespace
             // probe, or passed directly). There is nothing left to normalize: skip the attribute
             // function probe, which would otherwise re-resolve symbols (getSymbols) on every
             // candidate during collection.
-            if (argView.typeRef().isValid() && sema.typeMgr().get(argView.typeRef()).isAnyTypeInfo(sema.ctx()))
+            if (argView.type() && argView.type()->isAnyTypeInfo(sema.ctx()))
                 return Result::Continue;
             return makeAttributeTypeInfoCallArgument(sema, argValueRef, argView);
         }
@@ -182,7 +182,7 @@ namespace
         // everything matching needs; 'Cast::castFromTypeValue' materializes the payload later,
         // and only when it is asked for a result.
         SemaHelpers::normalizeTypeOperandToConstant(sema, argView);
-        if (argView.cstRef().isValid() && sema.cstMgr().get(argView.cstRef()).isTypeValue())
+        if (argView.cst() && argView.cst()->isTypeValue())
         {
             sema.setIsValue(argValueRef);
             return Result::Continue;

@@ -119,7 +119,7 @@ namespace
 
         if (nodeInitView.type()->isEnum() && nodeInitView.typeRef() == symEnum.typeRef())
         {
-            const ConstantValue& initValue = sema.cstMgr().get(nodeInitView.cstRef());
+            const ConstantValue& initValue = *nodeInitView.cst();
             SWC_ASSERT(initValue.isEnumValue());
             valueCst = initValue.getEnumValue();
             return Result::Continue;

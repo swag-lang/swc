@@ -1034,6 +1034,7 @@ namespace
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldCarrySelectOfConstants);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldRepeatedZeroExtend);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldSubtractBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryEraseBooleanRecanonicalization);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldZeroExtendedBooleanCompare);

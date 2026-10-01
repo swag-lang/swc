@@ -819,6 +819,52 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A previous zero extension already defines the whole integer register.
+    // Extending from at least that source width again leaves its value intact.
+    bool tryFoldRepeatedZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* extend = inst.ops(*ctx.operands);
+        if (!extend || !extend[0].reg.isInt() || !extend[1].reg.isInt() ||
+            (extend[2].opBits != MicroOpBits::B32 && extend[2].opBits != MicroOpBits::B64) ||
+            getNumBits(extend[3].opBits) > getNumBits(extend[2].opBits) ||
+            ctx.isPrivateFrameBase(extend[0].reg))
+            return false;
+        const MicroInstrRef producerRef = ctx.previousRef(ref);
+        const MicroInstr*   producer    = ctx.instruction(producerRef);
+        if (!producer || ctx.isClaimed(producerRef))
+            return false;
+        uint32_t widthIndex;
+        switch (producer->op)
+        {
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+                widthIndex = 2;
+                break;
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                widthIndex = 3;
+                break;
+            default:
+                return false;
+        }
+        const auto* first = producer->ops(*ctx.operands);
+        if (!first || first[0].reg != extend[1].reg ||
+            (first[widthIndex].opBits != MicroOpBits::B32 && first[widthIndex].opBits != MicroOpBits::B64) ||
+            getNumBits(first[widthIndex + 1].opBits) > getNumBits(extend[3].opBits) ||
+            !ctx.claimAll({producerRef, ref}))
+            return false;
+        if (extend[0].reg == extend[1].reg)
+            ctx.emitErase(ref);
+        else
+        {
+            MicroInstrOperand copy[3] = {extend[0], extend[1], extend[2]};
+            copy[2].opBits            = MicroOpBits::B64;
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, copy);
+        }
+        return true;
+    }
+
     // A byte or word rotate/byte-swap preserves every bit above its operand.
     // Zero-extend the source load instead, so those preserved bits are already
     // clear and the final self-extension has nothing left to do.

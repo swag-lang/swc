@@ -794,8 +794,8 @@ namespace
         if (storedView.hasConstant())
             return;
 
-        if (sema.hasSemaPayload(sourceRef))
-            sema.setSemaPayload(clonedRef, sema.semaPayload<CastSpecOpPayload>(sourceRef));
+        if (auto* payload = sema.semaPayload<CastSpecOpPayload>(sourceRef))
+            sema.setSemaPayload(clonedRef, payload);
         copyClonedCastCallArguments(sema, sourceRef, clonedRef);
         copyImplicitCastLoweringPayload(sema, cloneContext, sourceRef, clonedRef);
 
@@ -854,10 +854,11 @@ namespace
             return;
         if (sourceNode.isNot(AstNodeId::SingleVarDecl) && sourceNode.isNot(AstNodeId::MultiVarDecl))
             return;
-        if (!sema.hasSemaPayload(sourceRef))
+        auto* payload = sema.semaPayload<VarInitSpecOpPayload>(sourceRef);
+        if (!payload)
             return;
 
-        sema.setSemaPayload(clonedRef, sema.semaPayload<VarInitSpecOpPayload>(sourceRef));
+        sema.setSemaPayload(clonedRef, payload);
         sema.copyResolvedCallArguments(clonedRef, sourceRef);
     }
 
@@ -898,17 +899,14 @@ namespace
         if (children.empty())
             return SpanRef::invalid();
 
-        SmallVector<AstNodeRef> cloned;
-        cloned.reserve(children.size());
-        for (const AstNodeRef childRef : children)
+        for (AstNodeRef& childRef : children)
         {
-            const AstNodeRef clonedRef = SemaClone::cloneAst(sema, childRef, cloneContext);
-            if (clonedRef.isInvalid())
+            childRef = SemaClone::cloneAst(sema, childRef, cloneContext);
+            if (childRef.isInvalid())
                 return SpanRef::invalid();
-            cloned.push_back(clonedRef);
         }
 
-        return sema.ast().pushSpan(cloned.span());
+        return sema.ast().pushSpan(children.span());
     }
 
     SpanRef cloneTokenSpan(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)

@@ -59,13 +59,12 @@ namespace
         if (!shouldEmitDebugConstant(ctx, symbol))
             return;
 
-        DebugInfoConstantRecord record;
-        record.name        = Utf8(symbol.name(ctx));
-        record.linkageName = symbol.getFullScopedName(ctx);
-        record.typeRef     = symbol.typeRef();
-        record.isConst     = true;
-        record.valueRef    = symbol.cstRef();
-        out.push_back(record);
+        DebugInfoConstantRecord& record = out.emplace_back();
+        record.name                     = Utf8(symbol.name(ctx));
+        record.linkageName              = symbol.getFullScopedName(ctx);
+        record.typeRef                  = symbol.typeRef();
+        record.isConst                  = true;
+        record.valueRef                 = symbol.cstRef();
     }
 
     void collectGlobalDebugConstantsRec(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const SymbolMap& symbolMap)
@@ -149,18 +148,17 @@ namespace
                 if (!shouldEmitDebugVariable(builder.ctx(), *symVar))
                     continue;
 
-                DebugInfoLocalRecord record;
-                record.name        = Utf8(symVar->name(builder.ctx()));
-                record.linkageName = symVar->getFullScopedName(builder.ctx());
-                record.typeRef     = symVar->typeRef();
-                record.isConst     = symVar->hasExtraFlag(SymbolVariableFlagsE::Let);
-                record.offset      = symVar->debugStackSlotOffset();
+                DebugInfoLocalRecord& record = storage.parameters.emplace_back();
+                record.name                  = Utf8(symVar->name(builder.ctx()));
+                record.linkageName           = symVar->getFullScopedName(builder.ctx());
+                record.typeRef               = symVar->typeRef();
+                record.isConst               = symVar->hasExtraFlag(SymbolVariableFlagsE::Let);
+                record.offset                = symVar->debugStackSlotOffset();
                 // Parameters are spilled to their debug home relative to the local-stack base
                 // register (see spillParametersToDebugSlots), the same base locals use -- not raw
                 // SP, which moves during the body. Record that base so the debugger reads the
                 // right slot.
                 record.baseReg = localBaseReg;
-                storage.parameters.push_back(record);
             }
 
             for (const SymbolVariable* symVar : info.symbol->localVariables())
@@ -171,14 +169,13 @@ namespace
                 if (!shouldEmitDebugVariable(builder.ctx(), *symVar))
                     continue;
 
-                DebugInfoLocalRecord record;
-                record.name        = Utf8(symVar->name(builder.ctx()));
-                record.linkageName = symVar->getFullScopedName(builder.ctx());
-                record.typeRef     = symVar->typeRef();
-                record.isConst     = symVar->hasExtraFlag(SymbolVariableFlagsE::Let);
-                record.offset      = symVar->offset();
-                record.baseReg     = localBaseReg;
-                storage.locals.push_back(record);
+                DebugInfoLocalRecord& record = storage.locals.emplace_back();
+                record.name                  = Utf8(symVar->name(builder.ctx()));
+                record.linkageName           = symVar->getFullScopedName(builder.ctx());
+                record.typeRef               = symVar->typeRef();
+                record.isConst               = symVar->hasExtraFlag(SymbolVariableFlagsE::Let);
+                record.offset                = symVar->offset();
+                record.baseReg               = localBaseReg;
             }
 
             collectFunctionDebugConstants(storage.constants, builder.ctx(), *info.symbol);
@@ -246,16 +243,15 @@ void collectDebugRecords(NativeBackendBuilder&                      builder,
             if (sectionName.empty())
                 continue;
 
-            DebugInfoDataRecord record;
-            record.name         = Utf8(symbol->name(builder.ctx()));
-            record.linkageName  = symbol->getFullScopedName(builder.ctx());
-            record.typeRef      = symbol->typeRef();
-            record.isConst      = symbol->hasExtraFlag(SymbolVariableFlagsE::Let);
-            record.symbolName   = debugDataSymbolName(builder.ctx(), *symbol);
-            record.sectionName  = sectionName;
-            record.symbolOffset = symbol->offset();
-            record.isGlobal     = symbol->isPublic();
-            out.globals.push_back(record);
+            DebugInfoDataRecord& record = out.globals.emplace_back();
+            record.name                 = Utf8(symbol->name(builder.ctx()));
+            record.linkageName          = symbol->getFullScopedName(builder.ctx());
+            record.typeRef              = symbol->typeRef();
+            record.isConst              = symbol->hasExtraFlag(SymbolVariableFlagsE::Let);
+            record.symbolName           = debugDataSymbolName(builder.ctx(), *symbol);
+            record.sectionName          = sectionName;
+            record.symbolOffset         = symbol->offset();
+            record.isGlobal             = symbol->isPublic();
         }
 
         collectGlobalDebugConstants(out.constants, builder.ctx(), builder.compiler());

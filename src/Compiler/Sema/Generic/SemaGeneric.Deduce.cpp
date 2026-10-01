@@ -494,9 +494,8 @@ namespace
         // Named aggregate fields are matched first, then unnamed entries fill the
         // remaining pattern slots in order. This mirrors initializer semantics and lets
         // partially named aggregate literals participate in generic deduction.
-        outOrder.resize(patternFields.size());
-        for (size_t& index : outOrder)
-            index = SIZE_MAX;
+        outOrder.clear();
+        outOrder.resize(patternFields.size(), SIZE_MAX);
 
         for (size_t actualIndex = 0; actualIndex < actualAggregate.types.size(); ++actualIndex)
         {

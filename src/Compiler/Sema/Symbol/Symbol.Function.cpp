@@ -1006,9 +1006,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) const
 {
     const std::shared_lock lock(callDependenciesMutex_);
-    out.reserve(out.size() + callDependencies_.size());
-    for (SymbolFunction* dep : callDependencies_)
-        out.push_back(dep);
+    out.append(callDependencies_.data(), callDependencies_.size());
 }
 
 void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym)

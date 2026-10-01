@@ -1236,7 +1236,10 @@ Result NativeBackendBuilder::run()
 Result NativeBackendBuilder::prepareForLink()
 {
     SWC_ASSERT(compiler_ != nullptr);
-    SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
+    {
+        SWC_SCHED_PHASE(ctx_.global().jobMgr(), "before output messages");
+        SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
+    }
     SWC_RESULT(validateTarget());
 
     const NativeArtifactBuilder artifactBuilder(*this);
@@ -1268,6 +1271,7 @@ Result NativeBackendBuilder::prepareForLink()
     deferredLinker_ = Linker::create(*this);
     SWC_ASSERT(deferredLinker_ != nullptr);
     deferredToolRun_ = {};
+    SWC_SCHED_PHASE(ctx_.global().jobMgr(), "link prepare");
     return deferredLinker_->prepareLink(deferredToolRun_);
 }
 
@@ -1329,6 +1333,7 @@ Result NativeBackendBuilder::runExistingArtifact()
 
 Result NativeBackendBuilder::prepare()
 {
+    SWC_SCHED_PHASE(ctx_.global().jobMgr(), "backend prepare");
     SWC_ASSERT(compiler_ != nullptr);
     compiler_->setActiveNativeBuilder(nullptr);
     runtimeDependencies.clear();
@@ -1446,6 +1451,7 @@ Result NativeBackendBuilder::prepare()
 
             // Code generation only needs symbols. Build artifact names and lookup tables
             // once the dependency set and executable reachability have stopped changing.
+            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "function infos");
             SWC_RESULT(rebuildFunctionInfos(*this, functions));
             if (microStage)
             {

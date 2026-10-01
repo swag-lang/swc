@@ -250,7 +250,9 @@ private:
 };
 
 #if SWC_DEV_MODE
-#define SWC_SCHED_PHASE(__manager, __name) const JobManager::StatsPhase schedPhase((__manager), (__name))
+#define SWC_SCHED_PHASE_NAME2(__line) schedPhase##__line
+#define SWC_SCHED_PHASE_NAME(__line)  SWC_SCHED_PHASE_NAME2(__line)
+#define SWC_SCHED_PHASE(__manager, __name) const JobManager::StatsPhase SWC_SCHED_PHASE_NAME(__LINE__)((__manager), (__name))
 #else
 #define SWC_SCHED_PHASE(__manager, __name)
 #endif

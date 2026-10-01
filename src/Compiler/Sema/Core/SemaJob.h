@@ -14,6 +14,10 @@ class SemaJob : public Job
     std::unique_ptr<Sema> sema_;
     SymbolNamespace*      moduleNamespace_          = nullptr;
     bool                  enqueueFullPassAfterDecl_ = false;
+#if SWC_DEV_MODE
+    // Survives the release of the Sema, for scheduler statistics.
+    const SourceFile* file_ = nullptr;
+#endif
 
 public:
     static constexpr auto K = JobKind::Sema;
@@ -23,6 +27,9 @@ public:
     SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root);
     SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayloadContext, AstNodeRef root);
     JobResult exec() override;
+#if SWC_DEV_MODE
+    Utf8 statsLabel() const override;
+#endif
 
     Sema&       sema() { return *sema_; }
     const Sema& sema() const { return *sema_; }

@@ -756,7 +756,7 @@ namespace
         if (!nodeInitView.typeRef().isValid() || nodeInitView.cstRef().isInvalid())
             return false;
 
-        const TypeInfo& initType = sema.typeMgr().get(nodeInitView.typeRef());
+        const TypeInfo& initType = *nodeInitView.type();
         if (!initType.isAggregateArray())
             return false;
 
@@ -764,7 +764,7 @@ namespace
         if (elemTypes.empty())
             return false;
 
-        const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
+        const ConstantValue& cst = *nodeInitView.cst();
         if (!cst.isAggregateArray())
             return false;
 
@@ -1515,7 +1515,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
                 const SemaNodeView initCstView = sema.viewNodeTypeConstant(nodeInitRef);
                 if (initCstView.cstRef().isValid())
                 {
-                    const ConstantValue& aggCst = sema.cstMgr().get(initCstView.cstRef());
+                    const ConstantValue& aggCst = *initCstView.cst();
                     if (aggCst.isAggregateStruct() && fieldIndex < aggCst.getAggregateStruct().size())
                     {
                         const ConstantRef    elemCstRef = aggCst.getAggregateStruct()[fieldIndex];

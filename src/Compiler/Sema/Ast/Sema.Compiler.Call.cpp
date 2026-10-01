@@ -1271,7 +1271,7 @@ namespace
 
         if (symbolView.sym() && symbolView.sym()->isType() && typeView.typeRef().isValid())
         {
-            outName = sema.typeMgr().get(typeView.typeRef()).toName(ctx);
+            outName = typeView.type()->toName(ctx);
             return Result::Continue;
         }
 

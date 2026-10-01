@@ -202,7 +202,7 @@ namespace
         if (!sizeView.hasConstant())
             return false;
 
-        const ConstantValue& sizeCst = codeGen.cstMgr().get(sizeView.cstRef());
+        const ConstantValue& sizeCst = *sizeView.cst();
         if (!sizeCst.isInt())
             return false;
 
@@ -224,7 +224,7 @@ namespace
         if (!valueView.hasConstant())
             return false;
 
-        const ConstantValue& valueCst = codeGen.cstMgr().get(valueView.cstRef());
+        const ConstantValue& valueCst = *valueView.cst();
         if (!valueCst.isInt())
             return false;
 
@@ -1969,7 +1969,7 @@ namespace
         if (!patternView.hasConstant())
             return false;
 
-        const ConstantValue& patternCst = codeGen.cstMgr().get(patternView.cstRef());
+        const ConstantValue& patternCst = *patternView.cst();
         if (!patternCst.isArray())
             return false;
 
@@ -2203,7 +2203,7 @@ namespace
                 const SemaNodeView countView = codeGen.viewTypeConstant(children[1]);
                 if (countView.hasConstant())
                 {
-                    const ConstantValue& countCst = codeGen.cstMgr().get(countView.cstRef());
+                    const ConstantValue& countCst = *countView.cst();
                     const uint32_t       count    = static_cast<uint32_t>(countCst.getIntLike().as64());
                     resultPayload.reg             = CodeGenVectorHelpers::emitRotateImm(codeGen, valueReg, laneType, count, rotateLeft);
                 }
@@ -2295,7 +2295,7 @@ namespace
                 CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
                 if (countView.hasConstant())
                 {
-                    const ConstantValue& countCst = codeGen.cstMgr().get(countView.cstRef());
+                    const ConstantValue& countCst = *countView.cst();
                     resultPayload.reg             = CodeGenVectorHelpers::emitConstantAlign(codeGen, lowReg, highReg, static_cast<uint32_t>(countCst.getIntLike().as64()));
                 }
                 else
@@ -2317,7 +2317,7 @@ namespace
                 // The selector is baked into the instruction: it must be a constant.
                 SWC_RESULT(SemaCheck::isConstant(codeGen.sema(), children[2]));
                 const SemaNodeView   selView = codeGen.viewTypeConstant(children[2]);
-                const ConstantValue& selCst  = codeGen.cstMgr().get(selView.cstRef());
+                const ConstantValue& selCst  = *selView.cst();
 
                 const MicroReg      leftReg       = loadArg(0);
                 const MicroReg      rightReg      = loadArg(1);

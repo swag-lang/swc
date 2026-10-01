@@ -132,6 +132,26 @@ AstNodeRef Ast::oneNode(SpanRef spanRef) const
     return res.front();
 }
 
+std::optional<size_t> Ast::findNodeIndex(SpanRef spanRef, AstNodeRef nodeRef) const
+{
+    if (spanRef.isInvalid())
+        return std::nullopt;
+
+    const uint32_t             globalRef = spanRef.get();
+    const PagedStore::SpanView view      = shards_[refShard(globalRef)].store.span<AstNodeRef>(refLocal(globalRef));
+    size_t                     offset    = 0;
+    for (auto it = view.chunksBegin(); it != view.chunksEnd(); ++it)
+    {
+        const std::span nodes(static_cast<const AstNodeRef*>(it->ptr), it->count);
+        const auto      found = std::ranges::find(nodes, nodeRef);
+        if (found != nodes.end())
+            return offset + static_cast<size_t>(found - nodes.begin());
+        offset += nodes.size();
+    }
+
+    return std::nullopt;
+}
+
 void Ast::appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
 {
     if (spanRef.isInvalid())

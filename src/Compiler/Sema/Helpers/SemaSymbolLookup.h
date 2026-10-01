@@ -28,6 +28,13 @@ namespace SemaSymbolLookup
     void removeEmptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
     {
         outSymbols.clear();
+        if (inSymbols.size() == 1)
+        {
+            // A lone symbol cannot hide an empty declaration behind a concrete function.
+            if (inSymbols.front())
+                outSymbols.push_back(inSymbols.front());
+            return;
+        }
         outSymbols.reserve(inSymbols.size());
 
         if (!hasConcreteFunctionCandidate(inSymbols))

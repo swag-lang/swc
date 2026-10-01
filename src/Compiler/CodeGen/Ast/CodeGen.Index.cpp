@@ -373,7 +373,7 @@ namespace
         if (indexView.cstRef().isInvalid())
             return false;
 
-        const ConstantValue& indexCst = codeGen.cstMgr().get(indexView.cstRef());
+        const ConstantValue& indexCst = *indexView.cst();
         if (!codeGen.typeMgr().get(indexCst.typeRef()).isIntLike())
             return false;
 
@@ -631,7 +631,7 @@ namespace
         const SemaNodeView indexView = codeGen.viewConstant(indexRef);
         if (indexView.cstRef().isInvalid())
             return false;
-        const ConstantValue& indexCst = codeGen.cstMgr().get(indexView.cstRef());
+        const ConstantValue& indexCst = *indexView.cst();
         if (!codeGen.typeMgr().get(indexCst.typeRef()).isIntLike())
             return false;
         const int64_t lane = indexCst.getIntLike().asI64();

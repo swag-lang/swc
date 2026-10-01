@@ -358,7 +358,7 @@ namespace
         // A reference or a non-null single-value pointer to a container is looked through,
         // like member access: the operator receiver is the pointed-to object.
         TypeRef         unwrappedTypeRef = view.typeRef();
-        const TypeInfo& valueType        = sema.typeMgr().get(unwrappedTypeRef);
+        const TypeInfo& valueType        = *view.type();
         if (valueType.isReference() || (valueType.isValuePointer() && !valueType.isNullable()))
             unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), valueType.payloadTypeRef());
         else
@@ -561,9 +561,9 @@ namespace
 
         // The search widens one using-level at a time, so a comparison can stop as soon as a level
         // answers instead of merging every level into one overload set.
-        const bool                              stopAtAnsweringLevel = specOpHidesUsingCandidates(sema, idRef);
-        std::unordered_set<const SymbolStruct*> visited{&ownerStruct};
-        SmallVector<const SymbolStruct*>        level{&ownerStruct};
+        const bool                                             stopAtAnsweringLevel = specOpHidesUsingCandidates(sema, idRef);
+        std::optional<std::unordered_set<const SymbolStruct*>> visited;
+        SmallVector<const SymbolStruct*>                       level{&ownerStruct};
 
         while (!level.empty())
         {
@@ -574,13 +574,15 @@ namespace
                 SWC_RESULT(collectUsingTargets(sema, *current, nextLevel));
             }
 
-            if (stopAtAnsweringLevel && !outCandidates.empty())
+            if ((stopAtAnsweringLevel && !outCandidates.empty()) || nextLevel.empty())
                 return Result::Continue;
 
+            if (!visited)
+                visited.emplace(std::initializer_list<const SymbolStruct*>{&ownerStruct});
             level.clear();
             for (const SymbolStruct* target : nextLevel)
             {
-                if (visited.insert(target).second)
+                if (visited->insert(target).second)
                     level.push_back(target);
             }
         }
@@ -1792,7 +1794,7 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
         return Result::Continue;
 
     TypeRef         unwrappedTypeRef = operandView.typeRef();
-    const TypeInfo& operandValueType = sema.typeMgr().get(unwrappedTypeRef);
+    const TypeInfo& operandValueType = *operandView.type();
     if (operandValueType.isReference())
         unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), operandValueType.payloadTypeRef());
     else

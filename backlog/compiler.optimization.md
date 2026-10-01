@@ -15,42 +15,10 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 11:36 — Removed repeated zero extensions while preserving the remaining outer-index residency lead.
-- Area: compiler/backend, register allocation and value ranges.
-- Comparison: accepted campaign `20260930-195406` names C++/Clang 20.1.8 as the fastest
-  other runtime at 23.2491 ms. Its `/O2 /EHsc /std:c++20` object has a six-instruction,
-  two-memory-operand byte match loop at `main+0x530..0x541`. It keeps the outer index
-  in `r8` while a different register holds the loaded byte.
-- Current evidence: the fresh Release dump keeps that same six-instruction, two-memory
-  match loop and `CHECK=622942003053`. The candidate loop still reloads the outer index
-  from `[rsp + 0x200]` at its latch: the byte load has reused `rax`. Its backedge span
-  has 35 Microinstructions, 30 non-label instructions, six memory operands and one
-  explicit frame operand. Adjacent zero-extension folding removes three repeated
-  byte extensions from each four-byte hash and one from checksum accumulation:
-  whole-function size falls from 524 to 517 Microinstructions (486 to 479 non-label
-  instructions), with the same 131 memory and 34 explicit frame operands
-  (including twelve indexed loads abbreviated in the textual dump). The hash
-  helper falls from 15 to 12 instructions. Those totals are not the candidate-loop
-  cost; the match loop and candidate latch retain their original counts.
-- Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  The `i` and `p` remainders retain sign correction. The current Clang winner also
-  retains sign-corrected remainders on those paths, so the former LLVM comparison
-  does not justify changing Swag's overflow contract. Any future simplification
-  must prove the counters' bounds under the existing semantics.
-- Next: follow the outer index through the dump before register allocation and the
-  spill election. Determine whether its frame round trip is already present before
-  allocation, then keep it across the match loop without adding per-byte traffic or
-  moving another frequently used value to memory.
-- Complete when: the candidate latch no longer reloads the outer index and the match
-  loop retains its six instructions and two memory operands without a loss elsewhere.
-
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 11:36 — Retained the code-level attribution and recorded the rejected controlled timing cohorts.
+- Updated: 2026-10-01 12:54 — Added the accepted noon campaign without attributing individual timing effects.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20260930-195406` reports Zig 0.15.2 at 15.2582 ms and
   Swag native Release at 30.3729 ms, with `CHECK=169096566666`. The inspected Zig
@@ -64,6 +32,12 @@ block, and the hot path keeps the register.
   operations in `advance` exactly match the native function from `819dd7872`, before
   borrowed-slice inlining. An accepted controlled comparison must still separate the
   earlier register/forwarding changes, inlining, and the current scalar dependency fixes.
+- Latest accepted campaign `20261001-103647`, built from `49f7e665d`, reports native
+  at 23.5431 ms (23.1885 after its task normalization), JIT at 25.9971 ms and the same
+  Zig 0.15.2 winner at 16.45 ms. The native raw result is below the September 30 evening
+  result again; it is still 1.431x the current winner. This full-campaign observation
+  is not a same-session causal comparison of the retained batches. Its calibration
+  drift is 17.35%, so the separate historical attribution below remains necessary.
 - Measurement limit: the October 1 historical comparisons at 07:36, 10:21 and 11:23
   all fail the declared control gates. Even after a 30-second warmup, nbody's
   control p90/p10 is 1.304 and its half-window median drift is 1.243; raytrace's
@@ -111,6 +85,38 @@ block, and the hot path keeps the register.
 - Complete when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
+
+### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-01 11:36 — Removed repeated zero extensions while preserving the remaining outer-index residency lead.
+- Area: compiler/backend, register allocation and value ranges.
+- Comparison: accepted campaign `20260930-195406` names C++/Clang 20.1.8 as the fastest
+  other runtime at 23.2491 ms. Its `/O2 /EHsc /std:c++20` object has a six-instruction,
+  two-memory-operand byte match loop at `main+0x530..0x541`. It keeps the outer index
+  in `r8` while a different register holds the loaded byte.
+- Current evidence: the fresh Release dump keeps that same six-instruction, two-memory
+  match loop and `CHECK=622942003053`. The candidate loop still reloads the outer index
+  from `[rsp + 0x200]` at its latch: the byte load has reused `rax`. Its backedge span
+  has 35 Microinstructions, 30 non-label instructions, six memory operands and one
+  explicit frame operand. Adjacent zero-extension folding removes three repeated
+  byte extensions from each four-byte hash and one from checksum accumulation:
+  whole-function size falls from 524 to 517 Microinstructions (486 to 479 non-label
+  instructions), with the same 131 memory and 34 explicit frame operands
+  (including twelve indexed loads abbreviated in the textual dump). The hash
+  helper falls from 15 to 12 instructions. Those totals are not the candidate-loop
+  cost; the match loop and candidate latch retain their original counts.
+- Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  The `i` and `p` remainders retain sign correction. The current Clang winner also
+  retains sign-corrected remainders on those paths, so the former LLVM comparison
+  does not justify changing Swag's overflow contract. Any future simplification
+  must prove the counters' bounds under the existing semantics.
+- Next: follow the outer index through the dump before register allocation and the
+  spill election. Determine whether its frame round trip is already present before
+  allocation, then keep it across the match loop without adding per-byte traffic or
+  moving another frequently used value to memory.
+- Complete when: the candidate latch no longer reloads the outer index and the match
+  loop retains its six instructions and two memory operands without a loss elsewhere.
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
 

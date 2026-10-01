@@ -62,8 +62,8 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-09-30 18:59 — Isolated the remaining request and heap-lookup costs after removing local interface copies.
-- Accepted campaign `20260930-152655` reports binarytrees at 9.835 ms for Node and 35.8965 ms
+- Updated: 2026-10-01 12:54 — Rechecked the current winner and separated zero-store packing from allocator policy.
+- Accepted campaign `20261001-103647` reports binarytrees at 9.952 ms for Node and 34.5819 ms
   for Swag native Release, both with checksum 674478. Locally inspected Node 20.15.1 V8 code
   bumps the nursery allocation pointer by 40 bytes and calls a cold allocation path only at
   the limit. Its garbage-collected task does not recursively free each node. These are
@@ -78,6 +78,14 @@ alone. Comparative reference points for that investigation:
   28/24: the copied interface stays in registers, and allocation reuses its guarded result.
   Six vector stores still initialize each request; TLS context lookup and the indirect
   allocator call remain. Checksums are unchanged; these are static counts, not new timings.
+- The October 1 code comparison still shows the same nursery bump in Node's leaf path.
+  Swag's leaf now packs its two null-pointer writes into one 128-bit store preceded by
+  a register clear: `bottomUp` retains 24 non-label instructions, reduces explicit
+  memory operands from four to three, and adds no frame traffic. The checksum remains
+  674478. This removes a local write; it does not remove allocator dispatch or per-node free.
+- The same accepted campaign reports Swag JIT at 17.6029 ms. Its host allocator calls
+  mimalloc (`CompilerInstance.cpp`), whereas native code uses `bin/runtime/allocator.swg`.
+  This is another strategy difference to control before attributing the whole-task gap.
 - The historical 77 ns allocation/free pair and 10–20 ns mimalloc comparison are not current
   measurements. Use runtime.allocator.001 for an allocator-only timing comparison; static
   benchmark inspection can independently establish redundant instructions.

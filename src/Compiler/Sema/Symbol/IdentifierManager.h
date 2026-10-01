@@ -201,11 +201,25 @@ private:
     static constexpr uint32_t INTERN_STRIPE_BITS  = 4;
     static constexpr uint32_t INTERN_STRIPE_COUNT = 1u << INTERN_STRIPE_BITS;
 
+    // Open-addressed and append-only. A slot packs the name hash with the reference plus one in
+    // a single word, so a reader that sees a slot sees all of it. Readers probe it without a
+    // lock; writers fill it under the stripe mutex once the identifier is stored.
+    struct InternTable
+    {
+        std::unique_ptr<std::atomic<uint64_t>[]> slots;
+        uint32_t                                 capacity = 0; // power of two
+        uint32_t                                 size     = 0; // writer-only
+    };
+
     // Each stripe owns its cache line: neighbours locked by other workers must not share it.
+    // 'map' is the writers' authority; 'table' answers lookups without a lock. Every table
+    // generation stays alive with the stripe, for readers still probing an older one.
     struct alignas(64) InternStripe
     {
-        StringMap<IdentifierRef>  map;
-        mutable std::shared_mutex mutex;
+        StringMap<IdentifierRef>                  map;
+        std::atomic<InternTable*>                 table = nullptr;
+        std::vector<std::unique_ptr<InternTable>> tables;
+        std::mutex                                mutex; // writers only
     };
 
     struct Shard
@@ -221,6 +235,10 @@ private:
     static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
+
+    IdentifierRef   findInterned(const InternTable* table, std::string_view name, uint32_t hash) const noexcept;
+    static void     publishInterned(InternStripe& stripe, IdentifierRef idRef, uint32_t hash);
+    static uint32_t internSlot(uint32_t hash, uint32_t capacity) noexcept;
 
     std::array<IdentifierRef, static_cast<size_t>(PredefinedName::Count)>      predefined_       = {};
     std::array<IdentifierRef, static_cast<size_t>(RuntimeFunctionKind::Count)> runtimeFunctions_ = {};

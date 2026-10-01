@@ -6,6 +6,22 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.070 — Constant interning still takes a stripe lock per lookup
+
+- Recorded: 2026-10-01 09:37
+- Evidence: symbol maps, type interning, and identifier interning now answer lookups from
+  append-only tables without a lock. `ConstantManager` still reads its `InternStripe` maps under a
+  `std::shared_mutex` in `addCstSpanPayload`, `addCstString`, and `addCstOther`, so folding a
+  literal writes a lock line shared by every worker. The same table cannot simply be layered on:
+  `addCstOther` updates a canonical constant's `dataSegmentRef` under the exclusive lock while it
+  is published, so a lock-free reader comparing values would race with that write.
+- Next: move the enriched location out of the interned `ConstantValue` (a side table keyed by
+  `ConstantRef`, or a write-once atomic), then publish canonical constants through an append-only
+  table as `TypeManager::findInterned` does.
+- Complete when: interning an existing constant performs no interlocked operation, with the
+  `ConstantManager` C++ tests and the sema and jit suites green under both compiler executables.
+- Related: compiler.core.069
+
 ### compiler.core.068 — The job scheduler serializes every transition on one mutex
 
 - Recorded: 2026-10-01 07:35

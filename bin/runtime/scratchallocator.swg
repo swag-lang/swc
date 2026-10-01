@@ -58,6 +58,11 @@ impl ScratchAllocator
     // Release all memory
     mtd releaseAll()
     {
+        // Error records can retain message bytes after their originating thread exits. The
+        // hook transfers the current blocks to that owner and leaves this allocator empty.
+        if .releaseHook do
+            .releaseHook(me)
+
         .used = 0
         while .firstLeak
         {

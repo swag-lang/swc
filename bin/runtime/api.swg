@@ -556,6 +556,10 @@ namespace Swag
             totalLeak: u64
             maxLeak:   u64
         }
+
+        // An internal owner can retain the backing storage beyond this allocator's release.
+        releaseOwner: *void?
+        releaseHook:  (func(*ScratchAllocator))?
     }
 
     // #########################################################
@@ -596,13 +600,16 @@ namespace Swag
     {
         public value: any?     // Error value (or null)
 
+        record: *ErrorRecord?     // Owner of the dynamically typed payload.
+
         // What the error stack must restore when this entry is popped. The runtime writes it
         // when an error is pushed and reads it back on 'catch'.
-        pushUsedAlloc:  u32     // Error-allocator watermark at the push.
-        pushTraceIndex: u32     // Stack-trace depth at the push.
-        pushHasError:   u32     // Whether an error was already pending at the push.
-        padding:        u32
-        pushCurError:   any?     // Current handled error at the push.
+        reserved:           u32
+        pushTraceIndex:     u32     // Stack-trace depth at the push.
+        pushHasError:       u32     // Whether an error was already pending at the push.
+        padding:            u32
+        pushCurError:       any?                 // Current handled error at the push.
+        pushErrorAllocator: ScratchAllocator     // Parent message storage while this frame runs.
     }
 
     // Per-thread state, as returned by [[Swag.getContext]].
@@ -617,7 +624,7 @@ namespace Swag
             // Other fields, can be in any order
 
             tempAllocator:    ScratchAllocator                         // A temporary allocator for the user
-            errorAllocator:   ScratchAllocator                         // A temporary allocator to store the error values
+            errorAllocator:   ScratchAllocator                         // Copied error messages for the current handled operation.
             runtimeFlags:     RuntimeFlags                             // As initialized by the runtime
             defaultAllocator: IAllocator?                              // The default allocator, to restore after a temporary change of 'allocator'
             user0:            u64                                      // For user usage
@@ -633,6 +640,8 @@ namespace Swag
             errorIndex:       u32                                      // Number of errors in the array
             traceIndex:       u32                                      // Number of traces in the array
             hasError:         u32                                      // Nonzero while an error is raised
+            #[Swag.NoDoc]
+            errorCaptures: *ErrorCapture?     // Live lexical owners of caught errors.
             #[Swag.NoDoc]
             runtimeTlsIdPlusOne: u64     // Process TLS slot shared by dynamically loaded Swag modules.
             #[Swag.NoDoc]

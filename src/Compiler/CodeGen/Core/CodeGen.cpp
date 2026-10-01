@@ -290,8 +290,8 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& originalType = codeGen.typeMgr().get(typeRef);
-        const TypeRef   rawTypeRef   = originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& originalType  = codeGen.typeMgr().get(typeRef);
+        const TypeRef   rawTypeRef    = originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         const bool      resolvedAlias = rawTypeRef.isValid() && rawTypeRef != typeRef;
         if (resolvedAlias)
             typeRef = rawTypeRef;
@@ -495,7 +495,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         currentDeferredAddressGeneration_ = 0;
         nextDeferredAddressGeneration_    = 1;
         // The drop test reads the function's variables; the other one walks its whole body.
-        hasDeferredStatements_            = functionHasImplicitDrops(*this, symbolFunc) || containsNodeId(root, AstNodeId::DeferStmt);
+        hasDeferredStatements_ = functionHasImplicitDrops(*this, symbolFunc) || containsNodeId(root, AstNodeId::DeferStmt);
         variablePayloads_.clear();
         moveElisionVars_.clear();
         elidedImplicitDrops_.clear();
@@ -1339,7 +1339,42 @@ void CodeGen::pushDeferScope(AstNodeRef scopeRef, AstNodeRef breakOwnerRef, AstN
     deferScope.scopeRef      = scopeRef;
     deferScope.breakOwnerRef = breakOwnerRef;
     deferScope.switchCaseRef = switchCaseRef;
+    deferScope.entryRef      = builder().instructions().lastInstructionRef();
     deferScopes_.push_back(std::move(deferScope));
+}
+
+void CodeGen::initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar)
+{
+    SWC_ASSERT(!deferScopes_.empty());
+    SWC_ASSERT(symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+    SWC_ASSERT(localStackBaseReg().isValid());
+
+    // A catch capture can be in a short-circuited expression. Its enclosing scope still owns
+    // cleanup, so the empty owner must exist even when that expression is never evaluated.
+    MicroStorage&       instructions = builder().instructions();
+    const MicroInstrRef beforeRef    = instructions.findNextInstructionRef(deferScopes_.back().entryRef);
+    const uint32_t      sizeOf       = CodeGenFunctionHelpers::checkedTypeSizeInBytes(*this, typeMgr().get(symVar.typeRef()));
+    for (uint32_t offset = 0; offset < sizeOf;)
+    {
+        const uint32_t    remaining = sizeOf - offset;
+        const uint32_t    width     = remaining >= 8 ? 8 : remaining >= 4 ? 4
+                                                       : remaining >= 2   ? 2
+                                                                          : 1;
+        const MicroOpBits bits      = microOpBitsFromBitWidth(width * 8);
+        const uint64_t    address   = symVar.offset() + offset;
+        if (beforeRef.isValid())
+        {
+            std::array<MicroInstrOperand, 4> ops;
+            ops[0].reg      = localStackBaseReg();
+            ops[1].opBits   = bits;
+            ops[2].valueU64 = address;
+            ops[3].setImmediateValue(ApInt(0, width * 8));
+            instructions.insertSyntheticBefore(builder().operands(), beforeRef, MicroInstrOpcode::LoadMemImm, ops);
+        }
+        else
+            builder().emitLoadMemImm(localStackBaseReg(), address, ApInt(0, width * 8), bits);
+        offset += width;
+    }
 }
 
 void CodeGen::registerDefer(const AstNodeRef deferStmtRef, const AstNodeRef bodyRef, const AstModifierFlags modifierFlags)
@@ -1417,10 +1452,18 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
             if (action.bodyRef.isInvalid())
                 return Result::Continue;
 
+            const auto emitBody = [&]() -> Result {
+                // Match the semantic scope of the deferred body, including a single statement.
+                // New owners must not be appended to the outer scope already being unwound.
+                pushDeferScope(action.deferStmtRef);
+                SWC_RESULT(emitNodeNow(action.bodyRef));
+                return popDeferScope();
+            };
+
             const bool needsErr   = action.modifierFlags.has(AstModifierFlagsE::Fail);
             const bool needsNoErr = action.modifierFlags.has(AstModifierFlagsE::NoFail);
             if (!needsErr && !needsNoErr)
-                return emitNodeNow(action.bodyRef);
+                return emitBody();
 
             const IdentifierRef idRef = idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::IsErrContext);
             SWC_ASSERT(idRef.isValid());
@@ -1438,7 +1481,7 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
             SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(*this, *runtimeIsErrContext, std::span<const MicroReg>{}, errContextReg));
             builder.emitCmpRegImm(errContextReg, ApInt(0, 64), MicroOpBits::B8);
             builder.emitJumpToLabel(needsErr ? MicroCond::Equal : MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
-            SWC_RESULT(emitNodeNow(action.bodyRef));
+            SWC_RESULT(emitBody());
             builder.placeLabel(skipLabel);
             return Result::Continue;
         }
@@ -1484,17 +1527,18 @@ Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t
     // Defer actions run in LIFO order. The cursor lets a nested return/break emitted by
     // one deferred action continue with the still-pending outer actions without replaying
     // the action that is currently on the stack.
-    const auto&  deferScope         = deferScopes_[scopeIndex];
-    const size_t clampedActionCount = std::min(actionCount, deferScope.actions.size());
+    const size_t clampedActionCount = std::min(actionCount, deferScopes_[scopeIndex].actions.size());
     deferredEmissionCursors_.push_back({.scopeIndex = scopeIndex, .nextActionCount = clampedActionCount});
 
     auto result = Result::Continue;
     for (size_t i = clampedActionCount; i != 0; --i)
     {
         deferredEmissionCursors_.back().nextActionCount = i - 1;
-        const auto& action                              = deferScope.actions[i - 1];
-        result                                          = emitDeferredAction(action);
-        if (result != Result::Continue)
+        // Emitting a deferred body can grow the scope stack. Keep no reference into it alive
+        // across that emission, and copy the action before its owning scope can move.
+        const CodeGenDeferredAction action = deferScopes_[scopeIndex].actions[i - 1];
+        result                             = emitDeferredAction(action);
+        if (result != Result::Continue || currentInstructionBlocksFallthrough())
             break;
     }
 
@@ -1510,9 +1554,16 @@ Result CodeGen::emitDeferredActionsFrom(const size_t startScopeIndex, const size
     for (size_t scopeCursor = startScopeIndex + 1; scopeCursor != 0; --scopeCursor)
     {
         const size_t scopeIndex  = scopeCursor - 1;
-        const size_t actionCount = scopeIndex == startScopeIndex ? startActionCount : deferScopes_[scopeIndex].actions.size();
+        size_t       actionCount = scopeIndex == startScopeIndex ? startActionCount : deferScopes_[scopeIndex].actions.size();
+        // A return or failure inside a defer first leaves its new inner scopes. When it
+        // reaches an already-running outer scope, resume after that scope's current action.
+        for (const auto& cursor : deferredEmissionCursors_)
+        {
+            if (cursor.scopeIndex == scopeIndex)
+                actionCount = std::min(actionCount, cursor.nextActionCount);
+        }
         SWC_RESULT(emitDeferredActionsInScope(scopeIndex, actionCount));
-        if (hasStopScope && scopeIndex == stopScopeIndex)
+        if (currentInstructionBlocksFallthrough() || (hasStopScope && scopeIndex == stopScopeIndex))
             break;
     }
 
@@ -1543,14 +1594,11 @@ Result CodeGen::popDeferScope()
     if (deferScopes_.empty())
         return Result::Continue;
 
-    const CodeGenDeferScope deferScope = std::move(deferScopes_.back());
+    // Keep the scope and its cursor live while an action runs. An early exit from that
+    // action must still be able to finish this scope's remaining cleanup exactly once.
+    if (!currentInstructionBlocksFallthrough())
+        SWC_RESULT(emitDeferredActionsInScope(deferScopes_.size() - 1, deferScopes_.back().actions.size()));
     deferScopes_.pop_back();
-
-    if (currentInstructionBlocksFallthrough())
-        return Result::Continue;
-
-    for (size_t i = deferScope.actions.size(); i != 0; --i)
-        SWC_RESULT(emitDeferredAction(deferScope.actions[i - 1]));
     return Result::Continue;
 }
 
@@ -1561,12 +1609,6 @@ Result CodeGen::emitDeferredActionsForReturn()
 
     if (deferScopes_.empty())
         return Result::Continue;
-
-    if (!deferredEmissionCursors_.empty())
-    {
-        const auto& cursor = deferredEmissionCursors_.back();
-        return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, 0, false);
-    }
 
     return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), 0, false);
 }
@@ -1591,22 +1633,6 @@ Result CodeGen::emitDeferredActionsDownTo(size_t stopScopeIndex)
 {
     if (deferScopes_.empty())
         return Result::Continue;
-
-    // Emission may already be part-way through a scope; resume from that cursor when it exists,
-    // so an unwind leaving the deferred action does not replay the action running it.
-    //
-    // The cursor only applies when the unwind really leaves that action. A deferred body opens
-    // scopes of its own - an inline expansion's body, a 'catch' handler - and an unwind stopping
-    // in one of them stays INSIDE the action. Resuming from the cursor there would walk the wrong
-    // way: the stop scope sits above it, is never reached, and every scope the action was called
-    // from runs instead, dropping the enclosing function's locals in the middle of its own
-    // cleanup.
-    if (!deferredEmissionCursors_.empty())
-    {
-        const auto& cursor = deferredEmissionCursors_.back();
-        if (stopScopeIndex <= cursor.scopeIndex)
-            return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, stopScopeIndex, true);
-    }
 
     return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true);
 }
@@ -1856,7 +1882,7 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& ty
     if (registerType->isAlias())
     {
         const TypeRef resolvedTypeRef = registerType->unwrapAliasEnum(ctx(), typeRef);
-        registerType = &typeMgr().get(resolvedTypeRef);
+        registerType                  = &typeMgr().get(resolvedTypeRef);
     }
 
     if (registerType->isFloat() || registerType->isSimd())

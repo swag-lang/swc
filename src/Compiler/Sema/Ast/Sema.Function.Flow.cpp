@@ -485,10 +485,26 @@ namespace
         return Result::Continue;
     }
 
-    // 'catch e as err': capture the caught error into a fresh local 'err' bound in the ENCLOSING
-    // scope (visible after the catch), backed by storage of type 'nullable any'. Codegen seeds the
-    // slot: null before the call (__clearErr), the error on the failure path (__bindErr). Works for
-    // both the statement ('catch f() as err') and the expression ('let x = catch f() as err') forms.
+    Result registerCatchOwner(Sema& sema, const AstNode& node, SymbolVariable*& ownerSym, IdentifierManager::RuntimeFunctionKind helperKind, size_t parameterIndex)
+    {
+        SymbolFunction* helper = nullptr;
+        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(helper, sema, helperKind, node.codeRef()));
+        SWC_ASSERT(parameterIndex < helper->parameters().size());
+        if (parameterIndex >= helper->parameters().size())
+            return Result::Error;
+
+        const TypeInfo& parameterType = sema.typeMgr().get(helper->parameters()[parameterIndex]->typeRef());
+        SWC_ASSERT(parameterType.isValuePointer());
+        if (!parameterType.isValuePointer())
+            return Result::Error;
+
+        if (!ownerSym)
+            ownerSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__catch_owner");
+        return SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *ownerSym, parameterType.payloadTypeRef());
+    }
+
+    // The public any is a view. A hidden runtime owner in the same enclosing scope keeps its
+    // payload alive across later failures and releases it through ordinary lexical cleanup.
     Result registerCatchErrCapture(Sema& sema, const AstNode& node, TokenRef errNameTokRef)
     {
         // Sema nodes can be re-entered after a pause (the dependency waits below yield), so the
@@ -518,7 +534,18 @@ namespace
         const TypeRef errTypeRef = sema.typeMgr().addType(nullableAny);
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *errSym, errTypeRef));
 
-        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::BindErr, node.codeRef()));
+        SWC_RESULT(registerCatchOwner(sema, node, lowering.errOwnerSym, IdentifierManager::RuntimeFunctionKind::BindErr, 1));
+
+        SemaEscapeInfo borrow;
+        borrow.kind = SemaEscapeKind::Local;
+        // The visible binding has exactly the hidden owner's lexical lifetime. Use its name
+        // and source token in diagnostics rather than exposing compiler-generated storage.
+        borrow.sourceVar       = errSym;
+        borrow.sourceRef       = sema.curNodeRef();
+        borrow.typeRef         = errTypeRef;
+        borrow.viaOwnedPayload = true;
+        sema.setVariableEscapeInfo(*errSym, borrow);
+
         return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::ClearErr, node.codeRef());
     }
 
@@ -629,8 +656,12 @@ namespace
         switch (tokenId)
         {
             case TokenId::KwdCatch:
+            {
+                auto& lowering = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+                SWC_RESULT(registerCatchOwner(sema, sema.curNode(), lowering.errHandlerOwnerSym, IdentifierManager::RuntimeFunctionKind::CatchErr, 0));
                 SWC_RESULT(SemaHelpers::requireRuntimeCatchScopeDependencies(sema, sema.curNode().codeRef()));
                 break;
+            }
 
             case TokenId::KwdExpect:
                 SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));

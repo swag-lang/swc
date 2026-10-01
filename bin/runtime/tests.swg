@@ -7,6 +7,7 @@ var g_TestRunning:    bool
 var g_TestThreadId:   u64
 var g_TestsExecuted:  u32
 var g_TestsFailedCnt: u32
+var g_TestContext:    *Context?
 
 private func resumeFailedTest()
 {
@@ -17,6 +18,20 @@ private func resumeFailedTest()
         Swag.print("#test cannot resume while submitted work is unfinished; stopping this test process\n")
         __hostTestAbort()
         return
+    }
+
+    // The host restores the stack without language cleanup. Release capture owners before
+    // their stack slots disappear, and restore the runner's context if the test installed a
+    // temporary one. A destructor panic during recovery takes the ordinary fatal path.
+    let current = Swag.getContext()
+    current.panic = null
+    __abandonErrCaptures(current)
+    let original = g_TestContext
+    if original and original != current
+    {
+        Swag.setContext(original)
+        original.panic = null
+        __abandonErrCaptures(original)
     }
 
     __hostTestResume()
@@ -135,6 +150,7 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     g_TestThreadId  = __hostCurrentThreadId()
 
     let cxt = Swag.getContext()
+    g_TestContext = cxt
 
     // Resolve the process-wide pool before a failure can enter recovery. This starts no workers,
     // covers work submitted from imported modules, and keeps allocation/locking out of recovery.
@@ -147,7 +163,8 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     __hostTestCall(fn)
     g_TestRunning = false
 
-    cxt.panic = previousPanic
+    cxt.panic     = previousPanic
+    g_TestContext = null
     __hostTestRestoreHardwareFilter(previousFilter)
 
     if g_TestFailed do

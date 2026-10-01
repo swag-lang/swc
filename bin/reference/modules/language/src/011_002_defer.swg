@@ -7,6 +7,10 @@ when the current scope is exited. The registration is resolved at compile time,
 so there is no runtime bookkeeping: the compiler emits the deferred code on every
 exit path. This keeps cleanup and finalization close to the acquisition that needs
 them.
+
+Each deferred statement or block has its own local scope. Names it declares,
+including a 'catch ... as error' capture, stay inside that body; their cleanup
+runs before the next deferred action.
 */
 #test
 {

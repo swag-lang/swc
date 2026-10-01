@@ -7,7 +7,9 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Os/Os.h"
 #include "Support/Thread/JobManager.h"
+#include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
@@ -15,6 +17,28 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    class RecoveryTestDirectory
+    {
+    public:
+        RecoveryTestDirectory()
+        {
+            path_ = (Os::getTemporaryPath() / "swc_unittest" / "error_recovery" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+            std::error_code ec;
+            fs::remove_all(path_, ec);
+        }
+
+        ~RecoveryTestDirectory()
+        {
+            std::error_code ec;
+            fs::remove_all(path_, ec);
+        }
+
+        const fs::path& path() const { return path_; }
+
+    private:
+        fs::path path_;
+    };
+
     class RestoreCommandMetrics
     {
     public:
@@ -128,6 +152,99 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_ExpectedSourceDiagnosticDoesNotBecomeSilentJobFailure)
 {
     return runFailureDriverTest(ctx, true);
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_NativePanicReleasesCapturedErrorsBeforeRecovery)
+{
+    const RecoveryTestDirectory directory;
+    for (const bool switchContext : {false, true})
+    {
+        std::string source = "#global private\n";
+        source += switchContext ? "const SwitchContext = true\n" : "const SwitchContext = false\n";
+        source += R"SWAG(
+var recoveryDrops: [16] Swag.AtomicValue'u32
+var recoveryGeneration: u32
+var recoveryContext: *Swag.Context?
+
+struct RecoveryError { generation: u32 }
+impl RecoveryError
+{
+    mtd opPostCopy() { .generation += 1 }
+    mtd opDrop() { recoveryDrops[.generation].add(1) }
+}
+
+func failRecoveryError() fail
+{
+    fail RecoveryError{}
+}
+
+#test
+{
+    let previous = Swag.getContext()
+    defer Swag.setContext(previous)
+    recoveryContext = previous
+    var local: Swag.Context
+    if SwitchContext
+    {
+        local.allocator = previous.allocator
+        local.defaultAllocator = previous.defaultAllocator
+        local.runtimeFlags = previous.runtimeFlags
+        local.panic = previous.panic
+        Swag.setContext(local)
+    }
+    catch failRecoveryError() as error
+    if error is RecoveryError as value do
+        recoveryGeneration = value.generation
+    Swag.panic("intentional first-test panic with a live captured error", #curlocation)
+}
+
+#test
+{
+    let context = Swag.getContext()
+    Swag.assert(context == recoveryContext)
+    Swag.assert(context.errorCaptures == null)
+    Swag.assert(context.errorIndex == 0 and context.hasError == 0 and context.curError == null)
+    Swag.assert(recoveryDrops[recoveryGeneration].load() == 1)
+    catch failRecoveryError() as error
+    Swag.assert((error is RecoveryError))
+    Swag.print("captured error recovery completed\n")
+}
+)SWAG";
+        const fs::path caseDirectory = directory.path() / (switchContext ? "local_context" : "runner_context");
+        const fs::path sourcePath    = caseDirectory / "recovery.swg";
+        SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
+        const std::vector<Utf8> args = {
+            "test",
+            "--file",
+            Utf8(sourcePath),
+            "--out-dir",
+            Utf8(caseDirectory / "output"),
+            "--work-dir",
+            Utf8(caseDirectory / "work"),
+            "--build-cfg",
+            "devmode",
+            "--no-test-jit",
+            "--num-cores",
+            "1",
+            "--no-log-color",
+        };
+        std::string                 output;
+        uint32_t                    exitCode = UINT32_MAX;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 30000};
+        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, caseDirectory, &options);
+        // The first panic is intentional. The second native test must run on a clean context,
+        // observe the captured payload's destruction, and handle a new error normally.
+        if (result != Os::ProcessRunResult::Ok || exitCode == 0 ||
+            output.find("intentional first-test panic with a live captured error") == std::string::npos ||
+            output.find("captured error recovery completed") == std::string::npos ||
+            output.find("generated executable '#test' result: 1 did not pass") == std::string::npos ||
+            output.find("hardware exception") != std::string::npos)
+        {
+            std::println(stderr, "[native panic recovery, local context={}] {}", switchContext, output);
+            return Result::Error;
+        }
+    }
 }
 SWC_TEST_END()
 

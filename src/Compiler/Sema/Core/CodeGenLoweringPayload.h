@@ -14,6 +14,8 @@ struct CodeGenLoweringPayload
     TypeRef         runtimeArrayFillTypeRef            = TypeRef::invalid();
     SymbolVariable* runtimeStorageSym                  = nullptr;
     SymbolVariable* errBindingSym                      = nullptr; // 'catch e as err': the captured-error local
+    SymbolVariable* errOwnerSym                        = nullptr; // lexical owner of the captured error view
+    SymbolVariable* errHandlerOwnerSym                 = nullptr; // owner while a catch handler is active
     SymbolFunction* runtimeFunctionSymbol              = nullptr;
     ConstantRef     runtimeArrayFillCstRef             = ConstantRef::invalid();
     uint16_t        runtimeSafetyMask                  = 0;

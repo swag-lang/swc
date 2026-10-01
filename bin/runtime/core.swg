@@ -595,7 +595,7 @@ func __resetRuntimeContext()
     let allocator = __runtimeAllocator()
 
     cxt.tempAllocator.release()
-    cxt.errorAllocator.release()
+    __releaseErrContext(cxt)
 
     Swag.memset(cxt, 0, #sizeof(Swag.Context))
     cxt.allocator        = allocator
@@ -656,7 +656,7 @@ func __releaseRuntime()
     let cxt = Swag.getContext()
 
     cxt.tempAllocator.release()
-    cxt.errorAllocator.release()
+    __releaseErrContext(cxt)
 
     releaseAllocatorThreadCache()
 

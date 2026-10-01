@@ -98,13 +98,13 @@ internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
     parallelRange(begin, end, body, entry)
 }
 
-// The first published error is copied out of the worker's scratch error storage before that
-// worker can reuse it. Only this owner drops the copy, after every partition has joined.
+// The first published error owns a copied payload and retains its message storage. It stays
+// valid even if its originating worker releases that storage before the caller's capture ends.
 #[Swag.NoCopy]
 private struct ParallelFailure
 {
-    mutex: Mutex
-    value: any?
+    mutex:      Mutex
+    ownedError: *ErrorRecord?
 }
 
 impl ParallelFailure
@@ -113,30 +113,15 @@ impl ParallelFailure
     {
         .mutex.lock()
         defer .mutex.unlock()
-        if .value != null do
+        if .ownedError != null do
             return
-
-        let type = Swag.kindOf(error)
-        let data = __bootstrapAlloc(cast(u64) type.sizeof)
-        if not data do
-            Swag.panic("cannot allocate a parallel loop error", #curlocation)
-        Swag.memcpy(data, error.buffer, cast(u64) type.sizeof)
-        if type is TypeInfoStruct as info
-        {
-            if info.opPostCopy do
-                info.opPostCopy(data)
-        }
-
-        .value = Swag.makeAny(data, type)
+        .ownedError = __copyErrRecord(error)
     }
 
     mtd opDrop()
     {
-        if .value == null do
-            return
-        let data = .value.buffer
-        __dropErr(.value)
-        __bootstrapFree(cast([*] void?) data)
+        __releaseErrRecord(.ownedError)
+        .ownedError = null
     }
 }
 
@@ -157,8 +142,8 @@ internal func __parallelRangeFallible(begin, end: u64, body: func||(u64, u64) fa
 
     parallelRange(begin, end, partition, entry)
 
-    if failure.value != null do
-        fail failure.value
+    if failure.ownedError != null do
+        __setOwnedErrRecord(failure.ownedError)
 }
 
 private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)

@@ -134,8 +134,14 @@ func message(err: any?)->string
 
 // Returns a copy of `str` that an error value can keep after the current scope ends.
 //
-// The copy lives in the context's error allocator, which is where a `fail` stores its error.
-// A null `str` returns null.
+// A copy made while evaluating a `catch` or `expect` operand belongs to that operation. If it
+// fails, the raised error retains the copy until its last capture or transport owner leaves.
+// A successful operation keeps its copies in the enclosing operation's storage; outside a
+// handled operation, they remain in the context's error allocator until it is released.
+// Copies made before an unrelated handled operation are not consumed by its failure.
+//
+// A plain view published by an operation that then fails borrows that error's lifetime. Copy
+// it into [[Core.String]] to keep it independently. A null `str` returns null.
 func mkString(str: string?)->string?
 {
     if str == null do
@@ -151,8 +157,12 @@ func mkString(str: string?)->string?
         context.errorAllocator.setCapacity(Capacity, context.allocator!)
     }
 
-    let count = str.count
-    let ptr   = cast([*] u8?) context.errorAllocator.alloc(count)
+    let count     = str.count
+    let allocator = Swag.makeInterface(&context.errorAllocator, Swag.ScratchAllocator, Swag.IAllocator)
+    var request: Swag.AllocatorRequest
+    request.size = count
+    allocator.alloc(&request)
+    let ptr = cast([*] u8?) request.address
     if not ptr do
         return null
     Swag.memcpy(ptr, str.buffer, count)

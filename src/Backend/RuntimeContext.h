@@ -9,16 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Runtime
 {
-    struct ErrorValue
-    {
-        Any      value;
-        uint32_t pushUsedAlloc;
-        uint32_t pushTraceIndex;
-        uint32_t pushHasError;
-        uint32_t padding;
-        Any      pushCurError;
-    };
-
     struct ScratchAllocator
     {
         Interface allocator;
@@ -29,6 +19,20 @@ namespace Runtime
         void*     firstLeak;
         uint64_t  totalLeak;
         uint64_t  maxLeak;
+        void*     releaseOwner;
+        void (*releaseHook)(ScratchAllocator*);
+    };
+
+    struct ErrorValue
+    {
+        Any              value;
+        void*            record;
+        uint32_t         reserved;
+        uint32_t         pushTraceIndex;
+        uint32_t         pushHasError;
+        uint32_t         padding;
+        Any              pushCurError;
+        ScratchAllocator pushErrorAllocator;
     };
 
     struct Context
@@ -51,6 +55,7 @@ namespace Runtime
         uint32_t errorIndex;
         uint32_t traceIndex;
         uint32_t hasError;
+        void*    errorCaptures;
         uint64_t runtimeTlsIdPlusOne;
         void*    panicStack[64];
         uint32_t panicStackCount;

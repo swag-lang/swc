@@ -22,7 +22,11 @@ func failWinError(errorMessageID: u32) fail
     if cxt.errorAllocator.capacity
     {
         const MaxLen = 128
-        let errorMsg = cast([*] u8) cxt.errorAllocator.alloc(cast() MaxLen)!
+        let allocator = Swag.makeInterface(&cxt.errorAllocator, Swag.ScratchAllocator, Swag.IAllocator)
+        var request: Swag.AllocatorRequest
+        request.size = MaxLen
+        allocator.alloc(&request)
+        let errorMsg = cast([*] u8) request.address!
         let lang     = cast(DWORD) MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT)
         var len      = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, null, errorMessageID, lang, cast(LPCSTR) errorMsg, cast(DWORD) MaxLen, null)
         if len

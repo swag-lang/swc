@@ -93,9 +93,10 @@ impl Thread
         Swag.init(&.context.errorAllocator, 1)
         Swag.init(.context.errors.buffer, .context.errors.count)
         Swag.init(&.context.curError, 1)
-        .context.errorIndex = 0
-        .context.traceIndex = 0
-        .context.hasError   = 0
+        .context.errorCaptures = null
+        .context.errorIndex    = 0
+        .context.traceIndex    = 0
+        .context.hasError      = 0
         let allocator = .context.allocator!
         if tempAllocSize < 0 do
             .context.tempAllocator.setCapacity(inheritedCapacity, allocator)
@@ -152,7 +153,7 @@ private func threadEntry(param: *void?)->u32
         lambda(thread[])
 
     thread.context.tempAllocator.release()
-    thread.context.errorAllocator.release()
+    thread.context.releaseErrorStorage()
     Swag.releaseAllocatorThreadCache()
     return 0
 }

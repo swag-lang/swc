@@ -27,6 +27,10 @@ type. To inspect the error, capture it with 'as err': this binds a fresh local
 (of type `any?`) that is null on success and holds the caught error on
 failure. The capture is visible in the enclosing scope, after the catch, so each
 capture in a given scope needs its own name.
+
+The captured payload stays alive until that scope ends, including across later
+failures. Copies of the 'any' view and pointers derived from it borrow that lifetime
+and cannot escape it. Use 'fail err' to propagate the captured error to a caller.
 */
 #test
 {

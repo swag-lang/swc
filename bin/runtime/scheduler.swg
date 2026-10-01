@@ -249,9 +249,12 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         // can allocate, so it owns its own storage instead of releasing the creator's.
         Swag.init(&worker.context.tempAllocator, 1)
         Swag.init(&worker.context.errorAllocator, 1)
-        worker.context.hasError   = 0
-        worker.context.errorIndex = 0
-        worker.context.traceIndex = 0
+        Swag.init(worker.context.errors.buffer, worker.context.errors.count)
+        worker.context.curError      = null
+        worker.context.errorCaptures = null
+        worker.context.hasError      = 0
+        worker.context.errorIndex    = 0
+        worker.context.traceIndex    = 0
 
         worker.handle = __hostThreadCreate(&schedulerWorkerEntry, worker)
         if not worker.handle do
@@ -434,7 +437,7 @@ private func schedulerWorkerEntry(param: *void?)->u32
     }
 
     worker.context.tempAllocator.release()
-    worker.context.errorAllocator.release()
+    __releaseErrContext(&worker.context)
     releaseAllocatorThreadCache()
     return 0
 }

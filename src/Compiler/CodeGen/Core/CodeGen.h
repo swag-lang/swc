@@ -110,6 +110,7 @@ struct CodeGenDeferScope
     AstNodeRef                            scopeRef      = AstNodeRef::invalid();
     AstNodeRef                            breakOwnerRef = AstNodeRef::invalid();
     AstNodeRef                            switchCaseRef = AstNodeRef::invalid();
+    MicroInstrRef                         entryRef      = MicroInstrRef::invalid();
     SmallVector<CodeGenDeferredAction, 4> actions;
 };
 
@@ -441,6 +442,7 @@ public:
     Result                    popDeferScope();
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
     void                      registerImplicitDrop(const SymbolVariable& symVar);
+    void                      initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);
     void                      registerImplicitParameterDrops();
     bool                      hasDeferredStatements() const { return hasDeferredStatements_; }
     Result                    emitDeferredActionsForReturn();

@@ -280,9 +280,9 @@ Result SemaHelpers::requireRuntimeCatchScopeDependencies(Sema& sema, const Sourc
 {
     SWC_RESULT(requireRuntimePushErrDependency(sema, codeRef));
     SWC_RESULT(requireRuntimeCatchErrDependency(sema, codeRef));
-    // 'catch ... else' dismisses the handled error after its handler; the plain 'catch' form
-    // does not call it, but the dependency is cheap and keeps the helper available.
-    return requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::EndErr, codeRef);
+    // The hidden error owner has an ordinary drop. Failure unwinding parks the active error
+    // while that cleanup runs, so even a catch without written defers needs both helpers.
+    return requireRuntimePopErrDependency(sema, codeRef);
 }
 
 Result SemaHelpers::requireRuntimePopScopeDependencies(Sema& sema, const SourceCodeRef& codeRef)

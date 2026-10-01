@@ -359,6 +359,10 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
     if (node.modifierFlags.has(AstModifierFlagsE::Fail) || node.modifierFlags.has(AstModifierFlagsE::NoFail))
         SWC_RESULT(SemaHelpers::requireRuntimeErrorContextDependency(sema, node.codeRef()));
 
+    // A single deferred statement needs the same lexical lifetime as a braced body. In
+    // particular, a catch capture belongs to this execution, not to the scope being unwound.
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+
     // A defer body runs at scope exit, not here: narrowing facts valid at the declaration
     // point may no longer hold when it executes, and what the body invalidates cannot reach
     // back to the statements written before that exit.

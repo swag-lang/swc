@@ -244,12 +244,12 @@ namespace
         if (!typeRef.isValid())
             return MicroOpBits::Zero;
 
-        const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (!typeInfo.isAlias() && !typeInfo.isEnum())
             return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
         const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeRef   scalarTypeRef  = storageTypeRef.isValid() ? storageTypeRef : typeRef;
-        const TypeInfo& scalarType = scalarTypeRef == typeRef ? typeInfo : codeGen.typeMgr().get(scalarTypeRef);
+        const TypeInfo& scalarType     = scalarTypeRef == typeRef ? typeInfo : codeGen.typeMgr().get(scalarTypeRef);
         return CodeGenTypeHelpers::scalarStoreBits(scalarType, codeGen.ctx());
     }
 
@@ -591,7 +591,14 @@ namespace
         switch (kind)
         {
             case FallibleHandlerKind::Catch:
-                return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::CatchErr, "missing runtime helper '__catchErr'", nodeRef);
+            {
+                const SymbolFunction*         catchErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::CatchErr);
+                const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(nodeRef);
+                if (!catchErr || !lowering || !lowering->errHandlerOwnerSym)
+                    return raiseInternalCodeGenError(codeGen, "missing catch error owner or runtime helper '__catchErr'", nodeRef);
+                const MicroReg args[] = {codeGen.resolveLocalStackPayload(*lowering->errHandlerOwnerSym).reg};
+                return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *catchErr, args);
+            }
 
             case FallibleHandlerKind::Expect:
             {
@@ -1471,6 +1478,33 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
     MicroBuilder& builder      = codeGen.builder();
     payload->fallibleFailLabel = builder.createLabel();
     payload->fallibleDoneLabel = builder.createLabel();
+
+    // The capture belongs to the enclosing scope. Its owner must be initialized and registered
+    // before the wrapper opens its temporary scope, otherwise catch completion would drop it.
+    const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(nodeRef);
+    if (lowering && lowering->errBindingSym)
+    {
+        const SymbolFunction* clearErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::ClearErr);
+        if (!clearErr || !lowering->errOwnerSym)
+            return raiseInternalCodeGenError(codeGen, "missing catch capture owner or runtime helper '__clearErr'", nodeRef);
+        codeGen.initializeLocalStorageAtScopeEntry(*lowering->errBindingSym);
+        codeGen.initializeLocalStorageAtScopeEntry(*lowering->errOwnerSym);
+        const MicroReg args[] = {
+            codeGen.resolveLocalStackPayload(*lowering->errBindingSym).reg,
+            codeGen.resolveLocalStackPayload(*lowering->errOwnerSym).reg,
+        };
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *clearErr, args));
+        codeGen.registerImplicitDrop(*lowering->errOwnerSym);
+    }
+
+    if (lowering && lowering->errHandlerOwnerSym)
+    {
+        const SymbolVariable& handlerOwner = *lowering->errHandlerOwnerSym;
+        const MicroReg        ownerReg     = codeGen.resolveLocalStackPayload(handlerOwner).reg;
+        const uint32_t        sizeOf       = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(handlerOwner.typeRef()));
+        CodeGenMemoryHelpers::emitMemZero(codeGen, ownerReg, sizeOf);
+    }
+
     codeGen.pushDeferScope(nodeRef);
 
     const SymbolFunction* runtimePushErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PushErr);
@@ -1478,20 +1512,6 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
     if (!runtimePushErr)
         return raiseInternalCodeGenError(codeGen, "missing runtime helper '__pushErr'", nodeRef);
     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePushErr, std::span<const MicroReg>{}));
-
-    // 'catch e as err': reset the capture slot to null before the call, so a success leaves 'err'
-    // null; the failure path overwrites it (see emitFallibleWrapperPostNode / __bindErr).
-    const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(nodeRef);
-    if (lowering && lowering->errBindingSym)
-    {
-        const SymbolFunction* clearErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::ClearErr);
-        SWC_ASSERT(clearErr != nullptr);
-        if (!clearErr)
-            return raiseInternalCodeGenError(codeGen, "missing runtime helper '__clearErr'", nodeRef);
-        const MicroReg dstReg  = codeGen.resolveLocalStackPayload(*lowering->errBindingSym).reg;
-        const MicroReg args[1] = {dstReg};
-        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *clearErr, std::span{args, 1}));
-    }
 
     return Result::Continue;
 }
@@ -1510,14 +1530,29 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     MicroBuilder&             builder        = codeGen.builder();
     SWC_ASSERT(kind != FallibleHandlerKind::None);
 
+    const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(ownerRef);
     if (hasFallthrough)
+    {
         SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, false));
+        if (kind == FallibleHandlerKind::Catch)
+            codeGen.registerImplicitDrop(*lowering->errHandlerOwnerSym);
+    }
 
     SWC_RESULT(codeGen.popDeferScope());
     if (hasFallthrough && !codeGen.currentInstructionBlocksFallthrough())
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->fallibleDoneLabel);
 
     builder.placeLabel(payload->fallibleFailLabel);
+    if (kind == FallibleHandlerKind::Catch)
+    {
+        if (!lowering || !lowering->errHandlerOwnerSym)
+            return raiseInternalCodeGenError(codeGen, "missing catch error owner", nodeRef);
+
+        // Failure jumps past the success cleanup. Give the handler its own ordinary scope so
+        // return, fail and break release the handled record as well as normal fallthrough.
+        codeGen.pushDeferScope(ownerRef);
+        codeGen.registerImplicitDrop(*lowering->errHandlerOwnerSym);
+    }
     SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, true));
     if (hasResult)
     {
@@ -1539,20 +1574,18 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));
     }
 
-    // 'catch e as err': seed the captured local from the still-valid curError (the Catch cleanup
-    // retained it) on the failure path. The fat 'any' copy lives in '__bindErr'; here we only pass
-    // the slot. Works for both the statement and the 'let x = catch f() as err' expression forms.
-    const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(ownerRef);
-    const SymbolVariable* const   errSym   = lowering ? lowering->errBindingSym : nullptr;
+    // Retain the handled record in the enclosing capture owner, then expose its borrowed any.
+    const SymbolVariable* const errSym = lowering ? lowering->errBindingSym : nullptr;
     if (errSym)
     {
         const SymbolFunction* bindErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::BindErr);
-        SWC_ASSERT(bindErr != nullptr);
-        if (!bindErr)
-            return raiseInternalCodeGenError(codeGen, "missing runtime helper '__bindErr'", nodeRef);
-        const MicroReg dstReg  = codeGen.resolveLocalStackPayload(*errSym).reg;
-        const MicroReg args[1] = {dstReg};
-        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, std::span{args, 1}));
+        if (!bindErr || !lowering->errOwnerSym)
+            return raiseInternalCodeGenError(codeGen, "missing catch capture owner or runtime helper '__bindErr'", nodeRef);
+        const MicroReg args[] = {
+            codeGen.resolveLocalStackPayload(*errSym).reg,
+            codeGen.resolveLocalStackPayload(*lowering->errOwnerSym).reg,
+        };
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, args));
     }
 
     // 'catch e else { H }': the anonymous lazy handler runs here (failure path only).
@@ -1563,12 +1596,10 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
             SWC_RESULT(codeGen.emitNodeNow(handlerRef));
     }
 
-    // 'catch' always dismisses the error: it has been handled here, so it must no longer count as
-    // in-flight for '#fail'/'#nofail' defers. The only way to keep the error is to capture its value
-    // with 'as err' (which copied it above, via __bindErr, before this clear). There is no lingering
-    // global error state to observe — the error is gone unless a local holds a copy.
+    // The handler owner dismisses ambient state and releases its record. A named capture retains
+    // a separate reference until its enclosing scope ends.
     if (kind == FallibleHandlerKind::Catch)
-        SWC_RESULT(emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::EndErr, "missing runtime helper '__endErr'", nodeRef));
+        SWC_RESULT(codeGen.popDeferScope());
 
     builder.placeLabel(payload->fallibleDoneLabel);
     clearFallibleWrapperPayload(*payload);

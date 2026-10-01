@@ -7,8 +7,10 @@ alias TimerHandle = const *void?
 
 // Owns an operating-system timer that invokes a callback on a worker thread.
 //
-// The callback runs with the context of the thread that created the timer. The operating
-// system keeps the address of this value, so it must not move while the timer is armed.
+// Each callback inherits the creating thread's allocator policy and user context values,
+// with independent temporary storage and error state. Periodic callbacks can overlap.
+// The timer and the allocator or user state its callbacks borrow must stay alive until
+// [[Core.Time.Timer.release]] returns. The timer must not move while it is armed.
 #[Swag.NoCopy]
 struct Timer
 {
@@ -24,9 +26,14 @@ private func timerEntry(param: *void?)
 {
     let timer = cast(*Timer) param!
 
-    // The callback runs on an operating-system worker thread, whose context is a default one
-    // the runtime creates on first access: install the context of the thread that armed the timer.
-    Swag.setContext(timer.context)
+    // A periodic callback can overlap another one. Its mutable runtime state belongs to this
+    // invocation; the stored timer context contains only inherited policy and user values.
+    let previous = Swag.getContext()
+    defer Swag.setContext(previous)
+    var context = timer.context
+    Swag.setContext(context)
+    defer context.tempAllocator.release()
+    defer context.releaseErrorStorage()
     timer.callback!(timer)
 }
 
@@ -57,7 +64,20 @@ impl Timer
 
         .callback = callback
         .context  = Swag.getContext()[]
-        .handle   = try createTimerNative(me, cast(u32) delayMs, periodic)
+        let tempCapacity  = .context.tempAllocator.capacity
+        let errorCapacity = .context.errorAllocator.capacity
+        Swag.init(&.context.tempAllocator, 1)
+        Swag.init(&.context.errorAllocator, 1)
+        Swag.init(.context.errors.buffer, .context.errors.count)
+        .context.curError      = null
+        .context.errorCaptures = null
+        .context.hasError      = 0
+        .context.errorIndex    = 0
+        .context.traceIndex    = 0
+        let allocator = .context.allocator!
+        .context.tempAllocator.setCapacity(tempCapacity, allocator)
+        .context.errorAllocator.setCapacity(errorCapacity, allocator)
+        .handle = try createTimerNative(me, cast(u32) delayMs, periodic)
     }
 
     // Stops the timer and waits for any active callback before returning.

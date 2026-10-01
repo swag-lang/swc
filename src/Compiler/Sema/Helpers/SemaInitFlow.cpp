@@ -1463,17 +1463,17 @@ namespace
             if (thenFlows && elseFlows)
             {
                 joinInto(thenState, elseState);
-                state = thenState;
+                state = std::move(thenState);
                 return FlowExit::Normal;
             }
             if (thenFlows)
             {
-                state = thenState;
+                state = std::move(thenState);
                 return FlowExit::Normal;
             }
             if (elseFlows)
             {
-                state = elseState;
+                state = std::move(elseState);
                 return FlowExit::Normal;
             }
             return FlowExit::Jumped;
@@ -1510,10 +1510,10 @@ namespace
             // Infinite loop: the only way out is a break.
             if (ctx.breakStates.empty())
                 return FlowExit::Jumped;
-            FlowState after = ctx.breakStates[0];
+            FlowState& after = ctx.breakStates[0];
             for (uint32_t i = 1; i < ctx.breakStates.size(); i++)
                 joinInto(after, ctx.breakStates[i]);
-            state = after;
+            state = std::move(after);
             return FlowExit::Normal;
         }
 
@@ -1566,30 +1566,30 @@ namespace
                 }
 
                 if (exit == FlowExit::Normal)
-                    exitStates.push_back(caseState);
+                    exitStates.push_back(std::move(caseState));
                 else if (exit == FlowExit::Fell)
                 {
-                    fellState    = caseState;
+                    fellState    = std::move(caseState);
                     hasFellState = true;
                 }
             }
 
             breakables_.pop_back();
 
-            for (const FlowState& breakState : ctx.breakStates)
-                exitStates.push_back(breakState);
+            for (FlowState& breakState : ctx.breakStates)
+                exitStates.push_back(std::move(breakState));
             if (!exhaustive)
-                exitStates.push_back(state);
+                exitStates.push_back(std::move(state));
             if (hasFellState)
-                exitStates.push_back(fellState); // trailing fallthrough: treat as normal exit
+                exitStates.push_back(std::move(fellState)); // trailing fallthrough: treat as normal exit
 
             if (exitStates.empty())
                 return FlowExit::Jumped;
 
-            FlowState after = exitStates[0];
+            FlowState& after = exitStates[0];
             for (uint32_t i = 1; i < exitStates.size(); i++)
                 joinInto(after, exitStates[i]);
-            state = after;
+            state = std::move(after);
             return FlowExit::Normal;
         }
 

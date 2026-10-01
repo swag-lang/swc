@@ -133,6 +133,11 @@ Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const ui
 
 Result NativeRDataCollector::emitReachableAllocations()
 {
+    size_t allocationCount = builder_->rdataAllocations.size();
+    for (const auto& allocations : reachableAllocations_)
+        allocationCount += allocations.size();
+    builder_->rdataAllocations.reserve(allocationCount);
+
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
         auto& reachable = reachableAllocations_[shardIndex];

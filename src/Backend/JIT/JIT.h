@@ -9,6 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 class JITMemory;
+class JITMemoryManager;
 class SymbolFunction;
 
 struct JITArgument
@@ -44,8 +45,14 @@ public:
     static void   finalize(JITMemory& executableMemory);
     static Result emit(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, std::span<const MicroRelocation> relocations, const ByteArray& unwindInfo, const SymbolFunction* ownerFunction = nullptr);
     static bool   resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction);
+    // Process-stable Swag entry for a native callback with up to two integer/pointer arguments
+    // and a pointer or void result. Aggregate arguments must already be read-only indirect values.
+    static void*  getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, uint32_t numArgs);
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind = CallConvKind::C);
     static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr, JITRuntimeSetupMode setupMode = JITRuntimeSetupMode::FromCompiler);
+
+private:
+    static void prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations);
 };
 
 SWC_END_NAMESPACE();

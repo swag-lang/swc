@@ -615,6 +615,8 @@ void CompilerInstance::processCommand()
 
 void CompilerInstance::setupRuntimeCompiler()
 {
+    TaskContext ctx(*this);
+
     // The runtime allocator's interface table is process-stable: its contents are identical for
     // every CompilerInstance (typeinfo slot + the global mimalloc-backed `req`), and a workspace
     // build creates a fresh CompilerInstance per module. The JIT runtime context allocator can be
@@ -625,20 +627,21 @@ void CompilerInstance::setupRuntimeCompiler()
     // (bin/runtime/api.swg): alloc, realloc, free, freeAll, assertAllocated.
     static void* sRuntimeAllocatorITable[6] = {
         nullptr,
-        reinterpret_cast<void*>(&runtimeAllocatorAlloc),
-        reinterpret_cast<void*>(&runtimeAllocatorRealloc),
-        reinterpret_cast<void*>(&runtimeAllocatorFree),
-        reinterpret_cast<void*>(&runtimeAllocatorFreeAll),
-        reinterpret_cast<void*>(&runtimeAllocatorAssertAllocated)};
+        JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&runtimeAllocatorAlloc), 2),
+        JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&runtimeAllocatorRealloc), 2),
+        JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&runtimeAllocatorFree), 2),
+        JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&runtimeAllocatorFreeAll), 2),
+        JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&runtimeAllocatorAssertAllocated), 2)};
     runtimeAllocator_.obj    = this;
     runtimeAllocator_.itable = sRuntimeAllocatorITable;
 
     runtimeCompiler_.obj      = this;
     runtimeCompiler_.itable   = runtimeCompilerITable_;
     runtimeCompilerITable_[0] = nullptr;
-    runtimeCompilerITable_[1] = reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerGetMessage);
-    runtimeCompilerITable_[2] = reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerGetBuildCfg);
-    runtimeCompilerITable_[3] = reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerCompileString);
+    runtimeCompilerITable_[1] = JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerGetMessage), 1);
+    runtimeCompilerITable_[2] = JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerGetBuildCfg), 1);
+    // Both ABIs pass this string indirectly; the native callback only reads the borrowed value.
+    runtimeCompilerITable_[3] = JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerCompileString), 2);
 }
 
 uint64_t* CompilerInstance::runtimeContextTlsIdStorage()

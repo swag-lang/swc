@@ -52,7 +52,37 @@ namespace
             return jitResult;
         return Result::Continue;
     }
+
+    uint64_t* nativeInterfaceElement(uint64_t* values, uint64_t index)
+    {
+        return values + index;
+    }
 }
+
+SWC_TEST_BEGIN(ABI_NativeInterfaceAdapterSurvivesCompilerInstance)
+{
+    void* adapter = nullptr;
+    {
+        CompilerInstance compiler(ctx.global(), ctx.cmdLine());
+        TaskContext      localCtx(compiler);
+        adapter = JIT::getNativeInterfaceAdapter(localCtx, reinterpret_cast<void*>(&nativeInterfaceElement), 2);
+    }
+
+    // Imported DLLs may retain this entry after the module's CompilerInstance has gone away.
+    SWC_ASSERT(adapter == JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&nativeInterfaceElement), 2));
+    const TypeManager&      typeMgr = ctx.typeMgr();
+    std::array<uint64_t, 3> values  = {11, 22, 33};
+    uint64_t*               base    = values.data();
+    constexpr uint64_t      index   = 2;
+    const std::array        args    = {
+        JITArgument{.typeRef = typeMgr.typeValuePtrVoid(), .valuePtr = &base},
+        JITArgument{.typeRef = typeMgr.typeU64(), .valuePtr = &index},
+    };
+    uint64_t* result = nullptr;
+    SWC_RESULT(JIT::emitAndCall(ctx, adapter, args, {.typeRef = typeMgr.typeValuePtrVoid(), .valuePtr = &result}, CallConvKind::Swag));
+    SWC_ASSERT(result == &values[2]);
+}
+SWC_TEST_END()
 
 // An addressed narrow integer may need a register home slot when another argument travels on the
 // stack. Loading the ABI-sized home must not widen the source memory access past the integer itself.

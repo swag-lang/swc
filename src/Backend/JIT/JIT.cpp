@@ -1180,14 +1180,18 @@ namespace
 
 void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
 {
+    prepare(ctx.compiler().jitMemMgr(), outExecutableMemory, linearCode, unwindInfo, relocations);
+}
+
+void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
+{
     SWC_ASSERT(!linearCode.empty());
     SWC_ASSERT(linearCode.size() <= std::numeric_limits<uint32_t>::max());
 
     // Allocate writable memory first. Relocations and optional unwind bytes are patched
     // before finalize() flips the page permissions and registers SEH metadata.
-    JITMemoryManager& memoryManager     = ctx.compiler().jitMemMgr();
-    const uint32_t    codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
-    const bool        registerSehUnwind = !unwindInfo.empty();
+    const uint32_t codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
+    const bool     registerSehUnwind = !unwindInfo.empty();
 
     // Direct calls reserve a nearby fallback thunk in case their final target lies outside
     // rel32 reach. A fixed-payload memory relocation can likewise reserve an
@@ -1259,11 +1263,11 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 
 Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 {
-    const TaskScopedContext      scopedContext(ctx);
-    const auto                   globals = ctx.compiler().nativeGlobalVariablesSnapshot();
-    JITRelocationPatchContext    patchContext;
-    const bool                   patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
-    std::vector<uint64_t>        sortedReferencedGlobalInitOffsets;
+    const TaskScopedContext   scopedContext(ctx);
+    const auto                globals = ctx.compiler().nativeGlobalVariablesSnapshot();
+    JITRelocationPatchContext patchContext;
+    const bool                patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
+    std::vector<uint64_t>     sortedReferencedGlobalInitOffsets;
 
     // During a #run, patch only global-init slots referenced by the active JIT call graph.
     // Full native/JIT preparation still patches the complete snapshot.
@@ -1336,6 +1340,69 @@ bool JIT::resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddr
 {
     const TaskScopedContext scopedContext(ctx);
     return tryResolveForeignFunctionAddress(ctx, outFunctionAddress, targetFunction, nullptr);
+}
+
+void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uint32_t numArgs)
+{
+    SWC_ASSERT(targetFn != nullptr);
+    SWC_ASSERT(numArgs <= 2);
+
+    struct Adapter
+    {
+        void*     targetFn = nullptr;
+        uint32_t  numArgs  = 0;
+        JITMemory memory;
+    };
+
+    struct AdapterCache
+    {
+        std::mutex           mutex;
+        JITMemoryManager     memoryManager;
+        std::vector<Adapter> entries;
+    };
+
+    // Imported DLL globals can retain runtime allocator interfaces after their CompilerInstance
+    // is destroyed. Keep both the executable pages and their unwind registrations process-owned;
+    // entries are destroyed before the manager releases those pages.
+    static AdapterCache    cache;
+    const std::scoped_lock lock(cache.mutex);
+    for (const auto& entry : cache.entries)
+    {
+        if (entry.targetFn == targetFn && entry.numArgs == numArgs)
+            return entry.memory.entryPoint();
+    }
+
+    const TaskScopedContext scopedContext(ctx);
+    const CallConv&         incomingConv = CallConv::get(CallConvKind::Swag);
+    const CallConv&         nativeConv   = CallConv::get(CallConvKind::C);
+    for (uint32_t i = 0; i < numArgs; ++i)
+        SWC_ASSERT(incomingConv.intArgRegs[i] == nativeConv.intArgRegs[i]);
+    SWC_ASSERT(incomingConv.intReturn == nativeConv.intReturn);
+
+    // These callbacks share the incoming integer lanes, but Swag callers do not reserve the
+    // native ABI's shadow space. An explicit native call owns that space independently of the
+    // caller's optimized frame. The pointer result stays in the common return register.
+    MicroBuilder builder(ctx);
+    builder.setRetUsesAbiRegs(true, false);
+    const MicroReg targetReg = MicroReg::virtualIntReg(1);
+    builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(targetFn));
+    const ABICall::PreparedCall preparedCall = {
+        .numPreparedArgs = numArgs,
+        .intArgMask      = static_cast<uint8_t>((1u << numArgs) - 1u),
+    };
+    ABICall::callReg(builder, CallConvKind::C, targetReg, preparedCall);
+    builder.emitRet();
+
+    MachineCode loweredCode;
+    SWC_INTERNAL_CHECK(loweredCode.emit(ctx, builder) == Result::Continue);
+    SWC_ASSERT(loweredCode.codeRelocations.empty());
+
+    JITMemory executableMemory;
+    prepare(cache.memoryManager, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, {});
+    finalize(executableMemory);
+    void* const entryPoint = executableMemory.entryPoint();
+    cache.entries.push_back({targetFn, numArgs, std::move(executableMemory)});
+    return entryPoint;
 }
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind)

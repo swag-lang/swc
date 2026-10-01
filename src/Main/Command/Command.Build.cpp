@@ -14,6 +14,7 @@
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -245,6 +246,7 @@ namespace Command
                 muteNestedStages.emplace(ctx.global().logger());
 
             sema(compiler);
+            SWC_SCHED_PHASE(ctx.global().jobMgr(), "build backend");
             if (Stats::getNumErrors() == errorsBefore && finishBuildBackend(compiler, false) != Result::Continue)
             {
                 if (stage)

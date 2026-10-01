@@ -6,23 +6,33 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
-### compiler.core.071 — Generating `Pixel.Webp.decodeLossy` takes seconds and holds back the module
+### compiler.core.071 — WebP's macroblock reconstruction takes seconds to generate and holds back `pixel`
 
 - Recorded: 2026-10-01 13:08
-- Evidence: in a 16-worker DevMode `gui` rebuild, the longest code-generation job is
-  `Pixel.Webp.decodeLossy`, 6.6–8.2 s in one slice, while the whole `pixel` module takes about
-  6 s of wall time at 16 workers on a quiet machine. Nothing else in the module can use the idle
-  workers during that tail: code generation causes 10–12% of the pool's starvation.
-- Next: time each Micro pass on that function alone to find the one that grows faster than the
-  function, then fix that pass's complexity.
+- Updated: 2026-10-01 13:40 — traced to inlining and unrolling; code generation now starts the largest functions first
+- Evidence: in 16-worker DevMode `gui` rebuilds, the longest code-generation job is one WebP
+  function, `Pixel.Webp.decodeLossy` or `Pixel.Webp.vp8Reconstruct` depending on the run, 3–8 s in
+  one slice. The `pixel` module's first code-generation round lasts exactly that long: the round is
+  bounded by one job, not by when it starts. Per-pass timing on `decodeLossy` (DevMode, six
+  workers) spreads about 4 s over the whole pipeline — register allocation 0.8–0.9 s in one run,
+  branch-simplify 0.7 s, instcombine 0.5 s, const-fold 0.5 s, copy-elim 0.4 s, most pre-RA passes
+  running eight or nine times — so no single pass misbehaves; the function is simply enormous.
+  `vp8ReconstructMacroblock` runs two 4×4 loops that call `vp8Predict4` and `vp8InverseDct4`;
+  single-call auto-inlining (`K_AUTO_INLINE_LAST_CALL_COST`, 4 096 tokens per callee, no cap on
+  the caller's growth) folds the whole chain into its caller, and unrolling then repeats it sixteen
+  times. Code generation now enqueues functions largest first, estimated from their own size plus
+  what semantic analysis inlined into them, which removes late starts but not this length.
+- Next: bound the growth a caller may receive from last-call auto-inlining and from unrolling
+  loops whose bodies contain inlined calls, then compare WebP decoding speed and `pixel` build time
+  before and after with the benchmark harness.
 - Complete when: no single function's code generation in `bin/std` takes more than a tenth of its
-  module's wall time at 16 workers.
+  module's wall time at 16 workers, without a measurable loss in WebP decoding speed.
 - Related: compiler.core.069
 
 ### compiler.core.069 — Measure where a module build loses its workers beyond six cores
 
 - Recorded: 2026-10-01 07:35
-- Updated: 2026-10-01 13:08 — first breakdown at 6 and 16 workers; one function's code generation is the largest tail
+- Updated: 2026-10-01 13:40 — break the losses down by driver phase
 - Evidence: `--dev-sched-stats` (DevMode compiler) splits worker time into running jobs, serial
   phases (no job running), scheduler lock waits, and starvation (jobs run elsewhere, nothing is
   ready), and reports per job kind its work, its longest slice with what it worked on, and the
@@ -33,11 +43,16 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
     of 6.6–8.2 s. Sema's longest slice is 1–2.6 s; the five native links cost 4% together.
   - Barrier rounds no longer matter: 65 rounds moved about 500 sleepers, against 78 000–91 000
     dependency wakes.
-- Next: run Release-equivalent numbers once the counters exist outside DevMode, or compare the
-  DevMode shares at 1, 6, 12, and every logical core on an idle machine; then attribute the
-  serial-phase time per module stage (setup, link, artifact publication).
-- Complete when: each share above has an owning entry, and the serial phases are broken down by
-  module stage.
+- Per phase (the report now charges serial and starved time to driver phases): a quiet 16-worker
+  run (26 s) loses 7.4% of worker time starved in semantic analysis, 7.0% starved and 2.2% serial
+  in code generation, 3.3% serial and 2.4% starved in the rest of the native backend (collecting
+  functions and dependencies before and after code generation), 3.2% starved waiting for deferred
+  links, and 1.3% serial in module API export. Code generation runs two or three dependency
+  rounds per module; only the first costs anything.
+- Next: find what the backend does serially around code generation (`NativeBackendBuilder::prepare`
+  and `rebuildFunctionInfos`) and what the semantic tail waits on (its longest job is 1.5–4 s);
+  each becomes its own entry once named.
+- Complete when: each share above has an owning entry.
 - Related: compiler.core.071, compiler.core.065, compiler.core.068, compiler.core.007
 
 ### compiler.core.068 — The job scheduler serializes every transition on one mutex

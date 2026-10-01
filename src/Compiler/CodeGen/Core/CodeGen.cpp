@@ -20,14 +20,20 @@
 
 SWC_BEGIN_NAMESPACE();
 
-const CodeGenNodePayload& CodeGen::conditionBindingPayload(TypeRef& outTypeRef, AstNodeRef nodeRef)
+CodeGenNodePayload CodeGen::conditionBindingPayload(TypeRef& outTypeRef, AstNodeRef nodeRef)
 {
     const Symbol* symbol = viewSymbol(nodeRef).singleSymbol();
     SWC_ASSERT(symbol);
     outTypeRef = symbol->typeRef();
     if (symbol->isVariable())
     {
-        const auto* value = variablePayload(symbol->cast<SymbolVariable>());
+        const auto& variable = symbol->cast<SymbolVariable>();
+        // Deferred bodies do not cache stack addresses: each emitted copy must
+        // materialize a register dominated by its own control-flow path.
+        if (variable.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && localStackBaseReg().isValid())
+            return resolveLocalStackPayload(variable);
+
+        const auto* value = variablePayload(variable);
         SWC_ASSERT(value);
         return *value;
     }

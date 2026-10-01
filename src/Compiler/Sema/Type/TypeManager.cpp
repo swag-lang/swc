@@ -277,15 +277,13 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     const uint32_t stripeIndex = (stableHash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
     auto&          stripe      = shard.internStripes[stripeIndex];
 
-    // Intern lookup is split from allocation: readers can share-lock the stripe,
-    // while only the rare insertion path takes the exclusive lock and appends to
+    // Intern lookup takes no lock: most requests name a type that already exists, and every
+    // worker asks for the common ones. Only the insertion path locks the stripe and appends to
     // the shard store.
-    {
-        const std::shared_lock lk(stripe.mutex);
-        const auto             it = stripe.map.find(typeInfo);
-        if (it != stripe.map.end())
-            return (*it)->typeRef();
-    }
+    const size_t hash = typeInfo.hash();
+    const TypeRef found = findInterned(stripe.table.load(std::memory_order_acquire), typeInfo, hash);
+    if (found.isValid())
+        return found;
 
     const std::unique_lock lk(stripe.mutex);
     const auto             existing = stripe.map.find(typeInfo);
@@ -313,7 +311,62 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 
     const auto [it, inserted] = stripe.map.insert(std::move(stored));
     SWC_ASSERT(inserted);
+    publishInterned(stripe, ptr, hash);
     return (*it)->typeRef();
+}
+
+TypeRef TypeManager::findInterned(const InternTable* table, const TypeInfo& typeInfo, size_t hash) noexcept
+{
+    if (!table)
+        return TypeRef::invalid();
+
+    const uint32_t mask = table->capacity - 1;
+    for (uint32_t i = static_cast<uint32_t>(hash >> INTERN_STRIPE_BITS) & mask;; i = (i + 1) & mask)
+    {
+        const TypeInfo* type = table->types[i].load(std::memory_order_acquire);
+        if (!type)
+            return TypeRef::invalid();
+        if (table->hashes[i].load(std::memory_order_relaxed) == hash && *type == typeInfo)
+            return type->typeRef();
+    }
+}
+
+void TypeManager::publishInterned(InternStripe& stripe, const TypeInfo* type, size_t hash)
+{
+    const auto place = [](InternTable& table, const TypeInfo* placed, size_t placedHash) {
+        const uint32_t mask = table.capacity - 1;
+        uint32_t       i    = static_cast<uint32_t>(placedHash >> INTERN_STRIPE_BITS) & mask;
+        while (table.types[i].load(std::memory_order_relaxed))
+            i = (i + 1) & mask;
+        // The hash goes first: a reader that sees the type compares against a complete slot.
+        table.hashes[i].store(placedHash, std::memory_order_relaxed);
+        table.types[i].store(placed, std::memory_order_release);
+        table.size++;
+    };
+
+    // Keeping the load at or below one half bounds every probe and guarantees an empty slot.
+    InternTable* table = stripe.table.load(std::memory_order_relaxed);
+    if (!table || (table->size + 1) * 2 > table->capacity)
+    {
+        auto grown      = std::make_unique<InternTable>();
+        grown->capacity = table ? table->capacity * 2 : 64;
+        grown->types    = std::make_unique<std::atomic<const TypeInfo*>[]>(grown->capacity);
+        grown->hashes   = std::make_unique<std::atomic<size_t>[]>(grown->capacity);
+        if (table)
+        {
+            for (uint32_t i = 0; i < table->capacity; ++i)
+            {
+                if (const TypeInfo* old = table->types[i].load(std::memory_order_relaxed))
+                    place(*grown, old, table->hashes[i].load(std::memory_order_relaxed));
+            }
+        }
+
+        table = grown.get();
+        stripe.tables.push_back(std::move(grown));
+        stripe.table.store(table, std::memory_order_release);
+    }
+
+    place(*table, type, hash);
 }
 
 const TypeInfo& TypeManager::get(TypeRef typeRef) const

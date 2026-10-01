@@ -248,7 +248,13 @@ public:
 
     Result setupSema(TaskContext& ctx);
     bool   tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) const;
-    void   notifyAlive() { changed_.store(true, std::memory_order_release); }
+    // Every symbol transition calls this from every worker. Storing only on a real transition keeps
+    // the line shared between readers instead of bouncing it through each writer's cache.
+    void   notifyAlive()
+    {
+        if (!changed_.load(std::memory_order_relaxed))
+            changed_.store(true, std::memory_order_release);
+    }
     bool   changed() const { return changed_.load(std::memory_order_acquire); }
     bool   consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
 
@@ -651,7 +657,7 @@ private:
     std::mutex                                                       deferredJitConstantFunctionsMutex_;
     std::unordered_map<SymbolFunction*, std::vector<DataSegmentRef>> deferredJitConstantFunctions_;
     mutable std::mutex                                               foreignLibsMutex_;
-    std::atomic<bool>                                                changed_{true};
+    alignas(64) std::atomic<bool>                                    changed_{true};
     std::mutex                                                       globalFunctionBindingsMutex_;
     std::atomic<uint64_t>                                            globalFunctionBindingsVersion_{1};
     std::atomic<uint64_t>                                            patchedGlobalFunctionBindingsVersion_{0};
@@ -681,7 +687,7 @@ private:
     std::unordered_map<const SymbolFunction*, std::vector<uint32_t>> returnEdgesByCaller_;
     std::atomic<uint32_t>                                            guardedFreeForwardingEdgeCount_{0};
     std::atomic<uint64_t>                                            escapeSummaryEdgesVersion_{0};
-    std::atomic<uint64_t>                                            semaCompletedSymbolCount_{0};
+    alignas(64) std::atomic<uint64_t>                                semaCompletedSymbolCount_{0};
     // The last few input signatures the frees propagation was run for. Its result is a function of
     // the edges, the release masks and the call graph it was given, so the same signature twice is
     // the same fixpoint twice.

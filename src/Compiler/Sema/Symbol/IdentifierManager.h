@@ -201,7 +201,8 @@ private:
     static constexpr uint32_t INTERN_STRIPE_BITS  = 4;
     static constexpr uint32_t INTERN_STRIPE_COUNT = 1u << INTERN_STRIPE_BITS;
 
-    struct InternStripe
+    // Each stripe owns its cache line: neighbours locked by other workers must not share it.
+    struct alignas(64) InternStripe
     {
         StringMap<IdentifierRef>  map;
         mutable std::shared_mutex mutex;

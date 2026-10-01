@@ -6,11 +6,51 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.068 — The job scheduler serializes every transition on one mutex
+
+- Recorded: 2026-10-01 07:35
+- Updated: 2026-10-01 08:00 — enqueue and wake now notify after releasing the lock; narrow to the remaining work
+- Evidence: `JobManager` keeps one `mtx_` for the three ready deques, the client counters, the
+  waiter map, and the worker list. Jobs are fine-grained (one per top-level declaration, one per
+  function in code generation) and every enqueue, dequeue, park, and wake takes that lock.
+  `growWorkersForLoadLocked` still creates threads while holding it. The queue is a global FIFO:
+  a resumed job lands on any worker with a cold cache. The default worker count is
+  `hardware_concurrency()`, which on a hybrid CPU includes efficiency cores and SMT siblings, so
+  critical-path jobs can run on the slowest cores.
+- Next: prototype per-worker deques with stealing behind the same `JobManager` interface, keeping
+  the waiter map and client counters under their own lock, and spawn workers outside it.
+- Complete when: a std module build at 16 workers spends no measurable time waiting on the
+  scheduler lock (VTune or ETW contention view), with the scheduler unit tests and both compiler
+  executables green.
+- Related: compiler.core.069
+
+### compiler.core.065 — Remaining barrier rounds still drain the whole module
+
+- Recorded: 2026-10-01 07:35
+- Updated: 2026-10-01 08:00 — identifier, type-completion, and impl-registration waits are keyed; narrow to what still needs the barrier
+- Evidence: `SemaWaitIdentifier` and `SemaWaitImplRegistrations` now park on the name and are
+  woken by symbol-map insertion and by the last impl registration; `SemaWaitTypeCompleted` parks
+  on its blocking symbol and is woken by `setSemaCompleted`. Those producers have no flag to
+  recheck at registration, so a publication racing the park still waits for the `wakeAll` in
+  `Sema::waitDone`; so do `SemaWaitCompilerDefined`, a type completed by its concrete layout after
+  `setSemaCompleted`, and a name made visible by a new `using` rather than an insertion. That
+  barrier first drains the client: the tail of each wave runs on a few workers, then the driver
+  does serial work before the next one. Any symbol transition still sets `changed_`, so most
+  rounds end in a full `wakeAll`. The same barrier separates the declaration pass from the full
+  pass and closes native code generation (`scheduleCodeGen`).
+- Next: count rounds and re-parked sleepers per wait kind (compiler.core.069) on a std module, then
+  give the dominant remaining kind a recheckable publication (a per-name generation counter for
+  identifier waits closes the park race) so it no longer needs the barrier.
+- Complete when: a std module build needs no barrier round to resolve forward identifier and
+  type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
+  green under both compiler executables.
+- Related: compiler.core.069, compiler.core.007
+
 ### compiler.core.069 — Measure how much of a module build runs below full worker occupancy
 
 - Recorded: 2026-10-01 07:35
 - Evidence: compile time stops improving after a few workers. A static audit (2026-10-01) found
-  the structural causes recorded in compiler.core.065 to compiler.core.068, but the compiler has
+  the structural causes recorded in compiler.core.065 and compiler.core.068, but the compiler has
   no counter that says which one dominates. `--stats` timers are wall-clock per region and are
   inflated by preemption, so they cannot answer it.
 - Next: count, per module, the `Sema::waitDone` rounds, the sleepers each `wakeAll` moves, the
@@ -18,77 +58,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   of the workers are running a job. Report them under `--stats`.
 - Complete when: `--stats` shows those four figures for a std module build, and the dominant cause
   of the parallel ceiling is named from them.
-- Related: compiler.core.065, compiler.core.066, compiler.core.067, compiler.core.068, compiler.core.007
-
-### compiler.core.068 — The job scheduler serializes every transition on one mutex
-
-- Recorded: 2026-10-01 07:35
-- Evidence: `JobManager` keeps one `mtx_` for the three ready deques, the client counters, the
-  waiter map, and the worker list. Jobs are fine-grained (one per top-level declaration, one per
-  function in code generation) and every enqueue, dequeue, park, and wake takes that lock.
-  `enqueue` and `wake` notified the condition variable while holding it, so the woken worker
-  blocked again on the lock; `growWorkersForLoadLocked` creates threads while holding it. The
-  queue is a global FIFO: a resumed job lands on any worker with a cold cache. The default worker
-  count is `hardware_concurrency()`, which on a hybrid CPU includes efficiency cores and SMT
-  siblings, so critical-path jobs can run on the slowest cores.
-- Next: move condition-variable notification and thread creation out of the critical section,
-  then prototype per-worker deques with stealing behind the same `JobManager` interface, keeping the waiter map under its own lock.
-- Complete when: a std module build at 16 workers spends no measurable time waiting on the
-  scheduler lock (VTune or ETW contention view), with the scheduler unit tests and both compiler
-  executables green.
-- Related: compiler.core.069
-
-### compiler.core.067 — Every symbol transition writes the same few global cache lines
-
-- Recorded: 2026-10-01 07:35
-- Evidence: `Symbol::setDeclared`, `setTyped`, `setSemaCompleted`, `setCodeGenCompleted` and their
-  peers call `CompilerInstance::notifyAlive()`, an unconditional store to the single
-  `changed_` atomic, and `setSemaCompleted` also increments `semaCompletedSymbolCount_`.
-  `setIgnored` bumps the static `SymbolFunction` call-graph generation. Every worker writes those
-  lines hundreds of thousands of times per module, and `changed_` sat next to two mutexes.
-- Next: store `changed_` only when it is clear, and give each hot shared atomic its own cache line;
-  then audit the remaining process-wide counters written from jobs (`Stats`, timers).
-- Complete when: no atomic written on the per-symbol path shares a cache line with another hot
-  field, and the store happens only on a real false-to-true transition.
-- Related: compiler.core.069
-
-### compiler.core.066 — Identifier lookups contend on the shared symbol-map locks
-
-- Recorded: 2026-10-01 07:35
-- Evidence: an unqualified lookup walks the module namespace, the import root, every persisted
-  `using`, and each namespace-path step (`Match.cpp`), and each `SymbolMap::lookupAppend` takes a
-  `std::shared_mutex` in shared mode. MSVC implements it as an SRWLOCK: a shared acquire and
-  release are interlocked operations on the lock word, so every worker writes the lock line of the
-  most-read maps. The module namespace has only eight shards, and the `Shard` and `InternStripe`
-  arrays of `SymbolMap`, `TypeManager`, `IdentifierManager`, and `ConstantManager` were not
-  cache-line aligned, so neighbouring locks shared lines.
-- Next: align every shard and stripe to a cache line (cheap), then make published symbol-map reads
-  lock-free: buckets are append-only and homonym chains are immutable once linked, so readers can
-  use acquire loads with writers serialized per shard.
-- Complete when: `lookupAppend` on a sharded map performs no interlocked operation, with the
-  `SymbolMap` C++ tests and the sema suite green under both compiler executables.
-- Related: compiler.core.069
-
-### compiler.core.065 — Unkeyed semantic waits resume only after the whole module drains
-
-- Recorded: 2026-10-01 07:35
-- Evidence: `JobManager::computeWaitKey` keys symbol-flag and type-info waits only.
-  `SemaWaitIdentifier`, `SemaWaitTypeCompleted`, `SemaWaitImplRegistrations`, and
-  `SemaWaitCompilerDefined` park as wildcards and are moved back only by the `wakeAll` in
-  `Sema::waitDone`, which first waits until the client has no ready or running job. Each such
-  dependency therefore costs a full drain: the tail of every wave runs on a few workers while the
-  others sleep, and the driver then does serial work (compiler messages, three sorted
-  `waitingJobs` scans, cycle checks) before the next wave. Because any symbol transition sets
-  `changed_`, nearly every round ends in a full `wakeAll`, and sleepers that still cannot progress
-  park again through the scheduler lock. The same barrier separates the declaration pass from the
-  full pass and closes native code generation (`scheduleCodeGen`).
-- Next: key `SemaWaitIdentifier` on the identifier and wake it from symbol-map insertion, key
-  `SemaWaitTypeCompleted` on the blocking symbol, keep the barrier `wakeAll` as the fallback for
-  the waits nobody publishes, then count rounds (compiler.core.069) to see what remains.
-- Complete when: a std module build needs no barrier round to resolve forward identifier and
-  type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
-  green under both compiler executables.
-- Related: compiler.core.069, compiler.core.007
+- Related: compiler.core.065, compiler.core.068, compiler.core.007
 
 ### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
 

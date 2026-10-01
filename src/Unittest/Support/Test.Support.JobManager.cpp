@@ -75,6 +75,39 @@ namespace
         bool          slept_  = false;
     };
 
+    // Sleeps once on a name, as a lookup that found no symbol for it does.
+    class SleepOnNameJob final : public Job
+    {
+    public:
+        SleepOnNameJob(const TaskContext& ctx, IdentifierRef idRef, TaskStateKind kind) :
+            Job(ctx, JobKind::Sema),
+            idRef_(idRef),
+            kind_(kind)
+        {
+        }
+
+        JobResult exec() override
+        {
+            if (slept_)
+            {
+                ctx().state().setNone();
+                return JobResult::Done;
+            }
+
+            slept_ = true;
+
+            TaskState& wait = ctx().state();
+            wait.kind       = kind_;
+            wait.idRef      = idRef_;
+            return JobResult::Sleep;
+        }
+
+    private:
+        IdentifierRef idRef_;
+        TaskStateKind kind_;
+        bool          slept_ = false;
+    };
+
     struct SymbolPublication
     {
         TaskStateKind kind;
@@ -380,6 +413,49 @@ SWC_TEST_END()
 
 // A targeted wake() on the exact dependency must wake only the matching sleeper, and a
 // wake() on a different key must not wake it.
+SWC_TEST_BEGIN(JobManager_TargetedWakeByName)
+{
+    CommandLine cmdLine;
+    cmdLine.numCores = 1;
+
+    JobManager jobMgr;
+    jobMgr.setup(cmdLine);
+
+    const Global      global;
+    const TaskContext jobCtx(global, cmdLine);
+    const auto        clientId = jobMgr.newClientId();
+
+    const IdentifierRef nameA{8};
+    const IdentifierRef nameB{16};
+    SleepOnNameJob      lookupA(jobCtx, nameA, TaskStateKind::SemaWaitIdentifier);
+    SleepOnNameJob      implA(jobCtx, nameA, TaskStateKind::SemaWaitImplRegistrations);
+    SleepOnNameJob      lookupB(jobCtx, nameB, TaskStateKind::SemaWaitIdentifier);
+    jobMgr.enqueue(lookupA, JobPriority::Normal, clientId);
+    jobMgr.enqueue(implA, JobPriority::Normal, clientId);
+    jobMgr.enqueue(lookupB, JobPriority::Normal, clientId);
+    jobMgr.waitAll(clientId);
+
+    std::vector<Job*> waiting;
+    jobMgr.waitingJobs(waiting, clientId);
+    if (waiting.size() != 3)
+        return Result::Error;
+
+    // A symbol named A resumes the lookup of A only, without a barrier.
+    jobMgr.wake(WaitKey::name(nameA, TaskStateKind::SemaWaitIdentifier));
+    jobMgr.waitAll(clientId);
+    jobMgr.waitingJobs(waiting, clientId);
+    if (waiting.size() != 2 || std::ranges::find(waiting, &lookupA) != waiting.end())
+        return Result::Error;
+
+    jobMgr.wake(WaitKey::name(nameA, TaskStateKind::SemaWaitImplRegistrations));
+    jobMgr.wake(WaitKey::name(nameB, TaskStateKind::SemaWaitIdentifier));
+    jobMgr.waitAll(clientId);
+    jobMgr.waitingJobs(waiting, clientId);
+    if (!waiting.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(JobManager_TargetedWakeBySymbol)
 {
     CommandLine cmdLine;

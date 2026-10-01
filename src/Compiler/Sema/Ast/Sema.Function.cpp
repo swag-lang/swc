@@ -1654,12 +1654,14 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (waitResult != Result::Continue)
             return waitResult;
 
+        // The signature already handed this body to its runner. Consult ownership
+        // instead of publishing LazyBody again while that runner may be finishing.
+        // Interface availability must publish its constraints before deferring.
         const bool interfaceMethod = declImpl && declImpl->isForInterface();
-        if (!interfaceMethod && sym.isTyped() && canDelayFunctionBody(sema, *this, sym, declImpl))
-        {
-            sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
+        if (!interfaceMethod && isLazyBodyOwnedByAnotherWalk(sema, sym))
             return Result::SkipChildren;
-        }
+        if (sym.isSemaCompleted())
+            return Result::SkipChildren;
 
         const bool deferInlineBodySema = sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
         if (deferInlineBodySema)
@@ -1690,11 +1692,10 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (spanConstraintsRef.isValid())
             sym.setConstraintsResolved(sema.ctx());
 
-        if (sym.isTyped() && canDelayFunctionBody(sema, *this, sym, declImpl))
-        {
-            sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
+        if (isLazyBodyOwnedByAnotherWalk(sema, sym))
             return Result::SkipChildren;
-        }
+        if (sym.isSemaCompleted())
+            return Result::SkipChildren;
 
         auto frame = sema.frame();
         if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
@@ -1845,7 +1846,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         // Signature-only preparation can stop here before the declaring walk visits
         // the body. Publish its deferred work before Typed wakes callers, otherwise
         // they can consume an empty borrow summary and leave the body unanalysed.
-        if (canDelayFunctionBody(sema, *this, sym, functionDeclImplContext(sema, &sym)))
+        if (!sym.isTyped() && canDelayFunctionBody(sema, *this, sym, functionDeclImplContext(sema, &sym)))
             sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
         sym.setTyped(sema.ctx());
 

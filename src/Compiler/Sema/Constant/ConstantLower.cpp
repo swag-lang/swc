@@ -680,9 +680,9 @@ namespace
         return Result::Continue;
     }
 
-    size_t nextPositionalStructField(const std::vector<SymbolVariable*>& fields, const std::vector<uint8_t>& assigned, size_t start)
+    size_t nextPositionalStructField(const std::vector<SymbolVariable*>& fields, const std::vector<ConstantRef>& valuesByField, size_t start)
     {
-        while (start < fields.size() && (!fields[start] || assigned[start]))
+        while (start < fields.size() && (!fields[start] || valuesByField[start].isValid()))
             ++start;
         return start;
     }
@@ -708,9 +708,9 @@ namespace
         const auto& aggregate = srcType->payloadAggregate();
         SWC_INTERNAL_CHECK(aggregate.names.size() == values.size());
 
-        std::vector<uint8_t> assigned(dstFields.size(), 0);
-        bool                 seenNamed = false;
-        size_t               nextPos   = 0;
+        // Aggregate components are valid constants; an invalid slot is still unassigned.
+        bool   seenNamed = false;
+        size_t nextPos   = 0;
 
         for (size_t valueIdx = 0; valueIdx < values.size(); ++valueIdx)
         {
@@ -724,13 +724,13 @@ namespace
             else
             {
                 SWC_INTERNAL_CHECK(!seenNamed);
-                fieldIdx = nextPositionalStructField(dstFields, assigned, nextPos);
+                fieldIdx = nextPositionalStructField(dstFields, outValues, nextPos);
                 SWC_INTERNAL_CHECK(fieldIdx < dstFields.size());
                 nextPos = fieldIdx + 1;
             }
 
-            SWC_INTERNAL_CHECK(!assigned[fieldIdx]);
-            assigned[fieldIdx]  = 1;
+            SWC_INTERNAL_CHECK(outValues[fieldIdx].isInvalid());
+            SWC_ASSERT(values[valueIdx].isValid());
             outValues[fieldIdx] = values[valueIdx];
         }
     }

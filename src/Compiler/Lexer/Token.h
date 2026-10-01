@@ -26,8 +26,9 @@ enum class TokenIdKindE : uint32_t
     // module it is compiled into owns, so a body using it means the same thing when a
     // generated module API re-emits it in a consumer. An atomic, a context query, or a
     // report about the running program does not, and carries no such mark.
-    Portable = 1 << 12,
-    Uniq     = 1 << 13,
+    Portable            = 1 << 12,
+    ArgumentStorageOnly = 1 << 21, // Intrinsic cannot observe application storage outside its operands.
+    Uniq                = 1 << 13,
 
     // Operator families. '++' is deliberately absent: concatenation shares no operand rule
     // with the numeric operators, and every site that accepts it handles it on its own.
@@ -128,6 +129,7 @@ struct Token
     static bool isIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic); }
     static bool isIntrinsicReturn(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Return); }
     static bool isPortableIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Portable); }
+    static bool intrinsicObservesExternalBorrows(TokenId id) { return !isPortableIntrinsic(id) && !toKind(id).has(TokenIdKindE::ArgumentStorageOnly); }
     static bool isType(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Type); }
     static bool isModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Modifier); }
     static bool isStorageModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::StorageModifier); }

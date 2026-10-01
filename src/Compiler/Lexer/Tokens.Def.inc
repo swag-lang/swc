@@ -281,22 +281,22 @@ SWC_TOKEN_DEF(IntrinsicPostCopy, "Swag.postCopy", TokenIdKindE::Intrinsic)
 
 // INTRINSICS - TYPE INFO
 
-SWC_TOKEN_DEF(IntrinsicKindOf, "Swag.kindOf", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicCountOf, ".count", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicDataOf, ".buffer", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicKindOf, "Swag.kindOf", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicCountOf, ".count", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicDataOf, ".buffer", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
 // INTRINSICS - CONSTRUCTORS
 
-SWC_TOKEN_DEF(IntrinsicMakeSlice, "Swag.makeSlice", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicMakeString, "Swag.makeString", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicMakeAny, "Swag.makeAny", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicMakeInterface, "Swag.makeInterface", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicTableOf, "Swag.tableOf", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicMakeSlice, "Swag.makeSlice", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicMakeString, "Swag.makeString", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicMakeAny, "Swag.makeAny", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicMakeInterface, "Swag.makeInterface", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicTableOf, "Swag.tableOf", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
 
 // INTRINSICS - RUNTIME
 
 SWC_TOKEN_DEF(IntrinsicArgs, "Swag.args", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicJit, "Swag.jit", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicRtFlags, "Swag.runtimeFlags", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicJit, "Swag.jit", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicRtFlags, "Swag.runtimeFlags", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
 SWC_TOKEN_DEF(IntrinsicProcessInfos, "Swag.processInfos", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicModules, "Swag.modules", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicGvtd, "Swag.gvtd", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
@@ -348,13 +348,13 @@ SWC_TOKEN_DEF(IntrinsicPrefetch, "Swag.prefetch", TokenIdKindE::Intrinsic | Toke
 
 // INTRINSICS - ATOMIC
 
-SWC_TOKEN_DEF(IntrinsicAtomicAdd, "Swag.atomadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicAtomicAnd, "Swag.atomand", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicAtomicOr, "Swag.atomor", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicAtomicXor, "Swag.atomxor", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicAtomicXchg, "Swag.atomxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicAtomicCmpXchg, "Swag.atomcmpxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicAtomicGet, "Swag.atomget", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicAtomicAdd, "Swag.atomadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicAtomicAnd, "Swag.atomand", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicAtomicOr, "Swag.atomor", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicAtomicXor, "Swag.atomxor", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicAtomicXchg, "Swag.atomxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicAtomicCmpXchg, "Swag.atomcmpxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicAtomicGet, "Swag.atomget", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
 
 // INTRINSICS - VECTOR
 

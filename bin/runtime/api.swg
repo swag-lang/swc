@@ -295,7 +295,7 @@ namespace Swag
     // Bit 'i' of 'returns' means the return value may borrow parameter #i; bit 'i' of
     // 'stores' means parameter #i may be stored in storage that outlives the call;
     // bit 'i*8+j' of 'into' means parameter #j may be stored into storage reachable
-    // from parameter #i (packed 8x8); bit 'i' of 'frees' means the call invalidates
+    // from parameter #i after the call returns (packed 8x8); bit 'i' of 'frees' means the call invalidates
     // what parameter #i points to (it reaches [[IAllocator.free]] or
     // [[IAllocator.realloc]]); bit 'i' of 'reallocates' means the call may move or
     // release the heap payload parameter #i OWNS, which is what invalidates the views
@@ -308,8 +308,15 @@ namespace Swag
     // rather than carrying a reference to it in a separate allocation. It only applies
     // to bits also set in 'returns'. Its default preserves the direct-alias assumption
     // of annotations that omit it; generated APIs emit the computed mask explicitly.
+    // 'observesExternal' means the call may observe application borrowed storage through
+    // globals, thread-local state, hidden aliases, or callbacks. Its default is conservative.
+    // A manual 'false' on a [[Foreign]] declaration promises that the native operation
+    // only observes application storage through its explicit arguments and invokes no
+    // callback that can observe other application storage. Parameter retention remains
+    // governed by the other masks. Ordinary function bodies always contribute their
+    // computed effects, even when this argument is explicitly 'false'.
     #[AttrUsage(AttributeUsage.Function)]
-    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF)
+    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF, observesExternal: bool = true)
 
     // Safety checks, selected by [[Safety]] at runtime and by [[Sanity]] at compile time.
     #[Swag.EnumFlags]

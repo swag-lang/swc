@@ -84,6 +84,7 @@ struct AttributeList
     uint64_t                        reallocatesParamsMask    = 0;
     uint64_t                        returnsPayloadParamsMask = 0;
     uint64_t                        returnsStorageParamsMask = 0;
+    std::optional<bool>              observesExternalBorrows;
     // These two exist for `#[Swag.PrintMicro]` and `#[Swag.PrintAst]`, which a compilation carries
     // on at most one function. Inline storage for four strings each would put 320 bytes of an
     // attribute list — a third of it — at the service of two debugging attributes, and every scope
@@ -114,6 +115,7 @@ struct AttributeList
                reallocatesParamsMask == 0 &&
                returnsPayloadParamsMask == 0 &&
                returnsStorageParamsMask == 0 &&
+               !observesExternalBorrows.has_value() &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                warnings.empty() &&
@@ -201,7 +203,7 @@ struct AttributeList
     // = the return value is a view INTO that payload rather than merely a value that can
     // reach parameter #i. Bit i of 'returnsStorage' means the result aliases the
     // parameter's storage, rather than carrying it in a separate allocation.
-    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask, uint64_t returnsStorageMask)
+    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask, uint64_t returnsStorageMask, bool observesExternal)
     {
         returnBorrowsParamsMask |= returnsMask;
         storesParamsMask |= storesMask;
@@ -210,6 +212,7 @@ struct AttributeList
         reallocatesParamsMask |= reallocatesMask;
         returnsPayloadParamsMask |= returnsPayloadMask;
         returnsStorageParamsMask |= returnsStorageMask & returnsMask;
+        observesExternalBorrows = observesExternalBorrows.value_or(false) || observesExternal;
     }
 
     void setBackendOptimize(bool value)

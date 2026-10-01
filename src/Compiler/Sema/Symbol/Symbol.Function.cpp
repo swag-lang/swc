@@ -7,13 +7,13 @@
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
-#include "Compiler/Sema/Symbol/SymbolGenericData.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
-#include "Compiler/Sema/Symbol/SymbolOwnerFunction.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Symbol/SymbolGenericData.h"
+#include "Compiler/Sema/Symbol/SymbolOwnerFunction.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
@@ -661,7 +661,7 @@ Utf8 SymbolFunction::computePublicApiBaseSymbolName(const TaskContext& ctx) cons
 
 Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
 {
-    Utf8 apiName = computePublicApiBaseSymbolName(ctx);
+    Utf8                               apiName = computePublicApiBaseSymbolName(ctx);
     std::vector<const SymbolFunction*> overloads;
     collectPublicApiOverloads(*this, overloads);
     if (overloads.size() > 1)
@@ -869,6 +869,16 @@ uint64_t SymbolFunction::returnBorrowsParamsMask() const noexcept
     return returnBorrowsParamsMask_ | (attrs ? attrs->returnBorrowsParamsMask : 0);
 }
 
+bool SymbolFunction::observesExternalBorrows() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    if (observesExternalBorrows_ || (attrs && attrs->observesExternalBorrows.value_or(false)))
+        return true;
+    if (isForeign())
+        return !attrs || attrs->observesExternalBorrows.value_or(true);
+    return !borrowEffectsComputed_;
+}
+
 uint64_t SymbolFunction::storesParamsMask() const noexcept
 {
     const AttributeList* attrs = attributesIfAny();
@@ -884,7 +894,12 @@ uint64_t SymbolFunction::returnsStorageParamsMask() const noexcept
 uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
 {
     const AttributeList* attrs = attributesIfAny();
-    return storesIntoParamPairs_ | (attrs ? attrs->storesIntoParamPairs : 0);
+    uint64_t             pairs = storesIntoParamPairs_ | (attrs ? attrs->storesIntoParamPairs : 0);
+    // Bodies synthesized outside ordinary function completion still expose the
+    // conservative store until their retention proof has actually run.
+    for (const PendingBorrowStore& store : pendingBorrowStores_)
+        pairs |= 1ULL << (store.intoIndex * 8 + store.storedIndex);
+    return pairs;
 }
 
 uint64_t SymbolFunction::freesParamsMask() const noexcept

@@ -7,8 +7,8 @@
 #include "Compiler/Sema/Generic/GenericInstanceOrigin.h"
 #include "Compiler/Sema/Helpers/SemaCloneTypes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
-#include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
@@ -66,7 +66,7 @@ public:
     {
     }
 
-    TypeRef returnTypeRef() const { return returnType_; }
+    TypeRef       returnTypeRef() const { return returnType_; }
     SourceCodeRef codeRefIfDeclared() const noexcept
     {
         if (!decl())
@@ -102,6 +102,11 @@ public:
         if (paramIndex < 64)
             returnsStorageParamsMask_ |= 1ULL << paramIndex;
     }
+    // Whether a call can observe application borrows through ambient storage or
+    // unproven callbacks. Independent of explicit parameter retention effects.
+    bool     observesExternalBorrows() const noexcept;
+    void     markExternalBorrowObservation() noexcept { observesExternalBorrows_ = true; }
+    void     markBorrowEffectsComputed() noexcept { borrowEffectsComputed_ = true; }
     uint64_t storesParamsMask() const noexcept;
     void     addReturnBorrowsParam(size_t paramIndex) noexcept
     {
@@ -205,8 +210,8 @@ public:
         return attrs && (attrs->reallocatesParamsMask & bit);
     }
 
-    // Bit (into*8 + stored) = parameter #stored may be stored into storage reachable
-    // from parameter #into ('me.list = item' -> pair (item -> me)). Judged at call
+    // Bit (into*8 + stored) = parameter #stored may remain in storage reachable
+    // from parameter #into after the call ('me.list = item'). Judged at call
     // sites where the 'into' argument provably outlives the stored one (a global).
     // Packed 8x8: parameters beyond #7 are not tracked.
     uint64_t storesIntoParamPairs() const noexcept;
@@ -219,9 +224,26 @@ public:
     {
         return intoIndex < 8 && storedIndex < 8 && (pairs & (1ULL << (intoIndex * 8 + storedIndex))) != 0;
     }
+    struct PendingBorrowStore
+    {
+        AstNodeRef nodeRef;
+        AstNodeRef leftRef;
+        uint8_t    intoIndex;
+        uint8_t    storedIndex;
+        bool       operator==(const PendingBorrowStore&) const noexcept = default;
+    };
+    void addPendingBorrowStore(AstNodeRef nodeRef, AstNodeRef leftRef, size_t intoIndex, size_t storedIndex)
+    {
+        if (intoIndex >= 8 || storedIndex >= 8)
+            return;
+        const PendingBorrowStore store{nodeRef, leftRef, static_cast<uint8_t>(intoIndex), static_cast<uint8_t>(storedIndex)};
+        if (std::ranges::find(pendingBorrowStores_, store) == pendingBorrowStores_.end())
+            pendingBorrowStores_.push_back(store);
+    }
+    std::vector<PendingBorrowStore>     takePendingBorrowStores() { return std::exchange(pendingBorrowStores_, {}); }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     bool                                containsLocalVariable(const SymbolVariable& var) const noexcept { return localVariableSet_.contains(&var); }
-    bool ownsVariable(const SymbolVariable& var) const
+    bool                                ownsVariable(const SymbolVariable& var) const
     {
         if (var.ownerSymMap() == this)
             return true;
@@ -234,23 +256,23 @@ public:
             return true;
         return std::ranges::find(params, &var) != params.end();
     }
-    void                                addParameter(SymbolVariable* sym);
-    bool                                tryGetParameterIndexByName(size_t& outIndex, IdentifierRef name, size_t startIndex = 0) const noexcept;
-    void                                setVariadicParamFlag(TaskContext& ctx);
-    void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
-    Utf8                                computeName(const TaskContext& ctx) const;
-    Utf8                                computePublicApiBaseSymbolName(const TaskContext& ctx) const;
-    Utf8                                computePublicApiSymbolName(const TaskContext& ctx) const;
-    bool                                supportsGeneratedModuleApiExport() const noexcept;
-    bool                                supportsPublicApiForeignExport() const noexcept;
-    bool                                usesStructuralTypeIdentity() const noexcept;
-    uint32_t                            typeSignatureHash() const noexcept;
-    bool                                sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
-    bool                                sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept;
-    bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
-    SymbolFunctionFlags                 semanticFlags() const noexcept { return extraFlags().mask(K_SEMANTIC_FLAGS); }
-    SymbolStruct*                       ownerStruct();
-    const SymbolStruct*                 ownerStruct() const;
+    void                addParameter(SymbolVariable* sym);
+    bool                tryGetParameterIndexByName(size_t& outIndex, IdentifierRef name, size_t startIndex = 0) const noexcept;
+    void                setVariadicParamFlag(TaskContext& ctx);
+    void                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
+    Utf8                computeName(const TaskContext& ctx) const;
+    Utf8                computePublicApiBaseSymbolName(const TaskContext& ctx) const;
+    Utf8                computePublicApiSymbolName(const TaskContext& ctx) const;
+    bool                supportsGeneratedModuleApiExport() const noexcept;
+    bool                supportsPublicApiForeignExport() const noexcept;
+    bool                usesStructuralTypeIdentity() const noexcept;
+    uint32_t            typeSignatureHash() const noexcept;
+    bool                sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
+    bool                sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept;
+    bool                deepCompare(const SymbolFunction& otherFunc) const noexcept;
+    SymbolFunctionFlags semanticFlags() const noexcept { return extraFlags().mask(K_SEMANTIC_FLAGS); }
+    SymbolStruct*       ownerStruct();
+    const SymbolStruct* ownerStruct() const;
     // The nearest enclosing function in the lexical chain, for a local or nested function.
     const SymbolFunction* parentLexicalFunction() const;
 
@@ -474,12 +496,15 @@ private:
     std::vector<SymbolFunction*>                  callDependencies_;
     PointerSet<SymbolFunction>                    callDependencySet_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;
-    uint32_t                                      numComputedLocals_                         = 0;
-    uint32_t                                      localStackOffset_                          = 0;
-    uint64_t                                      returnBorrowsParamsMask_                   = 0;
-    uint64_t                                      returnsStorageParamsMask_                  = 0;
-    uint64_t                                      storesParamsMask_                          = 0;
-    uint64_t                                      storesIntoParamPairs_                      = 0;
+    uint32_t                                      numComputedLocals_        = 0;
+    uint32_t                                      localStackOffset_         = 0;
+    uint64_t                                      returnBorrowsParamsMask_  = 0;
+    uint64_t                                      returnsStorageParamsMask_ = 0;
+    bool                                          observesExternalBorrows_  = false;
+    bool                                          borrowEffectsComputed_    = false;
+    uint64_t                                      storesParamsMask_         = 0;
+    uint64_t                                      storesIntoParamPairs_     = 0;
+    std::vector<PendingBorrowStore>               pendingBorrowStores_;
     std::atomic<uint64_t>                         freesParamsMask_                           = 0;
     uint64_t                                      reallocatesParamsMask_                     = 0;
     uint64_t                                      reallocatesUnknownProjectionParamsMask_    = 0;

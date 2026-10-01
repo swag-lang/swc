@@ -359,6 +359,7 @@ namespace
         uint64_t reallocatesMask    = 0;
         uint64_t returnsPayloadMask = 0;
         uint64_t returnsStorageMask = UINT64_MAX;
+        bool     observesExternal   = true;
         SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], returnsMask));
         if (args.size() >= 2)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], storesMask));
@@ -373,7 +374,10 @@ namespace
         if (args.size() >= 7)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[6], returnsStorageMask));
 
-        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask);
+        if (args.size() >= 8)
+            SWC_RESULT(collectResolvedBoolValue(sema, args[7], observesExternal));
+
+        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, observesExternal);
         return Result::Continue;
     }
 

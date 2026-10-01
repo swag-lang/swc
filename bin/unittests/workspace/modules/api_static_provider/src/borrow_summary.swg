@@ -29,7 +29,7 @@ func depBorrowStashed()->*s32?
     return depBorrowGlobalStash
 }
 
-// No summary: call sites stay silent whatever was passed.
+// No retention: the pointer is borrowed only for this call.
 func depBorrowRead(p: *s32)->s32
 {
     return p[]
@@ -93,3 +93,33 @@ func depBorrowReleaseCarrier(carrier: *DepBorrowCarrier)
     req.size    = #sizeof(DepBorrowCarrier)
     Swag.getContext().allocator!.free(&req)
 }
+
+// The spelling in this name must not hide the generated BorrowSummary attribute.
+#[Swag.NoInline]
+func depBorrowSummaryRead(value: *s32)->s32 => value[]
+
+// Source annotations contribute facts; they cannot erase retention computed from the body.
+#[Swag.NoInline, Swag.BorrowSummary(0, observesExternal: false)]
+func depBorrowAnnotatedStash(value: *s32)
+{
+    depBorrowGlobalStash = value
+}
+
+var depBorrowObservedOwner: *DepBorrowContainer?
+
+func depBorrowSetObservedOwner(owner: *DepBorrowContainer)
+{
+    depBorrowObservedOwner = owner
+}
+
+#[Swag.NoInline, Swag.BorrowSummary(0, observesExternal: false)]
+func depBorrowAnnotatedObserve()
+{
+    let owner = depBorrowObservedOwner
+    if owner do
+        depBorrowGlobalStash = owner.slot
+}
+
+// An older annotation that omits the external-observation promise stays conservative.
+#[Swag.NoInline, Swag.BorrowSummary(0)]
+func depBorrowLegacyObserver() {}

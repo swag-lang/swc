@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
@@ -3852,10 +3853,520 @@ namespace
         }
         return false;
     }
+
+    void addExternalBorrowEdge(Sema& sema, SymbolFunction& caller, const SymbolFunction& callee, SemaEscapeSummaryEdgeKind kind, uint32_t intoIndex = 0, uint32_t storedIndex = 0)
+    {
+        SemaEscapeSummaryEdge edge;
+        edge.caller               = &caller;
+        edge.callee               = &callee;
+        edge.kind                 = kind;
+        edge.callerIntoParamIndex = intoIndex;
+        edge.callerParamIndex     = storedIndex;
+        sema.compiler().addEscapeSummaryEdge(edge);
+    }
+
+    bool hasUnmodeledBorrowHook(Sema& sema, AstNodeRef ref, const AstNode& node)
+    {
+        // These node payloads describe user-defined operations. Do not infer a
+        // native operator's effects from the call dependency list: that list
+        // intentionally excludes foreign functions.
+        switch (node.id())
+        {
+            case AstNodeId::AssignStmt:
+            case AstNodeId::SingleVarDecl:
+            case AstNodeId::MultiVarDecl:
+            case AstNodeId::BinaryExpr:
+            case AstNodeId::UnaryExpr:
+            case AstNodeId::RelationalExpr:
+            case AstNodeId::CastExpr:
+            case AstNodeId::AsCastExpr:
+            case AstNodeId::AutoCastExpr:
+            case AstNodeId::IndexExpr:
+            case AstNodeId::IndexListExpr:
+            case AstNodeId::IntrinsicCallExpr:
+                return sema.hasSemaPayload(ref);
+            default:
+                return false;
+        }
+    }
+
+    void computeExternalBorrowObservation(Sema& sema, SymbolFunction& fn, AstNodeRef bodyRef)
+    {
+        if (bodyRef.isInvalid() || fn.isForeign())
+            return;
+        fn.markBorrowEffectsComputed();
+
+        // Include implicit lifecycle/operator calls as well as source-level calls.
+        // Callee effects are read only at the module fixpoint, never while another
+        // semantic worker may still be computing them.
+        SmallVector<SymbolFunction*> dependencies;
+        fn.appendCallDependencies(dependencies);
+        fn.appendLifecycleDependencies(dependencies);
+        for (const SymbolFunction* callee : dependencies)
+        {
+            if (callee && callee != &fn)
+                addExternalBorrowEdge(sema, fn, *callee, SemaEscapeSummaryEdgeKind::ExternalToExternal);
+        }
+
+        SmallVector<AstNodeRef> pending;
+        pending.push_back(bodyRef);
+        uint32_t budget = 16384;
+        while (!pending.empty() && budget--)
+        {
+            const AstNodeRef ref = pending.back();
+            pending.pop_back();
+            if (ref.isInvalid())
+                continue;
+            const AstNode& node = sema.node(ref);
+            if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+                continue;
+            if (hasUnmodeledBorrowHook(sema, ref, node))
+                fn.markExternalBorrowObservation();
+            if (const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(ref))
+            {
+                if (lowering->runtimeSafetyMask)
+                    fn.markExternalBorrowObservation();
+                if (lowering->runtimeFunctionSymbol)
+                    addExternalBorrowEdge(sema, fn, *lowering->runtimeFunctionSymbol, SemaEscapeSummaryEdgeKind::ExternalToExternal);
+            }
+            if (node.is(AstNodeId::Identifier))
+            {
+                const SymbolVariable* var = identifierVariable(sema, ref);
+                if (var && (var->hasGlobalStorage() || var->isDeclaredThreadLocal()) &&
+                    !sema.viewConstant(ref).hasConstant())
+                    fn.markExternalBorrowObservation();
+            }
+            if (node.is(AstNodeId::CallExpr))
+            {
+                const SymbolFunction* callee = resolvedCallFunction(sema, ref, node.cast<AstCallExpr>().nodeExprRef);
+                if (callee && !callee->hasInterfaceMethodSlot())
+                    addExternalBorrowEdge(sema, fn, *callee, SemaEscapeSummaryEdgeKind::ExternalToExternal);
+                else
+                    fn.markExternalBorrowObservation();
+            }
+            if (node.is(AstNodeId::IntrinsicCallExpr) && Token::intrinsicObservesExternalBorrows(node.cast<AstIntrinsicCallExpr>().intrinsicId))
+                fn.markExternalBorrowObservation();
+            if (node.is(AstNodeId::FailExpr) || node.is(AstNodeId::ErrorManagementStmt) ||
+                (node.is(AstNodeId::ErrorManagementExpr) && sema.token(node.codeRef()).id != TokenId::SymBang))
+                fn.markExternalBorrowObservation();
+            SmallVector<AstNodeRef> children;
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef child : children)
+                pending.push_back(child);
+        }
+        if (!pending.empty())
+            fn.markExternalBorrowObservation();
+    }
+
+    // A must-clear proof for one exact parameter slot. It never subtracts an
+    // already published summary bit: direct stores are delayed until this walk,
+    // then observer guards can only add the bit back in the module fixpoint.
+    class BorrowStoreRetention
+    {
+    public:
+        BorrowStoreRetention(Sema& sema, SymbolFunction& fn, const SymbolFunction::PendingBorrowStore& store) :
+            sema_(&sema),
+            fn_(&fn),
+            store_(&store)
+        {
+        }
+
+        bool prove(AstNodeRef bodyRef)
+        {
+            if (!storageProjection(*sema_, store_->leftRef, slot_))
+                return false;
+            normalizeProjectionRoot(*sema_, slot_);
+            if (!slot_.root || slot_.components.empty())
+                return false;
+            // Only builtin view assignments qualify. User-defined assignment,
+            // conversion and cleanup can invoke observers before a clear takes effect.
+            const TypeRef slotType = expressionTypeRef(*sema_, store_->leftRef);
+            if (!isDirectBorrowCarrier(*sema_, slotType) || hasOwningLifecycle(*sema_, slotType))
+                return false;
+            for (const auto& component : slot_.components)
+            {
+                if (component.kind == SemaEscapeProjectionKind::AnyIndex)
+                    return false;
+            }
+            // A destructor can reinstall an alias after the explicit clear. Until
+            // cleanup effects have field paths, keep such bodies conservative.
+            for (const SymbolVariable* local : fn_->localVariables())
+            {
+                if (local && hasOwningLifecycle(*sema_, local->typeRef()))
+                    return false;
+            }
+            State state;
+            walk(bodyRef, state);
+            if (!valid_ || !sawStore_ || (state.reachable && state.live))
+                return false;
+            for (const auto& observer : observers_)
+                addExternalBorrowEdge(*sema_, *fn_, *observer.first, observer.second ? SemaEscapeSummaryEdgeKind::ExternalToPair : SemaEscapeSummaryEdgeKind::RetentionToPair, store_->intoIndex, store_->storedIndex);
+            return true;
+        }
+
+    private:
+        struct State
+        {
+            bool live      = false;
+            bool reachable = true;
+        };
+        struct Deferred
+        {
+            AstNodeRef       bodyRef;
+            AstModifierFlags flags;
+        };
+
+        struct WalkDepth
+        {
+            explicit WalkDepth(uint32_t& value) :
+                value(&value)
+            {
+                ++*this->value;
+            }
+            ~WalkDepth() { --*value; }
+            uint32_t* value;
+        };
+
+        bool spend()
+        {
+            if (!budget_ || depth_ >= 128)
+                valid_ = false;
+            else
+                --budget_;
+            return valid_;
+        }
+
+        bool projection(AstNodeRef ref, SemaEscapeProjection& result)
+        {
+            if (!storageProjection(*sema_, ref, result))
+                return false;
+            normalizeProjectionRoot(*sema_, result);
+            return true;
+        }
+
+        bool exactSlot(const SemaEscapeProjection& value) const
+        {
+            return slot_.root == value.root && slot_.components == value.components;
+        }
+
+        bool overlaps(const SemaEscapeProjection& value) const
+        {
+            return projectionIsPrefixOf(slot_, value) || projectionIsPrefixOf(value, slot_);
+        }
+
+        void call(AstNodeRef ref, const AstCallExpr& node, State& state)
+        {
+            const SymbolFunction* callee = resolvedCallFunction(*sema_, ref, node.nodeExprRef);
+            if (!callee || callee->hasInterfaceMethodSlot())
+            {
+                // Before the store an opaque call can return or retain an alias;
+                // after it, the same alias can reinstall the previously copied value.
+                valid_ = false;
+            }
+            else
+            {
+                if (typeCanCarryBorrowImpl(*sema_, callee->returnTypeRef()))
+                    valid_ = false;
+                const std::pair<const SymbolFunction*, bool> guard{callee, state.live};
+                if (std::ranges::find(observers_, guard) == observers_.end())
+                    observers_.push_back(guard);
+            }
+            const AstNodeRef receiver = syntacticMethodReceiverRef(*sema_, ref);
+            if (receiver.isValid())
+                expression(receiver, state, true);
+            else if (!callee)
+                expression(node.nodeExprRef, state);
+            SmallVector<AstNodeRef> arguments;
+            node.collectArguments(arguments, sema_->ast());
+            for (const AstNodeRef argument : arguments)
+                expression(argument, state, true);
+        }
+
+        bool plainProjection(AstNodeRef root, bool live)
+        {
+            SmallVector<AstNodeRef> pending;
+            pending.push_back(root);
+            while (!pending.empty() && spend())
+            {
+                const AstNodeRef ref = pending.back();
+                pending.pop_back();
+                if (ref.isInvalid())
+                    continue;
+                const AstNode& node = sema_->node(ref);
+                // Projection normalization strips casts and follows substituted
+                // nodes. It proves identity, not that evaluating that path is inert.
+                if (node.is(AstNodeId::CallExpr) || hasUnmodeledBorrowHook(*sema_, ref, node))
+                    return false;
+                if (live)
+                {
+                    const auto* lowering = sema_->loweringPayload<CodeGenLoweringPayload>(ref);
+                    if (lowering && (lowering->runtimeSafetyMask || lowering->runtimeFunctionSymbol))
+                        return false;
+                }
+                SmallVector<AstNodeRef> children;
+                node.collectChildrenFromAst(children, sema_->ast());
+                for (const AstNodeRef child : children)
+                    pending.push_back(child);
+            }
+            return valid_;
+        }
+
+        void expression(AstNodeRef ref, State& state, bool callArgument = false)
+        {
+            if (ref.isInvalid() || !spend())
+                return;
+            const WalkDepth depth(depth_);
+            const AstNode&  node = sema_->node(ref);
+            if (hasUnmodeledBorrowHook(*sema_, ref, node))
+                valid_ = false;
+            if (state.live)
+            {
+                const auto* lowering = sema_->loweringPayload<CodeGenLoweringPayload>(ref);
+                if (lowering && (lowering->runtimeSafetyMask || lowering->runtimeFunctionSymbol))
+                    valid_ = false;
+            }
+            if (node.is(AstNodeId::CallExpr))
+            {
+                call(ref, node.cast<AstCallExpr>(), state);
+                return;
+            }
+            SemaEscapeProjection value;
+            if (projection(ref, value))
+            {
+                if (!plainProjection(ref, state.live))
+                {
+                    valid_ = false;
+                    return;
+                }
+                if (value.root == slot_.root)
+                {
+                    // Reading the whole receiver can create an alias even before
+                    // the store. Disjoint fields do not expose this slot.
+                    if ((!callArgument && (value.components.empty() || typeCanCarryBorrowImpl(*sema_, expressionTypeRef(*sema_, ref)))) ||
+                        (state.live && overlaps(value)))
+                        valid_ = false;
+                    return;
+                }
+                if (value.root &&
+                    ((value.root->hasGlobalStorage() && !sema_->viewConstant(ref).hasConstant()) ||
+                     (!callArgument && signatureParameterFor(*sema_, *value.root) && isDirectBorrowCarrier(*sema_, value.root->typeRef()))))
+                    valid_ = false;
+                // A projection's index can itself call code; only a field-only
+                // path is safe to stop walking here.
+                if (std::ranges::all_of(value.components, [](const auto& c) { return c.kind == SemaEscapeProjectionKind::Field; }))
+                    return;
+            }
+            if (state.live && node.is(AstNodeId::IntrinsicCallExpr) && Token::intrinsicObservesExternalBorrows(node.cast<AstIntrinsicCallExpr>().intrinsicId))
+                valid_ = false;
+            if (node.is(AstNodeId::ErrorManagementExpr) || node.is(AstNodeId::ErrorManagementStmt) || node.is(AstNodeId::FailExpr))
+            {
+                if (state.live)
+                    valid_ = false;
+            }
+            if (node.is(AstNodeId::ReturnStmt) || node.is(AstNodeId::DeferStmt) || node.is(AstNodeId::AssignStmt) ||
+                node.is(AstNodeId::BreakStmt) || node.is(AstNodeId::ContinueStmt) || node.is(AstNodeId::ScopedBreakStmt))
+            {
+                // These are only legal in the structured walker, never hidden
+                // inside a loop/expansion that the proof treats as an expression.
+                valid_ = false;
+                return;
+            }
+            SmallVector<AstNodeRef> children;
+            node.collectChildrenFromAst(children, sema_->ast());
+            for (const AstNodeRef child : children)
+                expression(child, state, callArgument);
+        }
+
+        void unwind(State& state, size_t first, bool failed)
+        {
+            const auto saved = defers_;
+            for (size_t i = saved.size(); i > first && valid_; --i)
+            {
+                const Deferred action = saved[i - 1];
+                if ((action.flags.has(AstModifierFlagsE::Fail) && !failed) ||
+                    (action.flags.has(AstModifierFlagsE::NoFail) && failed))
+                    continue;
+                defers_.resize(i - 1);
+                ++cleanupDepth_;
+                scoped(action.bodyRef, state);
+                --cleanupDepth_;
+            }
+            defers_ = saved;
+        }
+
+        void block(const AstNode& node, State& state)
+        {
+            const size_t            first = defers_.size();
+            SmallVector<AstNodeRef> children;
+            node.collectChildrenFromAst(children, sema_->ast());
+            for (const AstNodeRef child : children)
+            {
+                if (state.reachable && valid_)
+                    walk(child, state);
+            }
+            if (state.reachable)
+                unwind(state, first, false);
+            defers_.resize(first);
+        }
+
+        void scoped(AstNodeRef ref, State& state)
+        {
+            const size_t first = defers_.size();
+            walk(ref, state);
+            if (state.reachable)
+                unwind(state, first, false);
+            defers_.resize(first);
+        }
+
+        void branches(AstNodeRef condition, AstNodeRef yesRef, AstNodeRef noRef, State& state)
+        {
+            expression(condition, state);
+            State yes = state;
+            State no  = state;
+            scoped(yesRef, yes);
+            scoped(noRef, no);
+            state.live      = (yes.reachable && yes.live) || (no.reachable && no.live);
+            state.reachable = yes.reachable || no.reachable;
+        }
+
+        void walk(AstNodeRef ref, State& state)
+        {
+            if (ref.isInvalid() || !state.reachable || !spend())
+                return;
+            const WalkDepth depth(depth_);
+            const AstNode&  node = sema_->node(ref);
+            if (hasUnmodeledBorrowHook(*sema_, ref, node))
+                valid_ = false;
+            if (state.live)
+            {
+                const auto* lowering = sema_->loweringPayload<CodeGenLoweringPayload>(ref);
+                if (lowering && (lowering->runtimeSafetyMask || lowering->runtimeFunctionSymbol))
+                    valid_ = false;
+            }
+            switch (node.id())
+            {
+                case AstNodeId::FunctionBody:
+                case AstNodeId::EmbeddedBlock:
+                case AstNodeId::TopLevelBlock:
+                case AstNodeId::SwitchCaseBody:
+                case AstNodeId::ElseStmt:
+                case AstNodeId::ElseIfStmt:
+                    block(node, state);
+                    return;
+                case AstNodeId::AssignStmt:
+                {
+                    if (const auto* payload = sema_->semaPayload<AssignSpecOpPayload>(ref))
+                    {
+                        if (payload->calledFn)
+                        {
+                            valid_ = false;
+                            return;
+                        }
+                    }
+                    const auto&          assign = node.cast<AstAssignStmt>();
+                    SemaEscapeProjection left;
+                    const bool           writesSlot = projection(assign.nodeLeftRef, left) && exactSlot(left);
+                    if (writesSlot && !plainProjection(assign.nodeLeftRef, state.live))
+                        valid_ = false;
+                    expression(assign.nodeRightRef, state, writesSlot);
+                    if (writesSlot)
+                    {
+                        const SemaNodeView right = sema_->viewConstant(assign.nodeRightRef);
+                        state.live               = !right.hasConstant() || !right.cst()->isNullValue(sema_->ctx());
+                        if (ref == store_->nodeRef || assign.nodeLeftRef == store_->leftRef)
+                            sawStore_ = true;
+                        return;
+                    }
+                    expression(assign.nodeLeftRef, state);
+                    return;
+                }
+                case AstNodeId::IfStmt:
+                {
+                    const auto& branch = node.cast<AstIfStmt>();
+                    branches(branch.nodeConditionRef, branch.nodeIfBlockRef, branch.nodeElseBlockRef, state);
+                    return;
+                }
+                case AstNodeId::IfVarDecl:
+                {
+                    const auto& branch = node.cast<AstIfVarDecl>();
+                    expression(branch.nodeVarRef, state);
+                    branches(branch.nodeWhereRef, branch.nodeIfBlockRef, branch.nodeElseBlockRef, state);
+                    return;
+                }
+                case AstNodeId::DeferStmt:
+                {
+                    const auto& deferred = node.cast<AstDeferStmt>();
+                    defers_.push_back({deferred.nodeBodyRef, deferred.modifierFlags});
+                    return;
+                }
+                case AstNodeId::ReturnStmt:
+                case AstNodeId::FailExpr:
+                {
+                    if (cleanupDepth_)
+                    {
+                        valid_ = false;
+                        return;
+                    }
+                    const bool failed = node.is(AstNodeId::FailExpr);
+                    expression(failed ? node.cast<AstFailExpr>().nodeExprRef : node.cast<AstReturnStmt>().nodeExprRef, state);
+                    if (failed && state.live)
+                        valid_ = false;
+                    unwind(state, 0, failed);
+                    if (state.live)
+                        valid_ = false;
+                    state.reachable = false;
+                    return;
+                }
+                case AstNodeId::FunctionDecl:
+                case AstNodeId::FunctionExpr:
+                case AstNodeId::ClosureExpr:
+                    // Inspect captures conservatively, including aliases created
+                    // before the slot becomes live; do not execute their bodies.
+                    expression(ref, state);
+                    return;
+                case AstNodeId::SwitchStmt:
+                case AstNodeId::BreakStmt:
+                case AstNodeId::ScopedBreakStmt:
+                case AstNodeId::ContinueStmt:
+                case AstNodeId::UnreachableStmt:
+                    valid_ = false;
+                    return;
+                default:
+                    // In particular, a polling loop with no stores or exits cannot
+                    // retain a new alias. Unknown loop control is rejected by the
+                    // expression walker; an explicit clear after the loop still kills.
+                    expression(ref, state);
+                    return;
+            }
+        }
+
+        Sema*                                               sema_;
+        SymbolFunction*                                     fn_;
+        const SymbolFunction::PendingBorrowStore*           store_;
+        SemaEscapeProjection                                slot_;
+        std::vector<Deferred>                               defers_;
+        std::vector<std::pair<const SymbolFunction*, bool>> observers_;
+        uint32_t                                            budget_       = 16384;
+        uint32_t                                            cleanupDepth_ = 0;
+        uint32_t                                            depth_        = 0;
+        bool                                                valid_        = true;
+        bool                                                sawStore_     = false;
+    };
+
 }
 
 namespace SemaEscape
 {
+    void finalizeBorrowStores(Sema& sema, SymbolFunction& fn, AstNodeRef bodyRef)
+    {
+        computeExternalBorrowObservation(sema, fn, bodyRef);
+        for (const auto& store : fn.takePendingBorrowStores())
+        {
+            if (!BorrowStoreRetention(sema, fn, store).prove(bodyRef))
+                fn.addStoresIntoParam(store.intoIndex, store.storedIndex);
+        }
+    }
+
     bool typeCanCarryBorrow(Sema& sema, TypeRef typeRef)
     {
         return typeCanCarryBorrowImpl(sema, typeRef);
@@ -4162,7 +4673,7 @@ namespace SemaEscape
                         {
                             const size_t storedIndex = std::countr_zero(remainingOrigins);
                             if (storedIndex != intoIndex)
-                                currentFn->addStoresIntoParam(intoIndex, storedIndex);
+                                currentFn->addPendingBorrowStore(sema.curNodeRef(), leftRef, intoIndex, storedIndex);
                         }
                     }
                 }
@@ -4828,6 +5339,30 @@ namespace SemaEscape
                 changed = false;
                 for (const SemaEscapeSummaryEdge& edge : edges)
                 {
+                    if (edge.kind == SemaEscapeSummaryEdgeKind::ExternalToExternal || edge.kind == SemaEscapeSummaryEdgeKind::ExternalToPair || edge.kind == SemaEscapeSummaryEdgeKind::RetentionToPair)
+                    {
+                        if (returnPhase || !edge.caller || !edge.callee)
+                            continue;
+                        const bool observes = edge.kind != SemaEscapeSummaryEdgeKind::RetentionToPair && edge.callee->observesExternalBorrows();
+                        const bool retains  = edge.kind != SemaEscapeSummaryEdgeKind::ExternalToExternal &&
+                                             (edge.callee->returnBorrowsParamsMask() || edge.callee->storesParamsMask() || edge.callee->storesIntoParamPairs());
+                        if (!observes && !retains)
+                            continue;
+                        if (edge.kind == SemaEscapeSummaryEdgeKind::ExternalToExternal)
+                        {
+                            if (!edge.caller->observesExternalBorrows())
+                            {
+                                edge.caller->markExternalBorrowObservation();
+                                changed = true;
+                            }
+                        }
+                        else if (!SymbolFunction::hasStoresIntoPair(edge.caller->storesIntoParamPairs(), edge.callerIntoParamIndex, edge.callerParamIndex))
+                        {
+                            edge.caller->addStoresIntoParam(edge.callerIntoParamIndex, edge.callerParamIndex);
+                            changed = true;
+                        }
+                        continue;
+                    }
                     if ((edge.kind == SemaEscapeSummaryEdgeKind::ReturnToReturn) != returnPhase || !summaryGuardsMatch(edge, false))
                         continue;
                     const bool                     storageRoute = summaryGuardsMatch(edge, true);
@@ -4836,6 +5371,10 @@ namespace SemaEscape
                     const uint64_t                 callerBit    = 1ULL << edge.callerParamIndex;
                     switch (edge.kind)
                     {
+                        case SemaEscapeSummaryEdgeKind::ExternalToExternal:
+                        case SemaEscapeSummaryEdgeKind::ExternalToPair:
+                        case SemaEscapeSummaryEdgeKind::RetentionToPair:
+                            break; // Handled before the parameter-mask edges.
                         case SemaEscapeSummaryEdgeKind::ReturnToReturn:
                             if ((edge.callee->returnBorrowsParamsMask() & calleeBit) && !(edge.caller->returnBorrowsParamsMask() & callerBit))
                             {

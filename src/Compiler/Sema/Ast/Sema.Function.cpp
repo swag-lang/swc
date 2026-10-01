@@ -1918,6 +1918,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     }
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, declNode.nodeBodyRef));
+    SemaEscape::finalizeBorrowStores(sema, sym, declNode.nodeBodyRef);
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
     SemaPurity::computePurityFlag(sema, sym);
@@ -1941,6 +1942,7 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
+    SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
 
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
@@ -1965,6 +1967,7 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
+    SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());

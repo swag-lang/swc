@@ -119,12 +119,15 @@ struct SemaBorrowInvalidation
 // caller's own parameters as an argument.
 enum class SemaEscapeSummaryEdgeKind : uint8_t
 {
-    ReturnToReturn, // return-position call: callee returns #j -> caller returns #i
-    ReturnToStores, // result stored durably: callee returns #j -> caller stores #i
-    StoresToStores, // any call: callee stores #j -> caller stores #i
-    PairToPair,     // callee stores #j into #k -> caller stores mapped #i into #h
-    ReturnToPair,   // callee RETURNS storage of #j, and the caller stored #i through that
-                    // result: caller stores #i into its own parameter #h
+    ExternalToExternal, // callee can observe ambient borrows -> caller can too
+    RetentionToPair,    // a call can retain/return an alias of the receiver before a store
+    ExternalToPair,     // an observer in a live-slot interval prevents eliding that store
+    ReturnToReturn,     // return-position call: callee returns #j -> caller returns #i
+    ReturnToStores,     // result stored durably: callee returns #j -> caller stores #i
+    StoresToStores,     // any call: callee stores #j -> caller stores #i
+    PairToPair,         // callee stores #j into #k -> caller stores mapped #i into #h
+    ReturnToPair,       // callee RETURNS storage of #j, and the caller stored #i through that
+                        // result: caller stores #i into its own parameter #h
 };
 
 // A call that hands one of the caller's own parameters to the callee: whatever the

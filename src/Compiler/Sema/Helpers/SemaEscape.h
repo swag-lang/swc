@@ -13,6 +13,7 @@ namespace SemaEscape
     Result checkVariableInitializer(Sema& sema, const SymbolVariable& symVar, AstNodeRef initRef, TypeRef targetTypeRef);
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef);
     Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn);
+    void   finalizeBorrowStores(Sema& sema, SymbolFunction& function, AstNodeRef bodyRef);
     void   bindForeachAddressAlias(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef);
 
     // The storage variable a 'foreach' source expression ultimately reads (through an

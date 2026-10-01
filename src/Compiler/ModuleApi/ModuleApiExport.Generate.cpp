@@ -180,7 +180,7 @@ namespace
             const size_t after  = pos + marker.size();
             const char   before = pos == 0 ? '\0' : snippet[pos - 1];
             const char   next   = after >= snippet.size() ? '\0' : snippet[after];
-            if ((before == '[' || before == '.' || before == ' ' || before == ',') && (next == ']' || next == ','))
+            if ((before == '[' || before == '.' || before == ' ' || before == ',') && (next == ']' || next == ',' || next == '('))
                 return true;
         }
 
@@ -380,8 +380,9 @@ namespace
         const uint64_t reallocatesMask    = symbolFunction.reallocatesParamsMask();
         const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask();
         const uint64_t returnsStorageMask = symbolFunction.returnsStorageParamsMask();
-        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0) && !snippet.contains("BorrowSummary"))
-            ioAttributes.push_back(Utf8{std::format("BorrowSummary({}, {}, {}, {}, {}, {}, {})", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask)});
+        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0 || !symbolFunction.observesExternalBorrows()) &&
+            (!hasExportedBody || !snippetSpellsAttribute(snippet.view(), "BorrowSummary")))
+            ioAttributes.push_back(Utf8{std::format("BorrowSummary({}, {}, {}, {}, {}, {}, {}, observesExternal: {})", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, symbolFunction.observesExternalBorrows())});
     }
 
     void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, const bool hasExportedBody, Utf8& ioSnippet)
@@ -621,7 +622,9 @@ namespace
         if (!tryBuildFunctionDeclPrefix(ctx, root, eol, prefix))
             return {};
 
-        static constexpr std::string_view BODY_ATTRIBUTES[] = {"Inline", "NoInline", "Safety", "Sanity", "Optimize", "Warning"};
+        // A source annotation can understate what the body actually does. Once the body
+        // disappears, only its completed, merged summary may become the importer's contract.
+        static constexpr std::string_view BODY_ATTRIBUTES[] = {"Inline", "NoInline", "Safety", "Sanity", "Optimize", "Warning", "BorrowSummary"};
         removeModuleApiAttributes(ctx, prefix, BODY_ATTRIBUTES);
         trimTrailingModuleApiDeclarationSeparator(prefix);
         if (prefix.empty())

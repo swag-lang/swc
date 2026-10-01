@@ -13,15 +13,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t internStripeIndex(const ConstantValue& value)
+    ConstantManager::InternStripe& internStripe(ConstantManager::Shard& shard, uint32_t routingHash)
     {
-        const uint32_t hash = Math::hash(value.hash());
-        return (hash >> ConstantManager::SHARD_BITS) & (ConstantManager::INTERN_STRIPE_COUNT - 1);
-    }
-
-    ConstantManager::InternStripe& internStripe(ConstantManager::Shard& shard, const ConstantValue& value)
-    {
-        return shard.internStripes[internStripeIndex(value)];
+        const uint32_t index = (routingHash >> ConstantManager::SHARD_BITS) & (ConstantManager::INTERN_STRIPE_COUNT - 1);
+        return shard.internStripes[index];
     }
 }
 
@@ -170,22 +165,6 @@ namespace
         return {std::span{storage.data(), 0}, ref};
     }
 
-    bool borrowedPayloadHasRelocations(const ConstantManager& manager, const ConstantValue& value)
-    {
-        if (!(value.isStruct() || value.isArray() || value.isSlice()) || !value.isPayloadBorrowed())
-            return false;
-
-        const DataSegmentRef ref = value.dataSegmentRef();
-        if (ref.isInvalid())
-            return false;
-
-        const uint32_t payloadSize = payloadByteSize(value);
-        if (!payloadSize)
-            return false;
-
-        return manager.shardDataSegment(ref.shardIndex).hasRelocations(ref.offset, payloadSize);
-    }
-
     ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
     {
 #if SWC_HAS_REF_DEBUG_INFO
@@ -194,9 +173,9 @@ namespace
         return cstRef;
     }
 
-    ConstantRef addCstSpanPayload(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
+    ConstantRef addCstSpanPayload(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t routingHash, const ConstantValue& value)
     {
-        ConstantManager::InternStripe& stripe = internStripe(shard, value);
+        ConstantManager::InternStripe& stripe = internStripe(shard, routingHash);
         {
             const std::shared_lock lk(stripe.mutex);
             const auto             it = stripe.map.find(value);
@@ -213,6 +192,7 @@ namespace
         if (existing != stripe.map.end())
             return existing->second;
 
+        const uint32_t shardIndex = routingHash & (ConstantManager::SHARD_COUNT - 1);
         if (value.isStruct())
         {
             const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
@@ -222,7 +202,6 @@ namespace
         else if (value.isArray())
         {
             const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
-            stored                 = value;
             stored.setPayloadArray(view);
             stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
         }
@@ -230,7 +209,6 @@ namespace
         {
             SWC_ASSERT(value.isSlice());
             const auto [view, ref] = addStableSlicePayload(shard.dataSegment, value.getSlice(), value.getSliceCount());
-            stored                 = value;
             stored.setPayloadSlice(view, value.getSliceCount());
             stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
         }
@@ -244,9 +222,9 @@ namespace
         return it->second;
     }
 
-    ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t routingHash, const TaskContext& ctx, const ConstantValue& value)
     {
-        ConstantManager::InternStripe& stripe = internStripe(shard, value);
+        ConstantManager::InternStripe& stripe = internStripe(shard, routingHash);
         {
             const std::shared_lock lk(stripe.mutex);
             const auto             it = stripe.map.find(value);
@@ -274,8 +252,9 @@ namespace
                     return normalized->second;
             }
 
-            const std::pair<std::string_view, Ref> res      = shard.dataSegment.addString(value.getString());
-            ConstantValue                          strValue = ConstantValue::makeString(ctx, res.first);
+            const uint32_t                       shardIndex = routingHash & (ConstantManager::SHARD_COUNT - 1);
+            const std::pair<std::string_view, Ref> res        = shard.dataSegment.addString(value.getString());
+            ConstantValue                        strValue   = ConstantValue::makeString(ctx, res.first);
             if (preserveType)
                 strValue.setTypeRef(value.typeRef());
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
@@ -336,7 +315,8 @@ namespace
         {
             enriched.emplace(value);
             enrichPointerDataSegmentRef(manager, *enriched);
-            if (borrowedPayload && payloadByteSize(*enriched))
+            const uint32_t payloadSize = borrowedPayload ? payloadByteSize(*enriched) : 0;
+            if (payloadSize)
             {
                 DataSegmentRef ref;
                 SWC_ASSERT(isBorrowedPayloadBackedByDataSegment(manager, *enriched));
@@ -344,7 +324,8 @@ namespace
                     enriched->setDataSegmentRef(ref);
                 // Borrowed payload equality only captures bytes. Allocations that also carry relocations
                 // need their own constant entries because the relocation graph changes the runtime value.
-                canDeduplicateByValue = !borrowedPayloadHasRelocations(manager, *enriched);
+                const DataSegmentRef storedRef = enriched->dataSegmentRef();
+                canDeduplicateByValue          = storedRef.isInvalid() || !manager.shardDataSegment(storedRef.shardIndex).hasRelocations(storedRef.offset, payloadSize);
             }
         }
 
@@ -352,23 +333,13 @@ namespace
         // The input may itself be interned and have its location enriched concurrently. Keep
         // one snapshot for locking, updates, and publication; location is not part of identity.
         const DataSegmentRef           dataRef = stored.dataSegmentRef();
-        ConstantManager::InternStripe* stripe  = canDeduplicateByValue ? &internStripe(shard, stored) : nullptr;
+        ConstantManager::InternStripe* stripe  = canDeduplicateByValue ? &internStripe(shard, Math::hash(stored.hash())) : nullptr;
         if (canDeduplicateByValue && dataRef.isInvalid())
         {
             const std::shared_lock lk(stripe->mutex);
             const auto             it = stripe->map.find(stored);
             if (it != stripe->map.end())
                 return it->second;
-        }
-        else if (canDeduplicateByValue)
-        {
-            const std::unique_lock lk(stripe->mutex);
-            const auto             it = stripe->map.find(stored);
-            if (it != stripe->map.end())
-            {
-                updateStoredDataSegmentRef(shard, it->second, dataRef);
-                return it->second;
-            }
         }
 
         uint32_t    localIndex = INVALID_REF;
@@ -491,7 +462,8 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 
 ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const ConstantValue& value)
 {
-    const uint32_t shardIndex  = Math::hash(value.hash()) & (SHARD_COUNT - 1);
+    const uint32_t routingHash = Math::hash(value.hash());
+    const uint32_t shardIndex  = routingHash & (SHARD_COUNT - 1);
     const bool     isSpanValue = value.isStruct() || value.isArray() || value.isSlice();
     if (isSpanValue && value.isPayloadBorrowed())
     {
@@ -509,10 +481,10 @@ ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const Const
     Shard& shard = shards_[shardIndex];
 
     if (isSpanValue)
-        return addCstSpanPayload(*this, shard, shardIndex, value);
+        return addCstSpanPayload(*this, shard, routingHash, value);
 
     if (value.isString())
-        return addCstString(*this, shard, shardIndex, ctx, value);
+        return addCstString(*this, shard, routingHash, ctx, value);
 
     return addCstOther(*this, shard, shardIndex, value);
 }

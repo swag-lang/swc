@@ -1272,14 +1272,14 @@ SWC_TEST_BEGIN(JIT_FusedScalarProductRoundsOnceAndPreservesUpperLanes)
     constexpr MicroReg second      = MicroReg::floatReg(2);
     for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
-        for (const auto op : {MicroOp::FloatAddProduct, MicroOp::FloatSubtractProduct})
+        for (const auto op : {MicroOp::FloatAddProduct, MicroOp::FloatSubtractProduct, MicroOp::FloatProductAdd, MicroOp::FloatProductSubtractFrom})
         {
             alignas(16) std::array<uint32_t, 4> accumulatorData = {0x7F800001u, 0x7F800001u, 0x7F800001u, 0x7F800001u};
             alignas(16) auto                    firstData       = accumulatorData;
             alignas(16) auto                    secondData      = accumulatorData;
             alignas(16) std::array<uint32_t, 4> actual{};
             const bool                          wide     = bits == MicroOpBits::B64;
-            const bool                          subtract = op == MicroOp::FloatSubtractProduct;
+            const bool                          subtract = op == MicroOp::FloatSubtractProduct || op == MicroOp::FloatProductSubtractFrom;
             const size_t                        width    = wide ? 8 : 4;
             const uint64_t                      sign     = wide ? 0x8000000000000000ull : 0x80000000ull;
             const uint64_t                      initial  = (wide ? 0x3FF0000000000000ull : 0x3F800000ull) | (subtract ? 0 : sign);
@@ -1290,22 +1290,32 @@ SWC_TEST_BEGIN(JIT_FusedScalarProductRoundsOnceAndPreservesUpperLanes)
             {
                 for (auto* data : {&accumulatorData, &firstData, &secondData})
                 {
-                    (*data)[2] = 1;
+                    (*data)[2] = data == &accumulatorData ? 1 : data == &firstData ? 3
+                                                                                   : 5;
                     (*data)[3] = 0x7FF00000u;
                 }
+            }
+            else
+            {
+                firstData.fill(0x7F800003u);
+                secondData.fill(0x7F800005u);
             }
             std::memcpy(accumulatorData.data(), &initial, width);
             std::memcpy(firstData.data(), &left, width);
             std::memcpy(secondData.data(), &right, width);
-            auto expected = accumulatorData;
+            const bool  productDestination = op == MicroOp::FloatProductAdd || op == MicroOp::FloatProductSubtractFrom;
+            const auto& destinationData    = productDestination ? firstData : accumulatorData;
+            const auto& source1Data        = productDestination ? secondData : firstData;
+            const auto& source2Data        = productDestination ? accumulatorData : secondData;
+            auto        expected           = destinationData;
             std::memcpy(expected.data(), &residue, width);
 
             MicroBuilder builder(ctx);
-            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(accumulatorData.data()));
+            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(destinationData.data()));
             builder.emitLoadVecRegMem(accumulator, address, 0, MicroOpBits::B128);
-            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(firstData.data()));
+            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(source1Data.data()));
             builder.emitLoadVecRegMem(first, address, 0, MicroOpBits::B128);
-            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(secondData.data()));
+            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(source2Data.data()));
             builder.emitLoadVecRegMem(second, address, 0, MicroOpBits::B128);
             builder.emitOpTernaryRegRegReg(accumulator, first, second, op, bits);
             builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(actual.data()));

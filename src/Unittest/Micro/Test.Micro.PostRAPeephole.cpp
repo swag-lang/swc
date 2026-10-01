@@ -4607,6 +4607,76 @@ SWC_TEST_BEGIN(PostRAPeephole_FusedProductRespectsPolicyAndLaneLiveness)
 }
 SWC_TEST_END()
 
+// Reusing a factor changes which register supplies the retained upper lanes.
+// Cover both product positions, input aliases, and independent result observers.
+SWC_TEST_BEGIN(PostRAPeephole_FusedProductReusesMultiplyInput)
+{
+    constexpr MicroReg left      = MicroReg::floatReg(0);
+    constexpr MicroReg right     = MicroReg::floatReg(1);
+    constexpr MicroReg addend    = MicroReg::floatReg(2);
+    constexpr MicroReg temporary = MicroReg::floatReg(3);
+    constexpr MicroReg base      = MicroReg::intReg(8);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const auto operation : {MicroOp::FloatAdd, MicroOp::FloatSubtract})
+        {
+            for (const auto output : {addend, left, right})
+            {
+                for (const bool productIsOutput : {false, true})
+                {
+                    for (const bool productFirst : {false, true})
+                    {
+                        for (uint32_t variant = 0; variant < 5; ++variant)
+                        {
+                            const auto               product         = productIsOutput ? output : temporary;
+                            const bool               upperObserved   = variant == 2 || variant == 4;
+                            const bool               productObserved = variant == 3 || variant == 4;
+                            MicroBuilder             builder(ctx);
+                            Runtime::BuildCfgBackend config{};
+                            config.fpMathFma = variant != 1;
+                            builder.setBackendBuildCfg(config);
+                            builder.setRetUsesAbiRegs(false, false);
+                            if (product == left)
+                                builder.emitOpBinaryRegReg(product, right, MicroOp::FloatMultiply, bits);
+                            else
+                                builder.emitOpBinaryRegRegReg(product, left, right, MicroOp::FloatMultiply, bits);
+                            const auto multiply = builder.instructions().lastInstructionRef();
+                            builder.emitOpBinaryRegRegReg(output, productFirst ? product : addend, productFirst ? addend : product, operation, bits);
+                            const auto accumulate = builder.instructions().lastInstructionRef();
+                            builder.emitLoadMemReg(base, 0, output, upperObserved ? MicroOpBits::B128 : bits);
+                            if (productObserved)
+                                builder.emitLoadMemReg(base, 16, product, bits);
+                            builder.emitRet();
+                            X64Encoder encoder(ctx);
+                            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+                            const auto upperSource = productFirst ? left : addend;
+                            const bool expected    = variant != 1 && product != addend &&
+                                                  (operation != MicroOp::FloatSubtract || !productFirst) &&
+                                                  (!productObserved || product == output) && (!upperObserved || upperSource == output);
+                            const auto* result = builder.instructions().ptr(accumulate);
+                            if (!result || (result->op == MicroInstrOpcode::OpTernaryRegRegReg) != expected)
+                                return Result::Error;
+                            if (!expected)
+                                continue;
+                            const auto* ops                    = result->ops(builder.operands());
+                            const bool  accumulatorDestination = output == addend;
+                            const auto  fusedOp                = accumulatorDestination ? (operation == MicroOp::FloatAdd ? MicroOp::FloatAddProduct : MicroOp::FloatSubtractProduct) : (operation == MicroOp::FloatAdd ? MicroOp::FloatProductAdd : MicroOp::FloatProductSubtractFrom);
+                            const auto  first                  = accumulatorDestination || output == right ? left : right;
+                            const auto  second                 = accumulatorDestination ? right : addend;
+                            if (ops[0].reg != output || ops[1].reg != first || ops[2].reg != second ||
+                                ops[3].opBits != bits || ops[4].microOp != fusedOp || builder.instructions().ptr(multiply))
+                                return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FusedProductPreservesAccumulatorAndExplicitMuladd)
 {
     constexpr MicroReg accumulator = MicroReg::floatReg(0);

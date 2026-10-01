@@ -18,26 +18,28 @@ block, and the hot path keeps the register.
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 16:56 — Contracted scalar products and narrowed the remaining gap to shared packed producers.
+- Updated: 2026-10-01 17:32 — Reused factor destinations for scalar contraction without changing live upper lanes.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20261001-103647`, built from `49f7e665d`, reports
   native at 23.5431 ms, JIT at 25.9971 ms and Zig 0.15.2 at 16.45 ms, with
   `CHECK=169096566666`. Native is 1.431x the current winner. The inspected Zig
   `ReleaseFast` timestep has 348 non-NOP machine instructions, 101 memory operands,
   four packed and two scalar square roots. This campaign predates the afternoon changes.
-- Current shape: main's timestep has 397 non-label Microinstructions (401 with labels),
+- Current shape: main's timestep has 395 non-label Microinstructions (399 with labels),
   131 actual memory accesses and 24 frame accesses. The position loop within it has
   15 non-label instructions, six memory accesses and no frame access.
-  Contracting 29 additions and 19 subtractions of products removes 48 instructions from
+  Contracting 31 additions and 19 subtractions of products removes 50 instructions from
   the previous 445, with no extra memory access or larger frame. Nine benchmark checksums
-  stay exact; seven other tasks keep their instruction/access counts, while raytrace also
-  loses instructions. Contraction requires `fpMathFma`, a supported encoder and proof
-  that every lane of the product is dead. Explicit `Swag.muladd` keeps its separate rounding.
+  stay exact; six other tasks keep their instruction/access counts, while raytrace and
+  csvagg also lose instructions. Contraction requires `fpMathFma`, a supported encoder and proof
+  that a distinct product is dead in every lane. Reusing a factor destination also preserves
+  the original upper-lane source or proves those output lanes dead. Explicit `Swag.muladd`
+  keeps its separate rounding.
 - The timestep's ten roots remain scalar. Its 33 register copies use the full width,
   avoiding dependencies on old unused destination lanes. Earlier removal of integer/float
   transfers replaced cached integer bits with fourteen more memory accesses (117 to 131);
   that tradeoff still needs an accepted runtime comparison. The standalone `advance`
-  uses 426 non-label instructions, 134 memory and 44 frame accesses in a 368-byte frame.
+  uses 422 non-label instructions, 134 memory and 44 frame accesses in a 368-byte frame.
 - Regression evidence: `20260930-152655` to `20260930-195406` changes native raw time
   from 24.8768 to 30.3729 ms (+22.1%); different control factors amplify that to +38.5%
   after normalization. JIT changes from 25.6579 to 24.8732 ms. At `f0a34dcf4`, native

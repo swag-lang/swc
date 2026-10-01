@@ -4542,15 +4542,24 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
 
     ///////////////////////////////////////////
 
-    if (op == MicroOp::FloatAddProduct || op == MicroOp::FloatSubtractProduct)
+    uint8_t fusedOpcode = 0;
+    switch (op)
     {
-        // VFMADD231SS/SD or VFNMADD231SS/SD: accumulate or subtract the
-        // product, retaining the destination's upper lanes.
+        case MicroOp::FloatAddProduct: fusedOpcode = 0xB9; break;
+        case MicroOp::FloatSubtractProduct: fusedOpcode = 0xBD; break;
+        case MicroOp::FloatProductAdd: fusedOpcode = 0xA9; break;
+        case MicroOp::FloatProductSubtractFrom: fusedOpcode = 0xAD; break;
+        default: break;
+    }
+    if (fusedOpcode)
+    {
+        // The 231 forms keep the addend in dst; the 213 forms keep a factor there.
+        // Both scalar forms retain the destination's upper lanes.
         // The x86-64-v3 target includes FMA; W selects the scalar element width.
         SWC_ASSERT(reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
         emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(reg0), microRegToX64Reg(reg1), microRegToX64Reg(reg2), opBits == MicroOpBits::B64);
-        emitCpuOp(store_, op == MicroOp::FloatAddProduct ? 0xB9 : 0xBD);
+        emitCpuOp(store_, fusedOpcode);
         emitModRm(store_, reg0, reg2);
         return;
     }

@@ -223,7 +223,8 @@ namespace PostRaPeephole
                 return;
             }
 
-            if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg && (ops[4].microOp == MicroOp::FloatAddProduct || ops[4].microOp == MicroOp::FloatSubtractProduct))
+            if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg && (ops[4].microOp == MicroOp::FloatAddProduct || ops[4].microOp == MicroOp::FloatSubtractProduct ||
+                                                                    ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom))
             {
                 const uint8_t mask = FloatLaneDemand::mask(ops[3].opBits);
                 demand.read(ops[0].reg, mask);
@@ -455,20 +456,46 @@ namespace PostRaPeephole
             ScalarFloatBinary accumulate;
             if (!scalarFloatBinary(multiply, *ctx.storage->ptr(multiplyRef), *ctx.operands) ||
                 !scalarFloatBinary(accumulate, *ctx.storage->ptr(accumulateRef), *ctx.operands) ||
-                multiply.op != MicroOp::FloatMultiply || (accumulate.op != MicroOp::FloatAdd && accumulate.op != MicroOp::FloatSubtract) || multiply.bits != accumulate.bits ||
-                accumulate.dst != accumulate.left || accumulate.right != multiply.dst || accumulate.dst == multiply.dst ||
-                demand.lanes[multiply.dst.index()])
+                multiply.op != MicroOp::FloatMultiply || (accumulate.op != MicroOp::FloatAdd && accumulate.op != MicroOp::FloatSubtract) || multiply.bits != accumulate.bits)
                 return false;
 
-            // The product must be dead in every lane. A later scalar overwrite can
-            // retain its upper lanes, so whole-register def/use liveness is not enough.
-            // Keep the accumulator on the left: its upper lanes also survive the FMA.
+            MicroReg addend;
+            if (accumulate.right == multiply.dst)
+                addend = accumulate.left;
+            else if (accumulate.op == MicroOp::FloatAdd && accumulate.left == multiply.dst)
+                addend = accumulate.right;
+            else
+                return false;
+            if (addend == multiply.dst)
+                return false;
+
             MicroInstrOperand fused[5] = {};
             fused[0].reg               = accumulate.dst;
-            fused[1].reg               = multiply.left;
-            fused[2].reg               = multiply.right;
             fused[3].opBits            = accumulate.bits;
-            fused[4].microOp           = accumulate.op == MicroOp::FloatAdd ? MicroOp::FloatAddProduct : MicroOp::FloatSubtractProduct;
+            if (accumulate.dst == addend)
+            {
+                fused[1].reg     = multiply.left;
+                fused[2].reg     = multiply.right;
+                fused[4].microOp = accumulate.op == MicroOp::FloatAdd ? MicroOp::FloatAddProduct : MicroOp::FloatSubtractProduct;
+            }
+            else if (accumulate.dst == multiply.left || accumulate.dst == multiply.right)
+            {
+                fused[1].reg     = accumulate.dst == multiply.left ? multiply.right : multiply.left;
+                fused[2].reg     = addend;
+                fused[4].microOp = accumulate.op == MicroOp::FloatAdd ? MicroOp::FloatProductAdd : MicroOp::FloatProductSubtractFrom;
+            }
+            else
+                return false;
+
+            // A distinct product must die in every lane, including lanes retained by
+            // later scalar writes. Reusing its register for the final result is safe.
+            if (multiply.dst != accumulate.dst && demand.lanes[multiply.dst.index()])
+                return false;
+            // Scalar binary forms copy upper lanes from their first input. Fused
+            // forms retain dst instead, so any different upper source must die.
+            const MicroReg upperSource = accumulate.left == multiply.dst ? multiply.left : accumulate.left;
+            if (upperSource != accumulate.dst && (demand.lanes[accumulate.dst.index()] & ~FloatLaneDemand::mask(accumulate.bits)))
+                return false;
             if (!encoderAcceptsAsIs(ctx, MicroInstrOpcode::OpTernaryRegRegReg, fused))
                 return false;
             auto before = demand;

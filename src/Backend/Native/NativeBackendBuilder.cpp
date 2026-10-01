@@ -8,7 +8,6 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
-#include "Backend/Native/NativeObjJob.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
@@ -1730,14 +1729,14 @@ Result NativeBackendBuilder::buildObjectBytes()
 {
     objBuildFailed.store(false, std::memory_order_release);
 
+    // A module has one object per partition, tens of thousands of small ones: workers claim
+    // indices instead of the driver enqueuing a job, and taking the scheduler lock, per object.
     JobManager& jobMgr = ctx_.global().jobMgr();
-    for (uint32_t i = 0; i < objectDescriptions.size(); ++i)
-    {
-        auto* job = compiler().makeJob<NativeObjJob>(ctx_, *this, i);
-        jobMgr.enqueue(*job, JobPriority::Normal, compiler_->jobClientId());
-    }
+    jobMgr.parallelForIndexed(ctx_, static_cast<uint32_t>(objectDescriptions.size()), JobKind::NativeObj, compiler_->jobClientId(), [&](TaskContext&, uint32_t i) {
+        if (buildObject(i) != Result::Continue)
+            objBuildFailed.store(true, std::memory_order_release);
+    });
 
-    jobMgr.waitAll(compiler_->jobClientId());
     return objBuildFailed.load(std::memory_order_acquire) ? Result::Error : Result::Continue;
 }
 

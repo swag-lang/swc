@@ -358,12 +358,16 @@ namespace Math
         }
     }
 
-    FoldStatus foldIntrinsicTernaryFloat(double& outResult, double first, double second, double third, FoldIntrinsicTernaryFloatOp op)
+    FoldStatus foldIntrinsicTernaryFloat(ApFloat& outResult, const ApFloat& first, const ApFloat& second, const ApFloat& third, FoldIntrinsicTernaryFloatOp op)
     {
         switch (op)
         {
             case FoldIntrinsicTernaryFloatOp::MulAdd:
-                outResult = std::fma(first, second, third);
+                // Scalar and packed lowering round the product before adding. Preserve
+                // that boundary and the operand width, including the f32 intermediate.
+                outResult = first;
+                outResult.mul(second);
+                outResult.add(third);
                 return FoldStatus::Ok;
 
             default:

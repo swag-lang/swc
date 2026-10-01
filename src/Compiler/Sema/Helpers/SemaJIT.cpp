@@ -265,11 +265,9 @@ namespace
         return sema.compiler().jitExecMgr().hasItem(sema.ctx(), nodeRef, sema.node(nodeRef).codeRef());
     }
 
-    std::shared_ptr<JITPendingNodeData> pendingJitCompletionPayload(const JITExecManager::Completion& completion)
+    const JITPendingNodeData* pendingJitCompletionPayload(const JITExecManager::Completion& completion)
     {
-        if (!completion.completionPayload)
-            return {};
-        return std::static_pointer_cast<JITPendingNodeData>(completion.completionPayload);
+        return static_cast<const JITPendingNodeData*>(completion.completionPayload.get());
     }
 
     ConstantValue makeRunExprConstant(Sema& sema, TypeRef exprTypeRef, TypeRef storageTypeRef, const std::byte* storagePtr)
@@ -934,7 +932,7 @@ namespace
         if (!completion)
             return std::nullopt;
 
-        const auto pendingEntry = pendingJitCompletionPayload(*completion);
+        const auto* pendingEntry = pendingJitCompletionPayload(*completion);
         if (pendingEntry && completion->result == Result::Continue)
             applyPendingJitResult(sema, nodeRef, *pendingEntry);
         return completion->result;

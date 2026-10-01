@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 12:54 — Added the accepted noon campaign without attributing individual timing effects.
+- Updated: 2026-10-01 13:50 — Kept narrow scalar spills and bounded the remaining scalar-capture experiment.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20260930-195406` reports Zig 0.15.2 at 15.2582 ms and
   Swag native Release at 30.3729 ms, with `CHECK=169096566666`. The inspected Zig
@@ -43,7 +43,9 @@ block, and the hot path keeps the register.
   control p90/p10 is 1.304 and its half-window median drift is 1.243; raytrace's
   control p90/p10 is 1.298. The gates remain 1.20 and 15% respectively, with every
   sample retained. These cohorts cannot quantify the regression's individual causes
-  or establish a speedup from the retained changes. Repeat on a stable machine.
+  or establish a speedup from the retained changes. The 13:16 cohort also fails:
+  nbody control spread is 1.292 and raytrace 1.549, with every sample retained.
+  Repeat on a stable machine; none of these failed cohorts supports attribution.
 - Current shape: main's timestep is 449/131/24 Microinstructions/memory operands/explicit
   frame operands, including the 16/6/0 position loop. The prior inlined shape was
   464/117/24. The slice-header vector round trip is gone, as are the timestep's transfers
@@ -52,6 +54,21 @@ block, and the hot path keeps the register.
   All 32 register-to-register scalar copies in the timestep are full-width copies with
   no dependency on the old destination's unused lanes. Its ten roots are encoded as
   actual scalar roots, rather than computing an unused second lane.
+- Scalar packing now preserves narrow input spills: low-half interleaves consume only
+  eight bytes per input, and a dword shuffle selecting only the low two dwords does too.
+  Full-width readers and definitions still require 16-byte slots, including aliased
+  destinations. In the existing standalone `advance`, the timestep broadcast's spill and
+  reload become 64-bit, and the frame falls from 384 to 368 bytes without changing
+  470 non-label instructions, 134 memory accesses or 44 frame accesses. Main's timestep,
+  ChaCha, SHA-256 and raytrace keep their instruction/memory counts. C++ pressure cases
+  exercise both allocators and three conventions, plus full-width and aliased controls.
+- A further scalar-capture prototype slices failed f64 store trees after scalar divisions
+  and packs two distinct entry values. It replaces only the final x/y velocity pair:
+  main's timestep stays at 445 non-label instructions, with 131 to 130 memory accesses.
+  Two needless 128-bit spills initially added 16 frame bytes; the input-width fix above
+  removes that loss. The prototype is set aside until its setup cost is bounded against
+  scalar work that actually dies. It still has ten scalar roots, and does not close the
+  winner's shared packed-producer gap. Its exact-checksum dump remains experiment evidence.
 - Remaining gap: the pair roots and divisions still operate on one interaction at a
   time. A useful pack must share the coordinate producers and scalar consumers without
   retaining more live state than the register file can hold. The position loop already
@@ -86,37 +103,45 @@ block, and the hot path keeps the register.
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
 
+
 ### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 11:36 — Removed repeated zero extensions while preserving the remaining outer-index residency lead.
+- Updated: 2026-10-01 13:13 — Hoisted the repeatedly used address and compared the remaining spill with the current Zig winner.
 - Area: compiler/backend, register allocation and value ranges.
-- Comparison: accepted campaign `20260930-195406` names C++/Clang 20.1.8 as the fastest
-  other runtime at 23.2491 ms. Its `/O2 /EHsc /std:c++20` object has a six-instruction,
-  two-memory-operand byte match loop at `main+0x530..0x541`. It keeps the outer index
-  in `r8` while a different register holds the loaded byte.
-- Current evidence: the fresh Release dump keeps that same six-instruction, two-memory
-  match loop and `CHECK=622942003053`. The candidate loop still reloads the outer index
-  from `[rsp + 0x200]` at its latch: the byte load has reused `rax`. Its backedge span
-  has 35 Microinstructions, 30 non-label instructions, six memory operands and one
-  explicit frame operand. Adjacent zero-extension folding removes three repeated
-  byte extensions from each four-byte hash and one from checksum accumulation:
-  whole-function size falls from 524 to 517 Microinstructions (486 to 479 non-label
-  instructions), with the same 131 memory and 34 explicit frame operands
-  (including twelve indexed loads abbreviated in the textual dump). The hash
-  helper falls from 15 to 12 instructions. Those totals are not the candidate-loop
-  cost; the match loop and candidate latch retain their original counts.
+- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
+  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its byte-match
+  loop at `0x140001500..0x140001512` has six instructions and two memory reads. The
+  candidate span at `0x1400014F0..0x140001553` has 29 non-NOP instructions and three
+  actual memory operands; two LEAs are address calculations, not memory accesses.
+  Zig retains the outer index in `rdx` and forms the current-position address before
+  entering the candidate loop.
+- Current evidence: the Swag byte-match loop retains six non-label instructions,
+  two memory reads and `CHECK=622942003053`. LICM now recognizes an invariant address
+  consumed by a single textual reader inside a nested loop: when the address runs
+  on every enclosing iteration and no call crosses its lifetime, it can move to the
+  enclosing preheader. The candidate span falls from 30 to 29 non-label instructions
+  (35 to 34 including labels), with the same four actual memory operands and one
+  frame read; its two LEAs become one. This closes the repeated-address gap.
+- Remaining spill: the byte load reuses `rax`, which held the outer index. The latch
+  reloads that index from `[rsp + 0x200]`. The first pre-allocation dump keeps the index
+  as `%1227` without a frame round trip; the first post-allocation dump introduces it.
+  Whole-function totals remain 517 Microinstructions, 479 non-label instructions,
+  106 actual memory operands and 32 actual frame operands. The older 131/34 counts
+  included 25 address calculations, two frame-relative; the counters now distinguish
+  those from memory accesses. These totals do not describe the candidate-loop cost.
 - Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  The `i` and `p` remainders retain sign correction. The current Clang winner also
-  retains sign-corrected remainders on those paths, so the former LLVM comparison
-  does not justify changing Swag's overflow contract. Any future simplification
-  must prove the counters' bounds under the existing semantics.
-- Next: follow the outer index through the dump before register allocation and the
-  spill election. Determine whether its frame round trip is already present before
-  allocation, then keep it across the match loop without adding per-byte traffic or
-  moving another frequently used value to memory.
+  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
+  floor-modulo result for a positive power-of-two divisor permits masking even for
+  negative inputs; Swag's signed remainder has a different contract. The previously
+  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
+  remaining remainders requires proving the counters' bounds under its own semantics.
+- Next: follow the outer index's interval and the spill election. Keep it across
+  the match loop without adding per-byte traffic or moving another frequently used
+  value to memory. The address-hoisting change does not resolve this allocation decision.
 - Complete when: the candidate latch no longer reloads the outer index and the match
   loop retains its six instructions and two memory operands without a loss elsewhere.
+
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
 

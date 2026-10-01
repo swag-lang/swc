@@ -6,6 +6,38 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
+
+- Recorded: 2026-10-01 14:25
+- Evidence: `CompilerInstance::runWorkspace` keeps one deferred link in flight, but joins it before
+  compiling any module that depends on the linked one. The `std` chain is nearly linear
+  (`core` → `ogl`/`truetype` → `pixel` → `gui`), so most links become a wait: in 16-worker DevMode
+  `gui` rebuilds, `--dev-sched-stats` charges 2.8–4.8% of worker time to the
+  `workspace link wait` phase, nearly all of it starvation while the single `NativeLink` job
+  (0.4–1.2 s per module) runs.
+- Next: list what a dependent actually needs from its dependency before code generation (the
+  module API and setup files, the DLL only for compile-time calls into it) and join the link at
+  the first use that needs the binary instead of before the module starts.
+- Complete when: a dependent's semantic analysis overlaps its dependency's link in a `gui`
+  rebuild, with the workspace suite and `std` tests green under both compiler executables.
+- Related: compiler.core.069, compiler.core.007
+
+### compiler.core.072 — Link preparation lowers the native image on one thread
+
+- Recorded: 2026-10-01 14:25
+- Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
+  jobs, but `buildNativeImage` lowers every object description into the image on the driver
+  thread, and `resolveSymbols`, `appendSymbolTable`, and `finishImage` follow serially. In
+  16-worker DevMode `gui` rebuilds, the `link prepare` phase is 2.5–4.6% of worker time spent
+  with no job running. Each description's text bytes, code relocations, and unwind sections
+  (`DebugInfo::buildObject`) are independent; only their placement in the image is ordered.
+- Next: build each description's sections in parallel jobs, then place them in description
+  order on the driver, and check that the produced images are byte-identical apart from the
+  timestamp.
+- Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
+  linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
+- Related: compiler.core.069
+
 ### compiler.core.071 — WebP's macroblock reconstruction takes seconds to generate and holds back `pixel`
 
 - Recorded: 2026-10-01 13:08
@@ -53,7 +85,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   and `rebuildFunctionInfos`) and what the semantic tail waits on (its longest job is 1.5–4 s);
   each becomes its own entry once named.
 - Complete when: each share above has an owning entry.
-- Related: compiler.core.071, compiler.core.065, compiler.core.068, compiler.core.007
+- Related: compiler.core.071, compiler.core.072, compiler.core.073, compiler.core.065, compiler.core.068, compiler.core.007
 
 ### compiler.core.068 — The job scheduler serializes every transition on one mutex
 

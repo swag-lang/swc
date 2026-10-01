@@ -775,25 +775,25 @@ namespace
         if (inlineRootRef.isInvalid())
             return false;
 
-        const AstNode&          rootNode = sema.node(inlineRootRef);
-        SmallVector<AstNodeRef> statements;
+        const AstNode& rootNode = sema.node(inlineRootRef);
+        SpanRef        statementsRef;
         if (rootNode.is(AstNodeId::EmbeddedBlock))
         {
-            sema.ast().appendNodes(statements, rootNode.cast<AstEmbeddedBlock>().spanChildrenRef);
+            statementsRef = rootNode.cast<AstEmbeddedBlock>().spanChildrenRef;
         }
         else if (rootNode.is(AstNodeId::FunctionBody))
         {
-            sema.ast().appendNodes(statements, rootNode.cast<AstFunctionBody>().spanChildrenRef);
+            statementsRef = rootNode.cast<AstFunctionBody>().spanChildrenRef;
         }
         else
         {
             return false;
         }
 
-        if (statements.size() != 1)
+        if (sema.ast().spanSize(statementsRef) != 1)
             return false;
 
-        const AstNode& stmtNode = sema.node(statements.front());
+        const AstNode& stmtNode = sema.node(sema.ast().nthNode(statementsRef, 0));
         if (!stmtNode.is(AstNodeId::ReturnStmt))
             return false;
 

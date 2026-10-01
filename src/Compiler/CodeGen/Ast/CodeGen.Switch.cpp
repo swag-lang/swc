@@ -351,13 +351,12 @@ namespace
 
     bool caseBodyEndsWithFallthrough(CodeGen& codeGen, const AstSwitchCaseStmt& node)
     {
-        SmallVector<AstNodeRef>  statements;
         const AstSwitchCaseBody& caseBody = codeGen.node(node.nodeBodyRef).cast<AstSwitchCaseBody>();
-        codeGen.ast().appendNodes(statements, caseBody.spanChildrenRef);
-        if (statements.empty())
+        const size_t            count    = codeGen.ast().spanSize(caseBody.spanChildrenRef);
+        if (!count)
             return false;
 
-        return codeGen.node(statements.back()).is(AstNodeId::FallThroughStmt);
+        return codeGen.node(codeGen.ast().nthNode(caseBody.spanChildrenRef, count - 1)).is(AstNodeId::FallThroughStmt);
     }
 
     SmallVector<AstNodeRef> collectSwitchCaseRefs(CodeGen& codeGen, const AstSwitchStmt& switchNode)

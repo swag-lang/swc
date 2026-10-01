@@ -6,6 +6,32 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.065 — Remaining barrier rounds still drain the whole module
+
+- Recorded: 2026-10-01 07:35
+- Updated: 2026-10-01 09:53 — add paused lazy bodies as a barrier source
+- Evidence: `SemaWaitIdentifier` and `SemaWaitImplRegistrations` now park on the name and are
+  woken by symbol-map insertion and by the last impl registration; `SemaWaitTypeCompleted` parks
+  on its blocking symbol and is woken by `setSemaCompleted`. Those producers have no flag to
+  recheck at registration, so a publication racing the park still waits for the `wakeAll` in
+  `Sema::waitDone`; so do `SemaWaitCompilerDefined`, a type completed by its concrete layout after
+  `setSemaCompleted`, and a name made visible by a new `using` rather than an insertion. That
+  barrier first drains the client: the tail of each wave runs on a few workers, then the driver
+  does serial work before the next one. Any symbol transition still sets `changed_`, so most
+  rounds end in a full `wakeAll`. The same barrier separates the declaration pass from the full
+  pass and closes native code generation (`scheduleCodeGen`). A lazy function body whose run
+  pauses (`finishLazyBodyRun` with `Pause`) leaves its other callers parked on `SemaCompleted`;
+  only `hasPausedLazyBodyWait` in the barrier loop wakes them so one can adopt the paused run, so
+  each paused lazy body costs a full drain.
+- Next: count rounds and re-parked sleepers per wait kind (compiler.core.069) on a std module, then
+  give the dominant remaining kind a recheckable publication (a per-name generation counter for
+  identifier waits closes the park race; a paused lazy run can wake one waiter on its function's
+  key so it adopts the run) so it no longer needs the barrier.
+- Complete when: a std module build needs no barrier round to resolve forward identifier and
+  type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
+  green under both compiler executables.
+- Related: compiler.core.069, compiler.core.007
+
 ### compiler.core.070 — Constant interning still takes a stripe lock per lookup
 
 - Recorded: 2026-10-01 09:37
@@ -39,28 +65,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   scheduler lock (VTune or ETW contention view), with the scheduler unit tests and both compiler
   executables green.
 - Related: compiler.core.069
-
-### compiler.core.065 — Remaining barrier rounds still drain the whole module
-
-- Recorded: 2026-10-01 07:35
-- Updated: 2026-10-01 08:00 — identifier, type-completion, and impl-registration waits are keyed; narrow to what still needs the barrier
-- Evidence: `SemaWaitIdentifier` and `SemaWaitImplRegistrations` now park on the name and are
-  woken by symbol-map insertion and by the last impl registration; `SemaWaitTypeCompleted` parks
-  on its blocking symbol and is woken by `setSemaCompleted`. Those producers have no flag to
-  recheck at registration, so a publication racing the park still waits for the `wakeAll` in
-  `Sema::waitDone`; so do `SemaWaitCompilerDefined`, a type completed by its concrete layout after
-  `setSemaCompleted`, and a name made visible by a new `using` rather than an insertion. That
-  barrier first drains the client: the tail of each wave runs on a few workers, then the driver
-  does serial work before the next one. Any symbol transition still sets `changed_`, so most
-  rounds end in a full `wakeAll`. The same barrier separates the declaration pass from the full
-  pass and closes native code generation (`scheduleCodeGen`).
-- Next: count rounds and re-parked sleepers per wait kind (compiler.core.069) on a std module, then
-  give the dominant remaining kind a recheckable publication (a per-name generation counter for
-  identifier waits closes the park race) so it no longer needs the barrier.
-- Complete when: a std module build needs no barrier round to resolve forward identifier and
-  type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
-  green under both compiler executables.
-- Related: compiler.core.069, compiler.core.007
 
 ### compiler.core.069 — Measure how much of a module build runs below full worker occupancy
 

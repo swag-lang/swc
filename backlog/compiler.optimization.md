@@ -15,6 +15,33 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.105 — Keep lz77's outer index resident through the match loop
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-01 10:10 — Compared the current loop with the latest Clang winner and narrowed the remaining register gap.
+- Area: compiler/backend, register allocation and value ranges.
+- Comparison: accepted campaign `20260930-195406` names C++/Clang 20.1.8 as the fastest
+  other runtime at 23.2491 ms. Its `/O2 /EHsc /std:c++20` object has a six-instruction,
+  two-memory-operand byte match loop at `main+0x530..0x541`. It keeps the outer index
+  in `r8` while a different register holds the loaded byte.
+- Current evidence: the fresh Release dump keeps that same six-instruction, two-memory
+  match loop and `CHECK=622942003053`. The candidate loop still reloads the outer index
+  from `[rsp + 0x200]` at its latch: the byte load has reused `rax`. Its backedge span
+  has 35 Microinstructions, 30 non-label instructions, six memory operands and one
+  explicit frame operand. Whole-function size is 524 Microinstructions; that total
+  is not the candidate-loop cost.
+- Range boundary: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  The `i` and `p` remainders retain sign correction. The current Clang winner also
+  retains sign-corrected remainders on those paths, so the former LLVM comparison
+  does not justify changing Swag's overflow contract. Any future simplification
+  must prove the counters' bounds under the existing semantics.
+- Next: follow the outer index through the dump before register allocation and the
+  spill election. Determine whether its frame round trip is already present before
+  allocation, then keep it across the match loop without adding per-byte traffic or
+  moving another frequently used value to memory.
+- Complete when: the candidate latch no longer reloads the outer index and the match
+  loop retains its six instructions and two memory operands without a loss elsewhere.
+
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
@@ -155,28 +182,6 @@ block, and the hot path keeps the register.
 - Complete when: no function of `bin/std`, tests included, needs more than sixteen sweeps in
   either configuration, or the chain that does is identified and bounded.
 - Related: compiler.optimization.029, compiler.core.004.
-
-### compiler.optimization.105 — The lz77 chain loop still divides two counters as signed
-
-- Recorded: 2026-09-30 08:42
-- Area: compiler/backend, value ranges and register allocation
-- Evidence: the accepted campaign `20260929-203640` names Odin as lz77's fastest other runtime
-  (20.594 ms against Swag's 23.693, 1.150x). In the Release chain loop, `cand % WINDOW` is now
-  one `and`: the loop condition `cand >= 0` proves the dividend, and the late strength-reduction
-  instance no longer expands it first. The match loop compares `[root + l]` against a byte
-  through two rooted addresses, six instructions a trip where it was seven. `Lz77.__main_0`
-  goes from 531 to 526 Micro instructions; `CHECK=622942003053` is unchanged. No timing was taken.
-- What is left on that path: `prev[i % WINDOW]` and `prev[p % WINDOW]` keep the five-instruction
-  sign-corrected remainder, because `i` and `p` are loop-carried sums with no test that bounds
-  them from below. LLVM proves them from the `nsw` additions that start at zero; Swag defines no
-  such fact for a release build. The chain loop also reloads `i` from `[rsp + 0x200]` once per
-  candidate: the byte read of the match loop takes `rax`, which held it.
-- Next: decide whether a counter that starts at a non-negative constant and only grows by
-  non-negative steps may be treated as non-negative when the overflow guard is off, and state
-  the rule in the language reference before the backend relies on it. Separately, find why the
-  allocator evicts `i` instead of the match loop's one-instruction temporary.
-- Complete when: both remainders are masks under a documented rule, or the rule is rejected and
-  this lead is cut down to the reload.
 
 ### compiler.optimization.103 — The CABAC significance loop reloads two pointers at its latch
 

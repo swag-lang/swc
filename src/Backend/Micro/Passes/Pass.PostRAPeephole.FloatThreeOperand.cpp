@@ -217,8 +217,18 @@ namespace PostRaPeephole
 
             if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[0].reg.isFloat() &&
                 (ops[3].opBits == MicroOpBits::B32 || ops[3].opBits == MicroOpBits::B64) &&
-                hasThreeOperandForm(ops[4].microOp) && ops[4].microOp != MicroOp::FloatAnd && ops[4].microOp != MicroOp::FloatXor)
+                hasThreeOperandForm(ops[4].microOp))
             {
+                if (ops[4].microOp == MicroOp::FloatAnd || ops[4].microOp == MicroOp::FloatXor)
+                {
+                    // Bitwise operations have no cross-lane or exception effects.
+                    // Capture the output demand before clearing an aliased input.
+                    const uint8_t needed = demand.lanes[ops[0].reg.index()];
+                    demand.clear(ops[0].reg);
+                    demand.read(ops[1].reg, needed);
+                    demand.read(ops[2].reg, needed);
+                    return;
+                }
                 const uint8_t mask  = FloatLaneDemand::mask(ops[3].opBits);
                 const uint8_t upper = demand.lanes[ops[0].reg.index()] & ~mask;
                 demand.clear(ops[0].reg);
@@ -231,6 +241,12 @@ namespace PostRaPeephole
             {
                 const uint8_t mask = FloatLaneDemand::mask(ops[2].opBits);
                 const MicroOp op   = ops[info.microOpIndex].microOp;
+                if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
+                {
+                    if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                        demand.read(ops[1].reg, demand.lanes[ops[0].reg.index()]);
+                    return;
+                }
                 if (op == MicroOp::FloatSqrt)
                 {
                     const uint8_t upper = demand.lanes[ops[0].reg.index()] & ~mask;
@@ -239,7 +255,7 @@ namespace PostRaPeephole
                         demand.read(ops[1].reg, mask | upper);
                     return;
                 }
-                if (hasThreeOperandForm(op) && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
+                if (hasThreeOperandForm(op))
                 {
                     demand.read(ops[0].reg, mask);
                     if (inst.op == MicroInstrOpcode::OpBinaryRegReg)

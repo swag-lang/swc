@@ -107,11 +107,15 @@ TypeRef TypeGen::resolveArrayFinalTypeRef(const TypeManager& tm, const TaskConte
 {
     SWC_ASSERT(arrayType.isArray());
 
-    TypeRef finalTypeRef = arrayType.payloadArrayElemTypeRef();
-    while (tm.get(finalTypeRef).isArray())
-        finalTypeRef = tm.get(finalTypeRef).payloadArrayElemTypeRef();
+    TypeRef         finalTypeRef = arrayType.payloadArrayElemTypeRef();
+    const TypeInfo* finalType    = &tm.get(finalTypeRef);
+    while (finalType->isArray())
+    {
+        finalTypeRef = finalType->payloadArrayElemTypeRef();
+        finalType    = &tm.get(finalTypeRef);
+    }
 
-    return tm.get(finalTypeRef).unwrap(ctx, finalTypeRef, TypeExpandE::Alias);
+    return finalType->unwrap(ctx, finalTypeRef, TypeExpandE::Alias);
 }
 
 TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)

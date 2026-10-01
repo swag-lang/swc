@@ -55,10 +55,11 @@ namespace
     {
         if (rawArgRef.isInvalid() || valueNodeRef.isInvalid())
             return;
-        if (!sema.node(rawArgRef).is(AstNodeId::NamedArgument))
+        AstNode& argNode = sema.node(rawArgRef);
+        if (!argNode.is(AstNodeId::NamedArgument))
             return;
 
-        sema.inheritPayload(sema.node(rawArgRef), valueNodeRef);
+        sema.inheritPayload(argNode, valueNodeRef);
     }
 
     TypeRef implicitConstReferenceBindingValueTypeRef(Sema& sema, TypeRef paramTypeRef, TypeRef sourceTypeRef)
@@ -304,8 +305,8 @@ namespace
             return AstNodeRef::invalid();
 
         AstNodeRef valueRef = argRef;
-        if (sema.node(valueRef).is(AstNodeId::NamedArgument))
-            valueRef = sema.node(valueRef).cast<AstNamedArgument>().nodeArgRef;
+        if (const auto* named = sema.node(valueRef).safeCast<AstNamedArgument>())
+            valueRef = named->nodeArgRef;
 
         if (valueRef.isInvalid())
             return AstNodeRef::invalid();
@@ -439,8 +440,8 @@ namespace
     bool isExplicitMoveArgumentNode(Sema& sema, AstNodeRef argRef)
     {
         AstNodeRef valueRef = argRef;
-        if (sema.node(valueRef).is(AstNodeId::NamedArgument))
-            valueRef = sema.node(valueRef).cast<AstNamedArgument>().nodeArgRef;
+        if (const auto* named = sema.node(valueRef).safeCast<AstNamedArgument>())
+            valueRef = named->nodeArgRef;
 
         const auto* unary = sema.node(valueRef).safeCast<AstUnaryExpr>();
         if (!unary)
@@ -518,9 +519,10 @@ namespace
         if (nodeRef.isInvalid())
             return;
 
-        if (sema.node(nodeRef).is(AstNodeId::NamedArgument))
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::NamedArgument))
         {
-            failure.codeRef = sema.node(nodeRef).codeRef();
+            failure.codeRef = node.codeRef();
             return;
         }
 
@@ -532,9 +534,10 @@ namespace
         if (nodeRef.isInvalid())
             return;
 
-        if (sema.node(nodeRef).is(AstNodeId::NamedArgument))
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::NamedArgument))
         {
-            failure.noteCodeRef = sema.node(nodeRef).codeRef();
+            failure.noteCodeRef = node.codeRef();
             return;
         }
 
@@ -1275,7 +1278,7 @@ namespace
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
             castFlags.add(CastFlagsE::FoldedTypedConst);
         const bool readOnlyParamPath         = SemaCheck::isReadOnlyParameterPath(sema, argNodeView.nodeRef());
-        const bool targetBindsMutableStorage = to.isValid() && (sema.typeMgr().get(to).isReference() || sema.typeMgr().get(to).isAnyPointer() || sema.typeMgr().get(to).isMoveReference());
+        const bool targetBindsMutableStorage = to.isValid() && sema.typeMgr().get(to).isPointerOrReference();
         if ((argNodeView.sym() && argNodeView.sym()->isConstant()) ||
             SemaCheck::isConstAssignmentTarget(sema, argNodeView.nodeRef(), argNodeView) ||
             (readOnlyParamPath && (isUfcsArgument || targetBindsMutableStorage)) ||

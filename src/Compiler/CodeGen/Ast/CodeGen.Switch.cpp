@@ -1157,7 +1157,7 @@ namespace
 
         const auto&        switchNode     = codeGen.node(codeGen.curNodeRef()).cast<AstSwitchStmt>();
         const SemaNodeView sourceConstant = codeGen.viewConstant(switchNode.nodeExprRef);
-        if (sourceConstant.hasConstant() && codeGen.cstMgr().get(sourceConstant.cstRef()).isNullValue(codeGen.ctx()))
+        if (sourceConstant.hasConstant() && sourceConstant.cst()->isNullValue(codeGen.ctx()))
         {
             builder.emitLoadRegImm(switchState.dynamicSourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
             builder.emitLoadRegImm(switchState.dynamicSourcePtrReg, ApInt(0, 64), MicroOpBits::B64);

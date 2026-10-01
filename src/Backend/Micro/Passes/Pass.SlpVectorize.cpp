@@ -326,13 +326,10 @@ namespace
 
         uint32_t rootKeyFor(MicroReg reg, RootKind kind, uint32_t defPos)
         {
-            const auto it = rootKeys.find(reg.packed);
-            if (it != rootKeys.end())
-                return it->second;
-            const auto key = static_cast<uint32_t>(roots.size());
-            rootKeys.emplace(reg.packed, key);
-            roots.push_back(RootInfo{.reg = reg, .kind = kind, .defPos = defPos});
-            return key;
+            const auto [it, inserted] = rootKeys.try_emplace(reg.packed, static_cast<uint32_t>(roots.size()));
+            if (inserted)
+                roots.push_back(RootInfo{.reg = reg, .kind = kind, .defPos = defPos});
+            return it->second;
         }
     };
 
@@ -444,20 +441,18 @@ namespace
 
     uint32_t entryValueFor(BlockScan& scan, MicroReg reg)
     {
-        const auto it = scan.entryValues.find(reg.packed);
-        if (it != scan.entryValues.end())
-            return it->second;
-        const uint32_t id = scan.values.makeOpaque();
-        scan.entryValues.emplace(reg.packed, id);
-        return id;
+        const auto [it, inserted] = scan.entryValues.try_emplace(reg.packed);
+        if (inserted)
+            it->second = scan.values.makeOpaque();
+        return it->second;
     }
 
     uint32_t currentValue(BlockScan& scan, MicroReg reg)
     {
-        const auto it = scan.regValues.find(reg.packed);
-        if (it != scan.regValues.end())
-            return it->second;
-        return scan.regValues.emplace(reg.packed, entryValueFor(scan, reg)).first->second;
+        const auto [it, inserted] = scan.regValues.try_emplace(reg.packed);
+        if (inserted)
+            it->second = entryValueFor(scan, reg);
+        return it->second;
     }
 
     void setValue(BlockScan& scan, MicroReg reg, uint32_t valueId)

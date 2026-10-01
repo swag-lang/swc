@@ -85,7 +85,6 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         // collection walk. Removed slots are excluded by liveInstructionSlots_.
         // Keep the use/def cache across rebuilds, including when slots are reused.
         info.defValues.clear();
-        info.useRegIndices.clear();
         info.defRegIndices.clear();
         info.renamePosition = K_INVALID_VALUE;
 
@@ -141,20 +140,6 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         // per-register capacities for the next function that needs SSA.
         valid_ = true;
         return;
-    }
-
-    for (const MicroInstrRef instRef : instructionRefs_)
-    {
-        InstrInfo& info = instrInfos_[instRef.get()];
-        for (const MicroReg reg : info.useDef.uses)
-        {
-            if (!isTrackedReg(reg))
-                continue;
-
-            const uint32_t regIndex = trackedRegs_.find(reg);
-            if (regIndex != MicroDenseRegIndex::K_INVALID_INDEX)
-                info.useRegIndices.push_back(regIndex);
-        }
     }
 
     // Only the phi lists belong to this build; the rest of the block structure describes the
@@ -815,8 +800,15 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
         // next position in the rename walk, independently of physical IR order.
         info.renamePosition = state.position++;
 
-        for (const uint32_t regIndex : info.useRegIndices)
+        for (const MicroReg reg : info.useDef.uses)
         {
+            if (!isTrackedReg(reg))
+                continue;
+
+            const uint32_t regIndex = trackedRegs_.find(reg);
+            if (regIndex == MicroDenseRegIndex::K_INVALID_INDEX)
+                continue;
+
             const uint32_t valueId = currentValue(state, regIndex);
             if (valueId == K_INVALID_VALUE)
                 continue;

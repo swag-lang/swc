@@ -256,15 +256,15 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     const uint32_t stripeIndex = (hash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
     auto&          stripe      = shard.internStripes[stripeIndex];
 
+    // Every token of every file is interned while files are lexed in parallel, and most names
+    // already exist, so the lookup takes no lock. Only the insertion path locks the stripe.
+    const IdentifierRef found = findInterned(stripe.table.load(std::memory_order_acquire), name, hash);
+    if (found.isValid())
+        return found;
+
     // Most identifiers point directly into source buffers and are never copied.
     // Owned/synthetic names opt into shard storage below so every interned string
     // view remains valid for the compiler lifetime.
-    {
-        const std::shared_lock lk(stripe.mutex);
-        if (const auto* it = stripe.map.find(name, hash))
-            return *it;
-    }
-
     const std::unique_lock lk(stripe.mutex);
     if (const auto* it = stripe.map.find(name, hash))
         return *it;
@@ -296,7 +296,70 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
 #endif
 
     *it = result;
+    publishInterned(stripe, result, hash);
     return result;
+}
+
+uint32_t IdentifierManager::internSlot(uint32_t hash, uint32_t capacity) noexcept
+{
+    // The low bits already chose the shard and the stripe.
+    return (hash >> (SHARD_BITS + INTERN_STRIPE_BITS)) & (capacity - 1);
+}
+
+IdentifierRef IdentifierManager::findInterned(const InternTable* table, std::string_view name, uint32_t hash) const noexcept
+{
+    if (!table)
+        return IdentifierRef::invalid();
+
+    const uint32_t mask = table->capacity - 1;
+    for (uint32_t i = internSlot(hash, table->capacity);; i = (i + 1) & mask)
+    {
+        const uint64_t slot = table->slots[i].load(std::memory_order_acquire);
+        if (!slot)
+            return IdentifierRef::invalid();
+        if (static_cast<uint32_t>(slot >> 32) != hash)
+            continue;
+
+        const IdentifierRef idRef{static_cast<uint32_t>(slot) - 1};
+        if (get(idRef).name == name)
+            return idRef;
+    }
+}
+
+void IdentifierManager::publishInterned(InternStripe& stripe, IdentifierRef idRef, uint32_t hash)
+{
+    const auto place = [](InternTable& table, uint64_t slot) {
+        const uint32_t mask = table.capacity - 1;
+        uint32_t       i    = internSlot(static_cast<uint32_t>(slot >> 32), table.capacity);
+        while (table.slots[i].load(std::memory_order_relaxed))
+            i = (i + 1) & mask;
+        table.slots[i].store(slot, std::memory_order_release);
+        table.size++;
+    };
+
+    // Keeping the load at or below one half bounds every probe and guarantees an empty slot.
+    InternTable* table = stripe.table.load(std::memory_order_relaxed);
+    if (!table || (table->size + 1) * 2 > table->capacity)
+    {
+        auto grown      = std::make_unique<InternTable>();
+        grown->capacity = table ? table->capacity * 2 : 256;
+        grown->slots    = std::make_unique<std::atomic<uint64_t>[]>(grown->capacity);
+        if (table)
+        {
+            for (uint32_t i = 0; i < table->capacity; ++i)
+            {
+                if (const uint64_t slot = table->slots[i].load(std::memory_order_relaxed))
+                    place(*grown, slot);
+            }
+        }
+
+        table = grown.get();
+        stripe.tables.push_back(std::move(grown));
+        stripe.table.store(table, std::memory_order_release);
+    }
+
+    // The reference is never all ones (local indices stay below LOCAL_MASK), so plus one is never zero.
+    place(*table, (static_cast<uint64_t>(hash) << 32) | (static_cast<uint64_t>(idRef.get()) + 1));
 }
 
 const Identifier& IdentifierManager::get(IdentifierRef idRef) const

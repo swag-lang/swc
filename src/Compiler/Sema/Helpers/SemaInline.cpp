@@ -2802,9 +2802,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         return Result::Continue;
     SWC_ASSERT(declAst != nullptr);
 
-    const bool isMacro          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-    const bool isMixin          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
-    const bool isCrossAstInline = declAst != &sema.ast();
+    const AttributeList& attributes       = fn.attributes();
+    const bool           isMacro          = attributes.hasRtFlag(RtAttributeFlagsE::Macro);
+    const bool           isMixin          = attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
+    const bool           isCrossAstInline = declAst != &sema.ast();
 
     // An "ordinary" inline is any inline that is not a macro/mixin expansion: an explicit
     // #[Inline] callee or an auto-selected one. Macros/mixins keep their established re-resolving
@@ -2816,7 +2817,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // (callee-completion wait, preserved resolved symbols, isolated inline scope). Marked /
     // macro / mixin inlines keep their established behavior to avoid any regression.
     const bool isAutoSelected = isOrdinaryInline &&
-                                !fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) &&
+                                !attributes.hasRtFlag(RtAttributeFlagsE::Inline) &&
                                 sema.buildCfgBackend().inlineMode == Runtime::BuildCfgBackendInlineMode::Auto;
 
     // A defer body is emitted again at each control-flow exit where it applies. Auto-inlining an

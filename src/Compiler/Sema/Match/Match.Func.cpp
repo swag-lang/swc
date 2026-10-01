@@ -2267,6 +2267,7 @@ namespace
         }
         const bool suppressGenericInstantiationErrors = matchingShapes > 1;
 
+        outAttempts.reserve(outFunctionSymbols.size());
         for (SymbolFunction* fn : outFunctionSymbols)
         {
             SWC_ASSERT(fn != nullptr);

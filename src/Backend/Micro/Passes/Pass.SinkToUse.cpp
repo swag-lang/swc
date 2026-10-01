@@ -87,11 +87,14 @@ namespace
         for (const MicroReg used : useDef.uses)
         {
             if (used.isVirtual())
-                ++virtualReads;
+            {
+                if (++virtualReads > 1)
+                    return false;
+            }
             else if (!used.isInt() && !used.isFloat())
                 return false;
         }
-        return virtualReads <= 1;
+        return true;
     }
 
     bool sinkRound(MicroPassContext& context)
@@ -238,17 +241,25 @@ namespace
                 }
                 for (const MicroReg def : betweenUseDef->defs)
                 {
-                    for (const MicroReg used : useDef->uses)
-                        blocked = blocked || def == used;
+                    if (std::ranges::find(useDef->uses, def) != useDef->uses.end())
+                    {
+                        blocked = true;
+                        break;
+                    }
                 }
+                if (blocked)
+                    break;
 
-                const MicroReg betweenDef        = betweenUseDef->defs.size() == 1 ? betweenUseDef->defs[0] : MicroReg::invalid();
-                const uint32_t betweenDenseIdx   = scratch.virtualRegs.find(betweenDef);
-                const bool     feedsSameConsumer = betweenDenseIdx != MicroDenseRegIndex::K_INVALID_INDEX &&
-                                               scratch.regCounts[betweenDenseIdx].definitions == 1 &&
-                                               scratch.regCounts[betweenDenseIdx].uses == 1 &&
-                                               scratch.regCounts[betweenDenseIdx].onlyUseIndex == useIdx;
-                meaningfulGap = meaningfulGap || !feedsSameConsumer;
+                if (!meaningfulGap)
+                {
+                    const MicroReg betweenDef        = betweenUseDef->defs.size() == 1 ? betweenUseDef->defs[0] : MicroReg::invalid();
+                    const uint32_t betweenDenseIdx   = scratch.virtualRegs.find(betweenDef);
+                    const bool     feedsSameConsumer = betweenDenseIdx != MicroDenseRegIndex::K_INVALID_INDEX &&
+                                                   scratch.regCounts[betweenDenseIdx].definitions == 1 &&
+                                                   scratch.regCounts[betweenDenseIdx].uses == 1 &&
+                                                   scratch.regCounts[betweenDenseIdx].onlyUseIndex == useIdx;
+                    meaningfulGap = !feedsSameConsumer;
+                }
             }
             if (blocked || !meaningfulGap)
                 continue;

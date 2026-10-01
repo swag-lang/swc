@@ -79,21 +79,18 @@ void X64UnwindWindows::buildInfo(ByteArray& outUnwindInfo, const uint32_t codeSi
     SWC_UNUSED(codeSize);
     outUnwindInfo.clear();
 
-    std::vector<UnwindOp> unwindOps = unwindOps_;
-    std::ranges::sort(unwindOps, [](const UnwindOp& left, const UnwindOp& right) {
-        return left.codeOffset > right.codeOffset;
-    });
-
     // Windows unwinds a function with no nonvolatile-register or stack-pointer changes as a leaf:
     // it simulates a return directly, so publishing an empty UNWIND_INFO and a RUNTIME_FUNCTION
     // record only wastes .xdata/.pdata space.
-    if (unwindOps.empty())
+    if (unwindOps_.empty())
         return;
 
     std::vector<uint16_t> unwindSlots;
-    unwindSlots.reserve(unwindOps.size() * 3 + 4);
-    for (const UnwindOp& op : unwindOps)
+    unwindSlots.reserve(unwindOps_.size() * 3 + 4);
+    // Encoding records one operation per instruction in increasing address order.
+    for (auto it = unwindOps_.rbegin(); it != unwindOps_.rend(); ++it)
     {
+        const UnwindOp& op = *it;
         switch (op.kind)
         {
             case UnwindOpKind::PushNonVol:
@@ -165,6 +162,7 @@ void X64UnwindWindows::onInstructionEncoded(const MicroInstr& inst, const MicroI
     if (!canTrackInstruction(codeEndOffset))
         return;
 
+    SWC_ASSERT(unwindOps_.empty() || codeStartOffset >= unwindOps_.back().codeOffset);
     bool didTrack = false;
     switch (inst.op)
     {

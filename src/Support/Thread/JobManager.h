@@ -184,7 +184,31 @@ private:
         uint64_t dependencyWoken = 0;
         uint64_t jobsExecuted    = 0;
         uint64_t busyNs          = 0;
+        uint64_t lockWaitNs      = 0; // contended acquisitions of mtx_ on the job paths
+        uint64_t poolIdleNs      = 0; // wall time with no job running: serial phases
     };
+
+    void                                  lockCounted(std::unique_lock<std::mutex>& lk);
+    void                                  noteActiveWorkersLocked(size_t before);
+    void                                  accountStarvationLocked();
+    std::chrono::steady_clock::time_point poolIdleSince_;
+
+    // Per job kind: how much work it does, its longest single job, and the worker time left
+    // idle while only jobs of that kind (and others) run and nothing is ready. A long tail of
+    // one kind is what keeps a wide pool waiting.
+    struct KindStats
+    {
+        uint64_t jobs      = 0;
+        uint64_t busyNs    = 0;
+        uint64_t maxNs     = 0;
+        uint64_t starvedNs = 0;
+        uint32_t running   = 0;
+        Utf8     longest;
+    };
+
+    static constexpr size_t                         NUM_JOB_KINDS = static_cast<size_t>(JobKind::ModuleApiExport) + 1;
+    std::array<KindStats, NUM_JOB_KINDS>            kindStats_{};
+    std::chrono::steady_clock::time_point           lastAccounting_;
 
     SchedulerStats                        stats_;
     bool                                  statsEnabled_ = false;

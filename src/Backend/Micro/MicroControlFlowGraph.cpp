@@ -117,22 +117,14 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         if (inst->op == MicroInstrOpcode::JumpCond || inst->op == MicroInstrOpcode::JumpCondImm)
         {
             const MicroInstrOperand* jumpOps = inst->ops(operands);
-            if (!jumpOps || jumpOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
+            if (!jumpOps || jumpOps[2].valueU64 >= labelToInstructionIndex_.size() ||
+                labelToInstructionIndex_[jumpOps[2].valueU64] == K_INVALID_INSTRUCTION_INDEX)
             {
                 supportsDeadCodeLiveness_ = false;
             }
             else
             {
-                const uint32_t targetLabelIndex = static_cast<uint32_t>(jumpOps[2].valueU64);
-                if (targetLabelIndex < labelToInstructionIndex_.size() &&
-                    labelToInstructionIndex_[targetLabelIndex] != K_INVALID_INSTRUCTION_INDEX)
-                {
-                    addEdge(instructionIndex, labelToInstructionIndex_[targetLabelIndex]);
-                }
-                else
-                {
-                    supportsDeadCodeLiveness_ = false;
-                }
+                addEdge(instructionIndex, labelToInstructionIndex_[jumpOps[2].valueU64]);
             }
 
             if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, jumpOps) && hasFallthrough)
@@ -153,13 +145,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
 
             for (uint8_t operandIndex = 1; operandIndex < inst->numOperands; ++operandIndex)
             {
-                if (jumpOps[operandIndex].valueU64 > std::numeric_limits<uint32_t>::max())
-                {
-                    supportsDeadCodeLiveness_ = false;
-                    continue;
-                }
-
-                const uint32_t targetLabelIndex = static_cast<uint32_t>(jumpOps[operandIndex].valueU64);
+                const uint64_t targetLabelIndex = jumpOps[operandIndex].valueU64;
                 if (targetLabelIndex >= labelToInstructionIndex_.size() || labelToInstructionIndex_[targetLabelIndex] == K_INVALID_INSTRUCTION_INDEX)
                 {
                     supportsDeadCodeLiveness_ = false;

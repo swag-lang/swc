@@ -1401,7 +1401,8 @@ namespace
 
         std::unordered_map<Utf8, uint32_t> fileIndices;
         const auto                         fileIndexFor = [&](const Utf8& path, const SourceFile* sourceFile) {
-            if (const auto it = fileIndices.find(path); it != fileIndices.end())
+            const auto [it, inserted] = fileIndices.try_emplace(path, 0u);
+            if (!inserted)
                 return it->second;
             const auto    index = static_cast<uint32_t>(dbg.files.size());
             LinkDebugFile entry;
@@ -1413,7 +1414,7 @@ namespace
                 entry.checksumKind = 3; // CV_SourceChksum_SHA256
             }
             dbg.files.push_back(std::move(entry));
-            fileIndices.emplace(path, index);
+            it->second = index;
             return index;
         };
 

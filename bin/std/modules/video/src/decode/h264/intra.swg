@@ -277,12 +277,12 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     let rawCorner = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
     for row in 8'u64 do
         rawLeft[row] = hasLeft ? cast(s32) (dst - 1)[row * stride] : 128
-    let above    = Simd.load(dst - stride)
-    let missing  = Simd.splat(128'u8)
-    let low      = hasTop ? above : missing
-    let high     = hasTopRight ? above : (hasTop ? Simd.shuffle(above, Replicate7) : missing)
-    let top      = Simd.select(LowHalf, low, high)
-    let rawTop0  = hasTop ? cast(s32) above[0] : 128
+    let above   = Simd.load(dst - stride)
+    let missing = Simd.splat(128'u8)
+    let low     = hasTop ? above : missing
+    let high    = hasTopRight ? above : (hasTop ? Simd.shuffle(above, Replicate7) : missing)
+    let top     = Simd.select(LowHalf, low, high)
+    let rawTop0 = hasTop ? cast(s32) above[0] : 128
 
     // Filtered references, with the same two-slot lead-in as the 4x4 arrays. The top row
     // filters as one vector: each sample against its neighbours, the first against the corner
@@ -354,6 +354,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     // filtered edge values, so a block costs one pass over the edge and eight row copies
     // instead of a per-sample choice between three formulas.
     case IntraDownRight:
+
         // Sample (x, y) is the three-tap filter of the edge centered on its diagonal: the
         // edge runs up the left column, through the corner, and along the top row, so row y
         // starts 7 - y values into it.
@@ -367,9 +368,10 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         for index in 15'u64 do
             line[index] = cast(u8) ((edge[index] + 2 * edge[index + 1] + edge[index + 2] + 2) >> 2)
         for row in 8'u64 do
-            Simd.storeLow8(dst + row * stride, Simd.load(line.buffer + 7 - row))
+            Memory.copy(dst + row * stride, line.buffer + 7 - row, 8)
 
     case IntraVerticalRight:
+
         // Rows of one parity shift right by one sample every two rows: the even rows read the
         // two-tap averages of the top row, the odd rows its three-tap filter, and the samples
         // shifted in from the left are the filtered left column, every other one.
@@ -391,10 +393,11 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         for row in 8'u64
         {
             let line = row & 1 == 0 ? even.buffer : odd.buffer
-            Simd.storeLow8(dst + row * stride, Simd.load(line + 3 - (row >> 1)))
+            Memory.copy(dst + row * stride, line + 3 - (row >> 1), 8)
         }
 
     case IntraHorizontalDown:
+
         // Row y reads, from 14 - 2y on, the left column's two-tap averages and three-tap
         // filters interleaved from the bottom up, then the filtered top row.
         var line: [22] u8
@@ -408,7 +411,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         for e in 2'u64 until 8 do
             line[14 + e] = cast(u8) ((tp[e + 1] + 2 * tp[e] + tp[e - 1] + 2) >> 2)
         for row in 8'u64 do
-            Simd.storeLow8(dst + row * stride, Simd.load(line.buffer + 14 - 2 * row))
+            Memory.copy(dst + row * stride, line.buffer + 14 - 2 * row, 8)
 
     case IntraVerticalLeft:
         for row in 8'u64
@@ -441,7 +444,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         for z in 14'u64 until 22 do
             predicted[z] = cast(u8) lp[9]
         for row in 8'u64 do
-            Simd.storeLow8(dst + row * stride, Simd.load(predicted.buffer + 2 * row))
+            Memory.copy(dst + row * stride, predicted.buffer + 2 * row, 8)
     }
 }
 

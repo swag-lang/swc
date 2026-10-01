@@ -54,7 +54,7 @@ func scale(counter: *Counter, factor: u32) {}
 #test
 {
     var counter: Counter
-    counter.add(1, 2)                // swc-expected-error {{call to 'add' accepts 1 arguments, found 2}}
+    counter.add(1, 2)                // swc-expected-error {{call to 'add' accepts 1 argument, found 2}}
 }
 
 #test

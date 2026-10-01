@@ -30,3 +30,20 @@
     func subStrict(a: s32, b: s32)->s32 { return a - b }
     const V = #run subStrict(50, 8, 1)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
+
+#test
+{
+    var value: s32
+    Swag.init(value)(1, 2)     // swc-expected-error {{sema_err_too_many_arguments}}
+}
+
+struct ArgumentCountPair
+{
+    first, second: s32
+}
+
+#test
+{
+    var value: ArgumentCountPair
+    Swag.init(value)(1, 2, 3)     // swc-expected-error {{sema_err_too_many_arguments}}
+}

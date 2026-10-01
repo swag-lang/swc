@@ -78,6 +78,10 @@ public:
         waitAll(clientId);
     }
 
+    // The driver counts each semantic barrier round; the rest is counted under the scheduler lock.
+    void noteBarrierRound();
+    void printStats(const TaskContext& ctx) const;
+
     uint32_t      numWorkers() const noexcept { return configuredWorkerCount_; }
     uint32_t      randSeed() const noexcept { return randSeed_; }
     static size_t threadIndex() noexcept { return threadIndex_; }
@@ -165,6 +169,23 @@ private:
     void          filterSub(const WaitKey& key) noexcept { waiterFilter_[waiterShard(key)].fetch_sub(1, std::memory_order_release); }
 
     void bumpClientCountLocked(ClientState& client, int delta);
+
+    // Where a parallel build loses its workers: rounds that drain the whole client, sleepers a
+    // barrier moves and that park again afterwards, sleepers a dependency wakes precisely,
+    // and the share of worker time spent running jobs. Updated under mtx_.
+    struct SchedulerStats
+    {
+        uint64_t barrierRounds   = 0;
+        uint64_t barrierWoken    = 0;
+        uint64_t barrierReparked = 0;
+        uint64_t dependencyWoken = 0;
+        uint64_t jobsExecuted    = 0;
+        uint64_t busyNs          = 0;
+    };
+
+    SchedulerStats                        stats_;
+    bool                                  statsEnabled_ = false;
+    std::chrono::steady_clock::time_point statsStart_;
 
     struct RecordPool;
     static JobRecord* allocRecord();

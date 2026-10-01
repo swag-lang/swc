@@ -12,6 +12,7 @@ public:
     size_t                                         allocatedBytes() const noexcept;
     void                                           clear() noexcept;
     std::pair<MicroOperandRef, MicroInstrOperand*> emplaceUninitArray(uint32_t count);
+    MicroOperandRef                                append(std::span<const MicroInstrOperand> values);
     MicroInstrOperand*                             ptr(MicroOperandRef ref) noexcept;
     const MicroInstrOperand*                       ptr(MicroOperandRef ref) const noexcept;
 

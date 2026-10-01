@@ -1185,6 +1185,57 @@ SWC_TEST_BEGIN(RegAlloc_BorrowRestoresKeepOrderAfterMiddleRequestExpires)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_BorrowRangeUsesOriginalInstructionPositions)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
+    constexpr auto  base = MicroReg::intReg(12);
+    constexpr auto  reg  = MicroReg::intReg(8);
+    MicroBuilder    builder(ctx);
+    const auto      between = builder.createLabel();
+    for (uint32_t index = 0; index < 2; ++index)
+    {
+        if (index)
+            builder.placeLabel(between);
+        const MicroReg value = MicroReg::virtualIntReg(index + 1);
+        for (const MicroReg physical : conv.intRegs)
+        {
+            if (physical != reg)
+                builder.addVirtualRegForbiddenPhysReg(value, physical);
+        }
+        builder.emitLoadRegMem(value, base, index * 8, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 32 + index * 8, value, MicroOpBits::B64);
+    }
+    builder.emitRet();
+
+    // The first borrow inserts its save and restore before the label. The
+    // second lifetime starts after that label in the original instruction
+    // order, even though its old numeric positions now land before the label.
+    MicroPassContext passCtx;
+    passCtx.taskContext            = &ctx;
+    passCtx.builder                = &builder;
+    passCtx.instructions           = &builder.instructions();
+    passCtx.operands               = &builder.operands();
+    passCtx.callConvKind           = CallConvKind::WindowsX64;
+    passCtx.globalReservedRegs     = conv.intRegs;
+    passCtx.isFirstAllocationSweep = false;
+    MicroRegisterAllocationPass pass;
+    SWC_RESULT(pass.run(passCtx));
+    SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+
+    uint32_t saves    = 0;
+    uint32_t restores = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const auto* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadMemReg && ops[0].reg == conv.stackPointer && ops[1].reg == reg)
+            ++saves;
+        if (inst.op == MicroInstrOpcode::LoadRegMem && ops[0].reg == reg && ops[1].reg == conv.stackPointer)
+            ++restores;
+    }
+    return saves == 2 && restores == 2 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_ReusedPassRebuildsConcreteClaimsForChangedLiveRanges)
 {
     const CallConv&             conv = CallConv::get(CallConvKind::WindowsX64);

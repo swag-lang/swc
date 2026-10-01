@@ -22,6 +22,10 @@
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
+#ifdef _M_X64
+#include <xmmintrin.h>
+#endif
+
 SWC_BEGIN_NAMESPACE();
 
 SWC_TEST_BEGIN(JIT_DependencyOrderPreservesCyclesSharedChildrenAndIgnoredNodes)
@@ -1209,6 +1213,52 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JIT_RegAllocAvoidsFutureConcreteClobber)
 {
     SWC_RESULT(runCase(ctx, &buildReturnVirtualAcrossConcreteClobber, 3));
+}
+SWC_TEST_END()
+
+// A scalar root must neither compute on the unused upper lanes nor read them
+// from memory. Negative adjacent values expose the packed encoding through MXCSR.
+SWC_TEST_BEGIN(JIT_ScalarSquareRootIgnoresAdjacentValues)
+{
+    alignas(16) const std::array<double, 2> doubles = {4.0, -1.0};
+    alignas(16) const std::array<float, 4>  singles = {4.0f, -1.0f, -1.0f, -1.0f};
+    constexpr MicroReg                      address = MicroReg::intReg(8);
+    constexpr MicroReg                      source  = MicroReg::floatReg(1);
+    constexpr MicroReg                      result  = MicroReg::floatReg(0);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool memory : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            const void*  input = bits == MicroOpBits::B64 ? static_cast<const void*>(doubles.data()) : singles.data();
+            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(input));
+            if (memory)
+                builder.emitOpBinaryRegMem(result, address, 0, MicroOp::FloatSqrt, bits);
+            else
+            {
+                builder.emitLoadVecRegMem(source, address, 0, MicroOpBits::B128);
+                builder.emitOpBinaryRegReg(result, source, MicroOp::FloatSqrt, bits);
+            }
+            builder.emitLoadRegReg(CallConv::swag().intReturn, result, bits);
+            builder.emitRet();
+
+            MachineCode loweredCode;
+            SWC_RESULT(loweredCode.emit(ctx, builder));
+            JITMemory executableMemory;
+            SWC_RESULT(JIT::emit(ctx, executableMemory, loweredCode.bytes, loweredCode.codeRelocations, loweredCode.unwindInfo));
+
+            using TestFn         = uint64_t (*)();
+            const auto     fn    = reinterpret_cast<TestFn>(executableMemory.entryPoint());
+            const uint32_t saved = _mm_getcsr();
+            _mm_setcsr((saved | 0x1F80u) & ~0x3Fu);
+            const uint64_t actual = fn();
+            const uint32_t raised = _mm_getcsr() & 0x3Fu;
+            _mm_setcsr(saved);
+            const uint64_t expected = bits == MicroOpBits::B64 ? 0x4000000000000000ull : 0x40000000ull;
+            if (actual != expected || raised)
+                return Result::Error;
+        }
+    }
 }
 SWC_TEST_END()
 

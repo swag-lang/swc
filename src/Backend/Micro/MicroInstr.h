@@ -148,8 +148,8 @@ inline std::array<MicroInstrRegMode, 3> MicroInstrDef::resolvedRegModes(const Mi
                      ops[microOpIndex].microOp == MicroOp::FloatSqrt)
             {
                 // CVTTSS2SI/CVTTSD2SI replace the integer destination. A
-                // square root reads its explicit source; the packed form for
-                // distinct registers replaces every destination lane.
+                // square root reads its explicit source; the VEX form for
+                // distinct registers defines every destination lane.
                 modes[0] = MicroInstrRegMode::Def;
             }
             break;

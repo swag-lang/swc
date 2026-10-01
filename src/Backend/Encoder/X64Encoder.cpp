@@ -3223,7 +3223,11 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     // comes from a spill slot.
     if (regDst.isFloat())
     {
-        if (op != MicroOp::FloatSqrt && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
+        // Scalar roots must not read the adjacent lane. Clear the destination
+        // to avoid a false dependency through the upper lanes preserved by SSE.
+        if (op == MicroOp::FloatSqrt)
+            encodeClearReg(regDst, MicroOpBits::B128);
+        if (op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
         {
             emitSpecF64(store_, 0xF3, opBits);
             emitRex(store_, MicroOpBits::Zero, regDst, memReg);
@@ -3406,9 +3410,17 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
 
     else if (regDst.isFloat() && regSrc.isFloat())
     {
-        // An in-place scalar square root needs only the low lane. Keep the
-        // packed form when registers differ so the destination is fully defined.
-        if ((op != MicroOp::FloatSqrt || regDst == regSrc) && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
+        // VEX takes the preserved upper lanes from the source too, so an
+        // out-of-place scalar root has no dependency on the old destination
+        // and performs no arithmetic on an unrelated upper lane.
+        if (op == MicroOp::FloatSqrt && regDst != regSrc)
+        {
+            emitVex(store_, opBits == MicroOpBits::B64 ? 0xF2 : 0xF3, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regSrc), microRegToX64Reg(regSrc));
+            emitCpuOp(store_, op);
+            emitModRm(store_, regDst, regSrc);
+            return;
+        }
+        if (op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
         {
             emitSpecF64(store_, 0xF3, opBits);
             emitRex(store_, MicroOpBits::Zero, regDst, regSrc);

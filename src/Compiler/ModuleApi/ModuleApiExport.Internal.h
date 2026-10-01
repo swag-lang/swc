@@ -90,6 +90,7 @@ namespace ModuleApiExport
     bool   tryBuildImplPrefix(TaskContext& ctx, const SourceFile& file, AstNodeRef implRef, std::string_view eol, Utf8& outPrefix);
     bool   tryFindSemanticImplRef(TaskContext& ctx, const ModuleApiGeneratedRoot& root, AstNodeRef& outImplRef, const SourceFile*& outImplFile);
     void   appendGeneratedRootUnique(std::vector<ModuleApiGeneratedRoot>& outRoots, ModuleApiGeneratedRoot&& root);
+    void   mergeGeneratedRootsUnique(std::vector<ModuleApiGeneratedRoot>& outRoots, std::vector<std::vector<ModuleApiGeneratedRoot>>& perFileRoots);
     void   appendGeneratedRootsForFile(TaskContext& ctx, const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots);
 
     // ModuleApiExport.Content.cpp

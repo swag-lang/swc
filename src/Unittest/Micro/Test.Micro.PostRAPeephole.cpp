@@ -4523,6 +4523,133 @@ SWC_TEST_BEGIN(PostRAPeephole_IndexedScalarMemoryKeepsOnlyObservedLanes)
 }
 SWC_TEST_END()
 
+// Contraction may remove a product only when none of its scalar or retained
+// upper lanes survives. Partial overwrites and uses on either branch count.
+SWC_TEST_BEGIN(PostRAPeephole_FusedProductRespectsPolicyAndLaneLiveness)
+{
+    constexpr MicroReg accumulator = MicroReg::floatReg(0);
+    constexpr MicroReg first       = MicroReg::floatReg(1);
+    constexpr MicroReg second      = MicroReg::floatReg(2);
+    constexpr MicroReg product     = MicroReg::floatReg(3);
+    constexpr MicroReg base        = MicroReg::intReg(8);
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const MicroOp operation : {MicroOp::FloatAdd, MicroOp::FloatSubtract})
+        {
+            for (const bool threeOperandMultiply : {false, true})
+            {
+                for (const bool threeOperandAdd : {false, true})
+                {
+                    for (uint32_t variant = 0; variant < 8; ++variant)
+                    {
+                        MicroBuilder             builder(ctx);
+                        Runtime::BuildCfgBackend config{};
+                        config.fpMathFma = variant != 1;
+                        builder.setBackendBuildCfg(config);
+                        if (threeOperandMultiply)
+                            builder.emitOpBinaryRegRegReg(product, first, second, MicroOp::FloatMultiply, bits);
+                        else
+                            builder.emitOpBinaryRegReg(product, second, MicroOp::FloatMultiply, bits);
+                        const auto multiply = builder.instructions().lastInstructionRef();
+                        if (threeOperandAdd)
+                            builder.emitOpBinaryRegRegReg(accumulator, accumulator, product, operation, bits);
+                        else
+                            builder.emitOpBinaryRegReg(accumulator, product, operation, bits);
+                        const auto add = builder.instructions().lastInstructionRef();
+                        builder.emitLoadMemReg(base, 0, accumulator, MicroOpBits::B128);
+                        if (variant == 2)
+                            builder.emitLoadMemReg(base, 16, product, bits);
+                        if (variant == 3 || variant == 4)
+                        {
+                            builder.emitLoadRegReg(product, second, bits);
+                            if (variant == 4)
+                            {
+                                builder.emitLoadRegMem(second, base, 32, bits);
+                                builder.emitOpBinaryRegRegReg(first, product, second, MicroOp::FloatAdd, bits);
+                            }
+                            builder.emitLoadMemReg(base, 16, variant == 4 ? first : product, MicroOpBits::B128);
+                        }
+                        if (variant == 5)
+                        {
+                            const auto done = builder.createLabel();
+                            builder.emitCmpRegImm(base, ApInt(0, 64), MicroOpBits::B64);
+                            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+                            builder.emitLoadMemReg(base, 16, product, bits);
+                            builder.placeLabel(done);
+                        }
+                        if (variant == 6)
+                        {
+                            builder.emitLoadRegMem(product, base, 32, bits);
+                            builder.emitLoadMemReg(base, 16, product, MicroOpBits::B128);
+                        }
+                        if (variant == 7)
+                            builder.emitCallReg(MicroReg::intReg(9), CallConvKind::Swag);
+                        builder.emitRet();
+                        X64Encoder encoder(ctx);
+                        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+                        const bool  fused  = variant == 0 || variant == 6;
+                        const auto* result = builder.instructions().ptr(add);
+                        if (!result || (result->op == MicroInstrOpcode::OpTernaryRegRegReg) != fused)
+                            return Result::Error;
+                        if (!fused)
+                            continue;
+                        const auto* ops = result->ops(builder.operands());
+                        if (ops[0].reg != accumulator || ops[1].reg != (threeOperandMultiply ? first : product) ||
+                            ops[2].reg != second || ops[3].opBits != bits || ops[4].microOp != (operation == MicroOp::FloatAdd ? MicroOp::FloatAddProduct : MicroOp::FloatSubtractProduct) ||
+                            builder.instructions().ptr(multiply) != nullptr)
+                            return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FusedProductPreservesAccumulatorAndExplicitMuladd)
+{
+    constexpr MicroReg accumulator = MicroReg::floatReg(0);
+    constexpr MicroReg first       = MicroReg::floatReg(1);
+    constexpr MicroReg second      = MicroReg::floatReg(2);
+    constexpr MicroReg product     = MicroReg::floatReg(3);
+    constexpr MicroReg base        = MicroReg::intReg(8);
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (uint32_t variant = 0; variant < 5; ++variant)
+        {
+            MicroBuilder             builder(ctx);
+            Runtime::BuildCfgBackend config{};
+            config.fpMathFma = true;
+            builder.setBackendBuildCfg(config);
+            if (variant == 0)
+                builder.emitOpTernaryRegRegReg(accumulator, first, second, MicroOp::MultiplyAdd, bits);
+            else
+            {
+                const auto temporary = variant == 1 ? accumulator : product;
+                builder.emitOpBinaryRegRegReg(temporary, first, second, MicroOp::FloatMultiply, bits);
+                if (variant == 2)
+                    builder.emitOpBinaryRegRegReg(accumulator, product, accumulator, MicroOp::FloatAdd, bits);
+                else if (variant == 3)
+                    builder.emitOpBinaryRegRegReg(accumulator, accumulator, product, MicroOp::FloatDivide, bits);
+                else if (variant == 4)
+                    builder.emitOpBinaryRegRegReg(accumulator, product, accumulator, MicroOp::FloatSubtract, bits);
+                else
+                    builder.emitOpBinaryRegReg(accumulator, second, MicroOp::FloatAdd, bits);
+            }
+            builder.emitLoadMemReg(base, 0, accumulator, MicroOpBits::B128);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+            for (const auto& inst : builder.instructions().view())
+                if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg && (inst.ops(builder.operands())[4].microOp == MicroOp::FloatAddProduct || inst.ops(builder.operands())[4].microOp == MicroOp::FloatSubtractProduct))
+                    return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_WidensOnlyUnobservedScalarCopyLanes)
 {
     constexpr MicroReg source = MicroReg::floatReg(0);

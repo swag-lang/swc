@@ -478,6 +478,16 @@ namespace
     Result buildTernaryAndConvert(const RunCaseFn& runCase)
     {
         ENCODE_CASE("op_ternary_madd", "F2 0F 59 C1 F2 0F 58 C2", b.emitOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::MultiplyAdd, MicroOpBits::B64););
+        ENCODE_CASE("op_ternary_faddproduct_f32", "C4 E2 71 B9 C2", b.emitOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::FloatAddProduct, MicroOpBits::B32););
+        ENCODE_CASE("op_ternary_faddproduct_f64", "C4 E2 F1 B9 C2", b.emitOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::FloatAddProduct, MicroOpBits::B64););
+        ENCODE_CASE("op_ternary_faddproduct_f32_extended", "C4 62 29 B9 CB", b.emitOpTernaryRegRegReg(XMM9, XMM10, XMM3, MicroOp::FloatAddProduct, MicroOpBits::B32););
+        ENCODE_CASE("op_ternary_faddproduct_f64_extended", "C4 62 A9 B9 CB", b.emitOpTernaryRegRegReg(XMM9, XMM10, XMM3, MicroOp::FloatAddProduct, MicroOpBits::B64););
+        ENCODE_CASE("op_ternary_faddproduct_extended_rm", "C4 42 F1 B9 CA", b.emitOpTernaryRegRegReg(XMM9, XMM1, XMM10, MicroOp::FloatAddProduct, MicroOpBits::B64););
+        ENCODE_CASE("op_ternary_fsubproduct_f32", "C4 E2 71 BD C2", b.emitOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::FloatSubtractProduct, MicroOpBits::B32););
+        ENCODE_CASE("op_ternary_fsubproduct_f64", "C4 E2 F1 BD C2", b.emitOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::FloatSubtractProduct, MicroOpBits::B64););
+        ENCODE_CASE("op_ternary_fsubproduct_f32_extended", "C4 62 29 BD CB", b.emitOpTernaryRegRegReg(XMM9, XMM10, XMM3, MicroOp::FloatSubtractProduct, MicroOpBits::B32););
+        ENCODE_CASE("op_ternary_fsubproduct_f64_extended", "C4 62 A9 BD CB", b.emitOpTernaryRegRegReg(XMM9, XMM10, XMM3, MicroOp::FloatSubtractProduct, MicroOpBits::B64););
+        ENCODE_CASE("op_ternary_fsubproduct_extended_rm", "C4 42 F1 BD CA", b.emitOpTernaryRegRegReg(XMM9, XMM1, XMM10, MicroOp::FloatSubtractProduct, MicroOpBits::B64););
         ENCODE_CASE("op_ternary_cmpxchg_lock", "F0 4D 0F B1 1C 24", b.emitCompareExchangeRegMemReg(RAX, R12, 0, R11, MicroOpBits::B64););
         ENCODE_CASE("op_ternary_cmpxchg_non_rax_conform", "4C 89 C0 F0 4D 0F B1 1C 24 49 89 C0", b.emitCompareExchangeRegMemReg(R8, R12, 0, R11, MicroOpBits::B64););
         // The pointer leaves rax through a scratch the allocator picks (r10 for the existing scan, the

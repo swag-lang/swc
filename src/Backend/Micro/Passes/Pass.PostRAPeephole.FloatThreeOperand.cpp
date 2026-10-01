@@ -223,6 +223,15 @@ namespace PostRaPeephole
                 return;
             }
 
+            if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg && (ops[4].microOp == MicroOp::FloatAddProduct || ops[4].microOp == MicroOp::FloatSubtractProduct))
+            {
+                const uint8_t mask = FloatLaneDemand::mask(ops[3].opBits);
+                demand.read(ops[0].reg, mask);
+                demand.read(ops[1].reg, mask);
+                demand.read(ops[2].reg, mask);
+                return;
+            }
+
             if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[0].reg.isFloat() &&
                 (ops[3].opBits == MicroOpBits::B32 || ops[3].opBits == MicroOpBits::B64) &&
                 hasThreeOperandForm(ops[4].microOp))
@@ -414,23 +423,94 @@ namespace PostRaPeephole
         return !floatLanesReadAfter(ctx, afterRef, reg, static_cast<uint8_t>(15 & ~FloatLaneDemand::mask(copiedBits)));
     }
 
+    namespace
+    {
+        struct ScalarFloatBinary
+        {
+            MicroReg    dst;
+            MicroReg    left;
+            MicroReg    right;
+            MicroOpBits bits;
+            MicroOp     op;
+        };
+
+        bool scalarFloatBinary(ScalarFloatBinary& out, const MicroInstr& inst, const MicroOperandStorage& operands)
+        {
+            const auto* ops = inst.ops(operands);
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                out = {ops[0].reg, ops[0].reg, ops[1].reg, ops[2].opBits, ops[3].microOp};
+            else if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg)
+                out = {ops[0].reg, ops[1].reg, ops[2].reg, ops[3].opBits, ops[4].microOp};
+            else
+                return false;
+            return out.dst.isFloat() && out.left.isFloat() && out.right.isFloat() &&
+                   (out.bits == MicroOpBits::B32 || out.bits == MicroOpBits::B64);
+        }
+
+        bool tryFuseScalarFloatProduct(Context& ctx, FloatLaneDemand& demand, MicroInstrRef multiplyRef, MicroInstrRef accumulateRef)
+        {
+            if (ctx.isClaimed(multiplyRef) || ctx.isClaimed(accumulateRef))
+                return false;
+            ScalarFloatBinary multiply;
+            ScalarFloatBinary accumulate;
+            if (!scalarFloatBinary(multiply, *ctx.storage->ptr(multiplyRef), *ctx.operands) ||
+                !scalarFloatBinary(accumulate, *ctx.storage->ptr(accumulateRef), *ctx.operands) ||
+                multiply.op != MicroOp::FloatMultiply || (accumulate.op != MicroOp::FloatAdd && accumulate.op != MicroOp::FloatSubtract) || multiply.bits != accumulate.bits ||
+                accumulate.dst != accumulate.left || accumulate.right != multiply.dst || accumulate.dst == multiply.dst ||
+                demand.lanes[multiply.dst.index()])
+                return false;
+
+            // The product must be dead in every lane. A later scalar overwrite can
+            // retain its upper lanes, so whole-register def/use liveness is not enough.
+            // Keep the accumulator on the left: its upper lanes also survive the FMA.
+            MicroInstrOperand fused[5] = {};
+            fused[0].reg               = accumulate.dst;
+            fused[1].reg               = multiply.left;
+            fused[2].reg               = multiply.right;
+            fused[3].opBits            = accumulate.bits;
+            fused[4].microOp           = accumulate.op == MicroOp::FloatAdd ? MicroOp::FloatAddProduct : MicroOp::FloatSubtractProduct;
+            if (!encoderAcceptsAsIs(ctx, MicroInstrOpcode::OpTernaryRegRegReg, fused))
+                return false;
+            auto before = demand;
+            transferFloatLaneDemand(before, ctx, accumulateRef);
+            transferFloatLaneDemand(before, ctx, multiplyRef);
+            if (!ctx.claimAll({multiplyRef, accumulateRef}))
+                return false;
+            demand = before;
+            ctx.emitErase(multiplyRef);
+            ctx.emitRewrite(accumulateRef, MicroInstrOpcode::OpTernaryRegRegReg, fused, true);
+            return true;
+        }
+    }
+
     // MOVSS/MOVSD retain the old destination's upper lanes. A complete copy
     // removes that dependency whenever no reachable consumer needs those lanes.
     // Solve demands over straight-line blocks so a scalar use beyond a branch
-    // does not make all four lanes live. Pending rewrites stay opaque.
-    void widenScalarFloatCopies(Context& ctx)
+    // does not make all four lanes live. The same proof permits contraction when
+    // the product is dead in every lane and the floating policy allows FMA.
+    // Pending rewrites stay opaque.
+    void optimizeScalarFloatInstructions(Context& ctx)
     {
         if (!ctx.builder)
             return;
         const auto& cfg = ctx.builder->controlFlowGraph();
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return;
+        const bool allowFusion = ctx.encoder && ctx.encoder->supportsFusedFloatMultiplyAdd() && ctx.builder->backendBuildCfg().fpMathFma;
         const auto refs      = cfg.instructionRefs();
         bool       candidate = false;
         for (const auto ref : refs)
         {
             const auto* inst = ctx.storage->ptr(ref);
-            if (inst->op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(ref))
+            if (ctx.isClaimed(ref))
+                continue;
+            ScalarFloatBinary binary;
+            if (allowFusion && scalarFloatBinary(binary, *inst, *ctx.operands) && (binary.op == MicroOp::FloatAdd || binary.op == MicroOp::FloatSubtract))
+            {
+                candidate = true;
+                break;
+            }
+            if (inst->op != MicroInstrOpcode::LoadRegReg)
                 continue;
             const auto* ops = inst->ops(*ctx.operands);
             if (ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
@@ -455,6 +535,11 @@ namespace PostRaPeephole
                 const auto  ref   = refs[--i];
                 const auto* inst  = ctx.storage->ptr(ref);
                 const auto* ops   = inst->ops(*ctx.operands);
+                if (allowFusion && i > block.begin && tryFuseScalarFloatProduct(ctx, demand, refs[i - 1], ref))
+                {
+                    --i;
+                    continue;
+                }
                 bool        widen = false;
                 if (inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
                     ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&

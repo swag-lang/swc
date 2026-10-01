@@ -136,6 +136,8 @@ namespace
                 return "div";
             case MicroOp::Exchange:
                 return "xchg";
+            case MicroOp::FloatAddProduct:
+                return "faddproduct";
             case MicroOp::FloatAdd:
                 return "fadd";
             case MicroOp::FloatAnd:
@@ -152,6 +154,8 @@ namespace
                 return "fround";
             case MicroOp::FloatSqrt:
                 return "fsqrt";
+            case MicroOp::FloatSubtractProduct:
+                return "fsubproduct";
             case MicroOp::FloatSubtract:
                 return "fsub";
             case MicroOp::FloatXor:
@@ -994,6 +998,8 @@ namespace
 
             case MicroInstrOpcode::OpTernaryRegRegReg:
             {
+                if (ops[4].microOp == MicroOp::FloatAddProduct || ops[4].microOp == MicroOp::FloatSubtractProduct)
+                    return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(ops[4].microOp == MicroOp::FloatAddProduct ? "fma" : "fnma"), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder), regName(ops[0].reg, regPrintMode, encoder));
                 const auto infixOp = binaryInfixOperator(ops[4].microOp);
                 if (!infixOp.empty())
                     return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, regName(ops[2].reg, regPrintMode, encoder));

@@ -632,19 +632,19 @@ namespace
     constexpr uint8_t VEX_MAP_0F38 = 2;
     constexpr uint8_t VEX_MAP_0F3A = 3;
 
-    // VEX prefix for the 128-bit forms this encoder emits: L = 0, W = 0, and
+    // VEX prefix for the 128-bit forms this encoder emits: L = 0 and
     // the opcode map named explicitly. The two-byte C5 form only exists for
     // the 0F map, so the other maps always take the three-byte form. The
     // R/X/B/vvvv fields are stored inverted, which is why every one of them
     // is written as its complement.
-    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2)
+    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2, bool wide = false)
     {
         const uint8_t pp     = vexPrefixBits(mandatoryPrefix);
         const uint8_t vvvv   = static_cast<uint8_t>(~x64RegNumber(src1) & 0x0F);
         const bool    extDst = isExtendedReg(dst);
         const bool    extSrc = isExtendedReg(src2);
 
-        if (map == VEX_MAP_0F && !extSrc)
+        if (map == VEX_MAP_0F && !extSrc && !wide)
         {
             store.pushU8(0xC5);
             store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | (vvvv << 3) | pp));
@@ -655,7 +655,7 @@ namespace
         // names the opcode map.
         store.pushU8(0xC4);
         store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | 0x40 | (extSrc ? 0 : 0x20) | map));
-        store.pushU8(static_cast<uint8_t>((vvvv << 3) | pp));
+        store.pushU8(static_cast<uint8_t>((wide ? 0x80 : 0) | (vvvv << 3) | pp));
     }
 
     struct VecOpEncoding
@@ -4541,6 +4541,19 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     }
 
     ///////////////////////////////////////////
+
+    if (op == MicroOp::FloatAddProduct || op == MicroOp::FloatSubtractProduct)
+    {
+        // VFMADD231SS/SD or VFNMADD231SS/SD: accumulate or subtract the
+        // product, retaining the destination's upper lanes.
+        // The x86-64-v3 target includes FMA; W selects the scalar element width.
+        SWC_ASSERT(reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
+        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+        emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(reg0), microRegToX64Reg(reg1), microRegToX64Reg(reg2), opBits == MicroOpBits::B64);
+        emitCpuOp(store_, op == MicroOp::FloatAddProduct ? 0xB9 : 0xBD);
+        emitModRm(store_, reg0, reg2);
+        return;
+    }
 
     if (op == MicroOp::MultiplyAdd)
     {

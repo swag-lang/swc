@@ -1178,7 +1178,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     eraseRedundantUpperHalfClears(ctx);
     forwardPrivateFrameReloads(ctx);
     runPerInstructionPatterns(ctx);
-    widenScalarFloatCopies(ctx);
+    optimizeScalarFloatInstructions(ctx);
 
     if (ctx.actions.empty())
         return Result::Continue;

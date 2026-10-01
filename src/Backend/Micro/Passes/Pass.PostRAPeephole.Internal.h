@@ -175,7 +175,7 @@ namespace PostRaPeephole
     bool tryRetargetNarrowSelectCascade(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryWidenNarrowSelectGraph(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     void eraseRedundantUpperHalfClears(Context& ctx);
-    void widenScalarFloatCopies(Context& ctx);
+    void optimizeScalarFloatInstructions(Context& ctx);
     bool areFloatUpperLanesDeadAfter(Context& ctx, MicroInstrRef afterRef, MicroReg reg, MicroOpBits copiedBits);
     bool tryLoadIntoFirstFloatConsumer(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

@@ -835,10 +835,11 @@ namespace
 
         for (const AstNodeRef argRef : args)
         {
-            if (!sema.node(argRef).is(AstNodeId::NamedArgument))
+            const AstNode& argNode = sema.node(argRef);
+            if (!argNode.is(AstNodeId::NamedArgument))
                 continue;
 
-            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), sema.node(argRef).codeRef());
+            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
             for (size_t paramIndex = 0; paramIndex < params.size(); ++paramIndex)
             {
                 if (params[paramIndex].idRef == idRef)

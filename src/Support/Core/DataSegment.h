@@ -1,5 +1,6 @@
 #pragma once
 #include "Support/Core/PagedStore.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -107,6 +108,7 @@ public:
     uint64_t    id() const noexcept { return id_; }
     uint64_t    relocationVersion() const noexcept { return relocationVersion_.load(std::memory_order_acquire); }
     void        copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
+    void        copyRelocations(SmallVector<DataSegmentRelocation, 4>& outRelocations, uint32_t offset, uint32_t size) const;
     bool        findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
     bool        hasRelocations(uint32_t offset, uint32_t size) const;
     std::mutex& allocationMutex(uint32_t allocationOffset) const;
@@ -182,12 +184,15 @@ private:
     std::byte*                                                                                          findPtrLocked(Ref ref, uint32_t size) noexcept;
     const std::byte*                                                                                    findPtrLocked(Ref ref, uint32_t size) const noexcept;
     Ref                                                                                                 findLargeBlockRefLocked(const void* ptr) const noexcept;
-    void                                                                                                copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
     bool                                                                                                findRelocationLocked(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
     bool                                                                                                hasRelocationsLocked(uint32_t offset, uint32_t size) const;
     void                                                                                                rebuildRelocationsByOffsetLocked() const;
     void                                                                                                recordRelocationIndexLocked(uint32_t index);
     void                                                                                                recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
+
+    template<typename T>
+    void copyRelocationsImpl(T& outRelocations, uint32_t offset, uint32_t size) const;
+
     PagedStore                                                                                          store_;
     std::vector<LargeBlock>                                                                             largeBlocks_;
     std::map<uintptr_t, LargeBlockRange>                                                                largeBlockRanges_;

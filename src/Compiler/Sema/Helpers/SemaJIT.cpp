@@ -517,8 +517,7 @@ namespace
     // symbols are in at that moment.
     void collectConstantJitTargets(Sema& sema, ConstantJitTargetWalk& walk, uint32_t shardIndex, uint32_t sourceOffset)
     {
-        SmallVector<DataSegmentRef>        pending{{.shardIndex = shardIndex, .offset = sourceOffset}};
-        std::vector<DataSegmentRelocation> relocations;
+        SmallVector<DataSegmentRef> pending{{.shardIndex = shardIndex, .offset = sourceOffset}};
         while (!pending.empty())
         {
             const DataSegmentRef current = pending.back();
@@ -559,14 +558,11 @@ namespace
 
             if (!walkedIsCurrent)
             {
-                segment.copyRelocations(relocations, allocation.offset, allocation.size);
+                segment.copyRelocations(walked.relocations, allocation.offset, allocation.size);
                 walked.segmentId         = segment.id();
                 walked.queryOffset       = current.offset;
                 walked.relocationVersion = version;
                 walked.allocation        = allocation;
-                walked.relocations.clear();
-                for (const DataSegmentRelocation& relocation : relocations)
-                    walked.relocations.push_back(relocation);
             }
 
             for (const DataSegmentRelocation& relocation : walked.relocations)

@@ -172,8 +172,17 @@ void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg f
 void MicroBuilder::addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs)
 {
     SWC_ASSERT(virtualReg.isVirtual());
+    if (forbiddenRegs.empty())
+        return;
+
+    auto& storedRegs = virtualRegForbiddenPhysRegs_[virtualReg];
     for (const auto forbiddenReg : forbiddenRegs)
-        addVirtualRegForbiddenPhysReg(virtualReg, forbiddenReg);
+    {
+        SWC_ASSERT(forbiddenReg.isValid());
+        SWC_ASSERT(!forbiddenReg.isVirtual());
+        if (std::ranges::find(storedRegs, forbiddenReg) == storedRegs.end())
+            storedRegs.push_back(forbiddenReg);
+    }
 }
 
 void MicroBuilder::mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg toReg)

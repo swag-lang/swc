@@ -20,7 +20,6 @@ public:
     void          copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
-    void          getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored = false) const;
     void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     bool          empty() const noexcept;
     uint32_t      count() const noexcept { return count_.load(std::memory_order_relaxed); }
@@ -87,15 +86,14 @@ private:
     Symbol* smallFindHead(IdentifierRef key, uint32_t smallSize) const noexcept;
     Symbol* findHead(IdentifierRef idRef) const noexcept;
 
-    static uint32_t shardIndex(IdentifierRef idRef) noexcept;
-    static uint32_t tableSlot(const HeadTable& table, uint64_t key) noexcept;
-    static Symbol*  tableFindHead(const HeadTable* table, IdentifierRef idRef) noexcept;
-    static void     tablePlace(HeadTable& table, uint64_t key, Symbol* head) noexcept;
+    static uint32_t tableSlot(const HeadTable& table, uint64_t key, uint32_t hash) noexcept;
+    static Symbol*  tableFindHead(const HeadTable* table, IdentifierRef idRef, uint32_t hash) noexcept;
+    static void     tablePlace(HeadTable& table, uint32_t slot, uint64_t key, Symbol* head) noexcept;
     static void     tableReserve(TaskContext& ctx, std::atomic<HeadTable*>& published, uint32_t minSize);
     template<typename F>
     static void     forEachHead(const HeadTable* table, const F& fn);
     static void     notifyInserted(TaskContext& ctx, IdentifierRef idRef);
-    Symbol*         tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, Symbol* symbol, bool acceptHomonyms);
+    Symbol*         tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, uint32_t hash, Symbol* symbol, bool acceptHomonyms);
     void            upgradeToSharded(TaskContext& ctx);
     Symbol*         insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms);
 };

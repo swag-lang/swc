@@ -172,8 +172,8 @@ namespace SemaGeneric
             access = collectSymbolMapNamespacePath(startSymMap, nsPath);
         else
         {
-            for (const IdentifierRef idRef : sema.frame().nsPath())
-                nsPath.push_back(idRef);
+            const auto scopePath = sema.frame().nsPath();
+            nsPath.append(scopePath.data(), scopePath.size());
             access = sema.frame().currentAccess();
         }
         const bool globalCompilerIfEnabled = sema.frame().globalCompilerIfEnabled();
@@ -314,7 +314,7 @@ namespace SemaGeneric
 
         if (outArg.typeRef.isValid())
         {
-            const TypeInfo& typeInfo = sema.typeMgr().get(outArg.typeRef);
+            const TypeInfo& typeInfo = *view.type();
             if (typeInfo.isScalarUnsized() && outArg.cstRef.isValid())
             {
                 ConstantRef newCstRef = ConstantRef::invalid();

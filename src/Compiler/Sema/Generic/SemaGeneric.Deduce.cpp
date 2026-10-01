@@ -251,8 +251,8 @@ namespace
             if (!typeInfo.isArray())
                 return;
 
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                outDims.push_back(dim);
+            const auto& dims = typeInfo.payloadArrayDims();
+            outDims.append(dims.data(), dims.size());
             outFinalElemTypeRef = typeInfo.payloadArrayElemTypeRef();
         }
     }
@@ -860,7 +860,7 @@ namespace
 
         const SemaNodeView dimView = sema.viewNodeTypeConstant(dimRef);
         if (dimView.cstRef().isValid())
-            return sema.cstMgr().get(dimView.cstRef()) == sema.cstMgr().get(actualSizeRef);
+            return *dimView.cst() == sema.cstMgr().get(actualSizeRef);
 
         return true;
     }
@@ -1209,7 +1209,7 @@ namespace
             return Result::Continue;
 
         if (!outTypeRef.isValid())
-            outTypeRef = sema.cstMgr().get(argView.cstRef()).typeRef();
+            outTypeRef = argView.cst()->typeRef();
 
         if (!outTypeRef.isValid())
         {

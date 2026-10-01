@@ -360,27 +360,6 @@ bool MicroRegisterAllocationPass::isLiveOut(MicroReg key, uint32_t stamp) const
     return liveStampByDenseIndex_[denseIndex] == stamp;
 }
 
-bool MicroRegisterAllocationPass::isLiveAcrossCall(MicroReg key) const
-{
-    const uint32_t denseIndex = denseVirtualRegs_.find(key);
-    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= vregsLiveAcrossCall_.size())
-        return false;
-    return vregsLiveAcrossCall_[denseIndex] != 0;
-}
-
-bool MicroRegisterAllocationPass::isLiveAcrossHotCall(MicroReg key) const
-{
-    // A callee-saved float register costs a fixed 16-byte store/load pair on
-    // every function entry; spilling around calls costs one pair per executed
-    // crossing. Flat crossings never repay that reliably — only a call
-    // crossed inside a loop does, where the spill pair would run every
-    // iteration.
-    const uint32_t denseIndex = denseVirtualRegs_.find(key);
-    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= vregsLiveAcrossHotCall_.size())
-        return false;
-    return vregsLiveAcrossHotCall_[denseIndex] >= 10;
-}
-
 void MicroRegisterAllocationPass::markLiveAcrossCall(MicroReg key)
 {
     const uint32_t denseIndex        = denseVirtualIndex(key);
@@ -393,20 +372,6 @@ bool MicroRegisterAllocationPass::requiresCallSpill(MicroReg key) const
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= callSpillFlags_.size())
         return false;
     return callSpillFlags_[denseIndex] != 0;
-}
-
-void MicroRegisterAllocationPass::markCallSpill(MicroReg key)
-{
-    const uint32_t denseIndex   = denseVirtualIndex(key);
-    callSpillFlags_[denseIndex] = 1;
-}
-
-void MicroRegisterAllocationPass::clearCallSpill(MicroReg key)
-{
-    const uint32_t denseIndex = denseVirtualRegs_.find(key);
-    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= callSpillFlags_.size())
-        return;
-    callSpillFlags_[denseIndex] = 0;
 }
 
 bool MicroRegisterAllocationPass::containsKey(const MicroRegSpan keys, MicroReg key)
@@ -3022,11 +2987,12 @@ void MicroRegisterAllocationPass::mapVirtReg(MicroReg virtKey, MicroReg physReg)
 {
     SWC_ASSERT(!isPhysRegForbiddenForVirtual(virtKey, physReg));
 
-    auto& regState = stateForVirtual(virtKey);
+    const uint32_t denseIndex = denseVirtualIndex(virtKey);
+    auto&          regState   = states_[denseIndex];
     if (!regState.mapped)
     {
         regState.mappedListIndex = static_cast<uint32_t>(mappedVirtualIndices_.size());
-        mappedVirtualIndices_.push_back(denseVirtualIndex(virtKey));
+        mappedVirtualIndices_.push_back(denseIndex);
         regState.mapped = true;
     }
 
@@ -3357,16 +3323,15 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
     SWC_ASSERT(!isReservedByGlobalFor(request.virtKey, physReg, request.instructionIndex));
     mapVirtReg(request.virtKey, physReg);
 
-    auto& mappedState = stateForVirtual(request.virtKey);
     if (request.isUse)
     {
         PendingInsert loadPending;
-        if (mappedState.rematerializable)
-            queueRematerializedLoad(loadPending, physReg, mappedState);
+        if (regState.rematerializable)
+            queueRematerializedLoad(loadPending, physReg, regState);
         else
-            queueSpillLoad(loadPending, physReg, mappedState, stackDepth);
+            queueSpillLoad(loadPending, physReg, regState, stackDepth);
         pending.push_back(loadPending);
-        mappedState.dirty = false;
+        regState.dirty = false;
     }
 
     return physReg;
@@ -4177,7 +4142,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 }
             }
 
-            const bool liveAcrossCall = isLiveAcrossCall(request.virtKey);
+            const uint32_t requestDenseIndex = denseVirtualIndex(request.virtKey);
+            const bool     liveAcrossCall    = requestDenseIndex < vregsLiveAcrossCall_.size() && vregsLiveAcrossCall_[requestDenseIndex] != 0;
             // A callee-saved FLOAT register is only worth its prologue
             // save/restore for a value that crosses calls which actually run
             // and do so more than once flat (or inside a loop); one whose
@@ -4188,7 +4154,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (request.virtReg.isVirtualInt())
                 request.needsPersistent = liveAcrossCall && !conv_->intPersistentRegs.empty();
             else
-                request.needsPersistent = isLiveAcrossHotCall(request.virtKey) && !conv_->floatPersistentRegs.empty();
+                request.needsPersistent = requestDenseIndex < vregsLiveAcrossHotCall_.size() && vregsLiveAcrossHotCall_[requestDenseIndex] >= 10 && !conv_->floatPersistentRegs.empty();
 
             const auto      physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, remapForbiddenPhysRegs, stamp, stackDepth, pending_);
             AssignedPhysReg assignedPhysReg;
@@ -4196,14 +4162,12 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             assignedPhysReg.physReg = physReg;
             assignedPhysRegs.push_back(assignedPhysReg);
 
-            if (liveAcrossCall && !isPersistentPhysReg(physReg))
-                markCallSpill(request.virtKey);
-            else
-                clearCallSpill(request.virtKey);
+            if (requestDenseIndex < callSpillFlags_.size())
+                callSpillFlags_[requestDenseIndex] = liveAcrossCall && !isPersistentPhysReg(physReg);
 
             if (request.isDef)
             {
-                auto& regState = stateForVirtual(request.virtKey);
+                auto& regState = states_[requestDenseIndex];
                 updateRematerializationForDef(regState, request.virtKey, it.current, *it, instOps);
                 regState.dirty = true;
 

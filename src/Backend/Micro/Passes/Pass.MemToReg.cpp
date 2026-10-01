@@ -1591,8 +1591,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 if (!acc.isWrite)
                     continue;
-                usable = write == nullptr;
-                write  = &acc;
+                if (write)
+                {
+                    usable = false;
+                    break;
+                }
+                write = &acc;
             }
             if (!usable || !write || write->bits != MicroOpBits::B64)
                 continue;
@@ -1672,10 +1676,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // read on the write's straight line is one with the same break count.
         // Built on the first slot that has the shape, since most functions with a
         // vector store have none.
-        std::unordered_map<uint32_t, uint32_t> ordinal;
-        std::unordered_map<uint32_t, uint32_t> breaksBefore;
-        bool                                   ordinalsReady = false;
-        const auto                             ensureOrdinals = [&] {
+        struct InstructionPosition
+        {
+            uint32_t ordinal = 0;
+            uint32_t breaks  = 0;
+        };
+        std::unordered_map<uint32_t, InstructionPosition> positions;
+        bool       ordinalsReady = false;
+        const auto ensureOrdinals = [&] {
             if (ordinalsReady)
                 return;
             ordinalsReady   = true;
@@ -1686,8 +1694,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 const MicroInstrDef& info = MicroInstr::info(it->op);
                 if (it->op == MicroInstrOpcode::Label)
                     ++breaks;
-                ordinal[it.current.get()]      = index;
-                breaksBefore[it.current.get()] = breaks;
+                positions[it.current.get()] = {index, breaks};
                 if (info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                     info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     ++breaks;
@@ -1705,8 +1712,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 if (!acc.isWrite)
                     continue;
-                usable = write == nullptr;
-                write  = &acc;
+                if (write)
+                {
+                    usable = false;
+                    break;
+                }
+                write = &acc;
             }
             if (!usable || !write || write->bits != MicroOpBits::B128)
                 continue;
@@ -1721,13 +1732,19 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // Only a vector some narrower read overlaps is a candidate.
             bool narrowRead = false;
             for (const auto& [other, otherSlot] : slots)
-                narrowRead = narrowRead || (other > offset && other < end);
+            {
+                if (other > offset && other < end)
+                {
+                    narrowRead = true;
+                    break;
+                }
+            }
             if (!narrowRead)
                 continue;
 
             ensureOrdinals();
-            const uint32_t writeOrdinal = ordinal[write->ref.get()];
-            const uint32_t writeBreaks  = breaksBefore[write->ref.get()];
+            const InstructionPosition writePosition = positions[write->ref.get()];
+
             LaneSplit      split;
             split.offset   = offset;
             split.writeRef = write->ref;
@@ -1748,8 +1765,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     const MicroInstr* read     = storage.ptr(acc.ref);
                     const uint64_t    at       = other - offset;
                     const bool        laneRead = (acc.bits == MicroOpBits::B32 && at % 4 == 0) || (acc.bits == MicroOpBits::B64 && at % 8 == 0);
-                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || !laneRead || ordinal[acc.ref.get()] <= writeOrdinal ||
-                        breaksBefore[acc.ref.get()] != writeBreaks)
+                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || !laneRead)
+                    {
+                        usable = false;
+                        break;
+                    }
+                    const InstructionPosition readPosition = positions[acc.ref.get()];
+                    if (readPosition.ordinal <= writePosition.ordinal || readPosition.breaks != writePosition.breaks)
                     {
                         usable = false;
                         break;
@@ -2043,7 +2065,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     }
 
     // ---- Split the word-sized objects read field by field. ----
-    for (const FieldSplit& split : splits)
+    for (FieldSplit& split : splits)
     {
         const MicroReg word = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
 
@@ -2063,13 +2085,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         fields[0] = word;
         // Low fields first: the word's last reader is then the copy that
         // shifts it, which the allocator can make the word itself.
-        SmallVector<SlotAccess> reads = split.reads;
-        std::ranges::stable_sort(reads, [](const SlotAccess& a, const SlotAccess& b) { return a.offset < b.offset; });
-        for (const SlotAccess& acc : reads)
+        std::ranges::stable_sort(split.reads, [](const SlotAccess& a, const SlotAccess& b) { return a.offset < b.offset; });
+        for (const SlotAccess& acc : split.reads)
         {
             const uint64_t shift = (acc.offset - split.offset) * 8;
-            auto           found = fields.find(shift);
-            if (found == fields.end())
+            const auto [found, inserted] = fields.try_emplace(shift);
+            if (inserted)
             {
                 const MicroReg    field = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
                 MicroInstrOperand copyOps[3];
@@ -2083,7 +2104,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 shiftOps[2].microOp = MicroOp::ShiftRight;
                 shiftOps[3].setImmediateValue(ApInt(shift, 64));
                 storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
-                found = fields.emplace(shift, field).first;
+                found->second = field;
             }
 
             const MicroInstr* read     = storage.ptr(acc.ref);
@@ -2095,8 +2116,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             }
 
             const uint64_t floatKey = shift * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0);
-            auto           floatIt  = floatFields.find(floatKey);
-            if (floatIt == floatFields.end())
+            const auto [floatIt, floatInserted] = floatFields.try_emplace(floatKey);
+            if (floatInserted)
             {
                 const MicroReg    floatField = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);
                 MicroInstrOperand moveOps[3];
@@ -2104,7 +2125,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 moveOps[1].reg    = found->second;
                 moveOps[2].opBits = acc.bits;
                 storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::LoadRegReg, moveOps);
-                floatIt = floatFields.emplace(floatKey, floatField).first;
+                floatIt->second = floatField;
             }
             rewriteSlotAccess(storage, operands, acc, floatIt->second);
         }
@@ -2131,8 +2152,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         {
             const uint64_t at  = acc.offset - split.offset;
             const uint64_t key = at * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0);
-            auto           found = lanes.find(key);
-            if (found == lanes.end())
+            const auto [found, inserted] = lanes.try_emplace(key);
+            if (inserted)
             {
                 MicroReg laneSource = vector;
                 if (at != 0)
@@ -2153,7 +2174,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 moveOps[1].reg    = laneSource;
                 moveOps[2].opBits = acc.bits;
                 storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::LoadRegReg, moveOps);
-                found = lanes.emplace(key, lane).first;
+                found->second = lane;
             }
 
             rewriteSlotAccess(storage, operands, acc, found->second);

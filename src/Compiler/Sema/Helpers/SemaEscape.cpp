@@ -922,6 +922,19 @@ namespace
             return pointer;
 
         const TypeRef sourceTypeRef = pointer.sourceVar ? unwrapAliasEnum(sema, pointer.sourceVar->typeRef()) : TypeRef::invalid();
+        // An address of a known aggregate subobject still names the enclosing
+        // variable's slot. Loading its contents must instead follow the original
+        // value projection, including through a local pointer alias. Requiring
+        // both that projection and its actual value type excludes pointer casts
+        // that merely reinterpret an unrelated enclosing object.
+        if (pointer.sourceRef.isValid() && isStructuralBorrowCarrier(sema, sourceTypeRef) &&
+            sourceTypeRef != unwrapAliasEnum(sema, valueTypeRef) &&
+            unwrapAliasEnum(sema, expressionTypeRef(sema, pointer.sourceRef)) == unwrapAliasEnum(sema, valueTypeRef))
+        {
+            SemaEscapeProjection projection;
+            if (storageProjection(sema, pointer.sourceRef, projection) && projection.root == pointer.sourceVar && !projection.components.empty())
+                return expressionEscapeInfoWithTarget(sema, pointer.sourceRef, valueTypeRef, budget);
+        }
         // The runtime interface view exposes the carrier's two stored pointers,
         // not the address of the local interface slot used to inspect them.
         const bool interfaceContents = sourceTypeRef.isValid() && sema.typeMgr().get(sourceTypeRef).isInterface() &&

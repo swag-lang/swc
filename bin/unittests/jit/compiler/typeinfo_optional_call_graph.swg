@@ -50,7 +50,7 @@ impl MetadataReceiver
     }
 }
 
-// Ready optional metadata pointers must still become callable during #run.
+// A method whose analysis has completed must be callable through metadata during #run.
 #[Swag.ExportType(.Methods)]
 struct MetadataReady
 {
@@ -65,6 +65,33 @@ impl MetadataReady
     }
 }
 
+#[Swag.ExportType(.Methods)]
+struct(T) MetadataLazyReady
+{
+    value: T
+}
+
+impl MetadataLazyReady
+{
+    mtd read()->T
+    {
+        return .value
+    }
+}
+
+func metadataLazyMethodWorks()
+{
+    // This idle generic body is reached only through optional metadata, without a direct call.
+    var ready = MetadataLazyReady's32{value: 42}
+    let info  = cast(const *Swag.TypeInfoStruct) #typeof(MetadataLazyReady's32)
+    Swag.assert(info.methods.count == 1)
+    let address = info.methods![0].value
+    Swag.assert(address != null)
+    let read  = cast(func(*MetadataLazyReady's32)->s32) address
+    let value = read(&ready)
+    Swag.assert(value == 42)
+}
+
 func metadataCallGraphWorks()
 {
     var receiver: MetadataReceiver
@@ -74,7 +101,10 @@ func metadataCallGraphWorks()
     Swag.assert(receiver.count == 2)
 
     var ready = MetadataReady{value: 42}
-    let info  = cast(const *Swag.TypeInfoStruct) #typeof(MetadataReady)
+    // Complete this body's analysis before requiring its optional metadata address.
+    let readyValue = ready.read()
+    Swag.assert(readyValue == 42)
+    let info = cast(const *Swag.TypeInfoStruct) #typeof(MetadataReady)
     Swag.assert(info.methods.count == 1)
     let address = info.methods![0].value
     Swag.assert(address != null)
@@ -85,9 +115,11 @@ func metadataCallGraphWorks()
 #run
 {
     metadataCallGraphWorks()
+    metadataLazyMethodWorks()
 }
 
 #test
 {
     metadataCallGraphWorks()
+    metadataLazyMethodWorks()
 }

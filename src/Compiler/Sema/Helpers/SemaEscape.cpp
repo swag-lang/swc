@@ -751,6 +751,7 @@ namespace
     SemaEscapeInfo expressionEscapeInfoWithTarget(Sema& sema, AstNodeRef nodeRef, TypeRef targetTypeRef, uint32_t& budget);
     SemaEscapeInfo deferredCallBorrowInfo(Sema& sema, AstNodeRef exprRef);
     bool           captureOpaqueCallBorrows(Sema& sema, AstNodeRef exprRef, bool collectPairs, SemaEscapeDeferredCallSnapshot& outCapture, uint32_t& budget);
+    bool           onlyOwnedStorageBorrow(const SemaEscapeInfo& info);
 
     AstNodeRef argumentValueRef(Sema& sema, AstNodeRef argRef)
     {
@@ -970,6 +971,16 @@ namespace
                 }
             }
         }
+        // An owning buffer's slot does not bound the lifetime of copied contents.
+        // Exact field provenance was handled by the earlier returns.
+        if (onlyOwnedStorageBorrow(pointer))
+            return {};
+
+        // Only the conservative fallback still describes the slot used to read
+        // these contents. Exact projections and known aggregate contents returned
+        // above retain their own allocation identity.
+        if (pointer.hasBorrow())
+            pointer.markStoredFieldBorrow();
         pointer.typeRef = valueTypeRef;
         return pointer;
     }
@@ -2676,7 +2687,11 @@ namespace
                     }
                 }
 
-                SemaEscapeInfo info = expressionEscapeInfoRec(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, budget);
+                const AstNodeRef leftRef     = node.cast<AstMemberAccessExpr>().nodeLeftRef;
+                const TypeRef    leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, leftRef));
+                SemaEscapeInfo   info        = expressionEscapeInfoRec(sema, leftRef, budget);
+                if (!info.hasBorrow() && isStructuralBorrowCarrier(sema, leftTypeRef))
+                    info = deferredCallBorrowInfo(sema, leftRef);
                 if (info.hasBorrow())
                 {
                     // Ordinary carrier members copy an independent pointee. An erased
@@ -2685,30 +2700,20 @@ namespace
                     const TypeRef memberTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef));
                     if (isDirectBorrowCarrier(sema, memberTypeRef) && !info.viaErasedPayload)
                     {
-                        // A pointer copied from an owned buffer's element does not
-                        // point into that buffer merely because its slot does.
-                        // Exact field provenance was handled above; retain every
-                        // non-owning or erased route that can describe its contents.
-                        if (onlyOwnedStorageBorrow(info))
-                            return {};
-                        const AstNodeRef leftRef     = node.cast<AstMemberAccessExpr>().nodeLeftRef;
-                        const TypeRef    leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, leftRef));
                         if (leftTypeRef.isValid())
                         {
                             const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
                             if ((leftType.isAnyPointer() || leftType.isReference()) && isStructuralBorrowCarrier(sema, leftType.payloadTypeRef()))
+                            {
+                                // Reading through a slot does not make a copied pointer
+                                // alias that slot. An aggregate already held by value
+                                // carries its fields' borrows, so those routes survive.
                                 info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
+                            }
                             else if (!isStructuralBorrowCarrier(sema, leftTypeRef))
                                 return {};
                             if (info.hasBorrow())
-                            {
-                                // The lifetime bound of an unknown field value is
-                                // not proof that freeing it frees the enclosing slot.
-                                // Exact tracked field borrows returned above retain
-                                // their original allocation identity.
-                                info.viaStoredField = true;
-                                info.typeRef        = memberTypeRef;
-                            }
+                                info.typeRef = memberTypeRef;
                             return info;
                         }
                         return {};
@@ -2748,7 +2753,10 @@ namespace
             if (!childTargetTypeRef.isValid())
                 continue;
 
-            result = mergeEscapeInfo(sema, result, expressionEscapeInfoWithTarget(sema, childRef, childTargetTypeRef, budget));
+            SemaEscapeInfo info = expressionEscapeInfoWithTarget(sema, childRef, childTargetTypeRef, budget);
+            if (!info.hasBorrow() && typeCanCarryBorrowImpl(sema, childTargetTypeRef))
+                info = deferredCallBorrowInfo(sema, childRef);
+            result = mergeEscapeInfo(sema, result, info);
         }
 
         return result;
@@ -2823,16 +2831,19 @@ namespace
                 const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
                 SemaEscapeInfo  info;
                 if ((leftType.isAnyPointer() || leftType.isReference()) && isStructuralBorrowCarrier(sema, leftType.payloadTypeRef()))
+                {
                     info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
+                }
                 else if (isStructuralBorrowCarrier(sema, leftTypeRef))
+                {
                     info = expressionEscapeInfoWithTarget(sema, leftRef, leftTypeRef, budget);
+                    if (!info.hasBorrow())
+                        info = deferredCallBorrowInfo(sema, leftRef);
+                }
                 else
                     break;
                 if (info.hasBorrow())
-                {
-                    info.viaStoredField = true;
-                    info.typeRef        = targetTypeRef;
-                }
+                    info.typeRef = targetTypeRef;
                 return info;
             }
 
@@ -4026,15 +4037,15 @@ namespace
 
             for (const SemaEscapeDeferredCheck& check : snapshot->checks)
             {
-                if (check.borrowedVar != &root || !check.callee || check.indirect)
+                if (check.borrowedVar != &root || !check.callee || check.indirect || check.viaStoredField)
                     continue;
                 const SymbolVariable* mutationField = firstProjectionField(mutation);
                 if (mutationField && check.borrowedPayloadField && mutationField != check.borrowedPayloadField)
                     continue;
 
-                // Every call the result travelled through has to hand the view on. The
-                // check already carries the guards of the calls before it; this one adds
-                // the call that produced the value.
+                // Every call must preserve storage or expose its payload. The final
+                // invalidation check also requires a payload accessor somewhere along
+                // this route, once every callee summary has converged.
                 outGuards.clear();
                 for (const SemaEscapeDeferredGuard& guard : check.guards)
                     outGuards.push_back({guard.callee, guard.paramIndex, true, guard.indirect});
@@ -4682,6 +4693,25 @@ namespace
         bool                                                sawStore_     = false;
     };
 
+}
+
+void SemaEscapeInfo::markStoredFieldBorrow()
+{
+    viaStoredField = true;
+    // A copied field keeps its lifetime bounds, but no longer aliases the slot
+    // used to read it. Clone shared snapshots so other aliases and flow branches
+    // retain their own storage route.
+    for (auto& snapshot : deferredCalls)
+    {
+        if (!snapshot)
+            continue;
+        auto copied = std::make_shared<SemaEscapeDeferredCallSnapshot>(*snapshot);
+        for (auto& check : copied->checks)
+            check.viaStoredField = true;
+        for (auto& edge : copied->edges)
+            edge.viaStoredField = true;
+        snapshot = std::move(copied);
+    }
 }
 
 namespace SemaEscape
@@ -5739,12 +5769,12 @@ namespace SemaEscape
                             // payload returns a view into that payload too - but only when the
                             // argument WAS the payload's owner, not when the caller passed
                             // something the callee merely reached through.
-                            if (storageRoute && payloadGuard && (edge.callee->returnsStorageParamsMask() & calleeBit))
+                            if (storageRoute && !edge.viaStoredField && payloadGuard && (edge.callee->returnsStorageParamsMask() & calleeBit))
                             {
                                 if (propagateReturnedPayload(edge, *payloadGuard->callee, payloadGuard->paramIndex))
                                     changed = true;
                             }
-                            else if (storageRoute && (edge.callee->returnsPayloadParamsMask() & calleeBit) && propagateReturnedPayload(edge, *edge.callee, edge.calleeParamIndex))
+                            else if (storageRoute && !edge.viaStoredField && (edge.callee->returnsPayloadParamsMask() & calleeBit) && propagateReturnedPayload(edge, *edge.callee, edge.calleeParamIndex))
                                 changed = true;
                             break;
 
@@ -5877,6 +5907,15 @@ namespace SemaEscape
                 if (!((check.callee->reallocatesParamsMask() >> check.paramIndex) & 1))
                     continue;
 
+                // An accessor exposes the payload; identity wrappers can forward
+                // that storage without introducing another payload of their own.
+                // Resolve the complete route only after its summaries converge.
+                const auto accessor = std::ranges::find_if(check.guards, [](const SemaEscapeDeferredGuard& guard) {
+                    return guard.callee && !guard.indirect && (guard.callee->returnsPayloadParamsMask() & (1ULL << guard.paramIndex));
+                });
+                if (!check.guards.empty() && accessor == check.guards.end())
+                    continue;
+
                 SmallVector4<const SymbolVariable*> borrowedFields;
                 bool                                borrowedFieldsUnknown = false;
                 if (check.borrowedPayloadField)
@@ -5885,16 +5924,15 @@ namespace SemaEscape
                 }
                 else if (!check.guards.empty())
                 {
-                    const SemaEscapeDeferredGuard& accessor = check.guards.back();
-                    if (!accessor.callee || accessor.callee->returnsPayloadParamProjectionUnknown(accessor.paramIndex))
+                    if (accessor->callee->returnsPayloadParamProjectionUnknown(accessor->paramIndex))
                     {
                         borrowedFieldsUnknown = true;
                     }
                     else
                     {
-                        for (const SymbolFunction::ParamField& entry : accessor.callee->returnedPayloadParamFields())
+                        for (const SymbolFunction::ParamField& entry : accessor->callee->returnedPayloadParamFields())
                         {
-                            if (entry.paramIndex == accessor.paramIndex && entry.field)
+                            if (entry.paramIndex == accessor->paramIndex && entry.field)
                                 borrowedFields.push_back(entry.field);
                         }
                         borrowedFieldsUnknown = borrowedFields.empty();
@@ -5985,7 +6023,7 @@ namespace SemaEscape
             const bool guardMiss = std::ranges::any_of(check.guards, [](const SemaEscapeDeferredGuard& guard) {
                 if (!guard.callee)
                     return true;
-                const uint64_t mask = guard.requirePayload ? (guard.indirect ? 0 : guard.callee->returnsPayloadParamsMask()) : returnBorrowMask(*guard.callee, guard.indirect);
+                const uint64_t mask = guard.requireStorageRoute ? (guard.indirect ? 0 : guard.callee->returnsStorageParamsMask() | guard.callee->returnsPayloadParamsMask()) : returnBorrowMask(*guard.callee, guard.indirect);
                 return !(mask & (1ULL << guard.paramIndex));
             });
             if (guardMiss)

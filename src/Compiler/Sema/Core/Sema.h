@@ -106,6 +106,8 @@ struct SemaEscapeInfo
     bool isTemporaryBorrow() const { return kind == SemaEscapeKind::Temporary; }
     bool isDeferredCallBorrow() const { return kind == SemaEscapeKind::DeferredCall; }
 
+    void markStoredFieldBorrow();
+
     void mergeFrom(const SemaEscapeInfo& other)
     {
         if (kind == other.kind && sourceVar == other.sourceVar)

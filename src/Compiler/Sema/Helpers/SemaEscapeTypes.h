@@ -18,11 +18,11 @@ struct SemaEscapeDeferredGuard
 {
     const SymbolFunction* callee     = nullptr;
     uint32_t              paramIndex = 0;
-    // Judged against the callee's RETURNS-PAYLOAD summary instead of its RETURN one: the
-    // result must be a view INTO what the parameter owns, not merely a value that can
-    // reach it. Only the invalidation check needs the stronger question.
-    bool requirePayload = false;
-    bool indirect       = false; // consult returnsIndirect instead of returns
+    // Invalidation requires each call to preserve storage or expose its payload,
+    // with at least one payload accessor along the complete route. A mere lifetime
+    // dependency cannot establish that the result aliases the mutated allocation.
+    bool requireStorageRoute = false;
+    bool indirect            = false; // consult returnsIndirect instead of returns
 
     bool operator==(const SemaEscapeDeferredGuard&) const noexcept = default;
 };

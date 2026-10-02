@@ -1098,6 +1098,15 @@ private impl RenderCpu
                 cast(f32) ptr[3] / 255.0}
     }
 
+    // Keep the interpolation rounded before quantizing font coverage and effect colors.
+    func lerpFontSample(src, dst: Vector4, factor: f32)->Vector4
+    {
+        return {Math.mulAdd(factor, dst.x - src.x, src.x),
+                Math.mulAdd(factor, dst.y - src.y, src.y),
+                Math.mulAdd(factor, dst.z - src.z, src.z),
+                Math.mulAdd(factor, dst.w - src.w, src.w)}
+    }
+
     func sampleFontAtlas(atlas: const *GlyphAtlas, uv: Vector2, linear: bool)->Vector4
     {
         let width  = cast(s32) (atlas.width / atlas.bytesPerPixel)
@@ -1138,14 +1147,14 @@ private impl RenderCpu
             let f10 = fetch(atlas, width, height, x1, y0)
             let f01 = fetch(atlas, width, height, x0, y1)
             let f11 = fetch(atlas, width, height, x1, y1)
-            return Vector4.lerp(Vector4.lerp(f00, f10, tx), Vector4.lerp(f01, f11, tx), ty)
+            return lerpFontSample(lerpFontSample(f00, f10, tx), lerpFontSample(f01, f11, tx), ty)
         }
 
         let c00 = readFontAtlas(atlas, x0, y0)
         let c10 = readFontAtlas(atlas, x1, y0)
         let c01 = readFontAtlas(atlas, x0, y1)
         let c11 = readFontAtlas(atlas, x1, y1)
-        return Vector4.lerp(Vector4.lerp(c00, c10, tx), Vector4.lerp(c01, c11, tx), ty)
+        return lerpFontSample(lerpFontSample(c00, c10, tx), lerpFontSample(c01, c11, tx), ty)
     }
 
     func msdfCoverage(atlas: const *GlyphAtlas, uv: Vector2, screenPxRange, edge, aa: f32)->f32
@@ -1222,7 +1231,7 @@ private impl RenderCpu
             let f10   = cache[cast(u64) (row0 + sample.x1 - minX)]
             let f01   = cache[cast(u64) (row1 + sample.x0 - minX)]
             let f11   = cache[cast(u64) (row1 + sample.x1 - minX)]
-            let value = Vector4.lerp(Vector4.lerp(f00, f10, sample.tx), Vector4.lerp(f01, f11, sample.tx), sample.ty)
+            let value = lerpFontSample(lerpFontSample(f00, f10, sample.tx), lerpFontSample(f01, f11, sample.tx), sample.ty)
             let sd    = median(value.x, value.y, value.z)
             result += Math.saturate((sd - 0.5) * screenPxRange + 0.5)
         }

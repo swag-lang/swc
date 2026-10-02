@@ -663,10 +663,16 @@ impl Painter
             {
                 .setTextureFont(glyph.font orelse drawFont, refr.atlasIndex)
 
-                let x1 = snapTextPosition(glyphX + refr.shiftX * info.scale, snapPixels, info.deviceScale, info.snapOffsetX) + dx
-                let y1 = snapTextPosition(baselineY + glyph.offsetY * info.scale - refr.shiftY * info.scale, snapPixels, info.deviceScale, info.snapOffsetY) + dy
-                let x2 = snapTextPosition(glyphX + (refr.shiftX * info.scale) + (refr.width * info.scale), snapPixels, info.deviceScale, info.snapOffsetX) + dx
-                let y2 = snapTextPosition(baselineY + glyph.offsetY * info.scale - (refr.shiftY * info.scale) + (refr.height * info.scale), snapPixels, info.deviceScale, info.snapOffsetY) + dy
+                // Round scaled reference metrics before translating each quad edge.
+                let left   = Math.mulAdd(refr.shiftX, info.scale, glyphX)
+                let top    = Math.mulAdd(-refr.shiftY, info.scale, Math.mulAdd(glyph.offsetY, info.scale, baselineY))
+                let right  = Math.mulAdd(refr.width, info.scale, left)
+                let bottom = Math.mulAdd(refr.height, info.scale, top)
+
+                let x1 = snapTextPosition(left, snapPixels, info.deviceScale, info.snapOffsetX) + dx
+                let y1 = snapTextPosition(top, snapPixels, info.deviceScale, info.snapOffsetY) + dy
+                let x2 = snapTextPosition(right, snapPixels, info.deviceScale, info.snapOffsetX) + dx
+                let y2 = snapTextPosition(bottom, snapPixels, info.deviceScale, info.snapOffsetY) + dy
 
                 let p1 = Math.Vector2{x1, y1}
                 let p2 = Math.Vector2{x2, y1}

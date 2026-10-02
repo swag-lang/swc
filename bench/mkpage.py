@@ -301,6 +301,7 @@ def matrix(tasks, runtimes, value, show, footer=None):
 def ranked_table(tasks, runtimes, value, display):
     """One line per task: every runtime from the lowest value to the highest, swag marked.
 
+    The winner keeps its time; every other entry shows time / winner time.
     The second column gives swag release's place in that line, which is the question the
     table exists to answer."""
     lead = next((rt for rt in ("swag-release", "swc-jit-release") if rt in runtimes), None)
@@ -316,10 +317,13 @@ def ranked_table(tasks, runtimes, value, display):
         place = ("%d<span class=\"mode\">/%d</span>" % (ranks[lead], len(measured))
                  if lead in ranks else "&mdash;")
         out.append("<tr><th%s><code>%s</code></th><td>%s</td><td><ol>" % (title, task, place))
+        best = measured[0][1] if measured else None
         for rank, (rt, result) in enumerate(measured, 1):
+            shown = (display(result) + "&nbsp;ms" if rank == 1 and result is not None
+                     else fmt(result / best) if result is not None and best
+                     else "&mdash;")
             out.append('<li class="%s"><b>%d</b>%s<i>%s</i></li>'
-                       % (lang_class(rt), rank, runtime_badge(rt),
-                          display(result)))
+                       % (lang_class(rt), rank, runtime_badge(rt), shown))
         out.append("</ol></td></tr>")
     out.append("</tbody></table></div>")
     return "\n".join(out)
@@ -480,7 +484,7 @@ def history_section(entries):
     for field, name, nd, unit in (
             ("exec_vs_best", "ex&eacute;cution vs le meilleur (&times;)", 2, "&times;"),
             ("jit_gap_pct", "JIT swc vs natif swc (%)", 0, "%"),
-            ("build_edge", "build MSVC / swc (&times;)", 1, "&times;")):
+            ("build_speedup", "build speedup vs fastest rival (&times;)", 2, "&times;")):
         vals = [e.get("headline", {}).get(field) for e in entries]
         parts.append('<div class="sm"><b>%s</b>%s</div>'
                      % (name, svg_lines(labels, [("h-a", "", vals)], unit, nd=nd, compact=True)))
@@ -607,11 +611,10 @@ def main():
     # The tasks of the published campaigns, in toolchains order: a task added since the
     # last campaign appears once a campaign has measured it.
     TASK_IDS = [t for t in tc.TASKS if t in T and t in BT]
-    first = TASK_IDS[0]
-    present = [r[0] for r in RUNTIMES if r[0] in T[first]
-               and (T[first][r[0]].get("run") or {}).get("ms")]
-    aot = [r[0] for r in RUNTIMES if r[0] in BT[first]
-           and (BT[first][r[0]].get("build") or {}).get("wall_ms")]
+    gm = history.ratios_to_best(T, TASK_IDS, "run", "ms")
+    bgm = history.ratios_to_best(BT, TASK_IDS, "build", "wall_ms")
+    present = [r[0] for r in RUNTIMES if r[0] in gm]
+    aot = [r[0] for r in RUNTIMES if r[0] in bgm]
 
     def ms(rt, task):
         return ((T[task].get(rt) or {}).get("run") or {}).get("ms")
@@ -619,9 +622,6 @@ def main():
     def build(rt, task, key):
         return ((BT[task].get(rt) or {}).get("build") or {}).get(key)
 
-    best = {t: min(v for v in (ms(r, t) for r in present) if v) for t in TASK_IDS}
-    ratio = {r: {t: ms(r, t) / best[t] for t in TASK_IDS if ms(r, t)} for r in present}
-    gm = {r: geo(list(ratio[r].values())) for r in present}
     bgeo = {r: geo([build(r, t, "wall_ms") for t in TASK_IDS]) for r in aot}
     bmem = {r: max(build(r, t, "peak_bytes") or 0 for t in TASK_IDS) / 1048576.0 for r in aot}
     exekb = {r: geo([build(r, t, "exe_bytes") for t in TASK_IDS]) / 1024.0 for r in aot}
@@ -630,9 +630,7 @@ def main():
 
     swag = gm["swag-release"]
     jit_gap = (gm["swc-jit-release"] / swag - 1.0) * 100.0
-    build_entry = next(entry for entry in entries
-                       if entry["meta"]["stamp"] == B["meta"]["stamp"])
-    build_edge = build_entry["headline"]["build_edge"]
+    build_speedup = history.build_speedup(BT, TASK_IDS)
 
     def stat(value, unit, name):
         return ('<div class="stat"><div class="sv">%s<em>%s</em></div>'
@@ -641,7 +639,7 @@ def main():
     stats = "".join([
         stat(fmt(swag), "&times;", "ex&eacute;cution vs le meilleur"),
         stat("%+.0f" % jit_gap, "%", "JIT swc vs natif swc"),
-        stat(fmt(build_edge, 1), "&times;", "build MSVC / swc"),
+        stat(fmt(build_speedup), "&times;", "build speedup vs fastest rival"),
         stat("%d" % round(bmem["swag-release"]), "Mo", "pic m&eacute;moire du compilateur"),
     ])
 
@@ -752,8 +750,9 @@ def main():
         "Native code runs within about **%sx of clang-cl** on those %s programs (geometric "
         "mean), while" % (fmt(gm["swag-release"] / gm["cpp-clang-cl"], 1),
                               spelled(len(TASK_IDS)).lower()),
-        "the control-adjusted MSVC baseline / swc build ratio is **%sx**. The raw table "
-        "above includes each compiler's imports and linker." % fmt(build_edge, 1),
+        "the geometric mean of fastest non-Swag build time / swc build time per task is "
+        "**%sx** (higher is better; 2x means swc builds twice as fast on average). The raw table "
+        "above includes each recipe's imports and linking or bytecode generation." % fmt(build_speedup),
         "A hello world compiles and links in %s ms."
         % fmt((B["hello_build"].get("swag-release") or {}).get("wall_ms"), 0),
         "",

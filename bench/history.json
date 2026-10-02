@@ -247,7 +247,8 @@
       "exec_vs_best": 1.4603471759244522,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 0.7371652055347511,
-      "build_edge": 4.135804515729027
+      "build_speedup": 3.0468120789836908,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -589,7 +590,8 @@
       "exec_vs_best": 1.4744838683364485,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": -1.4954783518186687,
-      "build_edge": 3.8397476499532033
+      "build_speedup": 2.7169228013298823,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -931,7 +933,8 @@
       "exec_vs_best": 1.4539259649099328,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": -0.9468846313285151,
-      "build_edge": 3.9179364383601984
+      "build_speedup": 2.7675481684879193,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -1273,7 +1276,8 @@
       "exec_vs_best": 1.4067665378644512,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 3.7296671329335673,
-      "build_edge": 2.979386872748858
+      "build_speedup": 2.5658888699938815,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -1616,7 +1620,8 @@
       "exec_vs_best": 1.1678991260330356,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 18.592598097915758,
-      "build_edge": 3.3120357795703628
+      "build_speedup": 2.49900748273178,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -2004,7 +2009,8 @@
       "exec_vs_best": 1.133907845299677,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 14.430132720841883,
-      "build_edge": 2.526775180133396
+      "build_speedup": 1.8556979193403655,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -2392,7 +2398,8 @@
       "exec_vs_best": 1.1418120018921298,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 13.285544420245564,
-      "build_edge": 3.015543916853146
+      "build_speedup": 2.2573359959542985,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -2780,7 +2787,8 @@
       "exec_vs_best": 1.1630026475021993,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 13.67677683496844,
-      "build_edge": 3.037671570473125
+      "build_speedup": 2.231686019044864,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -3168,7 +3176,8 @@
       "exec_vs_best": 1.1700575705240341,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 20.801133343286928,
-      "build_edge": 3.256626630930243
+      "build_speedup": 2.2560876519883735,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -3556,7 +3565,8 @@
       "exec_vs_best": 1.1191105080966357,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 15.381351410320931,
-      "build_edge": 1.9872287294360549
+      "build_speedup": 1.44937824228693,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -3944,7 +3954,8 @@
       "exec_vs_best": 1.1061879578168161,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 13.567678033677621,
-      "build_edge": 2.2186517511943085
+      "build_speedup": 1.6077778493908776,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -4332,7 +4343,8 @@
       "exec_vs_best": 1.1252069370500946,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 11.894679015774766,
-      "build_edge": 2.492640423326381
+      "build_speedup": 1.7924054010809432,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -4714,7 +4726,8 @@
       "exec_vs_best": null,
       "exec_fastest": null,
       "jit_gap_pct": null,
-      "build_edge": 2.5642369032495638
+      "build_speedup": 1.7994936301364997,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -5073,7 +5086,8 @@
       "exec_vs_best": 1.1514277574627345,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 10.699907719469625,
-      "build_edge": 2.478628941747949
+      "build_speedup": 1.852806794574804,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -5464,7 +5478,8 @@
       "exec_vs_best": 1.094168223913449,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 13.537648316908534,
-      "build_edge": 2.3355005264562756
+      "build_speedup": 1.6087484729459158,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -5855,7 +5870,8 @@
       "exec_vs_best": 1.1243880546091194,
       "exec_fastest": "cpp-clang-cl",
       "jit_gap_pct": 15.628342517463167,
-      "build_edge": 2.304745930606372
+      "build_speedup": 1.6413596481375219,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -6246,7 +6262,8 @@
       "exec_vs_best": 1.0752527926166773,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 13.123336413372733,
-      "build_edge": 2.4532673906399154
+      "build_speedup": 1.8094760288491356,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -6628,7 +6645,8 @@
       "exec_vs_best": 1.071663127219873,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 12.76165041638535,
-      "build_edge": null
+      "build_speedup": null,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -6932,7 +6950,8 @@
       "exec_vs_best": 1.0957438332974192,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 15.68925861491497,
-      "build_edge": 2.6421708117777793
+      "build_speedup": 1.8626530919517028,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -7323,7 +7342,8 @@
       "exec_vs_best": 1.0558853851325642,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 19.162988498413537,
-      "build_edge": 2.81653043762654
+      "build_speedup": 2.025244235760348,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -7714,7 +7734,8 @@
       "exec_vs_best": 1.0293239151540832,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 20.85597579297498,
-      "build_edge": 2.524486128749245
+      "build_speedup": 1.797750561334661,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -8105,7 +8126,8 @@
       "exec_vs_best": 1.0283066232629299,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 17.259877962278747,
-      "build_edge": 2.4811210847547525
+      "build_speedup": 1.8186413190766098,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -8496,7 +8518,8 @@
       "exec_vs_best": 1.0308771953527693,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 21.870933115529525,
-      "build_edge": 2.5449665925034486
+      "build_speedup": 1.829363155657312,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -8887,7 +8910,8 @@
       "exec_vs_best": 1.0239847858635687,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 21.931167903032733,
-      "build_edge": 2.5272122438747404
+      "build_speedup": 1.855466922067849,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -9278,7 +9302,8 @@
       "exec_vs_best": 1.0636211425612647,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 13.333163553411476,
-      "build_edge": 2.4854905520136694
+      "build_speedup": 1.7892258695447192,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -9669,7 +9694,8 @@
       "exec_vs_best": 1.063426208782435,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 15.985484575928677,
-      "build_edge": 2.537284721061242
+      "build_speedup": 1.8507226797501313,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -10060,7 +10086,8 @@
       "exec_vs_best": 1.0267776179563408,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 16.032019421560427,
-      "build_edge": 2.492342252003343
+      "build_speedup": 1.8367046408946333,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -10557,7 +10584,8 @@
       "exec_vs_best": 1.0254794744677653,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 13.596213413254432,
-      "build_edge": 2.4935340808589688
+      "build_speedup": 1.794728387128708,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -11094,7 +11122,8 @@
       "exec_vs_best": 1.010799105735724,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 24.68175519758389,
-      "build_edge": 2.577623122483944
+      "build_speedup": 1.629472041982401,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -11631,7 +11660,8 @@
       "exec_vs_best": 1.02385285392299,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 13.380291236661378,
-      "build_edge": 2.6595639315584965
+      "build_speedup": 1.9152786088413662,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -12168,7 +12198,8 @@
       "exec_vs_best": 1.032705159748857,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 12.20022391437805,
-      "build_edge": 2.6434923665150905
+      "build_speedup": 1.8695262557739856,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -12705,7 +12736,8 @@
       "exec_vs_best": 1.0011103985577914,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 14.67004675521597,
-      "build_edge": 2.786169675362765
+      "build_speedup": 2.1688785478619472,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -13242,7 +13274,8 @@
       "exec_vs_best": 1.003408094631037,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 15.009203202499366,
-      "build_edge": 2.6722409293863474
+      "build_speedup": 1.9572367194461195,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -13779,7 +13812,8 @@
       "exec_vs_best": 1.019337868801909,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 12.752380722087509,
-      "build_edge": 2.033801301972553
+      "build_speedup": 1.5535628761170392,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -14316,7 +14350,8 @@
       "exec_vs_best": 1.0031545547801055,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 14.169935947739054,
-      "build_edge": 2.709257004932816
+      "build_speedup": 1.940637047910315,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -14853,7 +14888,8 @@
       "exec_vs_best": 1.0244462042406914,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 12.408679214780683,
-      "build_edge": 2.5457937430548085
+      "build_speedup": 1.8314153937893538,
+      "build_tasks": 7
     },
     "null": {
       "run": {
@@ -15376,7 +15412,8 @@
       "exec_vs_best": 1.0137904582468287,
       "exec_fastest": "swag-release",
       "jit_gap_pct": 14.886669468249437,
-      "build_edge": null
+      "build_speedup": null,
+      "build_tasks": 7
     },
     "null": {
       "run": {

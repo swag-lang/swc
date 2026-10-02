@@ -50,9 +50,17 @@ library source. For example, Swag's `Swag.print` is built in, Rust uses `std`, C
 Windows headers, and D and Odin import runtime packages. The shared C++ header even includes
 `<cmath>` for tasks that do not use it. A ratio across languages is therefore a
 ratio of these particular build recipes, not an isolated ratio of compiler front-end speed.
-The report's MSVC/Swag ratio fixes MSVC at the first clean campaign and divides Swag's build
-time by the per-task median movement of unchanged compiler controls. The per-task table still
-shows raw times from the latest accepted campaign.
+The report's compilation speedup takes the fastest non-Swag build time for each task, divides
+it by Swag release build time, then takes the geometric mean of those ratios. Every task has
+equal weight, regardless of its duration. A value of 2x means Swag builds twice as fast on
+average; 1x means parity; below 1x means Swag is slower. Every Swag mode is excluded from the
+reference, and the fastest competitor can differ by task. All other build configurations,
+including bytecode generation, participate if they have valid times for every displayed task.
+The headline uses the latest accepted build campaign and all displayed tasks. Rankings show
+the winner's time in milliseconds, followed by each other runtime's time / winner time;
+2 means twice as slow. Execution rankings use the same display within each runtime group.
+Charts and the detailed raw-time matrices keep milliseconds. The separate `hello` workload
+is excluded from the aggregate.
 The `hello` column is a separate small program with a different import set; it is useful as a
 second data point, but subtracting it from a task does not remove library overhead reliably.
 For a compiler improvement claim, `py compile.py --against <baseline-swc>` compares two compiler
@@ -251,9 +259,12 @@ and median dispersion so the correction remains auditable. A context factor belo
 the controls ran faster than at baseline, so the raw Swag value is raised before comparison.
 
 Compiler memory is the exception. It does not drift with machine state, so it is plotted raw.
-The execution headline ratios compare runtimes within one accepted campaign. The build headline
-ratio instead uses the fixed MSVC baseline and Swag's control-adjusted build time; raw build
-ratios do not reliably cancel machine effects on different compilers.
+The execution and build headline ratios compare runtimes within one accepted campaign. Both
+use geometric means, but execution reports Swag time / fastest time (lower is better), while
+compilation reports fastest non-Swag time / Swag time (higher is better). Neither is an index
+against a historical compiler baseline. Machine correction remains in the history's time and
+index curves. A cross-language build ratio can still move with machine effects on different
+compilers; read compiler progress from those corrected curves and their resolution bands.
 
 ## What the bench can actually see
 

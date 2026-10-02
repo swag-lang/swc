@@ -54,7 +54,6 @@ TRACKED = ["swag-release", "swc-jit-release", "swag-fast-debug", "swc-jit-fast-d
 BUILT = ["swag-release", "swag-fast-debug"]
 MIN_CONTROLS = 3
 FAMILIES = (("run", "ms"), ("build", "wall_ms"))
-BUILD_REFERENCE = "cpp-msvc"
 
 
 def geo(values):
@@ -293,30 +292,59 @@ def _null_indices(results, refs, panel):
     return nulls
 
 
+def ratios_to_best(tasks, task_ids, family, key, reference_exclusions=()):
+    """Geometric mean of each runtime's time / fastest time on the same tasks.
+
+    Only runtimes measured on every task participate, so missing measurements cannot
+    improve a runtime's score by dropping its slower workloads. The fastest time may
+    belong to a different runtime on each task. Exclusions affect the reference only,
+    so Swag can be compared with the fastest non-Swag compiler without setting its
+    own ceiling.
+    """
+    if not task_ids:
+        return {}
+
+    def value(runtime, task):
+        measurement = tasks[task].get(runtime, {}).get(family) or {}
+        elapsed = measurement.get(key)
+        return elapsed if not measurement.get("error") and elapsed and elapsed > 0 else None
+
+    present = [rt for rt in tasks[task_ids[0]] if all(value(rt, t) for t in task_ids)]
+    references = [rt for rt in present if rt not in reference_exclusions]
+    if not references:
+        return {}
+    best = {t: min(value(rt, t) for rt in references) for t in task_ids}
+    return {rt: geo([value(rt, t) / best[t] for t in task_ids]) for rt in present}
+
+
+def build_speedup(tasks, task_ids):
+    """Geometric mean of fastest non-Swag build time / Swag release build time."""
+    ratios = ratios_to_best(tasks, task_ids, "build", "wall_ms", reference_exclusions=TRACKED)
+    swag = ratios.get("swag-release")
+    return 1.0 / swag if swag else None
+
+
 def _headline(results, panel):
     """The ratios the report leads with, recomputed for every campaign.
 
-    Execution compares runtimes measured in the same campaign. Build comparison is
-    added after applying the compiler-control context. Both cover the panel only: a
-    task that joined the benchmark later would otherwise move the geometric mean on
-    the campaign it first appeared in, which would read as a compiler movement.
+    Execution and compilation compare times measured in the same campaign. Both
+    cover their fixed task panel only: a task that joined the benchmark later would
+    otherwise move the geometric mean on its first campaign, which would read as a
+    compiler movement.
     """
     tasks = results["tasks"]
-    task_ids = [t for t in tasks if t in panel] or list(tasks)
-
-    def ms(rt, task):
-        return (tasks[task].get(rt, {}).get("run") or {}).get("ms")
-
-    present = [rt for rt in tasks[task_ids[0]] if all(ms(rt, t) for t in task_ids)]
-    best = {t: min(ms(rt, t) for rt in present) for t in task_ids} if present else {}
-    run_geo = {rt: geo([ms(rt, t) / best[t] for t in task_ids]) for rt in present}
+    run_tasks = [t for t in tasks if t in panel["run"]] or list(tasks)
+    build_tasks = [t for t in tasks if t in panel["build"]] or list(tasks)
+    run_geo = ratios_to_best(tasks, run_tasks, "run", "ms")
     native = run_geo.get("swag-release")
     jit = run_geo.get("swc-jit-release")
     return {
-        "tasks": len(task_ids),
+        "tasks": len(run_tasks),
         "exec_vs_best": native,
         "exec_fastest": min(run_geo, key=lambda rt: run_geo[rt]) if run_geo else None,
         "jit_gap_pct": (jit / native - 1.0) * 100.0 if native and jit else None,
+        "build_speedup": build_speedup(tasks, build_tasks),
+        "build_tasks": len(build_tasks),
     }
 
 
@@ -412,12 +440,7 @@ def condense(results, refs=None, baseline=None):
             rec["exe_kb"] = geo(sizes) / 1024.0 if geo(sizes) else None
         entry["runtimes"][rt] = rec
 
-    entry["headline"] = _headline(results, panel["run"])
-    reference_build = geo([baseline_metric(BUILD_REFERENCE, task, "build", "wall_ms")
-                           for task in panel["build"]])
-    adjusted_build = (entry["runtimes"].get("swag-release") or {}).get("build_geo_adjusted_ms")
-    entry["headline"]["build_edge"] = (reference_build / adjusted_build
-                                        if reference_build and adjusted_build else None)
+    entry["headline"] = _headline(results, panel)
     entry["null"] = _null_indices(results, refs, panel)
 
     # How far apart a runtime's own repeated samples landed, inside this campaign. The

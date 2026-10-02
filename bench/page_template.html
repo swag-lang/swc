@@ -435,13 +435,15 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <p class="cap">Moyenne g&eacute;om&eacute;trique du rapport au meilleur de chaque t&acirc;che, &eacute;chelle logarithmique.</p>
     {{ex_chart}}
     <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
-    <p class="cap">Fastest to slowest, in milliseconds. Letters identify languages; colours distinguish their modes.
+    <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
+    the others show time / best time for that row. 2 means twice as slow.
+    Letters identify languages; colours distinguish their modes.
     The Swag column gives the rank of Swag release.</p>
     {{ex_native_rank}}
     <h3>Classement par t&acirc;che &mdash; JIT et interpr&eacute;t&eacute;s</h3>
     {{ex_jit_rank}}
     <details>
-        <summary>Toutes les valeurs (ms)</summary>
+        <summary>Raw times (ms)</summary>
         {{ex_matrix}}
     </details>
 </section>
@@ -449,13 +451,18 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <section id="compilation">
     <div class="sh"><h2>Compilation</h2></div>
     <p class="cap">Complete cold build, from source to a runnable artifact, geometric mean across tasks.
-    Each recipe includes its required libraries and headers. Java produces bytecode for HotSpot.</p>
+    Each recipe includes its required libraries and headers. Java produces bytecode for HotSpot.
+    The headline speedup is the geometric mean of fastest non-Swag build time / Swag release build time
+    for each task: 2&times; means Swag builds twice as fast on average; below 1&times; means slower.
+    All non-Swag build configurations, including bytecode generation, can be the reference.
+    Each task has equal weight; hello is excluded.</p>
     {{bu_chart}}
     <h3>Classement par t&acirc;che</h3>
-    <p class="cap">Du plus rapide au plus lent, en millisecondes.</p>
+    <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
+    the others show time / best time for that row. 2 means twice as slow.</p>
     {{bu_rank}}
     <details>
-        <summary>Toutes les valeurs (ms)</summary>
+        <summary>Raw times (ms)</summary>
         {{bu_matrix}}
     </details>
     <h3>Boucle d'&eacute;dition</h3>
@@ -490,8 +497,9 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 
 <section id="historique">
     <div class="sh"><h2>Historique</h2></div>
-    <p class="cap">swc seul, corrig&eacute; du contexte machine par le mouvement m&eacute;dian des runtimes t&eacute;moins.
-    Bande grise&nbsp;: r&eacute;solution du banc, en dessous de laquelle un mouvement n'est pas mesur&eacute;.</p>
+    <p class="cap">Historical ratios use the fixed baseline task panel and each campaign's own competitors.
+    Swag time and index curves are corrected for machine variation using the median movement of control runtimes.
+    Grey bands show the harness resolution; a movement inside that band has not been measured.</p>
     {{history}}
 </section>
 

@@ -422,7 +422,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <div class="wrap">
         <div class="rule"></div>
         <span class="eyebrow">12 t&acirc;ches &middot; 22 runtimes &middot; checksums identiques</span>
-        <div class="stats"><div class="stat"><div class="sv">1.15<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div></div><div class="stat"><div class="sv">+7<em>%</em></div><div class="sl">JIT swc vs natif swc</div></div><div class="stat"><div class="sv">2.5<em>&times;</em></div><div class="sl">build MSVC / swc</div></div><div class="stat"><div class="sv">102<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div></div></div>
+        <div class="stats"><div class="stat"><div class="sv">1.15<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div></div><div class="stat"><div class="sv">+7<em>%</em></div><div class="sl">JIT swc vs natif swc</div></div><div class="stat"><div class="sv">1.75<em>&times;</em></div><div class="sl">build speedup vs fastest rival</div></div><div class="stat"><div class="sv">102<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div></div></div>
     </div>
 </div>
 
@@ -468,327 +468,329 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <div class="row l-py"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:99.671%"></span></div><div class="rv">125.97<em>&times;</em></div></div>
 </figure>
     <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
-    <p class="cap">Fastest to slowest, in milliseconds. Letters identify languages; colours distinguish their modes.
+    <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
+    the others show time / best time for that row. 2 means twice as slow.
+    Letters identify languages; colours distinguish their modes.
     The Swag column gives the rank of Swag release.</p>
     <div class="table-wrap"><table class="ranked"><thead><tr><th>t&acirc;che</th><th>swag</th><th>classement</th></tr></thead><tbody>
 <tr><th title="table de hachage maison sur 2 M mots, puis tri"><code>wordfreq</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>44.5</i></li>
-<li class="l-d"><b>2</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>47.2</i></li>
-<li class="l-go"><b>3</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>48.5</i></li>
-<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>48.8</i></li>
-<li class="l-rust"><b>5</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>50.7</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>54.3</i></li>
-<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>54.3</i></li>
-<li class="l-zig"><b>8</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>54.7</i></li>
-<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>56.0</i></li>
-<li class="l-swagdev"><b>10</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>59.8</i></li>
-<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>63.0</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>44.5&nbsp;ms</i></li>
+<li class="l-d"><b>2</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.06</i></li>
+<li class="l-go"><b>3</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.09</i></li>
+<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.10</i></li>
+<li class="l-rust"><b>5</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.14</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.22</i></li>
+<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.22</i></li>
+<li class="l-zig"><b>8</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.23</i></li>
+<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.26</i></li>
+<li class="l-swagdev"><b>10</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.35</i></li>
+<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.42</i></li>
 </ol></td></tr>
 <tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>15.2</i></li>
-<li class="l-odin"><b>2</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>15.2</i></li>
-<li class="l-zig"><b>3</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>15.3</i></li>
-<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>15.6</i></li>
-<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>16.8</i></li>
-<li class="l-d"><b>6</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>18.0</i></li>
-<li class="l-rust"><b>7</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>18.9</i></li>
-<li class="l-go"><b>8</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>21.3</i></li>
-<li class="l-swagdev"><b>9</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>23.8</i></li>
-<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>23.9</i></li>
-<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>26.1</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>15.2&nbsp;ms</i></li>
+<li class="l-odin"><b>2</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.01</i></li>
+<li class="l-zig"><b>3</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.01</i></li>
+<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.03</i></li>
+<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.11</i></li>
+<li class="l-d"><b>6</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.18</i></li>
+<li class="l-rust"><b>7</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.25</i></li>
+<li class="l-go"><b>8</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.40</i></li>
+<li class="l-swagdev"><b>9</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.57</i></li>
+<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.58</i></li>
+<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.72</i></li>
 </ol></td></tr>
 <tr><th title="8 Mio, ALU entière pure, rotations"><code>sha256</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>33.6</i></li>
-<li class="l-go"><b>2</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>36.3</i></li>
-<li class="l-zig"><b>3</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>37.1</i></li>
-<li class="l-rust"><b>4</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>38.2</i></li>
-<li class="l-d"><b>5</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>39.6</i></li>
-<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>39.6</i></li>
-<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>40.2</i></li>
-<li class="l-msvc"><b>8</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>41.2</i></li>
-<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>46.7</i></li>
-<li class="l-swift"><b>10</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>52.7</i></li>
-<li class="l-swagdev"><b>11</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>53.5</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>33.6&nbsp;ms</i></li>
+<li class="l-go"><b>2</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.08</i></li>
+<li class="l-zig"><b>3</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.10</i></li>
+<li class="l-rust"><b>4</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.14</i></li>
+<li class="l-d"><b>5</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.18</i></li>
+<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.18</i></li>
+<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.20</i></li>
+<li class="l-msvc"><b>8</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.23</i></li>
+<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.39</i></li>
+<li class="l-swift"><b>10</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.57</i></li>
+<li class="l-swagdev"><b>11</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.59</i></li>
 </ol></td></tr>
 <tr><th title="grille 800×800, tas binaire"><code>dijkstra</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>26.7</i></li>
-<li class="l-msvc"><b>2</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>28.1</i></li>
-<li class="l-odin"><b>3</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>38.3</i></li>
-<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>40.6</i></li>
-<li class="l-zig"><b>5</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>41.8</i></li>
-<li class="l-swagdev"><b>6</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>42.1</i></li>
-<li class="l-rust"><b>7</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>42.3</i></li>
-<li class="l-d"><b>8</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>43.6</i></li>
-<li class="l-go"><b>9</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>49.5</i></li>
-<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>51.9</i></li>
-<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>67.7</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>26.7&nbsp;ms</i></li>
+<li class="l-msvc"><b>2</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.05</i></li>
+<li class="l-odin"><b>3</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.43</i></li>
+<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.52</i></li>
+<li class="l-zig"><b>5</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.56</i></li>
+<li class="l-swagdev"><b>6</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.58</i></li>
+<li class="l-rust"><b>7</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.58</i></li>
+<li class="l-d"><b>8</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.63</i></li>
+<li class="l-go"><b>9</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.85</i></li>
+<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.94</i></li>
+<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>2.54</i></li>
 </ol></td></tr>
 <tr><th title="480×360, f64, récursion"><code>raytrace</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>8.61</i></li>
-<li class="l-odin"><b>2</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>8.62</i></li>
-<li class="l-msvc"><b>3</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>8.64</i></li>
-<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>8.86</i></li>
-<li class="l-go"><b>5</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>9.26</i></li>
-<li class="l-zig"><b>6</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>10.0</i></li>
-<li class="l-swagdev"><b>7</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>10.1</i></li>
-<li class="l-csaot"><b>8</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>10.3</i></li>
-<li class="l-d"><b>9</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>10.5</i></li>
-<li class="l-rust"><b>10</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>10.6</i></li>
-<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>11.1</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>8.61&nbsp;ms</i></li>
+<li class="l-odin"><b>2</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.00</i></li>
+<li class="l-msvc"><b>3</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.00</i></li>
+<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.03</i></li>
+<li class="l-go"><b>5</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.08</i></li>
+<li class="l-zig"><b>6</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.17</i></li>
+<li class="l-swagdev"><b>7</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.18</i></li>
+<li class="l-csaot"><b>8</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.20</i></li>
+<li class="l-d"><b>9</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.22</i></li>
+<li class="l-rust"><b>10</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.23</i></li>
+<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.29</i></li>
 </ol></td></tr>
 <tr><th title="40 requêtes contre 6000 mots"><code>leven</code></th><td>2<span class="mode">/11</span></td><td><ol>
-<li class="l-odin"><b>1</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>11.6</i></li>
-<li class="l-swag"><b>2</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>11.7</i></li>
-<li class="l-d"><b>3</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>12.1</i></li>
-<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>12.9</i></li>
-<li class="l-zig"><b>5</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>13.0</i></li>
-<li class="l-rust"><b>6</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>13.4</i></li>
-<li class="l-swift"><b>7</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>13.7</i></li>
-<li class="l-go"><b>8</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>15.1</i></li>
-<li class="l-msvc"><b>9</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>18.0</i></li>
-<li class="l-swagdev"><b>10</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>23.9</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>25.3</i></li>
+<li class="l-odin"><b>1</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>11.6&nbsp;ms</i></li>
+<li class="l-swag"><b>2</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>1.01</i></li>
+<li class="l-d"><b>3</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.04</i></li>
+<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.11</i></li>
+<li class="l-zig"><b>5</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.12</i></li>
+<li class="l-rust"><b>6</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.15</i></li>
+<li class="l-swift"><b>7</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.18</i></li>
+<li class="l-go"><b>8</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.30</i></li>
+<li class="l-msvc"><b>9</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.55</i></li>
+<li class="l-swagdev"><b>10</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>2.05</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>2.18</i></li>
 </ol></td></tr>
 <tr><th title="16 Mio de flot de clé, lanes 32 bits, rotations"><code>chacha</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>22.2</i></li>
-<li class="l-clang"><b>2</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>25.3</i></li>
-<li class="l-odin"><b>3</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>27.5</i></li>
-<li class="l-zig"><b>4</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>28.0</i></li>
-<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>30.8</i></li>
-<li class="l-rust"><b>6</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>37.2</i></li>
-<li class="l-d"><b>7</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>37.4</i></li>
-<li class="l-swagdev"><b>8</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>38.6</i></li>
-<li class="l-swift"><b>9</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>54.2</i></li>
-<li class="l-go"><b>10</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>58.6</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>188</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>22.2&nbsp;ms</i></li>
+<li class="l-clang"><b>2</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.14</i></li>
+<li class="l-odin"><b>3</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.24</i></li>
+<li class="l-zig"><b>4</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.26</i></li>
+<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.39</i></li>
+<li class="l-rust"><b>6</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.68</i></li>
+<li class="l-d"><b>7</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.69</i></li>
+<li class="l-swagdev"><b>8</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.74</i></li>
+<li class="l-swift"><b>9</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>2.44</i></li>
+<li class="l-go"><b>10</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>2.64</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>8.49</i></li>
 </ol></td></tr>
 <tr><th title="5 corps, 500 k pas, f64, sqrt, tableau de structures"><code>nbody</code></th><td>3<span class="mode">/11</span></td><td><ol>
-<li class="l-zig"><b>1</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>16.0</i></li>
-<li class="l-rust"><b>2</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>19.7</i></li>
-<li class="l-swag"><b>3</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>21.4</i></li>
-<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>21.6</i></li>
-<li class="l-d"><b>5</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>22.0</i></li>
-<li class="l-swift"><b>6</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>23.3</i></li>
-<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>26.2</i></li>
-<li class="l-msvc"><b>8</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>27.0</i></li>
-<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>27.2</i></li>
-<li class="l-swagdev"><b>10</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>33.9</i></li>
-<li class="l-go"><b>11</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>35.4</i></li>
+<li class="l-zig"><b>1</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>16.0&nbsp;ms</i></li>
+<li class="l-rust"><b>2</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.23</i></li>
+<li class="l-swag"><b>3</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>1.34</i></li>
+<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.35</i></li>
+<li class="l-d"><b>5</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.37</i></li>
+<li class="l-swift"><b>6</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.46</i></li>
+<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.64</i></li>
+<li class="l-msvc"><b>8</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.69</i></li>
+<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.70</i></li>
+<li class="l-swagdev"><b>10</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>2.12</i></li>
+<li class="l-go"><b>11</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>2.21</i></li>
 </ol></td></tr>
 <tr><th title="fannkuch-redux N = 9, permutations et retournements"><code>fannkuch</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>13.6</i></li>
-<li class="l-rust"><b>2</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>14.1</i></li>
-<li class="l-clang"><b>3</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>14.6</i></li>
-<li class="l-msvc"><b>4</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>15.0</i></li>
-<li class="l-go"><b>5</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>15.6</i></li>
-<li class="l-d"><b>6</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>15.6</i></li>
-<li class="l-swift"><b>7</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>17.2</i></li>
-<li class="l-odin"><b>8</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>17.5</i></li>
-<li class="l-zig"><b>9</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>17.5</i></li>
-<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>17.6</i></li>
-<li class="l-swagdev"><b>11</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>18.0</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>13.6&nbsp;ms</i></li>
+<li class="l-rust"><b>2</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.04</i></li>
+<li class="l-clang"><b>3</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.07</i></li>
+<li class="l-msvc"><b>4</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.10</i></li>
+<li class="l-go"><b>5</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.15</i></li>
+<li class="l-d"><b>6</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.15</i></li>
+<li class="l-swift"><b>7</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.26</i></li>
+<li class="l-odin"><b>8</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.29</i></li>
+<li class="l-zig"><b>9</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.29</i></li>
+<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.30</i></li>
+<li class="l-swagdev"><b>11</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.32</i></li>
 </ol></td></tr>
 <tr><th title="profondeur 12, allocation et libération nœud par nœud"><code>binarytrees</code></th><td>3<span class="mode">/11</span></td><td><ol>
-<li class="l-csaot"><b>1</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>9.60</i></li>
-<li class="l-go"><b>2</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>9.64</i></li>
-<li class="l-swag"><b>3</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>22.3</i></li>
-<li class="l-msvc"><b>4</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>24.6</i></li>
-<li class="l-clang"><b>5</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>26.2</i></li>
-<li class="l-rust"><b>6</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>26.2</i></li>
-<li class="l-swagdev"><b>7</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>27.2</i></li>
-<li class="l-d"><b>8</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>27.5</i></li>
-<li class="l-zig"><b>9</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>32.4</i></li>
-<li class="l-swift"><b>10</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>40.8</i></li>
-<li class="l-odin"><b>11</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>41.2</i></li>
+<li class="l-csaot"><b>1</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>9.60&nbsp;ms</i></li>
+<li class="l-go"><b>2</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.00</i></li>
+<li class="l-swag"><b>3</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>2.32</i></li>
+<li class="l-msvc"><b>4</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.57</i></li>
+<li class="l-clang"><b>5</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.73</i></li>
+<li class="l-rust"><b>6</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>2.73</i></li>
+<li class="l-swagdev"><b>7</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>2.84</i></li>
+<li class="l-d"><b>8</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.86</i></li>
+<li class="l-zig"><b>9</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3.38</i></li>
+<li class="l-swift"><b>10</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>4.25</i></li>
+<li class="l-odin"><b>11</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>4.29</i></li>
 </ol></td></tr>
 <tr><th title="1 Mio, compression par chaînes de hachage puis décompression"><code>lz77</code></th><td>5<span class="mode">/11</span></td><td><ol>
-<li class="l-clang"><b>1</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>21.0</i></li>
-<li class="l-msvc"><b>2</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>21.4</i></li>
-<li class="l-zig"><b>3</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>21.8</i></li>
-<li class="l-odin"><b>4</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>22.0</i></li>
-<li class="l-swag"><b>5</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>22.5</i></li>
-<li class="l-d"><b>6</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>22.8</i></li>
-<li class="l-rust"><b>7</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>23.5</i></li>
-<li class="l-csaot"><b>8</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>25.1</i></li>
-<li class="l-go"><b>9</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>26.4</i></li>
-<li class="l-swift"><b>10</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>33.3</i></li>
-<li class="l-swagdev"><b>11</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>40.2</i></li>
+<li class="l-clang"><b>1</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>21.0&nbsp;ms</i></li>
+<li class="l-msvc"><b>2</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.02</i></li>
+<li class="l-zig"><b>3</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.04</i></li>
+<li class="l-odin"><b>4</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.05</i></li>
+<li class="l-swag"><b>5</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>1.07</i></li>
+<li class="l-d"><b>6</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.09</i></li>
+<li class="l-rust"><b>7</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.12</i></li>
+<li class="l-csaot"><b>8</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.20</i></li>
+<li class="l-go"><b>9</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.26</i></li>
+<li class="l-swift"><b>10</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.58</i></li>
+<li class="l-swagdev"><b>11</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.91</i></li>
 </ol></td></tr>
 <tr><th title="300 k entiers, quicksort médiane de trois"><code>sort</code></th><td>3<span class="mode">/11</span></td><td><ol>
-<li class="l-odin"><b>1</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>16.0</i></li>
-<li class="l-clang"><b>2</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>16.0</i></li>
-<li class="l-swag"><b>3</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>16.0</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>16.1</i></li>
-<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>16.9</i></li>
-<li class="l-zig"><b>6</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>17.6</i></li>
-<li class="l-go"><b>7</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>19.1</i></li>
-<li class="l-csaot"><b>8</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>19.1</i></li>
-<li class="l-swagdev"><b>9</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>19.6</i></li>
-<li class="l-rust"><b>10</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>19.8</i></li>
-<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>20.0</i></li>
+<li class="l-odin"><b>1</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>16.0&nbsp;ms</i></li>
+<li class="l-clang"><b>2</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.00</i></li>
+<li class="l-swag"><b>3</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>1.00</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.00</i></li>
+<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.06</i></li>
+<li class="l-zig"><b>6</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.10</i></li>
+<li class="l-go"><b>7</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.19</i></li>
+<li class="l-csaot"><b>8</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.19</i></li>
+<li class="l-swagdev"><b>9</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.23</i></li>
+<li class="l-rust"><b>10</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.24</i></li>
+<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.25</i></li>
 </ol></td></tr>
 </tbody></table></div>
     <h3>Classement par t&acirc;che &mdash; JIT et interpr&eacute;t&eacute;s</h3>
     <div class="table-wrap"><table class="ranked"><thead><tr><th>t&acirc;che</th><th>swag</th><th>classement</th></tr></thead><tbody>
 <tr><th title="table de hachage maison sur 2 M mots, puis tri"><code>wordfreq</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>49.2</i></li>
-<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>58.5</i></li>
-<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>78.7</i></li>
-<li class="l-luajit"><b>4</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>123</i></li>
-<li class="l-csjit"><b>5</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>131</i></li>
-<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>178</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>307</i></li>
-<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>704</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>848</i></li>
-<li class="l-py"><b>10</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>2068</i></li>
-<li class="l-ruby"><b>11</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>2685</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>49.2&nbsp;ms</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.19</i></li>
+<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>1.60</i></li>
+<li class="l-luajit"><b>4</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>2.50</i></li>
+<li class="l-csjit"><b>5</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2.66</i></li>
+<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>3.61</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>6.23</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>14.30</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>17.23</i></li>
+<li class="l-py"><b>10</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>42.01</i></li>
+<li class="l-ruby"><b>11</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>54.55</i></li>
 </ol></td></tr>
 <tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>16.4</i></li>
-<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>23.8</i></li>
-<li class="l-csjit"><b>3</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>41.0</i></li>
-<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>65.7</i></li>
-<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>78.1</i></li>
-<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>80.0</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>376</i></li>
-<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>1071</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>1096</i></li>
-<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>1111</i></li>
-<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>2410</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>16.4&nbsp;ms</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.45</i></li>
+<li class="l-csjit"><b>3</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2.50</i></li>
+<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>4.01</i></li>
+<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>4.76</i></li>
+<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>4.88</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>22.94</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>65.31</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>66.82</i></li>
+<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>67.73</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>147.00</i></li>
 </ol></td></tr>
 <tr><th title="8 Mio, ALU entière pure, rotations"><code>sha256</code></th><td>2<span class="mode">/11</span></td><td><ol>
-<li class="l-csjit"><b>1</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>46.6</i></li>
-<li class="l-swagjit"><b>2</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>67.6</i></li>
-<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>71.6</i></li>
-<li class="l-swagdevjit"><b>4</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>103</i></li>
-<li class="l-luajit"><b>5</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>520</i></li>
-<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>595</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>978</i></li>
-<li class="l-php"><b>8</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>4803</i></li>
-<li class="l-lua"><b>9</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>9347</i></li>
-<li class="l-py"><b>10</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>23138</i></li>
-<li class="l-ruby"><b>11</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>31997</i></li>
+<li class="l-csjit"><b>1</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>46.6&nbsp;ms</i></li>
+<li class="l-swagjit"><b>2</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>1.45</i></li>
+<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>1.54</i></li>
+<li class="l-swagdevjit"><b>4</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>2.21</i></li>
+<li class="l-luajit"><b>5</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>11.17</i></li>
+<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>12.78</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>21.01</i></li>
+<li class="l-php"><b>8</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>103.17</i></li>
+<li class="l-lua"><b>9</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>200.78</i></li>
+<li class="l-py"><b>10</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>497.01</i></li>
+<li class="l-ruby"><b>11</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>687.31</i></li>
 </ol></td></tr>
 <tr><th title="grille 800×800, tas binaire"><code>dijkstra</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>29.4</i></li>
-<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>41.9</i></li>
-<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>84.1</i></li>
-<li class="l-csjit"><b>4</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>127</i></li>
-<li class="l-luajit"><b>5</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>130</i></li>
-<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>138</i></li>
-<li class="l-lua"><b>7</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>652</i></li>
-<li class="l-phpjit"><b>8</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>690</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>1507</i></li>
-<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>1678</i></li>
-<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>1821</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>29.4&nbsp;ms</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.43</i></li>
+<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>2.86</i></li>
+<li class="l-csjit"><b>4</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>4.34</i></li>
+<li class="l-luajit"><b>5</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>4.42</i></li>
+<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>4.71</i></li>
+<li class="l-lua"><b>7</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>22.19</i></li>
+<li class="l-phpjit"><b>8</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>23.49</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>51.27</i></li>
+<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>57.10</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>61.97</i></li>
 </ol></td></tr>
 <tr><th title="480×360, f64, récursion"><code>raytrace</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>7.90</i></li>
-<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>10.8</i></li>
-<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>21.2</i></li>
-<li class="l-luajit"><b>4</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>31.0</i></li>
-<li class="l-csjit"><b>5</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>38.0</i></li>
-<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>42.1</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>135</i></li>
-<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>255</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>457</i></li>
-<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>759</i></li>
-<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>791</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>7.90&nbsp;ms</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.37</i></li>
+<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>2.68</i></li>
+<li class="l-luajit"><b>4</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>3.92</i></li>
+<li class="l-csjit"><b>5</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>4.81</i></li>
+<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>5.33</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>17.14</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>32.27</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>57.86</i></li>
+<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>96.02</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>100.09</i></li>
 </ol></td></tr>
 <tr><th title="40 requêtes contre 6000 mots"><code>leven</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>12.1</i></li>
-<li class="l-csjit"><b>2</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>23.9</i></li>
-<li class="l-swagdevjit"><b>3</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>24.2</i></li>
-<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>39.4</i></li>
-<li class="l-luajit"><b>5</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>58.0</i></li>
-<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>72.2</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>368</i></li>
-<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>812</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>1048</i></li>
-<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>2499</i></li>
-<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>3064</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>12.1&nbsp;ms</i></li>
+<li class="l-csjit"><b>2</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>1.97</i></li>
+<li class="l-swagdevjit"><b>3</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>2.00</i></li>
+<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>3.26</i></li>
+<li class="l-luajit"><b>5</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>4.79</i></li>
+<li class="l-js"><b>6</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>5.96</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>30.40</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>67.03</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>86.54</i></li>
+<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>206.31</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>252.97</i></li>
 </ol></td></tr>
 <tr><th title="16 Mio de flot de clé, lanes 32 bits, rotations"><code>chacha</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>23.3</i></li>
-<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>35.5</i></li>
-<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>87.9</i></li>
-<li class="l-csjit"><b>4</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>200</i></li>
-<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>310</i></li>
-<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>1231</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>1380</i></li>
-<li class="l-php"><b>8</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>8336</i></li>
-<li class="l-lua"><b>9</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>13789</i></li>
-<li class="l-py"><b>10</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>28539</i></li>
-<li class="l-ruby"><b>11</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>78919</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>23.3&nbsp;ms</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.52</i></li>
+<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>3.77</i></li>
+<li class="l-csjit"><b>4</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>8.56</i></li>
+<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>13.29</i></li>
+<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>52.80</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>59.21</i></li>
+<li class="l-php"><b>8</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>357.58</i></li>
+<li class="l-lua"><b>9</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>591.46</i></li>
+<li class="l-py"><b>10</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>1224.14</i></li>
+<li class="l-ruby"><b>11</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>3385.12</i></li>
 </ol></td></tr>
 <tr><th title="5 corps, 500 k pas, f64, sqrt, tableau de structures"><code>nbody</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>22.7</i></li>
-<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>29.8</i></li>
-<li class="l-js"><b>3</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>42.6</i></li>
-<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>44.9</i></li>
-<li class="l-luajit"><b>5</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>70.0</i></li>
-<li class="l-csjit"><b>6</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>112</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>158</i></li>
-<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>1078</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>1526</i></li>
-<li class="l-py"><b>10</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>2529</i></li>
-<li class="l-ruby"><b>11</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>3045</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>22.7&nbsp;ms</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.31</i></li>
+<li class="l-js"><b>3</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>1.88</i></li>
+<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>1.98</i></li>
+<li class="l-luajit"><b>5</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>3.09</i></li>
+<li class="l-csjit"><b>6</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>4.94</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>6.99</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>47.56</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>67.30</i></li>
+<li class="l-py"><b>10</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>111.56</i></li>
+<li class="l-ruby"><b>11</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>134.34</i></li>
 </ol></td></tr>
 <tr><th title="fannkuch-redux N = 9, permutations et retournements"><code>fannkuch</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>14.0</i></li>
-<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>17.8</i></li>
-<li class="l-csjit"><b>3</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>19.3</i></li>
-<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>24.8</i></li>
-<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>36.1</i></li>
-<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>47.0</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>213</i></li>
-<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>252</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>636</i></li>
-<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>839</i></li>
-<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>1679</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>14.0&nbsp;ms</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.27</i></li>
+<li class="l-csjit"><b>3</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>1.38</i></li>
+<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>1.77</i></li>
+<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>2.57</i></li>
+<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>3.35</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>15.17</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>17.97</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>45.33</i></li>
+<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>59.79</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>119.75</i></li>
 </ol></td></tr>
 <tr><th title="profondeur 12, allocation et libération nœud par nœud"><code>binarytrees</code></th><td>4<span class="mode">/11</span></td><td><ol>
-<li class="l-java"><b>1</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>6.37</i></li>
-<li class="l-js"><b>2</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>9.67</i></li>
-<li class="l-csjit"><b>3</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>11.9</i></li>
-<li class="l-swagjit"><b>4</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>16.0</i></li>
-<li class="l-swagdevjit"><b>5</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>16.3</i></li>
-<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>39.0</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>45.6</i></li>
-<li class="l-ruby"><b>8</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>79.6</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>94.2</i></li>
-<li class="l-lua"><b>10</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>111</i></li>
-<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>137</i></li>
+<li class="l-java"><b>1</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>6.37&nbsp;ms</i></li>
+<li class="l-js"><b>2</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>1.52</i></li>
+<li class="l-csjit"><b>3</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>1.87</i></li>
+<li class="l-swagjit"><b>4</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>2.51</i></li>
+<li class="l-swagdevjit"><b>5</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>2.56</i></li>
+<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>6.12</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>7.15</i></li>
+<li class="l-ruby"><b>8</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>12.49</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>14.78</i></li>
+<li class="l-lua"><b>10</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>17.41</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>21.50</i></li>
 </ol></td></tr>
 <tr><th title="1 Mio, compression par chaînes de hachage puis décompression"><code>lz77</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>22.5</i></li>
-<li class="l-csjit"><b>2</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>25.7</i></li>
-<li class="l-swagdevjit"><b>3</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>40.2</i></li>
-<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>50.6</i></li>
-<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>53.5</i></li>
-<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>89.0</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>219</i></li>
-<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>462</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>791</i></li>
-<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>916</i></li>
-<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>2395</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>22.5&nbsp;ms</i></li>
+<li class="l-csjit"><b>2</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>1.14</i></li>
+<li class="l-swagdevjit"><b>3</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.78</i></li>
+<li class="l-java"><b>4</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>2.25</i></li>
+<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>2.38</i></li>
+<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>3.95</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>9.73</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>20.51</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>35.14</i></li>
+<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>40.66</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>106.34</i></li>
 </ol></td></tr>
 <tr><th title="300 k entiers, quicksort médiane de trois"><code>sort</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>16.5</i></li>
-<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>20.8</i></li>
-<li class="l-csjit"><b>3</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>38.0</i></li>
-<li class="l-luajit"><b>4</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>48.0</i></li>
-<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>55.6</i></li>
-<li class="l-java"><b>6</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>60.8</i></li>
-<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>106</i></li>
-<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>129</i></li>
-<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>261</i></li>
-<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>403</i></li>
-<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>453</i></li>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>16.5&nbsp;ms</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.26</i></li>
+<li class="l-csjit"><b>3</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2.30</i></li>
+<li class="l-luajit"><b>4</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>2.90</i></li>
+<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>3.36</i></li>
+<li class="l-java"><b>6</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>3.68</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>6.42</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>7.80</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>15.78</i></li>
+<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>24.34</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>27.38</i></li>
 </ol></td></tr>
 </tbody></table></div>
     <details>
-        <summary>Toutes les valeurs (ms)</summary>
+        <summary>Raw times (ms)</summary>
         <div class="table-wrap"><table class="matrix"><thead><tr><th>t&acirc;che</th>
 <th scope="col" class="sw"><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span></th>
 <th scope="col"><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span></th>
@@ -1133,7 +1135,11 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <section id="compilation">
     <div class="sh"><h2>Compilation</h2></div>
     <p class="cap">Complete cold build, from source to a runnable artifact, geometric mean across tasks.
-    Each recipe includes its required libraries and headers. Java produces bytecode for HotSpot.</p>
+    Each recipe includes its required libraries and headers. Java produces bytecode for HotSpot.
+    The headline speedup is the geometric mean of fastest non-Swag build time / Swag release build time
+    for each task: 2&times; means Swag builds twice as fast on average; below 1&times; means slower.
+    All non-Swag build configurations, including bytecode generation, can be the reference.
+    Each task has equal weight; hello is excluded.</p>
     <figure class="chart">
 <div class="axis" aria-hidden="true">
 <span class="tick" style="left:0.700%"><i></i><b>128</b></span>
@@ -1157,180 +1163,181 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <div class="row l-csaot"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:93.301%"></span></div><div class="rv">6200<em>ms</em></div></div>
 </figure>
     <h3>Classement par t&acirc;che</h3>
-    <p class="cap">Du plus rapide au plus lent, en millisecondes.</p>
+    <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
+    the others show time / best time for that row. 2 means twice as slow.</p>
     <div class="table-wrap"><table class="ranked"><thead><tr><th>t&acirc;che</th><th>swag</th><th>classement</th></tr></thead><tbody>
 <tr><th title="table de hachage maison sur 2 M mots, puis tri"><code>wordfreq</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>137</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>167</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>283</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>307</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>356</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>363</i></li>
-<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>375</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>2019</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2889</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3327</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6030</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>137&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.22</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>2.07</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.24</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.60</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.65</i></li>
+<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.74</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>14.75</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>21.09</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>24.29</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>44.03</i></li>
 </ol></td></tr>
 <tr><th title="400 k lignes, parsing octet à octet, flottants"><code>csvagg</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>163</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>191</i></li>
-<li class="l-d"><b>3</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>357</i></li>
-<li class="l-rust"><b>4</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>379</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>390</i></li>
-<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>407</i></li>
-<li class="l-msvc"><b>7</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>436</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>2601</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2798</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3334</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6066</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>163&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.17</i></li>
+<li class="l-d"><b>3</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.19</i></li>
+<li class="l-rust"><b>4</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>2.32</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.39</i></li>
+<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.49</i></li>
+<li class="l-msvc"><b>7</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.67</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>15.92</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>17.13</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>20.42</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>37.14</i></li>
 </ol></td></tr>
 <tr><th title="8 Mio, ALU entière pure, rotations"><code>sha256</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>155</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>163</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>253</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>326</i></li>
-<li class="l-clang"><b>5</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>432</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>440</i></li>
-<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>552</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1975</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2892</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3405</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6584</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>155&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.05</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.63</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.10</i></li>
+<li class="l-clang"><b>5</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.78</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.83</i></li>
+<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>3.56</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>12.72</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>18.63</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>21.93</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>42.41</i></li>
 </ol></td></tr>
 <tr><th title="grille 800×800, tas binaire"><code>dijkstra</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>143</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>166</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>268</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>303</i></li>
-<li class="l-clang"><b>5</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>373</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>379</i></li>
-<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>380</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1633</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2969</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3348</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6439</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>143&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.16</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.87</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.12</i></li>
+<li class="l-clang"><b>5</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.61</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.65</i></li>
+<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.65</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>11.42</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>20.76</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>23.41</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>45.02</i></li>
 </ol></td></tr>
 <tr><th title="480×360, f64, récursion"><code>raytrace</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>159</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>169</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>226</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>306</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>350</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>373</i></li>
-<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>403</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1646</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2983</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3566</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6685</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>159&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.07</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.43</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.93</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.21</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.35</i></li>
+<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.54</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>10.38</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>18.81</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>22.49</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>42.16</i></li>
 </ol></td></tr>
 <tr><th title="40 requêtes contre 6000 mots"><code>leven</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>153</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>180</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>310</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>345</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>370</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>396</i></li>
-<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>411</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>2068</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2776</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3353</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6661</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>153&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.18</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>2.03</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.26</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.42</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.59</i></li>
+<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.69</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>13.54</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>18.17</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>21.95</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>43.60</i></li>
 </ol></td></tr>
 <tr><th title="16 Mio de flot de clé, lanes 32 bits, rotations"><code>chacha</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>152</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>186</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>263</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>296</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>346</i></li>
-<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>384</i></li>
-<li class="l-msvc"><b>7</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>386</i></li>
-<li class="l-csjit"><b>8</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2755</i></li>
-<li class="l-zig"><b>9</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3454</i></li>
-<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>5694</i></li>
-<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>33358</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>152&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.22</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.73</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.95</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.28</i></li>
+<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.53</i></li>
+<li class="l-msvc"><b>7</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.54</i></li>
+<li class="l-csjit"><b>8</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>18.12</i></li>
+<li class="l-zig"><b>9</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>22.71</i></li>
+<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>37.44</i></li>
+<li class="l-swift"><b>11</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>219.36</i></li>
 </ol></td></tr>
 <tr><th title="5 corps, 500 k pas, f64, sqrt, tableau de structures"><code>nbody</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>139</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>147</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>217</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>286</i></li>
-<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>322</i></li>
-<li class="l-odin"><b>6</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>331</i></li>
-<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>347</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1339</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2694</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3077</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6087</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>139&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.06</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.57</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.06</i></li>
+<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.32</i></li>
+<li class="l-odin"><b>6</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.39</i></li>
+<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.51</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>9.66</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>19.43</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>22.19</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>43.89</i></li>
 </ol></td></tr>
 <tr><th title="fannkuch-redux N = 9, permutations et retournements"><code>fannkuch</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>137</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>151</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>215</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>278</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>321</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>335</i></li>
-<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>364</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1433</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2660</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3105</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>5950</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>137&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.10</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.57</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.03</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.34</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.45</i></li>
+<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.66</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>10.46</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>19.42</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>22.68</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>43.45</i></li>
 </ol></td></tr>
 <tr><th title="profondeur 12, allocation et libération nœud par nœud"><code>binarytrees</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>138</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>155</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>203</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>292</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>317</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>337</i></li>
-<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>348</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1164</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>3073</i></li>
-<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6007</i></li>
-<li class="l-zig"><b>11</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>7262</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>138&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.12</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.47</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.11</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.29</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.43</i></li>
+<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.51</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>8.41</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>22.20</i></li>
+<li class="l-csaot"><b>10</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>43.39</i></li>
+<li class="l-zig"><b>11</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>52.46</i></li>
 </ol></td></tr>
 <tr><th title="1 Mio, compression par chaînes de hachage puis décompression"><code>lz77</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>142</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>174</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>275</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>307</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>351</i></li>
-<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>364</i></li>
-<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>411</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>2106</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2679</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3448</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6184</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>142&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.22</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.94</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.16</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.47</i></li>
+<li class="l-msvc"><b>6</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.56</i></li>
+<li class="l-clang"><b>7</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.90</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>14.85</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>18.89</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>24.31</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>43.60</i></li>
 </ol></td></tr>
 <tr><th title="300 k entiers, quicksort médiane de trois"><code>sort</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>140</i></li>
-<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>156</i></li>
-<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>237</i></li>
-<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>293</i></li>
-<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>349</i></li>
-<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>386</i></li>
-<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>411</i></li>
-<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1531</i></li>
-<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2730</i></li>
-<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3255</i></li>
-<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6100</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>140&nbsp;ms</i></li>
+<li class="l-swagdev"><b>2</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.12</i></li>
+<li class="l-rust"><b>3</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.70</i></li>
+<li class="l-d"><b>4</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.10</i></li>
+<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.50</i></li>
+<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>2.76</i></li>
+<li class="l-odin"><b>7</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.95</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>10.96</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>19.54</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>23.30</i></li>
+<li class="l-csaot"><b>11</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>43.66</i></li>
 </ol></td></tr>
 <tr><th><code>hello</code></th><td>1<span class="mode">/11</span></td><td><ol>
-<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>130</i></li>
-<li class="l-msvc"><b>2</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>142</i></li>
-<li class="l-d"><b>3</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>156</i></li>
-<li class="l-rust"><b>4</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>171</i></li>
-<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>253</i></li>
-<li class="l-swift"><b>6</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>336</i></li>
-<li class="l-csjit"><b>7</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2761</i></li>
-<li class="l-zig"><b>8</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>3092</i></li>
-<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>6296</i></li>
+<li class="l-swag"><b>1</b><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span><i>130&nbsp;ms</i></li>
+<li class="l-msvc"><b>2</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.09</i></li>
+<li class="l-d"><b>3</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.20</i></li>
+<li class="l-rust"><b>4</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.31</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.94</i></li>
+<li class="l-swift"><b>6</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>2.58</i></li>
+<li class="l-csjit"><b>7</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>21.18</i></li>
+<li class="l-zig"><b>8</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>23.72</i></li>
+<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>48.30</i></li>
 <li class="l-swagdev"><b>10</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>&mdash;</i></li>
 <li class="l-clang"><b>11</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>&mdash;</i></li>
 </ol></td></tr>
 </tbody></table></div>
     <details>
-        <summary>Toutes les valeurs (ms)</summary>
+        <summary>Raw times (ms)</summary>
         <div class="table-wrap"><table class="matrix"><thead><tr><th>t&acirc;che</th>
 <th scope="col" class="sw"><span class="runtime-badge l-swag" role="img" title="swag release (native)" aria-label="swag release (native)">S</span></th>
 <th scope="col"><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span></th>
@@ -1661,8 +1668,9 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 
 <section id="historique">
     <div class="sh"><h2>Historique</h2></div>
-    <p class="cap">swc seul, corrig&eacute; du contexte machine par le mouvement m&eacute;dian des runtimes t&eacute;moins.
-    Bande grise&nbsp;: r&eacute;solution du banc, en dessous de laquelle un mouvement n'est pas mesur&eacute;.</p>
+    <p class="cap">Historical ratios use the fixed baseline task panel and each campaign's own competitors.
+    Swag time and index curves are corrected for machine variation using the median movement of control runtimes.
+    Grey bands show the harness resolution; a movement inside that band has not been measured.</p>
     <div class="small-mult">
 <div class="sm"><b>ex&eacute;cution vs le meilleur (&times;)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
@@ -1686,16 +1694,16 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <text class="hlab" x="288.0" y="96" text-anchor="end">4f301e65c</text>
 <polyline class="hline h-a" points="40.0,67.9 46.9,72.0 53.8,71.0 60.7,62.4 67.6,35.2 74.4,42.8 81.3,44.9 88.2,44.2 95.1,31.1 102.0,41.1 108.9,44.4 115.8,47.4 129.6,49.6 136.4,44.4 143.3,40.6 150.2,45.2 157.1,45.9 164.0,40.5 170.9,34.1 177.8,31.0 184.7,37.6 191.6,29.2 198.4,29.0 205.3,44.8 212.2,39.9 219.1,39.9 226.0,44.3 232.9,24.0 239.8,44.7 246.7,46.9 253.6,42.4 260.4,41.7 267.3,45.9 274.2,43.3 281.1,46.5 288.0,42.0"/>
 </svg></div>
-<div class="sm"><b>build MSVC / swc (&times;)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
+<div class="sm"><b>build speedup vs fastest rival (&times;)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
-<text class="hlab" x="34" y="87.5" text-anchor="end">1.5</text>
+<text class="hlab" x="34" y="87.5" text-anchor="end">1.05</text>
 <line class="hgrid" x1="40" y1="48.0" x2="288" y2="48.0"/>
-<text class="hlab" x="34" y="51.5" text-anchor="end">3.1</text>
+<text class="hlab" x="34" y="51.5" text-anchor="end">2.25</text>
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
-<text class="hlab" x="34" y="15.5" text-anchor="end">4.7</text>
+<text class="hlab" x="34" y="15.5" text-anchor="end">3.45</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">115fc00d0</text>
 <text class="hlab" x="288.0" y="96" text-anchor="end">4f301e65c</text>
-<polyline class="hline h-a" points="40.0,24.0 46.9,30.6 53.8,28.9 60.7,49.8 67.6,42.4 74.4,59.9 81.3,49.0 88.2,48.5 95.1,43.6 102.0,72.0 108.9,66.8 115.8,60.7 122.7,59.1 129.6,61.0 136.4,64.2 143.3,64.9 150.2,61.6 164.0,57.4 170.9,53.5 177.8,60.0 184.7,61.0 191.6,59.5 198.4,59.9 205.3,60.9 212.2,59.7 219.1,60.7 226.0,60.7 232.9,58.8 239.8,57.0 246.7,57.3 253.6,54.2 260.4,56.7 267.3,71.0 274.2,55.9 281.1,59.5"/>
+<polyline class="hline h-a" points="40.0,24.0 46.9,33.9 53.8,32.4 60.7,38.5 67.6,40.5 74.4,59.8 81.3,47.7 88.2,48.5 95.1,47.8 102.0,72.0 108.9,67.2 115.8,61.7 122.7,61.5 129.6,59.9 136.4,67.2 143.3,66.2 150.2,61.2 164.0,59.6 170.9,54.7 177.8,61.5 184.7,60.9 191.6,60.6 198.4,59.8 205.3,61.8 212.2,59.9 219.1,60.4 226.0,61.6 232.9,66.6 239.8,58.0 246.7,59.4 253.6,50.4 260.4,56.7 267.3,68.9 274.2,57.2 281.1,60.5"/>
 </svg></div>
 </div>
 <div class="grid2"><div>

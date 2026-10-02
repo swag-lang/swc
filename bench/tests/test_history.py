@@ -111,14 +111,76 @@ class HistoryAdjustmentTests(unittest.TestCase):
         self.assertAlmostEqual(native["run_geo_index"], 1.0)
         self.assertAlmostEqual(native["build_geo_index"], 1.0)
 
-    def test_build_ratio_uses_fixed_control_baseline_and_adjusted_swag(self):
+    def test_build_speedup_is_unchanged_when_the_machine_scales(self):
         baseline = campaign("run-01", False)
         same_builds_on_slower_machine = campaign("run-02", False, build_scale=1.5)
 
         first, second = history.build_entries([baseline, same_builds_on_slower_machine])
 
-        self.assertAlmostEqual(first["headline"]["build_edge"],
-                               second["headline"]["build_edge"])
+        self.assertAlmostEqual(first["headline"]["build_speedup"], 0.6)
+        self.assertAlmostEqual(second["headline"]["build_speedup"], 0.6)
+
+    def test_build_speedup_uses_each_tasks_fastest_rival_and_geometric_mean(self):
+        result = campaign("run-01", False)
+        for task, swag, first, second in (("first", 10.0, 20.0, 80.0),
+                                          ("second", 100.0, 800.0, 400.0)):
+            entries = result["tasks"][task]
+            entries["swag-release"]["build"]["wall_ms"] = swag
+            for control in CONTROLS:
+                entries[control]["build"]["wall_ms"] = 10000.0
+            entries["cpp-a"]["build"]["wall_ms"] = first
+            entries["cpp-b"]["build"]["wall_ms"] = second
+            entries["cpp-msvc"] = {"build": {"wall_ms": 20000.0}}
+            entries["swag-fast-debug"] = {"build": {"wall_ms": 0.01}}
+            entries["swc-jit-release"]["build"] = {"wall_ms": 0.01}
+
+        entry = history.build_entries([result])[0]
+
+        # The winner switches between tasks: ratios 2 and 4 give sqrt(8), not 3.
+        self.assertAlmostEqual(entry["headline"]["build_speedup"], 8.0 ** 0.5)
+        self.assertEqual(entry["headline"]["build_tasks"], 2)
+        self.assertNotIn("build_edge", entry["headline"])
+
+        # Changing task duration cannot change its weight in the aggregate.
+        for task, scale in (("first", 100.0), ("second", 0.1)):
+            for measurement in result["tasks"][task].values():
+                if measurement.get("build"):
+                    measurement["build"]["wall_ms"] *= scale
+        self.assertAlmostEqual(history.build_speedup(result["tasks"], TASKS), 8.0 ** 0.5)
+
+    def test_build_speedup_uses_current_rivals_instead_of_the_baseline(self):
+        baseline = campaign("run-01", False)
+        current = campaign("run-02", False)
+        for entries in current["tasks"].values():
+            entries["cpp-a"]["build"]["wall_ms"] = 15.0
+
+        first, second = history.build_entries([baseline, current])
+
+        self.assertAlmostEqual(first["headline"]["build_speedup"], 0.6)
+        self.assertAlmostEqual(second["headline"]["build_speedup"], 0.3)
+
+    def test_build_speedup_needs_complete_valid_measurements(self):
+        for incomplete in (None, {}, {"wall_ms": 0}, {"wall_ms": -1},
+                           {"wall_ms": 0.01, "error": "compiler exited"}):
+            with self.subTest(incomplete=incomplete):
+                result = campaign("run-01", False)
+                result["tasks"]["first"]["partial"] = {"build": {"wall_ms": 0.01}}
+                result["tasks"]["second"]["partial"] = {"build": incomplete}
+                self.assertAlmostEqual(history.build_speedup(result["tasks"], TASKS), 0.6)
+                result["tasks"]["second"]["swag-release"]["build"] = incomplete
+                self.assertIsNone(history.build_speedup(result["tasks"], TASKS))
+
+    def test_build_speedup_has_no_value_without_a_rival_or_build_measurements(self):
+        result = campaign("run-01", False)
+        for entries in result["tasks"].values():
+            for control in CONTROLS:
+                entries.pop(control)
+        self.assertIsNone(history.build_speedup(result["tasks"], TASKS))
+        for entries in result["tasks"].values():
+            for measurement in entries.values():
+                measurement.pop("build", None)
+        self.assertIsNone(history.build_entries([result])[0]["headline"]["build_speedup"])
+        self.assertIsNone(history.build_speedup({}, []))
 
     def test_one_control_outlier_does_not_move_the_median(self):
         baseline = campaign("run-01", False)
@@ -157,6 +219,13 @@ class LateTaskTests(unittest.TestCase):
                                with_task["runtimes"]["swag-release"]["run_geo_index"])
         self.assertAlmostEqual(without["headline"]["exec_vs_best"],
                                with_task["headline"]["exec_vs_best"])
+        joined["tasks"]["third"]["swag-release"]["build"]["wall_ms"] = 1.0
+        with_task = history.build_entries([baseline, joined])[1]
+        self.assertAlmostEqual(without["headline"]["build_speedup"],
+                               with_task["headline"]["build_speedup"])
+        self.assertNotAlmostEqual(with_task["headline"]["build_speedup"],
+                                  history.build_speedup(joined["tasks"], list(joined["tasks"])))
+        self.assertEqual(with_task["headline"]["build_tasks"], 2)
         self.assertEqual(with_task["headline"]["tasks"], 2)
 
 
@@ -240,6 +309,7 @@ class EditLoopTests(unittest.TestCase):
         self.assertAlmostEqual(entries[1]["runtimes"]["swag-release"]["build_geo_adjusted_ms"], 50.0)
         self.assertIsNone(entries[1]["runtimes"]["swag-release"]["run_geo_adjusted_ms"])
         self.assertAlmostEqual(entries[0]["runtimes"]["swag-release"]["run_geo_adjusted_ms"], 100.0)
+        self.assertAlmostEqual(entries[1]["headline"]["build_speedup"], 0.6)
 
 
 class ResolutionTests(unittest.TestCase):

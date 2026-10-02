@@ -230,6 +230,9 @@ class HarnessTests(unittest.TestCase):
                 self.assertLess(rendered.index('aria-label="Language legend"'), rendered.index('<section id="execution">'))
                 self.assertIn('scope="col"', rendered)
                 self.assertIn('title="C++ / clang-cl (native)"', rendered)
+                self.assertIn("build speedup vs fastest rival", rendered)
+                self.assertIn("fastest non-Swag build time / swc build time", readme.read_text(encoding="utf-8"))
+                self.assertNotIn("build MSVC / swc", rendered)
                 if extended:
                     # The page names D alone; the README table keeps its compiler.
                     for shown, tabled in (("Zig", "Zig"), ('class="rl">D <span', "D (LDC)"),

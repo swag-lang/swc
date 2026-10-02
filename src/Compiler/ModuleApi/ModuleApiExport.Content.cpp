@@ -402,8 +402,8 @@ namespace
         removeNamedModuleApiAttributes(srcView, ioContent, attributeNames);
     }
 
-    // Exported files always have the runtime prelude in scope. Normalize copied source attributes
-    // to that context and fold adjacent lists before the formatter lays out the file.
+    // Preserve explicit qualification: a module can declare an attribute with the same
+    // name as a runtime attribute. Only fold adjacent lists before formatting the file.
     void normalizeModuleApiAttributes(const SourceView& srcView, Utf8& ioContent)
     {
         std::vector<ModuleApiAttributeListSpan> lists;
@@ -423,14 +423,6 @@ namespace
                     depth++;
                 else if (token.id == TokenId::SymRightBracket)
                     depth--;
-
-                if (token.id == TokenId::Identifier && token.string(srcView) == "Swag" && listTokenIndex + 1 < tokens.size() && tokens[listTokenIndex + 1].id == TokenId::SymDot)
-                {
-                    edits.push_back({
-                        .start = srcView.tokenByteStart(token),
-                        .end   = srcView.tokenByteEnd(tokens[listTokenIndex + 1]),
-                    });
-                }
 
                 if (depth)
                     continue;
@@ -460,7 +452,7 @@ namespace
             return;
 
         // These disjoint edits only shrink the text. Compact it once instead of moving the
-        // remaining suffix for every removed qualifier or joined attribute list.
+        // remaining suffix for every joined attribute list.
         size_t readOffset  = edits.front().start;
         size_t writeOffset = readOffset;
         for (const ModuleApiTextEdit& edit : edits)

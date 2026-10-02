@@ -517,7 +517,7 @@ namespace
         Utf8 prefix;
         if (!tryBuildOpaqueTypePrefix(ctx, root, eol, prefix))
         {
-            prefix += "#[Opaque]";
+            prefix += "#[Swag.Opaque]";
             prefix += eol;
             prefix += symbolStruct->isUnion() ? "union " : "struct ";
             prefix += symbolStruct->name(ctx);
@@ -530,17 +530,17 @@ namespace
         const bool requiresExplicitInit = symbolStruct->requiresExplicitInitialization();
         if (requiresExplicitInit)
         {
-            result += "#[Opaque(requiresInit: true)]";
+            result += "#[Swag.Opaque(requiresInit: true)]";
             result += eol;
         }
         else if (needsRuntimeDefault)
         {
-            result += "#[Opaque(runtimeDefault: true)]";
+            result += "#[Swag.Opaque(runtimeDefault: true)]";
             result += eol;
         }
         else
         {
-            result += "#[Opaque]";
+            result += "#[Swag.Opaque]";
             result += eol;
         }
         if (!TypeGen::lifecycleFlagsOfTypeRef(ctx, symbolStruct->typeRef()).canCopy && !snippetSpellsAttribute(prefix.view(), "NoCopy"))

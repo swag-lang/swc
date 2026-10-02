@@ -62,6 +62,28 @@ func expectCurveRect(actual, expected: Math.Rectangle)
     expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl1, ctrl2), Math.Rectangle{0, 0, 10, 7.5})
 }
 
+// Captured from a translated SVG contour, before tessellation and rasterization.
+// Keep the input bits fixed so the check measures cubic accumulation, not coordinate transforms.
+#[Swag.NoInline]
+func capturedCubicPoint(start, end, ctrl1, ctrl2: Math.Vector2, t: f32)->Math.Vector2 => Math.Curve.evaluateBezier(start, end, ctrl1, ctrl2, t)
+
+#test
+{
+    let start = Math.Vector2{cast #bit (f32) 0x42480000'u32, cast #bit (f32) 0x42A8004F'u32}
+    let end   = Math.Vector2{cast #bit (f32) 0x427001A4'u32, cast #bit (f32) 0x4293FF80'u32}
+    let ctrl1 = Math.Vector2{cast #bit (f32) 0x42480000'u32, cast #bit (f32) 0x429CF428'u32}
+    let ctrl2 = Math.Vector2{cast #bit (f32) 0x4259E952'u32, cast #bit (f32) 0x4293FF80'u32}
+
+    // The third and eighth of nine samples, with each product and sum rounded to f32.
+    let third = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32) 0x3EAAAAAB'u32)
+    Swag.assert(cast #bit (u32) third.x == 0x424D7647)
+    Swag.assert(cast #bit (u32) third.y == 0x429DE7BC)
+
+    let eighth = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32) 0x3F638E39'u32)
+    Swag.assert(cast #bit (u32) eighth.x == 0x4268D0B0)
+    Swag.assert(cast #bit (u32) eighth.y == 0x42945200)
+}
+
 // The closed form of every classic curve, kept here as the reference the preset table is checked
 // against. These are the exact expressions the toolkit evaluated before curves became keys, so a
 // preset that drifts from its published shape fails this file rather than a screen.

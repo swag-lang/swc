@@ -6,10 +6,10 @@ struct IndirectContentsValue
     count:   u64
 }
 
-var indirectContentsGlobal        = 31
-var indirectContentsGlobalCarrier = IndirectContentsValue{pointer: &indirectContentsGlobal, count: 2}
-var indirectContentsSaved:     IndirectContentsValue
-var indirectContentsSavedSlot: *IndirectContentsValue?
+var indirectContentsGlobal = 31
+var indirectContentsGlobalCarrier: IndirectContentsValue
+var indirectContentsSaved:         IndirectContentsValue
+var indirectContentsSavedSlot:     *IndirectContentsValue?
 
 #[Swag.NoInline]
 func indirectContentsCopy(destination: *IndirectContentsValue, source: *IndirectContentsValue)
@@ -44,6 +44,7 @@ func indirectContentsKeepSlot(source: *IndirectContentsValue)
 // The intermediate parameter slot dies, while the copied field still names a global.
 #test
 {
+    indirectContentsGlobalCarrier = IndirectContentsValue{pointer: &indirectContentsGlobal, count: 2}
     var value = IndirectContentsValue{pointer: &indirectContentsGlobal, count: 1}
     indirectContentsByValue(&indirectContentsSaved, value)
     Swag.assert(indirectContentsSaved.pointer == &indirectContentsGlobal)

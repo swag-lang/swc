@@ -921,7 +921,12 @@ namespace
         if (pointer.viaErasedPayload || !isStructuralBorrowCarrier(sema, valueTypeRef))
             return pointer;
 
-        if (pointer.sourceVar && unwrapAliasEnum(sema, pointer.sourceVar->typeRef()) == unwrapAliasEnum(sema, valueTypeRef))
+        const TypeRef sourceTypeRef = pointer.sourceVar ? unwrapAliasEnum(sema, pointer.sourceVar->typeRef()) : TypeRef::invalid();
+        // The runtime interface view exposes the carrier's two stored pointers,
+        // not the address of the local interface slot used to inspect them.
+        const bool interfaceContents = sourceTypeRef.isValid() && sema.typeMgr().get(sourceTypeRef).isInterface() &&
+                                       unwrapAliasEnum(sema, valueTypeRef) == sema.typeMgr().structInterface();
+        if (pointer.sourceVar && (sourceTypeRef == unwrapAliasEnum(sema, valueTypeRef) || interfaceContents))
         {
             SemaEscapeInfo contents = sema.variableEscapeInfoIncludingProjections(*pointer.sourceVar);
             if (!contents.hasBorrow() && pointer.sourceVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
@@ -956,8 +961,41 @@ namespace
         return pointer;
     }
 
+    bool onlyOwnedStorageBorrow(const SemaEscapeInfo& info)
+    {
+        if (info.viaOwnedPayload || info.detachedOwnedPayload)
+            return true;
+        if (!info.isDeferredCallBorrow())
+            return false;
+
+        bool hasOwner = false;
+        for (const auto& snapshot : info.deferredCalls)
+        {
+            if (!snapshot)
+                continue;
+            for (const SemaEscapeDeferredCheck& check : snapshot->checks)
+            {
+                if (!check.ownerSource || check.viaStoredField || check.indirect)
+                    return false;
+                hasOwner = true;
+            }
+            for (const SemaEscapeSummaryEdge& edge : snapshot->edges)
+            {
+                if (!edge.viaOwnedPayload || edge.viaStoredField || edge.calleeIndirect || edge.callerIndirect)
+                    return false;
+                hasOwner = true;
+            }
+        }
+        return hasOwner;
+    }
+
     SemaEscapeInfo borrowInfoFromCallArgument(Sema& sema, const ResolvedCallArgument& arg, TypeRef resultTypeRef, uint32_t& budget)
     {
+        // A by-value aggregate argument copies its fields, including when the
+        // expression is a member reached through a pointer to its parent.
+        if (isStructuralBorrowCarrier(sema, resultTypeRef))
+            return expressionEscapeInfoWithTarget(sema, argumentValueRef(sema, arg.argRef), resultTypeRef, budget);
+
         SemaEscapeInfo info = argumentEscapeInfo(sema, arg.argRef, budget);
         if (info.hasBorrow())
         {
@@ -966,10 +1004,6 @@ namespace
         }
 
         const AstNodeRef valueRef = argumentValueRef(sema, arg.argRef);
-        // Passing a plain aggregate by value copies its contents; it does not lend
-        // its local slot. Reference/owner bindings still use the storage fallback.
-        if (isStructuralBorrowCarrier(sema, resultTypeRef))
-            return {};
         if (!expressionMayExposeStorageBorrow(sema, valueRef))
             return {};
 
@@ -2632,15 +2666,31 @@ namespace
                     const TypeRef memberTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef));
                     if (isDirectBorrowCarrier(sema, memberTypeRef) && !info.viaErasedPayload)
                     {
+                        // A pointer copied from an owned buffer's element does not
+                        // point into that buffer merely because its slot does.
+                        // Exact field provenance was handled above; retain every
+                        // non-owning or erased route that can describe its contents.
+                        if (onlyOwnedStorageBorrow(info))
+                            return {};
                         const AstNodeRef leftRef     = node.cast<AstMemberAccessExpr>().nodeLeftRef;
                         const TypeRef    leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, leftRef));
                         if (leftTypeRef.isValid())
                         {
                             const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
                             if ((leftType.isAnyPointer() || leftType.isReference()) && isStructuralBorrowCarrier(sema, leftType.payloadTypeRef()))
-                                return aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
-                            if (isStructuralBorrowCarrier(sema, leftTypeRef))
-                                return info;
+                                info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
+                            else if (!isStructuralBorrowCarrier(sema, leftTypeRef))
+                                return {};
+                            if (info.hasBorrow())
+                            {
+                                // The lifetime bound of an unknown field value is
+                                // not proof that freeing it frees the enclosing slot.
+                                // Exact tracked field borrows returned above retain
+                                // their original allocation identity.
+                                info.viaStoredField = true;
+                                info.typeRef        = memberTypeRef;
+                            }
+                            return info;
                         }
                         return {};
                     }
@@ -2729,6 +2779,43 @@ namespace
         {
             case AstNodeId::InitializerExpr:
                 return expressionEscapeInfoWithTarget(sema, node.cast<AstInitializerExpr>().nodeExprRef, targetTypeRef, budget);
+
+            case AstNodeId::MemberAccessExpr:
+            {
+                // This conversion is specific to value copies. Reading an array
+                // member to form a slice or an element address still borrows the
+                // parent storage through expressionEscapeInfoRec.
+                if (!isStructuralBorrowCarrier(sema, targetTypeRef) ||
+                    unwrapAliasEnum(sema, expressionTypeRef(sema, resolvedRef)) != unwrapAliasEnum(sema, targetTypeRef))
+                    break;
+
+                SemaEscapeProjection projection;
+                if (storageProjection(sema, resolvedRef, projection))
+                {
+                    SemaEscapeInfo projectedInfo = sema.projectionEscapeInfoIncludingWildcards(projection);
+                    if (projectedInfo.hasBorrow())
+                        return projectedInfo;
+                }
+
+                const AstNodeRef leftRef     = node.cast<AstMemberAccessExpr>().nodeLeftRef;
+                const TypeRef    leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, leftRef));
+                if (leftTypeRef.isInvalid())
+                    break;
+                const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
+                SemaEscapeInfo  info;
+                if ((leftType.isAnyPointer() || leftType.isReference()) && isStructuralBorrowCarrier(sema, leftType.payloadTypeRef()))
+                    info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
+                else if (isStructuralBorrowCarrier(sema, leftTypeRef))
+                    info = expressionEscapeInfoWithTarget(sema, leftRef, leftTypeRef, budget);
+                else
+                    break;
+                if (info.hasBorrow())
+                {
+                    info.viaStoredField = true;
+                    info.typeRef        = targetTypeRef;
+                }
+                return info;
+            }
 
             case AstNodeId::CastExpr:
             {

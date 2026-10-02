@@ -1819,25 +1819,14 @@ namespace
         MicroReg      tlsIdReg;
         SWC_RESULT(materializeNativeRuntimeContextTlsId(tlsIdReg, codeGen, *tlsAllocFunction));
 
-        const TypeRef      contextTypeRef     = codeGen.typeMgr().structContext();
-        const TypeInfo&    contextType        = codeGen.typeMgr().get(contextTypeRef);
-        const ConstantRef  initContextCstRef  = makeZeroStructConstant(codeGen, contextTypeRef);
-        CodeGenNodePayload initContextPayload = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, initContextCstRef);
-        initContextPayload.setIsValue();
-
-        const MicroReg contextSizeReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegImm(contextSizeReg, ApInt(contextType.sizeOf(codeGen.ctx()), 64), MicroOpBits::B64);
-
+        // The runtime creates a missing context itself, zeroed, so every call site passes the
+        // slot alone.
         ABICall::PreparedArg directU64Arg;
         directU64Arg.kind    = ABICall::PreparedArgKind::Direct;
         directU64Arg.numBits = 64;
+        directU64Arg.srcReg  = tlsIdReg;
 
         SmallVector<ABICall::PreparedArg> preparedArgs;
-        directU64Arg.srcReg = tlsIdReg;
-        preparedArgs.push_back(directU64Arg);
-        directU64Arg.srcReg = contextSizeReg;
-        preparedArgs.push_back(directU64Arg);
-        directU64Arg.srcReg = initContextPayload.reg;
         preparedArgs.push_back(directU64Arg);
 
         const CallConvKind          tlsGetPtrCallConvKind = tlsGetPtrFunction->callConvKind();

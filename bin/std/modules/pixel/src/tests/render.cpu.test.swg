@@ -761,3 +761,47 @@ private func checkSharedEdge(mode: s32)
 
 // Full-mask texturing exercises the general textured scalar branch.
 #test { checkSharedEdge(4) }
+
+// A captured MSDF footprint lands immediately below the alpha 111 truncation boundary.
+// Static descriptor storage is retained by the shaped run; the test only reads it.
+private var g_MsdfRoundingGlyph: GlyphDesc = {uv: {0.1640625, 0, 0.1484375, 0.15625}, atlasIndex: 0, shiftX: cast #bit (f32) 0x41F73800'u32, shiftY: cast #bit (f32) 0xC21844A5'u32, width: cast #bit (f32) 0x424D3334'u32, height: 54}
+
+#test
+{
+    var cache: FontCache
+    let face = expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))!
+    let font = cache.createFont(face, 40, .Msdf)
+    var run  = Painter.shapeRun("e", font)
+    run.glyphs[0].desc = &g_MsdfRoundingGlyph
+
+    // Only these nine RGBA texels feed the four taps at the checked pixel.
+    const Texels: [36] u8 = [
+        125, 34, 125, 125, 138, 34, 138, 138, 150, 34, 150, 150,
+        116, 19, 116, 116, 127, 19, 127, 127, 138, 19, 138, 138,
+        105, 3, 105, 105, 116, 3, 116, 116, 126, 3, 126, 126]
+    let atlas = &font.cache.atlases[0]
+    Swag.assert(atlas.width == 1024 and atlas.height == 256 and atlas.bytesPerPixel == 4)
+    Memory.clear(atlas.data.storage(), atlas.data.count)
+    for y in 3
+    {
+        for x in 3
+        {
+            let destination = cast(u64) (255 - (27 + y)) * atlas.width + cast(u64) (52 + x) * 4
+            let source      = cast(u64) (y * 3 + x) * 4
+            for channel in 4 do
+                atlas.data[destination + channel] = Texels[source + channel]
+        }
+    }
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Argb.Zero)
+    painter.setBlendingMode(.Copy)
+    painter.translateTransform(50, 195)
+    painter.drawShapedRun(0, -font.ascent, &run, font, Brush{color: Color.fromArgb(0xFFE9E9ED)})
+    painter.end()
+
+    let image = renderCpu(160, 320, &painter)
+    Swag.assert(image.pixelColor(96, 271).a == 110)
+}

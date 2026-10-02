@@ -506,6 +506,14 @@ bool Cast::foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, Ty
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
 
+    // A relocatable address has no integer value until the program is loaded.
+    // Keep the pointer operand so native lowering can relocate it before the cast.
+    if (src.dataSegmentRef().isValid())
+    {
+        castRequest.setConstantFoldingResult(ConstantRef::invalid());
+        return true;
+    }
+
     uint64_t ptrValue = 0;
     if (src.isValuePointer())
         ptrValue = src.getValuePointer();

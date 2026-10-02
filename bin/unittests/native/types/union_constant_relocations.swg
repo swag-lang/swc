@@ -57,6 +57,11 @@ struct NestedDefaults
     pointer: PointerDefault
 }
 
+struct NestedIntegerAlternative
+{
+    value: IntegerAlternative
+}
+
 struct RuntimeDefaultSet
 {
     value:    PartialDefault
@@ -96,11 +101,13 @@ const RESTORED_POINTER:  PartialDefault        = {pointer: UNION_TARGET.buffer}
 const REPLACED_ARRAY:    [2] PartialDefault    = [{whole: 71}, {whole: 73}]
 const REPLACED_DEFAULT:  ReplacedDefault       = {}
 
-var globalText:     TextDefault
-var globalPointer:  PointerDefault
-var globalNested:   NestedDefaults
-var globalInteger:  IntegerAlternative = {words: [29, 31]}
-var globalReplaced: PartialDefault     = {whole: 79}
+var globalText:          TextDefault
+var globalPointer:       PointerDefault
+var globalNested:        NestedDefaults
+var globalInteger:       IntegerAlternative       = {words: [29, 31]}
+var globalIntegerArray:  [2] IntegerAlternative   = [{words: [97, 101]}, {words: [103, 107]}]
+var globalNestedInteger: NestedIntegerAlternative = {value: {words: [109, 113]}}
+var globalReplaced:      PartialDefault           = {whole: 79}
 
 #test
 {
@@ -144,6 +151,12 @@ var globalReplaced: PartialDefault     = {whole: 79}
     Swag.assert(INTEGER_CONSTANT.words[1] == 23)
     Swag.assert(globalInteger.words[0] == 29)
     Swag.assert(globalInteger.words[1] == 31)
+    Swag.assert(globalIntegerArray[0].words[0] == 97)
+    Swag.assert(globalIntegerArray[0].words[1] == 101)
+    Swag.assert(globalIntegerArray[1].words[0] == 103)
+    Swag.assert(globalIntegerArray[1].words[1] == 107)
+    Swag.assert(globalNestedInteger.value.words[0] == 109)
+    Swag.assert(globalNestedInteger.value.words[1] == 113)
     Swag.assert(NUMBER_CONSTANT.number == 37)
     let partial = PartialOverwrite{low: 61}
     Swag.assert(partial.low == 61)

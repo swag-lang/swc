@@ -3,8 +3,8 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenArraySlice.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFloatConstant.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenPointerConstant.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -675,7 +675,9 @@ namespace
                     }
                 }
 
-                const ConstantRef safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
+                ConstantRef safeCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
+                if (safeCstRef.isInvalid())
+                    safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
                 if (safeCstRef.isInvalid())
                     return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
                 const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);

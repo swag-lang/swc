@@ -2,10 +2,10 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenArraySlice.h"
+#include "Compiler/CodeGen/Core/CodeGenCString.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenCString.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -1369,28 +1369,6 @@ namespace
         return Result::Continue;
     }
 
-    Result initializeStructSetReceiverStorage(CodeGen& codeGen, MicroReg storageReg, TypeRef dstTypeRef, ConstantRef initCstRef)
-    {
-        if (!initCstRef.isValid())
-            return Result::Continue;
-
-        const uint64_t storageSize = codeGen.typeMgr().get(dstTypeRef).sizeOf(codeGen.ctx());
-        if (!storageSize)
-            return Result::Continue;
-
-        SWC_ASSERT(storageSize <= std::numeric_limits<uint32_t>::max());
-        SmallVector<std::byte> storageBytes;
-        storageBytes.resize(storageSize);
-        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, initCstRef, dstTypeRef));
-
-        const ConstantRef    initPayloadCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, std::span{storageBytes.data(), storageBytes.size()});
-        const ConstantValue& initPayloadCst    = codeGen.cstMgr().get(initPayloadCstRef);
-        const MicroReg       initReg           = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(initReg, reinterpret_cast<uint64_t>(initPayloadCst.getStruct().data()), initPayloadCstRef);
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, storageReg, initReg, static_cast<uint32_t>(storageSize));
-        return Result::Continue;
-    }
-
     Result emitStructSetCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const CastSetPayload& setPayload)
     {
         SWC_UNUSED(srcNodeRef);
@@ -1405,7 +1383,8 @@ namespace
         SWC_ASSERT(!resolvedArgs.empty() && resolvedArgs[0].argRef.isValid());
 
         const MicroReg runtimeStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-        SWC_RESULT(initializeStructSetReceiverStorage(codeGen, runtimeStorageReg, dstTypeRef, setPayload.receiverInitCstRef));
+        if (!setPayload.calledFn->hasFullInitialization())
+            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, dstTypeRef, runtimeStorageReg));
 
         CodeGenNodePayload& receiverArg = codeGen.setPayload(resolvedArgs[0].argRef, dstTypeRef);
         receiverArg.reg                 = runtimeStorageReg;

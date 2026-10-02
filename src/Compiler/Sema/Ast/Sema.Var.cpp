@@ -155,13 +155,35 @@ namespace
 
         SWC_ASSERT(!(isCompilerGlobal && hasFunctionInit));
 
-        ByteArray loweredBytes;
+        ByteArray                          loweredBytes;
+        std::vector<DataSegmentRelocation> initializerRelocations;
+        bool                               hasMaterializedUnionInitializer = false;
         if (hasInitializerData)
         {
             loweredBytes.resize(size);
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytes.span(), symVar.cstRef(), storageTypeRef));
+            const ConstantValue& initializer = sema.cstMgr().get(symVar.cstRef());
+            if ((initializer.isStruct() || initializer.isArray()) && initializer.isPayloadBorrowed() && initializer.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(ctx, storageTypeRef))
+            {
+                // A union's bytes do not identify its pointer-bearing alternative.
+                // Preserve the relocation inventory established by its actual writes.
+                const DataSegmentRef             sourceRef = initializer.dataSegmentRef();
+                const std::span<const std::byte> source    = initializer.isStruct() ? initializer.getStruct() : initializer.getArray();
+                SWC_ASSERT(source.size() == size);
+                std::memcpy(loweredBytes.span().data(), source.data(), size);
+                sema.cstMgr().shardDataSegment(sourceRef.shardIndex).copyRelocations(initializerRelocations, sourceRef.offset, size);
+                for (DataSegmentRelocation& relocation : initializerRelocations)
+                {
+                    relocation.offset -= sourceRef.offset;
+                    SWC_ASSERT(uint64_t{relocation.offset} + sizeof(void*) <= size);
+                    if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset && relocation.targetShardIndex == INVALID_REF)
+                        relocation.targetShardIndex = sourceRef.shardIndex;
+                }
+                hasMaterializedUnionInitializer = true;
+            }
+            else
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytes.span(), symVar.cstRef(), storageTypeRef));
 
-            if (!isCompilerGlobal && !loweredBytes.allZero())
+            if (!isCompilerGlobal && (!loweredBytes.allZero() || !initializerRelocations.empty()))
                 storageKind = DataSegmentKind::GlobalInit;
             else if (!isCompilerGlobal)
                 storageKind = DataSegmentKind::GlobalZero;
@@ -171,7 +193,7 @@ namespace
         uint32_t     offset  = 0;
         if (hasInitializerData)
         {
-            if (storageKind == DataSegmentKind::GlobalInit)
+            if (storageKind == DataSegmentKind::GlobalInit && !hasMaterializedUnionInitializer)
             {
                 SWC_RESULT(ConstantLower::materializeStaticPayload(offset, sema, segment, storageTypeRef, loweredBytes.span()));
             }
@@ -179,6 +201,13 @@ namespace
             {
                 const std::pair<std::span<const std::byte>, Ref> addRes = segment.addSpan(loweredBytes.span(), alignment);
                 offset                                                  = addRes.second;
+            }
+            for (const DataSegmentRelocation& relocation : initializerRelocations)
+            {
+                if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
+                    segment.addFunctionRelocation(offset + relocation.offset, relocation.targetSymbol, relocation.allowUnresolvedFunction);
+                else
+                    segment.addRelocation(offset + relocation.offset, {.shardIndex = relocation.targetShardIndex, .offset = relocation.targetOffset});
             }
         }
         else if (hasFunctionInit)

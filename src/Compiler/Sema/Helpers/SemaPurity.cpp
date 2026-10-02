@@ -197,6 +197,22 @@ namespace
             if (node.is(AstNodeId::Identifier) && !isPureVariableRead(sema, fn, currentRef))
                 return false;
 
+            if (node.is(AstNodeId::CastExpr) || node.is(AstNodeId::AutoCastExpr))
+            {
+                const SemaNodeView result = sema.viewTypeConstant(currentRef);
+                if (!result.hasType())
+                    return false;
+                if (!result.hasConstant() && result.type()->isIntLike())
+                {
+                    const AstNodeRef   operandRef = node.is(AstNodeId::CastExpr) ? node.cast<AstCastExpr>().nodeExprRef : node.cast<AstAutoCastExpr>().nodeExprRef;
+                    const SemaNodeView operand    = sema.viewType(operandRef);
+                    // Integer addresses depend on where the program is loaded. Folding a
+                    // call through JIT would freeze the compiler process's address instead.
+                    if (!operand.hasType() || operand.type()->isAnyPointer())
+                        return false;
+                }
+            }
+
             if (node.is(AstNodeId::AssignStmt))
             {
                 const auto& assignStmt = node.cast<AstAssignStmt>();

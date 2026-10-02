@@ -949,7 +949,11 @@ namespace
         else
         {
             ownerStruct.computeImplicitDefaultFlags(sema);
-            plan.init = !ownerStruct.requiresExplicitInitialization();
+            // A union whose default is all zero bytes is initialized by clearing its storage, and
+            // its type info publishes no init hook for that case. An opaque union keeps one: its
+            // importers initialize it through the exported hook alone.
+            const bool zeroUnion = ownerStruct.isUnion() && !ownerStruct.attributes().hasRtFlag(RtAttributeFlagsE::Opaque) && ownerStruct.hasImplicitAllZeroDefault();
+            plan.init            = !ownerStruct.requiresExplicitInitialization() && !zeroUnion;
         }
         plan.drop     = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpDrop);
         plan.postCopy = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostCopy);

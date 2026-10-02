@@ -73,8 +73,8 @@ alone. Comparative reference points for that investigation:
   (`benchAlloc`/`benchFree`, through `getContext` and the interface) went 52 -> 44.5 -> 36 ns.
   Native binarytrees paired medians: 0.901 and 0.903 for the first step, 0.861 for the second
   (A/A controls 0.952-1.026). The common path now calls only `TlsGetValue`.
-- What remains per pair: two `getContext` calls (a call to `__tlsGetPtr`, `TlsGetValue`, and a
-  store of `runtimeTlsIdPlusOne` every time, about 2.8 ns each), the interface call and its
+- What remains per pair: two `getContext` calls, now one external `TlsGetValue` each after
+  `0c757abe9` (binarytrees 0.831/0.873, wordfreq 0.915/0.962), the interface call and its
   diagnostic-mode test, and `allocatorPageOf`'s arena walk on free.
 - Pending, branch `perf/prompt2-20261002-retain` (`7294cb746`): emptied non-current pages stay
   committed within 16 page units per heap and restart carving in address order. It removes all
@@ -85,8 +85,8 @@ alone. Comparative reference points for that investigation:
 - A cheaper thread-heap lookup must preserve foreign-thread cleanup and the FLS lifetime
   contract; the thread-local copy owns nothing and is cleared by the FLS callback.
 - Next: explain csvagg under the retention branch (function order, branch-target aliasing,
-  data placement of `text`) before integrating it; then inline `getContext`'s found-context path
-  in `codeGenGetContextNative` so a pair stops paying two runtime calls.
+  data placement of `text`) before integrating it; then measure what the interface dispatch and
+  the free-side arena walk still cost against the JIT's mimalloc path.
 - Complete when: generated-code attribution and comparable application/allocator measurements
   establish the remaining policy, preserving lifetime and error behavior.
 - Related: runtime.allocator.001, runtime.allocator.016.

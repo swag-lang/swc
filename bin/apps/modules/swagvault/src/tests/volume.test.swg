@@ -18,7 +18,8 @@ func raiseCryptoBatchTestError(marker: u32) fail
 #test
 {
     var keys: Crypto.Keys
-    var batch = CryptoBatch{keys: &keys}
+    var records, plain: Array'u8
+    var batch = CryptoBatch{keys: &keys, records: records.toSlice(), plain: plain.toSlice()}
     var task: Swag.Task
     task.submit(func|&batch|()
     {
@@ -820,7 +821,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var stopped = catch Volume.create(path, testPassword(), MinimumSize, &progress) as cancelError
     stopped.close()
     Swag.assert(cancelError != null)
-    Swag.assert((cast #assume(Error) cancelError).kind == .Canceled)
+    Swag.assert((cast #assume(Swagvault.Error) cancelError).kind == .Canceled)
     Swag.assert(not File.exists(path))
 
     // Arming the tracker for the next operation clears the cancellation the stopped one left.
@@ -985,7 +986,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let previousPhysical = stopped.physicalSize
     discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as cancelError
     Swag.assert(cancelError != null)
-    Swag.assert((cast #assume(Error) cancelError).kind == .Canceled)
+    Swag.assert((cast #assume(Swagvault.Error) cancelError).kind == .Canceled)
     Swag.assert(stopped.containerSize == MinimumSize)
     stopped.close()
 
@@ -1073,7 +1074,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     progress.cancel()
     let previousPhysical = volume.physicalSize
     discard catch volume.resize(MinimumSize, &progress) as cancelError
-    Swag.assert(cancelError != null and (cast #assume(Error) cancelError).kind == .Canceled)
+    Swag.assert(cancelError != null and (cast #assume(Swagvault.Error) cancelError).kind == .Canceled)
     Swag.assert(volume.containerSize == InitialSize)
     volume.close()
     Swag.assert(expect File.info(path).size == previousPhysical)
@@ -1133,6 +1134,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var volume = expect Volume.open(path, testPassword(), readOnly: true)
     defer volume.close()
     Swag.assert(volume.readOnly)
+    Swag.assert(not volume.dirty and not volume.hasPendingChanges())
+    let originalKeySlots = volume.keySlotMask
 
     // Reading is untouched: a read-only mount is a mount, not a refusal to open.
     let node = volume.resolve("\\note.txt")
@@ -1151,30 +1154,35 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
             return false
         switch err
         {
-        case Error as volumeError: return volumeError.kind == .WriteProtected
+        case Swagvault.Error as volumeError: return volumeError.kind == .WriteProtected
         }
 
         return false
     }
 
-    let operationRefused = refuses(catch volume.writeNode(nodeId, 0, stored, false, false))
-    Swag.assert(operationRefused)
-    let operationRefused2 = refuses(catch volume.createNode("\\second.txt", false, FileAttributeNormal, emptyBytes()))
-    Swag.assert(operationRefused2)
-    let operationRefused3 = refuses(catch volume.renameNode(nodeId, "\\other.txt", false))
-    Swag.assert(operationRefused3)
-    let operationRefused4 = refuses(catch volume.resizeNode(nodeId, 0))
-    Swag.assert(operationRefused4)
-    let operationRefused5 = refuses(catch volume.deleteNode(nodeId))
-    Swag.assert(operationRefused5)
-    let operationRefused6 = refuses(catch volume.commit())
-    Swag.assert(operationRefused6)
-    let operationRefused7 = refuses(catch volume.checkpoint())
-    Swag.assert(operationRefused7)
-    let operationRefused8 = refuses(catch volume.changePassword(testPassword(), secondPassword()))
-    Swag.assert(operationRefused8)
+    discard catch volume.writeNode(nodeId, 0, stored, false, false) as writeError
+    Swag.assert(refuses(writeError))
+    discard catch volume.createNode("\\second.txt", false, FileAttributeNormal, emptyBytes()) as createError
+    Swag.assert(refuses(createError))
+    catch volume.renameNode(nodeId, "\\other.txt", false) as renameError
+    Swag.assert(refuses(renameError))
+    catch volume.resizeNode(nodeId, 0) as resizeError
+    Swag.assert(refuses(resizeError))
+    catch volume.deleteNode(nodeId) as deleteError
+    Swag.assert(refuses(deleteError))
+    catch volume.commit() as commitError
+    Swag.assert(refuses(commitError))
+    catch volume.checkpoint() as checkpointError
+    Swag.assert(refuses(checkpointError))
+    catch volume.changePassword(testPassword(), secondPassword()) as passwordError
+    Swag.assert(refuses(passwordError))
+    discard catch volume.addPassword(secondPassword()) as addPasswordError
+    Swag.assert(refuses(addPasswordError))
+    catch volume.removePassword(testPassword()) as removePasswordError
+    Swag.assert(refuses(removePasswordError))
 
     // And nothing was staged either: a read-only mount that quietly marked the container dirty
     // would try to write it back the moment it closed.
-    Swag.assert(not volume.dirty)
+    Swag.assert(not volume.dirty and not volume.hasPendingChanges())
+    Swag.assert(volume.keySlotMask == originalKeySlots)
 }

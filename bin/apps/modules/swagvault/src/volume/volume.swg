@@ -690,6 +690,7 @@ impl Volume
     // which refuses to add an unprotected way into a container that has one.
     mtd changePassword(current, replacement: const [..] u8) fail
     {
+        try .requireWritable()
         if .file.base and (not replacement.count or (try HiddenLocator.opensOuter(&.file.stream, replacement))) do
             try failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
 
@@ -749,6 +750,7 @@ impl Volume
     // protection is [[Volume.changePassword]] with an empty replacement.
     mtd addPassword(additional: const [..] u8)->u64 fail
     {
+        try .requireWritable()
         if .file.base and (not additional.count or (try HiddenLocator.opensOuter(&.file.stream, additional))) do
             try failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
 
@@ -783,6 +785,7 @@ impl Volume
     // opens is unrecoverable, and there is no reason to offer that.
     mtd removePassword(password: const [..] u8) fail
     {
+        try .requireWritable()
         let index = try .findKeySlot(password)
         if index == Swag.U64.Max do
             try failWith("That password does not open this container.", .NotFound)

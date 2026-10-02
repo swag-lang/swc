@@ -17,17 +17,24 @@ func __tlsAlloc()->u64
     return slot
 }
 
+#[Swag.Inline]
 func __tlsGetValue(id: u64)->*void? => __hostTlsGet(id)
 func __tlsSetValue(id: u64, value: *void?)->bool => __hostTlsSet(id, value)
 
 // Returns the current thread's runtime context, lazily creating it on a thread the runtime has
-// never seen (an operating-system-owned callback thread, for example).
+// never seen (an operating-system-owned callback thread, for example). Every 'Swag.getContext'
+// lands here, so the found context returns without the creation path's frame.
 func __tlsGetPtr(id: u64, size: u64, init: const *void)->*void?
 {
-    var ptr = __tlsGetValue(id)
+    let ptr = __tlsGetValue(id)
     if ptr do
         return ptr
-    ptr = __bootstrapAlloc(size)
+    return __tlsCreatePtr(id, size, init)
+}
+
+private func __tlsCreatePtr(id: u64, size: u64, init: const *void)->*void?
+{
+    let ptr = __bootstrapAlloc(size)
     if not ptr do
         return null
     Swag.memcpy(ptr, init, size)

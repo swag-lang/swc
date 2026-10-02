@@ -128,6 +128,7 @@ func __hostTlsFree(id: u64)
     discard __Win32RT.TlsFree(cast(u32) id)
 }
 
+#[Swag.Inline]
 func __hostTlsGet(id: u64)->*void? => __Win32RT.TlsGetValue(cast(u32) id)
 func __hostTlsSet(id: u64, value: *void?)->bool => __Win32RT.TlsSetValue(cast(u32) id, value) != 0
 

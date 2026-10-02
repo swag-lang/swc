@@ -62,40 +62,31 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-01 12:54 — Rechecked the current winner and separated zero-store packing from allocator policy.
-- Accepted campaign `20261001-103647` reports binarytrees at 9.952 ms for Node and 34.5819 ms
-  for Swag native Release, both with checksum 674478. Locally inspected Node 20.15.1 V8 code
-  bumps the nursery allocation pointer by 40 bytes and calls a cold allocation path only at
-  the limit. Its garbage-collected task does not recursively free each node. These are
-  different reclamation strategies; the total-task ratio does not isolate allocator cost.
-- Swag still pays for the allocator interface request and dispatch, per-operation heap lookup
-  through `FlsGetValue`, diagnostic predicates, page recovery and address validation, and
-  per-node free. The matched standalone address predicates now contain twenty rather than
-  thirty Microinstructions, with the same six memory operands and one fewer branch, using
-  modular multiplication and rotation. This closes that specific mask/branch opportunity;
-  the rest of the hot path remains. The native benchmark wrappers now contain 60/51
-  Microinstructions and 23/20 memory operands for allocation/free, down from 62/52 and
-  28/24: the copied interface stays in registers, and allocation reuses its guarded result.
-  Six vector stores still initialize each request; TLS context lookup and the indirect
-  allocator call remain. Checksums are unchanged; these are static counts, not new timings.
-- The October 1 code comparison still shows the same nursery bump in Node's leaf path.
-  Swag's leaf now packs its two null-pointer writes into one 128-bit store preceded by
-  a register clear: `bottomUp` retains 24 non-label instructions, reduces explicit
-  memory operands from four to three, and adds no frame traffic. The checksum remains
-  674478. This removes a local write; it does not remove allocator dispatch or per-node free.
-- The same accepted campaign reports Swag JIT at 17.6029 ms. Its host allocator calls
-  mimalloc (`CompilerInstance.cpp`), whereas native code uses `bin/runtime/allocator.swg`.
-  This is another strategy difference to control before attributing the whole-task gap.
-- The historical 77 ns allocation/free pair and 10–20 ns mimalloc comparison are not current
-  measurements. Use runtime.allocator.001 for an allocator-only timing comparison; static
-  benchmark inspection can independently establish redundant instructions.
-- A cheaper thread-heap lookup must preserve foreign-thread cleanup and the current FLS
-  lifetime contract. A plain TLS value cannot own a drop: thread-exit block cleanup releases
-  the bytes without running `opDrop`.
-- Next: inspect request initialization, dispatch and heap lookup in binarytrees' emitted
-  allocation/free paths. Remove proven redundant work without changing its allocations,
-  frees, checksum or the allocator's ownership and corruption checks. Use the shared trace
-  driver before claiming allocator throughput parity or selecting a different allocator.
+- Updated: 2026-10-02 16:44 — Removed the FLS lookup and the hot-path calls; parked page retention behind a csvagg sentinel.
+- Accepted campaign `20261001-165313` reports binarytrees at 35.727 ms for Swag native Release
+  against 10.290 ms for Node 20.15.1 (3.47x). Node bumps a nursery pointer and never frees
+  node by node; these are different reclamation strategies.
+- October 2, pinned in-process pairs of `allocate`+`freeBlock` (16-byte request, page path):
+  31 ns at `b8b74a13d`, 25.5 ns after the thread heap moved from `FlsGetValue` to a
+  thread-local copy (`0f53f7392`), 18.5 ns once the narrowed-receiver inlining (`ff2ddb959`)
+  let `acquireBlock`, `releaseBlock` and `checkPageAddress` inline. The benchmark's own pair
+  (`benchAlloc`/`benchFree`, through `getContext` and the interface) went 52 -> 44.5 -> 36 ns.
+  Native binarytrees paired medians: 0.901 and 0.903 for the first step, 0.861 for the second
+  (A/A controls 0.952-1.026). The common path now calls only `TlsGetValue`.
+- What remains per pair: two `getContext` calls (a call to `__tlsGetPtr`, `TlsGetValue`, and a
+  store of `runtimeTlsIdPlusOne` every time, about 2.8 ns each), the interface call and its
+  diagnostic-mode test, and `allocatorPageOf`'s arena walk on free.
+- Pending, branch `perf/prompt2-20261002-retain` (`7294cb746`): emptied non-current pages stay
+  committed within 16 page units per heap and restart carving in address order. It removes all
+  61 decommit/commit pairs of a binarytrees run. Reuse through the scattered free list alone was
+  no faster; restarting the carve is what gains. wordfreq 0.938/0.950/0.955, binarytrees
+  0.974/0.983/0.985, but csvagg 1.037/1.021/1.056/1.023 across windows while its allocation
+  addresses are identical and every loop of `main` keeps its offset modulo 64.
+- A cheaper thread-heap lookup must preserve foreign-thread cleanup and the FLS lifetime
+  contract; the thread-local copy owns nothing and is cleared by the FLS callback.
+- Next: explain csvagg under the retention branch (function order, branch-target aliasing,
+  data placement of `text`) before integrating it; then inline `getContext`'s found-context path
+  in `codeGenGetContextNative` so a pair stops paying two runtime calls.
 - Complete when: generated-code attribution and comparable application/allocator measurements
   establish the remaining policy, preserving lifetime and error behavior.
 - Related: runtime.allocator.001, runtime.allocator.016.

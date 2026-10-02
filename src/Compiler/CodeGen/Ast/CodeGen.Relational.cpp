@@ -455,13 +455,24 @@ namespace
             Bytes,   // 'size' bytes that must be identical
             Content, // a view of 'size'-wide elements, compared through '__sliceCmp'
             SpecOp,  // a struct, compared through the 'opEquals' it owns
+            Array,   // 'count' elements 'size' bytes apart, each compared through 'elemParts'
         };
 
-        Kind            kind     = Kind::Bytes;
-        uint64_t        offset   = 0;
-        uint64_t        size     = 0;
-        SymbolFunction* equalsFn = nullptr;
+        Kind                     kind     = Kind::Bytes;
+        uint64_t                 offset   = 0;
+        uint64_t                 size     = 0;
+        uint64_t                 count    = 0;
+        SymbolFunction*          equalsFn = nullptr;
+        std::vector<ComparePart> elemParts;
     };
+
+    // Past this many elements, an array whose elements are not plain bytes is compared in a loop.
+    // Unrolled, every element repeats its helper calls and string compares, and a runtime struct
+    // holding a few such arrays grew an equality operator of thousands of instructions.
+    constexpr uint64_t K_COMPARE_UNROLLED_ELEMENTS = 4;
+
+    // Past this many sixteen-byte chunks, a byte run is compared in a loop.
+    constexpr uint64_t K_COMPARE_UNROLLED_CHUNKS = 8;
 
     void appendCompareBytes(SmallVector<ComparePart>& out, uint64_t offset, uint64_t size)
     {
@@ -543,7 +554,20 @@ namespace
                 return;
             }
 
-            for (uint64_t elem = 0; elem < size / elemSize; ++elem)
+            const uint64_t count = size / elemSize;
+            if (count > K_COMPARE_UNROLLED_ELEMENTS)
+            {
+                ComparePart arrayPart;
+                arrayPart.kind   = ComparePart::Kind::Array;
+                arrayPart.offset = base;
+                arrayPart.size   = elemSize;
+                arrayPart.count  = count;
+                arrayPart.elemParts.assign(elemParts.begin(), elemParts.end());
+                out.push_back(std::move(arrayPart));
+                return;
+            }
+
+            for (uint64_t elem = 0; elem < count; ++elem)
             {
                 for (const ComparePart& part : elemParts)
                 {
@@ -588,6 +612,31 @@ namespace
         uint64_t offset = part.offset;
         if (codeGen.buildCfgBackend().optimizes())
         {
+            // A long run is walked by a loop over its sixteen-byte chunks: unrolled, a struct of a
+            // few kilobytes compiled hundreds of compare blocks for an operator nobody may call.
+            const uint64_t chunkCount = part.size / 16;
+            if (chunkCount > K_COMPARE_UNROLLED_CHUNKS)
+            {
+                CodeGenNodePayload leftCursor  = leftPayload;
+                CodeGenNodePayload rightCursor = rightPayload;
+                leftCursor.reg                 = codeGen.nextVirtualIntRegister();
+                rightCursor.reg                = codeGen.nextVirtualIntRegister();
+                const MicroReg counterReg      = codeGen.nextVirtualIntRegister();
+                builder.emitLoadAddressRegMem(leftCursor.reg, leftPayload.reg, offset, MicroOpBits::B64);
+                builder.emitLoadAddressRegMem(rightCursor.reg, rightPayload.reg, offset, MicroOpBits::B64);
+                builder.emitLoadRegImm(counterReg, ApInt(chunkCount, 64), MicroOpBits::B64);
+
+                const MicroLabelRef loopLabel = builder.createLabel();
+                builder.placeLabel(loopLabel);
+                emitCompareBytesVectorChunk(codeGen, leftCursor, rightCursor, 0, notEqualLabel);
+                builder.emitOpBinaryRegImm(leftCursor.reg, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(rightCursor.reg, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(counterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+                builder.emitCmpRegImm(counterReg, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loopLabel);
+                offset += chunkCount * 16;
+            }
+
             while (part.offset + part.size - offset >= 16)
             {
                 emitCompareBytesVectorChunk(codeGen, leftPayload, rightPayload, offset, notEqualLabel);
@@ -713,6 +762,36 @@ namespace
         return Result::Continue;
     }
 
+    Result emitComparePart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel);
+
+    // One element per iteration: both cursors walk the arrays together and every element part
+    // is asked at its offset from the cursor, so the code size no longer grows with the count.
+    Result emitCompareArrayPart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel)
+    {
+        MicroBuilder&      builder     = codeGen.builder();
+        CodeGenNodePayload leftCursor  = leftPayload;
+        CodeGenNodePayload rightCursor = rightPayload;
+        leftCursor.reg                 = codeGen.nextVirtualIntRegister();
+        rightCursor.reg                = codeGen.nextVirtualIntRegister();
+        const MicroReg counterReg      = codeGen.nextVirtualIntRegister();
+
+        builder.emitLoadAddressRegMem(leftCursor.reg, leftPayload.reg, part.offset, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(rightCursor.reg, rightPayload.reg, part.offset, MicroOpBits::B64);
+        builder.emitLoadRegImm(counterReg, ApInt(part.count, 64), MicroOpBits::B64);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+        builder.placeLabel(loopLabel);
+        for (const ComparePart& elemPart : part.elemParts)
+            SWC_RESULT(emitComparePart(codeGen, leftCursor, rightCursor, elemPart, notEqualLabel));
+
+        builder.emitOpBinaryRegImm(leftCursor.reg, ApInt(part.size, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rightCursor.reg, ApInt(part.size, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(counterReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loopLabel);
+        return Result::Continue;
+    }
+
     Result emitComparePart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel)
     {
         switch (part.kind)
@@ -721,6 +800,8 @@ namespace
                 return emitCompareContentPart(codeGen, leftPayload, rightPayload, part, notEqualLabel);
             case ComparePart::Kind::SpecOp:
                 return emitCompareSpecOpPart(codeGen, leftPayload, rightPayload, part, notEqualLabel);
+            case ComparePart::Kind::Array:
+                return emitCompareArrayPart(codeGen, leftPayload, rightPayload, part, notEqualLabel);
             default:
                 emitCompareBytesPart(codeGen, leftPayload, rightPayload, part, notEqualLabel);
                 return Result::Continue;

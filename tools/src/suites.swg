@@ -320,6 +320,29 @@ private func verifyWorkspaceDependencyLayout(context: *Context, workspace: strin
     return 0
 }
 
+// Checks one attribute list without fixing the values of synthesized borrow metadata.
+private func hasCompactExportedAttributes(api: string, declaration: string, attributes: const [..] string)->bool
+{
+    var previous = ""
+    for line in Tokenize.splitLines(api)
+    {
+        if Utf8.startsWith(Tokenize.eatSpaces(line), declaration)
+        {
+            if not Utf8.startsWith(previous, "#[") or not Utf8.endsWith(previous, "]") or Utf8.contains(previous[2 to], "#[") do
+                return false
+
+            for attribute in attributes where not Utf8.contains(previous, attribute) do
+                return false
+
+            return true
+        }
+
+        previous = Tokenize.eatSpaces(line)
+    }
+
+    return false
+}
+
 // Checks the compact spelling contract of the generated public API fixture.
 private func verifyCompactExportedApi(workspace: string, buildCfg: string, targetArch: string)->s32 fail
 {
@@ -329,7 +352,7 @@ private func verifyCompactExportedApi(workspace: string, buildCfg: string, targe
     let staticDirectory = Path.combine(workspace, ".output", "api_static_provider", "static-library", buildCfg, targetArch)
     let staticApi       = try File.readAllText(Path.combine(staticDirectory.toString(), "api_static_provider.swg").toString())
 
-    for redundant in ["#[Swag.", "namespace DepTools {}", "namespace DepTools.Deep {}", "namespace DepSharedRng {}", "namespace Shared {}"]
+    for redundant in ["namespace DepTools {}", "namespace DepTools.Deep {}", "namespace DepSharedRng {}", "namespace Shared {}"]
     {
         if not generated.contains(redundant) and not wholeFile.contains(redundant) do
             continue
@@ -338,22 +361,25 @@ private func verifyCompactExportedApi(workspace: string, buildCfg: string, targe
         return 1
     }
 
-    for compact in ["#[Discardable, Inline]", "#[Align(8)]"]
+    if not hasCompactExportedAttributes(generated.toString(), "func depDiscardableInlineCount(", ["#[Discardable,", ", Swag.Inline]"])
     {
-        if generated.contains(compact) do
-            continue
-
-        Console.println("Generated module API is missing compact attribute list: ", compact)
+        Console.println("generated module API is missing a compact attribute list for 'depDiscardableInlineCount'")
         return 1
     }
 
-    if not wholeFile.contains("#[Discardable, Inline]")
+    if not hasCompactExportedAttributes(generated.toString(), "struct DepOpaque ", ["#[Swag.Opaque,", "Pack(1)", "Align(8)"])
     {
-        Console.println("Whole-file module API is missing compact attribute list: #[Discardable, Inline]")
+        Console.println("generated module API is missing compact layout attributes for 'DepOpaque'")
         return 1
     }
 
-    for redundant in ["#[Opaque]", "Opaque]", "Pack(8)", "NoDoc", "NoDuplicate"]
+    if not wholeFile.contains("#[Swag.Discardable, Swag.Inline]")
+    {
+        Console.println("whole-file module API is missing compact attribute list: #[Swag.Discardable, Swag.Inline]")
+        return 1
+    }
+
+    for redundant in ["NoDoc", "NoDuplicate"]
     {
         if not generated.contains(redundant) and not staticApi.contains(redundant) do
             continue
@@ -362,13 +388,19 @@ private func verifyCompactExportedApi(workspace: string, buildCfg: string, targe
         return 1
     }
 
-    if not staticApi.contains("#[Foreign, Discardable]") or not staticApi.contains("func depTriple(value: s32)->s32")
+    if not hasCompactExportedAttributes(staticApi.toString(), "func depTriple(value: s32)->s32", ["#[Foreign,", ", Swag.Discardable]"])
     {
         Console.println("Bodyless module API declaration lost a consumer attribute")
         return 1
     }
 
-    let retainedBodyAttributes = "#[NoInline, Safety(.All, false), Sanity(.All, false), Optimize(false), Warning(\"all\", .Disable)]"
+    if not hasCompactExportedAttributes(staticApi.toString(), "struct Tagged", ["#[Opaque]"])
+    {
+        Console.println("generated module API is missing the user attribute 'Opaque' on 'Tagged'")
+        return 1
+    }
+
+    let retainedBodyAttributes = "#[Swag.NoInline, Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.Optimize(false), Swag.Warning(\"all\", .Disable)]"
     if not staticApi.contains(retainedBodyAttributes) or not staticApi.contains("func(T) depMirror(value: T)->T => value")
     {
         Console.println("Exported function body lost its compilation attributes")

@@ -350,7 +350,8 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
         let dot   = Math.abs(Math.mulAdd(dirx, n1x, diry * n1y))
         let miter = dot > 0.25 ? Math.min(4.0, 1.0 / dot) : 1.0
 
-        points[index].x = cast(s32) Math.round(cur.x + dirx * strength * miter)
-        points[index].y = cast(s32) Math.round(cur.y + diry * strength * miter)
+        // Round the displacement before adding the origin at the final 26.6 boundary.
+        points[index].x = cast(s32) Math.round(Math.mulAdd(dirx * strength, miter, cast(f64) cur.x))
+        points[index].y = cast(s32) Math.round(Math.mulAdd(diry * strength, miter, cast(f64) cur.y))
     }
 }

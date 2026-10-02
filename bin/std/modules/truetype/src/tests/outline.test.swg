@@ -148,3 +148,17 @@ using Swag, Core
         Swag.assert(points[index].y == point.y)
     }
 }
+
+// These two reduced contour neighborhoods have a final Y displacement of -2.5.
+// Rounding that displacement before adding the origin preserves the +0.5 tie.
+#test
+{
+    var points:   [6] Vector = [{58, 11}, {55, 3}, {53, 3}, {53, 3}, {52, 3}, {47, 8}]
+    var tags:     [6] u8     = [1, 0, 1, 1, 0, 1]
+    var contours: [2] s16    = [2, 5]
+    var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 6, 2)
+    discard expect outline.embolden(5)
+
+    Swag.assert(points[1].x == 57 and points[1].y == 1)
+    Swag.assert(points[4].x == 51 and points[4].y == 1)
+}

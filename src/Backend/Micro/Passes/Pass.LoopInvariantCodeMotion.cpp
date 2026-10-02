@@ -445,6 +445,54 @@ namespace
             return target && target->isFunction() && target->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly);
         };
 
+        // A private global is reached only through its own direct accesses. Its address may sit in
+        // a register that is defined once and only ever used as the base of a load or a store:
+        // an access through it is still direct. Any other use lets the address flow somewhere a
+        // pointer store could reach it from, and the global keeps the ordinary rules.
+        const auto relocationKey = [](const MicroRelocation& relocation) {
+            return (static_cast<uint64_t>(relocation.kind) << 56) ^ relocation.targetAddress;
+        };
+        thread_local std::unordered_set<uint64_t>           materializedPrivateGlobals;
+        thread_local std::unordered_map<MicroReg, uint64_t> privateGlobalBases;
+        materializedPrivateGlobals.clear();
+        privateGlobalBases.clear();
+        for (const MicroRelocation& relocation : relocations)
+        {
+            if (!relocation.privateGlobal || relocation.instructionRef.isInvalid())
+                continue;
+            const MicroInstr* inst = storage.ptr(relocation.instructionRef);
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegPtrReloc)
+                continue;
+            const MicroInstrOperand* instOps = inst->ops(operands);
+            const MicroReg           reg     = instOps ? instOps[0].reg : MicroReg{};
+            const auto               def     = reg.isVirtualInt() ? definitions.find(reg) : definitions.end();
+            if (def == definitions.end() || def->second.count != 1)
+                materializedPrivateGlobals.insert(relocationKey(relocation));
+            else
+                privateGlobalBases.emplace(reg, relocationKey(relocation));
+        }
+        if (!privateGlobalBases.empty())
+        {
+            for (uint32_t i = 0; i < n; ++i)
+            {
+                const MicroInstr* inst = storage.ptr(instrRefs[i]);
+                if (!inst)
+                    continue;
+                uint8_t                  baseIndex = 0;
+                const bool               hasBase   = MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst->op, MicroInstr::info(inst->op));
+                const MicroInstrOperand* instOps   = inst->ops(operands);
+                for (const MicroReg use : useDefs[i].uses)
+                {
+                    const auto it = privateGlobalBases.find(use);
+                    if (it == privateGlobalBases.end())
+                        continue;
+                    const size_t occurrences = std::ranges::count(useDefs[i].uses, use) + std::ranges::count(useDefs[i].defs, use);
+                    if (!hasBase || !instOps || instOps[baseIndex].reg != use || occurrences != 1)
+                        materializedPrivateGlobals.insert(it->second);
+                }
+            }
+        }
+
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
         const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, definitions, context.encoder);
 
@@ -487,6 +535,8 @@ namespace
             thread_local std::unordered_set<MicroReg> dereferenceBasesInLoop;
             defsInLoop.clear();
             dereferenceBasesInLoop.clear();
+            thread_local std::unordered_set<uint64_t> directStoreTargets;
+            directStoreTargets.clear();
             bool                         loopHasCall         = false;
             bool                         loopHasReadOnlyCall = false;
             bool                         loopHasPointerStore = false;
@@ -519,6 +569,19 @@ namespace
                 }
                 if (!MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory))
                     continue;
+                // A writer carrying a relocation addresses its target directly.
+                if (const auto relocationIt = firstRelocation.find(instrRefs[i].get()); relocationIt != firstRelocation.end())
+                {
+                    for (size_t index = relocationIt->second; index < relocationEnd; index = nextRelocation[index])
+                        directStoreTargets.insert(relocationKey(relocations[index]));
+                }
+                // So does one writing through a register that holds a private global's address.
+                if (uint8_t writeBaseIndex = 0; MicroPassHelpers::dereferenceBaseOperandIndex(writeBaseIndex, inst->op, MicroInstr::info(inst->op)))
+                {
+                    const MicroInstrOperand* writeOps = inst->ops(operands);
+                    if (const auto privateBase = writeOps ? privateGlobalBases.find(writeOps[writeBaseIndex].reg) : privateGlobalBases.end(); privateBase != privateGlobalBases.end())
+                        directStoreTargets.insert(privateBase->second);
+                }
                 if (isStackOnlyWrite(inst->op))
                 {
                     loopHasFrameStore = true;
@@ -886,6 +949,18 @@ namespace
 
                             const bool immutableLoad = loadOps[1].reg.isVirtualInt() && immutableBases.contains(loadOps[1].reg);
 
+                            // A private global read directly: no pointer store reaches it, only a
+                            // direct store to the same global in this loop.
+                            bool privateGlobalLoad = false;
+                            if (inst->op == MicroInstrOpcode::LoadRegMem && loadOps[1].reg.isInstructionPointer() && relocationIt != firstRelocation.end())
+                            {
+                                const MicroRelocation& relocation = relocations[relocationIt->second];
+                                const uint64_t         key        = relocationKey(relocation);
+                                privateGlobalLoad                 = relocation.privateGlobal && !materializedPrivateGlobals.contains(key);
+                                if (privateGlobalLoad && directStoreTargets.contains(key))
+                                    continue;
+                            }
+
                             // A call may write an ordinary loaded location.
                             if (loopHasCall && !constantPoolVector && !immutableLoad)
                                 continue;
@@ -933,7 +1008,7 @@ namespace
                                 // address and no frame address escapes the function - or
                                 // the address is instruction-pointer-relative, which
                                 // names a global or a constant and never the frame.
-                                if (loopHasPointerStore && !constantPoolVector)
+                                if (loopHasPointerStore && !constantPoolVector && !privateGlobalLoad)
                                     continue;
                                 const bool baseIsConstantAddress = !base.isValid() || base.isInstructionPointer();
                                 if (loopHasFrameStore && !baseIsConstantAddress)
@@ -960,7 +1035,9 @@ namespace
                                     break;
                                 }
                             }
-                            if (!dominatesAllTails && !constantPoolVector)
+                            // A private global is equally safe to read early: its storage always
+                            // exists, and no store the arm skips could have changed it.
+                            if (!dominatesAllTails && !constantPoolVector && !privateGlobalLoad)
                                 continue;
                         }
 

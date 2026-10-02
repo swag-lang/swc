@@ -195,6 +195,10 @@ public:
     void                            ensureProcessInfosRunArgs();
     const Runtime::ProcessInfos&    processInfos();
     void                            markImportedNativeExecution() { importedNativeExecuted_.store(true, std::memory_order_release); }
+    // Set when the native backend starts, after the module's semantic analysis: whole-module
+    // facts such as a global's address escaping are final from then on.
+    void                            markNativeBackendStarted() { nativeBackendStarted_.store(true, std::memory_order_release); }
+    bool                            nativeBackendStarted() const { return nativeBackendStarted_.load(std::memory_order_acquire); }
     bool                            importedNativeExecuted() const { return importedNativeExecuted_.load(std::memory_order_acquire); }
     bool                            hasImportedStaticLinkInputs() const { return !moduleStaticLinkReadTimes_.empty(); }
 
@@ -636,6 +640,7 @@ private:
     Utf8                                                             lastArtifactLabel_;
     bool                                                             nativeArtifactBuilt_    = false;
     std::atomic_bool                                                 importedNativeExecuted_ = false;
+    std::atomic_bool                                                 nativeBackendStarted_   = false;
     WorkspaceBuildLogState                                           workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>                           workspaceModuleLogState_;
     bool                                                             suppressBuildConfigurationLog_ = false;

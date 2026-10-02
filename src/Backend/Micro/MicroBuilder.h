@@ -133,7 +133,7 @@ public:
     void emitLoadRegPtrImm(MicroReg reg, uint64_t value);
     void emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), const Symbol* targetSymbol = nullptr);
     void emitLoadRegTlsSlot(MicroReg dstReg, MicroReg indexReg);
-    void emitLoadRegDataSegmentReloc(MicroReg reg, DataSegmentKind kind, uint32_t offset);
+    void emitLoadRegDataSegmentReloc(MicroReg reg, DataSegmentKind kind, uint32_t offset, bool privateGlobal = false);
     void emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits);
     void emitLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
     void emitLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);

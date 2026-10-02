@@ -49,6 +49,9 @@ struct MicroRelocation
     // needed when the shared proximity arena is exhausted and the canonical
     // constant no longer fits a rel32 displacement from JIT code.
     uint32_t constantCopySize = 0;
+    // A global whose address never leaves its direct accesses: no store through a pointer can
+    // write it, so only a direct store or a call changes what a direct load reads.
+    bool privateGlobal = false;
 
     bool hasSameTarget(const MicroRelocation& other) const noexcept
     {

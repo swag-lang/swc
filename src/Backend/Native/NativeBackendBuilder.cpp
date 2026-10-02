@@ -1427,6 +1427,7 @@ Result NativeBackendBuilder::prepare()
 {
     SWC_SCHED_PHASE(ctx_.global().jobMgr(), "backend prepare");
     SWC_ASSERT(compiler_ != nullptr);
+    compiler_->markNativeBackendStarted();
     compiler_->setActiveNativeBuilder(nullptr);
     runtimeDependencies.clear();
     runtimeDependencyInitOrder.clear();

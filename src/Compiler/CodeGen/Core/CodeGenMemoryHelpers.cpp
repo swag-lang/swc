@@ -606,6 +606,26 @@ namespace
     }
 }
 
+namespace
+{
+    // A scalar or pointer global no other module can name, whose address no use in the module
+    // binds. Only its direct loads and stores reach it, so a store through any pointer cannot
+    // change it. The answer is final only once the module's semantic analysis is complete,
+    // which the native backend's start marks; code lowered earlier for compile-time execution
+    // stays conservative.
+    bool isPrivateGlobal(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (!codeGen.isNativeBuild() || !codeGen.compiler().nativeBackendStarted())
+            return false;
+        if (symVar.isPublic() || symVar.globalAddressEscapes())
+            return false;
+
+        const TypeRef   typeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), symVar.typeRef());
+        const TypeInfo& type    = codeGen.typeMgr().get(typeRef);
+        return type.isNumericIntLike() || type.isFloat() || type.isAnyPointer();
+    }
+}
+
 // Materializes the address a use of a global variable resolves to.
 //
 // An ordinary global is a fixed location, so its address is a relocation against the data segment.
@@ -618,7 +638,7 @@ void CodeGenMemoryHelpers::emitGlobalVariableAddress(CodeGen& codeGen, MicroReg 
 
     if (!symVar.isThreadLocal())
     {
-        builder.emitLoadRegDataSegmentReloc(reg, symVar.globalStorageKind(), symVar.offset());
+        builder.emitLoadRegDataSegmentReloc(reg, symVar.globalStorageKind(), symVar.offset(), isPrivateGlobal(codeGen, symVar));
         return;
     }
 

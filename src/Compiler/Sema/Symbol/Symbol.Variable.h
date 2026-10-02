@@ -63,7 +63,17 @@ public:
     bool                  closureCaptureByRef() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCaptureByRef); }
     void                  setClosureCaptureByRef(bool value) noexcept;
     bool                  hasGlobalStorage() const { return hasExtraFlag(SymbolVariableFlagsE::GlobalStorage); }
-    bool                  markAddressableIfLocalOrParameter()
+    // A use that binds the variable's address: '&x', a reference parameter, a by-address
+    // receiver, an intrinsic operand. A global's address then exists outside its direct accesses.
+    bool markAddressableIfLocalOrParameter()
+    {
+        if (hasGlobalStorage())
+            markGlobalAddressEscapes();
+        return markLocalStorageAddressable();
+    }
+    // An assignment writes the variable where it lives. A local still needs a home for that, but
+    // a global's address does not escape through it.
+    bool markLocalStorageAddressable()
     {
         if (hasExtraFlag(SymbolVariableFlagsE::Parameter) || hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
         {
@@ -72,6 +82,9 @@ public:
         }
         return false;
     }
+    void markGlobalAddressEscapes() noexcept { std::atomic_ref(globalAddressEscapes_).store(true, std::memory_order_relaxed); }
+    // Final once the module's semantic analysis is complete.
+    bool globalAddressEscapes() const noexcept { return std::atomic_ref(const_cast<bool&>(globalAddressEscapes_)).load(std::memory_order_relaxed); }
     bool                  isDeclaredGlobal() const noexcept { return declaredGlobal_; }
     void                  setDeclaredGlobal(bool value) noexcept { declaredGlobal_ = value; }
     bool                  isDeclaredThreadLocal() const noexcept { return declaredThreadLocal_; }
@@ -123,6 +136,7 @@ private:
     uint32_t        threadLocalSize_       = 0;
     bool            declaredGlobal_        = false;
     bool            declaredThreadLocal_   = false;
+    bool            globalAddressEscapes_  = false;
     MemberAccess    memberAccess_          = MemberAccess::Internal;
     bool            memberReadOnly_        = false;
 };

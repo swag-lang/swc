@@ -619,7 +619,7 @@ void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef
     });
 }
 
-void MicroBuilder::emitLoadRegDataSegmentReloc(MicroReg reg, const DataSegmentKind kind, const uint32_t offset)
+void MicroBuilder::emitLoadRegDataSegmentReloc(MicroReg reg, const DataSegmentKind kind, const uint32_t offset, const bool privateGlobal)
 {
     SWC_ASSERT(kind == DataSegmentKind::Compiler || kind == DataSegmentKind::GlobalZero || kind == DataSegmentKind::GlobalInit);
 
@@ -635,6 +635,7 @@ void MicroBuilder::emitLoadRegDataSegmentReloc(MicroReg reg, const DataSegmentKi
         .targetAddress  = offset,
         .targetSymbol   = nullptr,
         .constantRef    = ConstantRef::invalid(),
+        .privateGlobal  = privateGlobal,
     });
 }
 

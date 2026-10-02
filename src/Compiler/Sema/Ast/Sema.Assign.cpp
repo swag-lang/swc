@@ -134,7 +134,7 @@ namespace
             return;
 
         auto& symVar = leftView.sym()->cast<SymbolVariable>();
-        symVar.markAddressableIfLocalOrParameter();
+        symVar.markLocalStorageAddressable();
     }
 
     Result emitAssignmentCastFailure(Sema& sema, CastRequest& castRequest, AstNodeRef leftRef, DiagnosticId noteId)
@@ -232,7 +232,7 @@ namespace
             return;
 
         auto& symVar = rightView.sym()->cast<SymbolVariable>();
-        symVar.markAddressableIfLocalOrParameter();
+        symVar.markLocalStorageAddressable();
     }
 
     // 'slot = null' on a 'late' slot releases it. The slot is filled by an assignment and

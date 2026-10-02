@@ -31,6 +31,7 @@ const AllocatorBlockCacheMaxBytes = 96'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxCount = 12'u64
 
 private const AllocatorInvalidFlsId = 0xFFFF_FFFF'u64
+private const AllocatorInvalidTlsId = Swag.U64.Max
 
 struct AllocatorTracking
 {
@@ -112,6 +113,11 @@ struct AllocatorThreadHeap
 // the runtime never started, which is what lets an OS-owned callback thread give its pages back.
 private var g_AllocatorThreadHeapFlsId = AllocatorInvalidFlsId
 
+// A plain thread-local copy of the same pointer, which every allocation and free reads. It is several
+// times cheaper to read than fiber-local storage, but owns nothing: the fiber-local slot keeps the
+// cleanup, and every write to that slot writes this copy too, so both always name the same heap.
+private var g_AllocatorThreadHeapTlsId = AllocatorInvalidTlsId
+
 // Allocates page-backed blocks with optional allocation diagnostics.
 //
 // Alignment is zero for the default or a power of two. An invalid alignment, an unrepresentable
@@ -177,7 +183,12 @@ private func retireAllocatorThreadHeap(value: *void?)
     if not value do
         return
 
-    let heap      = cast(*AllocatorThreadHeap) value
+    // The thread may still allocate after this callback, from a later destructor. Its fast slot must
+    // not keep naming the heap that is about to be freed.
+    let heap = cast(*AllocatorThreadHeap) value
+    if fastThreadHeap() == heap do
+        setFastThreadHeap(null)
+
     let allocator = cast(*Allocator?) heap.allocator
     if allocator and allocator.installed() do
         allocator.retireThreadHeap(heap)
@@ -202,12 +213,55 @@ private func allocatorThreadHeapFlsId()->u64
     return candidate
 }
 
-func currentAllocatorThreadHeap()->*AllocatorThreadHeap? => cast(*AllocatorThreadHeap?) __hostThreadStorageGet(allocatorThreadHeapFlsId())
+// Returns the thread-local slot of the fast copy, allocating it on first use. Running out of
+// thread-local slots is not an error: the fiber-local slot alone still answers.
+private func allocatorThreadHeapTlsId()->u64
+{
+    let id = atomicGet(&g_AllocatorThreadHeapTlsId)
+    if id != AllocatorInvalidTlsId do
+        return id
+
+    let candidate = __hostTlsAlloc()
+    if candidate == AllocatorInvalidTlsId do
+        return AllocatorInvalidTlsId
+
+    let previous = Swag.atomcmpxchg(&g_AllocatorThreadHeapTlsId, AllocatorInvalidTlsId, candidate)
+    if previous != AllocatorInvalidTlsId
+    {
+        __hostTlsFree(candidate)
+        return previous
+    }
+
+    return candidate
+}
+
+#[Swag.Inline]
+private func fastThreadHeap()->*AllocatorThreadHeap?
+{
+    let id = atomicGet(&g_AllocatorThreadHeapTlsId)
+    return id != AllocatorInvalidTlsId ? cast(*AllocatorThreadHeap?) __hostTlsGet(id) : null
+}
+
+private func setFastThreadHeap(heap: *AllocatorThreadHeap?)
+{
+    let id = allocatorThreadHeapTlsId()
+    if id != AllocatorInvalidTlsId do
+        discard __hostTlsSet(id, heap)
+}
+
+func currentAllocatorThreadHeap()->*AllocatorThreadHeap?
+{
+    let heap = fastThreadHeap()
+    if heap do
+        return heap
+    return cast(*AllocatorThreadHeap?) __hostThreadStorageGet(allocatorThreadHeapFlsId())
+}
 
 private func setCurrentAllocatorThreadHeap(heap: *AllocatorThreadHeap?)
 {
     let installed = __hostThreadStorageSet(allocatorThreadHeapFlsId(), heap)
     Swag.assert(installed)
+    setFastThreadHeap(heap)
 }
 
 private func currentThreadId()->u64 => __hostCurrentThreadId()

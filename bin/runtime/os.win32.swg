@@ -73,6 +73,7 @@ namespace __Win32RT
         func DebugBreak()
         func LoadLibraryA(name: const *u8)->*void?
         func TlsAlloc()->u32
+        func TlsFree(dwTlsIndex: u32)->BOOL
         func TlsSetValue(dwTlsIndex: u32, lpTlsValue: *void?)->BOOL
         func TlsGetValue(dwTlsIndex: u32)->*void?
         func FlsAlloc(lpCallback: PFLS_CALLBACK_FUNCTION?)->u32
@@ -115,7 +116,18 @@ namespace __Win32RT
 // Windows implementation of the host primitives used by common allocator and TLS policy.
 const AllocatorHostCommitGranularity = 4096'u64
 
-func __hostTlsAlloc()->u64         => __Win32RT.TlsAlloc()
+// Returns 'Swag.U64.Max' when the process has no thread-local slot left.
+func __hostTlsAlloc()->u64
+{
+    let slot = __Win32RT.TlsAlloc()
+    return slot == 0xFFFF_FFFF ? Swag.U64.Max : cast(u64) slot
+}
+
+func __hostTlsFree(id: u64)
+{
+    discard __Win32RT.TlsFree(cast(u32) id)
+}
+
 func __hostTlsGet(id: u64)->*void? => __Win32RT.TlsGetValue(cast(u32) id)
 func __hostTlsSet(id: u64, value: *void?)->bool => __Win32RT.TlsSetValue(cast(u32) id, value) != 0
 

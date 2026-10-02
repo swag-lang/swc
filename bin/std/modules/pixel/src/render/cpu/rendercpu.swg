@@ -313,7 +313,7 @@ private impl RenderCpu
             Memory.clear(plane + cast(u64) y * cast(u64) width + cast(u64) bounds.minX, runWidth)
     }
 
-    func edge(a, b, p: Vector2)->f32 => (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
+    func edge(a, b, p: Vector2)->f32 => Math.mulAdd(-(b.y - a.y), p.x - a.x, (b.x - a.x) * (p.y - a.y))
 
     func isTopLeft(a, b: Vector2)->bool
     {
@@ -1300,6 +1300,10 @@ private impl RenderCpu
             glowAlpha = Math.pow(Math.saturate(intensity), Math.max(p.glowPower, 0.0001)) * glow.w
         }
 
+        // A fragment containing only glow keeps its authored straight-alpha color.
+        if shapeAlpha == 0 and glowAlpha > 0 do
+            return p.glowColor.withAlphaF32(glowAlpha)
+
         let resultAlpha = shapeAlpha + glowAlpha * (1.0 - shapeAlpha)
         var resultR     = shapeR
         var resultG     = shapeG
@@ -1386,10 +1390,13 @@ private impl RenderCpu
         let edge0TopLeft = isTopLeft(p1, p2)
         let edge1TopLeft = isTopLeft(p2, p0)
         let edge2TopLeft = isTopLeft(p0, p1)
+        let edge0Origin  = edge0TopLeft ? p1 : p2
+        let edge1Origin  = edge1TopLeft ? p2 : p0
+        let edge2Origin  = edge2TopLeft ? p0 : p1
         let invArea      = 1.0 / area
 
-        // Per-pixel edge deltas, hoisted: each edge function stays the exact expression of
-        // [[edge]], with its row term computed once per row.
+        // Opposite orientations of a shared edge use one endpoint as their common origin.
+        // Separately rounded products then make the two edge values exact opposites.
         let dx0 = p2.x - p1.x
         let dy0 = p2.y - p1.y
         let dx1 = p0.x - p2.x
@@ -1466,9 +1473,9 @@ private impl RenderCpu
                 for var y = minY; y <= maxY; y += 1
                 {
                     let sy         = cast(f32) y + 0.5
-                    let rowDy0     = sy - p1.y
-                    let rowDy1     = sy - p2.y
-                    let rowDy2     = sy - p0.y
+                    let rowDy0     = sy - edge0Origin.y
+                    let rowDy1     = sy - edge1Origin.y
+                    let rowDy2     = sy - edge2Origin.y
                     let rowPixels  = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
                     let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
                     var x          = minX
@@ -1479,18 +1486,18 @@ private impl RenderCpu
                         if maxX - x >= 3
                         {
                             let sx = Math.Simd.splat(cast(f32) x + 0.5) + CpuPixelLanes
-                            let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
-                            let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
-                            let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                            let e0 = dx0 * rowDy0 - dy0 * (sx - edge0Origin.x)
+                            let e1 = dx1 * rowDy1 - dy1 * (sx - edge1Origin.x)
+                            let e2 = dx2 * rowDy2 - dy2 * (sx - edge2Origin.x)
                             coverage  = insideEdges4(e0, e1, e2, edge0TopLeft, edge1TopLeft, edge2TopLeft)
                             laneCount = 4
                         }
                         else
                         {
                             let sx = cast(f32) x + 0.5
-                            let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
-                            let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
-                            let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                            let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
+                            let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
+                            let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
                             if insideEdge(e0, edge0TopLeft) and insideEdge(e1, edge1TopLeft) and insideEdge(e2, edge2TopLeft) do
                                 coverage = 1
                         }
@@ -1610,16 +1617,16 @@ private impl RenderCpu
                 for var y = minY; y <= maxY; y += 1
                 {
                     let sy        = cast(f32) y + 0.5
-                    let rowDy0    = sy - p1.y
-                    let rowDy1    = sy - p2.y
-                    let rowDy2    = sy - p0.y
+                    let rowDy0    = sy - edge0Origin.y
+                    let rowDy1    = sy - edge1Origin.y
+                    let rowDy2    = sy - edge2Origin.y
                     let rowPixels = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
                     for var x = minX; x <= maxX; x += 1
                     {
                         let sx = cast(f32) x + 0.5
-                        let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
-                        let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
-                        let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                        let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
+                        let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
+                        let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
                         if not insideEdge(e0, edge0TopLeft) or not insideEdge(e1, edge1TopLeft) or not insideEdge(e2, edge2TopLeft) do
                             continue
 
@@ -1670,17 +1677,17 @@ private impl RenderCpu
         for var y = minY; y <= maxY; y += 1
         {
             let sy         = cast(f32) y + 0.5
-            let rowDy0     = sy - p1.y
-            let rowDy1     = sy - p2.y
-            let rowDy2     = sy - p0.y
+            let rowDy0     = sy - edge0Origin.y
+            let rowDy1     = sy - edge1Origin.y
+            let rowDy2     = sy - edge2Origin.y
             let rowPixels  = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
             let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
             for var x = minX; x <= maxX; x += 1
             {
                 let sx = cast(f32) x + 0.5
-                let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
-                let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
-                let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
+                let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
+                let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
                 if not insideEdge(e0, edge0TopLeft) or not insideEdge(e1, edge1TopLeft) or not insideEdge(e2, edge2TopLeft) do
                     continue
 

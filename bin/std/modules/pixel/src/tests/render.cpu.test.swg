@@ -680,3 +680,84 @@ func circlePathList(anticlockwise: bool)->LinePathList
 
     Swag.assert(soft >= 2)
 }
+
+// Captured device-space f32 coordinates freeze the one-ulp asymmetry independently of
+// transforms, tessellation, SVG parsing, and the compiler's floating-point policy.
+const SharedEdgeA = Math.Vector2{cast #bit (f32) 1096403587'u32, cast #bit (f32) 1096403585'u32}
+const SharedEdgeB = Math.Vector2{cast #bit (f32) 1099362556'u32, cast #bit (f32) 1093586878'u32}
+const SharedEdgeC = Math.Vector2{cast #bit (f32) 1106488610'u32, cast #bit (f32) 1106488610'u32}
+const SharedEdgeD = Math.Vector2{cast #bit (f32) 1093586879'u32, cast #bit (f32) 1099362556'u32}
+
+private func checkSharedEdge(mode: s32)
+{
+    const Source   = Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8)
+    const Expected = Color.fromArgb(255'u8, 128'u8, 0'u8, 0'u8)
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    cpu.begin(40, 40)
+    defer renderer.end()
+
+    var texel = Image.create(1, 1, .RGBA8)
+    texel.fill(Source)
+    var texture = renderer.addImage(texel)
+    defer renderer.removeTexture(&texture)
+
+    var brush = Brush.createSolid(Source)
+    if mode >= 3
+    {
+        brush = Brush.createTexture(texture)
+        if mode == 3
+        {
+            brush.uvMode = .FillSubRect
+            brush.uvRect = {0, 0, 1, 1}
+        }
+    }
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromRgb(0, 0, 0))
+    painter.setBlendingMode(.Alpha)
+    if mode != 2 and mode != 4 do
+        painter.setColorMaskColor()
+    painter.setAntialiased(false)
+    painter.setInterpolationMode(.Pixel)
+    if mode == 1 do
+        painter.setClippingRect({0, 0, 22, 40})
+
+    // Two public triangle fills keep the shared diagonal A-C fixed. Its orientation is
+    // reversed in the second triangle; no mutable access to recorded vertices is used.
+    let firstTriangle  = [SharedEdgeA, SharedEdgeB, SharedEdgeC]
+    let secondTriangle = [SharedEdgeA, SharedEdgeC, SharedEdgeD]
+    painter.fillPolygon(firstTriangle, brush)
+    painter.fillPolygon(secondTriangle, brush)
+    painter.end()
+
+    renderer.draw(&painter)
+    let image = cpu.surfaceImage()
+    let last  = mode == 1 ? 22 : 28
+    for coordinate in 17 until last
+    {
+        let actual = image.pixelColor(coordinate, coordinate)
+        Swag.assert(actual == Expected, "the shared diagonal must receive one half-alpha blend")
+    }
+
+    Swag.assert(image.pixelColor(20, 21) == Expected)
+    Swag.assert(image.pixelColor(21, 20) == Expected)
+}
+
+// Both triangles use four-pixel coverage spans at the disputed pixel.
+#test { checkSharedEdge(0) }
+
+// Clipping makes x=21 a scalar tail in one triangle and a packed lane in its neighbor.
+#test { checkSharedEdge(1) }
+
+// Writing alpha takes the general scalar rasterizer rather than the solid-color span path.
+#test { checkSharedEdge(2) }
+
+// The single straight-alpha texel exercises the direct nearest-neighbor texture branch.
+#test { checkSharedEdge(3) }
+
+// Full-mask texturing exercises the general textured scalar branch.
+#test { checkSharedEdge(4) }

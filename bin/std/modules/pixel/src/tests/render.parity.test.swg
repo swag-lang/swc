@@ -627,3 +627,50 @@ private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
         Swag.assert(Math.abs(cast(s32) scratch.b - cast(s32) opaque.b) <= 1)
     }
 }
+
+// A halo-only fragment preserves its authored straight RGB at fractional coverage.
+// Copy blending exposes the shader color before compositing onto a background.
+#test
+{
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    let font   = makeRenderParityFont(renderer, 40, .Msdf)
+    var target = renderer.createRenderTarget(RenderTextWidth, RenderTextHeight)
+    defer renderer.deleteRenderTarget(&target)
+
+    var effect: TextEffect
+    effect.outlineColor = Color.fromArgb(Argb.Zero)
+    effect.glowColor    = Color.fromArgb(150'u8, Argb.Gold)
+    effect.glowInner    = 0.04
+    effect.glowOuter    = 0.42
+    effect.glowPower    = 1.4
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.drawString(12, 82, "Outline + glow", font, Color.fromArgb(Argb.Zero), effect)
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+
+    let image = renderer.readRenderTarget(&target, 0, 0, RenderTextWidth, RenderTextHeight)
+    var fractional: u32
+    for y in image.height
+    {
+        for x in image.width
+        {
+            let color = image.pixelColor(x, y)
+            if color.a == 0 do
+                continue
+            Swag.assert(color.r == effect.glowColor.r and color.g == effect.glowColor.g and color.b == effect.glowColor.b)
+            Swag.assert(color.a <= effect.glowColor.a)
+            if color.a < effect.glowColor.a do
+                fractional += 1
+        }
+    }
+
+    Swag.assert(fractional != 0)
+}

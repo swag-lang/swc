@@ -541,11 +541,13 @@ namespace
             bool                         loopHasReadOnlyCall = false;
             bool                         loopHasPointerStore = false;
             bool                         loopHasFrameStore   = false;
+            bool                         loopHasNestedLoop   = false;
             for (uint32_t i = 0; i < n; ++i)
             {
                 if (!inBody[i])
                     continue;
                 bodyIndices.push_back(i);
+                loopHasNestedLoop |= innermostLoopSizes[i] < loop->bodySize;
                 const MicroInstr*       inst   = storage.ptr(instrRefs[i]);
                 const MicroInstrUseDef* useDef = &useDefs[i];
                 if (!inst)
@@ -950,13 +952,16 @@ namespace
                             const bool immutableLoad = loadOps[1].reg.isVirtualInt() && immutableBases.contains(loadOps[1].reg);
 
                             // A private global read directly: no pointer store reaches it, only a
-                            // direct store to the same global in this loop.
+                            // direct store to the same global in this loop. Only an innermost loop
+                            // keeps it: around a nested loop the value must outlive every inner
+                            // value, and once the allocator spills it, the hoist trades a load of the
+                            // global for a load of the stack slot plus the spill's own traffic.
                             bool privateGlobalLoad = false;
                             if (inst->op == MicroInstrOpcode::LoadRegMem && loadOps[1].reg.isInstructionPointer() && relocationIt != firstRelocation.end())
                             {
                                 const MicroRelocation& relocation = relocations[relocationIt->second];
                                 const uint64_t         key        = relocationKey(relocation);
-                                privateGlobalLoad                 = relocation.privateGlobal && !materializedPrivateGlobals.contains(key);
+                                privateGlobalLoad                 = relocation.privateGlobal && !loopHasNestedLoop && !materializedPrivateGlobals.contains(key);
                                 if (privateGlobalLoad && directStoreTargets.contains(key))
                                     continue;
                             }

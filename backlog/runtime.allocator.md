@@ -62,7 +62,7 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-02 16:44 — Removed the FLS lookup and the hot-path calls; parked page retention behind a csvagg sentinel.
+- Updated: 2026-10-02 20:23 — Retention no longer gains after the hot-path work; csvagg concern was placement.
 - Accepted campaign `20261001-165313` reports binarytrees at 35.727 ms for Swag native Release
   against 10.290 ms for Node 20.15.1 (3.47x). Node bumps a nursery pointer and never frees
   node by node; these are different reclamation strategies.
@@ -76,17 +76,15 @@ alone. Comparative reference points for that investigation:
 - What remains per pair: two `getContext` calls, now one external `TlsGetValue` each after
   `0c757abe9` (binarytrees 0.831/0.873, wordfreq 0.915/0.962), the interface call and its
   diagnostic-mode test, and `allocatorPageOf`'s arena walk on free.
-- Pending, branch `perf/prompt2-20261002-retain` (`7294cb746`): emptied non-current pages stay
-  committed within 16 page units per heap and restart carving in address order. It removes all
-  61 decommit/commit pairs of a binarytrees run. Reuse through the scattered free list alone was
-  no faster; restarting the carve is what gains. wordfreq 0.938/0.950/0.955, binarytrees
-  0.974/0.983/0.985, but csvagg 1.037/1.021/1.056/1.023 across windows while its allocation
-  addresses are identical and every loop of `main` keeps its offset modulo 64.
+- Parked, branch `perf/prompt2-20261002-retain` (`7294cb746`): emptied non-current pages stay
+  committed within 16 page units per heap and restart carving in address order, removing all 61
+  decommit/commit pairs of a binarytrees run. Against the October 2 evening allocator it no longer
+  gains: wordfreq 0.99, binarytrees 0.98-1.00 at two worker counts. csvagg, earlier 1.02-1.06, is
+  neutral across five function orders (1, 4, 6, 12, 22 workers), so that was placement.
 - A cheaper thread-heap lookup must preserve foreign-thread cleanup and the FLS lifetime
   contract; the thread-local copy owns nothing and is cleared by the FLS callback.
-- Next: explain csvagg under the retention branch (function order, branch-target aliasing,
-  data placement of `text`) before integrating it; then measure what the interface dispatch and
-  the free-side arena walk still cost against the JIT's mimalloc path.
+- Next: measure what the interface dispatch and the free-side arena walk still cost against the
+  JIT's mimalloc path; retry page retention only if a workload shows decommit traffic again.
 - Complete when: generated-code attribution and comparable application/allocator measurements
   establish the remaining policy, preserving lifetime and error behavior.
 - Related: runtime.allocator.001, runtime.allocator.016.

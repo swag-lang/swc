@@ -1514,6 +1514,23 @@ namespace
         return false;
     }
 
+    // A non-null pointer parameter, which a flow-narrowed nullable pointer argument can
+    // initialize once in the caller.
+    bool isNonNullValuePointerParam(Sema& sema, const SymbolVariable& param)
+    {
+        const TypeInfo& paramType = param.type(sema.ctx());
+        return paramType.isValuePointer() && !paramType.isNullable();
+    }
+
+    // A method whose receiver `me` is a non-null pointer.
+    bool hasPointerReceiverParam(Sema& sema, const SymbolFunction& fn)
+    {
+        const auto& params = fn.parameters();
+        if (params.empty() || !params.front() || params.front()->idRef() != sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            return false;
+        return isNonNullValuePointerParam(sema, *params.front());
+    }
+
     AstNodeRef makeInlineMaterializedTypeNode(Sema& sema, TokenRef tokRef, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -1629,7 +1646,7 @@ namespace
         return false;
     }
 
-    Result materializeInlineReceiverBinding(Sema& sema, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements)
+    Result materializeInlineReceiverBinding(Sema& sema, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements, bool narrowedReceiver)
     {
         const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
         for (SemaClone::ParamBinding& binding : ioBindings)
@@ -1638,7 +1655,7 @@ namespace
                 continue;
             const bool isLValue      = sema.isLValue(binding.exprRef);
             const bool indexedLValue = isLValue && inlineReceiverContainsIndex(sema, binding.exprRef);
-            if (sema.viewConstant(binding.exprRef).hasConstant() || (isLValue && !indexedLValue))
+            if (sema.viewConstant(binding.exprRef).hasConstant() || (isLValue && !indexedLValue && !narrowedReceiver))
                 return Result::Continue;
 
             const TypeInfo& paramType = binding.sourceParam->type(sema.ctx());
@@ -1665,6 +1682,11 @@ namespace
                 const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
                 SWC_RESULT(makeInlineAddressHome(sema, clonedInitRef, binding.sourceParam->typeRef(), sourceTypeRef, true));
             }
+
+            // A narrowed nullable receiver keeps its proof only in the caller's frame: convert it
+            // to the non-null receiver type there, so the body never sees the nullable.
+            if (narrowedReceiver)
+                clonedInitRef = Cast::createCastNode(sema, binding.sourceParam->typeRef(), clonedInitRef);
 
             auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(tokRef);
             declPtr->flags()        = AstVarDeclFlagsE::Let;
@@ -1831,7 +1853,10 @@ namespace
         mat.forRuntimeSafety = !isCaptured && context.fn->attributes().hasRuntimeSafetyOverrides() && !mat.bindsByAddress && !paramType.isAnyVariadic();
         mat.forVariadic      = !isCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, use);
         mat.forAddress       = !isCaptured && mat.hasAddressUse && (!mat.bindsByAddress || !sema.isLValue(binding.exprRef));
-        mat.forNarrowFact    = mat.narrowDependent && !mat.bindsByAddress;
+        // A pointer parameter fed by a narrowed nullable pointer binds a value, not a place: its
+        // home pins the non-null parameter type while the caller's fact is still live.
+        const bool narrowedPointer = mat.narrowDependent && paramType.isValuePointer() && !paramType.isNullable() && !bindsPointeeByAddress;
+        mat.forNarrowFact          = mat.narrowDependent && (!mat.bindsByAddress || narrowedPointer);
         mat.forContextLambda = isInlineContextualLambdaArg(sema, binding.exprRef);
 
         // A reference bound to a stable lvalue survives an index or foreach use as it
@@ -2747,11 +2772,25 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // deliberately dropped, and a re-derivation from bare syntax cannot reconstruct
     // them. The real call validated the argument once and needs no replay, so keep the
     // call. Macros and mixins cannot fall back to a real call and keep their behavior.
+    // A method receiver is the exception: it gets a home typed as `me`, initialized in
+    // the caller's frame where the proof still holds (materializeInlineReceiverBinding).
+    bool narrowedReceiver = false;
     if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
     {
-        bool carriesFlowProof = ufcsArg.isValid() && inlineBindingCarriesFlowProvenNonNull(sema, ufcsArg);
+        narrowedReceiver      = ufcsArg.isValid() && inlineBindingCarriesFlowProvenNonNull(sema, ufcsArg);
+        bool carriesFlowProof = narrowedReceiver && !hasPointerReceiverParam(sema, fn);
+        const auto& params = fn.parameters();
         for (size_t i = 0; !carriesFlowProof && i < resolvedArgs.size(); ++i)
-            carriesFlowProof = resolvedArgs[i].argRef.isValid() && inlineBindingCarriesFlowProvenNonNull(sema, resolvedArgs[i].argRef);
+        {
+            const AstNodeRef argRef = resolvedArgs[i].argRef;
+            if (resolvedArgs[i].isUfcsReceiver || argRef.isInvalid() || !inlineBindingCarriesFlowProvenNonNull(sema, argRef))
+                continue;
+            // A non-null pointer parameter fed by a live narrowing fact gets a home typed as the
+            // parameter, initialized in the caller's frame (see materializeInlineBinding).
+            if (i < params.size() && params[i] && isNonNullValuePointerParam(sema, *params[i]) && inlineBindingDependsOnNarrowFact(sema, argRef))
+                continue;
+            carriesFlowProof = true;
+        }
         if (carriesFlowProof)
             return Result::Continue;
     }
@@ -2898,7 +2937,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     SmallVector<AstNodeRef> materializedBindings;
     materializedBindings.clear();
-    SWC_RESULT(materializeInlineReceiverBinding(sema, bindings, materializedBindings));
+    SWC_RESULT(materializeInlineReceiverBinding(sema, bindings, materializedBindings, narrowedReceiver));
     // Inline functions, mixins, and macros all substitute runtime bindings into the caller body.
     // Closure captures and non-addressable aggregate uses still need concrete locals before
     // cloning, while #code parameters are explicitly skipped inside materializeInlineBindings.

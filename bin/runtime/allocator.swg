@@ -249,6 +249,7 @@ private func setFastThreadHeap(heap: *AllocatorThreadHeap?)
         discard __hostTlsSet(id, heap)
 }
 
+#[Swag.Inline]
 func currentAllocatorThreadHeap()->*AllocatorThreadHeap?
 {
     let heap = fastThreadHeap()
@@ -364,6 +365,7 @@ impl Allocator
 
     mtd installed()->bool => .installMagic == InstalledMagic
 
+    #[Swag.Inline]
     mtd diagnosticMode()->bool => .trackAllocations or .captureAllocStack or .electricMode or .breakOnAllocId != 0
 
     // ###################################################################################
@@ -446,13 +448,20 @@ impl Allocator
         return heap
     }
 
+    #[Swag.Inline]
     mtd threadHeap()->*AllocatorThreadHeap?
     {
         // 'retired' is only ever set from the owning thread, so reading it needs no barrier here.
         let heap = currentAllocatorThreadHeap()
         if heap and heap.allocator == me and heap.retired == 0 do
             return heap
+        return .installThreadHeap(heap)
+    }
 
+    // Gives the calling thread a heap of this allocator, the first time it allocates or after the
+    // slot was handed to another allocator.
+    mtd installThreadHeap(heap: *AllocatorThreadHeap?)->*AllocatorThreadHeap?
+    {
         // The slot holds another allocator's heap, which happens when a program installs a second
         // allocator on a thread that already allocated. Give the old one back before replacing it.
         if heap
@@ -1007,6 +1016,7 @@ impl Allocator
 
     // A page-path block needs no header, so a request only leaves that path when it asks for more
     // than a page can carve, for a stricter alignment, or while a diagnostic mode is recording.
+    #[Swag.Inline]
     mtd usesHeaderPath(request: *AllocatorRequest, classIndex: u32)->bool
     {
         if .diagnosticMode() do
@@ -1147,6 +1157,7 @@ impl Allocator
 
     // Rejects an address that no live block of the page starts, which covers a stale pointer, an
     // interior pointer, and a pointer into a page that has already gone back to its segment.
+    #[Swag.Inline]
     mtd checkPageAddress(page: *AllocatorPage, address: u64, callerLoc: SourceCodeLocation)
     {
         if page.state == AllocatorPageState.Free do

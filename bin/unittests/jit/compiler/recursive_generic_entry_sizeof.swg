@@ -207,8 +207,8 @@ struct RecursiveAssocNode
 
 #test
 {
-    var assocMap:     RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
     var nodeA, nodeB: RecursiveAssocNode
+    var assocMap:     RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
     let valueA:       RecursiveAssocPayload'RecursiveAssocNode = {first: &nodeA, second: null, count: 1}
     let valueB:       RecursiveAssocPayload'RecursiveAssocNode = {first: null, second: &nodeB, count: 1}
 
@@ -232,8 +232,8 @@ struct RecursiveAssocNode
 
 #test
 {
-    var assocMap:     RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
     var nodeA, nodeB: RecursiveAssocNode
+    var assocMap:     RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
     let valueA:       RecursiveAssocPayload'RecursiveAssocNode = {first: &nodeA, second: null, count: 1}
     let valueB:       RecursiveAssocPayload'RecursiveAssocNode = {first: null, second: &nodeB, count: 1}
     assocMap.add(10, valueA)

@@ -1320,7 +1320,13 @@ namespace
             {
                 const auto* member = sema.node(memberRef).safeCast<AstMemberAccessExpr>();
                 if (!member)
+                {
+                    // A field inside an indexed pointee still belongs to the
+                    // pointer's allocation, not the slot that holds the pointer.
+                    if (const auto* memberIndex = sema.node(memberRef).safeCast<AstIndexExpr>())
+                        carrierRef = memberIndex->nodeExprRef;
                     break;
+                }
                 const TypeRef leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, member->nodeLeftRef));
                 if (leftTypeRef.isValid() && sema.typeMgr().get(leftTypeRef).isAnyPointer())
                 {

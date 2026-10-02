@@ -94,3 +94,57 @@ using Swag, Core
     face.glyph.oblique()
     Swag.assert(samplePts[sampleIdx].x == sampleBeforeX + cast(s32) Math.round(sampleBeforeY * 0.21256))
 }
+
+// A 3/64-pixel embolden of this captured contour lies on a half-integer boundary.
+// Its fixed-point result must not change when automatic FMA is enabled in Release.
+#test
+{
+    var points:   [12] Vector = [{272, 298}, {147, 473}, {53, 473}, {229, 239}, {48, 0}, {143, 0}, {273, 180}, {404, 0}, {498, 0}, {317, 239}, {493, 473}, {398, 473}]
+    var tags:     [12] u8     = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    var contours: [1] s16     = [11]
+    var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 12, 1)
+    discard expect outline.embolden(3)
+
+    let expected: [12] Vector = [{272, 301}, {148, 475}, {50, 475}, {227, 239}, {45, -2}, {144, -2}, {273, 177}, {403, -2}, {501, -2}, {319, 239}, {496, 475}, {397, 475}]
+    for point, index in expected
+    {
+        Swag.assert(points[index].x == point.x)
+        Swag.assert(points[index].y == point.y)
+    }
+}
+
+// The dot product also needs separate product rounding: this two-contour outline
+// crosses the lower baseline tie when either dot-product term is fused.
+#test
+{
+    var points:   [17] Vector = [{23, 0}, {259, 652}, {356, 652}, {595, 0}, {508, 0}, {443, 182}, {174, 182}, {111, 0}, {200, 255}, {417, 255}, {370, 387}, {358, 420}, {328, 515}, {307, 585}, {287, 513}, {256, 417}, {245, 387}]
+    var tags:     [17] u8     = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1]
+    var contours: [2] s16     = [7, 16]
+    var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 17, 2)
+    discard expect outline.embolden(3)
+
+    let expected: [17] Vector = [{21, -2}, {258, 654}, {357, 654}, {597, -2}, {507, -2}, {442, 181}, {175, 181}, {112, -2}, {202, 257}, {415, 257}, {369, 386}, {357, 420}, {327, 515}, {307, 580}, {288, 513}, {257, 417}, {246, 386}]
+    for point, index in expected
+    {
+        Swag.assert(points[index].x == point.x)
+        Swag.assert(points[index].y == point.y)
+    }
+}
+
+// At strength 1, rounding the Y dot-product term together with the addition moves
+// the first point from just above the negative half-unit tie onto it.
+#test
+{
+    var points:   [13] Vector = [{277, 0}, {19, 699}, {219, 699}, {336, 336}, {351, 289}, {375, 194}, {386, 146}, {397, 194}, {420, 289}, {435, 336}, {551, 699}, {748, 699}, {490, 0}]
+    var tags:     [13] u8     = [1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1]
+    var contours: [1] s16     = [12]
+    var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 13, 1)
+    discard expect outline.embolden(1)
+
+    let expected: [13] Vector = [{277, 0}, {18, 700}, {219, 700}, {336, 336}, {351, 289}, {375, 194}, {386, 147}, {397, 194}, {420, 289}, {435, 336}, {551, 700}, {749, 700}, {490, -1}]
+    for point, index in expected
+    {
+        Swag.assert(points[index].x == point.x)
+        Swag.assert(points[index].y == point.y)
+    }
+}

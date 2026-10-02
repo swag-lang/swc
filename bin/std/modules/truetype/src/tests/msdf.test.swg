@@ -49,7 +49,11 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 
     // Loading any glyph leaves the slot holding an outline, which the view then replaces.
     discard expect face.loadChar('A')
-    face.glyph.outline.setView(points.buffer, tags.buffer, contours.buffer, cast(s16) points.count, cast(s16) contours.count)
+    let faceData = getFaceData(face)
+    faceData.outlinePoints   = #move points
+    faceData.outlineTags     = #move tags
+    faceData.outlineContours = #move contours
+    face.glyph.outline.setView(faceData.outlinePoints.buffer, faceData.outlineTags.buffer, faceData.outlineContours.buffer, cast(s16) faceData.outlinePoints.count, cast(s16) faceData.outlineContours.count)
     discard expect face.renderGlyphMsdf(8)
 
     let bitmap = &face.glyph.bitmap

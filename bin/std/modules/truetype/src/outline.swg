@@ -330,9 +330,11 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
         let n1x = ccw ? e1y * il1 : -e1y * il1
         let n1y = ccw ? -e1x * il1 : e1x * il1
 
-        var dirx   = n0x + n1x
-        var diry   = n0y + n1y
-        let dirLen = Math.sqrt(dirx * dirx + diry * diry)
+        var dirx = n0x + n1x
+        var diry = n0y + n1y
+
+        // Keep both squared terms rounded before normalization: FMA can move a 26.6 tie.
+        let dirLen = Math.sqrt(Math.mulAdd(dirx, dirx, diry * diry))
         if Math.isZeroEpsilon(cast(f32) dirLen)
         {
             dirx = n1x
@@ -344,8 +346,10 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
             diry /= dirLen
         }
 
-        let dot   = Math.abs(dirx * n1x + diry * n1y)
+        // The reciprocal dot controls the displacement; round both products before adding.
+        let dot   = Math.abs(Math.mulAdd(dirx, n1x, diry * n1y))
         let miter = dot > 0.25 ? Math.min(4.0, 1.0 / dot) : 1.0
+
         points[index].x = cast(s32) Math.round(cur.x + dirx * strength * miter)
         points[index].y = cast(s32) Math.round(cur.y + diry * strength * miter)
     }

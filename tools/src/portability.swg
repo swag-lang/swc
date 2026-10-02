@@ -46,6 +46,7 @@ private const NativeSourceFiles = [
     "bin/std/modules/core/src/system/process.win32.swg",
     "bin/std/modules/core/src/system/sandbox.win32.swg",
     "bin/std/modules/core/src/thread/event.win32.swg",
+    "bin/std/modules/core/src/thread/eventstatus.win32.swg",
     "bin/std/modules/core/src/thread/mutex.win32.swg",
     "bin/std/modules/core/src/thread/rwlock.win32.swg",
     "bin/std/modules/core/src/thread/thread.win32.swg",

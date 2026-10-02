@@ -863,7 +863,7 @@ namespace
         }
     }
 
-    Utf8 makeCandidateFailureText(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
+    Utf8 makeCandidateFailureText(const SymbolFunction& fn, const MatchFailure& fail, AstNodeRef ufcsArg, const TaskContext& ctx)
     {
         if (fail.kind == MatchFailKind::InvalidArgumentType)
         {
@@ -915,19 +915,29 @@ namespace
                 }
 
                 if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? failedParameter(fn, fail) : nullptr)
-                    return std::format("parameter '{}' cannot accept argument {}: {}", param->name(ctx), fail.argIndex + 1, Diagnostic::diagIdMessage(fail.castFailure.diagId));
+                {
+                    const uint32_t argNumber = writtenArgNumber(fail.argIndex, ufcsArg);
+                    if (!argNumber)
+                        return std::format("parameter '{}' cannot accept the receiver: {}", param->name(ctx), Diagnostic::diagIdMessage(fail.castFailure.diagId));
+                    return std::format("parameter '{}' cannot accept argument {}: {}", param->name(ctx), argNumber, Diagnostic::diagIdMessage(fail.castFailure.diagId));
+                }
                 return Utf8{Diagnostic::diagIdMessage(fail.castFailure.diagId)};
             }
 
             if (const SymbolVariable* param = failedParameter(fn, fail))
-                return std::format("argument {} does not match parameter '{}'", fail.argIndex + 1, param->name(ctx));
+            {
+                const uint32_t argNumber = writtenArgNumber(fail.argIndex, ufcsArg);
+                if (!argNumber)
+                    return std::format("the receiver does not match parameter '{}'", param->name(ctx));
+                return std::format("argument {} does not match parameter '{}'", argNumber, param->name(ctx));
+            }
             return Utf8{Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type)};
         }
 
         return Utf8{Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable)};
     }
 
-    Utf8 makeGenericInstantiationFailureText(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
+    Utf8 makeGenericInstantiationFailureText(const SymbolFunction& fn, const MatchFailure& fail, AstNodeRef ufcsArg, const TaskContext& ctx)
     {
         const CastFailure& failure       = fail.castFailure;
         const Utf8*        param         = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUE);
@@ -958,10 +968,10 @@ namespace
         if (failure.diagId == DiagnosticId::sema_err_generic_parameter_not_deduced)
             return std::format("generic parameter '{}' cannot be deduced from this call and needs to be specified explicitly", paramName);
 
-        return makeCandidateFailureText(fn, fail, ctx);
+        return makeCandidateFailureText(fn, fail, ufcsArg, ctx);
     }
 
-    DiagnosticId overloadCandidateDiagnosticId(const MatchFailure& fail)
+    DiagnosticId overloadCandidateDiagnosticId(const MatchFailure& fail, AstNodeRef ufcsArg)
     {
         switch (fail.kind)
         {
@@ -972,7 +982,7 @@ namespace
                 return DiagnosticId::sema_note_overload_candidate_too_few_arguments;
 
             case MatchFailKind::InvalidArgumentType:
-                if (fail.castFailure.diagId == DiagnosticId::sema_err_cannot_cast && fail.castFailure.srcTypeRef.isValid() && fail.castFailure.dstTypeRef.isValid())
+                if (writtenArgNumber(fail.argIndex, ufcsArg) && fail.castFailure.diagId == DiagnosticId::sema_err_cannot_cast && fail.castFailure.srcTypeRef.isValid() && fail.castFailure.dstTypeRef.isValid())
                     return DiagnosticId::sema_note_overload_candidate_argument_type;
                 return DiagnosticId::sema_note_overload_candidate_failed;
 
@@ -1075,7 +1085,7 @@ namespace
                         }
                         else
                         {
-                            diagElement.addArgument(Diagnostic::ARG_WHAT, makeCandidateFailureText(fn, fail, ctx));
+                            diagElement.addArgument(Diagnostic::ARG_WHAT, makeCandidateFailureText(fn, fail, ufcsArg, ctx));
                         }
                     }
                     if (isNote || !hasFunctionCallConvMismatch(fail, ctx))
@@ -1093,7 +1103,7 @@ namespace
                 else
                 {
                     if (isNote)
-                        diagElement.addArgument(Diagnostic::ARG_WHAT, makeCandidateFailureText(fn, fail, ctx));
+                        diagElement.addArgument(Diagnostic::ARG_WHAT, makeCandidateFailureText(fn, fail, ufcsArg, ctx));
                     else
                         diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
                 }
@@ -1167,7 +1177,7 @@ namespace
             }
 
             count++;
-            diag.addNote(overloadCandidateDiagnosticId(a.fail));
+            diag.addNote(overloadCandidateDiagnosticId(a.fail, ufcsArg));
             diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->isTyped() ? a.fn->type(ctx).toName(ctx) : Utf8{a.fn->name(ctx)});
             fillMatchDiagnostic(sema, diag.last(), diag, *a.fn, a.fail, args, ufcsArg, true);
         }
@@ -1180,7 +1190,7 @@ namespace
         Diagnostic         diag         = reportMatchFailure(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee, primary.fail, args, ufcsArg);
         DiagnosticElement& errorElement = primaryDiagnosticElement(diag);
         errorElement.addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
-        errorElement.addArgument(Diagnostic::ARG_WHAT, makeGenericInstantiationFailureText(*primary.fn, primary.fail, ctx));
+        errorElement.addArgument(Diagnostic::ARG_WHAT, makeGenericInstantiationFailureText(*primary.fn, primary.fail, ufcsArg, ctx));
         fillMatchDiagnostic(sema, errorElement, diag, *primary.fn, primary.fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;

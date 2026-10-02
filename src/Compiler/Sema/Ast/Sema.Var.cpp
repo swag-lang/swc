@@ -639,6 +639,7 @@ namespace
             if (SymbolStruct::typeRequiresExplicitInitialization(sema, explicitTypeRef))
                 return reportTypeRequiresInit(sema, context, explicitTypeRef);
             SWC_RESULT(explicitType->payloadSymStruct().resolveImplicitDefaultValueRef(sema, explicitTypeRef, outInfo.defaultValueCstRef));
+            SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(sema, explicitTypeRef));
         }
 
         nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
@@ -1067,6 +1068,9 @@ namespace
                     const SymbolVariable* variable = getVariableSymbol(symbol);
                     return variable && isGlobalStorageVariable(*variable);
                 });
+                if ((hasGlobalStorage || isConst) && SymbolStruct::typeHasRuntimeImplicitDefault(sema, explicitTypeRef))
+                    return SemaError::raiseExprNotConst(sema, sema.curNodeRef());
+                SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(sema, explicitTypeRef));
                 if (explicitType->isStruct())
                 {
                     const auto& symStruct = explicitType->payloadSymStruct();
@@ -1084,11 +1088,21 @@ namespace
                     // Arrays need each element's implicit default, including dynamic identity,
                     // just as a standalone global struct does.
                     SWC_RESULT(SymbolStruct::prepareDynamicMetadata(sema, explicitTypeRef));
-                    ByteArray bytes(explicitType->sizeOf(sema.ctx()));
-                    SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(sema, bytes.span(), explicitTypeRef));
-                    implicitGlobalStoreRef = ConstantHelpers::materializeStaticPayloadConstant(sema, explicitTypeRef, bytes.span());
-                    SWC_ASSERT(implicitGlobalStoreRef.isValid());
+                    if (ConstantHelpers::typeHasUnionStorage(sema.ctx(), explicitTypeRef))
+                        implicitGlobalStoreRef = ConstantHelpers::materializeAggregateConstructionConstant(sema, explicitTypeRef);
+                    else
+                    {
+                        ByteArray bytes(explicitType->sizeOf(sema.ctx()));
+                        SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(sema, bytes.span(), explicitTypeRef));
+                        implicitGlobalStoreRef = ConstantHelpers::materializeStaticPayloadConstant(sema, explicitTypeRef, bytes.span());
+                    }
+                    if (implicitGlobalStoreRef.isInvalid())
+                        return SemaError::raiseExprNotConst(sema, sema.curNodeRef());
                 }
+                // Resolving union defaults can discover a partial pointer overwrite.
+                // Those untouched address bytes only exist after runtime relocation.
+                if ((hasGlobalStorage || isConst) && SymbolStruct::typeHasRuntimeImplicitDefault(sema, explicitTypeRef))
+                    return SemaError::raiseExprNotConst(sema, sema.curNodeRef());
             }
         }
         const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
@@ -1124,7 +1138,8 @@ namespace
         }
 
         // Variable
-        if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructConstInit)
+        if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructConstInit &&
+            (finalTypeRef.isInvalid() || requiresExplicitInit || !SymbolStruct::typeHasRuntimeImplicitDefault(sema, finalTypeRef)))
             return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
         const bool isCallerLocation = SemaHelpers::isCallerLocationDefaultInitializer(sema, context.nodeInitRef);
         if (isParameter &&
@@ -1276,7 +1291,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 {
     if (childRef == nodeTypeRef)
     {
-        const bool isRetVal = isRetValTypeNode(sema, nodeTypeRef);
+        const bool      isRetVal  = isRetValTypeNode(sema, nodeTypeRef);
         SymbolVariable* retValSym = nullptr;
         if (isRetVal)
         {
@@ -1288,10 +1303,10 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
         {
             const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
             SemaFrame          frame        = sema.frame();
-            const TypeRef    initTypeRef = nodeTypeView.typeRef();
+            const TypeRef      initTypeRef  = nodeTypeView.typeRef();
             frame.pushBindingType(initTypeRef);
             const TypeInfo* initType = initTypeRef.isValid() ? &sema.typeMgr().get(initTypeRef) : nullptr;
-            const bool bindArrayRuntimeStorage =
+            const bool      bindArrayRuntimeStorage =
                 !hasFlag(AstVarDeclFlagsE::Const) &&
                 sema.curScope().isLocal() &&
                 initType && initType->isArray();

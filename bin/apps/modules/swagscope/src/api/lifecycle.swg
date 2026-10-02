@@ -58,25 +58,27 @@ impl BackgroundOperation
     }
 }
 
-// Owns one value-producing operation that must not run on the GUI thread.
+// Owns the result of one scheduled value-producing operation.
 //
 // The worker borrows this object until `isDone` answers true. Its owner therefore exposes the
 // operation through [[Viewer.Retire]] and is destroyed only after `retire` succeeds.
+// [[Swag.Task]] may run the work during submission or while waiting; a separate worker
+// thread is not guaranteed.
 struct(T) BackgroundLoad
 {
     using operation: BackgroundOperation
     fileName:        String
     value:           T
-    error:           any?
+    error:           String
     late load:       func(string)->T fail
 }
 
 impl BackgroundLoad
 {
-    // Starts `load` on a worker for `fileName`; the operation must not already be running.
+    // Starts `load` for `fileName` after any previous operation has been joined.
     //
-    // A failure of `load` is captured rather than propagated, and [[Viewer.BackgroundLoad.finish]]
-    // hands it back as a message.
+    // A failure of `load` is copied into an owned message before the worker returns, and
+    // [[Viewer.BackgroundLoad.finish]] hands that message back to the caller.
     mtd start(fileName: string, load: func(string)->T fail)
     {
         Swag.assert(not .started)
@@ -88,21 +90,20 @@ impl BackgroundLoad
         .task.submit(func|operation|()
         {
             operation.value = catch operation.load(operation.fileName.toString()) as loadError
-            operation.error = loadError
+            operation.error = Errors.message(loadError)
         })
     }
 
     // Moves the loaded value into `value` and returns the captured failure message.
     //
     // The operation must be done. The message is empty when the load succeeded.
+    // The returned message owns its text and survives reuse or destruction of this operation.
     mtd finish(value: *T)->String
     {
         Swag.assert(.isDone())
         .wait()
         value[] = #move .value
-        let result = Errors.message(.error)
-        .error = null
-        return result
+        return #move .error
     }
 
     // Reports when the borrowed worker state may be destroyed without waiting on the GUI thread.

@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -132,13 +133,19 @@ namespace
         return false;
     }
 
-    Result addLifecycleCallDependenciesRec(Sema& sema, TypeRef typeRef, const SpecOpKind kind, std::unordered_set<TypeRef>& visited)
+    Result addTypeCallDependenciesRec(Sema& sema, TypeRef typeRef, const SpecOpKind kind, std::unordered_set<TypeRef>& visited, const bool observesEffects = true)
     {
-        typeRef = sema.typeMgr().unwrapAlias(sema.ctx(), typeRef);
-        if (typeRef.isInvalid() || !visited.insert(typeRef).second)
+        // None denotes implicit default initialization, which has no special operator.
+        const bool defaultInit = kind == SpecOpKind::None;
+        typeRef                = defaultInit ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef) : sema.typeMgr().unwrapAlias(sema.ctx(), typeRef);
+        if (typeRef.isInvalid())
             return Result::Continue;
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (!type.isArray() && !type.isStruct())
+            return Result::Continue;
+        if (!visited.insert(typeRef).second)
+            return Result::Continue;
         if (type.isArray())
         {
             for (const uint64_t dimension : type.payloadArrayDims())
@@ -146,27 +153,70 @@ namespace
                 if (!dimension)
                     return Result::Continue;
             }
-            return addLifecycleCallDependenciesRec(sema, type.payloadArrayElemTypeRef(), kind, visited);
+            return addTypeCallDependenciesRec(sema, type.payloadArrayElemTypeRef(), kind, visited, observesEffects);
         }
-        if (!type.isStruct())
+        const SymbolStruct& owner   = type.payloadSymStruct();
+        const SourceCodeRef codeRef = sema.node(sema.curNodeRef()).codeRef();
+        SWC_RESULT(sema.waitSemaCompleted(&owner, codeRef));
+        if (defaultInit && !SymbolStruct::typeHasRuntimeImplicitDefault(sema, typeRef))
             return Result::Continue;
+        if (!defaultInit && owner.attributes().hasRtFlag(RtAttributeFlagsE::Opaque))
+        {
+            const SourceFile* ownerFile = sema.compiler().sourceViewFile(owner);
+            if (!ownerFile)
+                ownerFile = sema.ownerSourceFile(owner.srcViewRef());
+            const bool imported = ownerFile && ownerFile->isImportedApi();
+            if (imported)
+                SWC_RESULT(owner.waitPendingImplMembers(sema, codeRef));
 
-        const SymbolStruct& owner = type.payloadSymStruct();
-        SWC_RESULT(sema.waitSemaCompleted(&owner, sema.node(sema.curNodeRef()).codeRef()));
+            const std::string_view wrapperName = SemaSpecOp::generatedLifecycleWrapperName(kind);
+            for (const SymbolFunction* method : owner.declaredMethods())
+            {
+                if (!method || method->isIgnored() || method->name(sema.ctx()) != wrapperName)
+                    continue;
+                // Source wrappers may be collecting their own dependencies. Only
+                // imported declarations can be awaited here without a recursive wait.
+                if (!imported && !method->isSemaCompleted())
+                    continue;
+                SWC_RESULT(sema.waitTyped(method, codeRef));
+                SWC_RESULT(sema.waitSemaCompleted(method, codeRef));
+                if (!method->isForeign() || !method->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
+                    continue;
+                if (sema.isCurrentFunction())
+                    sema.currentFunction()->addLifecycleDependency(method, observesEffects);
+                return Result::Continue;
+            }
+        }
         const SymbolFunction* direct = nullptr;
         switch (kind)
         {
+            case SpecOpKind::None:
+                if (owner.attributes().hasRtFlag(RtAttributeFlagsE::Opaque))
+                {
+                    // Only the foreign provider is a default-init dependency. Waiting
+                    // on the generated Swag.init wrapper here would wait on ourselves.
+                    SWC_RESULT(owner.waitPendingImplMembers(sema, codeRef));
+                    for (const SymbolFunction* method : owner.declaredMethods())
+                    {
+                        if (!method || method->name(sema.ctx()) != "swagOpaqueInit")
+                            continue;
+                        SWC_RESULT(sema.waitTyped(method, codeRef));
+                        SWC_RESULT(sema.waitSemaCompleted(method, codeRef));
+                    }
+                    direct = owner.opaqueInit(sema.ctx());
+                }
+                break;
             case SpecOpKind::OpDrop: direct = owner.opDrop(); break;
             case SpecOpKind::OpPostCopy: direct = owner.opPostCopy(); break;
             case SpecOpKind::OpPostMove: direct = owner.opPostMove(); break;
             default: SWC_UNREACHABLE();
         }
         if (direct && sema.isCurrentFunction())
-            sema.currentFunction()->addLifecycleDependency(direct);
+            sema.currentFunction()->addLifecycleDependency(direct, observesEffects);
         for (const SymbolVariable* field : owner.fields())
         {
-            if (field)
-                SWC_RESULT(addLifecycleCallDependenciesRec(sema, field->typeRef(), kind, visited));
+            if (field && (!defaultInit || field->defaultValueRef().isInvalid()))
+                SWC_RESULT(addTypeCallDependenciesRec(sema, field->typeRef(), kind, visited, observesEffects));
         }
         return Result::Continue;
     }
@@ -1247,7 +1297,78 @@ Result SemaSpecOp::addLifecycleCallDependencies(Sema& sema, TypeRef typeRef, Spe
     // A conditional operator may disappear when its impl finishes. Record the candidates
     // now; CodeGenJob resolves them before publishing ordinary calls and emitting the caller.
     std::unordered_set<TypeRef> visited;
-    return addLifecycleCallDependenciesRec(sema, typeRef, kind, visited);
+    return addTypeCallDependenciesRec(sema, typeRef, kind, visited);
+}
+
+Result SemaSpecOp::addDefaultInitCallDependencies(Sema& sema, TypeRef typeRef)
+{
+    if (!sema.isCurrentFunction())
+        return Result::Continue;
+    std::unordered_set<TypeRef> visited;
+    return addTypeCallDependenciesRec(sema, typeRef, SpecOpKind::None, visited);
+}
+
+Result SemaSpecOp::addImplicitLifecycleCallDependencies(Sema& sema, const SymbolFunction& function)
+{
+    // A prototype owns no runtime storage. Completing its parameter types here can
+    // wait on a later declaration in the same source walk.
+    if (function.isForeign() || function.isEmpty())
+        return Result::Continue;
+    SWC_ASSERT(sema.currentFunction() == &function);
+    for (const SpecOpKind kind : {SpecOpKind::OpDrop, SpecOpKind::OpPostCopy, SpecOpKind::OpPostMove})
+    {
+        std::unordered_set<TypeRef> readinessVisited;
+        std::unordered_set<TypeRef> effectsVisited;
+        // Runtime aggregate temporaries are registered as locals too. Pointer and
+        // reference parameters are ignored by the same concrete-value type walk.
+        for (const SymbolVariable* parameter : function.parameters())
+        {
+            if (parameter)
+                SWC_RESULT(addTypeCallDependenciesRec(sema, parameter->typeRef(), kind, readinessVisited, false));
+        }
+        for (const SymbolVariable* local : function.localVariables())
+        {
+            if (local)
+            {
+                const bool observesEffects = kind == SpecOpKind::OpDrop &&
+                                             local->hasExtraFlag(SymbolVariableFlagsE::Initialized) &&
+                                             !local->hasExtraFlag(SymbolVariableFlagsE::RetVal | SymbolVariableFlagsE::Parameter) &&
+                                             !local->isClosureCapture();
+                auto& visited = observesEffects ? effectsVisited : readinessVisited;
+                SWC_RESULT(addTypeCallDependenciesRec(sema, local->typeRef(), kind, visited, observesEffects));
+            }
+        }
+    }
+    return Result::Continue;
+}
+
+Result SemaSpecOp::addValueTransferCallDependencies(Sema& sema, const AstNodeRef sourceRef, TypeRef destinationTypeRef, const AstModifierFlags modifiers, const bool destinationBindsReference)
+{
+    if (!sema.isCurrentFunction() || sourceRef.isInvalid() || destinationTypeRef.isInvalid())
+        return Result::Continue;
+    destinationTypeRef              = sema.typeMgr().unwrapAliasEnum(sema.ctx(), destinationTypeRef);
+    const TypeInfo& destinationType = sema.typeMgr().get(destinationTypeRef);
+    if (destinationType.isReference())
+    {
+        if (destinationBindsReference)
+            return Result::Continue;
+        destinationTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), destinationType.payloadTypeRef());
+    }
+    const TypeInfo& valueType = sema.typeMgr().get(destinationTypeRef);
+    if (!valueType.isStruct() && !valueType.isArray())
+        return Result::Continue;
+
+    // Assignment destroys the previous destination even when the replacement is
+    // a constant. Declarations and conditional/literal storage have no old value.
+    if (sema.curNode().is(AstNodeId::AssignStmt) && !modifiers.has(AstModifierFlagsE::NoDrop))
+        SWC_RESULT(addLifecycleCallDependencies(sema, destinationTypeRef, SpecOpKind::OpDrop));
+    const bool borrowsStorage = SemaHelpers::expressionBorrowsStorage(sema, sourceRef);
+    if (sema.viewConstant(sourceRef).hasConstant() && !borrowsStorage)
+        return Result::Continue;
+
+    const bool moves = modifiers.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate}) ||
+                       !borrowsStorage;
+    return addLifecycleCallDependencies(sema, destinationTypeRef, moves ? SpecOpKind::OpPostMove : SpecOpKind::OpPostCopy);
 }
 
 Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct)

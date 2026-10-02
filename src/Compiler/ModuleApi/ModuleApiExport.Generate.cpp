@@ -1,12 +1,16 @@
 #include "pch.h"
+#include "Backend/Runtime.h"
 #include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/NodePayload.h"
+#include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
@@ -38,6 +42,7 @@ namespace
     using ModuleApiExport::tryGetModuleApiSnippetStartOffset;
 
     Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, std::string_view eol);
+    void   collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, bool hasExportedBody, const Utf8& snippet);
 
     bool supportsGeneratedModuleApiForeignFunctions(const CompilerInstance& compiler)
     {
@@ -266,11 +271,248 @@ namespace
         return !outPrefix.empty();
     }
 
-    Utf8 buildOpaqueTypeSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol)
+    struct OpaqueStringSlot
+    {
+        uint64_t        offset = 0;
+        Runtime::String value;
+    };
+
+    bool collectOpaqueStringSlots(TaskContext& ctx, SmallVector<OpaqueStringSlot>& slots, TypeRef typeRef, std::span<const std::byte> bytes, uint64_t baseOffset)
+    {
+        typeRef              = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        if (type.isString())
+        {
+            OpaqueStringSlot slot;
+            slot.offset = baseOffset;
+            SWC_ASSERT(bytes.size() == sizeof(slot.value));
+            std::memcpy(&slot.value, bytes.data(), sizeof(slot.value));
+            slots.push_back(slot);
+            return true;
+        }
+        if (type.isArray())
+        {
+            const TypeRef  elementType = type.payloadArrayElemTypeRef();
+            const uint64_t elementSize = ctx.typeMgr().get(elementType).sizeOf(ctx);
+            SWC_ASSERT(elementSize);
+            for (uint64_t offset = 0; offset < bytes.size(); offset += elementSize)
+            {
+                if (!collectOpaqueStringSlots(ctx, slots, elementType, bytes.subspan(offset, elementSize), baseOffset + offset))
+                    return false;
+            }
+            return true;
+        }
+        if (type.isStruct())
+        {
+            const SymbolStruct& owner = type.payloadSymStruct();
+            if (owner.hasDynamicStorage())
+                return false;
+            // A union has no active-field tag from which to recover a non-null pointer.
+            // Scalar representations and null pointer slots can still stay constant.
+            if (owner.isUnion())
+            {
+                SmallVector<OpaqueStringSlot> unionSlots;
+                for (const SymbolVariable* field : owner.fields())
+                {
+                    const uint64_t size = field->typeInfo(ctx).sizeOf(ctx);
+                    if (!collectOpaqueStringSlots(ctx, unionSlots, field->typeRef(), bytes.subspan(field->offset(), size), baseOffset + field->offset()))
+                        return false;
+                }
+                return std::ranges::none_of(unionSlots, [](const OpaqueStringSlot& slot) { return slot.value.ptr != nullptr; });
+            }
+            for (const SymbolVariable* field : owner.fields())
+            {
+                const uint64_t size = field->typeInfo(ctx).sizeOf(ctx);
+                if (!collectOpaqueStringSlots(ctx, slots, field->typeRef(), bytes.subspan(field->offset(), size), baseOffset + field->offset()))
+                    return false;
+            }
+            return true;
+        }
+        // A non-null address can name provider state, a function, reflected metadata,
+        // or another allocation. Never turn that address into integer initializer bytes.
+        return !type.isPointerLike() || std::ranges::all_of(bytes, [](std::byte value) { return value == std::byte{0}; });
+    }
+
+    void appendOpaqueByteStorageRange(Utf8& result, std::span<const std::byte> bytes, uint64_t offset, std::string_view eol)
+    {
+        if (bytes.empty())
+            return;
+        result += std::format("    internal swagOpaqueStorage{}: [{}] u8", offset, bytes.size());
+        if (std::ranges::any_of(bytes, [](std::byte value) { return value != std::byte{0}; }))
+        {
+            result += " = [";
+            for (size_t i = 0; i < bytes.size(); ++i)
+            {
+                if (i)
+                    result += ", ";
+                result += std::format("{}", std::to_integer<uint8_t>(bytes[i]));
+            }
+            result += "]";
+        }
+        result += eol;
+    }
+
+    void appendOpaqueByteStorage(Utf8& result, std::span<const std::byte> bytes, uint64_t offset, std::string_view eol)
+    {
+        // Long zero runs need storage, not thousands of literal elements. Keep short
+        // gaps inside their surrounding range so sparse defaults do not create a field
+        // for each zero byte in a scalar's representation.
+        constexpr size_t MIN_ZERO_RUN = 64;
+        size_t           rangeStart   = 0;
+        size_t           cursor       = 0;
+        while (cursor < bytes.size())
+        {
+            if (bytes[cursor] != std::byte{0})
+            {
+                ++cursor;
+                continue;
+            }
+            const size_t zeroStart = cursor;
+            while (cursor < bytes.size() && bytes[cursor] == std::byte{0})
+                ++cursor;
+            if (cursor - zeroStart < MIN_ZERO_RUN)
+                continue;
+
+            appendOpaqueByteStorageRange(result, bytes.subspan(rangeStart, zeroStart - rangeStart), offset + rangeStart, eol);
+            appendOpaqueByteStorageRange(result, bytes.subspan(zeroStart, cursor - zeroStart), offset + zeroStart, eol);
+            rangeStart = cursor;
+        }
+        appendOpaqueByteStorageRange(result, bytes.subspan(rangeStart), offset + rangeStart, eol);
+    }
+
+    void appendOpaqueStringStorage(Utf8& result, const OpaqueStringSlot& slot, std::string_view eol)
+    {
+        result += std::format("    internal swagOpaqueString{}: string", slot.offset);
+        if (!slot.value.ptr)
+            result += "? = null";
+        else
+        {
+            result += " = \"";
+            for (const unsigned char value : std::string_view{slot.value.ptr, slot.value.length})
+            {
+                if (value == '"' || value == '\\')
+                {
+                    result += '\\';
+                    result += static_cast<char>(value);
+                }
+                else if (value < 0x20 || value == 0x7f)
+                    result += std::format("\\x{:02x}", value);
+                else
+                    result += static_cast<char>(value);
+            }
+            result += '"';
+        }
+        result += eol;
+    }
+
+    Result buildOpaqueDefaultStorage(TaskContext& ctx, Utf8& outFields, bool& needsRuntimeDefault, const ModuleApiGeneratedRoot& root, std::string_view eol)
+    {
+        auto& owner = const_cast<SymbolStruct&>(root.symbol->cast<SymbolStruct>());
+        Sema  sema{ctx, const_cast<SourceFile*>(root.file)->nodePayloadContext(), root.nodeRef, false};
+        owner.computeImplicitDefaultFlags(sema);
+        if (owner.hasDynamicStorage())
+        {
+            needsRuntimeDefault = true;
+            return Result::Continue;
+        }
+        ConstantRef defaultRef = ConstantRef::invalid();
+        SWC_RESULT(owner.computeDefaultValue(sema, owner.typeRef(), defaultRef));
+        needsRuntimeDefault = defaultRef.isInvalid();
+        if (needsRuntimeDefault)
+            return Result::Continue;
+
+        const ConstantValue&          constant = ctx.cstMgr().get(defaultRef);
+        const auto                    bytes    = constant.getStruct();
+        SmallVector<OpaqueStringSlot> slots;
+        needsRuntimeDefault = !collectOpaqueStringSlots(ctx, slots, owner.typeRef(), bytes, 0);
+        if (needsRuntimeDefault)
+            return Result::Continue;
+        std::ranges::sort(slots, {}, &OpaqueStringSlot::offset);
+
+        // The typed slots are also the relocation inventory. If a representation carries
+        // another relocation, preserve it through the provider instead of copying its address.
+        const DataSegmentRef dataRef = constant.dataSegmentRef();
+        if (dataRef.isValid())
+        {
+            std::vector<DataSegmentRelocation> relocations;
+            ctx.cstMgr().shardDataSegment(dataRef.shardIndex).copyRelocations(relocations, dataRef.offset, static_cast<uint32_t>(bytes.size()));
+            for (const DataSegmentRelocation& relocation : relocations)
+            {
+                const uint64_t offset = relocation.offset - dataRef.offset;
+                if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset ||
+                    std::ranges::none_of(slots, [offset](const OpaqueStringSlot& slot) { return slot.offset + offsetof(Runtime::String, ptr) == offset; }))
+                {
+                    needsRuntimeDefault = true;
+                    return Result::Continue;
+                }
+            }
+        }
+
+        uint64_t cursor = 0;
+        for (const OpaqueStringSlot& slot : slots)
+        {
+            if (slot.offset < cursor)
+            {
+                needsRuntimeDefault = true;
+                outFields.clear();
+                return Result::Continue;
+            }
+            appendOpaqueByteStorage(outFields, bytes.subspan(cursor, slot.offset - cursor), cursor, eol);
+            appendOpaqueStringStorage(outFields, slot, eol);
+            cursor = slot.offset + sizeof(Runtime::String);
+        }
+        appendOpaqueByteStorage(outFields, bytes.subspan(cursor), cursor, eol);
+        return Result::Continue;
+    }
+
+    struct OpaqueForeignMethod
+    {
+        const SymbolFunction* function = nullptr;
+        std::string_view      name;
+        bool                  implicit = false;
+    };
+
+    void appendOpaqueForeignMethod(TaskContext& ctx, Utf8& result, const OpaqueForeignMethod& method, std::string_view eol)
+    {
+        SWC_ASSERT(method.function);
+        SmallVector<Utf8> attributes;
+        attributes.push_back(Utf8{std::format("Foreign(function: \"{}\")", method.function->computePublicApiSymbolName(ctx))});
+        collectMissingFunctionAttributes(attributes, *method.function, false, {});
+        const auto implicitAttribute = std::ranges::find(attributes, "Implicit");
+        if (implicitAttribute != attributes.end())
+            attributes.erase(implicitAttribute);
+        if (method.implicit)
+            attributes.push_back("Implicit");
+        result += "    ";
+        result += buildAttributeListLine(attributes.span(), eol);
+        result += "    private mtd ";
+        result += method.name;
+        result += "()";
+        result += eol;
+    }
+
+    struct OpaqueLifecycleOperation
+    {
+        SpecOpKind            kind;
+        const SymbolFunction* effective = nullptr;
+        const SymbolFunction* direct    = nullptr;
+    };
+
+    Result buildOpaqueTypeSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, const std::string_view eol)
     {
         const auto* symbolStruct = root.symbol ? root.symbol->safeCast<SymbolStruct>() : nullptr;
         if (!symbolStruct)
-            return {};
+            return Result::Continue;
+
+        Utf8 fields;
+        bool needsRuntimeDefault = false;
+        SWC_RESULT(buildOpaqueDefaultStorage(ctx, fields, needsRuntimeDefault, root, eol));
+        const OpaqueLifecycleOperation operations[] = {
+            {SpecOpKind::OpDrop, symbolStruct->effectiveOpDrop(ctx), symbolStruct->opDrop()},
+            {SpecOpKind::OpPostCopy, symbolStruct->effectiveOpPostCopy(ctx), symbolStruct->opPostCopy()},
+            {SpecOpKind::OpPostMove, symbolStruct->effectiveOpPostMove(ctx), symbolStruct->opPostMove()},
+        };
+        const bool hasLifecycle = std::ranges::any_of(operations, [](const OpaqueLifecycleOperation& operation) { return operation.effective != nullptr; });
 
         Utf8 prefix;
         if (!tryBuildOpaqueTypePrefix(ctx, root, eol, prefix))
@@ -281,10 +523,34 @@ namespace
             prefix += symbolStruct->name(ctx);
         }
 
-        static constexpr std::string_view MATERIALIZED_LAYOUT_ATTRIBUTES[] = {"Pack"};
+        static constexpr std::string_view MATERIALIZED_LAYOUT_ATTRIBUTES[] = {"Pack", "Opaque"};
         removeModuleApiAttributes(ctx, prefix, MATERIALIZED_LAYOUT_ATTRIBUTES);
 
-        Utf8     result;
+        Utf8       result;
+        const bool requiresExplicitInit = symbolStruct->requiresExplicitInitialization();
+        if (requiresExplicitInit)
+        {
+            result += "#[Opaque(requiresInit: true)]";
+            result += eol;
+        }
+        else if (needsRuntimeDefault)
+        {
+            result += "#[Opaque(runtimeDefault: true)]";
+            result += eol;
+        }
+        else
+        {
+            result += "#[Opaque]";
+            result += eol;
+        }
+        if (!TypeGen::lifecycleFlagsOfTypeRef(ctx, symbolStruct->typeRef()).canCopy && !snippetSpellsAttribute(prefix.view(), "NoCopy"))
+        {
+            result += "#[NoCopy]";
+            result += eol;
+        }
+        // Typed relocation slots and byte spans must retain the provider's exact offsets.
+        result += "#[Pack(1)]";
+        result += eol;
         uint32_t alignValue = 0;
         if (symbolStruct->alignment() > 1 && !tryGetSwagAttributeIntValue(alignValue, ctx, *symbolStruct, "Align"))
         {
@@ -297,12 +563,72 @@ namespace
             result += ' ';
         result += "{";
         result += eol;
-        result += "    internal swagOpaqueStorage: [";
-        result += std::format("{}", symbolStruct->sizeOf());
-        result += "] u8";
-        result += eol;
+        if (needsRuntimeDefault)
+        {
+            result += "    internal swagOpaqueStorage: [";
+            result += std::format("{}", symbolStruct->sizeOf());
+            result += "] u8";
+            result += eol;
+        }
+        else if (symbolStruct->isUnion() && !fields.empty())
+        {
+            // A union must keep one storage field: sibling segments would all overlap
+            // at offset zero. Serializable union spans contain bytes only, so this
+            // anonymous struct has alignment one and preserves their exact offsets.
+            result += "    internal swagOpaqueStorage: struct";
+            result += eol;
+            result += "    {";
+            result += eol;
+            const std::string_view fieldText = fields.view();
+            size_t                 cursor    = 0;
+            while (cursor < fieldText.size())
+            {
+                const size_t end  = fieldText.find('\n', cursor);
+                const size_t next = end == std::string_view::npos ? fieldText.size() : end + 1;
+                result += "    ";
+                result += fieldText.substr(cursor, next - cursor);
+                cursor = next;
+            }
+            result += "    }";
+            result += eol;
+        }
+        else
+            result += fields;
         result += "}";
-        return result;
+        if (hasLifecycle || (needsRuntimeDefault && !requiresExplicitInit))
+        {
+            result += eol;
+            result += "impl ";
+            result += symbolStruct->name(ctx);
+            result += eol;
+            result += "{";
+            result += eol;
+            if (!requiresExplicitInit)
+            {
+                const SymbolFunction* initFunction = symbolStruct->effectiveOpInit(ctx);
+                SWC_ASSERT(initFunction);
+                if (needsRuntimeDefault)
+                    appendOpaqueForeignMethod(ctx, result, {initFunction, "swagOpaqueInit", true}, eol);
+                // An imported lifecycle wrapper suppresses local wrapper generation. Keep
+                // reflection initialization available even for a serialized constant default.
+                if (hasLifecycle || symbolStruct->isUnion())
+                    appendOpaqueForeignMethod(ctx, result, {initFunction, SemaSpecOp::generatedInitWrapperName(), true}, eol);
+            }
+            for (const OpaqueLifecycleOperation& operation : operations)
+            {
+                if (!operation.effective)
+                    continue;
+                appendOpaqueForeignMethod(ctx, result, {operation.effective, SemaSpecOp::generatedLifecycleWrapperName(operation.kind), true}, eol);
+                // Public direct operations retain their original targets for explicit calls.
+                // Otherwise a private special operation preserves lifecycle classification;
+                // automatic dispatch selects the complete implicit provider wrapper above.
+                if (!operation.direct || !operation.direct->isPublic())
+                    appendOpaqueForeignMethod(ctx, result, {operation.effective, SemaSpecOp::specOpFunctionName(operation.kind), false}, eol);
+            }
+            result += "}";
+        }
+        outSnippet = result;
+        return Result::Continue;
     }
 
     bool isGeneratedModuleApiSourceFunction(TaskContext& ctx, const SymbolFunction& symbolFunction)
@@ -364,6 +690,8 @@ namespace
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::ConstExpr, "ConstExpr");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::ReadOnly, "ReadOnly");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Implicit, "Implicit");
+        if (!hasExportedBody && symbolFunction.hasFullInitialization() && !snippetSpellsAttribute(snippet.view(), "FullInit"))
+            ioAttributes.push_back("FullInit");
 
         // 'Discardable' is a fact about the call site, not about the body: without it an
         // importer has to write 'discard' where a caller inside the module does not.
@@ -373,16 +701,29 @@ namespace
         // so importers can judge their call sites against this function's parameters.
         // The export runs after the final sema drain, so the masks include the
         // transitive bits added by the summary fixpoint.
-        const uint64_t returnsMask        = symbolFunction.returnBorrowsParamsMask();
-        const uint64_t storesMask         = symbolFunction.storesParamsMask();
-        const uint64_t intoPairs          = symbolFunction.storesIntoParamPairs();
-        const uint64_t freesMask          = symbolFunction.freesParamsMask();
-        const uint64_t reallocatesMask    = symbolFunction.reallocatesParamsMask();
-        const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask();
-        const uint64_t returnsStorageMask = symbolFunction.returnsStorageParamsMask();
-        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0 || !symbolFunction.observesExternalBorrows()) &&
+        const uint64_t returnsMask         = symbolFunction.returnBorrowsParamsMask();
+        const uint64_t storesMask          = symbolFunction.storesParamsMask();
+        const uint64_t intoPairs           = symbolFunction.storesIntoParamPairs();
+        const uint64_t freesMask           = symbolFunction.freesParamsMask();
+        const uint64_t reallocatesMask     = symbolFunction.reallocatesParamsMask();
+        const uint64_t returnsPayloadMask  = symbolFunction.returnsPayloadParamsMask();
+        const uint64_t returnsStorageMask  = symbolFunction.returnsStorageParamsMask();
+        const uint64_t returnsIndirectMask = symbolFunction.returnsIndirectParamsMask();
+        const uint64_t storesIndirectMask  = symbolFunction.storesIndirectParamsMask();
+        const uint64_t intoIndirectPairs   = symbolFunction.storesIndirectIntoParamPairs();
+        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0 || returnsIndirectMask != 0 || storesIndirectMask != 0 || intoIndirectPairs != 0 || !symbolFunction.observesExternalBorrows()) &&
             (!hasExportedBody || !snippetSpellsAttribute(snippet.view(), "BorrowSummary")))
-            ioAttributes.push_back(Utf8{std::format("BorrowSummary({}, {}, {}, {}, {}, {}, {}, observesExternal: {})", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, symbolFunction.observesExternalBorrows())});
+        {
+            Utf8 summary{std::format("BorrowSummary({}, {}, {}, {}, {}, {}, {}, observesExternal: {}", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, symbolFunction.observesExternalBorrows())};
+            if (returnsIndirectMask)
+                summary += std::format(", returnsIndirect: {}", returnsIndirectMask);
+            if (storesIndirectMask)
+                summary += std::format(", storesIndirect: {}", storesIndirectMask);
+            if (intoIndirectPairs)
+                summary += std::format(", intoIndirect: {}", intoIndirectPairs);
+            summary += ")";
+            ioAttributes.push_back(std::move(summary));
+        }
     }
 
     void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, const bool hasExportedBody, Utf8& ioSnippet)
@@ -851,8 +1192,7 @@ namespace ModuleApiExport
             if (const auto* symbolStruct = root.symbol->safeCast<SymbolStruct>(); symbolStruct && hasGeneratedModuleApiSourceMethod(ctx, *symbolStruct))
                 return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
 
-            outSnippet = buildOpaqueTypeSnippet(ctx, root, eol);
-            return Result::Continue;
+            return buildOpaqueTypeSnippet(ctx, outSnippet, root, eol);
         }
 
         return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);

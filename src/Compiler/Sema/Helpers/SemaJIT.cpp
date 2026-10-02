@@ -1638,6 +1638,10 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
         return Result::Continue;
     if (sema.isRunExprContext())
         return Result::Continue;
+    // A partial initializer reads the implicit receiver default. Replacing a runtime
+    // default with the JIT argument buffer's zeros would change that value.
+    if (!calledFn.hasFullInitialization() && receiverInitCstRef.isInvalid() && SymbolStruct::typeHasRuntimeImplicitDefault(sema, receiverTypeRef))
+        return Result::Continue;
     // With backend optimization explicitly disabled, pure-call folding is normally
     // deferred for compile speed. But an explicit #[ConstExpr] function is required to be evaluable at
     // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) - folding

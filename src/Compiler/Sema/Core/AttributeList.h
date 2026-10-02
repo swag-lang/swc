@@ -84,7 +84,10 @@ struct AttributeList
     uint64_t                        reallocatesParamsMask    = 0;
     uint64_t                        returnsPayloadParamsMask = 0;
     uint64_t                        returnsStorageParamsMask = 0;
-    std::optional<bool>              observesExternalBorrows;
+    std::optional<bool>             observesExternalBorrows;
+    uint64_t                        returnsIndirectParamsMask    = 0;
+    uint64_t                        storesIndirectParamsMask     = 0;
+    uint64_t                        storesIndirectIntoParamPairs = 0;
     // These two exist for `#[Swag.PrintMicro]` and `#[Swag.PrintAst]`, which a compilation carries
     // on at most one function. Inline storage for four strings each would put 320 bytes of an
     // attribute list — a third of it — at the service of two debugging attributes, and every scope
@@ -116,6 +119,9 @@ struct AttributeList
                returnsPayloadParamsMask == 0 &&
                returnsStorageParamsMask == 0 &&
                !observesExternalBorrows.has_value() &&
+               returnsIndirectParamsMask == 0 &&
+               storesIndirectParamsMask == 0 &&
+               storesIndirectIntoParamPairs == 0 &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                warnings.empty() &&
@@ -202,8 +208,10 @@ struct AttributeList
     // call may move or release the payload parameter #i owns, bit i of 'returnsPayload'
     // = the return value is a view INTO that payload rather than merely a value that can
     // reach parameter #i. Bit i of 'returnsStorage' means the result aliases the
-    // parameter's storage, rather than carrying it in a separate allocation.
-    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask, uint64_t returnsStorageMask, bool observesExternal)
+    // parameter's storage, rather than carrying it in a separate allocation. The
+    // indirect masks track borrows carried by the source parameter's pointee;
+    // the destination index in an indirect pair still denotes the direct parameter.
+    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask, uint64_t returnsStorageMask, bool observesExternal, uint64_t returnsIndirectMask, uint64_t storesIndirectMask, uint64_t intoIndirectPairs)
     {
         returnBorrowsParamsMask |= returnsMask;
         storesParamsMask |= storesMask;
@@ -213,6 +221,9 @@ struct AttributeList
         returnsPayloadParamsMask |= returnsPayloadMask;
         returnsStorageParamsMask |= returnsStorageMask & returnsMask;
         observesExternalBorrows = observesExternalBorrows.value_or(false) || observesExternal;
+        returnsIndirectParamsMask |= returnsIndirectMask;
+        storesIndirectParamsMask |= storesIndirectMask;
+        storesIndirectIntoParamPairs |= intoIndirectPairs;
     }
 
     void setBackendOptimize(bool value)

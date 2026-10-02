@@ -352,14 +352,17 @@ namespace
     {
         SWC_ASSERT(!args.empty());
 
-        uint64_t returnsMask        = 0;
-        uint64_t storesMask         = 0;
-        uint64_t intoPairs          = 0;
-        uint64_t freesMask          = 0;
-        uint64_t reallocatesMask    = 0;
-        uint64_t returnsPayloadMask = 0;
-        uint64_t returnsStorageMask = UINT64_MAX;
-        bool     observesExternal   = true;
+        uint64_t returnsMask         = 0;
+        uint64_t storesMask          = 0;
+        uint64_t intoPairs           = 0;
+        uint64_t freesMask           = 0;
+        uint64_t reallocatesMask     = 0;
+        uint64_t returnsPayloadMask  = 0;
+        uint64_t returnsStorageMask  = UINT64_MAX;
+        bool     observesExternal    = true;
+        uint64_t returnsIndirectMask = 0;
+        uint64_t storesIndirectMask  = 0;
+        uint64_t intoIndirectPairs   = 0;
         SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], returnsMask));
         if (args.size() >= 2)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], storesMask));
@@ -376,8 +379,14 @@ namespace
 
         if (args.size() >= 8)
             SWC_RESULT(collectResolvedBoolValue(sema, args[7], observesExternal));
+        if (args.size() >= 9)
+            SWC_RESULT(collectResolvedEnumMaskValue(sema, args[8], returnsIndirectMask));
+        if (args.size() >= 10)
+            SWC_RESULT(collectResolvedEnumMaskValue(sema, args[9], storesIndirectMask));
+        if (args.size() >= 11)
+            SWC_RESULT(collectResolvedEnumMaskValue(sema, args[10], intoIndirectPairs));
 
-        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, observesExternal);
+        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, observesExternal, returnsIndirectMask, storesIndirectMask, intoIndirectPairs);
         return Result::Continue;
     }
 

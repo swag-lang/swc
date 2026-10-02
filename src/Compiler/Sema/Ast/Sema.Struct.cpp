@@ -219,6 +219,8 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
     if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
+    if (!sym.isGenericInstance())
+        SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, sym));
     SWC_RESULT(sym.registerSpecOps(sema));
 
     if (sym.isGenericInstance())

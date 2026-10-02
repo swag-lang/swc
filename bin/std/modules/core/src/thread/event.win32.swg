@@ -80,20 +80,51 @@ impl Event
     mtd signal()
     {
         Swag.assert(.isValid())
-        expect SetEvent(.handle)
+        expect .signalStatus().raise()
     }
 
     // Returns the event to the unsignaled state.
     mtd reset()
     {
         Swag.assert(.isValid())
-        expect ResetEvent(.handle)
+        expect .resetStatus().raise()
     }
 
     // Blocks the calling thread until the event is signaled.
     mtd wait()
     {
         Swag.assert(.isValid())
-        expect WaitForSingleObject(.handle, INFINITE)
+        expect .waitStatus().raise()
+    }
+
+    // Signals the event and returns its outcome without allocating or invoking error hooks.
+    //
+    // An uninitialized or invalid handle returns a failed status. Handle it later with
+    // [[Core.Sync.EventStatus.raise]], after any borrowed state has been released.
+    mtd signalStatus()->EventStatus
+    {
+        let status = setEventStatus(.handle)
+        return {succeeded: status.succeeded, errorCode: status.errorCode}
+    }
+
+    // Resets the event and returns its outcome for deferred failure handling.
+    //
+    // Like [[Core.Sync.Event.signalStatus]], this does not assert, allocate error storage or
+    // invoke error hooks, including when the handle is invalid.
+    mtd resetStatus()->EventStatus
+    {
+        let status = resetEventStatus(.handle)
+        return {succeeded: status.succeeded, errorCode: status.errorCode}
+    }
+
+    // Waits synchronously for a signal and returns its outcome for deferred failure handling.
+    //
+    // The wait is non-alertable and does not dispatch callbacks or messages. An invalid handle
+    // returns a failed status without invoking error hooks. A successful wait observes the
+    // work published by the signaling thread, as [[Core.Sync.Event.wait]] does.
+    mtd waitStatus()->EventStatus
+    {
+        let status = waitForSingleObjectStatus(.handle, INFINITE)
+        return {succeeded: status.result != WAIT_FAILED, errorCode: status.errorCode}
     }
 }

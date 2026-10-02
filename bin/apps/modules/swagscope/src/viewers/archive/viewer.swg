@@ -66,7 +66,7 @@ struct ZipEntryExtract
     archiveFileName: String
     entry:           ZipEntry
     destination:     String
-    error:           any?
+    error:           String
 }
 
 impl ZipEntryExtract
@@ -77,14 +77,14 @@ impl ZipEntryExtract
         .archiveFileName = archiveFileName
         .entry           = entry[]
         .destination     = destination
-        .error           = null
-        .started         = true
+        .error.clear()
+        .started = true
 
         let operation = me
         .task.submit(func|operation|()
         {
             catch extractZipEntry(operation.archiveFileName.toString(), &operation.entry, operation.destination.toString()) as extractError
-            operation.error = extractError
+            operation.error = Errors.message(extractError)
         })
     }
 
@@ -92,9 +92,7 @@ impl ZipEntryExtract
     {
         Swag.assert(.isDone())
         .wait()
-        let result = Errors.message(.error)
-        .error = null
-        return result
+        return #move .error
     }
 
     mtd retire()->bool

@@ -1068,6 +1068,16 @@ namespace
             SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
             if (!returnValueIsCompilerMaterialized(sema))
             {
+                SWC_RESULT(SemaSpecOp::addValueTransferCallDependencies(sema, view.nodeRef(), returnTypeRef, AstModifierFlagsE::Zero, true));
+                const SemaNodeView    sourceView = sema.viewSymbol(SemaHelpers::resolveTransparentExprSourceRef(sema, view.nodeRef()));
+                const SymbolVariable* source     = sourceView.sym() ? sourceView.sym()->safeCast<SymbolVariable>() : nullptr;
+                if (!returnType.isReference() && source && source->isFunctionLocalVariable(*sema.currentFunction()) &&
+                    !source->hasExtraFlag(SymbolVariableFlagsE::Parameter | SymbolVariableFlagsE::RetVal))
+                {
+                    // Return lowering may move a dead local, or keep its copy when a
+                    // deferred observer still needs it. Both are real transfer paths.
+                    SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, returnTypeRef, SpecOpKind::OpPostMove));
+                }
                 const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema);
                 SWC_RESULT(SemaEscape::checkReturn(sema, returnRef, exprRef, returnTypeRef, inlinePayload ? inlinePayload->sourceFunction : nullptr));
             }
@@ -1918,6 +1928,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     }
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, declNode.nodeBodyRef));
+    SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
     SemaEscape::finalizeBorrowStores(sema, sym, declNode.nodeBodyRef);
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
@@ -1942,6 +1953,7 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
+    SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
     SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
 
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
@@ -1967,6 +1979,7 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
+    SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
     SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
 
     SemaPurity::computePurityFlag(sema, sym);

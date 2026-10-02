@@ -8,10 +8,10 @@ const MaximumIoBatchBlocks = 256'u64
 struct CryptoBatch
 {
     keys:        const *Crypto.Keys
-    physical:    u64         // Container block of the first record.
-    records:     [..] u8     // Sealed records, `BlockRecordSize` bytes each.
-    plain:       [..] u8     // Plain blocks, `BlockSize` bytes each.
-    error:       any?        // First failure a job reported, or null.
+    physical:    u64            // Container block of the first record.
+    records:     [..] u8        // Sealed records, `BlockRecordSize` bytes each.
+    plain:       [..] u8        // Plain blocks, `BlockSize` bytes each.
+    error:       Swag.Error     // Owns the first failure a job reported until the joining caller raises it.
     errorLock:   Sync.Mutex
     invalidTags: s32     // Number of records that failed authentication.
 }
@@ -24,8 +24,8 @@ impl CryptoBatch
         if err == null do
             return
         Sync.scopedLock(&.errorLock)
-        if .error == null do
-            .error = err
+        if .error.isEmpty() do
+            .error.capture(err)
     }
 }
 
@@ -1792,8 +1792,7 @@ impl Volume
                 Atomic.add(&batch.invalidTags, 1)
         }
 
-        if batch.error != null do
-            fail batch.error
+        try batch.error.raise()
         if batch.invalidTags do
             try failWith("An encrypted data block is damaged.", .Corrupted)
     }
@@ -1823,8 +1822,7 @@ impl Volume
             batch.keepFirstError(sealError)
         }
 
-        if batch.error != null do
-            fail batch.error
+        try batch.error.raise()
 
         Sync.scopedLock(&.ioLock)
         try .file.writeAllAt(DataOffset + physical * BlockRecordSize, records.toSlice())

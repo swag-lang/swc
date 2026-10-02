@@ -69,6 +69,9 @@ struct SemaEscapeInfo
     // set is required for aggregates and closures that carry more than one parameter;
     // sourceVar remains the representative origin used by local diagnostics.
     uint64_t parameterOriginsMask = 0;
+    // Borrows copied from the aggregate designated by a pointer parameter. These
+    // refer to its contents, not to the parameter's pointed-to slot itself.
+    uint64_t parameterIndirectOriginsMask = 0;
     // Opaque-call snapshots carried by this value. Shared ownership keeps them valid
     // when nested Sema instances and control-flow alternatives exchange their state.
     SmallVector4<std::shared_ptr<const SemaEscapeDeferredCallSnapshot>> deferredCalls;
@@ -111,6 +114,7 @@ struct SemaEscapeInfo
         if (kind == SemaEscapeKind::Parameter && other.kind == SemaEscapeKind::Parameter)
         {
             parameterOriginsMask |= other.parameterOriginsMask;
+            parameterIndirectOriginsMask |= other.parameterIndirectOriginsMask;
             // A payload route present on either control-flow alternative remains
             // possible after the join. An unconditional carrier replacement clears it
             // before the join; a conditional replacement must not hide the other path.

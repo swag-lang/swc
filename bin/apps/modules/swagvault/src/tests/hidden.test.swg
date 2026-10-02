@@ -161,14 +161,14 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     let ordinary  = expect protected.createNode("\\ordinary", false, FileAttributeNormal, "")
     var data: Array'u8
     data.resize(16 * BlockSize)
-    var offset = 0'u64
-    var collision: any?
+    var offset    = 0'u64
+    var collision = false
     for 32
     {
         discard catch protected.writeNode(ordinary, offset, data.toSlice(), false, false) as error
         if error != null
         {
-            collision = error
+            collision = true
             break
         }
 
@@ -176,7 +176,7 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
         offset += data.count
     }
 
-    Swag.assert(offset > 0 and collision != null and protected.file.protectionTriggered)
+    Swag.assert(offset > 0 and collision and protected.file.protectionTriggered)
     protected.close()
     var reopened  = expect Volume.open(path, credential.toSlice(), true)
     var bytes: [6] u8

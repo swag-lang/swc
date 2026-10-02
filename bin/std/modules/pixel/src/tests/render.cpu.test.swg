@@ -30,6 +30,99 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertPixel(image, 10, 8, Argb.Zero)
 }
 
+// Alpha is an exact byte-weighted average, including integral results at float rounding boundaries.
+#test
+{
+    const Sources = [Color.fromArgb(85'u8, 110'u8, 110'u8, 110'u8),
+                     Color.fromArgb(165'u8, 96'u8, 96'u8, 106'u8),
+                     Color.fromArgb(127'u8, 132'u8, 132'u8, 144'u8),
+                     Color.fromArgb(85'u8, 110'u8, 110'u8, 110'u8),
+                     Color.fromArgb(0'u8, 255'u8, 255'u8, 255'u8),
+                     Color.fromArgb(255'u8, 3'u8, 5'u8, 7'u8),
+                     Color.fromArgb(18'u8, 200'u8, 200'u8, 200'u8),
+                     Color.fromArgb(128'u8, 0'u8, 255'u8, 0'u8),
+                     Color.fromArgb(127'u8, 115'u8, 115'u8, 115'u8)]
+    const Destinations = [Color.fromArgb(255'u8, 53'u8, 53'u8, 53'u8),
+                          Color.fromArgb(255'u8, 32'u8, 32'u8, 38'u8),
+                          Color.fromArgb(255'u8, 132'u8, 132'u8, 144'u8),
+                          Color.fromArgb(70'u8, 53'u8, 53'u8, 53'u8),
+                          Color.fromArgb(68'u8, 17'u8, 18'u8, 19'u8),
+                          Color.fromArgb(68'u8, 17'u8, 18'u8, 19'u8),
+                          Color.fromArgb(70'u8, 20'u8, 20'u8, 20'u8),
+                          Color.fromArgb(255'u8, 255'u8, 0'u8, 255'u8),
+                          Color.fromArgb(255'u8, 115'u8, 115'u8, 115'u8)]
+
+    // Independent rational results: 110/3 + 2*53/3 = 72; 106*11/17 + 38*6/17 = 82.
+    // The 18/255 case has a fractional result and keeps truncation, while equal colors are fixed.
+    const Expected = [Color.fromArgb(255'u8, 72'u8, 72'u8, 72'u8),
+                      Color.fromArgb(255'u8, 73'u8, 73'u8, 82'u8),
+                      Color.fromArgb(255'u8, 132'u8, 132'u8, 144'u8),
+                      Color.fromArgb(131'u8, 72'u8, 72'u8, 72'u8),
+                      Color.fromArgb(68'u8, 17'u8, 18'u8, 19'u8),
+                      Color.fromArgb(255'u8, 3'u8, 5'u8, 7'u8),
+                      Color.fromArgb(83'u8, 32'u8, 32'u8, 32'u8),
+                      Color.fromArgb(255'u8, 127'u8, 128'u8, 127'u8),
+                      Color.fromArgb(255'u8, 115'u8, 115'u8, 115'u8)]
+
+    for mask in 3
+    {
+        for source, index in Sources
+        {
+            var painter: Painter
+            painter.begin()
+            painter.setColorMaskFull()
+            painter.clear(Destinations[index])
+            if mask == 0 do
+                painter.setColorMaskColor()
+            elif mask == 2 do
+                painter.setColorMask(true, false, false, true)
+            painter.setAntialiased(false)
+            painter.fillRect(0, 0, 7, 2, source)
+            painter.end()
+
+            var expected = Expected[index]
+            if mask == 0 do
+                expected.a = Destinations[index].a
+            elif mask == 2
+            {
+                expected.g = Destinations[index].g
+                expected.b = Destinations[index].b
+            }
+
+            let image = renderCpu(7, 2, &painter)
+            for x in 7 do
+                assertPixel(image, x, 0, expected)
+        }
+    }
+}
+
+// Overlap-safe strokes use the same exact byte weights as ordinary Alpha rendering.
+#test
+{
+    const Sources = [Color.fromArgb(85'u8, 110'u8, 110'u8, 110'u8),
+                     Color.fromArgb(165'u8, 96'u8, 96'u8, 106'u8),
+                     Color.fromArgb(127'u8, 132'u8, 132'u8, 144'u8)]
+    const Destinations = [Color.fromArgb(255'u8, 53'u8, 53'u8, 53'u8),
+                          Color.fromArgb(255'u8, 32'u8, 32'u8, 38'u8),
+                          Color.fromArgb(255'u8, 132'u8, 132'u8, 144'u8)]
+    const Expected = [Color.fromRgb(72, 72, 72), Color.fromRgb(73, 73, 82), Color.fromRgb(132, 132, 144)]
+    for source, index in Sources
+    {
+        var painter: Painter
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Destinations[index])
+        painter.setColorMaskColor()
+        painter.setAntialiased(false)
+        painter.drawLine(1, 2, 7, 2, Pen.createSolid(source, 2))
+        painter.end()
+
+        let image = renderCpu(8, 4, &painter)
+        let value = image.pixelColor(4, 2)
+        Swag.assert(value.r == Expected[index].r and value.g == Expected[index].g and value.b == Expected[index].b)
+    }
+}
+
 // A nearly collinear viewport-wide polygon must not corrupt the geometry recorded after it.
 #test
 {

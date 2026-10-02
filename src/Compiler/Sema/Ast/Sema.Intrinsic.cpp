@@ -141,7 +141,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
     {
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, fillTypeRef))
             return failIntrinsicInitRequiresValue(sema, nodeWhatRef, fillTypeRef);
-        return Result::Continue;
+        return SemaSpecOp::addDefaultInitCallDependencies(sema, fillTypeRef);
     }
 
     if (SemaHelpers::intrinsicInitTreatsArgsAsStructTuple(sema, fillTypeRef, args))
@@ -172,7 +172,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
 
         if (sema.isCurrentFunction())
             SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, fillTypeRef, "__intrinsic_runtime_storage"));
-        return Result::Continue;
+        return SemaSpecOp::addDefaultInitCallDependencies(sema, fillTypeRef);
     }
 
     if (args.size() != 1)

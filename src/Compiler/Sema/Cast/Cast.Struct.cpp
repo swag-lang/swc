@@ -267,7 +267,7 @@ namespace
         // Recursive aggregate casts need the literal's children to retarget their runtime
         // storage. A named-argument wrapper carries the diagnostic site, not those children.
         const AstNodeRef valueNodeRef = aggregateFieldValueNodeRef(*args.sema, fieldNodeRef);
-        CastRequest elemCtx(args.castRequest->kind);
+        CastRequest      elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
         elemCtx.errorNodeRef = valueNodeRef.isValid() ? valueNodeRef : args.castRequest->errorNodeRef;
         elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
@@ -466,6 +466,13 @@ namespace
         const auto& dstStruct = args.dstType->payloadSymStruct();
         const auto& dstFields = dstStruct.fields();
 
+        dstStruct.computeImplicitDefaultFlags(*args.sema);
+        if (dstStruct.attributes().hasRtFlag(RtAttributeFlagsE::Opaque) && dstStruct.requiresExplicitInitialization() &&
+            std::ranges::none_of(dstFields, [&](const SymbolVariable* field) { return field && SymbolStruct::fieldRequiresExplicitInitialization(*args.sema, *field); }))
+            return args.castRequest->fail(DiagnosticId::sema_err_type_requires_init, args.dstTypeRef, args.dstTypeRef);
+
+        SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(*args.sema, args.dstTypeRef));
+
         SWC_ASSERT(srcNames.size() == srcTypes.size());
         constexpr size_t K_INVALID_FIELD_INDEX = std::numeric_limits<size_t>::max();
         srcToDst.assign(srcTypes.size(), K_INVALID_FIELD_INDEX);
@@ -582,6 +589,27 @@ namespace
             castedByDst[dstIndex] = castedRef;
         }
 
+        if (ConstantHelpers::typeHasUnionStorage(args.sema->ctx(), args.dstTypeRef))
+        {
+            SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
+            writes.reserve(values.size());
+            // Defaults precede explicit writes. Reapplying an omitted alternative's
+            // default here could overwrite the selected member of a union.
+            for (size_t i = 0; i < values.size(); ++i)
+            {
+                const size_t          dstIndex = srcToDst[i];
+                const SymbolVariable& field    = *dstFields[dstIndex];
+                writes.push_back({field.offset(), field.typeRef(), castedByDst[dstIndex]});
+            }
+            args.castRequest->outConstRef = ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, writes.span());
+            return Result::Continue;
+        }
+        if (SymbolStruct::typeHasRuntimeImplicitDefault(*args.sema, args.dstTypeRef))
+        {
+            args.castRequest->outConstRef = ConstantRef::invalid();
+            return Result::Continue;
+        }
+
         for (size_t i = 0; i < dstFields.size(); ++i)
         {
             if (castedByDst[i].isValid())
@@ -618,6 +646,17 @@ namespace
     // Single-field structs follow the same best-effort static-materialization rule.
     Result foldSingleFieldStructConstant(const CastAggregateArgs& args, const SymbolVariable& field, ConstantRef fieldValueRef)
     {
+        if (ConstantHelpers::typeHasUnionStorage(args.sema->ctx(), args.dstTypeRef))
+        {
+            const ConstantHelpers::ConstantPayloadWrite write{field.offset(), field.typeRef(), fieldValueRef};
+            args.castRequest->outConstRef = ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, std::span{&write, 1});
+            return Result::Continue;
+        }
+        if (SymbolStruct::typeHasRuntimeImplicitDefault(*args.sema, args.dstTypeRef))
+        {
+            args.castRequest->outConstRef = ConstantRef::invalid();
+            return Result::Continue;
+        }
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
 
@@ -705,11 +744,11 @@ TokenRef Cast::userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRe
 
 Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo&      srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo&         srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo&         dstType = sema.typeMgr().get(dstTypeRef);
     const CastAggregateArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
-    const SourceCodeRef  codeRef = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
-                                                                                                                                      : sema.node(sema.curNodeRef()).codeRef();
+    const SourceCodeRef     codeRef = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
+                                                                                                                                         : sema.node(sema.curNodeRef()).codeRef();
 
     SWC_RESULT(sema.waitSemaCompleted(&dstType.payloadSymStruct(), codeRef));
 

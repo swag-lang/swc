@@ -3,6 +3,22 @@
 
 using Core, Pixel, Gui, Video, Audio
 
+// Both decoder paths propagate failure into the producer's catch before the queue reports it.
+#test
+{
+    for planar in [false, true]
+    {
+        var view: VideoViewer
+        view.planar = planar
+        view.slots.resize(1)
+        view.freeSlots.add(0)
+        let produced = view.produceOne()
+        Swag.assert(not produced and view.hasFailure)
+        Swag.assert(view.failureText == "video reader has no open stream")
+        Swag.assert(view.inFlight == 0 and view.ready.isEmpty() and view.freeSlots.count == 1)
+    }
+}
+
 func countVideoLoadingChange(wnd: *Wnd)
 {
     let count = cast(*u32) wnd.userData!

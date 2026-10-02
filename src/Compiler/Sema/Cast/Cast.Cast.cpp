@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Cast/CastConstant.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Cast/CastConstant.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -709,6 +710,7 @@ namespace
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, dstTypeRef))
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, sema.curNode().codeRef(), dstTypeRef);
         SWC_RESULT(dstType.payloadSymStruct().resolveImplicitDefaultValueRef(sema, dstTypeRef, outInitCstRef));
+        SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(sema, dstTypeRef));
         return Result::Continue;
     }
 

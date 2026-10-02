@@ -3,6 +3,22 @@
 
 using Core, Pixel, Gui
 
+// A preview worker keeps the failure message after rejecting a range outside its mapped file.
+#test
+{
+    let path = Testing.tempFilePath("scope-indesign-failure-", ".indd")
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, "invalid preview")
+    var operation: IndesignPreviewLoad
+    let preview = IndesignPreview{payloadStart: 100, payloadEnd: 101}
+    operation.start(path, &preview)
+    operation.task.wait()
+    var image: Image
+    let failure = operation.finish(&image)
+    Swag.assert(failure == indesignStrings().err_Preview)
+    Swag.assert(not image.isValid())
+}
+
 // A file URI is checked after percent decoding, before any linked-image probe can run.
 #test
 {

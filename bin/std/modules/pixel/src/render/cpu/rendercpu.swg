@@ -574,13 +574,14 @@ private impl RenderCpu
         return src
     }
 
-    // Alpha-blends one BGRA8 pixel under the default color mask.
+    // Applies byte alpha with one exact division, truncating the final channel toward zero.
     //
-    // The arithmetic mirrors [[Pixel.RenderCpu.blendPixel]] for the 'Alpha' mode operation by
-    // operation, so the stored bytes are identical; only the format dispatch, the mode switch,
-    // and the mask branches are resolved away. The alpha byte stays in place, which is exactly
-    // what the disabled alpha mask means, and an opaque source stores its own bytes because the
-    // u8 to f32 round trip of the general path is exact.
+    // Both weights sum to 255, so the numerator fits in 16 bits and equal colors stay equal.
+    // Keeping the weights integral makes quantization independent of floating-point contraction.
+    #[Swag.Inline]
+    func blendAlphaByte(src, dst, alpha: u8)->u8 => cast(u8) ((cast(u32) src * alpha + cast(u32) dst * (255'u32 - alpha)) / 255)
+
+    // Alpha-blends one BGRA8 pixel under the default color mask, preserving its alpha byte.
     func blendAlphaBgra8(pixel: [*] u8, src: Color)
     {
         if src.a == 255
@@ -591,13 +592,9 @@ private impl RenderCpu
             return
         }
 
-        let sa   = cast(f32) src.a / 255.0
-        let outR = Math.saturate((cast(f32) src.r / 255.0) * sa + (cast(f32) pixel[2] / 255.0) * (1.0 - sa))
-        let outG = Math.saturate((cast(f32) src.g / 255.0) * sa + (cast(f32) pixel[1] / 255.0) * (1.0 - sa))
-        let outB = Math.saturate((cast(f32) src.b / 255.0) * sa + (cast(f32) pixel[0] / 255.0) * (1.0 - sa))
-        pixel[0] = cast(u8) (outB * 255)
-        pixel[1] = cast(u8) (outG * 255)
-        pixel[2] = cast(u8) (outR * 255)
+        pixel[0] = blendAlphaByte(src.b, pixel[0], src.a)
+        pixel[1] = blendAlphaByte(src.g, pixel[1], src.a)
+        pixel[2] = blendAlphaByte(src.r, pixel[2], src.a)
     }
 
     mtd blendPixel(image: *Image, x, y: s32, src: Color)
@@ -640,11 +637,26 @@ private impl RenderCpu
 
             // The first fragment consumes the maximum alpha accumulated by the mark pass;
             // subsequent overlapping fragments see zero destination alpha and contribute nothing.
-            let factor = cast(f32) .overlapAlpha[pixelIdx] / 255.0
-            var out    = Color.fromArgbF32(0,
-                                           cast(f32) src.r / 255.0 * factor + cast(f32) dst.r / 255.0 * (1.0 - factor),
-                                           cast(f32) src.g / 255.0 * factor + cast(f32) dst.g / 255.0 * (1.0 - factor),
-                                           cast(f32) src.b / 255.0 * factor + cast(f32) dst.b / 255.0 * (1.0 - factor))
+            let alpha = .overlapAlpha[pixelIdx]
+            let out   = Color.fromArgb(0'u8,
+                                       blendAlphaByte(src.r, dst.r, alpha),
+                                       blendAlphaByte(src.g, dst.g, alpha),
+                                       blendAlphaByte(src.b, dst.b, alpha))
+            writePixel(image, x, y, out)
+            return
+        }
+
+        if .blendingMode == .Alpha
+        {
+            var out = dst
+            if .colorMask.r do
+                out.r = blendAlphaByte(src.r, dst.r, src.a)
+            if .colorMask.g do
+                out.g = blendAlphaByte(src.g, dst.g, src.a)
+            if .colorMask.b do
+                out.b = blendAlphaByte(src.b, dst.b, src.a)
+            if .colorMask.a do
+                out.a = blendAlphaByte(255, dst.a, src.a)
             writePixel(image, x, y, out)
             return
         }
@@ -657,7 +669,7 @@ private impl RenderCpu
         // of faint layers reaches almost no opacity at all. This matches the separate blend
         // function the OpenGL renderer sets, so a CPU render and a GPU render cover the same.
         var outA = blendChannel(sa, da, sa, da, .blendingMode)
-        if .blendingMode == .Alpha or .blendingMode.usesAdvancedBlending() do
+        if .blendingMode.usesAdvancedBlending() do
             outA = sa + da * (1.0 - sa)
 
         let srcColor = Math.Vector3{cast(f32) src.r / 255.0, cast(f32) src.g / 255.0, cast(f32) src.b / 255.0}
@@ -1485,8 +1497,8 @@ private impl RenderCpu
 
                         let pixel = rowPixels + cast(u64) x * 4
 
-                        // Translucent alpha keeps the scalar float blend so every byte rounds as
-                        // before; the other full spans collapse to one packed load/store pair.
+                        // Translucent alpha uses the exact byte blend; the other full spans
+                        // collapse to one packed load/store pair.
                         if laneCount == 4 and coverage == 0xF and not stencilTest and (not fastAlpha or constColor.a == 255)
                         {
                             if copyAll do

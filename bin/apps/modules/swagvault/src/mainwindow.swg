@@ -166,7 +166,7 @@ struct VaultOperation
     task:           Swag.Task         // Runtime task running `kind`.
     kind:           OperationKind     // Work the task performs, or `None` while the window is idle.
     timer:          *Timer?           // Polls the task while it runs.
-    error:          any?              // Failure captured by the task, or null when it succeeded.
+    error:          Swag.Error        // Owns a worker failure until the UI thread reports it.
     path:           String            // Container file the operation acts on.
     mount:          String            // Stable backend destination identifier requested by a mount operation.
     mountLabel:     String            // Host-facing destination name reported when the operation completes.
@@ -1657,8 +1657,8 @@ impl MainWindow
     mtd beginOperation(kind: OperationKind)
     {
         Swag.assert(.operation.kind == .None)
-        .operation.kind  = kind
-        .operation.error = null
+        .operation.kind = kind
+        .operation.error.reset()
         .operation.timer = .app().addTimer(50'ms, me)
 
         // Arming the tracker before the task starts is what clears the cancellation a previous
@@ -2021,7 +2021,7 @@ impl MainWindow
             hiddenCredential = catch .operation.hiddenAccess.derive() as hiddenError
             if hiddenError != null
             {
-                .operation.error = hiddenError
+                .operation.error.capture(hiddenError)
                 .operation.access.clear()
                 return
             }
@@ -2033,7 +2033,7 @@ impl MainWindow
             current = catch .operation.access.derive() as accessError
             if accessError != null
             {
-                .operation.error = accessError
+                .operation.error.capture(accessError)
                 .operation.access.clear()
                 .operation.replacement.clear()
                 return
@@ -2049,14 +2049,14 @@ impl MainWindow
             if .operation.createHidden
             {
                 var volume = catch Volume.createHidden(.operation.path.toString(), current.toSlice(), hiddenCredential.toSlice(), .operation.size, &.operation.progress, .operation.outerReserve) as createError
-                .operation.error = createError
+                .operation.error.capture(createError)
                 if createError == null do
                     volume.close()
             }
             else
             {
                 var volume = catch Volume.create(.operation.path.toString(), current.toSlice(), .operation.size, &.operation.progress) as createError
-                .operation.error = createError
+                .operation.error.capture(createError)
                 if createError == null do
                     volume.close()
             }
@@ -2064,7 +2064,7 @@ impl MainWindow
         case .Mount:
             let mounted = Memory.new'MountedVault()
             discard catch mounted.open(.operation.path.toString(), current.toSlice(), .operation.mount.toString(), .operation.readOnly, hiddenCredential.toSlice()) as mountError
-            .operation.error = mountError
+            .operation.error.capture(mountError)
             if mountError != null
             {
                 Memory.delete(mounted)
@@ -2078,25 +2078,25 @@ impl MainWindow
             if mounted
             {
                 discard catch mounted.close() as unmountError
-                .operation.error = unmountError
+                .operation.error.capture(unmountError)
                 Memory.delete(mounted)
                 .operation.volume = null
             }
 
         case .Resize:
             var volume = catch Volume.open(.operation.path.toString(), current.toSlice()) as openError
-            .operation.error = openError
+            .operation.error.capture(openError)
             if openError == null
             {
                 if .operation.camouflageOnly
                 {
                     discard catch volume.reapplyCamouflage(&.operation.progress) as resizeError
-                    .operation.error = resizeError
+                    .operation.error.capture(resizeError)
                 }
                 else
                 {
                     discard catch volume.resize(.operation.size, &.operation.progress) as resizeError
-                    .operation.error = resizeError
+                    .operation.error.capture(resizeError)
                 }
 
                 volume.close()
@@ -2104,16 +2104,16 @@ impl MainWindow
 
         case .ChangeAccess:
             var replacement = catch .operation.replacement.derive() as deriveError
-            .operation.error = deriveError
+            .operation.error.capture(deriveError)
             if deriveError != null do
                 break
 
             var volume = catch Volume.open(.operation.path.toString(), current.toSlice()) as openError
-            .operation.error = openError
+            .operation.error.capture(openError)
             if openError == null
             {
                 discard catch volume.changePassword(current.toSlice(), replacement.toSlice()) as changeError
-                .operation.error = changeError
+                .operation.error.capture(changeError)
                 volume.close()
             }
         }
@@ -2141,6 +2141,7 @@ impl MainWindow
     mtd finishOperation()
     {
         .operation.task.wait()
+        catch .operation.error.raise() as operationError
         if .operation.timer
         {
             .removeTimer(.operation.timer)
@@ -2155,15 +2156,15 @@ impl MainWindow
             return
 
         case .Create:
-            if isCanceledError(.operation.error)
+            if isCanceledError(operationError)
             {
                 // A creation the user stopped is an outcome, not a failure, so it reports on
                 // the status line and never opens a dialog.
                 .setStatus(.operation.createHidden ? .HiddenCreateCanceled : .CreateCanceled)
             }
-            elif .operation.error != null
+            elif operationError != null
             {
-                .showError(appStrings().msg_CreateFailed, .operation.error)
+                .showError(appStrings().msg_CreateFailed, operationError)
                 .setStatus(.CreateStopped)
             }
             else
@@ -2181,12 +2182,12 @@ impl MainWindow
             }
 
         case .Mount:
-            if .operation.error != null
+            if operationError != null
             {
                 // A startup mount reports on the status line alone: a box per vault would meet
                 // the reader with a stack of them before the window is even readable.
                 if not .operation.fromStartup and not .operation.securityStopped do
-                    .showError(appStrings().msg_MountFailed, .operation.error)
+                    .showError(appStrings().msg_MountFailed, operationError)
                 .setStatus(.operation.securityStopped ? StatusMessage.AutoUnmounted : StatusMessage.MountStopped)
             }
             elif .operation.usedProtection and .operation.securityEpoch != .securityEpoch
@@ -2214,19 +2215,19 @@ impl MainWindow
             .fillDriveChoice()
 
         case .Unmount:
-            if .operation.error != null do
-                .showError(appStrings().msg_UnmountSyncStopped, .operation.error)
+            if operationError != null do
+                .showError(appStrings().msg_UnmountSyncStopped, operationError)
             .setStatus(.Unmounted)
             .fillDriveChoice()
 
         case .Resize:
-            if isCanceledError(.operation.error)
+            if isCanceledError(operationError)
             {
                 .setStatus(.ResizeCanceled)
             }
-            elif .operation.error != null
+            elif operationError != null
             {
-                .showError(appStrings().msg_ResizeFailed, .operation.error)
+                .showError(appStrings().msg_ResizeFailed, operationError)
                 .setStatus(.ResizeStopped)
             }
             else
@@ -2241,10 +2242,10 @@ impl MainWindow
             }
 
         case .ChangeAccess:
-            if .operation.error != null
+            if operationError != null
             {
                 let keyFiles = .operation.accessChange == .KeyFiles
-                .showError(keyFiles ? appStrings().msg_KeyFilesFailed : appStrings().msg_PasswordFailed, .operation.error)
+                .showError(keyFiles ? appStrings().msg_KeyFilesFailed : appStrings().msg_PasswordFailed, operationError)
                 .setStatus(keyFiles ? StatusMessage.KeyFilesStopped : StatusMessage.PasswordStopped)
             }
             else
@@ -2261,8 +2262,8 @@ impl MainWindow
         }
 
         .setState(.Ready)
-        .operation.kind              = .None
-        .operation.error             = null
+        .operation.kind = .None
+        .operation.error.reset()
         .operation.volume            = null
         .operation.usedProtection    = false
         .operation.leavesUnprotected = false
@@ -2499,7 +2500,7 @@ impl MainWindow
         .createPassword.clear()
         .confirmPassword.clear()
         .mountPassword.clear()
-        .operation.error = null
+        .operation.error.reset()
     }
 }
 

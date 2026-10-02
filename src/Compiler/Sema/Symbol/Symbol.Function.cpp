@@ -885,6 +885,30 @@ uint64_t SymbolFunction::storesParamsMask() const noexcept
     return storesParamsMask_ | (attrs ? attrs->storesParamsMask : 0);
 }
 
+uint64_t SymbolFunction::returnsIndirectParamsMask() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return returnsIndirectParamsMask_ | (attrs ? attrs->returnsIndirectParamsMask : 0);
+}
+
+uint64_t SymbolFunction::storesIndirectParamsMask() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return storesIndirectParamsMask_ | (attrs ? attrs->storesIndirectParamsMask : 0);
+}
+
+uint64_t SymbolFunction::storesIndirectIntoParamPairs() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    uint64_t             pairs = storesIndirectIntoParamPairs_ | (attrs ? attrs->storesIndirectIntoParamPairs : 0);
+    for (const PendingBorrowStore& store : pendingBorrowStores_)
+    {
+        if (store.indirect)
+            pairs |= 1ULL << (store.intoIndex * 8 + store.storedIndex);
+    }
+    return pairs;
+}
+
 uint64_t SymbolFunction::returnsStorageParamsMask() const noexcept
 {
     const AttributeList* attrs = attributesIfAny();
@@ -898,7 +922,10 @@ uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
     // Bodies synthesized outside ordinary function completion still expose the
     // conservative store until their retention proof has actually run.
     for (const PendingBorrowStore& store : pendingBorrowStores_)
-        pairs |= 1ULL << (store.intoIndex * 8 + store.storedIndex);
+    {
+        if (!store.indirect)
+            pairs |= 1ULL << (store.intoIndex * 8 + store.storedIndex);
+    }
     return pairs;
 }
 
@@ -1018,7 +1045,7 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
     out.append(callDependencies_.data(), callDependencies_.size());
 }
 
-void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym)
+void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym, const bool observesEffects)
 {
     if (!sym || sym == this)
         return;
@@ -1028,6 +1055,13 @@ void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym)
         lifecycleDependencies_ = std::make_unique<std::vector<SymbolFunction*>>();
     if (std::ranges::find(*lifecycleDependencies_, mutableSym) == lifecycleDependencies_->end())
         lifecycleDependencies_->push_back(mutableSym);
+    if (observesEffects)
+    {
+        if (!lifecycleEffectDependencies_)
+            lifecycleEffectDependencies_ = std::make_unique<std::vector<SymbolFunction*>>();
+        if (std::ranges::find(*lifecycleEffectDependencies_, mutableSym) == lifecycleEffectDependencies_->end())
+            lifecycleEffectDependencies_->push_back(mutableSym);
+    }
 }
 
 void SymbolFunction::appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const
@@ -1036,6 +1070,13 @@ void SymbolFunction::appendLifecycleDependencies(SmallVector<SymbolFunction*>& o
     if (!lifecycleDependencies_)
         return;
     out.append(lifecycleDependencies_->data(), lifecycleDependencies_->size());
+}
+
+void SymbolFunction::appendLifecycleEffectDependencies(SmallVector<SymbolFunction*>& out) const
+{
+    const std::shared_lock lock(callDependenciesMutex_);
+    if (lifecycleEffectDependencies_)
+        out.append(lifecycleEffectDependencies_->data(), lifecycleEffectDependencies_->size());
 }
 
 SymbolFunction::GenericData* SymbolFunction::genericData() const noexcept

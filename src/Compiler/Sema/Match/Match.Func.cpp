@@ -16,6 +16,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Match/NamedArgumentLookup.h"
@@ -3028,7 +3029,17 @@ namespace
             };
 
             if (resolvedArg.bindsReferenceToValue)
+            {
                 SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
+                const TypeInfo& parameterType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, selectedFn.parameters()[i]->typeRef()));
+                if (parameterType.isMoveReference())
+                {
+                    // Binding an ordinary value to a move reference creates an owned
+                    // call-site copy, repaired before the call and dropped afterward.
+                    SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, parameterType.payloadTypeRef(), SpecOpKind::OpPostCopy));
+                    SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, parameterType.payloadTypeRef(), SpecOpKind::OpDrop));
+                }
+            }
             if (resolvedArg.passUfcsAddressAsPointer)
             {
                 // The receiver's address escapes into the pointer parameter, so a
@@ -3173,7 +3184,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
     outProbe = {};
 
     SmallVector<Symbol*> filteredStorage;
-    const auto          filteredSymbols = callableSymbolsForMode(symbols, mode, filteredStorage);
+    const auto           filteredSymbols = callableSymbolsForMode(symbols, mode, filteredStorage);
 
     SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
@@ -3206,7 +3217,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
 Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs, ResolveCallMode mode)
 {
     SmallVector<Symbol*> filteredStorage;
-    const auto          filteredSymbols = callableSymbolsForMode(symbols, mode, filteredStorage);
+    const auto           filteredSymbols = callableSymbolsForMode(symbols, mode, filteredStorage);
 
     SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;

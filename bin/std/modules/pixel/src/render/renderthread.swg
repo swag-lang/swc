@@ -45,6 +45,9 @@ struct RenderThread
         requested:           Sync.Event
         completed:           Sync.Event
         callback:            (func||())?
+        requestSerial:       u64
+        completedSerial:     Swag.AtomicValue'u64
+        completionStatus:    Sync.EventStatus
         stopping:            bool
         nativeWindow:        bool
         late fonts:          *FontCache
@@ -61,10 +64,13 @@ impl RenderThread
     mtd start(backend: IRenderer)
     {
         Swag.assert(not .thread.isValid(), "render worker is already running")
-        .backend      = backend
-        .nativeWindow = backend.needsNativeWindow()
-        .fonts        = backend.fontCache()
-        .stopping     = false
+        .backend          = backend
+        .nativeWindow     = backend.needsNativeWindow()
+        .fonts            = backend.fontCache()
+        .stopping         = false
+        .requestSerial    = 0
+        .completionStatus = {}
+        .completedSerial.store(0)
         .requested.init()
         .completed.init(manual: true, initState: true)
         expect .thread.init(&worker, me)
@@ -75,10 +81,25 @@ impl RenderThread
     mtd const isStarted()->bool => .thread.isValid()
 
     // Waits until the pending presentation is complete; does nothing before start or after close.
+    //
+    // A native wait or completion-signal failure is consumed once, after the worker releases
+    // borrowed state. With the Expect safety check enabled, it invokes the panic hook.
+    // When both fail, the wait failure takes precedence.
     mtd wait()
     {
-        if .isStarted() do
-            .completed.wait()
+        if not .isStarted() do
+            return
+        var status: Sync.EventStatus
+        if .completedSerial.load() != .requestSerial
+        {
+            status = .completed.waitStatus()
+
+            // The ticket is published after the native completion signal. Even a failed wait
+            // cannot release the caller while this request still uses its borrowed state.
+            while .completedSerial.load() != .requestSerial {}
+        }
+
+        .reportCompletion(status)
     }
 
     // Returns and clears the duration, in microseconds, of the last completed presentation.
@@ -122,6 +143,7 @@ private impl RenderThread
             owner.requested.wait()
             if owner.stopping do
                 return
+            let serial = owner.requestSerial
             if owner.callback do
                 owner.callback()
             else
@@ -136,18 +158,66 @@ private impl RenderThread
             // reuse their storage or reset the event for the next request after this signal.
             owner.callback = null
             Memory.releaseTemporaryAllocations()
-            owner.completed.signal()
+            owner.publishCompletion(serial, &owner.completed)
         }
+    }
+
+    mtd publishCompletion(serial: u64, completion: *Sync.Event)
+    {
+        .completionStatus = completion.signalStatus()
+
+        // Publish the status with the ticket, after the native signal. No worker-side hook
+        // may run afterward: the caller can already have published its next borrowed callback.
+        .completedSerial.store(serial)
+    }
+
+    mtd reportCompletion(waitStatus: Sync.EventStatus)
+    {
+        let signalStatus = .completionStatus
+        .completionStatus = {}
+
+        // Consume before reporting so a returning hook or another wait cannot report twice.
+        if not waitStatus.isSuccess() do
+            expect waitStatus.raise()
+        else do
+            expect signalStatus.raise()
     }
 
     mtd execute(callback: func||())
     {
+        .execute(callback, &.completed)
+    }
+
+    mtd execute(callback: func||(), completion: *Sync.Event)
+    {
         Swag.assert(.isStarted(), "render worker has not been started")
         .wait()
         .completed.reset()
+        .requestSerial += #wrap 1
+        let serial = .requestSerial
         .callback = callback
-        .requested.signal()
-        .wait()
+        let signalStatus = .requested.signalStatus()
+        if signalStatus.isSuccess()
+        {
+            let waitStatus = completion.waitStatus()
+            while .completedSerial.load() != serial {}
+            .callback = null
+            .reportCompletion(waitStatus)
+        }
+        else
+        {
+            .callback = null
+
+            // No request was published. Restore the completed ticket and native signal so
+            // a later wait or close cannot wait forever for work the worker never received.
+            .requestSerial    -= #wrap 1
+            .completionStatus = {}
+
+            // The request failure takes precedence if restoring the native signal also fails.
+            discard .completed.signalStatus()
+        }
+
+        expect signalStatus.raise()
     }
 
     mtd executeFallible(callback: func||() fail) fail
@@ -191,9 +261,18 @@ impl IRenderer for RenderThread
         Swag.assert(.isStarted(), "render worker has not been started")
         .wait()
         .completed.reset()
+        .requestSerial += #wrap 1
 
         // An empty callback is an owned present request: no stack capture survives this call.
-        .requested.signal()
+        let status = .requested.signalStatus()
+        if not status.isSuccess()
+        {
+            .requestSerial    -= #wrap 1
+            .completionStatus = {}
+            discard .completed.signalStatus()
+        }
+
+        expect status.raise()
     }
 
     mtd impl clear() { .execute(func|me|() { me.backend.clear() }) }

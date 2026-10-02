@@ -11,8 +11,10 @@
 #include "Backend/Native/SymbolSort.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Compiler/ModuleApi/ModuleApi.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
@@ -670,13 +672,44 @@ namespace
         return functions;
     }
 
+    bool isExportedOpaqueLifecycleFunction(NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    {
+        const SymbolStruct* owner = symbol.ownerStruct();
+        if (!owner || !owner->isPublic() || !ModuleApi::isModuleApiOpaqueType(*owner))
+            return false;
+        if (owner->effectiveOpInit(builder.ctx()) != &symbol &&
+            owner->effectiveOpDrop(builder.ctx()) != &symbol &&
+            owner->effectiveOpPostCopy(builder.ctx()) != &symbol &&
+            owner->effectiveOpPostMove(builder.ctx()) != &symbol)
+            return false;
+
+        const SourceFile* sourceFile = builder.compiler().sourceViewFile(*owner);
+        const SourceFile* astFile    = builder.compiler().ownerSourceFile(owner->srcViewRef());
+        if (!astFile)
+            astFile = sourceFile;
+        if (!sourceFile || !astFile || (!ModuleApi::isCurrentModuleSourceFile(*sourceFile) && !ModuleApi::isCurrentModuleSourceFile(*astFile)))
+            return false;
+
+        AstNodeRef declRef;
+        if (!ModuleApi::tryFindReachableNodeRef(astFile->ast(), owner->decl(), declRef))
+        {
+            if (astFile->ast().hasSourceView() && owner->srcViewRef() != astFile->ast().srcView().ref())
+                declRef = astFile->ast().tryFindNodeRef(owner->decl());
+        }
+        if (declRef.isInvalid() || !ModuleApi::isExportedPublicDeclScope(*astFile, declRef, *owner))
+            return false;
+
+        std::vector<IdentifierRef> namespacePath;
+        return ModuleApi::findExportDeclRoot(*astFile, declRef).isValid() && ModuleApi::extractPublicNamespacePath(builder.ctx(), *astFile, declRef, *owner, namespacePath);
+    }
+
     NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal)
     {
         NativeFunctionInfo info;
         info.symbol                   = &symbol;
         info.machineCode              = &symbol.loweredCode();
         info.sortKey                  = SymbolSort::locationKey(builder.compiler(), symbol);
-        const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport();
+        const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && ((symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport()) || isExportedOpaqueLifecycleFunction(builder, symbol));
         if (exportPublicSymbol)
             info.symbolName = symbol.computePublicApiSymbolName(builder.ctx());
         else
@@ -771,10 +804,10 @@ namespace
         std::vector<uint64_t> estimates(functions.size());
         for (uint32_t index = 0; index < functions.size(); ++index)
         {
-            const auto* decl  = functions[index]->decl() ? functions[index]->decl()->safeCast<AstFunctionDecl>() : nullptr;
-            const auto  own   = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;
-            order[index]      = index;
-            estimates[index]  = uint64_t{own} + functions[index]->inlinedCost();
+            const auto* decl = functions[index]->decl() ? functions[index]->decl()->safeCast<AstFunctionDecl>() : nullptr;
+            const auto  own  = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;
+            order[index]     = index;
+            estimates[index] = uint64_t{own} + functions[index]->inlinedCost();
         }
         std::ranges::stable_sort(order, [&](uint32_t lhs, uint32_t rhs) { return estimates[lhs] > estimates[rhs]; });
 

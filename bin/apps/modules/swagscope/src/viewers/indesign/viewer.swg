@@ -475,7 +475,7 @@ private struct IndesignPreviewLoad
     fileName:        String
     preview:         IndesignPreview
     value:           Image
-    error:           any?
+    error:           String
 }
 
 private impl IndesignPreviewLoad
@@ -491,7 +491,7 @@ private impl IndesignPreviewLoad
         .task.submit(func|operation|()
         {
             operation.value = catch loadIndesignPreview(operation.fileName.toString(), &operation.preview) as loadError
-            operation.error = loadError
+            operation.error = Errors.message(loadError)
         })
     }
 
@@ -500,9 +500,7 @@ private impl IndesignPreviewLoad
         Swag.assert(.isDone())
         .wait()
         value[] = #move .value
-        let result = Errors.message(.error)
-        .error = null
-        return result
+        return #move .error
     }
 
     mtd retire()->bool

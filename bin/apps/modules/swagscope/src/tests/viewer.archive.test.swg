@@ -3,6 +3,28 @@
 
 using Core, Pixel, Gui
 
+// Extraction owns a formatted worker failure after the task's caught error has been released.
+#test
+{
+    var operation: ZipEntryExtract
+    var entry:     ZipEntry
+    entry.method = 99
+    let destination = Testing.tempFilePath("scope-extract-failure-", ".bin")
+    defer discard catch File.delete(destination)
+    operation.start("unused.zip", &entry, destination)
+    operation.task.wait()
+    let failure = operation.finish()
+    Swag.assert(failure == "ZIP compression method 99 is not supported")
+    Swag.assert(not File.exists(destination))
+
+    entry.method = 100
+    operation.start("unused.zip", &entry, destination)
+    operation.task.wait()
+    let replacement = operation.finish()
+    Swag.assert(replacement == "ZIP compression method 100 is not supported")
+    Swag.assert(failure == "ZIP compression method 99 is not supported")
+}
+
 func archiveViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.zip")
 
 struct ZipFixtureEntry

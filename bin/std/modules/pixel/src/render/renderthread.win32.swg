@@ -7,7 +7,7 @@ impl RenderThread
     // Reports whether another frame can start without waiting for presentation.
     //
     // Before start and after close this returns true. It never consumes the completion signal.
-    public mtd isReady()->bool => not .isStarted() or (expect WaitForSingleObject(.completed.handle, 0)) == WAIT_OBJECT_0
+    public mtd isReady()->bool => not .isStarted() or .completedSerial.load() == .requestSerial
 
     // Borrows the manual-reset completion handle for integration with a native message wait.
     //

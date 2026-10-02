@@ -35,6 +35,7 @@ enum class SymbolStructFlagsE : uint16_t
     Union               = 1 << 3,
     DefaultClassified   = 1 << 4,
     DefaultAllZero      = 1 << 5,
+    DefaultRuntime      = 1 << 6,
     DefaultRequiresInit = 1 << 8,
     Anonymous           = 1 << 9, // declared without a name, so its members are reached through the enclosing type
     OwnDynamicSlot      = 1 << 10,
@@ -105,6 +106,8 @@ public:
     void                      computeImplicitDefaultFlags(Sema& sema) const;
     bool                      hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
     bool                      requiresExplicitInitialization() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultRequiresInit); }
+    bool                      hasRuntimeImplicitDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultRuntime); }
+    static bool               typeHasRuntimeImplicitDefault(Sema& sema, TypeRef typeRef);
     static Result             waitTypeImplicitDefaultReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
     static bool               typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef);
     static bool               typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef);
@@ -124,6 +127,7 @@ public:
     SymbolFunction*              opPostMove();
     const SymbolFunction*        opPostMove() const;
     const SymbolFunction*        effectiveOpInit(const TaskContext& ctx) const;
+    const SymbolFunction*        opaqueInit(const TaskContext& ctx) const;
     const SymbolFunction*        effectiveOpDrop(const TaskContext& ctx) const;
     const SymbolFunction*        effectiveOpPostCopy(const TaskContext& ctx) const;
     const SymbolFunction*        effectiveOpPostMove(const TaskContext& ctx) const;

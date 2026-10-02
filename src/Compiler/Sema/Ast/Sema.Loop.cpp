@@ -510,6 +510,8 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
                 valueVar.addExtraFlag(SymbolVariableFlagsE::Let);
                 SemaEscape::bindForeachAddressAlias(sema, valueVar, nodeExprRef);
             }
+            else
+                SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, valueVar.typeRef(), SpecOpKind::OpPostCopy));
         }
 
         const size_t stateIndex = symbols.size();

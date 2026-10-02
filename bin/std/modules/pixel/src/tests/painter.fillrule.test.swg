@@ -61,6 +61,70 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
     return renderCpu(40, 40, &painter)
 }
 
+// A simple concave contour is borrowed only while recording. Its cached tessellation survives
+// repeated fills, and the recorded vertices remain valid after the source contour is dropped.
+#test
+{
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    {
+        var path: LinePath
+        path.start(4, 4)
+        path.lineTo(28, 4)
+        path.lineTo(28, 12)
+        path.lineTo(12, 12)
+        path.lineTo(12, 28)
+        path.lineTo(4, 28)
+        path.close()
+        painter.fillPath(&path, Color.fromArgb(Argb.Red))
+        Swag.assert(path.polygon.isSimple and not path.polygon.isConvex)
+        Swag.assert(path.triangles.vertices.count != 0)
+        let cached = path.triangles.vertices.buffer
+        let count  = path.triangles.vertices.count
+        painter.fillPath(&path, Color.fromArgb(Argb.Red))
+        Swag.assert(path.triangles.vertices.buffer == cached)
+        Swag.assert(path.triangles.vertices.count == count)
+    }
+
+    painter.end()
+    let image = renderCpu(40, 40, &painter)
+    assertPixel(image, 8, 20, Argb.Red)
+    assertPixel(image, 20, 20, Argb.Zero)
+}
+
+// The painter and preparer reuse index storage across independent short-lived path lists.
+// Each list owns its normalized geometry and cached triangles, not the reusable workspace.
+#test
+{
+    var painter:  Painter
+    var preparer: FillPreparer
+    for 2
+    {
+        var paths = ringPathList(true, true)
+        preparer.prepare(&paths, 1, .EvenOdd)
+        let normalized = paths.normalizedFill(.EvenOdd, byDirection: false)
+        var triangles  = 0'u64
+        for path in normalized.paths do
+            triangles += path.triangles.vertices.count
+        Swag.assert(triangles != 0)
+        let last   = normalized.paths[normalized.paths.count - 1]
+        let cached = last.triangles.vertices.buffer
+
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.Zero))
+        painter.fillPath(&paths, Color.fromArgb(Argb.Red), .EvenOdd)
+        painter.end()
+        Swag.assert(last.triangles.vertices.buffer == cached)
+    }
+
+    let image = renderCpu(40, 40, &painter)
+    assertPixel(image, 8, 20, Argb.Red)
+    assertPixel(image, 20, 20, Argb.Zero)
+}
+
 // The winding rule counts turns, so opposing contours cancel and agreeing ones accumulate.
 //
 // Which of the two directions the outline itself runs in carries no meaning: a counter that

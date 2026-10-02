@@ -1287,20 +1287,19 @@ impl VideoViewer
         .decodeWake.signal()
     }
 
-    // Decodes one picture into a slot, and answers with the error the stream raised, if any.
+    // Decodes one picture into a slot, propagating any failure to the producer.
     //
     // A codec that reconstructs planes hands them over as they are; one that does not produces the
     // packed picture itself. Only the queue knows which of the two a slot holds.
-    private mtd decodeIntoSlot(slot: u32, index: u64)->any?
+    private mtd decodeIntoSlot(slot: u32, index: u64) fail
     {
         if .planar
         {
-            catch .video.decodeFramePlanesInto(&.slots[cast(u64) slot].planes, index) as planarError
-            return planarError
+            try .video.decodeFramePlanesInto(&.slots[cast(u64) slot].planes, index)
+            return
         }
 
-        catch .video.decodeFrameInto(&.slots[cast(u64) slot].image, index) as packedError
-        return packedError
+        try .video.decodeFrameInto(&.slots[cast(u64) slot].image, index)
     }
 
     // Decodes one queued picture, and reports whether the producer can immediately do more.
@@ -1328,7 +1327,7 @@ impl VideoViewer
             .inFlight   += 1
         }
 
-        let decodeError = .decodeIntoSlot(slot, index)
+        catch .decodeIntoSlot(slot, index) as decodeError
 
         Sync.scopedLock(&.queueLock)
         .inFlight -= 1

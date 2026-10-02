@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
 #include "Support/Core/RefTypes.h"
@@ -112,6 +113,9 @@ namespace SemaSpecOp
     void             addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);
     bool             typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind);
     Result           addLifecycleCallDependencies(Sema& sema, TypeRef typeRef, SpecOpKind kind);
+    Result           addImplicitLifecycleCallDependencies(Sema& sema, const SymbolFunction& function);
+    Result           addValueTransferCallDependencies(Sema& sema, AstNodeRef sourceRef, TypeRef destinationTypeRef, AstModifierFlags modifiers, bool destinationBindsReference);
+    Result           addDefaultInitCallDependencies(Sema& sema, TypeRef typeRef);
     bool             isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef);
     Result           typeCompareNeedsContentHelper(Sema& sema, bool& outResult, TypeRef typeRef);
     Result           ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct);

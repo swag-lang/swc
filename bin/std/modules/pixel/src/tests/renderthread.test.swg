@@ -170,15 +170,18 @@ impl IRenderer for PresentProbe
         defer renderer.deleteContext(&context)
         Swag.assert(backend.workerId != Env.Process.currentThreadId())
         renderer.init()
-        renderer.begin(context)
-        renderer.end()
-        backend.entered.wait()
+        for iteration in 2
+        {
+            renderer.begin(context)
+            renderer.end()
+            backend.entered.wait()
 
-        // This line runs while the worker is deliberately blocked inside end().
-        Swag.assert(not worker.isReady() and backend.presented == 0)
-        backend.allow.signal()
-        worker.wait()
-        Swag.assert(worker.isReady() and backend.presented == 1)
+            // Neither the previous ticket nor its native signal can complete this request.
+            Swag.assert(not worker.isReady() and backend.presented == iteration)
+            backend.allow.signal()
+            worker.wait()
+            Swag.assert(worker.isReady() and backend.presented == iteration + 1)
+        }
     }
 
     worker.close()
@@ -238,4 +241,130 @@ impl IRenderer for PresentProbe
         renderer.init()
         Swag.assert(Errors.message(error) == message.toString() and not message.isEmpty())
     }
+}
+
+var waitFailurePanicCount:     Swag.AtomicValue'u32
+var waitFailureBorrowLive:     Swag.AtomicValue'u32
+var waitFailureObservedBorrow: Swag.AtomicValue'u32
+
+func observeWaitFailurePanic(_message: string?, _location: Swag.SourceCodeLocation)
+{
+    waitFailurePanicCount.add(1)
+    if waitFailureBorrowLive.load() != 0 do
+        waitFailureObservedBorrow.store(1)
+}
+
+struct WaitFailureProbe
+{
+    backend:  RenderCpu
+    worker:   RenderThread
+    entered, allow, returned, next: Sync.Event
+    finished: Swag.AtomicValue'u32
+    cleared:  bool = true
+}
+
+internal impl RenderThread
+{
+    mtd checkCompletionSignalFailure()
+    {
+        // Exercise the worker's final publication while it is idle; its real event stays valid.
+        var invalid: Sync.Event
+        .requestSerial += #wrap 1
+        .publishCompletion(.requestSerial, &invalid)
+        .wait()
+        .wait()
+    }
+
+    mtd checkWaitFailure(probe: *WaitFailureProbe)
+    {
+        // This invalid event is independent of the worker's real completion handle.
+        var invalid: Sync.Event
+        for iteration in 2
+        {
+            discard iteration
+            waitFailureBorrowLive.store(1)
+            .execute(func|probe|()
+            {
+                probe.entered.signal()
+                probe.allow.wait()
+                probe.finished.add(1)
+                waitFailureBorrowLive.store(0)
+            },
+                     &invalid)
+            probe.cleared = probe.cleared and .callback == null
+            probe.returned.signal()
+            probe.next.wait()
+        }
+    }
+}
+
+func runWaitFailure(thread: Threading.Thread)
+{
+    let probe = cast(*WaitFailureProbe) thread.userParam!
+    probe.worker.checkWaitFailure(probe)
+}
+
+// A failed native wait must still drain the current request before invoking a returning hook.
+// Two gated requests exercise the ticket boundary without closing a handle in a pending wait.
+// With Expect safety disabled, the same retirement is required without invoking the hook.
+#test
+{
+    const HooksPerFailure = #safety(Swag.SafetyWhat.Expect) ? 1'u32 : 0'u32
+    waitFailurePanicCount.store(0)
+    waitFailureBorrowLive.store(0)
+    waitFailureObservedBorrow.store(0)
+    let probe = Memory.new'WaitFailureProbe()
+    defer Memory.delete(probe)
+    probe.entered.init()
+    probe.allow.init()
+    probe.returned.init()
+    probe.next.init()
+    probe.worker.start(&probe.backend)
+    defer probe.worker.close()
+    var caller: Threading.Thread
+    expect caller.init(&runWaitFailure, probe)
+    caller.context.panic = &observeWaitFailurePanic
+    expect caller.start()
+    for iteration in 2
+    {
+        probe.entered.wait()
+        Swag.assert(not probe.worker.isReady() and probe.finished.load() == iteration)
+        Swag.assert(waitFailurePanicCount.load() == iteration * HooksPerFailure)
+        probe.allow.signal()
+        probe.returned.wait()
+        Swag.assert(probe.worker.isReady() and probe.finished.load() == iteration + 1)
+        Swag.assert(waitFailurePanicCount.load() == (iteration + 1) * HooksPerFailure and waitFailureObservedBorrow.load() == 0)
+        probe.next.signal()
+    }
+
+    caller.wait()
+    Swag.assert(probe.cleared)
+}
+
+// An already-published completion failure must survive the fast wait path and report only once.
+// Disabled Expect safety still consumes the status but does not invoke the panic hook.
+#test
+{
+    const HooksPerFailure = #safety(Swag.SafetyWhat.Expect) ? 1'u32 : 0'u32
+    waitFailurePanicCount.store(0)
+    waitFailureBorrowLive.store(0)
+    waitFailureObservedBorrow.store(0)
+    var backend: RenderCpu
+    var worker:  RenderThread
+    worker.start(&backend)
+    defer worker.close()
+    let context       = Swag.getContext()
+    let previousPanic = context.panic
+    defer context.panic = previousPanic
+    context.panic = &observeWaitFailurePanic
+    worker.checkCompletionSignalFailure()
+    let firstCount = waitFailurePanicCount.load()
+    worker.checkCompletionSignalFailure()
+    let secondCount = waitFailurePanicCount.load()
+    worker.close()
+    worker.start(&backend)
+    worker.wait()
+    context.panic = previousPanic
+    Swag.assert(firstCount == HooksPerFailure and secondCount == 2 * HooksPerFailure and waitFailurePanicCount.load() == 2 * HooksPerFailure)
+    Swag.assert(worker.isReady() and waitFailureObservedBorrow.load() == 0)
 }

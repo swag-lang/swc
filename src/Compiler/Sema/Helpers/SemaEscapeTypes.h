@@ -22,6 +22,7 @@ struct SemaEscapeDeferredGuard
     // result must be a view INTO what the parameter owns, not merely a value that can
     // reach it. Only the invalidation check needs the stronger question.
     bool requirePayload = false;
+    bool indirect       = false; // consult returnsIndirect instead of returns
 
     bool operator==(const SemaEscapeDeferredGuard&) const noexcept = default;
 };
@@ -30,6 +31,7 @@ struct SemaEscapeDeferredCheck
 {
     const SymbolFunction* callee     = nullptr;
     uint32_t              paramIndex = 0;
+    bool                  indirect   = false; // judge the copied pointee contents
     // Judged against the callee's STORES summary (the callee keeps its argument beyond
     // the call) instead of its RETURN summary (the call result carries the borrow).
     bool judgeStores = false;
@@ -143,6 +145,8 @@ struct SemaEscapeSummaryEdge
     uint32_t                  callerIntoParamIndex = 0;
     uint32_t                  calleeIntoParamIndex = 0;
     SemaEscapeSummaryEdgeKind kind                 = SemaEscapeSummaryEdgeKind::ReturnToReturn;
+    bool                      callerIndirect       = false;
+    bool                      calleeIndirect       = false;
     // The argument was a payload the parameter OWNS, not the parameter's own storage.
     // The borrow still propagates, but the FREES summary must not: releasing what an
     // object owns does not release the object.
@@ -176,7 +180,7 @@ struct SemaEscapeFreesForwarding
 // through the parameter it passed. It is the only kind the frees propagation reads.
 inline bool isFreeForwardingEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
 {
-    return edge.caller && edge.callee && edge.kind == SemaEscapeSummaryEdgeKind::StoresToStores && !edge.viaStoredField && !edge.viaOwnedPayload;
+    return edge.caller && edge.callee && edge.kind == SemaEscapeSummaryEdgeKind::StoresToStores && !edge.viaStoredField && !edge.viaOwnedPayload && !edge.callerIndirect && !edge.calleeIndirect;
 }
 
 // The captured argument borrows of one opaque call. Checks are templates whose site,

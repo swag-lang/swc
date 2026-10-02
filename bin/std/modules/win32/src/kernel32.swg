@@ -572,6 +572,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetTempFileNameA(lpPathName, lpPrefixString: LPCSTR, uUnique: UINT, lpTempFileName: LPSTR)->UINT
     func DeviceIoControl(hDevice: HANDLE, dwIoControlCode: DWORD, lpInBuffer: LPVOID, nInBufferSize: DWORD, lpOutBuffer: LPVOID, nOutBufferSize: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL
     func VirtualUnlock(lpAddress: LPVOID, dwSize: SIZE_T)->BOOL
+    #[BorrowSummary(0, observesExternal: false)]
     func GetLastError()->DWORD
     func SetLastError(dwErrCode: DWORD)
 
@@ -664,10 +665,13 @@ internal namespace Win32Priv
         func GetThreadPriority(hThread: HANDLE)->s32
         func ResumeThread(hThread: HANDLE)->DWORD
         func SetThreadPriority(hThread: HANDLE, nPriority: s32)->BOOL
+        #[BorrowSummary(0, observesExternal: false)]
         func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
         func WaitForMultipleObjects(nCount: DWORD, lpHandles: const *HANDLE, bWaitAll: BOOL, dwMilliseconds: DWORD)->DWORD
         func ReleaseMutex(hMutex: HANDLE)->BOOL
+        #[BorrowSummary(0, observesExternal: false)]
         func ResetEvent(hEvent: HANDLE)->BOOL
+        #[BorrowSummary(0, observesExternal: false)]
         func SetEvent(hEvent: HANDLE)->BOOL
 
         func CreateJobObjectW(lpJobAttributes: *SECURITY_ATTRIBUTES?, lpName: LPCWSTR?)->HANDLE
@@ -814,10 +818,20 @@ internal namespace Win32Priv
     #[Discardable]
     func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD fail
     {
-        let res = Win32Priv.WaitForSingleObject(hHandle, dwMilliseconds)
-        if res == WAIT_FAILED do
-            try failWinError(GetLastError())
-        return res
+        let status = waitForSingleObjectStatus(hHandle, dwMilliseconds)
+        if status.result == WAIT_FAILED do
+            try failWinError(status.errorCode)
+        return status.result
+    }
+
+    // Waits without entering an alertable state and returns the native outcome for later handling.
+    //
+    // No Swag error is raised or allocated here. `errorCode` is captured immediately when
+    // `result` is WAIT_FAILED, including zero; other native outcomes keep their original value.
+    func waitForSingleObjectStatus(hHandle: HANDLE, dwMilliseconds: DWORD)->{result: DWORD, errorCode: DWORD}
+    {
+        let result = Win32Priv.WaitForSingleObject(hHandle, dwMilliseconds)
+        return {result, result == WAIT_FAILED ? GetLastError() : 0}
     }
 
     #[Discardable]
@@ -837,14 +851,36 @@ internal namespace Win32Priv
 
     func ResetEvent(hEvent: HANDLE) fail
     {
-        if not Win32Priv.ResetEvent(hEvent) do
-            try failWinError(GetLastError())
+        let status = resetEventStatus(hEvent)
+        if not status.succeeded do
+            try failWinError(status.errorCode)
     }
 
     func SetEvent(hEvent: HANDLE) fail
     {
-        if not Win32Priv.SetEvent(hEvent) do
-            try failWinError(GetLastError())
+        let status = setEventStatus(hEvent)
+        if not status.succeeded do
+            try failWinError(status.errorCode)
+    }
+
+    // Resets an event and captures a native failure code for later handling.
+    //
+    // This operation raises no Swag error and allocates no error storage. `succeeded`
+    // distinguishes a failure even when Windows supplies error code zero.
+    func resetEventStatus(hEvent: HANDLE)->{succeeded: bool, errorCode: DWORD}
+    {
+        let succeeded = Win32Priv.ResetEvent(hEvent) != 0
+        return {succeeded, succeeded ? 0 : GetLastError()}
+    }
+
+    // Signals an event and captures a native failure code for later handling.
+    //
+    // This operation raises no Swag error and allocates no error storage. `succeeded`
+    // distinguishes a failure even when Windows supplies error code zero.
+    func setEventStatus(hEvent: HANDLE)->{succeeded: bool, errorCode: DWORD}
+    {
+        let succeeded = Win32Priv.SetEvent(hEvent) != 0
+        return {succeeded, succeeded ? 0 : GetLastError()}
     }
 
     func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: *SECURITY_ATTRIBUTES?, lpThreadAttributes: *SECURITY_ATTRIBUTES?, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION) fail

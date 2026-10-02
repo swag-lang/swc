@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantEnumType.h"
 #include "Compiler/Sema/Constant/ConstantFoldStorage.h"
-#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantShardPreference.h"
@@ -332,6 +332,254 @@ namespace
 
         return false;
     }
+    bool typeHasUnionStorageRec(const TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visited)
+    {
+        typeRef              = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        if (!type.isArray() && !type.isStruct())
+            return false;
+        if (!visited.insert(typeRef).second)
+            return false;
+        if (type.isArray())
+            return typeHasUnionStorageRec(ctx, type.payloadArrayElemTypeRef(), visited);
+        if (type.isStruct())
+        {
+            if (type.payloadSymStruct().isUnion())
+                return true;
+            for (const SymbolVariable* field : type.payloadSymStruct().fields())
+            {
+                if (field && typeHasUnionStorageRec(ctx, field->typeRef(), visited))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    struct AggregateConstruction
+    {
+        Sema*                              sema_ = nullptr;
+        std::vector<std::byte>             bytes;
+        std::vector<DataSegmentRelocation> relocations;
+        std::vector<uint8_t>               runtimeBytes;
+
+        void replaceRange(uint64_t offset, uint64_t size)
+        {
+            SWC_ASSERT(offset <= bytes.size() && size <= bytes.size() - offset);
+            // A partial pointer write leaves bytes of the eventual native address.
+            // Later writes may replace those bytes too, making the final value constant.
+            for (const DataSegmentRelocation& relocation : relocations)
+            {
+                const uint64_t relocationEnd = uint64_t{relocation.offset} + sizeof(void*);
+                if (size && relocation.offset < offset + size && offset < relocationEnd &&
+                    (offset > relocation.offset || offset + size < relocationEnd))
+                {
+                    if (runtimeBytes.empty())
+                        runtimeBytes.resize(bytes.size(), 0);
+                    std::fill_n(runtimeBytes.data() + relocation.offset, sizeof(void*), 1);
+                }
+            }
+            std::erase_if(relocations, [=](const DataSegmentRelocation& relocation) {
+                return size && relocation.offset < offset + size && offset < uint64_t{relocation.offset} + sizeof(void*);
+            });
+            if (!runtimeBytes.empty())
+                std::fill_n(runtimeBytes.data() + offset, size, 0);
+        }
+
+        Result writeValue(TypeRef typeRef, ConstantRef valueRef, uint64_t offset)
+        {
+            Sema&                sema  = *sema_;
+            const TypeInfo&      type  = sema.typeMgr().get(typeRef);
+            const uint64_t       size  = type.sizeOf(sema.ctx());
+            const ConstantValue& value = sema.cstMgr().get(valueRef);
+            if (!size)
+                return Result::Continue;
+            std::span<const std::byte> source;
+            DataSegmentRef             sourceRef;
+            if (value.isPayloadBorrowed() && (value.isStruct() || value.isArray()))
+            {
+                source = value.isStruct() ? value.getStruct() : value.getArray();
+                if (source.size() != size || !sema.cstMgr().resolveConstantDataSegmentRef(sourceRef, valueRef, source.data()))
+                    sourceRef = {};
+            }
+            if (sourceRef.isInvalid())
+            {
+                std::vector<std::byte> lowered(size, std::byte{0});
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, lowered, valueRef, typeRef));
+                // Raw union bytes do not identify which writes established their pointers.
+                // Construction sites publish that inventory instead of guessing here.
+                if (ConstantHelpers::typeHasUnionStorage(sema.ctx(), typeRef))
+                {
+                    if (std::ranges::any_of(lowered, [](std::byte valueByte) { return valueByte != std::byte{0}; }))
+                        return Result::Error;
+                    replaceRange(offset, size);
+                    std::fill_n(bytes.data() + offset, size, std::byte{0});
+                    return Result::Continue;
+                }
+                uint32_t     materializedOffset = INVALID_REF;
+                DataSegment& segment            = sema.cstMgr().shardDataSegment(0);
+                SWC_RESULT(ConstantLower::materializeStaticPayload(materializedOffset, sema, segment, typeRef, lowered));
+                sourceRef = {.shardIndex = 0, .offset = materializedOffset};
+                source    = {segment.ptr<std::byte>(materializedOffset), static_cast<size_t>(size)};
+            }
+
+            replaceRange(offset, size);
+            if (size)
+                std::memcpy(bytes.data() + offset, source.data(), size);
+            std::vector<DataSegmentRelocation> sourceRelocations;
+            sema.cstMgr().shardDataSegment(sourceRef.shardIndex).copyRelocations(sourceRelocations, sourceRef.offset, static_cast<uint32_t>(size));
+            for (DataSegmentRelocation relocation : sourceRelocations)
+            {
+                SWC_ASSERT(relocation.offset - sourceRef.offset + sizeof(void*) <= size);
+                relocation.offset = static_cast<uint32_t>(offset + relocation.offset - sourceRef.offset);
+                if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset && relocation.targetShardIndex == INVALID_REF)
+                    relocation.targetShardIndex = sourceRef.shardIndex;
+                relocations.push_back(relocation);
+            }
+            return Result::Continue;
+        }
+
+        Result writeDefault(TypeRef typeRef, uint64_t offset)
+        {
+            Sema&           sema         = *sema_;
+            const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
+            const uint64_t  size         = declaredType.sizeOf(sema.ctx());
+            typeRef                      = declaredType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+            const TypeInfo& type         = sema.typeMgr().get(typeRef);
+            if (!declaredType.isNonNullable() && !type.isNonNullable())
+            {
+                if (type.isStruct())
+                {
+                    const SymbolStruct& owner = type.payloadSymStruct();
+                    if (owner.attributes().hasRtFlag(RtAttributeFlagsE::Opaque))
+                    {
+                        // Imported opaque storage does not describe the provider's
+                        // runtime initialization, even if a later write covers it.
+                        for (const AttributeInstance& attribute : owner.attributes().attributes)
+                        {
+                            if (!attribute.symbol || !attribute.symbol->inSwagNamespace(sema.ctx()) || attribute.symbol->name(sema.ctx()) != "Opaque")
+                                continue;
+                            for (const AttributeParamInstance& param : attribute.params)
+                            {
+                                if (param.nameIdRef == sema.idMgr().addIdentifier("runtimeDefault") && param.valueCstRef.isValid() && sema.cstMgr().get(param.valueCstRef).getBool())
+                                    return Result::Error;
+                            }
+                        }
+                    }
+                    for (const SymbolVariable* field : owner.fields())
+                    {
+                        if (!field || SymbolStruct::fieldRequiresExplicitInitialization(sema, *field))
+                            continue;
+                        const uint64_t fieldOffset = offset + field->offset();
+                        if (field->defaultValueRef().isValid())
+                            SWC_RESULT(writeValue(field->typeRef(), field->defaultValueRef(), fieldOffset));
+                        else
+                            SWC_RESULT(writeDefault(field->typeRef(), fieldOffset));
+                    }
+                    return Result::Continue;
+                }
+                if (type.isArray())
+                {
+                    const TypeRef  elementRef  = type.payloadArrayElemTypeRef();
+                    const uint64_t elementSize = sema.typeMgr().get(elementRef).sizeOf(sema.ctx());
+                    if (elementSize)
+                    {
+                        for (uint64_t cursor = 0; cursor < size; cursor += elementSize)
+                            SWC_RESULT(writeDefault(elementRef, offset + cursor));
+                    }
+                    return Result::Continue;
+                }
+            }
+            replaceRange(offset, size);
+            std::fill_n(bytes.data() + offset, size, std::byte{0});
+            return Result::Continue;
+        }
+
+        Result collectDynamicRelocations(TypeRef typeRef, uint64_t offset)
+        {
+            Sema& sema           = *sema_;
+            typeRef              = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+            const TypeInfo& type = sema.typeMgr().get(typeRef);
+            if (type.isArray())
+            {
+                const TypeRef  elementRef  = type.payloadArrayElemTypeRef();
+                const uint64_t elementSize = sema.typeMgr().get(elementRef).sizeOf(sema.ctx());
+                if (elementSize)
+                {
+                    for (uint64_t cursor = 0; cursor < type.sizeOf(sema.ctx()); cursor += elementSize)
+                        SWC_RESULT(collectDynamicRelocations(elementRef, offset + cursor));
+                }
+            }
+            else if (type.isStruct())
+            {
+                const SymbolStruct& owner = type.payloadSymStruct();
+                if (owner.hasOwnDynamicSlot())
+                {
+                    const uint64_t slotOffset = offset + owner.dynamicSlotOffsets().front();
+                    const void*    pointer    = nullptr;
+                    std::memcpy(&pointer, bytes.data() + slotOffset, sizeof(pointer));
+                    DataSegmentRef target;
+                    if (!sema.cstMgr().resolveDataSegmentRef(target, pointer))
+                        return Result::Error;
+                    replaceRange(slotOffset, sizeof(pointer));
+                    relocations.push_back({.offset = static_cast<uint32_t>(slotOffset), .kind = DataSegmentRelocationKind::DataSegmentOffset, .targetOffset = target.offset, .targetShardIndex = target.shardIndex});
+                }
+                for (const SymbolVariable* field : owner.fields())
+                {
+                    if (field)
+                        SWC_RESULT(collectDynamicRelocations(field->typeRef(), offset + field->offset()));
+                }
+            }
+            return Result::Continue;
+        }
+    };
+}
+
+bool ConstantHelpers::typeHasUnionStorage(const TaskContext& ctx, TypeRef typeRef)
+{
+    typeRef              = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    const TypeInfo& type = ctx.typeMgr().get(typeRef);
+    if (!type.isArray() && !type.isStruct())
+        return false;
+    std::unordered_set<TypeRef> visited;
+    return typeHasUnionStorageRec(ctx, typeRef, visited);
+}
+
+ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema, TypeRef typeRef, std::span<const ConstantPayloadWrite> writes)
+{
+    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    const uint64_t  size = type.sizeOf(sema.ctx());
+    SWC_ASSERT(size <= UINT32_MAX);
+    AggregateConstruction construction{.sema_ = &sema, .bytes = std::vector<std::byte>(size, std::byte{0})};
+    if (construction.writeDefault(typeRef, 0) != Result::Continue)
+        return ConstantRef::invalid();
+    for (const ConstantPayloadWrite& write : writes)
+    {
+        if (write.valueRef.isValid() && construction.writeValue(write.typeRef, write.valueRef, write.offset) != Result::Continue)
+            return ConstantRef::invalid();
+    }
+    if (SymbolStruct::initializeDynamicIdentityBytes(sema, construction.bytes, typeRef) != Result::Continue)
+        return ConstantRef::invalid();
+    if (construction.collectDynamicRelocations(typeRef, 0) != Result::Continue)
+        return ConstantRef::invalid();
+    if (std::ranges::any_of(construction.runtimeBytes, [](uint8_t byte) { return byte != 0; }))
+        return ConstantRef::invalid();
+
+    const uint32_t shardIndex    = staticPayloadPlacementShardIndex(sema.ctx(), typeRef, construction.bytes, false, 0);
+    DataSegment&   segment       = sema.cstMgr().shardDataSegment(shardIndex);
+    const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(size), type.alignOf(sema.ctx()), false);
+    if (size)
+        std::memcpy(storage, construction.bytes.data(), size);
+    for (const DataSegmentRelocation& relocation : construction.relocations)
+    {
+        if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
+            segment.addFunctionRelocation(offset + relocation.offset, relocation.targetSymbol, relocation.allowUnresolvedFunction);
+        else
+            segment.addRelocation(offset + relocation.offset, {.shardIndex = relocation.targetShardIndex, .offset = relocation.targetOffset});
+    }
+    const ConstantValue result = makeMaterializedConstantValue(sema, typeRef, {storage, static_cast<size_t>(size)}, {.shardIndex = shardIndex, .offset = offset});
+    // Equal union bytes can carry different relocation inventories (an integer view
+    // versus a pointer view). Byte-only constant interning cannot merge those facts.
+    return sema.cstMgr().addUniqueMaterializedPayloadConstant(result);
 }
 
 bool ConstantHelpers::hasSourceFunctionRelocation(Sema& sema, const void* fieldPtr)

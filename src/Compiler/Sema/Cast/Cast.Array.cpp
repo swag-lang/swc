@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/ByteArray.h"
@@ -142,7 +143,10 @@ namespace
         TypeRef             setParamRef = TypeRef::invalid();
         const SourceCodeRef codeRef     = location.codeRef.isValid() ? location.codeRef : args.castRequest->errorCodeRef;
         SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, elemCtx.kind, setFn, setParamRef, valueNodeRef));
-        if (!setFn && !elemCtx.selectedStructOpCast && !args.sema->node(valueNodeRef).is(AstNodeId::AutoCastExpr))
+        // A constant literal can require runtime defaults after its element type is known.
+        // Materialize that conversion so nested literals also receive concrete storage.
+        const bool needsRuntimeCast = valueRef.isValid() && elemCtx.constantFoldingResult().isInvalid();
+        if (!setFn && !elemCtx.selectedStructOpCast && !needsRuntimeCast && !args.sema->node(valueNodeRef).is(AstNodeId::AutoCastExpr))
             return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
 
         SemaNodeView valueView(*args.sema, valueNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
@@ -159,7 +163,16 @@ namespace
     {
         TaskContext&   ctx       = args.sema->ctx();
         const uint64_t arraySize = args.dstType->sizeOf(ctx);
-        ByteArray      buffer(arraySize);
+        if (ConstantHelpers::typeHasUnionStorage(ctx, args.dstTypeRef))
+        {
+            const TypeRef                                      elementType = args.dstType->payloadArrayElemTypeRef();
+            const uint64_t                                     elementSize = args.sema->typeMgr().get(elementType).sizeOf(ctx);
+            SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
+            for (size_t i = 0; i < values.size(); ++i)
+                writes.push_back({.offset = i * elementSize, .typeRef = elementType, .valueRef = values[i]});
+            return ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, writes.span());
+        }
+        ByteArray buffer(arraySize);
         SWC_INTERNAL_CHECK(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, buffer.span(), args.dstTypeRef) == Result::Continue);
         SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateArrayToBytes(*args.sema, buffer.span(), *args.dstType, values) == Result::Continue);
         const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
@@ -235,6 +248,7 @@ namespace
     {
         const AstNodeRef waitNodeRef = args.castRequest->errorNodeRef.isValid() ? args.castRequest->errorNodeRef : args.sema->curNodeRef();
         SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(*args.sema, args.dstTypeRef, waitNodeRef));
+        SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(*args.sema, args.dstTypeRef));
 
         const auto&                     dstDims        = args.dstType->payloadArrayDims();
         const TypeRef                   dstElemTypeRef = args.dstType->payloadArrayElemTypeRef();
@@ -264,12 +278,19 @@ namespace
 
             if (!args.castRequest->materializeConstantResult())
                 return Result::Continue;
+            if (srcTypes.size() < dstTopDim && SymbolStruct::typeHasRuntimeImplicitDefault(*args.sema, dstSubArrayType))
+            {
+                args.castRequest->outConstRef = ConstantRef::invalid();
+                return Result::Continue;
+            }
 
-            TaskContext&               ctx       = args.sema->ctx();
-            const uint64_t             arraySize = args.dstType->sizeOf(ctx);
-            ByteArray                  buffer(arraySize);
-            const std::span<std::byte> bytes        = buffer.span();
-            const uint64_t             subArraySize = typeMgr.get(dstSubArrayType).sizeOf(ctx);
+            TaskContext&                                       ctx       = args.sema->ctx();
+            const uint64_t                                     arraySize = args.dstType->sizeOf(ctx);
+            ByteArray                                          buffer(arraySize);
+            const std::span<std::byte>                         bytes           = buffer.span();
+            const uint64_t                                     subArraySize    = typeMgr.get(dstSubArrayType).sizeOf(ctx);
+            const bool                                         hasUnionStorage = ConstantHelpers::typeHasUnionStorage(ctx, args.dstTypeRef);
+            SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
             SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
 
             for (size_t i = 0; i < srcValues->size(); ++i)
@@ -284,9 +305,12 @@ namespace
                 }
                 const std::span dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
+                if (hasUnionStorage)
+                    writes.push_back({.offset = i * subArraySize, .typeRef = dstSubArrayType, .valueRef = castedRef});
             }
 
-            args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
+            args.castRequest->outConstRef = hasUnionStorage ? ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, writes.span())
+                                                            : ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
             SWC_ASSERT(args.castRequest->outConstRef.isValid());
             return Result::Continue;
         }
@@ -309,6 +333,11 @@ namespace
 
         if (!args.castRequest->materializeConstantResult())
             return Result::Continue;
+        if (srcTypes.size() < totalCount && SymbolStruct::typeHasRuntimeImplicitDefault(*args.sema, dstElemTypeRef))
+        {
+            args.castRequest->outConstRef = ConstantRef::invalid();
+            return Result::Continue;
+        }
 
         std::vector<ConstantRef> newValues;
         newValues.reserve(srcValues->size());
@@ -374,8 +403,8 @@ namespace
 
 Result Cast::castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo&     srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo&     dstType = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo&         srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo&         dstType = sema.typeMgr().get(dstTypeRef);
     const CastAggregateArgs args{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
     if (srcType.isArray())
@@ -392,9 +421,9 @@ Result Cast::castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
 Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    TypeManager&        typeMgr = sema.typeMgr();
-    const TypeInfo&     srcType = typeMgr.get(srcTypeRef);
-    const TypeInfo&     dstType = typeMgr.get(dstTypeRef);
+    TypeManager&            typeMgr = sema.typeMgr();
+    const TypeInfo&         srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&         dstType = typeMgr.get(dstTypeRef);
     const CastAggregateArgs args{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
     const TypeRef  laneTypeRef = dstType.payloadSimdLaneTypeRef();

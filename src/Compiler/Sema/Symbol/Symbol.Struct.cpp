@@ -12,10 +12,10 @@
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/SymbolGenericData.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Symbol/SymbolGenericData.h"
 #include "Compiler/Sema/Symbol/SymbolOrder.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Memory/Heap.h"
@@ -928,7 +928,7 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
 {
     outRef = ConstantRef::invalid();
     computeImplicitDefaultFlags(sema);
-    if (requiresExplicitInitialization())
+    if (requiresExplicitInitialization() || hasRuntimeImplicitDefault())
         return Result::Continue;
     if (hasImplicitAllZeroDefault())
     {
@@ -952,11 +952,23 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
         }
 
         SWC_ASSERT(structSize);
-        std::vector     buffer(structSize, std::byte{0});
-        const std::span bytes{buffer.data(), buffer.size()};
-        SWC_INTERNAL_CHECK(lowerTypeImplicitDefaultBytesRec(sema, bytes, typeRef) == Result::Continue);
-        SWC_INTERNAL_CHECK(initializeDynamicIdentityBytes(sema, bytes, typeRef) == Result::Continue);
-        defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span{bytes.data(), bytes.size()});
+        if (ConstantHelpers::typeHasUnionStorage(ctx, typeRef))
+        {
+            defaultStructCst_ = ConstantHelpers::materializeAggregateConstructionConstant(sema, typeRef);
+            if (defaultStructCst_.isInvalid())
+            {
+                addExtraFlag(SymbolStructFlagsE::DefaultRuntime);
+                return;
+            }
+        }
+        else
+        {
+            std::vector     buffer(structSize, std::byte{0});
+            const std::span bytes{buffer.data(), buffer.size()};
+            SWC_INTERNAL_CHECK(lowerTypeImplicitDefaultBytesRec(sema, bytes, typeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(initializeDynamicIdentityBytes(sema, bytes, typeRef) == Result::Continue);
+            defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span{bytes.data(), bytes.size()});
+        }
         SWC_ASSERT(defaultStructCst_.isValid());
     });
 
@@ -970,14 +982,29 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
         auto* self = const_cast<SymbolStruct*>(this);
         self->addExtraFlag(SymbolStructFlagsE::DefaultClassified);
 
-        if (fields_.empty() && !isDynamic())
+        for (const AttributeInstance& attribute : attributes().attributes)
+        {
+            if (!isSwagAttribute(sema.ctx(), attribute, "Opaque"))
+                continue;
+            for (const AttributeParamInstance& param : attribute.params)
+            {
+                if (!param.valueCstRef.isValid() || !sema.cstMgr().get(param.valueCstRef).getBool())
+                    continue;
+                if (param.nameIdRef == sema.idMgr().addIdentifier("runtimeDefault"))
+                    self->addExtraFlag(SymbolStructFlagsE::DefaultRuntime);
+                if (param.nameIdRef == sema.idMgr().addIdentifier("requiresInit"))
+                    self->addExtraFlag(SymbolStructFlagsE::DefaultRequiresInit);
+            }
+        }
+
+        if (fields_.empty() && !isDynamic() && !hasRuntimeImplicitDefault() && !requiresExplicitInitialization())
         {
             self->addExtraFlag(SymbolStructFlagsE::DefaultAllZero);
             return;
         }
 
-        bool allZero      = !isDynamic();
-        bool requiresInit = false;
+        bool allZero      = !isDynamic() && !hasRuntimeImplicitDefault() && !requiresExplicitInitialization();
+        bool requiresInit = requiresExplicitInitialization();
         for (const SymbolVariable* field : fields_)
         {
             if (!field)
@@ -987,6 +1014,11 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
 
             allZero &= fieldKind == ImplicitDefaultKind::AllZero;
             requiresInit |= implicitDefaultKindRequiresInit(fieldKind);
+            if (field->defaultValueRef().isInvalid() && typeHasRuntimeImplicitDefault(sema, field->typeRef()))
+            {
+                self->addExtraFlag(SymbolStructFlagsE::DefaultRuntime);
+                allZero = false;
+            }
         }
 
         if (allZero)
@@ -994,6 +1026,23 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
         if (requiresInit)
             self->addExtraFlag(SymbolStructFlagsE::DefaultRequiresInit);
     });
+}
+
+bool SymbolStruct::typeHasRuntimeImplicitDefault(Sema& sema, TypeRef typeRef)
+{
+    typeRef              = implicitDefaultStorageTypeRef(sema, typeRef);
+    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    if (type.isArray())
+    {
+        if (std::ranges::any_of(type.payloadArrayDims(), [](uint64_t count) { return count == 0; }))
+            return false;
+        return typeHasRuntimeImplicitDefault(sema, type.payloadArrayElemTypeRef());
+    }
+    if (!type.isStruct())
+        return false;
+    const SymbolStruct& symStruct = type.payloadSymStruct();
+    symStruct.computeImplicitDefaultFlags(sema);
+    return symStruct.hasRuntimeImplicitDefault();
 }
 
 bool SymbolStruct::typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef)
@@ -1255,10 +1304,10 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         const auto& type   = symVar.typeInfo(ctx);
 
         const AttributeList& fieldAttributes = symVar.attributes();
-        const auto ownAttributes = std::span{fieldAttributes.attributes}.subspan(inheritedAttributePrefixCount(fieldAttributes, attributes()));
-        const uint64_t sizeOf  = type.sizeOf(ctx);
-        const uint32_t alignOf = effectiveFieldAlignment(ctx, type, ownAttributes, structPack);
-        alignment              = std::max(alignment, alignOf);
+        const auto           ownAttributes   = std::span{fieldAttributes.attributes}.subspan(inheritedAttributePrefixCount(fieldAttributes, attributes()));
+        const uint64_t       sizeOf          = type.sizeOf(ctx);
+        const uint32_t       alignOf         = effectiveFieldAlignment(ctx, type, ownAttributes, structPack);
+        alignment                            = std::max(alignment, alignOf);
 
         if (isUnion())
         {
@@ -1447,7 +1496,17 @@ const SymbolFunction* SymbolStruct::effectiveOpInit(const TaskContext& ctx) cons
     if (isGenericRoot() && !isGenericInstance())
         return nullptr;
 
+    if (const SymbolFunction* init = opaqueInit(ctx))
+        return init;
     return findGeneratedInitWrapper(ctx, *this);
+}
+
+const SymbolFunction* SymbolStruct::opaqueInit(const TaskContext& ctx) const
+{
+    if (!attributes().hasRtFlag(RtAttributeFlagsE::Opaque))
+        return nullptr;
+    const SymbolFunction* function = findGeneratedImplicitMethod(ctx, *this, "swagOpaqueInit");
+    return function && function->isForeign() ? function : nullptr;
 }
 
 const SymbolFunction* SymbolStruct::effectiveOpDrop(const TaskContext& ctx) const

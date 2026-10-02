@@ -3,6 +3,56 @@
 
 using Swag, Core, Gui
 
+// A completed worker keeps its typed failure; the UI localizes it in the language active at presentation.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    expect g_App.setLanguage(ReferenceLanguage)
+    let path = Testing.tempFilePath("vault-operation-", ".bin")
+    defer discard catch File.delete(path)
+
+    window.operation.kind = .Create
+    window.operation.path = path
+    window.operation.size = MinimumSize - 1
+    window.operation.task.submit(func|window|() { window.runOperation() })
+    window.operation.task.wait()
+    expect g_App.setLanguage("fr")
+    let expectedFirst = Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024))
+    var firstMessage: String
+    {
+        catch window.operation.error.raise() as firstError
+        Swag.assert(firstError != null and not isCanceledError(firstError))
+        firstMessage = caughtMessage(firstError)
+        Swag.assert(firstMessage == expectedFirst)
+    }
+
+    window.operation.error.reset()
+    expect g_App.setLanguage(ReferenceLanguage)
+    window.operation.size = MinimumSize
+    window.operation.progress.cancel()
+    window.operation.task.submit(func|window|() { window.runOperation() })
+    window.operation.task.wait()
+    {
+        catch window.operation.error.raise() as canceledError
+        Swag.assert(canceledError != null and isCanceledError(canceledError))
+        let message = caughtMessage(canceledError)
+        Swag.assert(message == appStrings().msg_OperationStopped)
+    }
+
+    Swag.assert(firstMessage == expectedFirst)
+    Swag.assert(not File.exists(path))
+
+    window.operation.error.reset()
+    window.operation.kind = .Unmount
+    window.operation.task.submit(func|window|() { window.runOperation() })
+    window.operation.task.wait()
+    Swag.assert(window.operation.error.isEmpty())
+    window.operation.kind = .None
+}
+
 // Builds the real main window inside the same measured frame as the shipped surface.
 func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32)->*MainWindow
 {

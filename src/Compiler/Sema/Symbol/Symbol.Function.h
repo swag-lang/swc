@@ -108,15 +108,20 @@ public:
     void     markExternalBorrowObservation() noexcept { observesExternalBorrows_ = true; }
     void     markBorrowEffectsComputed() noexcept { borrowEffectsComputed_ = true; }
     uint64_t storesParamsMask() const noexcept;
-    void     addReturnBorrowsParam(size_t paramIndex) noexcept
+    // One-level aggregate contents reached through a pointer parameter. These
+    // masks do not assert that the pointed-to aggregate slot itself is retained.
+    uint64_t returnsIndirectParamsMask() const noexcept;
+    uint64_t storesIndirectParamsMask() const noexcept;
+    uint64_t storesIndirectIntoParamPairs() const noexcept;
+    void     addReturnBorrowsParam(size_t paramIndex, bool indirect = false) noexcept
     {
         if (paramIndex < 64)
-            returnBorrowsParamsMask_ |= 1ULL << paramIndex;
+            (indirect ? returnsIndirectParamsMask_ : returnBorrowsParamsMask_) |= 1ULL << paramIndex;
     }
-    void addStoresParam(size_t paramIndex) noexcept
+    void addStoresParam(size_t paramIndex, bool indirect = false) noexcept
     {
         if (paramIndex < 64)
-            storesParamsMask_ |= 1ULL << paramIndex;
+            (indirect ? storesIndirectParamsMask_ : storesParamsMask_) |= 1ULL << paramIndex;
     }
 
     // Bit i set = the call INVALIDATES what parameter #i points to (it reaches an
@@ -215,10 +220,10 @@ public:
     // sites where the 'into' argument provably outlives the stored one (a global).
     // Packed 8x8: parameters beyond #7 are not tracked.
     uint64_t storesIntoParamPairs() const noexcept;
-    void     addStoresIntoParam(size_t intoIndex, size_t storedIndex) noexcept
+    void     addStoresIntoParam(size_t intoIndex, size_t storedIndex, bool indirect = false) noexcept
     {
         if (intoIndex < 8 && storedIndex < 8)
-            storesIntoParamPairs_ |= 1ULL << (intoIndex * 8 + storedIndex);
+            (indirect ? storesIndirectIntoParamPairs_ : storesIntoParamPairs_) |= 1ULL << (intoIndex * 8 + storedIndex);
     }
     static bool hasStoresIntoPair(uint64_t pairs, size_t intoIndex, size_t storedIndex) noexcept
     {
@@ -230,13 +235,14 @@ public:
         AstNodeRef leftRef;
         uint8_t    intoIndex;
         uint8_t    storedIndex;
+        bool       indirect;
         bool       operator==(const PendingBorrowStore&) const noexcept = default;
     };
-    void addPendingBorrowStore(AstNodeRef nodeRef, AstNodeRef leftRef, size_t intoIndex, size_t storedIndex)
+    void addPendingBorrowStore(AstNodeRef nodeRef, AstNodeRef leftRef, size_t intoIndex, size_t storedIndex, bool indirect = false)
     {
         if (intoIndex >= 8 || storedIndex >= 8)
             return;
-        const PendingBorrowStore store{nodeRef, leftRef, static_cast<uint8_t>(intoIndex), static_cast<uint8_t>(storedIndex)};
+        const PendingBorrowStore store{nodeRef, leftRef, static_cast<uint8_t>(intoIndex), static_cast<uint8_t>(storedIndex), indirect};
         if (std::ranges::find(pendingBorrowStores_, store) == pendingBorrowStores_.end())
             pendingBorrowStores_.push_back(store);
     }
@@ -321,8 +327,9 @@ public:
     bool                tryMarkCodeGenJobScheduled() noexcept;
     void                addCallDependency(const SymbolFunction* sym);
     void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    void                addLifecycleDependency(const SymbolFunction* sym);
+    void                addLifecycleDependency(const SymbolFunction* sym, bool observesEffects = true);
     void                appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
+    void                appendLifecycleEffectDependencies(SmallVector<SymbolFunction*>& out) const;
 
     // Runs `visit` over the order in place. A caller that only reads it - to judge whether a
     // metadata pointer may be pulled in, or to collect what a run refers to - would otherwise copy
@@ -496,14 +503,18 @@ private:
     std::vector<SymbolFunction*>                  callDependencies_;
     PointerSet<SymbolFunction>                    callDependencySet_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;
-    uint32_t                                      numComputedLocals_        = 0;
-    uint32_t                                      localStackOffset_         = 0;
-    uint64_t                                      returnBorrowsParamsMask_  = 0;
-    uint64_t                                      returnsStorageParamsMask_ = 0;
-    bool                                          observesExternalBorrows_  = false;
-    bool                                          borrowEffectsComputed_    = false;
-    uint64_t                                      storesParamsMask_         = 0;
-    uint64_t                                      storesIntoParamPairs_     = 0;
+    std::unique_ptr<std::vector<SymbolFunction*>> lifecycleEffectDependencies_;
+    uint32_t                                      numComputedLocals_            = 0;
+    uint32_t                                      localStackOffset_             = 0;
+    uint64_t                                      returnBorrowsParamsMask_      = 0;
+    uint64_t                                      returnsStorageParamsMask_     = 0;
+    bool                                          observesExternalBorrows_      = false;
+    bool                                          borrowEffectsComputed_        = false;
+    uint64_t                                      storesParamsMask_             = 0;
+    uint64_t                                      storesIntoParamPairs_         = 0;
+    uint64_t                                      returnsIndirectParamsMask_    = 0;
+    uint64_t                                      storesIndirectParamsMask_     = 0;
+    uint64_t                                      storesIndirectIntoParamPairs_ = 0;
     std::vector<PendingBorrowStore>               pendingBorrowStores_;
     std::atomic<uint64_t>                         freesParamsMask_                           = 0;
     uint64_t                                      reallocatesParamsMask_                     = 0;

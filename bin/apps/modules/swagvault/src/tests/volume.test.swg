@@ -3,6 +3,51 @@
 
 using Core
 
+struct CryptoBatchTestError
+{
+    using base: Swag.BaseError
+    marker:     u32
+}
+
+func raiseCryptoBatchTestError(marker: u32) fail
+{
+    fail CryptoBatchTestError{base: {Errors.mkString(Format.toString("batch failure %", marker))}, marker: marker}
+}
+
+// The first worker failure keeps its dynamic type and message after every producer catch ends.
+#test
+{
+    var keys: Crypto.Keys
+    var batch = CryptoBatch{keys: &keys}
+    var task: Swag.Task
+    task.submit(func|&batch|()
+    {
+        {
+            catch raiseCryptoBatchTestError(17) as first
+            batch.keepFirstError(first)
+        }
+
+        {
+            catch raiseCryptoBatchTestError(23) as later
+            batch.keepFirstError(later)
+        }
+    })
+    task.wait()
+
+    var retained = batch.error
+    batch.error.reset()
+    catch retained.raise() as failure
+    Swag.assert(failure is CryptoBatchTestError)
+    if failure is CryptoBatchTestError as typed
+    {
+        Swag.assert(typed.marker == 17)
+        Swag.assert(typed.message == "batch failure 17")
+    }
+
+    catch batch.error.raise() as empty
+    Swag.assert(empty == null)
+}
+
 func testPassword()->const [..] u8 => cast(const [..] u8) "correct horse battery staple"
 
 func wrongPassword()->const [..] u8 => cast(const [..] u8) "wrong password"

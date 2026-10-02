@@ -363,6 +363,15 @@ namespace
         if (!typeInfo.isStruct())
             return Result::Continue;
 
+        const SymbolFunction* effectiveLifecycle = resolveEffectiveLifecycleFunction(codeGen, typeInfo, lifecycleKind);
+        if (effectiveLifecycle && effectiveLifecycle->isSemaCompleted() && effectiveLifecycle->isForeign() &&
+            effectiveLifecycle->attributes().hasRtFlag(RtAttributeFlagsE::Implicit) &&
+            typeInfo.payloadSymStruct().attributes().hasRtFlag(RtAttributeFlagsE::Opaque))
+        {
+            // An imported complete wrapper already includes the hidden fields.
+            return codeGen.emitLifecycleAction(*effectiveLifecycle, addressReg);
+        }
+
         const SymbolFunction* directLifecycle = resolveDirectLifecycleFunction(typeInfo, lifecycleKind);
         const auto&           fields          = typeInfo.payloadSymStruct().fields();
 

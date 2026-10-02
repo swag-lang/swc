@@ -241,8 +241,11 @@ namespace Swag
     attr DynCast()
 
     // Exports the struct without its fields: users see its name and methods only.
+    //
+    // 'runtimeDefault' and 'requiresInit' carry initialization metadata in generated
+    // module APIs. Source declarations normally leave both at their defaults.
     #[AttrUsage(AttributeUsage.Struct)]
-    attr Opaque()
+    attr Opaque(runtimeDefault: bool = false, requiresInit: bool = false)
 
     // Places the struct field at the offset of the field 'name', so both share storage.
     #[AttrUsage(AttributeUsage.StructVariable)]
@@ -315,8 +318,18 @@ namespace Swag
     // callback that can observe other application storage. Parameter retention remains
     // governed by the other masks. Ordinary function bodies always contribute their
     // computed effects, even when this argument is explicitly 'false'.
+    //
+    // 'returnsIndirect' and 'storesIndirect' use the same parameter bits as 'returns'
+    // and 'stores', but describe borrows carried by the value reached after one
+    // dereference of the parameter, rather than the address of that value. Bit
+    // 'i*8+j' of 'intoIndirect' means those borrows from parameter #j's pointee may
+    // be retained in storage reachable from parameter #i. The destination remains
+    // direct. For example, copying 'source[]' into 'destination[]' can retain a
+    // pointer field inside the source value without retaining the source's address.
+    // These masks add facts; their zero defaults do not erase any direct-mask bits.
+    // Deeper indirection without a separate proof remains conservative.
     #[AttrUsage(AttributeUsage.Function)]
-    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF, observesExternal: bool = true)
+    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF, observesExternal: bool = true, returnsIndirect: u64 = 0, storesIndirect: u64 = 0, intoIndirect: u64 = 0)
 
     // Safety checks, selected by [[Safety]] at runtime and by [[Sanity]] at compile time.
     #[Swag.EnumFlags]

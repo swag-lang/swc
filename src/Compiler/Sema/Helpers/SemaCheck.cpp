@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaVarDeclHelpers.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/CompilerInstance.h"
@@ -531,6 +532,7 @@ Result SemaCheck::noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef
 
 Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds)
 {
+    SWC_RESULT(SemaSpecOp::addValueTransferCallDependencies(sema, srcRef, destTypeRef, modifierFlags, destReferenceBinds));
     // '#move'/'#relocate' transfer ownership: not a copy.
     if (modifierFlags.has(AstModifierFlagsE::Move) || modifierFlags.has(AstModifierFlagsE::Relocate))
         return Result::Continue;
@@ -594,6 +596,8 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
 
 Result SemaCheck::checkMoveSourceCanReset(Sema& sema, const AstNodeRef srcRef, TypeRef typeRef, const AstModifierFlags modifierFlags)
 {
+    if (srcRef.isValid() && typeRef.isValid() && modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate}))
+        SWC_RESULT(SemaSpecOp::addValueTransferCallDependencies(sema, srcRef, typeRef, modifierFlags, true));
     if (!modifierFlags.has(AstModifierFlagsE::Move) || srcRef.isInvalid() || typeRef.isInvalid())
         return Result::Continue;
 
@@ -605,7 +609,7 @@ Result SemaCheck::checkMoveSourceCanReset(Sema& sema, const AstNodeRef srcRef, T
     if (!TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), typeRef).hasDrop)
         return Result::Continue;
     if (!SymbolStruct::typeRequiresExplicitInitialization(sema, typeRef))
-        return Result::Continue;
+        return SemaSpecOp::addDefaultInitCallDependencies(sema, typeRef);
 
     return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_move_source_no_default, sema.node(srcRef).codeRef(), typeRef);
 }

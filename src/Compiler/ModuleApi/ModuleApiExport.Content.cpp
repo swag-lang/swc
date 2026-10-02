@@ -16,7 +16,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    static constexpr std::string_view NON_CONSUMER_ATTRIBUTES[] = {"Opaque", "NoDoc", "NoDuplicate", "PrintAst", "PrintMicro"};
+    static constexpr std::string_view NON_CONSUMER_ATTRIBUTES[] = {"NoDoc", "NoDuplicate", "PrintAst", "PrintMicro"};
 
     using ModuleApiExport::buildSanitizedModuleApiSnippet;
     using ModuleApiExport::findEnclosingImplRef;

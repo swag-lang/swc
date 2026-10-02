@@ -95,13 +95,17 @@ class HarnessTests(unittest.TestCase):
                 recipes = tc.make_recipes(tools, {}, "swc.exe")
                 hello = tc.make_hello_builds(tools, {}, "swc.exe")
                 launchers = tc.make_launchers(tools, "dotnet.exe")
-                for language in ("zig", "d-ldc", "odin"):
+                for language in ("zig", "d-ldc", "odin", "go", "java-hotspot"):
                     self.assertIn(language, driver.AOT_ORDER)
                     self.assertIn(language, mkpage.META)
                     for task in ["hello"] + tc.TASKS:
                         rec = hello[language]() if task == "hello" else recipes[language](task, task + language)
-                        self.assertEqual(launchers[language](rec["exe"]), [rec["exe"]])
-                        source = [arg for arg in rec["cmd"] if arg.endswith((".zig", ".d", ".odin"))]
+                        command = launchers[language](rec["exe"])
+                        if language == "java-hotspot":
+                            self.assertEqual(command, [tools["java"], "-cp", rec["cwd"], "Bench"])
+                        else:
+                            self.assertEqual(command, [rec["exe"]])
+                        source = [arg for arg in rec["cmd"] if arg.endswith((".zig", ".d", ".odin", ".go", ".java"))]
                         self.assertTrue(source)
                         self.assertTrue(all(Path(arg).is_file() for arg in source))
                         driver.prepare(rec)
@@ -109,6 +113,56 @@ class HarnessTests(unittest.TestCase):
                         stale.touch()
                         driver.prepare(rec)
                         self.assertFalse(stale.exists())
+
+    def test_managed_and_script_discovery_needs_the_complete_runtime(self):
+        with tempfile.TemporaryDirectory(prefix="bench runtimes ") as folder:
+            installed = {"go": "Go/bin/go.exe", "javac": "Java/bin/javac.exe",
+                         "java": "Java/bin/java.exe", "php": "PHP/php.exe",
+                         "php_opcache": "PHP/ext/php_opcache.dll", "ruby": "Ruby/bin/ruby.exe"}
+            overrides = ["BENCH_GO", "BENCH_JAVAC", "BENCH_JAVA", "BENCH_PHP",
+                         "BENCH_PHP_OPCACHE", "BENCH_RUBY"]
+            for relative in installed.values():
+                path = Path(folder, "Programs", relative)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+            with (patch.dict(os.environ, {"LOCALAPPDATA": folder, "JAVA_HOME": ""} | dict.fromkeys(overrides, "")),
+                  patch.object(tc.shutil, "which", return_value=None)):
+                tools = tc.discover()
+            for key, relative in installed.items():
+                self.assertEqual(Path(tools[key]), Path(folder, "Programs", relative))
+            self.assertTrue({"go", "java-hotspot", "php", "php-jit", "ruby"}.isdisjoint(tc.missing(tools)))
+            Path(tools["java"]).unlink()
+            Path(tools["php_opcache"]).unlink()
+            self.assertIn("java-hotspot", tc.missing(tools))
+            self.assertIn("php-jit", tc.missing(tools))
+            self.assertNotIn("php", tc.missing(tools))
+
+    def test_script_ports_and_hello_use_the_same_launch_options(self):
+        tools = tc.discover()
+        runtimes = tc.make_runtimes(tools, "swc.exe")
+        hello = tc.make_hello_runs(tools, "swc.exe")
+        for language, suffix in (("php", ".php"), ("php-jit", ".php"), ("ruby", ".rb")):
+            self.assertIn(language, driver.JIT_ORDER)
+            self.assertIn(language, mkpage.META)
+            for task in tc.TASKS:
+                command = runtimes[language](task)
+                source = next(arg for arg in command if arg.endswith(suffix) and not arg.startswith("auto_prepend_file="))
+                self.assertTrue(Path(source).is_file())
+                self.assertEqual(command[:command.index(source)], hello[language][:hello[language].index(
+                    next(arg for arg in hello[language] if arg.endswith(suffix) and not arg.startswith("auto_prepend_file=")))])
+                if language == "php-jit":
+                    self.assertEqual(command[-1], "--require-jit")
+
+    def test_java_artifact_size_includes_nested_classes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            main = Path(folder, "Bench.class")
+            main.write_bytes(b"main")
+            Path(folder, "Bench$Node.class").write_bytes(b"node")
+            Path(folder, "unrelated.log").write_bytes(b"not bytecode")
+            result = {"wall_ms": 10, "peak_job_bytes": 20, "peak_working_set_bytes": 15}
+            acc = {}
+            driver.keep_build(acc, result, {"exe": str(main), "artifact_glob": os.path.join(folder, "*.class")})
+            self.assertEqual(acc["exe_bytes"], 8)
 
     def test_failed_process_cannot_supply_a_valid_checksum(self):
         result = {"exit": 1, "stdout": "CHECK=42 MS=1.0\n", "stderr": ""}
@@ -127,6 +181,10 @@ class HarnessTests(unittest.TestCase):
                         {"run": {"check": 43}}):
             results["tasks"]["chacha"]["zig"] = failure
             self.assertTrue(driver.campaign_errors(results))
+
+    def test_missing_hello_output_blocks_publication(self):
+        results = {"tasks": {}, "hello_run": {"ruby": {"error": "process did not print its hello output"}}}
+        self.assertTrue(driver.campaign_errors(results))
 
     def test_new_controls_do_not_change_an_older_baseline(self):
         base = {"tasks": {"chacha": {
@@ -153,9 +211,9 @@ class HarnessTests(unittest.TestCase):
                 if extended:
                     # Synthetic measurements exercise the renderer, never the real history.
                     for entries in result["tasks"].values():
-                        for language in ("zig", "d-ldc", "odin"):
+                        for language in ("zig", "d-ldc", "odin", "go", "java-hotspot", "php", "php-jit", "ruby"):
                             entries[language] = copy.deepcopy(entries["rust"])
-                    for language in ("zig", "d-ldc", "odin"):
+                    for language in ("zig", "d-ldc", "odin", "go", "java-hotspot"):
                         result["hello_build"][language] = copy.deepcopy(result["hello_build"]["rust"])
                 page = Path(folder, "bench.html")
                 readme = Path(folder, "README.md")
@@ -168,10 +226,15 @@ class HarnessTests(unittest.TestCase):
                       contextlib.redirect_stdout(io.StringIO())):
                     mkpage.main()
                 self.assertNotIn("{{", page.read_text(encoding="utf-8"))
+                rendered = page.read_text(encoding="utf-8")
+                self.assertLess(rendered.index('aria-label="Language legend"'), rendered.index('<section id="execution">'))
+                self.assertIn('scope="col"', rendered)
+                self.assertIn('title="C++ / clang-cl (native)"', rendered)
                 if extended:
                     # The page names D alone; the README table keeps its compiler.
                     for shown, tabled in (("Zig", "Zig"), ('class="rl">D <span', "D (LDC)"),
-                                          ("Odin", "Odin")):
+                                          ("Odin", "Odin"), ("Go", "Go"), ("Java HotSpot", "Java HotSpot"),
+                                          ("PHP", "PHP"), ("Ruby", "Ruby")):
                         self.assertIn(shown, page.read_text(encoding="utf-8"))
                         self.assertIn(tabled, readme.read_text(encoding="utf-8"))
 

@@ -29,18 +29,21 @@ alone, rather than run it and work beside it.
 
 ## What is measured
 
-Twelve equivalent programs in swag, C++, Rust, Zig, D, Odin, Swift, C#, JavaScript, Lua
-and Python: `wordfreq`, `csvagg`, `sha256`, `dijkstra`, `raytrace`, `leven`, `chacha`, and
+Twelve equivalent workloads in Swag, C++, Rust, Zig, D, Odin, Go, Swift, C#, Java,
+JavaScript, Lua, Python, PHP and Ruby: `wordfreq`, `csvagg`, `sha256`, `dijkstra`, `raytrace`, `leven`, `chacha`, and
 since 2026-09-29 `nbody` (f64 physics over an array of structs), `fannkuch` (permutations of
 small arrays), `binarytrees` (one heap allocation per node), `lz77` (hash-chain compression
-and decompression) and `sort` (a specified quicksort on signed indices). None of them uses a standard library container: each reimplements its own hash
-map, heap or matrix, avoiding differences in those container implementations. `chacha` is
+and decompression) and `sort` (a specified quicksort on signed indices). Systems-language ports
+use explicit byte maps, heaps and sorting. Dynamic ports also use their runtime's containers
+and key sorting for `wordfreq` and `csvagg`; those results include that implementation choice.
+All ports implement the numeric kernels themselves, including SHA-256 and ChaCha20, without
+delegating them to a native cryptography library. `chacha` is
 the one written against a published specification rather than invented
 here: the same ChaCha20 rounds every port implements word for word, which is what makes it a
 consistent reading of 32-bit lane arithmetic and of whatever each compiler does with it. Every port prints the same checksum, and **a campaign that reports a checksum mismatch
 has measured nothing** — fix the ports before believing any number.
 
-Compilation times measure a complete command from source to executable, including the language's
+Compilation times measure a complete command from source to a runnable artifact, including the language's
 usual startup code, selected imports, header parsing, optimization and linking. The programs match
 in observable behavior and algorithm; they do not make the compilers process an equal amount of
 library source. For example, Swag's `Swag.print` is built in, Rust uses `std`, C++ parses CRT and
@@ -56,8 +59,31 @@ For a compiler improvement claim, `py compile.py --against <baseline-swc>` compa
 binaries back to back on the same checkout. Both receive identical sources and imports, and the
 order alternates each round. This is a tighter comparison than a cross-language build ratio.
 
-Seventeen runtimes in total: swag native and JIT in both configurations, two C++ compilers,
-Rust, Zig, D through LDC, Odin, Swift, C# ahead-of-time and jitted, V8, LuaJIT, Lua and CPython.
+Twenty-two runtime configurations in total: Swag native and JIT in both configurations, two C++
+compilers, Rust, Zig, D through LDC, Odin, Go, Swift, C# ahead-of-time and jitted, Java HotSpot,
+V8, LuaJIT, Lua, CPython, PHP interpreted and tracing JIT, and Ruby interpreted.
+
+Go uses the standard optimizing `go build` recipe, with `-a` and a fresh private `GOCACHE`:
+the timing includes rebuilding its standard-library dependencies. Bounds checks remain enabled
+and may be eliminated by the compiler. Java uses `javac` followed by HotSpot's default tiered
+JIT, with bounds checks and garbage collection enabled. Its build result is bytecode, not a
+native executable; artifact size sums all generated class files and excludes the installed JVM,
+just as the C# IL size excludes .NET. See the [Go build options](https://pkg.go.dev/cmd/go)
+and [Java launcher documentation](https://docs.oracle.com/en/java/javase/25/docs/specs/man/java.html).
+
+PHP runs with a clean configuration (`-n`), no memory limit, and no optional extensions in the
+interpreted row. The JIT row explicitly loads OPcache, enables it for CLI, reserves a 64 MiB
+JIT buffer and selects tracing; it refuses to run if the JIT is inactive. Ruby uses its
+interpreter with gem startup disabled; it does not claim a YJIT measurement on Windows.
+Both retain their normal array and object checks. The
+[PHP OPcache options](https://www.php.net/manual/en/opcache.configuration.php) document the JIT switches.
+
+Every execution sample starts a fresh process, including Java and PHP JIT. Input generation is
+outside `MS`; JIT compilation triggered by the timed kernel is inside it. These are short-lived
+program measurements, not warmed, long-running server throughput. Swag JIT compiles the kernel
+before entering its timer; the existing wall-time and hello measurements also expose startup.
+Garbage-collected runtimes retain their normal collection policy, including collections during
+the timer; the harness does not force a collection after every tree.
 
 Zig, D and Odin also have hello-world programs for a small-program build measurement. Their release recipes
 are `zig build-exe -O ReleaseFast -target x86_64-windows-msvc -lc`,
@@ -299,6 +325,12 @@ never edit it by hand.
 charts for the aggregates, and one history row per task. A new task adds a row everywhere and
 nothing else; explanations belong in this file.
 
+The legend at the top defines the coloured letter badges used in matrix headers and rankings.
+A language keeps its letter across modes; each runtime configuration keeps a distinct colour.
+Letters prefer the language's initial, with stable alternatives where initials collide. Full
+names and modes remain available as tooltips and accessible labels. Only runtimes measured in
+the selected campaigns appear: adding support never inserts invented values into old results.
+
 ## Extending it
 
 - **A new task**: add it to every language under `src/`, then to `TASKS` in `toolchains.py`
@@ -316,12 +348,21 @@ MSVC and clang-cl come from Visual Studio; the others are looked up under the us
 Any of them can be overridden when it lives somewhere unusual: `BENCH_VS_ROOT`, `BENCH_RUSTC`,
 `BENCH_DOTNET`, `BENCH_SWIFTC`, `BENCH_SWIFT_ROOT`, `BENCH_NODE`, `BENCH_LUA`, `BENCH_LUAJIT`,
 `BENCH_PY`, `BENCH_ZIG`, `BENCH_LDC2`, `BENCH_ODIN`, and `BENCH_SWC` for the compiler under test.
+The added runtimes accept `BENCH_GO`, `BENCH_JAVAC`, `BENCH_JAVA`, `BENCH_PHP`,
+`BENCH_PHP_OPCACHE` (the OPcache DLL), and `BENCH_RUBY`.
 Zig, LDC and Odin are discovered through their override first, then `PATH`, then the
 per-user installations at `%LOCALAPPDATA%\Programs\Zig\zig.exe`,
 `%LOCALAPPDATA%\Programs\LDC\bin\ldc2.exe`, and `%LOCALAPPDATA%\Programs\Odin\odin.exe`.
 Extract each complete compiler distribution into that directory, keeping its libraries and
 support files beside it. Point each override at its compiler executable.
 The new ports have been checked with Zig 0.15.2, LDC 1.43.0 and Odin dev-2026-09.
+Go, Java, PHP and Ruby also use `PATH` and portable distributions under
+`%LOCALAPPDATA%\Programs`: `Go\bin\go.exe`, `Java\bin\javac.exe` and `java.exe`,
+`PHP\php.exe` with `PHP\ext\php_opcache.dll`, and `Ruby\bin\ruby.exe`.
+Go additionally checks `C:\Program Files\Go`; Java respects `JAVA_HOME` and prefers the
+runtime beside the selected compiler. Java needs both executables; a missing OPcache DLL
+skips only PHP JIT. No runtime is downloaded by a benchmark campaign.
+These ports have been checked with Go 1.27.1, Temurin 25.0.4.1, PHP 8.4.26 and Ruby 4.0.7.
 A toolchain that cannot be found is
 named and skipped, never guessed at, and the report records which ones were absent.
 

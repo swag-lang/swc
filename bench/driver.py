@@ -26,6 +26,7 @@ allowed to claim:
                     [--warmup SECONDS] [--label TEXT] [--quick]
 """
 import argparse
+import glob
 import json
 import os
 import re
@@ -48,9 +49,9 @@ for _stream in (sys.stdout, sys.stderr):
 PAT = re.compile(r"CHECK=(-?\d+)\s+MS=([\d.]+)")
 
 AOT_ORDER = ["swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc",
-             "rust", "zig", "d-ldc", "odin", "swift", "csharp-aot", "csharp-jit"]
+             "rust", "zig", "d-ldc", "odin", "go", "swift", "csharp-aot", "csharp-jit", "java-hotspot"]
 JIT_ORDER = ["swc-jit-release", "swc-jit-fast-debug", "node20", "luajit2.1",
-             "lua5.4", "python3.12"]
+             "lua5.4", "python3.12", "php", "php-jit", "ruby"]
 
 # A runtime is sampled until it has spent this much measured time on a task, within
 # these bounds. Below the floor a minimum is meaningless; above the ceiling the extra
@@ -133,7 +134,7 @@ def prepare_swag_dependencies(swc, env, cores=0):
 
 def build_once(recipe, env):
     prepare(recipe)
-    r = winproc.run(recipe["cmd"], cwd=recipe["cwd"], env=env)
+    r = winproc.run(recipe["cmd"], cwd=recipe["cwd"], env=env | recipe.get("env", {}))
     if r["exit"] != 0 or not os.path.exists(recipe["exe"]):
         return None, process_error(r)
     return r, None
@@ -207,7 +208,8 @@ def keep_build(acc, r, recipe):
     acc["wall_ms"] = r["wall_ms"] if acc.get("wall_ms") is None else min(acc["wall_ms"], r["wall_ms"])
     acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
     acc["peak_working_set_bytes"] = max(acc.get("peak_working_set_bytes", 0), r["peak_working_set_bytes"])
-    acc["exe_bytes"] = os.path.getsize(recipe["exe"])
+    artifacts = glob.glob(recipe["artifact_glob"]) if recipe.get("artifact_glob") else [recipe["exe"]]
+    acc["exe_bytes"] = sum(os.path.getsize(path) for path in artifacts)
     acc.setdefault("samples", []).append(round(r["wall_ms"], 1))
 
 
@@ -233,7 +235,7 @@ def spread_pct(samples):
 def campaign_errors(results):
     """Do not publish a comparison when an available port failed or disagreed."""
     errors = []
-    for family in ("hello_build", "loop"):
+    for family in ("hello_build", "hello_run", "loop"):
         for name, entry in results.get(family, {}).items():
             if entry.get("error"):
                 errors.append("%s/%s: %s" % (family, name, entry["error"]))
@@ -483,6 +485,9 @@ def main():
                 r = winproc.run(hello_runs[name], cwd=tc.BENCH, env=env, pin=True,
                                 first_stdout_match=output_marker)
                 acc = results["hello_run"].setdefault(name, {})
+                if r["exit"] != 0:
+                    acc["error"] = process_error(r)
+                    continue
                 if r["first_stdout_ms"] is None:
                     acc["error"] = "process did not print its hello output"
                     continue

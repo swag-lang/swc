@@ -52,24 +52,31 @@ RUNTIMES = [
     ("zig",                "Zig",               "native",    "native"),
     ("d-ldc",              "D",                 "native",    "native"),
     ("odin",               "Odin",              "native",    "native"),
+    ("go",                 "Go",                "native",    "native"),
     ("swift",              "Swift",             "natif",     "native"),
     ("csharp-aot",         "C# NativeAOT",      "AOT",       "managed"),
     ("csharp-jit",         "C# CoreCLR",        "JIT",       "managed"),
+    ("java-hotspot",       "Java HotSpot",      "JIT",       "managed"),
     ("node20",             "Node / V8",         "JIT",       "dynamic"),
     ("luajit2.1",          "LuaJIT",            "JIT",       "dynamic"),
     ("lua5.4",             "Lua",               "interpr&eacute;t&eacute;", "dynamic"),
     ("python3.12",         "CPython",           "interpr&eacute;t&eacute;", "dynamic"),
+    ("php",                "PHP",               "interpreted", "dynamic"),
+    ("php-jit",            "PHP",               "JIT",       "dynamic"),
+    ("ruby",               "Ruby",              "interpreted", "dynamic"),
 ]
 META = {r[0]: r for r in RUNTIMES}
 
-# Column headers of the per-task matrices: two short lines, name then mode.
-SHORT = {
-    "swag-release": ("swag", "natif"), "swc-jit-release": ("swag", "JIT"),
-    "swag-fast-debug": ("swag dev", "natif"), "swc-jit-fast-debug": ("swag dev", "JIT"),
-    "cpp-clang-cl": ("clang", ""), "cpp-msvc": ("MSVC", ""), "rust": ("Rust", ""),
-    "zig": ("Zig", ""), "d-ldc": ("D", ""), "odin": ("Odin", ""), "swift": ("Swift", ""),
-    "csharp-aot": ("C#", "AOT"), "csharp-jit": ("C#", "JIT"), "node20": ("Node", "V8"),
-    "luajit2.1": ("LuaJIT", ""), "lua5.4": ("Lua", "5.4"), "python3.12": ("Python", "3.12"),
+# Stable letters identify languages; colours distinguish their compilers and modes.
+# Prefer the initial, then another letter of the language or its runtime on collision.
+LETTERS = {
+    "swag-release": "S", "swc-jit-release": "S",
+    "swag-fast-debug": "S", "swc-jit-fast-debug": "S",
+    "cpp-clang-cl": "C", "cpp-msvc": "C", "rust": "R",
+    "zig": "Z", "d-ldc": "D", "odin": "O", "swift": "W", "go": "G",
+    "csharp-aot": "H", "csharp-jit": "H", "java-hotspot": "J", "node20": "V",
+    "luajit2.1": "L", "lua5.4": "L", "python3.12": "Y",
+    "php": "P", "php-jit": "P", "ruby": "U",
 }
 
 # One colour per runtime, shared by every chart bar and ranking entry; no two runtimes share
@@ -80,11 +87,31 @@ LANG = {
     "cpp-clang-cl": "clang", "cpp-msvc": "msvc", "rust": "rust", "zig": "zig", "d-ldc": "d",
     "odin": "odin", "swift": "swift", "csharp-aot": "csaot", "csharp-jit": "csjit",
     "node20": "js", "luajit2.1": "luajit", "lua5.4": "lua", "python3.12": "py",
+    "go": "go", "java-hotspot": "java", "php": "php", "php-jit": "phpjit", "ruby": "ruby",
 }
 
 
 def lang_class(rt):
     return "l-" + LANG.get(rt, "other")
+
+
+def runtime_label(rt):
+    name = {"cpp-clang-cl": "C++ / clang-cl", "cpp-msvc": "C++ / MSVC",
+            "node20": "JavaScript / Node V8", "d-ldc": "D / LDC"}.get(rt, META[rt][1])
+    mode = {"natif": "native", "interpr&eacute;t&eacute;": "interpreted"}.get(META[rt][2], META[rt][2])
+    return "%s (%s)" % (name, mode)
+
+
+def runtime_badge(rt):
+    label = html.escape(runtime_label(rt), quote=True)
+    return ('<span class="runtime-badge %s" role="img" title="%s" aria-label="%s">%s</span>'
+            % (lang_class(rt), label, label, LETTERS[rt]))
+
+
+def runtime_legend(runtimes):
+    return '<ul class="runtime-legend" aria-label="Language legend">%s</ul>' % "".join(
+        '<li>%s<span>%s</span></li>' % (runtime_badge(rt), html.escape(runtime_label(rt)))
+        for rt in runtimes)
 
 
 # The journal shows only the most recent campaigns; the curves carry every one.
@@ -245,9 +272,8 @@ def matrix(tasks, runtimes, value, show, footer=None):
     Tasks grow downwards, so adding one adds a row and moves nothing else."""
     out = ['<div class="table-wrap"><table class="matrix"><thead><tr><th>t&acirc;che</th>']
     for i, rt in enumerate(runtimes):
-        name, mode = SHORT.get(rt, (META[rt][1], ""))
-        out.append('<th%s>%s<br><span class="mode">%s</span></th>'
-                   % (_cell_class(rt, runtimes[i - 1] if i else None), name, mode))
+        out.append('<th scope="col"%s>%s</th>'
+                   % (_cell_class(rt, runtimes[i - 1] if i else None), runtime_badge(rt)))
     out.append("</tr></thead><tbody>")
     for task in tasks:
         values = [value(rt, task) for rt in runtimes]
@@ -291,12 +317,8 @@ def ranked_table(tasks, runtimes, value, display):
                  if lead in ranks else "&mdash;")
         out.append("<tr><th%s><code>%s</code></th><td>%s</td><td><ol>" % (title, task, place))
         for rank, (rt, result) in enumerate(measured, 1):
-            name, mode = SHORT.get(rt, (META[rt][1], ""))
-            if META[rt][3] == "swag":
-                mode = ""  # the table already says native or JIT; the colour says swag
-            out.append('<li class="%s"><b>%d</b>%s%s<i>%s</i></li>'
-                       % (lang_class(rt), rank, name,
-                          ' <span class="mode">%s</span>' % mode if mode else "",
+            out.append('<li class="%s"><b>%d</b>%s<i>%s</i></li>'
+                       % (lang_class(rt), rank, runtime_badge(rt),
                           display(result)))
         out.append("</ol></td></tr>")
     out.append("</tbody></table></div>")
@@ -628,7 +650,7 @@ def main():
     ex_chart = chart([(r, gm[r], fmt(gm[r])) for r in order], ex_lo, ex_hi, ex_ticks, "&times;")
     ex_matrix = matrix(TASK_IDS, present, ms, ms_text,
                        ("g&eacute;o &times;", gm, lambda v: fmt(v)))
-    native_run = [r for r in present if META[r][2] not in ("JIT", "interpr&eacute;t&eacute;")]
+    native_run = [r for r in present if META[r][2] not in ("JIT", "interpreted", "interpr&eacute;t&eacute;")]
     jit_run = [r for r in present if r not in native_run]
     ex_native_rank = ranked_table(TASK_IDS, native_run, ms, ms_text)
     ex_jit_rank = ranked_table(TASK_IDS, jit_run, ms, ms_text)
@@ -691,17 +713,19 @@ def main():
     ex_cols = [("swag-release", "swc"), ("swc-jit-release", "swc JIT"),
                ("cpp-clang-cl", "clang-cl"), ("rust", "rustc"),
                ("zig", "Zig"), ("d-ldc", "D (LDC)"), ("odin", "Odin"),
+               ("go", "Go"), ("java-hotspot", "Java HotSpot"),
                ("luajit2.1", "LuaJIT"), ("node20", "Node 20"),
-               ("python3.12", "CPython 3.12")]
+               ("python3.12", "CPython 3.12"), ("php", "PHP"), ("php-jit", "PHP JIT"), ("ruby", "Ruby")]
     bu_cols = [("swag-release", "swc"), ("cpp-clang-cl", "clang-cl"), ("rust", "rustc"),
-               ("zig", "Zig"), ("d-ldc", "D (LDC)"), ("odin", "Odin")]
+               ("zig", "Zig"), ("d-ldc", "D (LDC)"), ("odin", "Odin"), ("go", "Go"),
+               ("java-hotspot", "javac (bytecode)")]
     ex_cols = [c for c in ex_cols if c[0] in present]
     bu_cols = [c for c in bu_cols if c[0] in aot]
     readme = [
         "",
-        "%s programs, written by hand and identically in every language, none of them using a "
-        "standard library" % spelled(len(TASK_IDS)),
-        "container: each one reimplements its own hash map, heap, or matrix. All ports "
+        "%s programs implementing the same workloads in every language. Systems-language ports "
+        "use explicit byte maps and sorting; dynamic ports also use their runtime's containers. " % spelled(len(TASK_IDS)),
+        "The numeric kernels, input sizes and checksums match across ports. All ports "
         "print the same checksum, while their required imports and runtime interfaces differ.",
         "",
         "Milliseconds, lower is better. `swc` in `release`, `clang-cl /O2`,",
@@ -715,7 +739,7 @@ def main():
         md_table(["program"] + [name for _, name in ex_cols],
                  [["`%s`" % t] + [fmt(ms(r, t), 1) for r, _ in ex_cols] for t in TASK_IDS]),
         "",
-        "**Compilation**, from source to a linked executable, including each port's required "
+        "**Compilation**, from source to a runnable artifact (Java: bytecode), including each port's required "
         "imports and runtime interfaces:",
         "The programs have matching behavior, but these numbers do not isolate compiler speed "
         "because library work and build pipelines differ between languages. The `hello` program "
@@ -757,6 +781,7 @@ def main():
 
     subs = {
         "{{stats}}": stats,
+        "{{runtime_legend}}": runtime_legend([r[0] for r in RUNTIMES if r[0] in set(present + aot)]),
         "{{ex_chart}}": ex_chart, "{{ex_matrix}}": ex_matrix,
         "{{ex_native_rank}}": ex_native_rank, "{{ex_jit_rank}}": ex_jit_rank,
         "{{bu_chart}}": bu_chart, "{{bu_matrix}}": bu_matrix, "{{bu_rank}}": bu_rank,

@@ -44,6 +44,10 @@ def discover():
     swift_rt = _first(os.path.join(swift_root, "Runtimes", "*", "usr", "bin"))
     swift_sdk = _first(os.path.join(swift_root, "Platforms", "*", "Windows.platform",
                                     "Developer", "SDKs", "Windows.sdk"))
+    java_home = os.environ.get("JAVA_HOME") or os.path.join(programs, "Java")
+    javac = _env("BENCH_JAVAC", shutil.which("javac") or os.path.join(java_home, "bin", "javac.exe"))
+    java = _env("BENCH_JAVA", os.path.join(os.path.dirname(javac), "java.exe"))
+    php = _env("BENCH_PHP", shutil.which("php") or os.path.join(programs, "PHP", "php.exe"))
 
     t = {
         "vs": vs,
@@ -54,6 +58,14 @@ def discover():
         "zig": _env("BENCH_ZIG", shutil.which("zig") or os.path.join(programs, "Zig", "zig.exe")),
         "ldc2": _env("BENCH_LDC2", shutil.which("ldc2") or os.path.join(programs, "LDC", "bin", "ldc2.exe")),
         "odin": _env("BENCH_ODIN", shutil.which("odin") or os.path.join(programs, "Odin", "odin.exe")),
+        "go": _env("BENCH_GO", shutil.which("go") or
+                   _first(os.path.join(programs, "Go", "bin", "go.exe")) or
+                   r"C:\Program Files\Go\bin\go.exe"),
+        "javac": javac,
+        "java": java,
+        "php": php,
+        "php_opcache": _env("BENCH_PHP_OPCACHE", os.path.join(os.path.dirname(php), "ext", "php_opcache.dll")),
+        "ruby": _env("BENCH_RUBY", shutil.which("ruby") or os.path.join(programs, "Ruby", "bin", "ruby.exe")),
         "dotnet": _env("BENCH_DOTNET", r"C:\Program Files\dotnet\dotnet.exe"),
         "swiftc": _env("BENCH_SWIFTC", swift_tc),
         "swift_rt": swift_rt,
@@ -150,9 +162,20 @@ def systems_recipe(t, language, source, name, helpers=()):
                "-od=" + wd, source, *helpers]
     elif language == "odin":
         cmd = [t["odin"], "build", source, "-file", "-o:speed", "-out:" + exe]
+    elif language == "go":
+        # Rebuild dependencies too: a Go cache hit is not a compilation sample.
+        cmd = [t["go"], "build", "-a", "-o", exe, source, *helpers]
+    elif language == "java-hotspot":
+        cmd = [t["javac"], "-encoding", "UTF-8", "-d", wd, source]
+        exe = os.path.join(wd, "Bench.class")
     else:
         raise ValueError("unknown native toolchain: " + language)
-    return {"cmd": cmd, "exe": exe, "clean": [wd], "mkdir": [wd], "cwd": wd}
+    recipe = {"cmd": cmd, "exe": exe, "clean": [wd], "mkdir": [wd], "cwd": wd}
+    if language == "java-hotspot":
+        recipe["artifact_glob"] = os.path.join(wd, "*.class")
+    if language == "go":
+        recipe["env"] = {"GOCACHE": os.path.join(wd, "cache"), "GOTOOLCHAIN": "local"}
+    return recipe
 
 
 def swc_worker_args(cores):
@@ -228,6 +251,12 @@ def make_recipes(t, env, swc, cores=0):
             ([os.path.join(SRC, "d", "bytemap.d")] if task in NEEDS_MAP else [])),
         "odin":            lambda task, name: systems_recipe(
             t, "odin", os.path.join(SRC, "odin", task + ".odin"), name),
+        "go":              lambda task, name: systems_recipe(
+            t, "go", os.path.join(SRC, "go", task + ".go"), name,
+            [os.path.join(SRC, "go", "common.go")] +
+            ([os.path.join(SRC, "go", "bytemap.go")] if task in NEEDS_MAP else [])),
+        "java-hotspot":    lambda task, name: systems_recipe(
+            t, "java-hotspot", os.path.join(SRC, "java", task, "Bench.java"), name),
         "swift":           swift,
         "csharp-aot":      csharp("aot"),
         "csharp-jit":      csharp("jit"),
@@ -238,8 +267,20 @@ def make_launchers(t, dotnet_dll_runner):
     """id -> callable(exe) -> command line, for the toolchains that produced an exe."""
     return {k: (lambda e: [e]) for k in
             ["swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc",
-             "rust", "zig", "d-ldc", "odin", "swift", "csharp-aot"]} | {
-        "csharp-jit": lambda e: [dotnet_dll_runner, e]}
+             "rust", "zig", "d-ldc", "odin", "go", "swift", "csharp-aot"]} | {
+        "csharp-jit": lambda e: [dotnet_dll_runner, e],
+        "java-hotspot": lambda e: [t["java"], "-cp", os.path.dirname(e), "Bench"]}
+
+
+def php_command(t, source, jit=False):
+    # Ignore the user's php.ini so profilers and local extensions cannot change a run.
+    cmd = [t["php"], "-n", "-d", "memory_limit=-1",
+           "-d", "auto_prepend_file=" + os.path.join(SRC, "php", "common.php")]
+    if jit:
+        cmd += ["-d", "zend_extension=" + t["php_opcache"],
+                "-d", "opcache.enable_cli=1", "-d", "opcache.jit_buffer_size=64M",
+                "-d", "opcache.jit=tracing"]
+    return cmd + [source] + (["--require-jit"] if jit else [])
 
 
 def make_runtimes(t, swc, cores=0):
@@ -261,6 +302,9 @@ def make_runtimes(t, swc, cores=0):
         "luajit2.1":          lambda task: [t["luajit"], os.path.join(SRC, "lua", task + ".lua")],
         "lua5.4":             lambda task: [t["lua"], os.path.join(SRC, "lua", task + ".lua")],
         "python3.12":         lambda task: [t["py"], "-3", os.path.join(SRC, "py", task + ".py")],
+        "php":                lambda task: php_command(t, os.path.join(SRC, "php", task + ".php")),
+        "php-jit":            lambda task: php_command(t, os.path.join(SRC, "php", task + ".php"), True),
+        "ruby":               lambda task: [t["ruby"], "--disable-gems", os.path.join(SRC, "ruby", task + ".rb")],
     }
 
 
@@ -270,7 +314,9 @@ def make_hello_builds(t, env, swc, cores=0):
     return {
         **{language: (lambda language=language, extension=extension: systems_recipe(
             t, language, os.path.join(hello, "hello." + extension), "hello_" + language))
-           for language, extension in [("zig", "zig"), ("d-ldc", "d"), ("odin", "odin")]},
+           for language, extension in [("zig", "zig"), ("d-ldc", "d"), ("odin", "odin"), ("go", "go")]},
+        "java-hotspot": lambda: systems_recipe(
+            t, "java-hotspot", os.path.join(hello, "java", "Bench.java"), "hello_java-hotspot"),
         "swag-release": lambda: {
             "cmd": [swc, "build", *swc_worker_args(cores), "--build-cfg", "release", "-n", "hello_swag",
                     "-od", os.path.join(OUT, "hellowd"), "-wd", os.path.join(OUT, "hellowd"),
@@ -322,6 +368,9 @@ def make_hello_runs(t, swc, cores=0):
         "luajit2.1":          [t["luajit"], os.path.join(hello, "hello.lua")],
         "lua5.4":             [t["lua"], os.path.join(hello, "hello.lua")],
         "python3.12":         [t["py"], "-3", os.path.join(hello, "hello.py")],
+        "php":                php_command(t, os.path.join(hello, "hello.php")),
+        "php-jit":            php_command(t, os.path.join(hello, "hello.php"), True),
+        "ruby":               [t["ruby"], "--disable-gems", os.path.join(hello, "hello.rb")],
     }
 
 
@@ -432,7 +481,14 @@ def missing(t):
     need = {
         "cpp-msvc": t["vcvars"], "cpp-clang-cl": t["clang_cl"], "rust": t["rustc"],
         "zig": t["zig"], "d-ldc": t["ldc2"], "odin": t["odin"],
+        "go": t["go"], "java-hotspot": t["javac"],
+        "php": t["php"], "php-jit": t["php_opcache"], "ruby": t["ruby"],
         "swift": t["swiftc"], "csharp-aot": t["dotnet"], "csharp-jit": t["dotnet"],
         "node20": t["node"], "luajit2.1": t["luajit"], "lua5.4": t["lua"], "python3.12": t["py"],
     }
-    return sorted(k for k, v in need.items() if not v or not os.path.exists(v))
+    gone = {k for k, v in need.items() if not v or not os.path.exists(v)}
+    if not t["java"] or not os.path.isfile(t["java"]):
+        gone.add("java-hotspot")
+    if "php" in gone:
+        gone.add("php-jit")
+    return sorted(gone)

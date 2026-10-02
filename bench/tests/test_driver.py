@@ -114,7 +114,7 @@ class EditLoopTests(unittest.TestCase):
     def test_worker_cap_reaches_every_swag_recipe(self):
         tools = {"clang_cl": "clang-cl", "node": "node", "luajit": "luajit",
                  "lua": "lua", "py": "py", "rustc": "rustc", "swiftc": "swiftc",
-                 "dotnet": "dotnet"}
+                 "dotnet": "dotnet", "php": "php", "php_opcache": "opcache.dll", "ruby": "ruby"}
         with (
             mock.patch.object(toolchains, "resolve", return_value="cl"),
             mock.patch.object(toolchains, "swag_dependency_api_files", return_value=["kernel32.swg"]),

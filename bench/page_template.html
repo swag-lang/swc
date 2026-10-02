@@ -253,6 +253,11 @@ h3 {
 .l-lua        { --c: #A9A9A9; }
 .l-luajit     { --c: #FABED4; }
 .l-py         { --c: #808000; }
+.l-go         { --c: #56C2B3; }
+.l-java       { --c: #E0937C; }
+.l-php        { --c: #C48FD0; }
+.l-phpjit     { --c: #74AAE0; }
+.l-ruby       { --c: #FF6666; }
 
 .row .bar { background: var(--c, var(--g-native)); }
 .row.l-swag .bar { background: var(--g-swag); }
@@ -260,6 +265,33 @@ h3 {
 .row:hover .rl { color: var(--fg); border-right-color: var(--active); }
 
 /* ----------------------------------------------------------------- legend */
+.runtime-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    list-style: none;
+    margin: 0;
+    padding: 18px 0;
+    font-size: .72rem;
+    color: var(--soft);
+    border-bottom: 1px solid var(--line);
+}
+.runtime-legend li { display: inline-flex; align-items: center; gap: 7px; }
+.runtime-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    background: var(--c);
+    color: var(--badge-ink, #0B0B0D);
+    font: 700 .75rem/1 var(--mono);
+    letter-spacing: 0;
+    clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%);
+}
+.l-clang, .l-msvc, .l-rust, .l-zig, .l-d { --badge-ink: #FFFFFF; }
+
 .legend {
     display: flex;
     flex-wrap: wrap;
@@ -306,6 +338,8 @@ tfoot th, tfoot td { border-bottom: 0; border-top: 1px solid var(--faint); color
 tbody tr:hover th, tbody tr:hover td { border-bottom-color: var(--active); }
 
 /* Matrices: one task per row, one runtime per column. */
+table.matrix { font-size: .68rem; }
+table.matrix th, table.matrix td { padding-left: 3px; padding-right: 3px; }
 table.matrix th:first-child { position: sticky; left: 0; background: var(--bg); }
 table.matrix td.best { color: var(--fg); font-weight: 700; }
 table.matrix .sw { background: color-mix(in srgb, var(--volt) 26%, transparent); color: var(--fg); }
@@ -318,9 +352,9 @@ table.ranked td:last-child { white-space: normal; width: 100%; }
 table.ranked ol { display: flex; flex-wrap: wrap; gap: 3px; margin: 0; padding: 0; list-style: none; }
 table.ranked li {
     display: inline-flex;
-    align-items: baseline;
+    align-items: center;
     gap: 4px;
-    padding: 1px 6px;
+    padding: 1px 4px;
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 4px;
@@ -330,15 +364,7 @@ table.ranked li {
 }
 table.ranked li b { font-family: var(--mono); font-size: .62rem; font-weight: 400; color: var(--faint); }
 table.ranked li i { font-style: normal; font-family: var(--mono); color: var(--soft); }
-table.ranked li {
-    background: color-mix(in srgb, var(--c) 24%, var(--bg));
-    border-color: var(--c);
-    border-left: 6px solid var(--c);
-}
-table.ranked li.l-swag { background: var(--volt); color: #0B0B0D; font-weight: 600; }
-table.ranked li.l-swagjit { background: var(--c); color: #0B0B0D; font-weight: 600; }
-table.ranked li.l-swag b, table.ranked li.l-swag i,
-table.ranked li.l-swagjit b, table.ranked li.l-swagjit i { color: #0B0B0D; }
+table.ranked li.l-swag, table.ranked li.l-swagjit { border-color: var(--c); }
 
 details { margin: 10px 0 0; }
 summary { cursor: pointer; font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
@@ -402,13 +428,15 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 
 <main class="wrap">
 
+{{runtime_legend}}
+
 <section id="execution">
     <div class="sh"><h2>Ex&eacute;cution</h2></div>
     <p class="cap">Moyenne g&eacute;om&eacute;trique du rapport au meilleur de chaque t&acirc;che, &eacute;chelle logarithmique.</p>
     {{ex_chart}}
     <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
-    <p class="cap">Du plus rapide au plus lent, en millisecondes. Une couleur par runtime&nbsp;; plein&nbsp;: swag release, jaune en natif, ambre en JIT.
-    La colonne swag donne la place de swag release.</p>
+    <p class="cap">Fastest to slowest, in milliseconds. Letters identify languages; colours distinguish their modes.
+    The Swag column gives the rank of Swag release.</p>
     {{ex_native_rank}}
     <h3>Classement par t&acirc;che &mdash; JIT et interpr&eacute;t&eacute;s</h3>
     {{ex_jit_rank}}
@@ -420,8 +448,8 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 
 <section id="compilation">
     <div class="sh"><h2>Compilation</h2></div>
-    <p class="cap">Build complet &agrave; froid, du source &agrave; l'ex&eacute;cutable, moyenne g&eacute;om&eacute;trique sur les t&acirc;ches.
-    Chaque recette compile aussi ses propres biblioth&egrave;ques et en-t&ecirc;tes.</p>
+    <p class="cap">Complete cold build, from source to a runnable artifact, geometric mean across tasks.
+    Each recipe includes its required libraries and headers. Java produces bytecode for HotSpot.</p>
     {{bu_chart}}
     <h3>Classement par t&acirc;che</h3>
     <p class="cap">Du plus rapide au plus lent, en millisecondes.</p>
@@ -453,8 +481,8 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
             {{st_chart}}
         </div>
         <div>
-            <h3>Taille de l'ex&eacute;cutable</h3>
-            <p class="cap">Moyenne g&eacute;om&eacute;trique. C# CoreCLR&nbsp;: assemblage IL, exige le runtime .NET.</p>
+            <h3>Artifact size</h3>
+            <p class="cap">Geometric mean. C# CoreCLR: IL assembly; Java: all class files. Both need their runtime.</p>
             {{sz_chart}}
         </div>
     </div>

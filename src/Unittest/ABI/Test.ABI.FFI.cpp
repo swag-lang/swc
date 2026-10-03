@@ -375,6 +375,26 @@ namespace
         return a + b;
     }
 
+    int32_t ffiNativeSubtractI32(int32_t a, int32_t b)
+    {
+        return a - b;
+    }
+
+    uint64_t ffiNativeReenterJit(TaskContext* ctx, uint64_t depth)
+    {
+        if (!depth)
+            return 11;
+
+        const uint64_t   nextDepth = depth - 1;
+        const std::array args      = {
+            JITArgument{.typeRef = ctx->typeMgr().typeValuePtrVoid(), .valuePtr = &ctx},
+            JITArgument{.typeRef = ctx->typeMgr().typeU64(), .valuePtr = &nextDepth},
+        };
+        uint64_t result = 0;
+        SWC_ASSERT(callCaseTyped(*ctx, reinterpret_cast<void*>(&ffiNativeReenterJit), args, ctx->typeMgr().typeU64(), &result) == Result::Continue);
+        return result + depth;
+    }
+
     float ffiNativeAddF32(float a, float b)
     {
         return a + b;
@@ -489,6 +509,45 @@ SWC_TEST_BEGIN(FFI_CallNativeI32)
     SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddI32), args, typeMgr.typeS32(), &result));
     if (result != -1337)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FFI_ReusedInvokerReadsEachCallFrame)
+{
+    const TypeManager&      typeMgr = ctx.typeMgr();
+    std::array<int32_t, 12> results{};
+    for (uint32_t i = 0; i < results.size(); ++i)
+    {
+        const int32_t    a    = static_cast<int32_t>(i) * 7 - 31;
+        const int32_t    b    = static_cast<int32_t>(i) + 5;
+        const std::array args = {
+            JITArgument{.typeRef = typeMgr.typeS32(), .valuePtr = &a},
+            JITArgument{.typeRef = typeMgr.typeS32(), .valuePtr = &b},
+        };
+        const auto target = i % 2 ? &ffiNativeAddI32 : &ffiNativeSubtractI32;
+        SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(target), args, typeMgr.typeS32(), &results[i]));
+    }
+
+    for (uint32_t i = 0; i < results.size(); ++i)
+    {
+        const int32_t a = static_cast<int32_t>(i) * 7 - 31;
+        const int32_t b = static_cast<int32_t>(i) + 5;
+        SWC_ASSERT(results[i] == (i % 2 ? a + b : a - b));
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FFI_ReusedInvokerSupportsNestedCalls)
+{
+    TaskContext*     ctxPtr = &ctx;
+    const uint64_t   depth  = 5;
+    const std::array args   = {
+        JITArgument{.typeRef = ctx.typeMgr().typeValuePtrVoid(), .valuePtr = &ctxPtr},
+        JITArgument{.typeRef = ctx.typeMgr().typeU64(), .valuePtr = &depth},
+    };
+    uint64_t result = 0;
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReenterJit), args, ctx.typeMgr().typeU64(), &result));
+    SWC_ASSERT(result == 26);
 }
 SWC_TEST_END()
 

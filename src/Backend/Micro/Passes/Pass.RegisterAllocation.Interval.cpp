@@ -255,32 +255,7 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
     // operand landed there - so those keep the whole instruction.
     const auto isPlainDefinition = [&](const uint32_t idx) {
         const MicroInstr* inst = instructions_->ptr(controlFlowGraph_->instructionRefs()[idx]);
-        if (!inst)
-            return false;
-        if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
-            return true;
-        switch (inst->op)
-        {
-            case MicroInstrOpcode::LoadRegReg:
-            case MicroInstrOpcode::LoadRegImm:
-            case MicroInstrOpcode::LoadRegPtrImm:
-            case MicroInstrOpcode::LoadRegPtrReloc:
-            case MicroInstrOpcode::LoadRegTlsSlot:
-            case MicroInstrOpcode::LoadRegMem:
-            case MicroInstrOpcode::LoadAmcRegMem:
-            case MicroInstrOpcode::LoadSignedExtRegMem:
-            case MicroInstrOpcode::LoadZeroExtRegMem:
-            case MicroInstrOpcode::LoadSignedExtRegReg:
-            case MicroInstrOpcode::LoadZeroExtRegReg:
-            case MicroInstrOpcode::LoadAddrRegMem:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
-            case MicroInstrOpcode::VecUnaryRegMem:
-            case MicroInstrOpcode::VecUnaryAmcRegMem:
-            case MicroInstrOpcode::ClearReg:
-                return true;
-            default:
-                return false;
-        }
+        return inst && MicroInstrInfo::registerDefsAtOutput(*inst);
     };
 
     outByPoolIndex.clear();
@@ -423,9 +398,9 @@ namespace
     }
 
     // Split `nodeIndex` at even position `pos` (strictly inside it): the node
-    // keeps everything before, the child takes everything from `pos` on and is
-    // re-queued. Returns the child index, or K_IV_INVALID when the split is
-    // impossible there.
+    // keeps everything before, the child takes everything from `pos` on.
+    // The caller queues children that compete for a register; a spilled child
+    // stays out of the queue. Returns K_IV_INVALID when the split is impossible.
     uint32_t splitNodeAt(WalkState& walk, const uint32_t nodeIndex, uint32_t pos)
     {
         auto& nodes = *walk.nodes;
@@ -482,7 +457,6 @@ namespace
         const auto childIndex = static_cast<uint32_t>(nodes.size());
         nodes.push_back(std::move(child));
         ++walk.splitCount;
-        pushUnhandled(walk, childIndex);
         return childIndex;
     }
 
@@ -575,9 +549,9 @@ namespace
     {
         const auto&    nodes    = *walk.nodes;
         const uint32_t splitPos = pos & ~1u;
-        const uint32_t lastUse  = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (splitPos <= nodes[ownerIndex].start() || splitPos >= nodes[ownerIndex].end())
             return false;
+        const uint32_t lastUse = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (lastUse != K_IV_INVALID && splitPos <= lastUse)
             return false;
         const uint32_t firstAccess = nodes[ownerIndex].firstUseAfter(splitPos);
@@ -598,9 +572,9 @@ namespace
         const uint32_t splitPos = pos & ~1u;
         // No access may sit at or beyond the cut on the register side: the
         // spilled child re-earns a register only from its first access on.
-        const uint32_t lastUse = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (splitPos <= nodes[ownerIndex].start())
             return false;
+        const uint32_t lastUse = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (lastUse != K_IV_INVALID && splitPos <= lastUse)
             return false;
 
@@ -625,12 +599,8 @@ namespace
             if (spilledIndex == K_IV_INVALID)
                 return false;
 
-            // The child was queued as an ordinary competitor by splitNodeAt;
-            // it carries in memory instead, and only the part from its first
-            // access on competes for a register again.
-            auto queued = std::ranges::find(walk.unhandled, spilledIndex);
-            if (queued != walk.unhandled.end())
-                walk.unhandled.erase(queued);
+            // This child carries in memory. Only the part from its next access
+            // on competes for a register again, so only that later split queues.
             nodes[spilledIndex].spilled = true;
         }
         ++walk.spillCount;
@@ -656,7 +626,10 @@ namespace
                 // assign a still-live input value's register to the reload.
                 const uint32_t earliestReload = (pos & 1u) ? pos + 1 : splitPos;
                 const uint32_t reloadPos      = chooseSplitPos(walk, std::max(nodes[spilledIndex].start() + 1, earliestReload), firstAccess);
-                ok                            = splitNodeAt(walk, spilledIndex, reloadPos) != K_IV_INVALID;
+                const uint32_t reloadIndex    = splitNodeAt(walk, spilledIndex, reloadPos);
+                ok                            = reloadIndex != K_IV_INVALID;
+                if (ok)
+                    pushUnhandled(walk, reloadIndex);
             }
         }
         // A whole-node spill gives the register up only now, so the reload
@@ -674,8 +647,8 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // with nextUsePos; splitting instead of whole-value eviction. Pure
     // analysis - nothing here mutates the function.
     std::vector<LiveInterval> fixed;
-    SmallVector<MicroReg>     poolRegs;
-    buildFixedIntervals(fixed, poolRegs);
+    buildFixedIntervals(fixed, out.poolRegs);
+    const auto& poolRegs = out.poolRegs;
 
     out.nodes = std::move(intervals);
 
@@ -702,7 +675,6 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // Per-register ownership among active/inactive is tracked through the
     // node's assignedReg; fixed intervals are consulted by pool index.
     const size_t poolCount = poolRegs.size();
-    out.poolRegs           = poolRegs;
 
     // The debug local-stack base lives in the register the ABI keeps outside
     // both pools for it, for its whole life and never split, exactly as
@@ -872,8 +844,11 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];
             if (freeUntilPos[bestFree] < out.nodes[currentIndex].end())
             {
-                const uint32_t splitPos = chooseSplitPos(walk, position + 1, freeUntilPos[bestFree]);
-                if (splitNodeAt(walk, currentIndex, splitPos) == K_IV_INVALID && !walk.failed)
+                const uint32_t splitPos   = chooseSplitPos(walk, position + 1, freeUntilPos[bestFree]);
+                const uint32_t childIndex = splitNodeAt(walk, currentIndex, splitPos);
+                if (childIndex != K_IV_INVALID)
+                    pushUnhandled(walk, childIndex);
+                else if (!walk.failed)
                 {
                     walk.failed     = true;
                     walk.failReason = "free-reg split landed outside the interval";
@@ -993,8 +968,11 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             ++walk.spillCount;
             if (currentFirstUse != std::numeric_limits<uint32_t>::max())
             {
-                const uint32_t reloadPos = chooseSplitPos(walk, out.nodes[currentIndex].start() + 1, currentFirstUse);
-                if (splitNodeAt(walk, currentIndex, reloadPos) == K_IV_INVALID && !walk.failed)
+                const uint32_t reloadPos   = chooseSplitPos(walk, out.nodes[currentIndex].start() + 1, currentFirstUse);
+                const uint32_t reloadIndex = splitNodeAt(walk, currentIndex, reloadPos);
+                if (reloadIndex != K_IV_INVALID)
+                    pushUnhandled(walk, reloadIndex);
+                else if (!walk.failed)
                 {
                     walk.failed     = true;
                     walk.failReason = "spill split before first access failed";
@@ -1043,7 +1021,10 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
                 // A claim that only defines the register clashes at an output
                 // slot; the walk splits at input slots only, so the split
                 // lands at the latest legal even position before the clash.
-                if (splitNodeAt(walk, currentIndex, chooseSplitPos(walk, position + 1, fixedClash)) == K_IV_INVALID && !walk.failed)
+                const uint32_t childIndex = splitNodeAt(walk, currentIndex, chooseSplitPos(walk, position + 1, fixedClash));
+                if (childIndex != K_IV_INVALID)
+                    pushUnhandled(walk, childIndex);
+                else if (!walk.failed)
                 {
                     walk.failed     = true;
                     walk.failReason = "cannot split before a fixed clash";
@@ -1510,47 +1491,38 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
     std::vector<RematRecipe> remat(virtualCount);
     {
-        struct DefinitionSite
-        {
-            uint32_t count     = 0;
-            uint32_t lastIndex = 0;
-        };
-        std::vector<DefinitionSite> definitions(virtualCount);
+        // Liveness already counted these definitions. The interval walk has
+        // not changed them, so record only their positions, directly in the recipes.
         for (uint32_t idx = 0; idx < instructionCount_; ++idx)
         {
             for (const uint32_t denseIndex : defVirtualIndices_[idx])
-            {
-                DefinitionSite& site = definitions[denseIndex];
-                ++site.count;
-                site.lastIndex = idx;
-            }
+                remat[denseIndex].defIndex = idx;
         }
-        std::unordered_map<uint32_t, const MicroRelocation*> relocationByInstruction;
-        bool relocationsIndexed = false;
+        std::optional<std::unordered_map<uint32_t, const MicroRelocation*>> relocationByInstruction;
         // Only relocation-backed rematerializations need this function-wide index.
         const auto findRelocation = [&](const MicroInstrRef ref) -> const MicroRelocation* {
-            if (!relocationsIndexed)
+            if (!relocationByInstruction)
             {
+                relocationByInstruction.emplace();
                 for (const MicroRelocation& relocation : context_->builder->codeRelocations())
                 {
                     if (relocation.instructionRef.isValid())
-                        relocationByInstruction[relocation.instructionRef.get()] = &relocation;
+                        (*relocationByInstruction)[relocation.instructionRef.get()] = &relocation;
                 }
-                relocationsIndexed = true;
             }
-            const auto found = relocationByInstruction.find(ref.get());
-            return found == relocationByInstruction.end() ? nullptr : found->second;
+            const auto found = relocationByInstruction->find(ref.get());
+            return found == relocationByInstruction->end() ? nullptr : found->second;
         };
         for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         {
-            if (definitions[denseIndex].count != 1)
+            if (definitionCounts_[denseIndex] != 1)
                 continue;
-            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[definitions[denseIndex].lastIndex];
+            RematRecipe&             recipe = remat[denseIndex];
+            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[recipe.defIndex];
             const MicroInstr*        inst   = instructions_->ptr(defRef);
             const MicroInstrOperand* ops    = inst ? inst->ops(*operands_) : nullptr;
             if (!ops || ops[0].reg != virtualRegs[denseIndex])
                 continue;
-            RematRecipe& recipe = remat[denseIndex];
             switch (inst->op)
             {
                 case MicroInstrOpcode::LoadRegImm:
@@ -1656,7 +1628,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             RematRecipe& recipe = remat[denseIndex];
             if (!recipe.valid)
                 continue;
-            recipe.defIndex             = definitions[denseIndex].lastIndex;
             const LiveInterval* defNode = locate(denseIndex, recipe.defIndex * 2 + 1);
             if (!defNode || !defNode->usePositions.empty())
                 continue;
@@ -2406,16 +2377,16 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
                 continue;
             }
 
-            const bool touchesDst = std::ranges::find(defs, c.dst) != defs.end() || std::ranges::find(uses, c.dst) != uses.end();
-            const bool touchesSrc = std::ranges::find(defs, c.src) != defs.end() || std::ranges::find(uses, c.src) != uses.end();
+            const bool defDst     = std::ranges::find(defs, c.dst) != defs.end();
+            const bool defSrc     = std::ranges::find(defs, c.src) != defs.end();
+            const bool touchesDst = defDst || std::ranges::find(uses, c.dst) != uses.end();
+            const bool touchesSrc = defSrc || std::ranges::find(uses, c.src) != uses.end();
             if ((touchesDst && !namedByOperand(c.dst)) || (touchesSrc && !namedByOperand(c.src)))
             {
                 c.rejected = true;
                 continue;
             }
 
-            const bool defDst = std::ranges::find(defs, c.dst) != defs.end();
-            const bool defSrc = std::ranges::find(defs, c.src) != defs.end();
             if (!defDst && !defSrc)
                 continue;
             if (defDst && defSrc)
@@ -2549,7 +2520,7 @@ bool MicroRegisterAllocationPass::runIntervalAllocation()
     // What the later sweeps need from the first: the registers a scratch may
     // borrow around when nothing is free, and the debug local-stack base.
     context_->intervalAllocated  = true;
-    context_->globalReservedRegs = result.poolRegs;
+    context_->globalReservedRegs = std::move(result.poolRegs);
     if (result.debugStackBasePhys.isValid())
         context_->debugStackBasePhysReg = result.debugStackBasePhys;
 

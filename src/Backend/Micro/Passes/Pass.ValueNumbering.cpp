@@ -419,19 +419,23 @@ namespace
     {
         if (!context.sanitizerFunction)
             return false;
-        std::unordered_set<uint32_t> selfCalls;
+        std::optional<std::unordered_set<uint32_t>> selfCalls;
         for (const auto& relocation : context.builder->codeRelocations())
             if (relocation.kind == MicroRelocation::Kind::LocalFunctionAddress &&
                 relocation.targetSymbol == context.sanitizerFunction)
-                selfCalls.insert(relocation.instructionRef.get());
-        if (selfCalls.empty())
+            {
+                if (!selfCalls)
+                    selfCalls.emplace();
+                selfCalls->insert(relocation.instructionRef.get());
+            }
+        if (!selfCalls)
             return false;
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
         {
             const auto flags = MicroInstr::info(it->op).flags;
             if (flags.has(MicroInstrFlagsE::IsCallInstruction))
             {
-                if (it->op != MicroInstrOpcode::CallLocal || !selfCalls.contains(it.current.get()))
+                if (it->op != MicroInstrOpcode::CallLocal || !selfCalls->contains(it.current.get()))
                     return false;
             }
             else if (flags.has(MicroInstrFlagsE::WritesMemory) || it->op == MicroInstrOpcode::LoadVolatileRegMem ||
@@ -614,7 +618,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         const bool cheapToRecreate = inst->op == MicroInstrOpcode::LoadRegImm &&
                                      (!dstReg.isVirtualFloat() ||
                                       (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
-                                      ops[2].immediateValue().isZero());
+                                      ops[2].isImmediateZero());
         const bool aliasOnly = cheapToRecreate || shape.crossFileMove;
 
         if (shape.crossFileMove && (!dstReg.isVirtualFloat() || ops[1].reg.isVirtualFloat()))

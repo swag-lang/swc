@@ -2653,8 +2653,8 @@ namespace
             return index < count ? storage.ptr(layout.order[index]) : nullptr;
         };
 
-        bool                                   changed = false;
-        std::unordered_map<uint32_t, uint32_t> inside;
+        bool                                                 changed = false;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> insideCounts;
         for (size_t start = 1; start < count; ++start)
         {
             const MicroInstr* firstSet = instAt(start);
@@ -2711,6 +2711,9 @@ namespace
                 // What a later link defines, other than D, only that link reads.
                 if (!links.empty())
                 {
+                    if (!insideCounts)
+                        insideCounts.emplace();
+                    auto& inside = *insideCounts;
                     inside.clear();
                     for (size_t index = at; index <= link.merge; ++index)
                     {
@@ -3066,10 +3069,15 @@ namespace
             bool     falls   = false;
         };
 
-        bool               changed = false;
-        LazyVirtualIntRegs nextVirtualIntRegs{context};
-        std::unordered_map<uint32_t, uint32_t> chainJumps;
-        std::unordered_map<uint32_t, Arm>      arms;
+        struct TableScratch
+        {
+            std::unordered_map<uint32_t, uint32_t> chainJumps;
+            std::unordered_map<uint32_t, Arm>      arms;
+        };
+
+        bool                        changed = false;
+        LazyVirtualIntRegs          nextVirtualIntRegs{context};
+        std::optional<TableScratch> tableScratch;
         for (size_t start = 0; start < count; ++start)
         {
             const MicroInstr* first = instAt(start);
@@ -3156,6 +3164,10 @@ namespace
             if (!fallsIntoCase && (!isUnconditionalJump(tail) || !tryGetJumpTargetLabelId(defaultId, *tail, tail->ops(operands))))
                 continue;
 
+            if (!tableScratch)
+                tableScratch.emplace();
+            auto& chainJumps = tableScratch->chainJumps;
+            auto& arms       = tableScratch->arms;
             chainJumps.clear();
             for (const uint32_t target : chainJumpTargets)
                 ++chainJumps[target];
@@ -4153,17 +4165,19 @@ namespace
 
         // D is a byte the skipped part made for B alone: nothing else may read
         // it, or running that part on the other path would be observable.
-        std::unordered_map<uint32_t, uint32_t> localMentions;
-        const auto* mentions = hasCurrentBranchScan ? &scanCache.scan.mentions : &localMentions;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> localMentions;
+        const auto* mentions = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
         {
+            auto& counts = localMentions.emplace();
+            mentions     = &counts;
             for (const Candidate& candidate : candidates)
             {
-                localMentions[candidate.rhs.index()] = 0;
+                counts[candidate.rhs.index()] = 0;
                 if (candidate.skippedDecrement.isValid())
                 {
-                    localMentions[candidate.skippedDecrement.index()] = 0;
-                    localMentions[candidate.skippedMask.index()]      = 0;
+                    counts[candidate.skippedDecrement.index()] = 0;
+                    counts[candidate.skippedMask.index()]      = 0;
                 }
             }
             for (const MicroInstr& inst : storage.view())
@@ -4176,8 +4190,8 @@ namespace
                 {
                     if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
                         continue;
-                    const auto found = localMentions.find(ops[i].reg.index());
-                    if (found != localMentions.end())
+                    const auto found = counts.find(ops[i].reg.index());
+                    if (found != counts.end())
                         ++found->second;
                 }
             }
@@ -4311,13 +4325,15 @@ namespace
         if (candidates.empty())
             return false;
 
-        std::unordered_map<uint32_t, uint32_t> localMentions;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> localMentions;
         const bool hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
-        const auto* mentions = hasCurrentBranchScan ? &scanCache.scan.mentions : &localMentions;
+        const auto* mentions = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
         {
+            auto& counts = localMentions.emplace();
+            mentions     = &counts;
             for (const Candidate& candidate : candidates)
-                localMentions[candidate.rhs.index()] = 0;
+                counts[candidate.rhs.index()] = 0;
             for (const MicroInstr& inst : storage.view())
             {
                 const MicroInstrOperand* ops = inst.ops(operands);
@@ -4328,8 +4344,8 @@ namespace
                 {
                     if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
                         continue;
-                    const auto found = localMentions.find(ops[i].reg.index());
-                    if (found != localMentions.end())
+                    const auto found = counts.find(ops[i].reg.index());
+                    if (found != counts.end())
                         ++found->second;
                 }
             }

@@ -44,6 +44,8 @@ enum class MicroInstrFlagsE : uint16_t
     // An encoder may add implicit register uses or definitions for this opcode.
     EncoderRegUseDef    = 1 << 8,
     Fixed128BitOperands = 1 << 9,
+    // A definition-only physical register claim can start at the output slot.
+    RegisterDefsAtOutput = 1 << 10,
 };
 using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
 
@@ -118,6 +120,11 @@ struct MicroInstrOperand
     bool hasWideImmediateValue() const
     {
         return valueInt.bitWidth() > 64 && valueInt.as64() == valueU64;
+    }
+
+    bool isImmediateZero() const
+    {
+        return valueU64 == 0 && (!hasWideImmediateValue() || valueInt.isZero());
     }
 
     const ApInt& wideImmediateValue() const

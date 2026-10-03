@@ -77,7 +77,7 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadRegImm:
-                return (ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64) && !ops[2].immediateValue().isZero();
+                return (ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64) && !ops[2].isImmediateZero();
             case MicroInstrOpcode::LoadRegReg:
                 return ops[1].reg.isAnyInt();
             case MicroInstrOpcode::VecShuffleRegRegImm:

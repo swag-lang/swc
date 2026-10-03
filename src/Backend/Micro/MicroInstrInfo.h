@@ -10,6 +10,11 @@ namespace MicroInstrInfo
         return MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::TerminatorInstruction);
     }
 
+    inline bool registerDefsAtOutput(const MicroInstr& inst)
+    {
+        return MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::RegisterDefsAtOutput);
+    }
+
     inline bool isUnconditionalJumpInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         const MicroInstrDef& info = MicroInstr::info(inst.op);

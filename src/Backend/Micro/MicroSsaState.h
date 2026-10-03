@@ -134,6 +134,12 @@ private:
         uint32_t              position = 0;
     };
 
+    struct DominatorFrame
+    {
+        uint32_t blockIndex;
+        uint32_t nextSuccessor;
+    };
+
     struct ReachingValue
     {
         uint32_t position;
@@ -194,16 +200,15 @@ private:
     std::vector<BlockInfo> blocks_;
     // Block discovery and dominator construction are sequential. Keep their
     // temporary capacities across SSA rebuilds and functions on this worker.
-    std::vector<uint8_t>   blockMarks_;
-    std::vector<uint32_t>  domIdomValues_;
-    std::vector<uint32_t>  domRpoPosition_;
-    std::vector<uint32_t>  domRpoStamp_;
-    uint32_t               domRpoNextStamp_ = 1;
-    std::vector<uint32_t>  domDfsStack_;
-    std::vector<uint32_t>  domDfsIter_;
-    std::vector<uint32_t>  domPostOrder_;
-    std::vector<ValueInfo> valueInfos_;
-    std::vector<PhiInfo>   phiInfos_;
+    std::vector<uint8_t>        blockMarks_;
+    std::vector<uint32_t>       domIdomValues_;
+    std::vector<uint32_t>       domRpoPosition_;
+    std::vector<uint32_t>       domRpoStamp_;
+    uint32_t                    domRpoNextStamp_ = 1;
+    std::vector<DominatorFrame> domDfsStack_;
+    std::vector<uint32_t>       domPostOrder_;
+    std::vector<ValueInfo>      valueInfos_;
+    std::vector<PhiInfo>        phiInfos_;
     // Changes to each register's value along the dominator-tree rename walk.
     // Restores delimit sibling scopes without copying every live value per block.
     std::vector<SmallVector4<ReachingValue>> reachingValuesByReg_;

@@ -675,17 +675,22 @@ void MicroRegisterAllocationPass::computeConcreteClaimPositions()
     // operand, defined by an ABI shuffle, clobbered by a call, or merely live
     // between two of those. A global may not take a register over any of them.
     concreteClaimPositionsByDenseIndex_.resize(denseConcreteRegs_.regs().size());
+    // Shrinking has already discarded unused lists. Reset only the retained
+    // lists, and only when this run actually needs concrete claims.
+    for (auto& positions : concreteClaimPositionsByDenseIndex_)
+        positions.clear();
     concreteClaimPositionsComputed_ = true;
     if (denseConcreteRegs_.regs().empty())
         return;
 
-    // Ascending instruction indices and adjacent duplicate suppression keep
+    // Use lists are already unique. Only definitions and live-in positions
+    // can repeat an earlier claim at this instruction. Ascending indices keep
     // every register's positions strictly ordered without a separate sort.
     const uint32_t wordCount = denseConcreteRegs_.wordCount();
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
         for (const uint32_t denseIndex : useConcreteIndices_[idx])
-            appendUniquePosition(concreteClaimPositionsByDenseIndex_[denseIndex], idx);
+            concreteClaimPositionsByDenseIndex_[denseIndex].push_back(idx);
         for (const uint32_t denseIndex : defConcreteIndices_[idx])
             appendUniquePosition(concreteClaimPositionsByDenseIndex_[denseIndex], idx);
 
@@ -1274,7 +1279,7 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
             continue;
 
         auto&         regState = states_[candidate.denseIndex];
-        PendingInsert preload;
+        PendingInsert& preload  = pending.emplace_back();
         if (regState.rematerializable)
         {
             queueRematerializedLoad(preload, taken, regState);
@@ -1284,7 +1289,6 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
             SWC_ASSERT(regState.hasSpill);
             queueSpillLoad(preload, taken, regState, stackDepth);
         }
-        pending.push_back(preload);
 
         mapVirtReg(virtKey, taken);
         regState.dirty = false;
@@ -1394,7 +1398,7 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
                 continue;
             }
 
-            PendingInsert fixup;
+            PendingInsert& fixup = pending.emplace_back();
             if (regState.rematerializable)
             {
                 queueRematerializedLoad(fixup, expectedPhys, regState);
@@ -1404,7 +1408,6 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
                 SWC_ASSERT(regState.hasSpill);
                 queueSpillLoad(fixup, expectedPhys, regState, stackDepth);
             }
-            pending.push_back(fixup);
 
             mapVirtReg(virtKey, expectedPhys);
             regState.dirty = false;
@@ -2176,6 +2179,12 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     states_.resize(virtualRegs.size());
     usePositionsByDenseVirtual_.resize(virtualRegs.size());
     concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
+    // Retain inner capacities, but do not clear lists that resize just destroyed.
+    // Runs without virtual registers never reach or query these buffers.
+    for (auto& positions : usePositionsByDenseVirtual_)
+        positions.clear();
+    for (auto& positions : concreteTouchPositionsByDenseIndex_)
+        positions.clear();
     definitionCounts_.assign(virtualRegs.size(), 0);
 
     // Packed construction can consume scalar inputs. Keep those spill slots at
@@ -2194,12 +2203,13 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             states_[denseIndex].wideFloat = true;
     }
 
+    // Each instruction's use lists are unique; a definition can repeat a use.
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
         for (const uint32_t denseIndex : useVirtualIndices_[idx])
         {
             SWC_ASSERT(denseIndex < usePositionsByDenseVirtual_.size());
-            appendUniquePosition(usePositionsByDenseVirtual_[denseIndex], idx);
+            usePositionsByDenseVirtual_[denseIndex].push_back(idx);
         }
 
         for (const uint32_t denseIndex : defVirtualIndices_[idx])
@@ -2211,7 +2221,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         for (const uint32_t denseIndex : useConcreteIndices_[idx])
         {
             SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
-            appendUniquePosition(concreteTouchPositionsByDenseIndex_[denseIndex], idx);
+            concreteTouchPositionsByDenseIndex_[denseIndex].push_back(idx);
         }
 
         for (const uint32_t denseIndex : defConcreteIndices_[idx])
@@ -2700,9 +2710,8 @@ bool MicroRegisterAllocationPass::spillOrRematerializeLiveValue(MicroReg physReg
     if (!regState.dirty && hadSpillSlot)
         return false;
 
-    PendingInsert spillPending;
+    PendingInsert& spillPending = pending.emplace_back();
     queueSpillStore(spillPending, physReg, regState, stackDepth);
-    pending.push_back(spillPending);
     regState.dirty = false;
     return true;
 }
@@ -3141,7 +3150,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         spillFrameUsed_ += slotSize;
         context_->passChanged = true;
 
-        PendingInsert save;
+        PendingInsert& save  = pending.emplace_back();
         save.op              = MicroInstrOpcode::LoadMemReg;
         save.numOps          = 4;
         save.ops[0].reg      = conv_->stackPointer;
@@ -3149,7 +3158,6 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         save.ops[2].opBits   = bits;
         save.ops[3].valueU64 = spillMemOffset(slotOffset, stackDepth);
         noteSpillAccess(save.ops[3].valueU64, bits);
-        pending.push_back(save);
 
         pendingBorrowRestores_.push_back({.physReg = reg, .slotOffset = slotOffset, .slotBits = bits, .atIndex = hi + 1});
 
@@ -3322,12 +3330,11 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
 
     if (request.isUse)
     {
-        PendingInsert loadPending;
+        PendingInsert& loadPending = pending.emplace_back();
         if (regState.rematerializable)
             queueRematerializedLoad(loadPending, physReg, regState);
         else
             queueSpillLoad(loadPending, physReg, regState, stackDepth);
-        pending.push_back(loadPending);
         regState.dirty = false;
     }
 
@@ -3402,9 +3409,8 @@ void MicroRegisterAllocationPass::saveRestorePinnedAcrossCall(const uint32_t ins
             continue;
 
         auto&         regState = states_[denseIndex];
-        PendingInsert save;
+        PendingInsert& save     = pending.emplace_back();
         queueSpillStore(save, regState.phys, regState, stackDepth);
-        pending.push_back(save);
         pendingBorrowRestores_.push_back({.physReg = regState.phys, .slotOffset = regState.spillOffset, .slotBits = regState.spillBits, .atIndex = instructionIndex + 1});
     }
 }
@@ -4177,9 +4183,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 // values stay register-resident across the loop and are exempt.
                 if (regState.loopCarriedHome && !regState.pinned && regState.mapped && regState.hasSpill)
                 {
-                    PendingInsert storePending;
+                    PendingInsert& storePending = deferredLoopCarriedStores_.emplace_back();
                     queueSpillStore(storePending, physReg, regState, stackDepth);
-                    deferredLoopCarriedStores_.push_back(storePending);
                     regState.dirty = false;
                 }
             }
@@ -4330,11 +4335,6 @@ void MicroRegisterAllocationPass::clearState()
     defVirtualIndices_.clear();
     useConcreteIndices_.clear();
     defConcreteIndices_.clear();
-    // Keep the inner capacities for the next function's register positions.
-    for (auto& positions : usePositionsByDenseVirtual_)
-        positions.clear();
-    for (auto& positions : concreteTouchPositionsByDenseIndex_)
-        positions.clear();
     nextUsePositionCursor_.clear();
     nextConcreteTouchCursor_.clear();
     liveInVirtualBits_.clear();
@@ -4342,9 +4342,6 @@ void MicroRegisterAllocationPass::clearState()
     predecessors_ = {};
     virtualSpanLo_.clear();
     virtualSpanHi_.clear();
-    // Keep each register's position buffer for the next function on this worker.
-    for (auto& positions : concreteClaimPositionsByDenseIndex_)
-        positions.clear();
     concreteClaimPositionsComputed_ = false;
     denseGlobalPhysRegs_.clear();
     pendingBorrowRestores_.clear();

@@ -2653,8 +2653,8 @@ namespace
             return index < count ? storage.ptr(layout.order[index]) : nullptr;
         };
 
-        bool                                   changed = false;
-        std::unordered_map<uint32_t, uint32_t> inside;
+        bool                                                 changed = false;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> insideCounts;
         for (size_t start = 1; start < count; ++start)
         {
             const MicroInstr* firstSet = instAt(start);
@@ -2711,6 +2711,9 @@ namespace
                 // What a later link defines, other than D, only that link reads.
                 if (!links.empty())
                 {
+                    if (!insideCounts)
+                        insideCounts.emplace();
+                    auto& inside = *insideCounts;
                     inside.clear();
                     for (size_t index = at; index <= link.merge; ++index)
                     {
@@ -3066,10 +3069,15 @@ namespace
             bool     falls   = false;
         };
 
-        bool               changed = false;
-        LazyVirtualIntRegs nextVirtualIntRegs{context};
-        std::unordered_map<uint32_t, uint32_t> chainJumps;
-        std::unordered_map<uint32_t, Arm>      arms;
+        struct TableScratch
+        {
+            std::unordered_map<uint32_t, uint32_t> chainJumps;
+            std::unordered_map<uint32_t, Arm>      arms;
+        };
+
+        bool                        changed = false;
+        LazyVirtualIntRegs          nextVirtualIntRegs{context};
+        std::optional<TableScratch> tableScratch;
         for (size_t start = 0; start < count; ++start)
         {
             const MicroInstr* first = instAt(start);
@@ -3156,6 +3164,10 @@ namespace
             if (!fallsIntoCase && (!isUnconditionalJump(tail) || !tryGetJumpTargetLabelId(defaultId, *tail, tail->ops(operands))))
                 continue;
 
+            if (!tableScratch)
+                tableScratch.emplace();
+            auto& chainJumps = tableScratch->chainJumps;
+            auto& arms       = tableScratch->arms;
             chainJumps.clear();
             for (const uint32_t target : chainJumpTargets)
                 ++chainJumps[target];

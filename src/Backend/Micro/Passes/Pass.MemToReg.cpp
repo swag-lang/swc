@@ -135,13 +135,12 @@ namespace
             const MicroInstrOperand* ops = inst->ops(operands);
             if (!ops)
                 continue;
-            const auto modes   = MicroInstr::info(inst->op).resolvedRegModes(ops);
-            bool       defines = false;
+            const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
             for (size_t i = 0; i < modes.size(); ++i)
-                defines |= (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == reg;
-            if (!defines)
-                continue;
-            return inst->op == MicroInstrOpcode::ClearReg && ops[0].reg == reg;
+            {
+                if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == reg)
+                    return inst->op == MicroInstrOpcode::ClearReg && ops[0].reg == reg;
+            }
         }
         return false;
     }

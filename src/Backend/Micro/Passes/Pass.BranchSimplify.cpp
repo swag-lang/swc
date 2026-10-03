@@ -2973,10 +2973,8 @@ namespace
             if (mentions[flag.index()] != flagInside || mentions[value.index()] != valueInside)
                 continue;
 
-            bool hasRelocation = false;
-            const auto& relocated = relocationCache.get(context);
-            for (size_t index = at + 1; index < at + shapeSize; ++index)
-                hasRelocation |= relocated.contains(layout.order[index].get());
+            const auto& relocated     = relocationCache.get(context);
+            const bool  hasRelocation = std::ranges::any_of(std::span(layout.order).subspan(at + 1, shapeSize - 1), [&](MicroInstrRef ref) { return relocated.contains(ref.get()); });
             if (hasRelocation || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, layout.order[at + shapeSize - 2]))
                 continue;
 

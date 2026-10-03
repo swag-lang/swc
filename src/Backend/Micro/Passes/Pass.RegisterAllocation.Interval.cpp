@@ -255,32 +255,7 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
     // operand landed there - so those keep the whole instruction.
     const auto isPlainDefinition = [&](const uint32_t idx) {
         const MicroInstr* inst = instructions_->ptr(controlFlowGraph_->instructionRefs()[idx]);
-        if (!inst)
-            return false;
-        if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
-            return true;
-        switch (inst->op)
-        {
-            case MicroInstrOpcode::LoadRegReg:
-            case MicroInstrOpcode::LoadRegImm:
-            case MicroInstrOpcode::LoadRegPtrImm:
-            case MicroInstrOpcode::LoadRegPtrReloc:
-            case MicroInstrOpcode::LoadRegTlsSlot:
-            case MicroInstrOpcode::LoadRegMem:
-            case MicroInstrOpcode::LoadAmcRegMem:
-            case MicroInstrOpcode::LoadSignedExtRegMem:
-            case MicroInstrOpcode::LoadZeroExtRegMem:
-            case MicroInstrOpcode::LoadSignedExtRegReg:
-            case MicroInstrOpcode::LoadZeroExtRegReg:
-            case MicroInstrOpcode::LoadAddrRegMem:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
-            case MicroInstrOpcode::VecUnaryRegMem:
-            case MicroInstrOpcode::VecUnaryAmcRegMem:
-            case MicroInstrOpcode::ClearReg:
-                return true;
-            default:
-                return false;
-        }
+        return inst && MicroInstrInfo::registerDefsAtOutput(*inst);
     };
 
     outByPoolIndex.clear();

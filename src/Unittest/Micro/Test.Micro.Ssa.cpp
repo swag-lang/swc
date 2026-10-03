@@ -4,6 +4,7 @@
 
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Unittest/Unittest.h"
 
@@ -869,6 +870,92 @@ SWC_TEST_BEGIN(MicroSsa_ForwardOnlyRootsKeepComponentDominatorsSeparate)
         const auto* second = ssa.valueInfo(phi->incomingValueIds[1]);
         if (!first || !second || first->instRef != entryDef || second->instRef != orphanDef)
             return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSsa_InstructionDefinitionsStayContiguousAcrossRebuilds)
+{
+    constexpr MicroReg first  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg second = MicroReg::virtualIntReg(2);
+    constexpr MicroReg fixed  = MicroReg::intReg(0);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegImm(first, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(second, ApInt(9, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(first, second, MicroOp::Exchange, MicroOpBits::B64);
+    const auto exchange = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    const auto end = builder.instructions().lastInstructionRef();
+
+    MicroSsaState ssa;
+    for (const bool mixed : {false, true, false})
+    {
+        builder.instructions().ptr(exchange)->ops(builder.operands())[0].reg = mixed ? fixed : first;
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        uint32_t firstValue  = MicroSsaState::K_INVALID_VALUE;
+        uint32_t secondValue = MicroSsaState::K_INVALID_VALUE;
+        if (ssa.defValue(first, exchange, firstValue) == mixed || !ssa.defValue(second, exchange, secondValue))
+            return Result::Error;
+        if (!mixed && secondValue != firstValue + 1)
+            return Result::Error;
+        const auto* info = ssa.valueInfo(secondValue);
+        if (!info || info->instRef != exchange || info->reg != second || ssa.reachingDef(second, end).valueId != secondValue)
+            return Result::Error;
+        if (ssa.defValue(fixed, exchange, firstValue) || ssa.defValue(second, end, firstValue))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSsa_DefinitionDominanceMatchesInstructionGraph)
+{
+    constexpr uint32_t blockCount = 12;
+    constexpr MicroReg value      = MicroReg::virtualIntReg(1);
+    for (uint32_t shape = 0; shape < 48; ++shape)
+    {
+        MicroBuilder                          builder(ctx);
+        std::array<MicroLabelRef, blockCount> labels;
+        std::array<MicroInstrRef, blockCount> definitions;
+        for (auto& label : labels)
+            label = builder.createLabel();
+        // A real entry precedes the loop headers, including shapes with a
+        // disconnected cycle or a predecessor-less unreachable component.
+        builder.emitLoadRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+        for (uint32_t block = 0; block < blockCount; ++block)
+        {
+            builder.placeLabel(labels[block]);
+            builder.emitLoadRegImm(value, ApInt(block + 1, 64), MicroOpBits::B64);
+            definitions[block]    = builder.instructions().lastInstructionRef();
+            const uint32_t target = (shape * 7 + block * 5 + 3) % blockCount;
+            if ((shape + block) % 5 == 0)
+                builder.emitRet();
+            else
+                builder.emitJumpToLabel((shape + block) % 3 == 0 ? MicroCond::Unconditional : MicroCond::Zero, MicroOpBits::B64, labels[target]);
+        }
+        builder.emitRet();
+
+        MicroSsaState ssa;
+        for (uint32_t rebuild = 0; rebuild < 2; ++rebuild)
+        {
+            ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+            const auto& cfg  = builder.controlFlowGraph();
+            const auto  dom  = MicroPassHelpers::computeInstructionDominators(cfg, 0);
+            const auto  refs = cfg.instructionRefs();
+            for (const auto definition : definitions)
+            {
+                uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+                if (!ssa.defValue(value, definition, valueId))
+                    return Result::Error;
+                const auto index = static_cast<uint32_t>(std::ranges::find(refs, definition) - refs.begin());
+                for (uint32_t target = 0; target < refs.size(); ++target)
+                {
+                    if (ssa.definitionDominates(valueId, refs[target]) != dom.dominates(index, target))
+                        return Result::Error;
+                }
+            }
+        }
     }
     return Result::Continue;
 }

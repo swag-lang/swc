@@ -91,6 +91,12 @@ struct AllocatorSegment
     // Pages the segment can ever hand out, which is 64 for small pages and 8 for medium ones.
     usableMask: u64
 
+    // Bit i marks free page i as still committed. Recommitting a page and faulting its memory in
+    // again costs far more than the page's blocks, so an emptied page stays committed, within a
+    // process-wide budget, until a later claim reuses it for any class. A bit is only ever set
+    // while the page bit is held and cleared by the thread that claims the page bit next.
+    idleMask: u64
+
     unitShift: u32
     pageCount: u32
 
@@ -119,6 +125,10 @@ private var g_AllocatorArenas:      [AllocatorMaxArenas] AllocatorArena
 private var g_AllocatorArenaCount:  u32
 private var g_AllocatorFreeSegment: *AllocatorSegment?
 private var g_AllocatorKeySeed:     u64
+
+// Bytes of free pages left committed for reuse, and the most the process keeps.
+const AllocatorIdleMaxBytes = 8'u64 * 1024 * 1024
+private var g_AllocatorIdleBytes: u64
 
 // Committed bytes and the OS calls behind them, published for the allocator's statistics.
 var g_AllocatorCommittedBytes:  u64
@@ -443,7 +453,9 @@ impl AllocatorSegment
 
             let start = .pageCommitStart(index)
             let end   = .pageCommitEnd(index)
-            if not allocatorOsCommit(start, end - start)
+            if .takeIdleBit(bit) do
+                atomicSubU64(&g_AllocatorIdleBytes, end - start)
+            elif not allocatorOsCommit(start, end - start)
             {
                 .clearPageBit(bit)
                 return null
@@ -455,20 +467,87 @@ impl AllocatorSegment
         }
     }
 
-    // Returns a page with no live block. Its units are decommitted, so the resident cost of an
-    // idle class drops back to the segment header alone.
+    // Returns a page with no live block. It stays committed while the process-wide idle budget
+    // allows, so the next page any class needs costs no system call and no page fault; past the
+    // budget its units are decommitted and the resident cost drops back to the segment header.
     mtd releasePage(page: *AllocatorPage)
     {
         Swag.assert(page.used == 0)
         let index = page.unitIndex >> .unitShift
-        allocatorOsDecommit(.pageCommitStart(index), .pageCommitEnd(index) - .pageCommitStart(index))
+        let bit   = 1'u64 << index
+        let start = .pageCommitStart(index)
+        let size  = .pageCommitEnd(index) - start
 
         page.state     = .Free
         page.ownerHeap = null
         page.freeList  = 0
         page.carved    = page.areaStart
 
-        .clearPageBit(1'u64 << index)
+        if allocatorReserveIdle(size) do
+            .setIdleBit(bit)
+        else do
+            allocatorOsDecommit(start, size)
+
+        .clearPageBit(bit)
+    }
+
+    // Decommits every idle page of the segment. A page is claimed first, exactly as an allocation
+    // would claim it, so no other thread can be reusing it while its units go away.
+    mtd decommitIdlePages()
+    {
+        var idle = atomicGet(&.idleMask)
+        while idle
+        {
+            let index = cast(u32) Swag.bitCountTz(idle)
+            let bit   = 1'u64 << index
+            idle &= ~bit
+
+            let mask = atomicGet(&.pageMask)
+            if mask & bit do
+                continue
+            if Swag.atomcmpxchg(&.pageMask, mask, mask | bit) != mask
+            {
+                idle = atomicGet(&.idleMask)
+                continue
+            }
+
+            if .takeIdleBit(bit)
+            {
+                let start = .pageCommitStart(index)
+                let size  = .pageCommitEnd(index) - start
+                atomicSubU64(&g_AllocatorIdleBytes, size)
+                allocatorOsDecommit(start, size)
+            }
+
+            .clearPageBit(bit)
+        }
+    }
+
+    mtd setIdleBit(bit: u64)
+    {
+        var mask = .idleMask
+        while true
+        {
+            let seen = Swag.atomcmpxchg(&.idleMask, mask, mask | bit)
+            if seen == mask do
+                return
+            mask = seen
+        }
+    }
+
+    // Clears the idle bit of a page the caller has claimed, and reports whether it was set.
+    mtd takeIdleBit(bit: u64)->bool
+    {
+        var mask = .idleMask
+        while mask & bit
+        {
+            let seen = Swag.atomcmpxchg(&.idleMask, mask, mask & ~bit)
+            if seen == mask do
+                return true
+            mask = seen
+        }
+
+        return false
     }
 
     mtd clearPageBit(bit: u64)
@@ -484,6 +563,23 @@ impl AllocatorSegment
     }
 
     mtd isEmpty()->bool => atomicGet(&.pageMask) == 0
+}
+
+// Charges 'size' bytes to the idle budget, or reports that the budget has no room for them.
+func allocatorReserveIdle(size: u64)->bool
+{
+    var current = atomicGet(&g_AllocatorIdleBytes)
+    while true
+    {
+        if current + size > AllocatorIdleMaxBytes do
+            return false
+        let seen = Swag.atomcmpxchg(&g_AllocatorIdleBytes, current, current + size)
+        if seen == current do
+            return true
+        current = seen
+    }
+
+    return false
 }
 
 // Adds one address-space reservation. The caller holds the arena mutex.
@@ -592,6 +688,7 @@ func allocatorAcquireSegment(owner: *void, unitShift: u32)->*AllocatorSegment?
 func allocatorReleaseSegment(segment: *AllocatorSegment)
 {
     Swag.assert(segment.isEmpty())
+    segment.decommitIdlePages()
 
     g_AllocatorArenaMutex.lock()
     defer g_AllocatorArenaMutex.unlock()

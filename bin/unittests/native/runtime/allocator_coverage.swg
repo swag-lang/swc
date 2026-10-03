@@ -155,8 +155,9 @@ func freeOne(itf: IAllocator, address: *void?)
 }
 
 // ----------------------------------------------------------------------------
-// A block bigger than any class takes the header path: no page carries it, and
-// freeing it hands its memory straight back to the operating system.
+// A block bigger than any class takes the header path: no page carries it. Its
+// header covers the whole rounded block, and freeing it keeps the block cached, so
+// a later request of a neighbouring size reuses it without calling the system.
 // ----------------------------------------------------------------------------
 #test
 {
@@ -169,7 +170,7 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.assert(allocatorPageOf(cast(u64) address) == null)
 
     let header = cast(*AllocatorHeader) (cast([*] u8) address - #sizeof(AllocatorHeader))
-    Swag.assert(header.blockSize == big)
+    Swag.assert(header.blockSize >= big)
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(alloc.stats().countAlloc == 1)
 
@@ -178,6 +179,16 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.assert(after.countAlloc == 0)
     Swag.assert(after.countPage == 0)
     Swag.assert(after.sizeCached == 0)
+
+    let reused = allocOne(itf, big - 2048)
+    Swag.assert(reused == address)
+    Swag.assert(alloc.stats().countOsCommit == after.countOsCommit)
+    freeOne(itf, reused)
+
+    // Trimming gives the cached block back to the system.
+    let committed = alloc.stats().sizeCommitted
+    alloc.trim()
+    Swag.assert(alloc.stats().sizeCommitted < committed)
 
     alloc.releaseAll()
 }

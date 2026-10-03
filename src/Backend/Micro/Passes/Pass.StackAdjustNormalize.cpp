@@ -64,11 +64,10 @@ namespace
         if (ops[2].microOp != MicroOp::Subtract && ops[2].microOp != MicroOp::Add)
             return false;
 
-        const ApInt immediate = ops[3].immediateValue(64);
-        if (!immediate.fit64())
+        if (ops[3].hasWideImmediateValue() && !ops[3].wideImmediateValue().fit64())
             return false;
 
-        const uint64_t amount = immediate.as64();
+        const uint64_t amount = ops[3].valueU64;
         if (!amount)
             return false;
 

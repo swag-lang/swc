@@ -300,14 +300,17 @@ namespace
         std::vector<uint32_t>              indegree(builder.runtimeDependencies.size(), 0);
         for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
         {
-            std::unordered_set<uint32_t> directDependencies;
             for (const Utf8& importedModule : builder.runtimeDependencies[i].transitiveImports)
             {
                 const auto it = dependencyIndices.find(importedModule);
-                if (it == dependencyIndices.end() || it->second == i || !directDependencies.insert(it->second).second)
+                if (it == dependencyIndices.end() || it->second == i)
                     continue;
 
-                outgoing[it->second].push_back(i);
+                // Modules are visited in order, so a repeated edge is the last one appended.
+                auto& dependents = outgoing[it->second];
+                if (!dependents.empty() && dependents.back() == i)
+                    continue;
+                dependents.push_back(i);
                 indegree[i] += 1;
             }
         }

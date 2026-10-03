@@ -557,13 +557,12 @@ namespace
             const uint64_t count = size / elemSize;
             if (count > K_COMPARE_UNROLLED_ELEMENTS)
             {
-                ComparePart arrayPart;
-                arrayPart.kind   = ComparePart::Kind::Array;
-                arrayPart.offset = base;
-                arrayPart.size   = elemSize;
-                arrayPart.count  = count;
-                arrayPart.elemParts.assign(elemParts.begin(), elemParts.end());
-                out.push_back(std::move(arrayPart));
+                ComparePart& arrayPart = out.emplace_back();
+                arrayPart.kind         = ComparePart::Kind::Array;
+                arrayPart.offset       = base;
+                arrayPart.size         = elemSize;
+                arrayPart.count        = count;
+                arrayPart.elemParts.assign(std::make_move_iterator(elemParts.begin()), std::make_move_iterator(elemParts.end()));
                 return;
             }
 
@@ -571,12 +570,11 @@ namespace
             {
                 for (const ComparePart& part : elemParts)
                 {
-                    ComparePart elemPart = part;
-                    elemPart.offset      = base + elem * elemSize + part.offset;
-                    if (elemPart.kind == ComparePart::Kind::Bytes)
-                        appendCompareBytes(out, elemPart.offset, elemPart.size);
+                    const uint64_t offset = base + elem * elemSize + part.offset;
+                    if (part.kind == ComparePart::Kind::Bytes)
+                        appendCompareBytes(out, offset, part.size);
                     else
-                        out.push_back(elemPart);
+                        out.emplace_back(part).offset = offset;
                 }
             }
 

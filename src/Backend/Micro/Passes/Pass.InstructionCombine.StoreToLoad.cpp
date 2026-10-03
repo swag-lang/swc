@@ -187,20 +187,19 @@ namespace InstructionCombine
         // Relocation identity per instruction, so RIP-relative loads of the
         // same target can forward to each other: their (base, off) pair is
         // always ([ip], 0) and only the relocation tells two targets apart.
-        std::unordered_map<uint32_t, const MicroRelocation*> relocationByRef;
-        bool                                                 relocationsReady       = false;
-        const auto                                           ensureRelocationsReady = [&]() {
-            if (relocationsReady)
+        std::optional<std::unordered_map<uint32_t, const MicroRelocation*>> relocationByRef;
+        const auto                                                          ensureRelocationsReady = [&]() {
+            if (relocationByRef)
                 return;
+            relocationByRef.emplace();
             if (ctx.builder)
             {
                 for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
                 {
                     if (reloc.instructionRef.isValid())
-                        relocationByRef[reloc.instructionRef.get()] = &reloc;
+                        (*relocationByRef)[reloc.instructionRef.get()] = &reloc;
                 }
             }
-            relocationsReady = true;
         };
 
         Cache cache;
@@ -223,8 +222,8 @@ namespace InstructionCombine
                     // Forwarding only invalidates an existing relocation; the
                     // first RIP access sees the original snapshot.
                     ensureRelocationsReady();
-                    const auto relocIt = relocationByRef.find(it.current.get());
-                    if (relocIt == relocationByRef.end() || relocIt->second->form != MicroRelocation::Form::Relative32)
+                    const auto relocIt = relocationByRef->find(it.current.get());
+                    if (relocIt == relocationByRef->end() || relocIt->second->form != MicroRelocation::Form::Relative32)
                     {
                         dropEntriesReferencing(cache, ops[0].reg);
                         continue;
@@ -259,14 +258,13 @@ namespace InstructionCombine
                 // is excluded here regardless of the claim it just added.
                 if (!forwarded && !claimed && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
                 {
-                    CacheEntry entry;
-                    entry.base       = ops[1].reg;
-                    entry.src        = ops[0].reg;
-                    entry.bits       = ops[2].opBits;
-                    entry.off        = ops[3].valueU64;
-                    entry.relocation = relocation;
-                    entry.fromLoad   = true;
-                    cache.push_back(entry);
+                    CacheEntry& entry = cache.emplace_back();
+                    entry.base        = ops[1].reg;
+                    entry.src         = ops[0].reg;
+                    entry.bits        = ops[2].opBits;
+                    entry.off         = ops[3].valueU64;
+                    entry.relocation  = relocation;
+                    entry.fromLoad    = true;
                 }
                 continue;
             }
@@ -286,8 +284,8 @@ namespace InstructionCombine
                     if (ctx.isClaimed(it.current))
                         continue;
                     ensureRelocationsReady();
-                    const auto relocIt = relocationByRef.find(it.current.get());
-                    if (relocIt == relocationByRef.end() || relocIt->second->form != MicroRelocation::Form::Relative32)
+                    const auto relocIt = relocationByRef->find(it.current.get());
+                    if (relocIt == relocationByRef->end() || relocIt->second->form != MicroRelocation::Form::Relative32)
                         continue;
                     const MicroRelocation::Kind kind = relocIt->second->kind;
                     if (kind != MicroRelocation::Kind::GlobalInitAddress && kind != MicroRelocation::Kind::GlobalZeroAddress)
@@ -304,12 +302,11 @@ namespace InstructionCombine
                 if (ctx.isClaimed(it.current))
                     continue;
 
-                CacheEntry entry;
-                entry.base = base;
-                entry.src  = ops[1].reg;
-                entry.bits = bits;
-                entry.off  = off;
-                cache.push_back(entry);
+                CacheEntry& entry = cache.emplace_back();
+                entry.base        = base;
+                entry.src         = ops[1].reg;
+                entry.bits        = bits;
+                entry.off         = off;
                 continue;
             }
 

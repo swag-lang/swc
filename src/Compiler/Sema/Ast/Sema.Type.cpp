@@ -53,23 +53,17 @@ namespace
         std::vector<const Symbol*> symbols;
         symEnum.getAllSymbols(symbols);
 
-        std::vector<const SymbolEnumValue*> values;
-        values.reserve(symbols.size());
-        for (const Symbol* symbol : symbols)
-        {
-            const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
-            if (enumValue)
-                values.push_back(enumValue);
-        }
+        std::erase_if(symbols, [](const Symbol* symbol) { return !symbol || !symbol->isEnumValue(); });
 
         const TypeRef     underlyingTypeRef = symEnum.underlyingType(sema.ctx()).unwrap(sema.ctx(), symEnum.underlyingTypeRef(), TypeExpandE::Alias);
-        const uint64_t    count             = values.size();
+        const uint64_t    count             = symbols.size();
         std::vector<bool> seen(count);
         bool              isDense = count != 0 && underlyingTypeRef.isValid() && sema.typeMgr().get(underlyingTypeRef).isInt();
-        for (const SymbolEnumValue* value : values)
+        for (const Symbol* symbol : symbols)
         {
-            const ConstantValue& enumCst = sema.cstMgr().get(value->cstRef());
-            const ConstantRef    rawRef  = enumCst.isEnumValue() ? enumCst.getEnumValue() : value->cstRef();
+            const auto&          value   = symbol->cast<SymbolEnumValue>();
+            const ConstantValue& enumCst = sema.cstMgr().get(value.cstRef());
+            const ConstantRef    rawRef  = enumCst.isEnumValue() ? enumCst.getEnumValue() : value.cstRef();
             const ConstantValue& rawCst  = sema.cstMgr().get(rawRef);
             if (!rawCst.isInt() || !rawCst.getInt().fits64() || rawCst.getInt().isNegative())
             {

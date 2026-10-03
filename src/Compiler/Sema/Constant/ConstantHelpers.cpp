@@ -23,10 +23,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t sourceCodeLocationShardIndex(const SourceCodeRange& codeRange, const SymbolFunction* function)
+    // The shard decides which strings a location shares with its neighbours, so it is derived
+    // from what the location says, never from a pointer or a load-order index: either would
+    // make the read-only data of two builds of the same program differ.
+    uint32_t sourceCodeLocationShardIndex(const SourceCodeRange& codeRange, std::string_view fileName, std::string_view funcName)
     {
-        uint32_t hash = Math::hash(codeRange.srcView ? codeRange.srcView->ref().get() : 0);
-        hash          = Math::hashCombine(hash, reinterpret_cast<uint64_t>(function));
+        uint32_t hash = Math::hash(fileName);
+        hash          = Math::hashCombine(hash, Math::hash(funcName));
         hash          = Math::hashCombine(hash, codeRange.line);
         hash          = Math::hashCombine(hash, codeRange.column);
         hash          = Math::hashCombine(hash, codeRange.len);
@@ -737,7 +740,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     const Utf8        fileName = file ? Utf8(file->path().string()) : Utf8{};
     const Utf8        funcName = function ? function->getFullScopedName(ctx) : Utf8{};
 
-    const uint32_t shardIndex = sourceCodeLocationShardIndex(codeRange, function);
+    const uint32_t shardIndex = sourceCodeLocationShardIndex(codeRange, fileName, funcName);
     DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);
 
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::SourceCodeLocation), alignof(Runtime::SourceCodeLocation), true);

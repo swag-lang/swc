@@ -398,9 +398,9 @@ namespace
     }
 
     // Split `nodeIndex` at even position `pos` (strictly inside it): the node
-    // keeps everything before, the child takes everything from `pos` on and is
-    // re-queued. Returns the child index, or K_IV_INVALID when the split is
-    // impossible there.
+    // keeps everything before, the child takes everything from `pos` on.
+    // The caller queues children that compete for a register; a spilled child
+    // stays out of the queue. Returns K_IV_INVALID when the split is impossible.
     uint32_t splitNodeAt(WalkState& walk, const uint32_t nodeIndex, uint32_t pos)
     {
         auto& nodes = *walk.nodes;
@@ -457,7 +457,6 @@ namespace
         const auto childIndex = static_cast<uint32_t>(nodes.size());
         nodes.push_back(std::move(child));
         ++walk.splitCount;
-        pushUnhandled(walk, childIndex);
         return childIndex;
     }
 
@@ -550,9 +549,9 @@ namespace
     {
         const auto&    nodes    = *walk.nodes;
         const uint32_t splitPos = pos & ~1u;
-        const uint32_t lastUse  = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (splitPos <= nodes[ownerIndex].start() || splitPos >= nodes[ownerIndex].end())
             return false;
+        const uint32_t lastUse = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (lastUse != K_IV_INVALID && splitPos <= lastUse)
             return false;
         const uint32_t firstAccess = nodes[ownerIndex].firstUseAfter(splitPos);
@@ -573,9 +572,9 @@ namespace
         const uint32_t splitPos = pos & ~1u;
         // No access may sit at or beyond the cut on the register side: the
         // spilled child re-earns a register only from its first access on.
-        const uint32_t lastUse = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (splitPos <= nodes[ownerIndex].start())
             return false;
+        const uint32_t lastUse = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (lastUse != K_IV_INVALID && splitPos <= lastUse)
             return false;
 
@@ -600,12 +599,8 @@ namespace
             if (spilledIndex == K_IV_INVALID)
                 return false;
 
-            // The child was queued as an ordinary competitor by splitNodeAt;
-            // it carries in memory instead, and only the part from its first
-            // access on competes for a register again.
-            auto queued = std::ranges::find(walk.unhandled, spilledIndex);
-            if (queued != walk.unhandled.end())
-                walk.unhandled.erase(queued);
+            // This child carries in memory. Only the part from its next access
+            // on competes for a register again, so only that later split queues.
             nodes[spilledIndex].spilled = true;
         }
         ++walk.spillCount;
@@ -631,7 +626,10 @@ namespace
                 // assign a still-live input value's register to the reload.
                 const uint32_t earliestReload = (pos & 1u) ? pos + 1 : splitPos;
                 const uint32_t reloadPos      = chooseSplitPos(walk, std::max(nodes[spilledIndex].start() + 1, earliestReload), firstAccess);
-                ok                            = splitNodeAt(walk, spilledIndex, reloadPos) != K_IV_INVALID;
+                const uint32_t reloadIndex    = splitNodeAt(walk, spilledIndex, reloadPos);
+                ok                            = reloadIndex != K_IV_INVALID;
+                if (ok)
+                    pushUnhandled(walk, reloadIndex);
             }
         }
         // A whole-node spill gives the register up only now, so the reload
@@ -847,8 +845,11 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];
             if (freeUntilPos[bestFree] < out.nodes[currentIndex].end())
             {
-                const uint32_t splitPos = chooseSplitPos(walk, position + 1, freeUntilPos[bestFree]);
-                if (splitNodeAt(walk, currentIndex, splitPos) == K_IV_INVALID && !walk.failed)
+                const uint32_t splitPos   = chooseSplitPos(walk, position + 1, freeUntilPos[bestFree]);
+                const uint32_t childIndex = splitNodeAt(walk, currentIndex, splitPos);
+                if (childIndex != K_IV_INVALID)
+                    pushUnhandled(walk, childIndex);
+                else if (!walk.failed)
                 {
                     walk.failed     = true;
                     walk.failReason = "free-reg split landed outside the interval";
@@ -968,8 +969,11 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             ++walk.spillCount;
             if (currentFirstUse != std::numeric_limits<uint32_t>::max())
             {
-                const uint32_t reloadPos = chooseSplitPos(walk, out.nodes[currentIndex].start() + 1, currentFirstUse);
-                if (splitNodeAt(walk, currentIndex, reloadPos) == K_IV_INVALID && !walk.failed)
+                const uint32_t reloadPos   = chooseSplitPos(walk, out.nodes[currentIndex].start() + 1, currentFirstUse);
+                const uint32_t reloadIndex = splitNodeAt(walk, currentIndex, reloadPos);
+                if (reloadIndex != K_IV_INVALID)
+                    pushUnhandled(walk, reloadIndex);
+                else if (!walk.failed)
                 {
                     walk.failed     = true;
                     walk.failReason = "spill split before first access failed";
@@ -1018,7 +1022,10 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
                 // A claim that only defines the register clashes at an output
                 // slot; the walk splits at input slots only, so the split
                 // lands at the latest legal even position before the clash.
-                if (splitNodeAt(walk, currentIndex, chooseSplitPos(walk, position + 1, fixedClash)) == K_IV_INVALID && !walk.failed)
+                const uint32_t childIndex = splitNodeAt(walk, currentIndex, chooseSplitPos(walk, position + 1, fixedClash));
+                if (childIndex != K_IV_INVALID)
+                    pushUnhandled(walk, childIndex);
+                else if (!walk.failed)
                 {
                     walk.failed     = true;
                     walk.failReason = "cannot split before a fixed clash";
@@ -2371,16 +2378,16 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
                 continue;
             }
 
-            const bool touchesDst = std::ranges::find(defs, c.dst) != defs.end() || std::ranges::find(uses, c.dst) != uses.end();
-            const bool touchesSrc = std::ranges::find(defs, c.src) != defs.end() || std::ranges::find(uses, c.src) != uses.end();
+            const bool defDst     = std::ranges::find(defs, c.dst) != defs.end();
+            const bool defSrc     = std::ranges::find(defs, c.src) != defs.end();
+            const bool touchesDst = defDst || std::ranges::find(uses, c.dst) != uses.end();
+            const bool touchesSrc = defSrc || std::ranges::find(uses, c.src) != uses.end();
             if ((touchesDst && !namedByOperand(c.dst)) || (touchesSrc && !namedByOperand(c.src)))
             {
                 c.rejected = true;
                 continue;
             }
 
-            const bool defDst = std::ranges::find(defs, c.dst) != defs.end();
-            const bool defSrc = std::ranges::find(defs, c.src) != defs.end();
             if (!defDst && !defSrc)
                 continue;
             if (defDst && defSrc)

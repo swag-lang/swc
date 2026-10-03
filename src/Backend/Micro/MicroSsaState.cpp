@@ -486,19 +486,16 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     }
 
     auto& dfsStack    = domDfsStack_;
-    auto& dfsIter     = domDfsIter_;
     auto& postOrder   = domPostOrder_;
     auto& rpoPosition = domRpoPosition_;
     auto& rpoStamp    = domRpoStamp_;
     dfsStack.clear();
-    dfsIter.clear();
     postOrder.clear();
     // A position is read only for a block stamped into the current component.
     // Retain stamps across functions to avoid clearing both arrays on every rebuild.
     rpoPosition.resize(blocks_.size());
     rpoStamp.resize(blocks_.size(), 0);
     dfsStack.reserve(blocks_.size());
-    dfsIter.reserve(blocks_.size());
     postOrder.reserve(blocks_.size());
 
     size_t   rootCursor      = 0;
@@ -528,33 +525,28 @@ bool MicroSsaState::computeDominators(const bool acyclic)
             break;
 
         dfsStack.clear();
-        dfsIter.clear();
         postOrder.clear();
-        dfsStack.push_back(rootBlock);
-        dfsIter.push_back(0);
+        dfsStack.push_back({rootBlock, 0});
         visited[rootBlock] = 1;
 
         while (!dfsStack.empty())
         {
-            const uint32_t blockIndex = dfsStack.back();
-            uint32_t&      iterIndex  = dfsIter.back();
-            const auto&    successors = blocks_[blockIndex].successors;
+            DominatorFrame& frame      = dfsStack.back();
+            const auto&     successors = blocks_[frame.blockIndex].successors;
 
-            if (iterIndex < successors.size())
+            if (frame.nextSuccessor < successors.size())
             {
-                const uint32_t successorBlock = successors[iterIndex++];
+                const uint32_t successorBlock = successors[frame.nextSuccessor++];
                 if (!visited[successorBlock])
                 {
                     visited[successorBlock] = 1;
-                    dfsStack.push_back(successorBlock);
-                    dfsIter.push_back(0);
+                    dfsStack.push_back({successorBlock, 0});
                 }
                 continue;
             }
 
-            postOrder.push_back(blockIndex);
+            postOrder.push_back(frame.blockIndex);
             dfsStack.pop_back();
-            dfsIter.pop_back();
         }
 
         if (!domRpoNextStamp_)

@@ -88,8 +88,7 @@ namespace
         // Value numbering deliberately leaves frame reads to mem-to-reg.
         // Preserving them here would create single-use integer copies that
         // instruction combining removes, only to recreate them next sweep.
-        std::unordered_set<MicroReg>                                                           frameDerived;
-        bool                                                                                   frameDerivedReady = false;
+        std::optional<std::unordered_set<MicroReg>>                                            frameDerived;
         std::unordered_map<MicroReg, std::unordered_map<uint64_t, std::vector<MicroInstrRef>>> loads;
         std::vector<MicroInstrRef>                                                             preserve;
         const auto                                                                             flush = [&] {
@@ -112,18 +111,20 @@ namespace
             }
             const auto modes = info.resolvedRegModes(ops);
             for (size_t i = 0; i < modes.size(); ++i)
+            {
                 if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isAnyInt())
+                {
                     flush();
+                    break;
+                }
+            }
             if (it->op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
                 ops[0].reg.isVirtualFloat() && ops[1].reg.isVirtualInt() &&
                 destructive.contains(ops[0].reg) && !excluded.contains(ops[0].reg))
             {
-                if (!frameDerivedReady)
-                {
-                    MicroPassHelpers::collectFrameDerivedRegs(frameDerived, storage, operands, CallConv::get(context.callConvKind).stackPointer);
-                    frameDerivedReady = true;
-                }
-                if (!frameDerived.contains(ops[1].reg))
+                if (!frameDerived)
+                    MicroPassHelpers::collectFrameDerivedRegs(frameDerived.emplace(), storage, operands, CallConv::get(context.callConvKind).stackPointer);
+                if (!frameDerived->contains(ops[1].reg))
                     loads[ops[1].reg][ops[3].valueU64].push_back(it.current);
             }
         }
@@ -162,8 +163,9 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         return Result::Continue;
     }
 
-    MicroSsaState local;
-    const auto*   ssa = MicroSsaState::ensureFor(context, local);
+    std::optional<MicroSsaState> local;
+    MicroSsaState&               scratch = context.ssaState ? *context.ssaState : local.emplace();
+    const auto*                  ssa     = MicroSsaState::ensureFor(context, scratch);
     if (!ssa)
         return Result::Continue;
 

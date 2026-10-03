@@ -460,6 +460,7 @@ ALLOC_WORKLOADS = [
     ("large", "32 blocs vivants de 64&nbsp;Kio &agrave; 1&nbsp;Mio, une page touch&eacute;e sur 4&nbsp;Kio"),
     ("realloc", "tampons doubl&eacute;s de 16 octets &agrave; 4&nbsp;Mio"),
     ("spread", "quelques blocs vivants de douze tailles, comme une application"),
+    ("grow", "4 millions de blocs de 32 octets allou&eacute;s avant toute lib&eacute;ration"),
     ("spread:8", "la m&ecirc;me chose sur 8 threads"),
     ("churn:4", "churn sur 4 threads"),
     ("medium:4", "medium sur 4 threads"),

@@ -5,7 +5,7 @@ using Core
 // 'Memory.alloc' and 'Memory.free', the path ordinary Swag code takes, and every allocated payload
 // is touched. 'allocbench.c' runs the same workloads against mimalloc and the C runtime heap.
 //
-// Usage: allocbench <pair|trees|churn|medium|large|realloc|spread|xfer> [threads]
+// Usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer> [threads]
 
 const ChurnSlots  = 50_000'u64
 const LargeSlots  = 32'u64
@@ -23,6 +23,7 @@ enum Workload
     Large       // 32 live blocks of 64 KiB to 1 MiB, replaced at random, one byte touched per page
     Realloc     // Buffers doubled from 16 bytes to 4 MiB through reallocation
     Spread      // A few live blocks of twelve sizes, as a long-running application holds them
+    Grow        // Four million 32-byte blocks allocated before any is freed
     Xfer        // Producer/consumer pairs: one thread allocates, the other frees
 }
 
@@ -175,6 +176,21 @@ func run(workload: Workload, seed: u64)->u64
 
         return operations
 
+    case .Grow:
+        const Count = 4_000_000'u64
+        let addresses = cast([*] u64) Memory.alloc(Count * #sizeof(u64))
+        for i in Count
+        {
+            let block = cast([*] u8) Memory.alloc(32)
+            block[0]     = 1
+            addresses[i] = cast(u64) block
+        }
+
+        for i in Count do
+            Memory.free(cast([*] void) addresses[i], 32)
+        Memory.free(addresses, Count * #sizeof(u64))
+        return Count * 2
+
     case .Spread:
         var addresses: [SpreadSizes.count * 10] u64
         for i in addresses.count
@@ -245,6 +261,7 @@ func parseWorkload(name: string)->Workload fail
     case "large":   return .Large
     case "realloc": return .Realloc
     case "spread":  return .Spread
+    case "grow":    return .Grow
     case "xfer":    return .Xfer
     }
 
@@ -258,7 +275,7 @@ func parseWorkload(name: string)->Workload fail
     let threads  = args.count > 2 ? catch StrConv.toU32(args[2]) as badThreads : 1
     if badWorkload != null or threads < 1 or threads > 16
     {
-        Console.println("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|xfer> [threads 1-16]")
+        Console.println("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer> [threads 1-16]")
         return
     }
 

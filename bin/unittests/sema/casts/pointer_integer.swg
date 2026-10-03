@@ -84,3 +84,36 @@ func semaTest007()
     let single: SinglePointerCastPayload = cast(*void?) 0x5678'u64
     let singleAddress = single.address
 }
+
+// Indexing or selecting through a pointer made from a by-value parameter writes the memory that
+// pointer designates, never the parameter. Each helper is a single statement, so it is inlined
+// and its parameter bound to the caller's expression; that binding is read-only, and the write
+// through the pointer must still be accepted.
+struct PointerIntegerPair
+{
+    first:  u64
+    second: u64
+}
+
+func writeSecondWord(address: u64)
+{
+    (cast([*] u64) address)[1] = 2
+}
+
+func writeFirstField(address: u64)
+{
+    (cast(*PointerIntegerPair) address).first = 1
+}
+
+func writeThroughField(pair: PointerIntegerPair)
+{
+    (cast([*] u64) pair.first)[0] = 3
+}
+
+func semaTest008()
+{
+    var words: [2] u64
+    writeSecondWord(cast(u64) &words[0])
+    writeFirstField(cast(u64) &words[0])
+    writeThroughField(PointerIntegerPair{first: cast(u64) &words[0]})
+}

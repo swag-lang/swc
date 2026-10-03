@@ -286,6 +286,7 @@ func freeOne(itf: IAllocator, address: *void?)
     var alloc: Allocator
     let itf = makeAllocator(&alloc)
 
+    let committedBefore = alloc.stats().sizeCommitted
     const Count = 8192
     var addresses: [Count] (*void?)
     for i in Count
@@ -304,6 +305,8 @@ func freeOne(itf: IAllocator, address: *void?)
     let trimmed = alloc.stats()
     Swag.assert(trimmed.countAlloc == 0)
     Swag.assert(trimmed.countPage <= 1)
+    // What stays committed is the current page and the segment header, not the emptied pages.
+    Swag.assert(trimmed.sizeCommitted <= committedBefore + 128 * 1024)
 
     alloc.releaseAll()
     Swag.assert(alloc.stats().countSegment == 0)
@@ -952,5 +955,83 @@ func freeAddress(itf: IAllocator, address: u64)
     alloc.trim()
     Swag.assert(alloc.cachedBlockCount == 0)
     Swag.assert(alloc.cachedBlockBytes == 0)
+    alloc.releaseAll()
+}
+
+// ----------------------------------------------------------------------------
+// A write through a pointer kept past its free, at the start of the block, is
+// reported when the block is handed out again.
+// ----------------------------------------------------------------------------
+var g_FreedWritePanics: u32
+
+func recordFreedWritePanic(message: string?, _loc: SourceCodeLocation)
+{
+    if message == "memory block was written after being freed" do
+        g_FreedWritePanics += 1
+}
+
+// Writes through an integer address, which the static analysis does not follow: the write
+// after free is the point of the test.
+func writeAt(address: u64, value: u64)
+{
+    (cast(*u64) address)[] = value
+}
+
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    let block = allocOne(itf, 48)
+    freeOne(itf, block)
+    writeAt(cast(u64) block + 8, 0x1234)
+
+    let cxt      = Swag.getContext()
+    let previous = cxt.panic
+    cxt.panic         = &recordFreedWritePanic
+    g_FreedWritePanics = 0
+    let again = allocOne(itf, 48)
+    cxt.panic = previous
+    Swag.assert(g_FreedWritePanics == 1)
+    Swag.assert(again == block)
+
+    // A block written only while it is live is handed out again without a report.
+    (cast([*] u8) again!)[47] = 1
+    freeOne(itf, again)
+    let third = allocOne(itf, 48)
+    Swag.assert(third == block)
+    freeOne(itf, third)
+    alloc.releaseAll()
+}
+
+// ----------------------------------------------------------------------------
+// Alignments up to a cache line are served from pages, by a class whose size is
+// a multiple of the alignment; a stricter one still takes the header path.
+// ----------------------------------------------------------------------------
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    for alignment in [32'u32, 64]
+    {
+        for size in [1'u64, 24, 33, 100, 200, 1000, 5000, 40000]
+        {
+            let address = allocOne(itf, size, alignment)
+            Swag.assert(address != null)
+            Swag.assert((cast(u64) address & (cast(u64) alignment - 1)) == 0)
+            let page = allocatorPageOf(cast(u64) address)
+            Swag.assert(page != null)
+            Swag.assert(page.blockSize >= size and page.blockSize % alignment == 0)
+            freeOne(itf, address)
+        }
+    }
+
+    let strict = allocOne(itf, 100, 128)
+    Swag.assert(strict != null and (cast(u64) strict & 127) == 0)
+    Swag.assert(allocatorPageOf(cast(u64) strict) == null)
+    freeOne(itf, strict)
+
+    Swag.assert(alloc.stats().countAlloc == 0)
     alloc.releaseAll()
 }

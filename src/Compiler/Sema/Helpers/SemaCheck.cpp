@@ -282,14 +282,34 @@ namespace
         return AstNodeRef::invalid();
     }
 
+    // Whether selecting or indexing into 'baseRef' writes the storage a pointer designates rather
+    // than 'baseRef' itself.
+    bool designatesPointee(Sema& sema, AstNodeRef baseRef)
+    {
+        const SemaNodeView view = sema.viewTypeSymbol(baseRef);
+        if (!view.type())
+            return false;
+
+        const TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        return type.isAnyPointer() || type.isSlice();
+    }
+
     bool isConstIndexedSource(Sema& sema, AstNodeRef nodeRef)
     {
         const AstNodeRef sourceRef = indexedSourceRef(sema, nodeRef);
         if (sourceRef.isInvalid())
             return false;
 
+        // A read-only binding of an inlined parameter freezes the value it names, not the memory
+        // that value points to: indexing through a pointer or a slice, even one cast from a
+        // by-value integer parameter, writes the pointee, so only the pointer type's own
+        // constness can forbid it.
         const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(sourceRef);
-        if (isConstAssignmentTargetImpl(sema, sourceRef))
+        if (!designatesPointee(sema, sourceRef) && isConstAssignmentTargetImpl(sema, sourceRef))
             return true;
         if (!sourceView.type())
             return false;
@@ -356,7 +376,9 @@ namespace
         {
             const auto&        member     = node.cast<AstMemberAccessExpr>();
             const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(member.nodeLeftRef);
-            return (!isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isConstSourceViewImpl(sema, sourceView)) || isConstAssignmentTargetImpl(sema, member.nodeLeftRef);
+            if (!isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isConstSourceViewImpl(sema, sourceView))
+                return true;
+            return !designatesPointee(sema, member.nodeLeftRef) && isConstAssignmentTargetImpl(sema, member.nodeLeftRef);
         }
         if (node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::IndexListExpr))
             return isConstIndexedSource(sema, resolvedRef);

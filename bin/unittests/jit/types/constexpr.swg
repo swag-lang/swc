@@ -79,3 +79,15 @@ func wrapRuntimeArgNoRun(x: s32)->s32
     const V = #run wrapRuntimeArgNoRun(21)
     #assert(V == 42)
 }
+
+// Memoized calls must preserve function identity and argument boundaries/order.
+#test
+{
+    const A = constMix(2, 3, 4)
+    const B = constMix(2, 4, 3)
+    const C = constMix(4, 3, 2)
+    const D = constMul(2, 3)
+    const E = constMix(2, 3, 4)
+    const F = pureAdd(2, 3)
+    #assert(A == 10 and B == 11 and C == 14 and D == 6 and E == A and F == 5)
+}

@@ -19,6 +19,7 @@
 #include "Main/CompilerInstance.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/PointerSet.h"
+#include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -50,23 +51,24 @@ namespace
         uint64_t                         resultSize = 0;
     };
 
-    struct ConstCallCacheArg
-    {
-        TypeRef   typeRef = TypeRef::invalid();
-        ByteArray bytes;
-    };
-
     struct ConstCallCacheKey
     {
-        const SymbolFunction*          function = nullptr;
-        std::vector<ConstCallCacheArg> args;
+        const SymbolFunction* function = nullptr;
+        ByteArray             arguments;
+        uint32_t              hash = 0;
+
+        bool operator==(const ConstCallCacheKey& other) const
+        {
+            return function == other.function && arguments == other.arguments;
+        }
     };
 
-    struct ConstCallCacheEntry
+    struct ConstCallCacheKeyHash
     {
-        ConstCallCacheKey key;
-        ConstantRef       cstRef = ConstantRef::invalid();
+        size_t operator()(const ConstCallCacheKey& key) const noexcept { return key.hash; }
     };
+
+    using ConstCallCache = std::unordered_map<ConstCallCacheKey, ConstantRef, ConstCallCacheKeyHash>;
 
     // Owns all buffers needed by a JIT request until completion. The executor
     // receives raw pointers into these vectors, so the shared payload is the
@@ -89,24 +91,10 @@ namespace
         bool                            setFoldedTypedConst = false;
     };
 
-    bool sameConstCallCacheKey(const ConstCallCacheKey& lhs, const ConstCallCacheKey& rhs)
-    {
-        if (lhs.function != rhs.function || lhs.args.size() != rhs.args.size())
-            return false;
-
-        for (size_t i = 0; i < lhs.args.size(); ++i)
-        {
-            if (lhs.args[i].typeRef != rhs.args[i].typeRef || lhs.args[i].bytes != rhs.args[i].bytes)
-                return false;
-        }
-
-        return true;
-    }
-
     struct ConstCallCacheStorage
     {
-        JobClientId                      clientId = 0;
-        std::vector<ConstCallCacheEntry> entries;
+        JobClientId    clientId = 0;
+        ConstCallCache entries;
     };
 
     ConstCallCacheStorage& constCallCacheStorage()
@@ -115,7 +103,7 @@ namespace
         return storage;
     }
 
-    std::vector<ConstCallCacheEntry>& constCallCache(TaskContext& ctx)
+    ConstCallCache& constCallCache(TaskContext& ctx)
     {
         auto&             storage  = constCallCacheStorage();
         const JobClientId clientId = ctx.compiler().jobClientId();
@@ -212,7 +200,9 @@ namespace
         TaskContext& ctx = sema.ctx();
         outKey           = {};
         outKey.function  = &function;
-        outKey.args.reserve(args.size());
+        // One owned byte buffer keeps the key alive across a paused JIT call.
+        // Lengths and type identities preserve the old per-argument equality.
+        outKey.arguments.reserve(args.size() * 16);
 
         for (size_t i = 0; i < args.size(); ++i)
         {
@@ -234,44 +224,26 @@ namespace
             if (byteSize > std::numeric_limits<uint32_t>::max())
                 return false;
 
-            ConstCallCacheArg cacheArg;
-            cacheArg.typeRef = arg.typeRef;
-            cacheArg.bytes.resize(byteSize);
-            if (byteSize)
-                std::memcpy(cacheArg.bytes.data(), sourcePtr, cacheArg.bytes.size());
-            outKey.args.push_back(std::move(cacheArg));
+            outKey.arguments.appendLe32(arg.typeRef.get());
+            outKey.arguments.appendLe32(static_cast<uint32_t>(byteSize));
+            outKey.arguments.append(std::span{static_cast<const std::byte*>(sourcePtr), static_cast<size_t>(byteSize)});
         }
 
+        outKey.hash = Math::hashCombine(Math::hash(outKey.arguments.span()), reinterpret_cast<uint64_t>(outKey.function));
         return true;
     }
 
     ConstantRef findConstCallCacheResult(Sema& sema, const ConstCallCacheKey& key)
     {
-        for (const ConstCallCacheEntry& entry : constCallCache(sema.ctx()))
-        {
-            if (sameConstCallCacheKey(entry.key, key))
-                return entry.cstRef;
-        }
-
-        return ConstantRef::invalid();
+        const auto& cache = constCallCache(sema.ctx());
+        const auto  found = cache.find(key);
+        return found == cache.end() ? ConstantRef::invalid() : found->second;
     }
 
     void cacheConstCallResult(Sema& sema, ConstCallCacheKey key, ConstantRef cstRef)
     {
-        if (!cstRef.isValid())
-            return;
-
-        auto& cache = constCallCache(sema.ctx());
-        for (ConstCallCacheEntry& entry : cache)
-        {
-            if (!sameConstCallCacheKey(entry.key, key))
-                continue;
-
-            entry.cstRef = cstRef;
-            return;
-        }
-
-        cache.push_back({std::move(key), cstRef});
+        if (cstRef.isValid())
+            constCallCache(sema.ctx()).insert_or_assign(std::move(key), cstRef);
     }
 
     bool hasPendingJitNode(Sema& sema, AstNodeRef nodeRef)
@@ -801,14 +773,18 @@ namespace
 
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
-        SWC_RESULT(prepareJitSetupRuntimeFunction(sema, symFn));
-
-        TaskContext& ctx                  = sema.ctx();
-        ctx.state().jitEmissionError      = false;
+        TaskContext&   ctx                = sema.ctx();
         const uint64_t initTargetsVersion = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
-        if (symFn.jitEntryAddress() &&
-            symFn.jitReadyVersion() == initTargetsVersion)
+        // This version is published only after the runtime setup and this root's
+        // entire preparation succeed. A ready root needs neither walk repeated.
+        if (symFn.jitEntryAddress() && symFn.jitReadyVersion() == initTargetsVersion)
+        {
+            ctx.state().jitEmissionError = false;
             return Result::Continue;
+        }
+
+        SWC_RESULT(prepareJitSetupRuntimeFunction(sema, symFn));
+        ctx.state().jitEmissionError = false;
 
         // A codegen job emits its function before reporting completion. Publish the
         // release summaries before scheduling that job, while its sanity pass can

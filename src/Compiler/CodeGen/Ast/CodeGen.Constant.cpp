@@ -231,11 +231,10 @@ namespace
 
                 SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
                 offset = alignUpTo(offset, alignment);
-                AggregateElementLayout elem;
+                auto& elem    = outLayout.emplace_back();
                 elem.valueRef = elementRefs[i];
                 elem.typeRef  = elementTypeRef;
                 elem.offset   = static_cast<uint32_t>(offset);
-                outLayout.push_back(elem);
                 offset += elementSize;
                 maxAlignment = std::max(maxAlignment, alignment);
             }
@@ -264,11 +263,10 @@ namespace
             {
                 const uint64_t elementOffset = i * elementSize;
                 SWC_ASSERT(elementOffset <= std::numeric_limits<uint32_t>::max());
-                AggregateElementLayout elem;
+                auto& elem    = outLayout.emplace_back();
                 elem.valueRef = elementRefs[i];
                 elem.typeRef  = elementTypeRef;
                 elem.offset   = static_cast<uint32_t>(elementOffset);
-                outLayout.push_back(elem);
             }
 
             const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());
@@ -344,11 +342,10 @@ namespace
             if (!fieldSize)
                 continue;
 
-            AggregateElementLayout elem;
+            auto& elem    = outLayout.emplace_back();
             elem.valueRef = valueRef;
             elem.typeRef  = fieldTypeRef;
             elem.offset   = field->offset();
-            outLayout.push_back(elem);
         }
 
         const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());

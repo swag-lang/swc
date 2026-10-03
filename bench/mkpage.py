@@ -452,6 +452,66 @@ def svg_lines(labels, series, unit, nd=2, zero=False, compact=False, band=None, 
     return "\n".join(o)
 
 
+ALLOC_WORKLOADS = [
+    ("pair", "un bloc de 32 octets allou&eacute; puis lib&eacute;r&eacute;"),
+    ("trees", "arbres binaires de n&oelig;uds de 16 octets"),
+    ("churn", "50&nbsp;000 blocs vivants de tailles mixtes, remplac&eacute;s au hasard"),
+    ("medium", "256 blocs vivants de 4 &agrave; 64&nbsp;Kio"),
+    ("large", "32 blocs vivants de 64&nbsp;Kio &agrave; 1&nbsp;Mio, une page touch&eacute;e sur 4&nbsp;Kio"),
+    ("realloc", "tampons doubl&eacute;s de 16 octets &agrave; 4&nbsp;Mio"),
+    ("spread", "quelques blocs vivants de douze tailles, comme une application"),
+    ("spread:8", "la m&ecirc;me chose sur 8 threads"),
+    ("churn:4", "churn sur 4 threads"),
+    ("medium:4", "medium sur 4 threads"),
+    ("large:4", "large sur 4 threads"),
+    ("xfer:2", "2 paires producteur/consommateur&nbsp;: lib&eacute;rations distantes"),
+    ("xfer:4", "4 paires producteur/consommateur"),
+]
+
+
+def allocator_section(entries, current):
+    """The latest allocator measurement, then how Swag's ratios to its competitors moved."""
+    alloc = (current or {}).get("allocator")
+    if not alloc:
+        return '<p class="cap">Aucune mesure de l&rsquo;allocateur dans cette campagne.</p>'
+
+    def ns(v):
+        return fmt(v, 0) if v is not None and v >= 100 else fmt(v, 1)
+
+    rows = []
+    known = dict(ALLOC_WORKLOADS)
+    names = [w for w, _ in ALLOC_WORKLOADS if w in alloc["workloads"]]
+    names += [w for w in alloc["workloads"] if w not in known]
+    for workload in names:
+        rec = alloc["workloads"][workload]
+        rows.append(['%s <span class="mode">%s</span>' % (workload, known.get(workload, "")),
+                     ns(rec.get("swag_ns")), ns(rec.get("mimalloc_ns")), ns(rec.get("crt_ns")),
+                     fmt(rec.get("vs_mimalloc")), fmt(rec.get("vs_crt")),
+                     "%s / %s / %s" % (fmt(rec.get("swag_ws_mb"), 1), fmt(rec.get("mimalloc_ws_mb"), 1),
+                                       fmt(rec.get("crt_ws_mb"), 1))])
+    rows.append(["moyenne g&eacute;om&eacute;trique", "", "", "",
+                 fmt(alloc.get("geo_vs_mimalloc")), fmt(alloc.get("geo_vs_crt")),
+                 "&times;%s / &times;%s" % (fmt(alloc.get("geo_ws_vs_mimalloc")), fmt(alloc.get("geo_ws_vs_crt")))])
+    parts = [simple_table(["charge", "swag (ns)", "mimalloc (ns)", "CRT (ns)", "swag / mimalloc",
+                           "swag / CRT", "pic WS swag / mimalloc / CRT (Mo)"], rows)]
+
+    measured = [e for e in entries if e.get("allocator")]
+    if measured:
+        labels = [e["meta"].get("commit") or e["meta"]["date"][:10] for e in measured]
+        parts.append("<h3>&Eacute;volution face &agrave; la concurrence</h3>")
+        parts.append('<p class="cap">Moyenne g&eacute;om&eacute;trique, sur les charges, du temps de Swag '
+                     'divis&eacute; par celui du concurrent mesur&eacute; dans les m&ecirc;mes tours&nbsp;: '
+                     '1 = parit&eacute;, en dessous Swag est plus rapide. Trait plein&nbsp;: temps&nbsp;; '
+                     'pointill&eacute;&nbsp;: pic de working set.</p>')
+        parts.append(svg_lines(labels, [
+            ("h-a", "temps / mimalloc", [e["allocator"].get("geo_vs_mimalloc") for e in measured]),
+            ("h-b", "WS / mimalloc", [e["allocator"].get("geo_ws_vs_mimalloc") for e in measured]),
+            ("h-c", "temps / CRT", [e["allocator"].get("geo_vs_crt") for e in measured]),
+            ("h-d", "WS / CRT", [e["allocator"].get("geo_ws_vs_crt") for e in measured]),
+        ], "&times;"))
+    return "\n".join(parts)
+
+
 def history_section(entries):
     if not entries:
         return '<p class="cap">Aucune campagne enregistr&eacute;e.</p>'
@@ -680,6 +740,9 @@ def main():
         loop_rows.append(['%s <span class="mode">%s</span>' % (name, what),
                           fmt(rec.get("wall_ms"), 0), fmt(rec.get("adjusted_ms"), 0),
                           fmt(rec.get("peak_mb"), 0), fmt(rec.get("index"))])
+    run_entry = next((e for e in entries if e["meta"].get("stamp") == R["meta"].get("stamp")), None)
+    allocator = allocator_section(entries, run_entry)
+
     loop_table = (simple_table(["charge", "brut (ms)", "corrig&eacute; (ms)", "Mo", "indice"],
                                loop_rows)
                   if loop_rows else '<p class="cap">Aucune charge mesur&eacute;e.</p>')
@@ -785,6 +848,7 @@ def main():
         "{{ex_native_rank}}": ex_native_rank, "{{ex_jit_rank}}": ex_jit_rank,
         "{{bu_chart}}": bu_chart, "{{bu_matrix}}": bu_matrix, "{{bu_rank}}": bu_rank,
         "{{loop_table}}": loop_table,
+        "{{allocator}}": allocator,
         "{{me_chart}}": me_chart, "{{rm_chart}}": rm_chart,
         "{{st_chart}}": st_chart, "{{sz_chart}}": sz_chart,
         "{{history}}": history_section(entries),

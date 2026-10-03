@@ -458,13 +458,17 @@ impl AllocatorPage
     }
 
     // Reports whether a block's first word reads as a free-list link, which every free block
-    // holds. A live block holds it only by a one-in-billions coincidence of its data with the
-    // page key, so a match calls for a walk of the lists to tell a double free from that.
-    #[Swag.Inline]
+    // holds: the end of the list, or an address inside the page's block area. A live block holds
+    // one only by a coincidence of its data with the page key, about one chance in 2^40, so a
+    // match calls for a walk of the lists to tell a double free from that. The range test alone
+    // is enough to keep coincidences that rare, so the divisibility test is not repeated here.
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd looksFree(address: u64)->bool
     {
         let next = .decode((cast(const *u64) address)[])
-        return next == 0 or .isBlockAddress(next)
+        if next == 0 do
+            return true
+        return next - .areaStart < .areaEnd - .areaStart
     }
 
     #[Swag.Inline]
@@ -773,21 +777,35 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
     // Plain loads: the target is x86-64, where a store is visible to another core in program
     // order, and a caller that reached this address already synchronized with its producer.
     // An address below an arena wraps to a huge offset, so one comparison bounds both ends.
-    for i in g_AllocatorArenaCount
+    // The first arena serves every program that stays under a gibibyte of small blocks, so it is
+    // tested first without the loop.
+    let first = &g_AllocatorArenas[0]
+    if address - first.base < first.used - first.base do
+        return allocatorPageInSegment(address)
+
+    var index = 1'u32
+    while index < g_AllocatorArenaCount
     {
-        let arena = &g_AllocatorArenas[i]
-        if address - arena.base >= arena.used - arena.base do
-            continue
-
-        let segment = cast(*AllocatorSegment) (address & ~(AllocatorSegmentSize - 1))
-        if segment.magic != AllocatorSegmentMagic do
-            return null
-
-        let unit = cast(u32) ((address - cast(u64) segment) >> AllocatorPageShift)
-        return &segment.pages[unit >> segment.unitShift]
+        let arena = &g_AllocatorArenas[index]
+        if address - arena.base < arena.used - arena.base do
+            return allocatorPageInSegment(address)
+        index += 1
     }
 
     return null
+}
+
+// The page of an address known to lie below an arena's bump cursor, where every segment-aligned
+// address starts a segment whose header is committed.
+#[Swag.Inline]
+func allocatorPageInSegment(address: u64)->*AllocatorPage?
+{
+    let segment = cast(*AllocatorSegment) (address & ~(AllocatorSegmentSize - 1))
+    if segment.magic != AllocatorSegmentMagic do
+        return null
+
+    let unit = cast(u32) ((address - cast(u64) segment) >> AllocatorPageShift)
+    return &segment.pages[unit >> segment.unitShift]
 }
 
 #[Swag.Inline]

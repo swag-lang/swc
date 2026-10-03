@@ -332,5 +332,51 @@ class ResolutionTests(unittest.TestCase):
         self.assertAlmostEqual(null["geo"][1], 1.5)
 
 
+def allocator_section(swag_ns, mimalloc_ns, crt_ns, swag_ws=8.0):
+    """A raw allocator section with one workload per entry of the three lists."""
+    section = {}
+    for index, (s, m, c) in enumerate(zip(swag_ns, mimalloc_ns, crt_ns)):
+        section["w%d" % index] = {
+            "swag": {"ns": s, "samples": [s], "peak_bytes": 4194304,
+                     "peak_working_set_bytes": int(swag_ws * 1048576)},
+            "mimalloc": {"ns": m, "samples": [m], "peak_bytes": 4194304,
+                         "peak_working_set_bytes": 4194304},
+            "crt": {"ns": c, "samples": [c], "peak_bytes": 4194304,
+                    "peak_working_set_bytes": 4194304},
+        }
+    return section
+
+
+class AllocatorTests(unittest.TestCase):
+    def test_ratios_to_the_competitors_measured_in_the_same_rounds(self):
+        result = campaign("20260101", False)
+        result["allocator"] = allocator_section([20.0, 50.0], [10.0, 50.0], [40.0, 100.0])
+        alloc = history.build_entries([result])[0]["allocator"]
+        self.assertAlmostEqual(alloc["workloads"]["w0"]["vs_mimalloc"], 2.0)
+        self.assertAlmostEqual(alloc["workloads"]["w1"]["vs_crt"], 0.5)
+        self.assertAlmostEqual(alloc["geo_vs_mimalloc"], 2.0 ** 0.5)
+        self.assertAlmostEqual(alloc["geo_vs_crt"], 0.5)
+        self.assertAlmostEqual(alloc["geo_ws_vs_mimalloc"], 2.0)
+        self.assertEqual(alloc["count"], 2)
+
+    def test_the_ratios_ignore_machine_scale_and_old_campaigns_have_none(self):
+        old = campaign("20260101", False)
+        new = campaign("20260102", False, run_scale=1.5)
+        new["allocator"] = allocator_section([30.0], [15.0], [60.0])
+        entries = history.build_entries([old, new])
+        self.assertIsNone(entries[0]["allocator"])
+        self.assertAlmostEqual(entries[1]["allocator"]["geo_vs_mimalloc"], 2.0)
+
+    def test_a_failed_implementation_leaves_its_workload_out_of_the_means(self):
+        result = campaign("20260101", False)
+        result["allocator"] = allocator_section([20.0, 50.0], [10.0, 50.0], [40.0, 100.0])
+        result["allocator"]["w1"]["crt"] = {"error": "exit code 5"}
+        alloc = history.build_entries([result])[0]["allocator"]
+        self.assertNotIn("crt_ns", alloc["workloads"]["w1"])
+        self.assertNotIn("vs_crt", alloc["workloads"]["w1"])
+        self.assertAlmostEqual(alloc["geo_vs_mimalloc"], 2.0)
+        self.assertEqual(alloc["count"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

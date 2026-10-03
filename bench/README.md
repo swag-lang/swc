@@ -149,6 +149,29 @@ workloads on one compiler, or on two with the order alternated every round, and 
 median of the per-round ratios beside the minimums — a pair measured back to back shares the
 machine's drift, where two minimums taken minutes apart do not.
 
+## The allocator
+
+The execution phase also measures the Swag runtime allocator against the vendored
+[mimalloc](../src/Support/Memory/mimalloc/readme.md), compiled with MSVC `/O2`, and against the C
+runtime heap. One Swag program, `allocator/src/allocbench.swg`, and one C program,
+`allocator/src/allocbench.c`, run the same thirteen workloads: one block allocated and freed,
+binary trees, a 50 000-block mixed-size churn, 4-64 KiB and 64 KiB-1 MiB live sets, buffers
+doubled by reallocation, a few live blocks of many sizes, the churns again on four threads, and
+producer/consumer pairs whose frees are all remote. The Swag program allocates through
+`Memory.alloc` and `Memory.free`, the path ordinary code takes, so its time includes the
+context lookup and the interface call; its peak working set includes the `core` module it
+imports.
+
+Each workload runs in a fresh process pinned to the performance cores, five rounds with the
+three executables in rotating order, and the section keeps the median of each. The
+competitors are measured in the same rounds, so Swag's ratio to each needs no machine
+correction: the history follows the geometric mean of those ratios, for time and for peak
+working set, and the page draws how they move from campaign to campaign. A workload that one
+implementation failed is left out of the means.
+
+Between campaigns, `allocator/run.py` measures the same thing without recording it, and
+`--against` adds a column for an executable built with an earlier runtime.
+
 ## The rules that keep the numbers honest
 
 Every one of these was measured, on the ratio between two binaries that never change —
@@ -319,6 +342,7 @@ an asterisk in the report, because its commit alone will not reproduce it.
 | `campaign.py` | rebuild, measure, report |
 | `driver.py` | the sweep itself |
 | `compile.py` | the edit-build loop alone, on one compiler or A/B between two; records nothing |
+| `allocbench.py`, `allocator/` | the allocator against mimalloc and the C heap; `allocator/run.py` records nothing |
 | `toolchains.py` | where each toolchain lives and how it builds a task |
 | `winproc.py` | process timing, peak memory, core pinning, and how busy the machine is |
 | `history.py` | the compact, normalised record |

@@ -810,11 +810,11 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             // Same result: a plain copy of it. A plain load of bytes an earlier
             // load already holds: a copy of just those bytes. An extending
             // load of them: the same extension, applied to the earlier register.
-            PlannedRewrite rewrite;
-            rewrite.instRef = instRef;
-            rewrite.dstReg  = dstReg;
-            rewrite.srcReg  = cand.defReg;
-            rewrite.srcBits = srcBits;
+            PlannedRewrite& rewrite = rewrites.emplace_back();
+            rewrite.instRef         = instRef;
+            rewrite.dstReg          = dstReg;
+            rewrite.srcReg          = cand.defReg;
+            rewrite.srcBits         = srcBits;
             if (sameResult)
             {
                 rewrite.op      = MicroInstrOpcode::LoadRegReg;
@@ -830,13 +830,22 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
                 rewrite.op      = shape.extension == LoadExtension::Zero ? MicroInstrOpcode::LoadZeroExtRegReg : MicroInstrOpcode::LoadSignedExtRegReg;
                 rewrite.movBits = movBits;
             }
-            rewrites.push_back(rewrite);
             replaced = true;
             break;
         }
 
         if (!replaced)
-            bucket.push_back({.index = i, .defReg = dstReg, .defValueId = myValueId, .epoch = memoryEpoch, .callCount = callCount, .op = inst->op, .movBits = movBits, .key = std::move(key)});
+        {
+            NumberingEntry& numbered = bucket.emplace_back();
+            numbered.index          = i;
+            numbered.defReg         = dstReg;
+            numbered.defValueId     = myValueId;
+            numbered.epoch          = memoryEpoch;
+            numbered.callCount      = callCount;
+            numbered.op             = inst->op;
+            numbered.movBits        = movBits;
+            numbered.key            = std::move(key);
+        }
     }
 
     if (rewrites.empty())

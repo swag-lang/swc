@@ -76,15 +76,14 @@ struct AllocatorPage
     prevPage:  *AllocatorPage?
 
     remoteFree: u64
-
-    // Blocks pushed by another thread and not yet collected. Live blocks are 'used - remoteCount'.
-    remoteCount: u32
-    remoteLock:  u32
+    remoteLock: u32
 
     unitIndex: u32
     state:     AllocatorPageState
 }
 
+// The first line is read on every free and changes almost never; the masks, which every thread
+// claiming or releasing a page moves, live on a line of their own so they never invalidate it.
 struct AllocatorSegment
 {
     magic:     u64
@@ -93,21 +92,22 @@ struct AllocatorSegment
     nextSegment: *AllocatorSegment?
     prevSegment: *AllocatorSegment?
 
-    // Bit i marks page i as carrying blocks. Pages are claimed by several threads at once, so the
-    // mask moves only through compare-exchange.
-    pageMask: u64
-
     // Pages the segment can ever hand out, which is 64 for small pages and 8 for medium ones.
     usableMask: u64
+
+    unitShift: u32
+    pageCount: u32
+
+    // Bit i marks page i as carrying blocks. Pages are claimed by several threads at once, so the
+    // mask moves only through compare-exchange.
+    #[Swag.Align(64)]
+    pageMask: u64
 
     // Bit i marks free page i as still committed. Recommitting a page and faulting its memory in
     // again costs far more than the page's blocks, so an emptied page stays committed, within a
     // process-wide budget, until a later claim reuses it for any class. A bit is only ever set
     // while the page bit is held and cleared by the thread that claims the page bit next.
     idleMask: u64
-
-    unitShift: u32
-    pageCount: u32
 
     pages: [AllocatorUnitsPerSegment] AllocatorPage
 }
@@ -249,7 +249,6 @@ impl AllocatorPage
         .nextPage    = null
         .prevPage    = null
         .used        = 0
-        .remoteCount = 0
         .remoteLock  = 0
         .classIndex  = classIndex
         .unitIndex   = unitIndex
@@ -296,9 +295,28 @@ impl AllocatorPage
     #[Swag.Inline]
     mtd decode(link: u64)->u64 => link ^ .key
 
+    // Blocks pushed by other threads and not yet collected. Counted on demand, so a remote free
+    // pays one compare-exchange and nothing else.
+    mtd remoteCount()->u32
+    {
+        .lockRemote()
+        defer .unlockRemote()
+
+        var count = 0'u32
+        var scan  = atomicGet(&.remoteFree)
+        while scan != 0
+        {
+            count += 1
+            scan = .nextFree(scan)
+        }
+
+        return count
+    }
+
+    // 'used' counts the blocks still waiting on the remote list too.
     mtd liveCount()->u32
     {
-        let remote = atomicGet(&.remoteCount)
+        let remote = .remoteCount()
         return .used > remote ? .used - remote : 0
     }
 
@@ -339,7 +357,6 @@ impl AllocatorPage
 
         Swag.assert(.used >= taken)
         .used -= taken
-        atomicSubU32(&.remoteCount, taken)
     }
 
     // Pushes a block freed by a thread that does not own the page. The page metadata outlives every
@@ -347,8 +364,6 @@ impl AllocatorPage
     // belongs to the pusher until the exchange publishes it, so writing its link needs no lock.
     mtd pushRemote(address: u64)
     {
-        discard Swag.atomadd(&.remoteCount, 1)
-
         var head = atomicGet(&.remoteFree)
         while true
         {

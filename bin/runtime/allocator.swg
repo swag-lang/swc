@@ -1115,10 +1115,10 @@ impl Allocator
         return page.acquireBlock()
     }
 
-    // The common free: a page block owned by the calling thread, which goes back on the page's
-    // own list. Returns false, having changed nothing, for anything else - a block of another
-    // thread, a header-path block, a null or bogus address, an apparent double free - and the
-    // general path then handles or diagnoses it.
+    // The common free: a page block, which goes back on the page's own list when the calling
+    // thread owns the page and on its remote list otherwise. Returns false, having changed
+    // nothing, for anything else - a header-path block, a null or bogus address, an apparent
+    // double free, a page without an owner - and the general path then handles or diagnoses it.
     #[Swag.Inline]
     mtd freeFast(address: u64)->bool
     {
@@ -1126,12 +1126,6 @@ impl Allocator
         if not page do
             return false
 
-        // A page that no heap owns has a null owner, so a null heap never matches it.
-        let heap = fastThreadHeap()
-        if page.ownerHeap != heap do
-            return false
-        if not heap do
-            return false
         if not page.isBlockAddress(address) do
             return false
 
@@ -1140,9 +1134,25 @@ impl Allocator
         if page.looksFree(address) do
             return false
 
-        page.releaseBlock(address)
-        if page.used == 0 do
-            .retirePage(heap, page)
+        let heap  = fastThreadHeap()
+        let owner = page.ownerHeap
+        if owner == heap
+        {
+            if not heap do
+                return false
+
+            page.releaseBlock(address)
+            if page.used == 0 do
+                .retirePage(heap, page)
+            return true
+        }
+
+        // Another thread's page takes the block on its remote list. A page with no owner is
+        // abandoned or free, and the general path tells the two apart.
+        if not owner do
+            return false
+
+        page.pushRemote(address)
         return true
     }
 

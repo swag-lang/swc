@@ -821,10 +821,10 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         // time the page runs dry, or when the caller asks for idle memory back.
         Swag.assert(alloc.stats().countAlloc == 0)
         let page = allocatorPageOf(cast(u64) first)!
-        Swag.assert(page.remoteCount == 1)
+        Swag.assert(page.remoteCount() == 1)
 
         alloc.trim()
-        Swag.assert(page.remoteCount == 0)
+        Swag.assert(page.remoteCount() == 0)
 
         var req2: AllocatorRequest
         req2.size = 64

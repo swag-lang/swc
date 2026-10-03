@@ -62,7 +62,7 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-03 15:48 — Recorded that the JIT runs binarytrees faster than native code.
+- Updated: 2026-10-03 19:23 — Measured release without the allocator checks.
 - October 3, `bench/allocator` (median of five rotating rounds, through `Memory.alloc`): pair
   28.4 -> 26.5 ns, trees 34.4 -> 26.6 ns, churn 53.7 -> 49.2 ns, against 4.3 / 7.3 / 17.9 ns for
   mimalloc and 29.9 / 44.3 / 68.3 ns for the C heap. Native binarytrees paired median 0.87.
@@ -75,46 +75,50 @@ alone. Comparative reference points for that investigation:
   a direct `gs:[0x30]` TEB read, so a thread-block intrinsic would save about 1 ns per pair and
   is not worth new language surface; a leaf entry point without any call is what would pay.
 - Campaign `20261002-201919` runs binarytrees in 16.0 ms under the swc JIT and 22.3 ms native,
-  while the JIT is about 14% slower than native over the other tasks. Which allocator and
-  context path the JIT's `benchAlloc` reaches has not been established; check it before
-  attributing the native gap to generated code.
+  while the JIT is about 14% slower than native over the other tasks. Under the JIT the context
+  allocator is the compiler's own mimalloc (`runtimeAllocatorAlloc`/`Free` in
+  `src/Main/CompilerInstance.cpp`, reached through a native interface adapter; alignment 16 goes
+  to `mi_malloc_aligned`), so that gap compares mimalloc with this allocator, not two code
+  generators.
+- Native pair as emitted by master `1898124b1` (binarytrees, release): `benchAlloc` calls
+  `__tlsGetPtr` (one `TlsGetValue` through the import thunk, then a store of the slot into the
+  context), then the interface `alloc` (a second `TlsGetValue` for the thread heap); `free` is
+  the same. Four `TlsGetValue`, two `__tlsGetPtr` frames and two indirect calls per pair. The
+  interface `alloc` saved six registers and a frame pointer, `free` six and a frame pointer,
+  `__tlsGetPtr` two and a frame pointer, and every C call was bracketed by `sub/add rsp, 0x28`:
+  stack-adjust normalization gave up whenever a call ran above the deepest scope. On
+  `perf/prompt2-alloc-20261003` (`051f0f056`) a call whose own `sub` reserves only shadow space
+  and alignment pad moves to the frame depth: `alloc` saves three registers, `free` four,
+  `__tlsGetPtr` one, none keeps a frame pointer; in the whole binary frame-pointer setups go
+  20 -> 1 and calls preceded by `sub rsp` 146 -> 4; the bench functions themselves are
+  unchanged. Four A/B windows taken under heavy foreign load (A/A interquartile ranges of 5-20%,
+  every task 1.2-3x its usual time) gave binarytrees B/A medians 1.038, 1.038, 1.088 and 1.057
+  (60 rounds, p25 1.020, control 1.000), with the candidate's minimum slower each time and every
+  other task inside its control. `bench/allocator` under the same load contradicted itself
+  (pair +8% then +7%, trees +8% then -5%). Not integrated: benefit not established and a
+  binarytrees slowdown is likely although the fast paths only lost instructions. Re-measure in
+  a quiet window; if it reproduces, separate layout (the hot runtime functions all moved by
+  16-64 bytes) from the frames before keeping or reverting the rule.
+- Still between this allocator and mimalloc's fast path, beyond code generation: encoded free-list
+  links, the freed-block canary written on free and checked on allocation, `looksFree` and the
+  block-index (multiply/rotate) check on every free, the arena range test in `allocatorPageOf`,
+  and two thread-slot lookups where mimalloc reads one static TLS slot. Each is a stated safety
+  property (runtime.allocator.010); dropping any is a policy decision, not a tuning step.
+- Release without the allocator checks (runtime.allocator.010), same compiler, three controlled
+  windows: binarytrees B/A 0.984, 0.987 and 0.968 against controls 1.029, 0.999 and 1.001, so
+  the checks were about 3% of the task, not the distance to mimalloc. leven, whose timed loop
+  never allocates, read 1.072, 1.056 and 1.053: its main function kept its size but moved from
+  48 to 16 modulo 64 because the runtime before it shrank, a placement effect.
 - Next: once the backend can keep a call-free fast path a leaf (no callee-saved spills on the
   common path), re-measure pair/trees; otherwise look at `Memory.alloc`'s request setup.
 - Complete when: generated-code attribution and comparable application/allocator measurements
   establish the remaining policy, preserving lifetime and error behavior.
 - Related: runtime.allocator.001.
 
-### runtime.allocator.003 — Return idle memory without being asked
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-03 09:36 — Idle pages and old cached blocks are purged 500 ms after a slow path first sees them.
-- An emptied page now returns to its segment still committed while the process-wide idle budget
-  allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
-  system call; past the budget it is decommitted. `trim()` decommits the idle pages of every
-  segment, teardown those of the segments it releases, and `trim()` also gives the large-block
-  cache back. The cache's budget follows the bytes held
-  live through the header path (at least 16 MiB, at most 256 MiB, 64 entries).
-- Measured on `bench/allocator` medium (256 live 4-64 KiB blocks): 213 -> 51 ns per operation,
-  peak working set 11.8 -> 19.8 MB (mimalloc 36.5 ns, 19.2 MB). A 2 MiB / one-eighth budget
-  brings the working set back to 13.4 MB and the time back to 242 ns: the budget is the trade.
-- Purge: the first slow path that sees idle memory arms a 500 ms deadline; the first one past
-  it decommits every idle page of the allocator and the cached blocks freed longer ago than the
-  delay. Page refills read the clock one time in 64, large frees every time; the micro-benchmarks
-  do not move. After a 24 MB burst followed by light activity, committed memory falls to under
-  1 MB within the second instead of staying at 24 MB.
-- Still open: nothing runs in the background, so a program that stops allocating altogether keeps
-  its idle memory until it allocates again, trims, or exits (as mimalloc without its purge
-  thread); an inactive live owner keeps its remotely returned blocks uncollected.
-- Next: measure burst/idle with an owner kept alive, and decide whether the delay should follow
-  the memory pressure the host reports.
-- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
-  idle/trim behavior and documented bounds.
-- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
-
 ### runtime.allocator.010 — Decide what the security properties are, and write them down
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-03 08:56 — Writes into the start of a freed block are reported when it is handed out again.
+- Updated: 2026-10-03 19:22 — The checks now run only under memory safety: devmode by default, release on request.
 - Free-list heads are plain addresses in the page metadata and every stored link is keyed, the
   end of a list included, and a block handed out has its first word cleared. A free block
   therefore reads as one from its first word: `looksFree` tests it on every free, and only a
@@ -122,7 +126,13 @@ alone. Comparative reference points for that investigation:
   owner checks its own and the remote list, another thread the remote list. The A, B, A
   sequence that used to create a cycle now panics with "memory block is freed twice"
   (`allocator_coverage.swg`); a panic hook that resumes leaves the lists intact. Corrupted
-  links are still rejected at pop and collect time, and every check runs in both presets.
+  links are still rejected at pop and collect time.
+- Since October 3 every check above, the canary, the corrupted-link and block-address tests, the
+  double-free walk and the header and footer checks of large blocks, runs only when
+  `Swag.SafetyWhat.Memory` is in `safetyGuards` (`#static if #safety(...)` in the allocator
+  sources): devmode has it, release does not, and a release build that wants them adds the bit
+  to its build configuration. Free-list links stay keyed in both. `assertIsAllocated`, which a
+  caller asks for explicitly, and the diagnostic modes keep their checks.
 - A free block of sixteen bytes or more carries a canary derived from the page key in its second
   word, checked when the block is handed out again: a write through a stale pointer into the
   first sixteen bytes panics with "memory block was written after being freed" (2-3% on the
@@ -150,6 +160,33 @@ alone. Comparative reference points for that investigation:
 - Complete when: every claimed guarantee has a focused regression and accurate documentation,
   with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
 - Related: compiler.safety.004, runtime.allocator.001.
+
+### runtime.allocator.003 — Return idle memory without being asked
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-03 09:36 — Idle pages and old cached blocks are purged 500 ms after a slow path first sees them.
+- An emptied page now returns to its segment still committed while the process-wide idle budget
+  allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
+  system call; past the budget it is decommitted. `trim()` decommits the idle pages of every
+  segment, teardown those of the segments it releases, and `trim()` also gives the large-block
+  cache back. The cache's budget follows the bytes held
+  live through the header path (at least 16 MiB, at most 256 MiB, 64 entries).
+- Measured on `bench/allocator` medium (256 live 4-64 KiB blocks): 213 -> 51 ns per operation,
+  peak working set 11.8 -> 19.8 MB (mimalloc 36.5 ns, 19.2 MB). A 2 MiB / one-eighth budget
+  brings the working set back to 13.4 MB and the time back to 242 ns: the budget is the trade.
+- Purge: the first slow path that sees idle memory arms a 500 ms deadline; the first one past
+  it decommits every idle page of the allocator and the cached blocks freed longer ago than the
+  delay. Page refills read the clock one time in 64, large frees every time; the micro-benchmarks
+  do not move. After a 24 MB burst followed by light activity, committed memory falls to under
+  1 MB within the second instead of staying at 24 MB.
+- Still open: nothing runs in the background, so a program that stops allocating altogether keeps
+  its idle memory until it allocates again, trims, or exits (as mimalloc without its purge
+  thread); an inactive live owner keeps its remotely returned blocks uncollected.
+- Next: measure burst/idle with an owner kept alive, and decide whether the delay should follow
+  the memory pressure the host reports.
+- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
+  idle/trim behavior and documented bounds.
+- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
 
 ### runtime.allocator.005 — Scale the large-block cache with threads
 

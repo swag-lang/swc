@@ -15,6 +15,53 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.105 — Prove lz77's signed remainder bounds
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-03 18:52 — Measured the byte-load, 2^n+-1 and indexed-load forwarding rules on a quiet machine: no gain.
+- Area: compiler/backend, value ranges and signed remainder lowering.
+- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
+  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
+  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
+  loop has six instructions and two reads. Swag now matches those counts after
+  caching the invariant index in an otherwise unused caller-saved SIMD register.
+  The latch transfers its bits back to a GP register; one seed load runs before
+  the loop. These static changes have not been timed in a new full campaign.
+- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
+  floor-modulo result for a positive power-of-two divisor permits masking even for
+  negative inputs; Swag's signed remainder has a different contract. The previously
+  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
+  remaining remainders requires proving the counters' bounds under its own semantics.
+- October 3: an unsigned remainder by a constant whose dividend is bounded multiplies by a
+  dword magic number, so the checksum loop `hc = (hc * 31 + comp[k]) % 1000003` has 12
+  instructions instead of 18 and a carried chain of about 12 cycles (clang's two-way unrolled
+  loop takes about 13 per element). Paired lz77 medians were 0.961 in two controlled windows;
+  the second window's spread overlaps its unchanged-binary control.
+- Rejected on October 3, measured with an unchanged-binary control on a quiet machine (41 to
+  61 rounds), each rule alone on master `1898124b1`:
+  - Byte and word loads whose upper bits are dead as `movzx` (`2b23c932f` on
+    `perf/prompt2-int-20261003`): lz77 0.998 against a 0.999 control, and fannkuch 1.046 and
+    1.050 in two windows against 1.003: its main loop is byte-identical but sits 0x50 bytes
+    later because each `movzx` is one byte longer, moving the flips loop within its cache line.
+  - A multiplication by 2^n+1 or 2^n-1 as a shift and an add or subtract (`27ef513e8`, same
+    branch): every task inside its control spread (lz77 1.003).
+  - Post-RA copy forwarding through indexed loads (`aacbe30d8` on
+    `perf/prompt2-int-lot3-20261003`): the candidate loop loses
+    `mov rax, [rsi + 8 * r10]; mov r10, rax` (19 to 18 instructions) and 10 to 15 copies go
+    per executable, but lz77 is 1.000 against a 1.005 control; the core renames such moves away.
+- The candidate loop has 19 instructions against clang's 16 and Odin's 18. `i` lives in xmm2
+  and is restored on every candidate while rbx is unused (allocator policy
+  `K_MIN_FREE_PERSISTENT_INT`); the `l < limit` guard before the byte loop stays where clang
+  proves `n - i >= 4`.
+- Next: follow the loop-carried counters through SSA ranges and exit conditions.
+  Establish nonnegativity before replacing sign correction; retain negative-input
+  controls and do not infer a bound merely from this benchmark's current inputs.
+- Complete when: each removable sign correction has a sound range proof, exact
+  checksums and unrelated positive/negative coverage, with the candidate and byte
+  loops retaining their instruction and memory counts without a loss elsewhere.
+
+
 ### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
 
 - Recorded: 2026-09-06 14:23
@@ -38,48 +85,6 @@ block, and the hot path keeps the register.
   the loaded row value only with a register-pressure estimate that avoids the spill.
 - Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
   current experiment identifies the specific missing proof or register-pressure cost.
-
-### compiler.optimization.105 — Prove lz77's signed remainder bounds
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-03 15:48 — Bounded remainders multiply; listed what the candidate loop still lacks.
-- Area: compiler/backend, value ranges and signed remainder lowering.
-- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
-  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
-  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
-  loop has six instructions and two reads. Swag now matches those counts after
-  caching the invariant index in an otherwise unused caller-saved SIMD register.
-  The latch transfers its bits back to a GP register; one seed load runs before
-  the loop. These static changes have not been timed in a new full campaign.
-- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
-  floor-modulo result for a positive power-of-two divisor permits masking even for
-  negative inputs; Swag's signed remainder has a different contract. The previously
-  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
-  remaining remainders requires proving the counters' bounds under its own semantics.
-- October 3: an unsigned remainder by a constant whose dividend is bounded multiplies by a
-  dword magic number, so the checksum loop `hc = (hc * 31 + comp[k]) % 1000003` has 12
-  instructions instead of 18 and a carried chain of about 12 cycles (clang's two-way unrolled
-  loop takes about 13 per element). Paired lz77 medians were 0.961 in two controlled windows;
-  the second window's spread overlaps its unchanged-binary control.
-- Pending on `perf/prompt2-int-20261003` (`2b23c932f`), correct but without an established
-  gain: a byte or word load whose upper bits nobody reads becomes `movzx`, as clang and Odin
-  emit in the byte-compare loop.
-- Pending on `perf/prompt2-int-20261003` (`27ef513e8`), correct but without an established
-  gain: a multiplication by 2^n+1 or 2^n-1 becomes a shift and an add or subtract as clang emits
-  it (lz77 `imul` 94 to 80, checksum chain 12 to 11 cycles).
-- The candidate loop has 19 instructions against clang's 16 and Odin's 18. `i` lives in xmm2
-  and is restored on every candidate while rbx is unused (allocator policy
-  `K_MIN_FREE_PERSISTENT_INT`); post-RA copy forwarding excludes indexed loads, so
-  `mov rax, [rsi + 8 * r10]; mov r10, rax` stays; the `l < limit` guard before the byte loop
-  stays where clang proves `n - i >= 4`.
-- Next: follow the loop-carried counters through SSA ranges and exit conditions.
-  Establish nonnegativity before replacing sign correction; retain negative-input
-  controls and do not infer a bound merely from this benchmark's current inputs.
-- Complete when: each removable sign correction has a sound range proof, exact
-  checksums and unrelated positive/negative coverage, with the candidate and byte
-  loops retaining their instruction and memory counts without a loss elsewhere.
-
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 

@@ -152,11 +152,11 @@ public:
     iterator       find(const K& key) { return map_ ? map_->find(key) : iterator{}; }
     const_iterator find(const K& key) const { return map_ ? std::as_const(*map_).find(key) : const_iterator{}; }
 
-    V& operator[](const K& key)
+    void insertOrAssign(const K& key, const V& value)
     {
         if (!map_)
             map_ = std::make_unique<Map>();
-        return (*map_)[key];
+        map_->insert_or_assign(key, value);
     }
 
     // An iterator only exists for a created map.

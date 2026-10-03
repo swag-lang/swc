@@ -588,7 +588,7 @@ void Sanitizer::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegIn
     if (info == SanitizerRegInfo{})
         state.regs.erase(reg.packed);
     else
-        state.regs[reg.packed] = info;
+        state.regs.insert_or_assign(reg.packed, info);
 }
 
 SanitizerValue Sanitizer::getUpperReg(const SanitizerState& state, MicroReg reg)
@@ -604,7 +604,7 @@ void Sanitizer::setUpperReg(SanitizerState& state, MicroReg reg, const Sanitizer
     if (value.kind == SanitizerValueKind::Unknown)
         state.upperRegValues.erase(reg.packed);
     else
-        state.upperRegValues[reg.packed] = value;
+        state.upperRegValues.insertOrAssign(reg.packed, value);
 }
 
 SanitizerValue Sanitizer::getStackLane(const SanitizerState& state, int64_t slot)
@@ -632,7 +632,7 @@ void Sanitizer::setStackValue(SanitizerState& state, int64_t slot, SanitizerValu
     else
     {
         value.storedBytes = size;
-        state.stack[slot] = value;
+        state.stack.insert_or_assign(slot, value);
     }
 }
 
@@ -651,9 +651,12 @@ void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const Po
     if (!origin.valid || !reg.isValid())
         return;
 
-    SanitizerRegInfo info;
-    if (const SanitizerRegInfo* existing = findReg(state, reg))
-        info = *existing;
+    // A carried origin always contributes a fact, so the entry cannot become empty.
+    SWC_ASSERT(origin.hasSlot || origin.released);
+    if (reg.isAnyFloat())
+        state.upperRegValues.erase(reg.packed);
+
+    SanitizerRegInfo& info = state.regs[reg.packed];
     if (origin.hasSlot)
     {
         info.hasPointerOriginSlot = true;
@@ -664,7 +667,6 @@ void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const Po
         info.releasedPointer = true;
         info.releasedOrigin  = origin.releasedOrigin;
     }
-    setReg(state, reg, info);
 }
 
 void Sanitizer::setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value)
@@ -1054,14 +1056,14 @@ void Sanitizer::recordSlotCopy(SanitizerState& state, const int64_t slot, const 
     if (root == slot)
         return;
 
-    state.aliasPtrSlots[slot] = root;
+    state.aliasPtrSlots.insertOrAssign(slot, root);
 
     // Copying a pointer that is already released carries the release with it.
     const auto released = state.freedPtrSlots.find(root);
     if (released == state.freedPtrSlots.end())
         return;
     const SourceCodeRef origin = released->second;
-    state.freedPtrSlots[slot]  = origin;
+    state.freedPtrSlots.insertOrAssign(slot, origin);
 }
 
 void Sanitizer::appendAliasClass(SmallVector<int64_t>& out, const SanitizerState& state, const int64_t slot)
@@ -1181,7 +1183,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         {
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
-                state.movedFrom[slot] = {.size = ops[1].valueU64, .origin = inst.debugSourceInfo.sourceCodeRef};
+                state.movedFrom.insertOrAssign(slot, {.size = ops[1].valueU64, .origin = inst.debugSourceInfo.sourceCodeRef});
             return;
         }
         case MicroInstrOpcode::LoadRegImm:
@@ -1636,7 +1638,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             const LocalSlotExtent* extent = findLocalSlot(slot);
             if (extent && std::ranges::find(addressedByCallee, extent->start) != addressedByCallee.end())
                 continue;
-            state.freedPtrSlots[slot] = inst.debugSourceInfo.sourceCodeRef;
+            state.freedPtrSlots.insertOrAssign(slot, inst.debugSourceInfo.sourceCodeRef);
         }
         return;
     }
@@ -1768,7 +1770,7 @@ void Sanitizer::queueRefined(SanitizerState state, uint32_t index, int64_t slot,
     // A guard narrows an unknown value, but must retain any value already known,
     // including its storage width: later reloads and wide copies need the same fact.
     if (current.kind == SanitizerValueKind::Unknown)
-        state.stack[slot] = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
+        state.stack.insert_or_assign(slot, slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero());
     state.flagsSubject = MicroReg::invalid();
     propagate(std::move(state), index, worklist);
 }

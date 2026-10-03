@@ -3995,20 +3995,13 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         std::ranges::stable_sort(allocRequests, compareAllocRequests);
 
         SmallVector<MicroReg> mentionedConcreteRegs;
-        mentionedConcreteRegs.reserve(instructionUseDefs_[idx].uses.size() + instructionUseDefs_[idx].defs.size());
-        for (const MicroReg reg : instructionUseDefs_[idx].uses)
-        {
-            if ((!reg.isInt() && !reg.isFloat()) || containsKey(mentionedConcreteRegs, reg))
-                continue;
-            mentionedConcreteRegs.push_back(reg);
-        }
-
-        for (const MicroReg reg : instructionUseDefs_[idx].defs)
-        {
-            if ((!reg.isInt() && !reg.isFloat()) || containsKey(mentionedConcreteRegs, reg))
-                continue;
-            mentionedConcreteRegs.push_back(reg);
-        }
+        mentionedConcreteRegs.reserve(useConcreteIndices_[idx].size() + defConcreteIndices_[idx].size());
+        // Liveness already keeps concrete uses and definitions unique in first-use order.
+        // Only the definition list can overlap the uses appended here.
+        for (const uint32_t denseIndex : useConcreteIndices_[idx])
+            mentionedConcreteRegs.push_back(denseConcreteRegs_.regs()[denseIndex]);
+        for (const uint32_t denseIndex : defConcreteIndices_[idx])
+            appendUniqueReg(mentionedConcreteRegs, denseConcreteRegs_.regs()[denseIndex]);
 
         SmallVector<MicroReg> addressSourceRegs;
         addressSourceRegs.reserve(2);
@@ -4104,7 +4097,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 if (alias.virtKey != request.virtKey || containsKey(forbiddenPhysRegs, alias.physReg))
                     continue;
 
-                appendUniqueReg(forbiddenPhysRegs, alias.physReg);
+                forbiddenPhysRegs.push_back(alias.physReg);
                 appendUniqueReg(remapForbiddenPhysRegs, alias.physReg);
             }
 

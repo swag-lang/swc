@@ -126,10 +126,8 @@ AstNodeRef Ast::nthNode(SpanRef spanRef, size_t index) const
 
 AstNodeRef Ast::oneNode(SpanRef spanRef) const
 {
-    SmallVector<AstNodeRef> res;
-    appendNodes(res, spanRef);
-    SWC_ASSERT(res.size() == 1);
-    return res.front();
+    SWC_ASSERT(spanSize(spanRef) == 1);
+    return nthNode(spanRef, 0);
 }
 
 std::optional<size_t> Ast::findNodeIndex(SpanRef spanRef, AstNodeRef nodeRef) const

@@ -929,11 +929,7 @@ Result CodeGenSafety::emitUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntr
     if (!hasMathRuntimeSafety(codeGen))
         return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
 
-    SmallVector<AstNodeRef> children;
-    codeGen.ast().appendNodes(children, node.spanChildrenRef);
-    SWC_ASSERT(children.size() == 1);
-
-    const AstNodeRef          valueRef      = children[0];
+    const AstNodeRef          valueRef      = codeGen.ast().oneNode(node.spanChildrenRef);
     const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
     const SemaNodeView        valueView     = codeGen.viewType(valueRef);
     const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();

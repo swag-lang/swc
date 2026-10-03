@@ -66,11 +66,12 @@ Result NativeRDataCollector::emitCollectedRoots()
 
 Result NativeRDataCollector::collectPendingAllocations()
 {
+    // First in, first out: an allocation's dependencies are reached after every root, in the
+    // order of the allocations that reference them, so the emission order is the reference order.
     std::vector<DataSegmentRelocation> allocationRelocations;
-    while (!pending_.empty())
+    for (size_t next = 0; next < pending_.size(); ++next)
     {
-        const PendingRDataAllocation pending = pending_.back();
-        pending_.pop_back();
+        const PendingRDataAllocation pending = pending_[next];
 
         const DataSegment&           segment    = builder_->compiler().cstMgr().shardDataSegment(pending.shardIndex);
         const DataSegmentAllocation& allocation = pending.allocation->source;
@@ -86,6 +87,7 @@ Result NativeRDataCollector::collectPendingAllocations()
         }
     }
 
+    pending_.clear();
     return Result::Continue;
 }
 
@@ -126,98 +128,92 @@ Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const ui
     ReachableRDataAllocation& reachable = it->second;
     reachable.source                    = allocation;
     reachable.ownerName                 = ownerName;
-    reachableAllocations_[shardIndex].push_back(&reachable);
+    reachableAllocations_.push_back({shardIndex, &reachable});
     pending_.push_back({shardIndex, &reachable});
     return Result::Continue;
 }
 
 Result NativeRDataCollector::emitReachableAllocations()
 {
-    size_t allocationCount = builder_->rdataAllocations.size();
-    for (const auto& allocations : reachableAllocations_)
-        allocationCount += allocations.size();
-    builder_->rdataAllocations.reserve(allocationCount);
-
-    for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
-    {
-        auto& reachable = reachableAllocations_[shardIndex];
-        std::ranges::sort(reachable, {}, [](const ReachableRDataAllocation* allocation) { return allocation->source.offset; });
-
-        const DataSegment& segment  = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
-        auto&              mappings = builder_->rdataAllocationMap[shardIndex];
+    builder_->rdataAllocations.reserve(builder_->rdataAllocations.size() + reachableAllocations_.size());
+    for (auto& mappings : builder_->rdataAllocationMap)
         mappings.clear();
-        mappings.reserve(reachable.size());
 
-        for (const ReachableRDataAllocation* entry : reachable)
-        {
-            const DataSegmentAllocation& allocation = entry->source;
+    // Allocations are emitted in the order the roots reached them: functions in emission order
+    // with their relocations in code order, globals and startup code, each in a fixed order.
+    // Which shard holds a constant, and at which offset, follows the order in which compilation
+    // jobs created it; laying the section out by shard and offset made two builds of the same
+    // program differ.
+    for (const PendingRDataAllocation& entry : reachableAllocations_)
+    {
+        const DataSegment&           segment    = builder_->compiler().cstMgr().shardDataSegment(entry.shardIndex);
+        const DataSegmentAllocation& allocation = entry.allocation->source;
 
-            const uint32_t emittedOffset = Math::alignUpU32(static_cast<uint32_t>(builder_->mergedRData.bytes.size()), std::max(allocation.align, 1u));
-            if (builder_->mergedRData.bytes.size() < emittedOffset)
-                builder_->mergedRData.bytes.resize(emittedOffset, std::byte{0});
+        const uint32_t emittedOffset = Math::alignUpU32(static_cast<uint32_t>(builder_->mergedRData.bytes.size()), std::max(allocation.align, 1u));
+        if (builder_->mergedRData.bytes.size() < emittedOffset)
+            builder_->mergedRData.bytes.resize(emittedOffset, std::byte{0});
 
-            const uint32_t insertOffset = static_cast<uint32_t>(builder_->mergedRData.bytes.size());
-            SWC_ASSERT(insertOffset == emittedOffset);
-            builder_->mergedRData.bytes.resize(insertOffset + allocation.size);
+        const uint32_t insertOffset = static_cast<uint32_t>(builder_->mergedRData.bytes.size());
+        SWC_ASSERT(insertOffset == emittedOffset);
+        builder_->mergedRData.bytes.resize(insertOffset + allocation.size);
 
-            const auto* sourceBytes = segment.ptr<std::byte>(allocation.offset);
-            SWC_ASSERT(sourceBytes != nullptr);
-            const bool zeroFilled = std::ranges::all_of(std::span<const std::byte>{sourceBytes, allocation.size}, [](const std::byte value) { return value == std::byte{}; });
-            // resize already zeroed the destination. Keep the result for the
-            // object writer instead of scanning the copied bytes a second time.
-            if (!zeroFilled)
-                std::memcpy(builder_->mergedRData.bytes.data() + insertOffset, sourceBytes, allocation.size);
+        const auto* sourceBytes = segment.ptr<std::byte>(allocation.offset);
+        SWC_ASSERT(sourceBytes != nullptr);
+        const bool zeroFilled = std::ranges::all_of(std::span<const std::byte>{sourceBytes, allocation.size}, [](const std::byte value) { return value == std::byte{}; });
+        // resize already zeroed the destination. Keep the result for the
+        // object writer instead of scanning the copied bytes a second time.
+        if (!zeroFilled)
+            std::memcpy(builder_->mergedRData.bytes.data() + insertOffset, sourceBytes, allocation.size);
 
-            NativeRDataAllocationMapEntry mapEntry;
-            mapEntry.shardIndex    = shardIndex;
-            mapEntry.sourceOffset  = allocation.offset;
-            mapEntry.size          = allocation.size;
-            mapEntry.align         = std::max(allocation.align, 1u);
-            mapEntry.emittedOffset = emittedOffset;
-            mapEntry.zeroFilled    = zeroFilled;
-            mappings.push_back(mapEntry);
-            builder_->rdataAllocations.push_back(mapEntry);
-        }
+        NativeRDataAllocationMapEntry mapEntry;
+        mapEntry.shardIndex    = entry.shardIndex;
+        mapEntry.sourceOffset  = allocation.offset;
+        mapEntry.size          = allocation.size;
+        mapEntry.align         = std::max(allocation.align, 1u);
+        mapEntry.emittedOffset = emittedOffset;
+        mapEntry.zeroFilled    = zeroFilled;
+        builder_->rdataAllocationMap[entry.shardIndex].push_back(mapEntry);
+        builder_->rdataAllocations.push_back(mapEntry);
     }
+
+    // Source offsets are looked up by binary search.
+    for (auto& mappings : builder_->rdataAllocationMap)
+        std::ranges::sort(mappings, {}, &NativeRDataAllocationMapEntry::sourceOffset);
 
     std::vector<DataSegmentRelocation> allocationRelocations;
     Utf8                               rdataBaseName;
-    for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
+    for (const PendingRDataAllocation& entry : reachableAllocations_)
     {
-        const DataSegment& segment     = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
-        const auto&        allocations = reachableAllocations_[shardIndex];
+        const DataSegment&                   segment    = builder_->compiler().cstMgr().shardDataSegment(entry.shardIndex);
+        const DataSegmentAllocation&         allocation = entry.allocation->source;
+        const NativeRDataAllocationMapEntry* mapping    = builder_->tryFindRDataSourceAllocation(entry.shardIndex, allocation.offset);
+        SWC_ASSERT(mapping != nullptr && mapping->sourceOffset == allocation.offset);
 
-        for (size_t i = 0; i < allocations.size(); ++i)
+        segment.copyRelocations(allocationRelocations, allocation.offset, allocation.size);
+        for (const DataSegmentRelocation& relocation : allocationRelocations)
         {
-            const DataSegmentAllocation&         allocation = allocations[i]->source;
-            const NativeRDataAllocationMapEntry& mapping    = builder_->rdataAllocationMap[shardIndex][i];
+            NativeSectionRelocation record;
+            record.offset = mapping->emittedOffset + (relocation.offset - allocation.offset);
 
-            segment.copyRelocations(allocationRelocations, allocation.offset, allocation.size);
-            for (const DataSegmentRelocation& relocation : allocationRelocations)
+            if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
-                NativeSectionRelocation record;
-                record.offset = mapping.emittedOffset + (relocation.offset - allocation.offset);
+                const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? entry.shardIndex : relocation.targetShardIndex;
+                uint32_t       targetOffset     = 0;
+                if (!builder_->tryMapRDataSourceOffset(targetOffset, targetShardIndex, relocation.targetOffset))
+                    return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, entry.allocation->ownerName);
 
-                if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
-                {
-                    const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
-                    uint32_t       targetOffset     = 0;
-                    if (!builder_->tryMapRDataSourceOffset(targetOffset, targetShardIndex, relocation.targetOffset))
-                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, allocations[i]->ownerName);
-
-                    if (rdataBaseName.empty())
-                        rdataBaseName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
-                    record.symbolName = rdataBaseName;
-                    record.addend     = targetOffset;
-                    builder_->mergedRData.relocations.push_back(std::move(record));
-                    continue;
-                }
-
-                SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
-                SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, relocation.targetSymbol));
-                record.addend = 0;
+                if (rdataBaseName.empty())
+                    rdataBaseName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
+                record.symbolName = rdataBaseName;
+                record.addend     = targetOffset;
                 builder_->mergedRData.relocations.push_back(std::move(record));
+                continue;
             }
+
+            SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
+            SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, relocation.targetSymbol));
+            record.addend = 0;
+            builder_->mergedRData.relocations.push_back(std::move(record));
         }
     }
 

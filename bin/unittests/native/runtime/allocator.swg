@@ -865,4 +865,59 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         itf.freeAll(&freeAll)
         Swag.assert(alloc.stats().countFree == 0)
     }
+
+    // A page the slow path parked as full is no longer scanned, but a block another thread frees
+    // into it queues the page, and the owner's next slow path takes it back and reuses the block.
+    #test
+    {
+        var alloc: Allocator
+        let itf = makeAllocator(&alloc, fillMemory: false)
+
+        const Count = 4096
+        var addresses: [Count] u64
+        for i in Count
+        {
+            var req: AllocatorRequest
+            req.size = 64
+            itf.alloc(&req)
+            addresses[i] = cast(u64) req.address
+        }
+
+        let first = allocatorPageOf(addresses[0])!
+        Swag.assert(first.inFull == 1)
+
+        var done:    s32 = 0
+        var payload: AllocatorRemoteFreePayload
+        payload.allocator = itf
+        payload.address   = cast(*void) addresses[0]
+        payload.done      = &done
+
+        var threadId: AllocatorThreadTest.DWORD
+        let handle = AllocatorThreadTest.CreateThread(null, 0, &allocatorRemoteFreeThread, &payload, 0, &threadId)
+        Swag.assert(handle != null)
+        discard AllocatorThreadTest.WaitForSingleObject(handle, AllocatorThreadTest.INFINITE)
+        AllocatorThreadTest.CloseHandle(handle)
+        Swag.assert(Swag.atomcmpxchg(&done, 0, 0) == 1)
+        Swag.assert(first.revisitQueued == 1)
+
+        var reused = false
+        for Count
+        {
+            var req: AllocatorRequest
+            req.size = 64
+            itf.alloc(&req)
+            if cast(u64) req.address == addresses[0]
+            {
+                reused = true
+                break
+            }
+        }
+
+        Swag.assert(reused)
+        Swag.assert(first.inFull == 0)
+        Swag.assert(first.revisitQueued == 0)
+
+        var freeAll: AllocatorRequest
+        itf.freeAll(&freeAll)
+    }
 }

@@ -99,27 +99,6 @@ alone. Comparative reference points for that investigation:
   with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
 - Related: compiler.safety.004, runtime.allocator.001.
 
-### runtime.allocator.016 — Avoid repeated scans of full pages during live-set growth
-
-- Recorded: 2026-09-11 16:29
-- Updated: 2026-10-03 08:56 — Measured with the new `grow` workload: about 2 ns of 17 per operation at four million blocks.
-- Evidence: `allocator.swg::acquireBlockSlow` walks the class list from its beginning once the
-  current page is exhausted, revisiting full pages and collecting their remote lists before
-  acquiring a new page, so filling P pages costs O(P squared) page visits. `bench/allocator`
-  `grow` (four million live 32-byte blocks, about 1 950 pages of one class) runs at 17.3 ns per
-  operation against 6.2 ns for mimalloc and 29.6 ns for the C heap; the scans account for
-  roughly 2 ns of it there, and grow with the square of the live set beyond.
-- A full-page queue alone is not enough: a remote free into a queued page must bring it back
-  without the remote thread touching the owning heap, which can retire at any time. Page
-  metadata outlives heaps, so an allocator-wide lock-free stack of pages to revisit (pushed by
-  the remote free that finds a page marked full, drained by the owners' slow paths) is the
-  candidate that keeps that invariant.
-- Next: implement the full queue with local-free return and that revisit stack; measure `grow`
-  at 4 M and 40 M blocks and the xfer workloads.
-- Complete when: growth no longer repeatedly scans all full pages, with measured scaling and
-  regressions for remote returns, page retirement and adoption.
-- Related: runtime.allocator.001, runtime.allocator.002, runtime.allocator.004.
-
 ### runtime.allocator.005 — Scale the large-block cache with threads
 
 - Recorded: 2026-08-05 10:27
@@ -184,7 +163,7 @@ alone. Comparative reference points for that investigation:
   common path), re-measure pair/trees; otherwise look at `Memory.alloc`'s request setup.
 - Complete when: generated-code attribution and comparable application/allocator measurements
   establish the remaining policy, preserving lifetime and error behavior.
-- Related: runtime.allocator.001, runtime.allocator.016.
+- Related: runtime.allocator.001.
 
 ### runtime.allocator.004 — Make remote frees batched rather than one atomic each
 

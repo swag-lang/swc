@@ -316,8 +316,7 @@ namespace
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
 
-        std::unordered_map<uint32_t, uint32_t> labels;
-        bool                                   labelsReady = false;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> labels;
 
         for (uint32_t i = 0; i + 3 < order.size(); ++i)
         {
@@ -336,20 +335,20 @@ namespace
             if (!tryGetJumpTargetLabelId(exitId, *jcc, jccOps))
                 continue;
 
-            if (!labelsReady)
+            if (!labels)
             {
+                auto& labelOrdinals = labels.emplace();
                 for (uint32_t labelOrdinal = 0; labelOrdinal < order.size(); ++labelOrdinal)
                 {
                     const MicroInstr* inst = storage.ptr(order[labelOrdinal]);
                     uint32_t          id   = 0;
                     if (inst && tryGetLabelId(id, *inst, inst->ops(operands)))
-                        labels[id] = labelOrdinal;
+                        labelOrdinals[id] = labelOrdinal;
                 }
-                labelsReady = true;
             }
 
-            const auto exitIt = labels.find(exitId);
-            if (exitIt == labels.end() || exitIt->second <= i + 2)
+            const auto exitIt = labels->find(exitId);
+            if (exitIt == labels->end() || exitIt->second <= i + 2)
                 continue;
             const uint32_t backIndex = exitIt->second - 1;
             const MicroInstr* back   = storage.ptr(order[backIndex]);
@@ -359,8 +358,8 @@ namespace
             if (!backOps || backOps[0].cpuCond != MicroCond::Unconditional ||
                 backOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
                 continue;
-            const auto bodyIt = labels.find(static_cast<uint32_t>(backOps[2].valueU64));
-            if (bodyIt == labels.end() || bodyIt->second >= i)
+            const auto bodyIt = labels->find(static_cast<uint32_t>(backOps[2].valueU64));
+            if (bodyIt == labels->end() || bodyIt->second >= i)
                 continue;
 
             bool safe = true;
@@ -432,18 +431,22 @@ namespace
     // This is post-RA so block layout cannot change register assignment.
     bool placeShortLoopStep(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
     {
-        MicroStorage&        storage   = *context.instructions;
-        MicroOperandStorage& operands  = *context.operands;
-        std::unordered_map<uint64_t, uint32_t> labelOrdinals;
-        for (uint32_t index = 0; index < order.size(); ++index)
-        {
-            const MicroInstr* inst = storage.ptr(order[index]);
-            if (inst && inst->op == MicroInstrOpcode::Label)
-                labelOrdinals.try_emplace(inst->ops(operands)[0].valueU64, index);
-        }
-        const auto           findLabel = [&](const uint64_t id, const uint32_t endOrdinal) {
-            const auto it = labelOrdinals.find(id);
-            if (it != labelOrdinals.end() && it->second < endOrdinal)
+        MicroStorage&                                         storage  = *context.instructions;
+        MicroOperandStorage&                                  operands = *context.operands;
+        std::optional<std::unordered_map<uint64_t, uint32_t>> labelOrdinals;
+        const auto                                            findLabel = [&](const uint64_t id, const uint32_t endOrdinal) {
+            if (!labelOrdinals)
+            {
+                auto& labels = labelOrdinals.emplace();
+                for (uint32_t index = 0; index < order.size(); ++index)
+                {
+                    const MicroInstr* inst = storage.ptr(order[index]);
+                    if (inst && inst->op == MicroInstrOpcode::Label)
+                        labels.try_emplace(inst->ops(operands)[0].valueU64, index);
+                }
+            }
+            const auto it = labelOrdinals->find(id);
+            if (it != labelOrdinals->end() && it->second < endOrdinal)
                 return it->second;
             return static_cast<uint32_t>(order.size());
         };

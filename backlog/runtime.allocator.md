@@ -59,6 +59,33 @@ alone. Comparative reference points for that investigation:
 | [TCMalloc](https://google.github.io/tcmalloc/design.html) | Per-CPU caches, batched transfers and a hugepage-aware backend are useful architectural reference points. Its [per-CPU restartable sequences](https://google.github.io/tcmalloc/rseq.html) use Linux facilities, so this is not a direct Windows backend comparison. |
 | [Scudo](https://llvm.org/docs/ScudoHardenedAllocator.html) and [hardened_malloc](https://github.com/GrapheneOS/hardened_malloc) | Hardening reference points for state/integrity checks, metadata isolation, randomization and quarantine. Features differ by allocator and configuration; do not imply all protections are enabled by default or provide complete memory safety. |
 
+### runtime.allocator.003 — Return idle memory without being asked
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-03 09:36 — Idle pages and old cached blocks are purged 500 ms after a slow path first sees them.
+- An emptied page now returns to its segment still committed while the process-wide idle budget
+  allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
+  system call; past the budget it is decommitted. `trim()` decommits the idle pages of every
+  segment, teardown those of the segments it releases, and `trim()` also gives the large-block
+  cache back. The cache's budget follows the bytes held
+  live through the header path (at least 16 MiB, at most 256 MiB, 64 entries).
+- Measured on `bench/allocator` medium (256 live 4-64 KiB blocks): 213 -> 51 ns per operation,
+  peak working set 11.8 -> 19.8 MB (mimalloc 36.5 ns, 19.2 MB). A 2 MiB / one-eighth budget
+  brings the working set back to 13.4 MB and the time back to 242 ns: the budget is the trade.
+- Purge: the first slow path that sees idle memory arms a 500 ms deadline; the first one past
+  it decommits every idle page of the allocator and the cached blocks freed longer ago than the
+  delay. Page refills read the clock one time in 64, large frees every time; the micro-benchmarks
+  do not move. After a 24 MB burst followed by light activity, committed memory falls to under
+  1 MB within the second instead of staying at 24 MB.
+- Still open: nothing runs in the background, so a program that stops allocating altogether keeps
+  its idle memory until it allocates again, trims, or exits (as mimalloc without its purge
+  thread); an inactive live owner keeps its remotely returned blocks uncollected.
+- Next: measure burst/idle with an owner kept alive, and decide whether the delay should follow
+  the memory pressure the host reports.
+- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
+  idle/trim behavior and documented bounds.
+- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
+
 ### runtime.allocator.010 — Decide what the security properties are, and write them down
 
 - Recorded: 2026-08-06 06:22
@@ -121,28 +148,6 @@ alone. Comparative reference points for that investigation:
 - Complete when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006
-
-### runtime.allocator.003 — Return idle memory without being asked
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-03 08:56 — trim() now decommits idle pages in every segment, not only in emptied ones.
-- An emptied page now returns to its segment still committed while the process-wide idle budget
-  allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
-  system call; past the budget it is decommitted. `trim()` decommits the idle pages of every
-  segment, teardown those of the segments it releases, and `trim()` also gives the large-block
-  cache back. The cache's budget follows the bytes held
-  live through the header path (at least 16 MiB, at most 256 MiB, 64 entries).
-- Measured on `bench/allocator` medium (256 live 4-64 KiB blocks): 213 -> 51 ns per operation,
-  peak working set 11.8 -> 19.8 MB (mimalloc 36.5 ns, 19.2 MB). A 2 MiB / one-eighth budget
-  brings the working set back to 13.4 MB and the time back to 242 ns: the budget is the trade.
-- Still open: nothing purges without a call. A program that bursts and then idles keeps up to the
-  idle budget plus the cache budget until it trims or exits; an inactive live owner keeps its
-  remotely returned blocks uncollected.
-- Next: decide whether a time-based purge on the slow paths is worth its cost, or document that
-  bound as the contract; measure burst/idle with an owner kept alive.
-- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
-  idle/trim behavior and documented bounds.
-- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
 
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 

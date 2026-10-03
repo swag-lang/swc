@@ -68,21 +68,6 @@ namespace
         return Result::Error;
     }
 
-    uint64_t enumValueCount(const SymbolEnum& symEnum)
-    {
-        std::vector<const Symbol*> symbols;
-        symEnum.getAllSymbols(symbols);
-
-        uint64_t result = 0;
-        for (const Symbol* symbol : symbols)
-        {
-            if (symbol && symbol->isEnumValue())
-                result += 1;
-        }
-
-        return result;
-    }
-
     LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<LoopSemaPayload>(nodeRef))
@@ -657,7 +642,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
             auto& payload        = ensureLoopSemaPayload(sema, sema.curNodeRef());
             payload.indexTypeRef = sema.typeMgr().typeU64();
-            payload.countCstRef  = sema.cstMgr().addInt(sema.ctx(), enumValueCount(*symEnum));
+            payload.countCstRef  = sema.cstMgr().addInt(sema.ctx(), symEnum->countSymbols(SymbolKind::EnumValue));
         }
         else
         {

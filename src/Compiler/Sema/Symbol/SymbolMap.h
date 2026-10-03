@@ -21,6 +21,7 @@ public:
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
     void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
+    uint64_t      countSymbols(SymbolKind kind) const;
     bool          empty() const noexcept;
     uint32_t      count() const noexcept { return count_.load(std::memory_order_relaxed); }
 
@@ -92,6 +93,8 @@ private:
     static void     tableReserve(TaskContext& ctx, std::atomic<HeadTable*>& published, uint32_t minSize);
     template<typename F>
     static void     forEachHead(const HeadTable* table, const F& fn);
+    template<typename F>
+    void            forEachPublishedHead(const F& fn) const;
     static void     notifyInserted(TaskContext& ctx, IdentifierRef idRef);
     Symbol*         tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, uint32_t hash, Symbol* symbol, bool acceptHomonyms);
     void            upgradeToSharded(TaskContext& ctx);

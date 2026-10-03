@@ -375,13 +375,10 @@ const Symbol* SymbolMap::findFirstSymbol(IdentifierRef idRef, bool includeIgnore
     return firstVisibleSymbol(findHead(idRef), includeIgnored);
 }
 
-void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
+template<typename F>
+void SymbolMap::forEachPublishedHead(const F& fn) const
 {
-    out.clear();
-    std::vector<SymbolSortEntry> ordered;
-    ordered.reserve(count());
-
-    const auto append = [&](uint64_t, Symbol* head) { appendSymbolsForSort(ordered, head, includeIgnored); };
+    const auto append = [&](uint64_t, Symbol* head) { fn(head); };
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
         for (uint32_t i = 0; i < SHARD_COUNT; ++i)
@@ -393,13 +390,34 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
         if (smallSize <= SMALL_CAP)
         {
             for (uint32_t i = 0; i < smallSize; ++i)
-                appendSymbolsForSort(ordered, small_[i].head.load(std::memory_order_acquire), includeIgnored);
+                fn(small_[i].head.load(std::memory_order_acquire));
         }
         else
             forEachHead(bigTable_.load(std::memory_order_acquire), append);
     }
+}
 
+void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
+{
+    out.clear();
+    std::vector<SymbolSortEntry> ordered;
+    ordered.reserve(count());
+    forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort(ordered, head, includeIgnored); });
     sortSymbolsByDeclaration(out, ordered);
+}
+
+uint64_t SymbolMap::countSymbols(SymbolKind kind) const
+{
+    // Counting visible symbols needs neither declaration metadata nor a sorted snapshot.
+    uint64_t result = 0;
+    forEachPublishedHead([&](const Symbol* head) {
+        for (const Symbol* symbol = head; symbol; symbol = symbol->nextHomonym())
+        {
+            if (!symbol->isIgnored() && symbol->kind() == kind)
+                ++result;
+        }
+    });
+    return result;
 }
 
 Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)

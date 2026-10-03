@@ -1324,13 +1324,13 @@ namespace
             const uint64_t  rawArgSize         = argType.sizeOf(ctx);
             SWC_ASSERT(rawArgSize > 0 && rawArgSize <= std::numeric_limits<uint32_t>::max());
 
-            UntypedVariadicArgInfo info;
-            info.argRef     = resolvedArg.argRef;
-            info.argPayload = argPayload;
-            info.argTypeRef = argTypeRef;
-            info.valueSize  = static_cast<uint32_t>(rawArgSize);
-            info.valueAlign = std::max<uint32_t>(argType.alignOf(ctx), 1);
-            info.isAny      = resolvedArgType.isAny();
+            UntypedVariadicArgInfo& info = variadicInfos.emplace_back();
+            info.argRef                  = resolvedArg.argRef;
+            info.argPayload              = argPayload;
+            info.argTypeRef              = argTypeRef;
+            info.valueSize               = static_cast<uint32_t>(rawArgSize);
+            info.valueAlign              = std::max<uint32_t>(argType.alignOf(ctx), 1);
+            info.isAny                   = resolvedArgType.isAny();
 
             if (!info.isAny)
             {
@@ -1362,7 +1362,6 @@ namespace
 
             info.needsSpill = info.valueSize <= 8 || info.isAny;
             SWC_ASSERT(info.isAny || info.typeInfoCstRef.isValid());
-            variadicInfos.push_back(info);
         }
 
         uint64_t spillStorageSize = 0;

@@ -280,7 +280,8 @@ namespace
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
             if (!inst)
                 return false;
-            useDefs[i] = inst->collectUseDef(operands, context.encoder);
+            useDefs[i] = {};
+            inst->collectUseDef(useDefs[i], operands, context.encoder);
             for (const MicroReg use : useDefs[i].uses)
             {
                 RegOccurrences& info = uses[use];

@@ -1792,12 +1792,18 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                             continue;
                         const Connector& candidate = connectors[list[i]];
                         bool             readLater = false;
-                        for (size_t j = 0; j < list.size(); ++j)
+                        if (candidate.dst.isValid())
                         {
-                            if (i == j || emitted[j])
-                                continue;
-                            readLater = readLater ||
-                                        (candidate.dst.isValid() && connectors[list[j]].src == candidate.dst);
+                            for (size_t j = 0; j < list.size(); ++j)
+                            {
+                                if (i == j || emitted[j])
+                                    continue;
+                                if (connectors[list[j]].src == candidate.dst)
+                                {
+                                    readLater = true;
+                                    break;
+                                }
+                            }
                         }
                         if (readLater)
                             continue;

@@ -129,7 +129,9 @@ namespace
                 const MicroInstr* inst = storage.ptr(instrRefs[i]);
                 if (!inst)
                     return false;
-                scratch.useDefs[i]        = inst->collectUseDef(operands, context.encoder);
+                // Release the old backing stores before filling this entry directly.
+                scratch.useDefs[i] = {};
+                inst->collectUseDef(scratch.useDefs[i], operands, context.encoder);
                 const MicroInstrDef& info = MicroInstr::info(inst->op);
                 if (inst->op == MicroInstrOpcode::Label || !openBlock)
                 {

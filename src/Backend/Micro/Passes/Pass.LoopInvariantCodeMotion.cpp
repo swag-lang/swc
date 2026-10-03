@@ -25,7 +25,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_INVALID    = std::numeric_limits<uint32_t>::max();
     constexpr uint32_t K_MAX_ROUNDS = 64;
 
     using NaturalLoop = MicroPassHelpers::NaturalLoop;
@@ -326,19 +325,8 @@ namespace
 
         const auto instrRefs = cfg.instructionRefs();
 
-        uint32_t entry      = K_INVALID;
-        bool     multiEntry = false;
-        for (uint32_t i = 0; i < n; ++i)
-        {
-            if (cfg.predecessors(i).empty())
-            {
-                if (entry == K_INVALID)
-                    entry = i;
-                else
-                    multiEntry = true;
-            }
-        }
-        if (entry == K_INVALID || multiEntry)
+        const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+        if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return false;
 
         const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
@@ -403,7 +391,8 @@ namespace
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
             if (!inst)
                 return false;
-            useDefs[i]                     = inst->collectUseDef(operands, context.encoder);
+            useDefs[i] = {};
+            inst->collectUseDef(useDefs[i], operands, context.encoder);
             const MicroInstrUseDef* useDef = &useDefs[i];
             for (const MicroReg def : useDef->defs)
             {
@@ -793,9 +782,7 @@ namespace
                 // address computation the multiply-to-lea rewrite produced,
                 // `%r = &[%r + %r*2]`. A definition that does not is a full
                 // def and starts a fresh value.
-                bool selfUse = false;
-                for (const MicroReg use : useDef->uses)
-                    selfUse = selfUse || use == destReg;
+                const bool selfUse = std::ranges::find(useDef->uses, destReg) != useDef->uses.end();
 
                 const bool eligible = isEligibleOpcode(inst->op) || isEligiblePairedComputeOpcode(inst->op);
                 if (!eligible)
@@ -1211,8 +1198,7 @@ namespace
                         if (hoistSet.contains(s))
                             continue;
                         const MicroInstrUseDef* ud = &useDefs[s];
-                        for (const MicroReg use : ud->uses)
-                            violated = violated || use == reg;
+                        violated = std::ranges::find(ud->uses, reg) != ud->uses.end();
                     }
 
                     // An exit taken mid-web leaves the register holding an

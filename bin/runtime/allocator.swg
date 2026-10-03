@@ -1566,6 +1566,15 @@ impl Allocator
             abandoned = next
         }
 
+        // Emptied pages may have stayed committed as idle pages, in segments that still carry
+        // live ones too.
+        var segment: *AllocatorSegment? = .firstSegment
+        while segment
+        {
+            segment.decommitIdlePages()
+            segment = segment.nextSegment
+        }
+
         .releaseEmptySegments()
         .segmentMutex.unlock()
 

@@ -286,6 +286,7 @@ func freeOne(itf: IAllocator, address: *void?)
     var alloc: Allocator
     let itf = makeAllocator(&alloc)
 
+    let committedBefore = alloc.stats().sizeCommitted
     const Count = 8192
     var addresses: [Count] (*void?)
     for i in Count
@@ -304,6 +305,8 @@ func freeOne(itf: IAllocator, address: *void?)
     let trimmed = alloc.stats()
     Swag.assert(trimmed.countAlloc == 0)
     Swag.assert(trimmed.countPage <= 1)
+    // What stays committed is the current page and the segment header, not the emptied pages.
+    Swag.assert(trimmed.sizeCommitted <= committedBefore + 128 * 1024)
 
     alloc.releaseAll()
     Swag.assert(alloc.stats().countSegment == 0)

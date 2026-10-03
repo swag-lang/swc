@@ -88,11 +88,10 @@ namespace
         if (ops[2].microOp != expectedOp)
             return false;
 
-        const ApInt immediate = ops[3].immediateValue(64);
-        if (!immediate.fit64())
+        if (ops[3].hasWideImmediateValue() && !ops[3].wideImmediateValue().fit64())
             return false;
 
-        outImmediate = immediate.as64();
+        outImmediate = ops[3].valueU64;
         return true;
     }
 

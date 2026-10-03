@@ -651,9 +651,12 @@ void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const Po
     if (!origin.valid || !reg.isValid())
         return;
 
-    SanitizerRegInfo info;
-    if (const SanitizerRegInfo* existing = findReg(state, reg))
-        info = *existing;
+    // A carried origin always contributes a fact, so the entry cannot become empty.
+    SWC_ASSERT(origin.hasSlot || origin.released);
+    if (reg.isAnyFloat())
+        state.upperRegValues.erase(reg.packed);
+
+    SanitizerRegInfo& info = state.regs[reg.packed];
     if (origin.hasSlot)
     {
         info.hasPointerOriginSlot = true;
@@ -664,7 +667,6 @@ void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const Po
         info.releasedPointer = true;
         info.releasedOrigin  = origin.releasedOrigin;
     }
-    setReg(state, reg, info);
 }
 
 void Sanitizer::setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value)

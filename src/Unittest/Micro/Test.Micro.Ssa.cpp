@@ -909,6 +909,98 @@ SWC_TEST_BEGIN(MicroSsa_InstructionDefinitionsStayContiguousAcrossRebuilds)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_ReusedAnalysisMatchesFreshAnalysisAfterMutations)
+{
+    constexpr MicroReg first  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg second = MicroReg::virtualIntReg(2);
+    constexpr MicroReg third  = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+    const auto         loop  = builder.createLabel();
+    const auto         right = builder.createLabel();
+    const auto         join  = builder.createLabel();
+    builder.emitLoadRegImm(first, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(second, ApInt(9, 64), MicroOpBits::B64);
+    builder.placeLabel(loop);
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+    const auto branch = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(first, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto leftOp = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(right);
+    builder.emitOpBinaryRegReg(first, second, MicroOp::Exchange, MicroOpBits::B64);
+    const auto rightOp = builder.instructions().lastInstructionRef();
+    builder.placeLabel(join);
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, first, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B64, loop);
+    builder.emitRet();
+
+    MicroSsaState reused;
+    for (uint32_t stage = 0; stage < 10; ++stage)
+    {
+        switch (stage)
+        {
+            case 1: builder.instructions().ptr(leftOp)->ops(builder.operands())[3].setImmediateValue(ApInt(11, 64)); break;
+            case 2: builder.instructions().ptr(leftOp)->ops(builder.operands())[2].microOp = MicroOp::Subtract; break;
+            case 3: builder.instructions().ptr(rightOp)->ops(builder.operands())[1].reg = third; break;
+            case 4: builder.instructions().ptr(rightOp)->ops(builder.operands())[3].microOp = MicroOp::Add; break;
+            case 5: builder.instructions().ptr(leftOp)->ops(builder.operands())[0].reg = MicroReg::intReg(0); break;
+            case 6:
+                builder.instructions().ptr(branch)->ops(builder.operands())[2].valueU64 = join.get();
+                builder.invalidateControlFlowGraph();
+                break;
+            case 7: builder.instructions().erase(leftOp); break;
+            case 8: builder.emitLoadRegImm(third, ApInt(13, 64), MicroOpBits::B64); break;
+            case 9: reused.clear(); break;
+            default: break;
+        }
+        reused.invalidate();
+        reused.build(builder, builder.instructions(), builder.operands(), nullptr);
+        MicroSsaState fresh;
+        fresh.build(builder, builder.instructions(), builder.operands(), nullptr);
+        SWC_ASSERT(reused.values().size() == fresh.values().size());
+        SWC_ASSERT(reused.phis().size() == fresh.phis().size());
+        const auto refs = builder.controlFlowGraph().instructionRefs();
+        for (const MicroInstrRef ref : refs)
+        {
+            const auto* actual   = reused.instrUseDef(ref);
+            const auto* expected = fresh.instrUseDef(ref);
+            SWC_ASSERT(actual && expected && actual->isCall == expected->isCall && actual->callConv == expected->callConv);
+            SWC_ASSERT(std::ranges::equal(actual->uses, expected->uses) && std::ranges::equal(actual->defs, expected->defs));
+            for (const MicroReg reg : {first, second, third})
+            {
+                const auto actualDef   = reused.reachingDef(reg, ref);
+                const auto expectedDef = fresh.reachingDef(reg, ref);
+                SWC_ASSERT(actualDef.valueId == expectedDef.valueId && actualDef.instRef == expectedDef.instRef && actualDef.isPhi == expectedDef.isPhi);
+                SWC_ASSERT(reused.isRegUsedAfter(reg, ref) == fresh.isRegUsedAfter(reg, ref));
+            }
+        }
+        for (uint32_t id = 0; id < fresh.values().size(); ++id)
+        {
+            const auto* actual   = reused.valueInfo(id);
+            const auto* expected = fresh.valueInfo(id);
+            SWC_ASSERT(actual->reg == expected->reg && actual->instRef == expected->instRef && actual->phiIndex == expected->phiIndex);
+            SWC_ASSERT(actual->blockIndex == expected->blockIndex && actual->uses.size() == expected->uses.size());
+            for (uint32_t use = 0; use < expected->uses.size(); ++use)
+            {
+                SWC_ASSERT(actual->uses[use].kind == expected->uses[use].kind && actual->uses[use].instRef == expected->uses[use].instRef &&
+                           actual->uses[use].phiIndex == expected->uses[use].phiIndex);
+            }
+            SWC_ASSERT(reused.transitiveInstructionUseCount(id, 16) == fresh.transitiveInstructionUseCount(id, 16));
+            for (const MicroInstrRef ref : refs)
+                SWC_ASSERT(reused.definitionDominates(id, ref) == fresh.definitionDominates(id, ref));
+        }
+        for (uint32_t id = 0; id < fresh.phis().size(); ++id)
+        {
+            const auto* actual   = reused.phiInfo(id);
+            const auto* expected = fresh.phiInfo(id);
+            SWC_ASSERT(actual->reg == expected->reg && actual->resultValueId == expected->resultValueId && actual->blockIndex == expected->blockIndex);
+            SWC_ASSERT(std::ranges::equal(actual->predecessorBlocks, expected->predecessorBlocks));
+            SWC_ASSERT(std::ranges::equal(actual->incomingValueIds, expected->incomingValueIds));
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroSsa_DefinitionDominanceMatchesInstructionGraph)
 {
     constexpr uint32_t blockCount = 12;

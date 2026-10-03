@@ -65,20 +65,15 @@ const Symbol* SemaHelpers::findPredefinedRuntimeSymbol(const Sema& sema, Identif
         if (!root)
             continue;
 
-        std::vector<const Symbol*> rootSymbols;
-        root->getAllSymbols(rootSymbols);
-        for (const Symbol* rootSym : rootSymbols)
+        // Homonyms already follow declaration order, so a named lookup preserves the
+        // selection without collecting and sorting unrelated symbols in either scope.
+        for (const Symbol* rootSym = root->findFirstSymbol(swagIdRef); rootSym; rootSym = rootSym->nextHomonym())
         {
-            if (!rootSym || !rootSym->isNamespace() || rootSym->idRef() != swagIdRef)
+            if (rootSym->isIgnored() || !rootSym->isNamespace())
                 continue;
 
-            std::vector<const Symbol*> namespaceSymbols;
-            rootSym->asSymMap()->getAllSymbols(namespaceSymbols);
-            for (const Symbol* candidate : namespaceSymbols)
-            {
-                if (candidate && candidate->idRef() == targetIdRef)
-                    return candidate;
-            }
+            if (const Symbol* candidate = rootSym->asSymMap()->findFirstSymbol(targetIdRef))
+                return candidate;
         }
     }
 

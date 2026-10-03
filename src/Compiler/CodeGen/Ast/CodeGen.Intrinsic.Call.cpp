@@ -697,11 +697,7 @@ namespace
     // the compare-exchange form paid for is not needed to read a value another thread writes.
     Result codeGenAtomicLoad(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
-
-        const AstNodeRef          ptrRef               = children[0];
+        const AstNodeRef          ptrRef               = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& ptrPayload           = codeGen.payload(ptrRef);
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
         const TypeRef             resultStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, resultTypeRef);
@@ -722,11 +718,9 @@ namespace
 
     Result codeGenPrefetch(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
+        const AstNodeRef argumentRef = codeGen.ast().oneNode(node.spanChildrenRef);
 
-        const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(argumentRef), MicroOpBits::B64);
         codeGen.builder().emitPrefetch(ptrReg);
         return Result::Continue;
     }
@@ -1246,11 +1240,7 @@ namespace
 
     Result codeGenSqrt(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
-
-        const AstNodeRef          exprRef       = children[0];
+        const AstNodeRef          exprRef       = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
@@ -1281,11 +1271,7 @@ namespace
 
     Result codeGenAbs(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
-
-        const AstNodeRef          exprRef              = children[0];
+        const AstNodeRef          exprRef              = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& exprPayload          = codeGen.payload(exprRef);
         const TypeRef             exprTypeRef          = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
@@ -1417,11 +1403,7 @@ namespace
 
     Result codeGenByteSwap(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
-
-        const AstNodeRef          valueRef             = children[0];
+        const AstNodeRef          valueRef             = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
@@ -1444,11 +1426,7 @@ namespace
 
     Result codeGenBitCount(CodeGen& codeGen, const AstIntrinsicCallExpr& node, BitCountKind kind)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
-
-        const AstNodeRef          valueRef             = children[0];
+        const AstNodeRef          valueRef             = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
@@ -1544,11 +1522,7 @@ namespace
 
     Result codeGenFloatRoundIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node, FloatRoundKind kind)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
-
-        const AstNodeRef          valueRef      = children[0];
+        const AstNodeRef          valueRef      = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
@@ -1570,11 +1544,7 @@ namespace
 
     Result codeGenRoundAwayFromZero(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
-
-        const AstNodeRef          valueRef      = children[0];
+        const AstNodeRef          valueRef      = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
@@ -1894,9 +1864,7 @@ namespace
 
     Result codeGenSetContext(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 1);
+        const AstNodeRef argumentRef = codeGen.ast().oneNode(node.spanChildrenRef);
 
         const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
@@ -1904,7 +1872,7 @@ namespace
         if (!payload || !payload->runtimeFunctionSymbol)
             return Result::Error;
 
-        const MicroReg contextReg = materializeSetContextArgument(codeGen, children[0]);
+        const MicroReg contextReg = materializeSetContextArgument(codeGen, argumentRef);
         MicroReg       tlsIdReg   = MicroReg::invalid();
         if (codeGen.isNativeBuild())
         {

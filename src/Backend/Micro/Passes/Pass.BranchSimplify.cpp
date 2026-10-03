@@ -728,10 +728,7 @@ namespace
     {
         for (const auto& [lo, hi] : inner)
         {
-            bool covered = false;
-            for (const auto& [outerLo, outerHi] : outer)
-                covered |= outerLo <= lo && hi <= outerHi;
-            if (!covered)
+            if (std::ranges::none_of(outer, [&](const auto& interval) { return interval.first <= lo && hi <= interval.second; }))
                 return false;
         }
 
@@ -910,10 +907,7 @@ namespace
                     const MicroInstrUseDef* useDef = ssaState.instrUseDef(layout.order[current]);
                     if (!useDef)
                         break;
-                    bool writesReg = false;
-                    for (const MicroReg def : useDef->defs)
-                        writesReg |= def == reg;
-                    if (writesReg)
+                    if (std::ranges::find(useDef->defs, reg) != useDef->defs.end())
                         break;
                     --at;
                     continue;
@@ -3279,7 +3273,13 @@ namespace
                     {
                         const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                         for (size_t operand = 0; operand < modes.size(); ++operand)
-                            touches |= modes[operand] != MicroInstrRegMode::None && ops[operand].reg == result;
+                        {
+                            if (modes[operand] != MicroInstrRegMode::None && ops[operand].reg == result)
+                            {
+                                touches = true;
+                                break;
+                            }
+                        }
                     }
                     if (touches)
                         break;

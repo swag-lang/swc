@@ -461,7 +461,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             for (size_t i = 0; i < modes.size(); ++i)
             {
                 if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == stackPointer)
+                {
                     spMoved = true;
+                    break;
+                }
             }
         }
         stackPointerTracksFrame = !spMoved;

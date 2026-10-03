@@ -290,14 +290,13 @@ void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedAr
 {
     const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
 
-    ABICall::PreparedArg arg;
-    arg.srcReg      = srcReg;
-    arg.kind        = ABICall::PreparedArgKind::Direct;
-    arg.isFloat     = normalizedArg.isFloat;
-    arg.isSigned    = normalizedArg.isSigned;
-    arg.isAddressed = false;
-    arg.numBits     = normalizedArg.numBits;
-    outArgs.push_back(arg);
+    ABICall::PreparedArg& arg = outArgs.emplace_back();
+    arg.srcReg                = srcReg;
+    arg.kind                  = ABICall::PreparedArgKind::Direct;
+    arg.isFloat               = normalizedArg.isFloat;
+    arg.isSigned              = normalizedArg.isSigned;
+    arg.isAddressed           = false;
+    arg.numBits               = normalizedArg.numBits;
 }
 
 void CodeGenCallHelpers::appendPreparedValueArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
@@ -305,13 +304,12 @@ void CodeGenCallHelpers::appendPreparedValueArg(SmallVector<ABICall::PreparedArg
     const TypeInfo&                        argType       = codeGen.typeMgr().get(argTypeRef);
     const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
 
-    ABICall::PreparedArg preparedArg;
-    preparedArg.srcReg      = operandPayload.reg;
-    preparedArg.kind        = ABICall::PreparedArgKind::Direct;
-    preparedArg.isFloat     = normalizedArg.isFloat;
-    preparedArg.isAddressed = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
-    preparedArg.numBits     = normalizedArg.numBits;
-    outArgs.push_back(preparedArg);
+    ABICall::PreparedArg& preparedArg = outArgs.emplace_back();
+    preparedArg.srcReg                = operandPayload.reg;
+    preparedArg.kind                  = ABICall::PreparedArgKind::Direct;
+    preparedArg.isFloat               = normalizedArg.isFloat;
+    preparedArg.isAddressed           = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
+    preparedArg.numBits               = normalizedArg.numBits;
 }
 bool CodeGenCallHelpers::materializeTypedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef constantRef)
 {

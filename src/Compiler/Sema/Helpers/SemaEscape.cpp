@@ -5194,7 +5194,7 @@ namespace SemaEscape
         // Whether the callee can really move the payload is a summary fact, and summaries
         // are only final once the module has no pending sema job: hand the finished
         // wording over and let 'reportDeferredChecks' apply the condition.
-        for (const SemaBorrowInvalidation& record : mine)
+        for (SemaBorrowInvalidation& record : mine)
         {
             const AstNodeRef bodyRef = record.bodyRef.isValid() ? record.bodyRef : declRef;
             const AstNodeRef readRef = firstReadAfter(sema, bodyRef, record.mutationRef, record.mutationRange, record.evaluationEndOffset, *record.viewVar);
@@ -5207,8 +5207,8 @@ namespace SemaEscape
             check.judgeReallocates        = true;
             check.borrowedPayloadField    = record.borrowedPayloadField;
             check.receiverProjectionField = record.receiverProjectionField;
-            check.detachedPayloadFields   = record.detachedPayloadFields;
-            check.guards                  = record.guards;
+            check.detachedPayloadFields   = std::move(record.detachedPayloadFields);
+            check.guards                  = std::move(record.guards);
             check.diagId                  = DiagnosticId::sanity_err_borrow_invalidated;
             check.fileRef                 = sema.srcView(sema.node(declRef).srcViewRef()).fileRef();
             check.siteRange               = record.mutationRange;

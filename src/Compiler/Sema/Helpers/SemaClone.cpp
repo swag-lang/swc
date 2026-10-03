@@ -365,20 +365,36 @@ namespace
         }
     }
 
-    void excludeCapturedClosureBindings(Sema& sema, const AstClosureExpr& node, const SemaClone::CloneContext& cloneContext, SmallVector<SemaClone::ParamBinding>& outBindings)
+    // Captures and a callable's own parameters both hide outer bindings by name.
+    void excludeNamedBindings(SmallVector<SemaClone::ParamBinding>& outBindings, std::span<const SemaClone::ParamBinding> bindings, std::span<const IdentifierRef> excludedIdentifiers)
     {
         outBindings.clear();
-        if (cloneContext.bindings.empty())
+        if (excludedIdentifiers.empty())
+        {
+            for (const SemaClone::ParamBinding& binding : bindings)
+                outBindings.push_back(binding);
             return;
+        }
+
+        const std::unordered_set<IdentifierRef> excludedSet{excludedIdentifiers.begin(), excludedIdentifiers.end()};
+        for (const SemaClone::ParamBinding& binding : bindings)
+        {
+            if (!excludedSet.contains(binding.idRef))
+                outBindings.push_back(binding);
+        }
+    }
+
+    void excludeCapturedClosureBindings(Sema& sema, const AstClosureExpr& node, const SemaClone::CloneContext& cloneContext, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        if (cloneContext.bindings.empty())
+        {
+            outBindings.clear();
+            return;
+        }
 
         SmallVector<IdentifierRef> captureIdentifiers;
         collectClosureCaptureIdentifiers(sema, cloneSourceAst(sema, cloneContext), node.nodeCaptureArgsRef, captureIdentifiers);
-        const std::unordered_set<IdentifierRef> captureIdentifierSet{captureIdentifiers.begin(), captureIdentifiers.end()};
-        for (const SemaClone::ParamBinding& binding : cloneContext.bindings)
-        {
-            if (!captureIdentifierSet.contains(binding.idRef))
-                outBindings.push_back(binding);
-        }
+        excludeNamedBindings(outBindings, cloneContext.bindings, captureIdentifiers.span());
     }
 
     // The identifier a declaration token names, or invalid when the token is not a plain name.
@@ -453,18 +469,6 @@ namespace
                 if (const IdentifierRef idRef = declaredTokenIdentifier(sema, *node, node->tokRef()); idRef.isValid())
                     outIdentifiers.push_back(idRef);
             }
-        }
-    }
-
-    // Keeps the bindings a nested callable does not shadow with a parameter of its own.
-    void excludeShadowedCallableBindings(std::span<const SemaClone::ParamBinding> bindings, std::span<const IdentifierRef> declaredIdentifiers, SmallVector<SemaClone::ParamBinding>& outBindings)
-    {
-        outBindings.clear();
-        const std::unordered_set<IdentifierRef> declaredSet{declaredIdentifiers.begin(), declaredIdentifiers.end()};
-        for (const SemaClone::ParamBinding& binding : bindings)
-        {
-            if (!declaredSet.contains(binding.idRef))
-                outBindings.push_back(binding);
         }
     }
 
@@ -1680,7 +1684,7 @@ AstNodeRef AstFunctionDecl::semaClone(Sema& sema, const CloneContext& cloneConte
     {
         if (const Ast* paramsAst = resolveCloneNodeAst(sema, nodeParamsRef, inlineContext))
             collectCallableParameterIdentifiers(sema, *paramsAst, nodeParamsRef, SpanRef::invalid(), parameterIdentifiers);
-        excludeShadowedCallableBindings(inlineContext.bindings, parameterIdentifiers.span(), ownBindings);
+        excludeNamedBindings(ownBindings, inlineContext.bindings, parameterIdentifiers.span());
     }
     SemaClone::CloneContext ownContext = cloneContextWithBindings(inlineContext, ownBindings.span());
     ownContext.nestedCallableDepth     = inlineContext.nestedCallableDepth + 1;
@@ -2263,7 +2267,7 @@ AstNodeRef AstFunctionExpr::semaClone(Sema& sema, const CloneContext& cloneConte
     {
         if (const Ast* argsAst = resolveCloneSpanAst(sema, spanArgsRef, inlineContext))
             collectCallableParameterIdentifiers(sema, *argsAst, AstNodeRef::invalid(), spanArgsRef, parameterIdentifiers);
-        excludeShadowedCallableBindings(inlineContext.bindings, parameterIdentifiers.span(), ownBindings);
+        excludeNamedBindings(ownBindings, inlineContext.bindings, parameterIdentifiers.span());
     }
     SemaClone::CloneContext ownContext = cloneContextWithBindings(inlineContext, ownBindings.span());
     ownContext.nestedCallableDepth     = inlineContext.nestedCallableDepth + 1;
@@ -2296,7 +2300,7 @@ AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContex
     {
         if (const Ast* argsAst = resolveCloneSpanAst(sema, spanArgsRef, inlineContext))
             collectCallableParameterIdentifiers(sema, *argsAst, AstNodeRef::invalid(), spanArgsRef, parameterIdentifiers);
-        excludeShadowedCallableBindings(capturedBindings.span(), parameterIdentifiers.span(), bodyBindings);
+        excludeNamedBindings(bodyBindings, capturedBindings.span(), parameterIdentifiers.span());
     }
     SemaClone::CloneContext bodyContext = cloneContextWithBindings(inlineContext, bodyBindings.span());
     bodyContext.nestedCallableDepth     = inlineContext.nestedCallableDepth + 1;

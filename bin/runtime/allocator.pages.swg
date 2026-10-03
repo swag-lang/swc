@@ -150,6 +150,8 @@ private var g_AllocatorKeySeed:     u64
 const AllocatorIdleMinBytes = 8'u64 * 1024 * 1024
 private var g_AllocatorIdleBytes: u64
 
+func allocatorIdleBytes()->u64 => atomicGet(&g_AllocatorIdleBytes)
+
 // Committed bytes and the OS calls behind them, published for the allocator's statistics.
 var g_AllocatorCommittedBytes:  u64
 var g_AllocatorOsCommitCount:   u64

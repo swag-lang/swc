@@ -6,6 +6,28 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.075 — Aligned node references collapse semantic metadata partitions
+
+- Recorded: 2026-10-03 16:28
+- Evidence: `NodePayload` selects each of its 16 shards with `nodeRef.get() % 16`.
+  The reference contains an AST byte offset aligned to at least eight bytes, so only
+  two shards can receive payload storage or side-table entries. Readers of a sparse
+  side table also lose most of the intended empty-shard early exits.
+- Experiment: replacing all 22 selectors with `Math::hash(nodeRef.get()) % 16`
+  passed concurrent publication/readback coverage, both JIT suites, and semantic
+  tests; all 116 benchmark functions retained identical normalized pre-emit code.
+  Five paired six-worker Release rebuilds increased peak committed memory by a
+  median 17% on `core` and 3% on `gui`. Wall-time medians moved by +3% and -6%,
+  respectively, on a machine with substantial background-load variation. A quieter
+  single-worker pair also made `core` about 6% slower. The change was not retained:
+  distributing every file's small payloads over more 16 KiB pages has a definite
+  cost, without a sufficiently clear overall compilation-time win.
+- Next: separate sparse side-table distribution from payload-page allocation, or
+  reduce initial storage without reducing the supported contiguous symbol-list
+  size. Compare one-worker and parallel rebuilds on both modules under stable load.
+- Complete when: the partitioning improvement has concurrent read/write coverage
+  and a measured compilation-time benefit with its memory cost explicitly bounded.
+
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 
 - Recorded: 2026-10-01 17:08

@@ -9,7 +9,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 
 - Recorded: 2026-10-01 17:08
-- Updated: 2026-10-03 15:48 — Fixed one cause, a call-argument storage registered again on every sema rerun; placement still varies.
+- Updated: 2026-10-03 15:59 — Fixed the per-rerun call-argument storage and the read-only data order; generated names still vary.
 - Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
   Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
   3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
@@ -21,16 +21,21 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   That routine serializes already generated prologue operations; the record differences also
   occur between runs of the same changed binary. This does not establish when the variation
   was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
-- October 3: one cause found and fixed. A by-value aggregate argument that folds to a constant
+- October 3: two causes found and fixed. A by-value aggregate argument that folds to a constant
   (`#curlocation` in every `Swag.panic` call) had its call-argument storage detached by the
   folding cast and registered again on every sema rerun, each copy keeping a frame slot:
   `allocatorCorruptedFreeList` in the runtime got a 0x40 to 0x130-byte frame from one build of
-  the same benchmark to the next. Since then repeated `sort` builds have identical function
-  sizes, but the executables still differ by 3 to 13 KB, with one worker as well as six:
-  function or data placement still depends on something other than the source.
-- Next: diff two one-worker builds' section layouts to find which order (functions,
-  constants, relocations) varies and make it follow a stable key; then repeat the unwind
-  record comparison to see whether another prologue cause remains.
+  the same benchmark to the next. And `.rdata` was laid out by constant shard and creation
+  offset, which follow job scheduling; it now follows the order the code reaches each constant.
+  Repeated `sort` and `wordfreq` builds now have identical `.pdata` and `.xdata`, and most
+  pairs differ only by the header time stamp, with one worker or six.
+- What still varies: some pairs built with six workers still differ in `.rdata` from near its
+  start, and in `.text` through its RIP-relative displacements. The differing `.rdata` bytes
+  were values that differ by one, which points at generated unique names
+  (`__call_arg_ref_storage_349`, for example) whose counters follow creation order.
+- Next: find which generated names reach `.rdata` and give them a stable key (owner and
+  position) instead of a global counter; then repeat the unwind record comparison to see
+  whether another prologue cause remains.
 - Complete when: the source of the different prologues is explained and corrected at its
   owning boundary, with stable normalized output and the affected native tests green.
 

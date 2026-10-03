@@ -773,11 +773,10 @@ namespace
 
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
-        TaskContext&   ctx                = sema.ctx();
-        const uint64_t initTargetsVersion = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
+        TaskContext& ctx = sema.ctx();
         // This version is published only after the runtime setup and this root's
         // entire preparation succeed. A ready root needs neither walk repeated.
-        if (symFn.jitEntryAddress() && symFn.jitReadyVersion() == initTargetsVersion)
+        if (symFn.jitEntryAddress() && symFn.jitReadyVersion() == sema.compiler().nativeGlobalFunctionInitTargetsVersion())
         {
             ctx.state().jitEmissionError = false;
             return Result::Continue;
@@ -785,6 +784,11 @@ namespace
 
         SWC_RESULT(prepareJitSetupRuntimeFunction(sema, symFn));
         ctx.state().jitEmissionError = false;
+        // Setup can publish new global targets or finish a concurrent preparation.
+        // Only its resulting version describes the work this preparation closes.
+        const uint64_t initTargetsVersion = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
+        if (symFn.jitEntryAddress() && symFn.jitReadyVersion() == initTargetsVersion)
+            return Result::Continue;
 
         // A codegen job emits its function before reporting completion. Publish the
         // release summaries before scheduling that job, while its sanity pass can

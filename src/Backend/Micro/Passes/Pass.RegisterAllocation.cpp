@@ -2241,9 +2241,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     mappedVirtualIndices_.reserve(virtualRegs.size());
     currentConcreteLiveOut_.clear();
 
-    liveInVirtualBits_.assign(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
-    liveInConcreteBits_.assign(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);
-
     // The CFG already inverted every edge in source-instruction order. Keep
     // the same snapshot used by successors throughout allocation and rewriting;
     // storage mutations do not rebuild the CFG during this pass.
@@ -2254,11 +2251,25 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         computeReachability();
     computeLoopDepth();
 
+    // A loop starts from the empty fixed point. Without backward edges, the
+    // reverse sweep overwrites every successor before any predecessor reads it.
+    // Keep old storage in that case instead of clearing rows that will be replaced.
+    if (functionHasLoop_)
+    {
+        liveInVirtualBits_.assign(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
+        liveInConcreteBits_.assign(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);
+    }
+    else
+    {
+        liveInVirtualBits_.resize(static_cast<size_t>(instructionCount_) * virtualWordCount);
+        liveInConcreteBits_.resize(static_cast<size_t>(instructionCount_) * concreteWordCount);
+    }
+
     // computeCurrentLiveOutBits overwrites both rows before their first read.
     tempOutVirtual_.resize(virtualWordCount);
     tempOutConcrete_.resize(concreteWordCount);
 
-    const auto updateLiveIn = [&](const uint32_t instructionIndex) {
+    const auto updateLiveIn = [&](const uint32_t instructionIndex, const bool comparePrevious) {
         computeCurrentLiveOutBits(instructionIndex);
 
         // Only live-in is published during the fixed point. Consume the
@@ -2278,8 +2289,17 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 DenseBits::set(inConcrete, bitIndex);
         }
 
-        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempOutVirtual_);
-        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempOutConcrete_);
+        const auto inVirtual  = DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount);
+        const auto inConcrete = DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount);
+        if (!comparePrevious)
+        {
+            std::ranges::copy(tempOutVirtual_, inVirtual.begin());
+            std::ranges::copy(tempOutConcrete_, inConcrete.begin());
+            return false;
+        }
+
+        const bool changedVirtual  = DenseBits::copyIfChanged(inVirtual, tempOutVirtual_);
+        const bool changedConcrete = DenseBits::copyIfChanged(inConcrete, tempOutConcrete_);
         return changedVirtual || changedConcrete;
     };
 
@@ -2288,7 +2308,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     if (!functionHasLoop_)
     {
         for (uint32_t idx = instructionCount_; idx != 0;)
-            updateLiveIn(--idx);
+            updateLiveIn(--idx, false);
     }
     else
     {
@@ -2303,7 +2323,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             const uint32_t instructionIndex = worklist_.back();
             worklist_.pop_back();
             inWorklist_[instructionIndex] = 0;
-            if (!updateLiveIn(instructionIndex))
+            if (!updateLiveIn(instructionIndex, true))
                 continue;
 
             for (const uint32_t predIdx : predecessors_[instructionIndex])
@@ -4313,8 +4333,6 @@ void MicroRegisterAllocationPass::clearState()
     defConcreteIndices_.clear();
     nextUsePositionCursor_.clear();
     nextConcreteTouchCursor_.clear();
-    liveInVirtualBits_.clear();
-    liveInConcreteBits_.clear();
     predecessors_ = {};
     virtualSpanLo_.clear();
     virtualSpanHi_.clear();

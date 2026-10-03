@@ -567,11 +567,21 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroSsa_RepeatedDefinitionsRestoreBlockEntryValues)
 {
-    constexpr MicroReg value = MicroReg::virtualIntReg(1);
-    MicroBuilder       builder(ctx);
-    const auto         sibling = builder.createLabel();
-    const auto         child   = builder.createLabel();
-    const auto         join    = builder.createLabel();
+    constexpr MicroReg                    value      = MicroReg::virtualIntReg(1);
+    constexpr uint32_t                    extraCount = 65;
+    std::array<MicroInstrRef, extraCount> parentExtraDefs;
+    std::array<MicroInstrRef, extraCount> leftExtraDefs;
+    MicroBuilder                          builder(ctx);
+    const auto                            sibling = builder.createLabel();
+    const auto                            child   = builder.createLabel();
+    const auto                            join    = builder.createLabel();
+    // Nested scopes outgrow the initial restore storage while their parents
+    // remain live. A sibling must still see every parent's original value.
+    for (uint32_t i = 0; i < extraCount; ++i)
+    {
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(10 + i), ApInt(i, 64), MicroOpBits::B64);
+        parentExtraDefs[i] = builder.instructions().lastInstructionRef();
+    }
     builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
     builder.emitLoadRegImm(value, ApInt(2, 64), MicroOpBits::B64);
     const auto parentDef = builder.instructions().lastInstructionRef();
@@ -579,6 +589,11 @@ SWC_TEST_BEGIN(MicroSsa_RepeatedDefinitionsRestoreBlockEntryValues)
     builder.emitLoadRegImm(value, ApInt(3, 64), MicroOpBits::B64);
     builder.emitOpBinaryRegImm(value, ApInt(4, 64), MicroOp::Add, MicroOpBits::B64);
     const auto leftDef = builder.instructions().lastInstructionRef();
+    for (uint32_t i = 0; i < extraCount; ++i)
+    {
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(10 + i), ApInt(100 + i, 64), MicroOpBits::B64);
+        leftExtraDefs[i] = builder.instructions().lastInstructionRef();
+    }
     builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, child);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
     builder.placeLabel(child);
@@ -586,6 +601,8 @@ SWC_TEST_BEGIN(MicroSsa_RepeatedDefinitionsRestoreBlockEntryValues)
     builder.emitLoadRegImm(value, ApInt(5, 64), MicroOpBits::B64);
     builder.emitLoadRegImm(value, ApInt(6, 64), MicroOpBits::B64);
     const auto childDef = builder.instructions().lastInstructionRef();
+    for (uint32_t i = 0; i < extraCount; ++i)
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(10 + i), ApInt(200 + i, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
     builder.placeLabel(sibling);
     const auto siblingUse = builder.instructions().lastInstructionRef();
@@ -605,7 +622,14 @@ SWC_TEST_BEGIN(MicroSsa_RepeatedDefinitionsRestoreBlockEntryValues)
     MicroSsaState ssa;
     for (uint32_t rebuild = 0; rebuild < 2; ++rebuild)
     {
+        ssa.clear();
         ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        for (uint32_t i = 0; i < extraCount; ++i)
+        {
+            const auto reg = MicroReg::virtualIntReg(10 + i);
+            if (ssa.reachingDef(reg, childUse).instRef != leftExtraDefs[i] || ssa.reachingDef(reg, siblingUse).instRef != parentExtraDefs[i])
+                return Result::Error;
+        }
         if (ssa.reachingDef(value, childUse).instRef != leftDef || ssa.reachingDef(value, siblingUse).instRef != parentDef)
             return Result::Error;
         const auto  joined = ssa.reachingDef(value, joinedUse);

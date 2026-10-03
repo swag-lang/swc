@@ -1291,8 +1291,10 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
     {
         MicroRegisterAllocationPass reusedPass;
         // Every run destroys its builder afterwards. Reuse must replace the
-        // borrowed CFG rows, including when the next listing has fewer rows.
-        for (const uint32_t shape : {0u, 2u, 1u, 0u})
+        // borrowed CFG rows and liveness, including when both row count and
+        // register word count shrink or grow across cyclic and acyclic listings.
+        const std::array cases = {std::pair{0u, 129u}, std::pair{2u, 1u}, std::pair{3u, 70u}, std::pair{1u, 65u}, std::pair{0u, 2u}};
+        for (const auto [shape, liveCount] : cases)
         {
             std::array<Utf8, 2> listings;
             std::array<bool, 2> intervalAllocated{};
@@ -1305,9 +1307,11 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
                 const auto join      = builder.createLabel();
                 builder.emitLoadRegImm(value, ApInt(17, 64), MicroOpBits::B64);
                 builder.emitLoadRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
-                if (shape)
+                for (uint32_t index = 0; index < liveCount; ++index)
+                    builder.emitLoadRegMem(MicroReg::virtualIntReg(10 + index), conv.stackPointer, 64 + index * 8, MicroOpBits::B64);
+                if (shape == 1 || shape == 2)
                     builder.placeLabel(header);
-                if (shape == 2)
+                if (shape == 2 || shape == 3)
                 {
                     builder.emitCmpRegImm(counter, ApInt(2, 64), MicroOpBits::B64);
                     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, alternate);
@@ -1320,11 +1324,14 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
                 builder.emitOpBinaryRegReg(value, counter, MicroOp::Add, MicroOpBits::B64);
                 builder.emitLoadMemReg(conv.stackPointer, 32, value, MicroOpBits::B64);
                 builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-                if (shape)
+                if (shape == 1 || shape == 2)
                 {
                     builder.emitCmpRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
                     builder.emitJumpToLabel(MicroCond::Greater, MicroOpBits::B32, header);
                 }
+                builder.emitCallReg(MicroReg::intReg(0), CallConvKind::WindowsX64);
+                for (uint32_t index = 0; index < liveCount; ++index)
+                    builder.emitLoadMemReg(conv.stackPointer, 64 + index * 8, MicroReg::virtualIntReg(10 + index), MicroOpBits::B64);
                 builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
                 builder.emitRet();
 

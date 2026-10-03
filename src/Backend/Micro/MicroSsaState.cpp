@@ -798,8 +798,9 @@ void MicroSsaState::renameIntoSsa()
     valueInfoCount_ = 0;
     valueInfos_.reserve(static_cast<size_t>(trackedDefCount_) + phiInfoCount_);
 
-    RenameState& state           = renameState_;
-    state.position               = 0;
+    RenameState& state = renameState_;
+    state.position     = 0;
+    renameRestores_.clear();
     const size_t trackedRegCount = trackedRegs_.regs().size();
     state.currentValues.assign(trackedRegCount, K_INVALID_VALUE);
     if (reachingValuesByReg_.size() < trackedRegCount)
@@ -816,8 +817,10 @@ void MicroSsaState::renameIntoSsa()
 
 void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 {
-    BlockInfo&                 block = blocks_[blockIndex];
-    SmallVector8<RestorePoint> restores;
+    BlockInfo&   block       = blocks_[blockIndex];
+    const size_t restoreBase = renameRestores_.size();
+    // Dominator children nest their restores above this block's entries. One
+    // retained stack replaces the temporary allocation for each large block.
     // Every block contains instructions. If this block consumes the rest of
     // the rename walk, no later block can observe its scope restores.
     const bool needsRestore = block.instructionEnd - block.instructionBegin != instructionRefs_.size() - state.position;
@@ -826,7 +829,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
         PhiInfo& phi      = phiInfos_[phiIndex];
         phi.resultValueId = createValue(phi.reg, blockIndex, MicroInstrRef::invalid(), phiIndex);
         if (needsRestore)
-            pushCurrentValue(restores, state, phi.regIndex, phi.resultValueId, blockIndex);
+            pushCurrentValue(state, phi.regIndex, phi.resultValueId, blockIndex);
         else
             setCurrentValue(state, phi.regIndex, phi.resultValueId);
     }
@@ -869,7 +872,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
             const MicroReg reg     = regs[regIndex];
             const uint32_t valueId = createValue(reg, blockIndex, instRef, K_INVALID_PHI);
             if (needsRestore)
-                pushCurrentValue(restores, state, regIndex, valueId, blockIndex);
+                pushCurrentValue(state, regIndex, valueId, blockIndex);
             else
                 setCurrentValue(state, regIndex, valueId);
         }
@@ -885,11 +888,15 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 
     // No instruction query observes position N, and all phi inputs were
     // assigned before descending. Final scope restores cannot be observed.
-    if (state.position == instructionRefs_.size())
-        return;
-
-    for (const auto& restore : std::views::reverse(restores))
-        setCurrentValue(state, restore.regIndex, restore.previousId);
+    if (state.position != instructionRefs_.size())
+    {
+        for (size_t i = renameRestores_.size(); i > restoreBase; --i)
+        {
+            const auto& restore = renameRestores_[i - 1];
+            setCurrentValue(state, restore.regIndex, restore.previousId);
+        }
+    }
+    renameRestores_.resize(restoreBase);
 }
 
 uint32_t MicroSsaState::currentValue(const RenameState& state, const uint32_t regIndex)
@@ -930,7 +937,7 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
     }
 }
 
-void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, const uint32_t regIndex, const uint32_t valueId, const uint32_t blockIndex)
+void MicroSsaState::pushCurrentValue(RenameState& state, const uint32_t regIndex, const uint32_t valueId, const uint32_t blockIndex)
 {
     SWC_ASSERT(regIndex < state.currentValues.size());
     const uint32_t previousId = state.currentValues[regIndex];
@@ -938,7 +945,7 @@ void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, Renam
     // first definition of a register must save the value visible on entry;
     // intermediate restores would share one rename position and be overwritten.
     if (previousId == K_INVALID_VALUE || valueInfos_[previousId].blockIndex != blockIndex)
-        restores.push_back(RestorePoint{regIndex, previousId});
+        renameRestores_.push_back(RestorePoint{regIndex, previousId});
     setCurrentValue(state, regIndex, valueId);
 }
 

@@ -23,8 +23,7 @@ namespace
 {
     TypeRef interfaceMethodTableTypeRef(TaskContext& ctx, uint32_t count)
     {
-        SmallVector4<uint64_t> dims;
-        dims.push_back(count);
+        const std::array<uint64_t, 1> dims = {count};
         return ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeValuePtrVoid()));
     }
 

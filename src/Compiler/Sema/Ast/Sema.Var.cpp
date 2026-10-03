@@ -416,10 +416,9 @@ namespace
                 TypeRef elemTypeRef = baseTypeRef;
                 for (const uint64_t& initDim : std::ranges::reverse_view(initDims))
                 {
-                    SmallVector4<uint64_t> oneDim;
-                    oneDim.push_back(initDim);
-                    const TypeInfo arrayType = TypeInfo::makeArray(oneDim.span(), elemTypeRef, nodes[0].flags);
-                    elemTypeRef              = sema.typeMgr().addType(arrayType);
+                    const std::array<uint64_t, 1> oneDim    = {initDim};
+                    const TypeInfo                arrayType = TypeInfo::makeArray(oneDim, elemTypeRef, nodes[0].flags);
+                    elemTypeRef                             = sema.typeMgr().addType(arrayType);
                 }
 
                 return elemTypeRef;

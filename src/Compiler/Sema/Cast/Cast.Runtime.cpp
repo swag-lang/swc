@@ -785,10 +785,9 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             castedValues.push_back(castedRef);
         }
 
-        SmallVector4<uint64_t> arrayDims;
-        arrayDims.push_back(srcValues.size());
-        const TypeRef   arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(arrayDims, dstElemTypeRef));
-        const TypeInfo& arrayType    = sema.typeMgr().get(arrayTypeRef);
+        const std::array<uint64_t, 1> arrayDims    = {srcValues.size()};
+        const TypeRef                 arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(arrayDims, dstElemTypeRef));
+        const TypeInfo&               arrayType    = sema.typeMgr().get(arrayTypeRef);
 
         const uint64_t             arraySize = arrayType.sizeOf(ctx);
         ByteArray                  arrayData(arraySize);

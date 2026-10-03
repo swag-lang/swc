@@ -67,8 +67,7 @@ namespace
                     return TypeRef::invalid();
             }
 
-            SmallVector4<uint64_t> dims;
-            dims.push_back(elemTypes.size());
+            const std::array<uint64_t, 1> dims = {elemTypes.size()};
             return codeGen.typeMgr().addType(TypeInfo::makeArray(dims, dstType.payloadTypeRef()));
         }
 

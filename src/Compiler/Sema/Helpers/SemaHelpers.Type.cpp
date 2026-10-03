@@ -609,8 +609,7 @@ TypeRef SemaHelpers::deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typ
     if (typeMgr.get(elemTypeRef).isAggregateArray())
         return typeRef;
 
-    SmallVector4<uint64_t> outerDim;
-    outerDim.push_back(elemTypes.size());
+    const std::array<uint64_t, 1> outerDim = {elemTypes.size()};
     return typeMgr.addType(TypeInfo::makeArray(outerDim, elemTypeRef));
 }
 

@@ -101,9 +101,8 @@ namespace
 
     TypeRef foreachInternalArrayType(Sema& sema, TypeRef elemTypeRef, uint64_t count)
     {
-        SmallVector<uint64_t> dims;
-        dims.push_back(count);
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), elemTypeRef));
+        const std::array<uint64_t, 1> dims = {count};
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
     }
 
     const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)

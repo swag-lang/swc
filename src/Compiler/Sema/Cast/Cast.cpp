@@ -103,8 +103,7 @@ namespace
         if (!srcType.isAggregateArray() || !dstType.isSlice())
             return TypeRef::invalid();
 
-        SmallVector4<uint64_t> dims;
-        dims.push_back(srcType.payloadAggregate().types.size());
+        const std::array<uint64_t, 1> dims = {srcType.payloadAggregate().types.size()};
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, dstType.payloadTypeRef()));
     }
 
@@ -212,17 +211,15 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
 
         if (srcType.isStruct() && dstType.isInterface())
         {
-            constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
-            const uint64_t         valueStorage         = srcType.sizeOf(sema.ctx());
-            SmallVector4<uint64_t> dims;
-            dims.push_back(interfaceStorageSize + valueStorage);
+            constexpr uint64_t            interfaceStorageSize = sizeof(Runtime::Interface);
+            const uint64_t                valueStorage         = srcType.sizeOf(sema.ctx());
+            const std::array<uint64_t, 1> dims                 = {interfaceStorageSize + valueStorage};
             return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         }
 
         if (isPointerLikeInterfaceObjectSource(sema, srcType) && dstType.isInterface())
         {
-            SmallVector4<uint64_t> dims;
-            dims.push_back(sizeof(Runtime::Interface));
+            const std::array<uint64_t, 1> dims = {sizeof(Runtime::Interface)};
             return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         }
     }
@@ -261,26 +258,23 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
 
     if (!srcType.isAny() && dstType.isAny())
     {
-        constexpr uint64_t     anyStorageSize = sizeof(Runtime::Any);
-        const uint64_t         valueStorage   = std::max<uint64_t>(1, srcType.sizeOf(sema.ctx()));
-        SmallVector4<uint64_t> dims;
-        dims.push_back(anyStorageSize + valueStorage);
+        constexpr uint64_t            anyStorageSize = sizeof(Runtime::Any);
+        const uint64_t                valueStorage   = std::max<uint64_t>(1, srcType.sizeOf(sema.ctx()));
+        const std::array<uint64_t, 1> dims           = {anyStorageSize + valueStorage};
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
     }
 
     if (srcType.isStruct() && dstType.isInterface())
     {
-        constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
-        const uint64_t         valueStorage         = srcType.sizeOf(sema.ctx());
-        SmallVector4<uint64_t> dims;
-        dims.push_back(interfaceStorageSize + valueStorage);
+        constexpr uint64_t            interfaceStorageSize = sizeof(Runtime::Interface);
+        const uint64_t                valueStorage         = srcType.sizeOf(sema.ctx());
+        const std::array<uint64_t, 1> dims                 = {interfaceStorageSize + valueStorage};
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
     }
 
     if (isPointerLikeInterfaceObjectSource(sema, srcType) && dstType.isInterface())
     {
-        SmallVector4<uint64_t> dims;
-        dims.push_back(sizeof(Runtime::Interface));
+        const std::array<uint64_t, 1> dims = {sizeof(Runtime::Interface)};
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
     }
 

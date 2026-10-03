@@ -839,36 +839,41 @@ func freeAddress(itf: IAllocator, address: u64)
 
 #test
 {
-    var alloc: Allocator
-    let itf = makeAllocator(&alloc, fillMemory: false)
+    // Without memory safety the allocator does not check, and freeing a block twice or
+    // writing into a freed one is undefined.
+    #static if #safety(Swag.SafetyWhat.Memory)
+    {
+        var alloc: Allocator
+        let itf = makeAllocator(&alloc, fillMemory: false)
 
-    let first  = allocOne(itf, 64)
-    let second = allocOne(itf, 64)
-    let third  = allocOne(itf, 64)
-    freeOne(itf, first)
-    freeOne(itf, second)
-    freeOne(itf, third)
+        let first  = allocOne(itf, 64)
+        let second = allocOne(itf, 64)
+        let third  = allocOne(itf, 64)
+        freeOne(itf, first)
+        freeOne(itf, second)
+        freeOne(itf, third)
 
-    let cxt      = Swag.getContext()
-    let previous = cxt.panic
-    cxt.panic          = &recordDoubleFreePanic
-    g_DoubleFreePanics = 0
-    freeAddress(itf, cast(u64) first)
-    freeAddress(itf, cast(u64) second)
-    cxt.panic = previous
-    Swag.assert(g_DoubleFreePanics == 2)
+        let cxt      = Swag.getContext()
+        let previous = cxt.panic
+        cxt.panic          = &recordDoubleFreePanic
+        g_DoubleFreePanics = 0
+        freeAddress(itf, cast(u64) first)
+        freeAddress(itf, cast(u64) second)
+        cxt.panic = previous
+        Swag.assert(g_DoubleFreePanics == 2)
 
-    // The lists are intact: the three blocks come back, and each can be freed again.
-    let again0 = allocOne(itf, 64)
-    let again1 = allocOne(itf, 64)
-    let again2 = allocOne(itf, 64)
-    Swag.assert(again0 == third and again1 == second and again2 == first)
-    freeOne(itf, again0)
-    freeOne(itf, again1)
-    freeOne(itf, again2)
-    Swag.assert(alloc.stats().countAlloc == 0)
+        // The lists are intact: the three blocks come back, and each can be freed again.
+        let again0 = allocOne(itf, 64)
+        let again1 = allocOne(itf, 64)
+        let again2 = allocOne(itf, 64)
+        Swag.assert(again0 == third and again1 == second and again2 == first)
+        freeOne(itf, again0)
+        freeOne(itf, again1)
+        freeOne(itf, again2)
+        Swag.assert(alloc.stats().countAlloc == 0)
 
-    alloc.releaseAll()
+        alloc.releaseAll()
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -979,29 +984,34 @@ func writeAt(address: u64, value: u64)
 
 #test
 {
-    var alloc: Allocator
-    let itf = makeAllocator(&alloc, fillMemory: false)
+    // Without memory safety the allocator does not check, and freeing a block twice or
+    // writing into a freed one is undefined.
+    #static if #safety(Swag.SafetyWhat.Memory)
+    {
+        var alloc: Allocator
+        let itf = makeAllocator(&alloc, fillMemory: false)
 
-    let block = allocOne(itf, 48)
-    freeOne(itf, block)
-    writeAt(cast(u64) block + 8, 0x1234)
+        let block = allocOne(itf, 48)
+        freeOne(itf, block)
+        writeAt(cast(u64) block + 8, 0x1234)
 
-    let cxt      = Swag.getContext()
-    let previous = cxt.panic
-    cxt.panic         = &recordFreedWritePanic
-    g_FreedWritePanics = 0
-    let again = allocOne(itf, 48)
-    cxt.panic = previous
-    Swag.assert(g_FreedWritePanics == 1)
-    Swag.assert(again == block)
+        let cxt      = Swag.getContext()
+        let previous = cxt.panic
+        cxt.panic         = &recordFreedWritePanic
+        g_FreedWritePanics = 0
+        let again = allocOne(itf, 48)
+        cxt.panic = previous
+        Swag.assert(g_FreedWritePanics == 1)
+        Swag.assert(again == block)
 
-    // A block written only while it is live is handed out again without a report.
-    (cast([*] u8) again!)[47] = 1
-    freeOne(itf, again)
-    let third = allocOne(itf, 48)
-    Swag.assert(third == block)
-    freeOne(itf, third)
-    alloc.releaseAll()
+        // A block written only while it is live is handed out again without a report.
+        (cast([*] u8) again!)[47] = 1
+        freeOne(itf, again)
+        let third = allocOne(itf, 48)
+        Swag.assert(third == block)
+        freeOne(itf, third)
+        alloc.releaseAll()
+    }
 }
 
 // ----------------------------------------------------------------------------

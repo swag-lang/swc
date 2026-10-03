@@ -1354,7 +1354,10 @@ impl Allocator
     mtd freeHeaderBlock(address: u64, callerLoc: SourceCodeLocation)
     {
         let header = .headerOf(address)
-        .checkAllocated(header, callerLoc)
+        #static if #safety(Swag.SafetyWhat.Memory)
+        {
+            .checkAllocated(header, callerLoc)
+        }
 
         .unlinkAllocated(header)
 
@@ -1429,13 +1432,17 @@ impl Allocator
         if not page do
             return false
 
-        if not page.isBlockAddress(address) do
-            return false
-
-        // Every free block reads as one, so a block that does not cannot be a double free. One
-        // that does goes to the general path, which walks the lists to tell.
-        if page.looksFree(address) do
-            return false
+        // Under memory safety, an address that starts no block, or a block that reads as free,
+        // goes to the general path, which diagnoses it. Every free block reads as one, so a block
+        // that does not cannot be a double free; one that does may still be live, and the general
+        // path walks the lists to tell.
+        #static if #safety(Swag.SafetyWhat.Memory)
+        {
+            if not page.isBlockAddress(address) do
+                return false
+            if page.looksFree(address) do
+                return false
+        }
 
         let heap  = fastThreadHeap()
         let owner = page.ownerHeap
@@ -1553,14 +1560,22 @@ impl Allocator
         var oldCopySize:  u64
         if oldPage
         {
-            .checkPageAddress(oldPage, oldAddress, request.callerLoc)
+            #static if #safety(Swag.SafetyWhat.Memory)
+            {
+                .checkPageAddress(oldPage, oldAddress, request.callerLoc)
+            }
+
             oldBlockSize = oldPage.blockSize
             oldCopySize  = oldBlockSize
         }
         else
         {
             let oldHeader = .headerOf(oldAddress)
-            .checkAllocated(oldHeader, request.callerLoc)
+            #static if #safety(Swag.SafetyWhat.Memory)
+            {
+                .checkAllocated(oldHeader, request.callerLoc)
+            }
+
             oldBlockSize = oldHeader.blockSize
             oldCopySize  = oldHeader.userSize
 
@@ -1636,20 +1651,21 @@ impl Allocator
             return
         }
 
-        .checkPageAddress(page, address, request.callerLoc)
-
         // Only the owning thread may touch the page's own free list; anyone else hands the block
-        // over through the page's atomic list, which the owner drains when it runs dry. A block
-        // whose first word reads as a free-list link is looked up in the lists the caller may
-        // walk: the owner sees both, another thread only the remote list.
-        let heap      = currentAllocatorThreadHeap()
-        let owned     = heap != null and page.ownerHeap == heap
-        let looksFree = page.looksFree(address)
-        if looksFree and ((owned and page.holdsOwnFreeBlock(address)) or page.holdsRemoteFreeBlock(address))
+        // over through the page's atomic list, which the owner drains when it runs dry. Under
+        // memory safety, a block whose first word reads as a free-list link is looked up in the
+        // lists the caller may walk: the owner sees both, another thread only the remote list.
+        let heap  = currentAllocatorThreadHeap()
+        let owned = heap != null and page.ownerHeap == heap
+        #static if #safety(Swag.SafetyWhat.Memory)
         {
-            // A panic hook may resume; the block is already free, so there is nothing left to do.
-            Swag.panic("memory block is freed twice", request.callerLoc)
-            return
+            .checkPageAddress(page, address, request.callerLoc)
+            if page.looksFree(address) and ((owned and page.holdsOwnFreeBlock(address)) or page.holdsRemoteFreeBlock(address))
+            {
+                // A panic hook may resume; the block is already free, so there is nothing left to do.
+                Swag.panic("memory block is freed twice", request.callerLoc)
+                return
+            }
         }
 
         if .fillFree do

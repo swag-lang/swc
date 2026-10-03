@@ -413,9 +413,13 @@ impl AllocatorPage
             .freeList = .nextFree(block)
             .used     += 1
 
-            // A block handed out must not keep reading as free, or freeing it before its first
-            // word is written would look like a double free and cost a walk of the lists.
-            (cast(*u64) block)[] = 0
+            // Under memory safety, a block handed out must not keep reading as free, or freeing
+            // it before its first word is written would look like a double free and cost a walk
+            // of the lists.
+            #static if #safety(Swag.SafetyWhat.Memory)
+            {
+                (cast(*u64) block)[] = 0
+            }
             return block
         }
 
@@ -473,14 +477,19 @@ impl AllocatorPage
         return false
     }
 
-    // Reads the link a free block stores. A link that names no block of this page, other than
-    // the end of the list, means the block was overwritten after it was freed.
+    // Reads the link a free block stores. Under memory safety, a link that names no block of
+    // this page, other than the end of the list, means the block was overwritten after it was
+    // freed.
     #[Swag.Inline]
     mtd nextFree(block: u64)->u64
     {
         let next = .decode((cast(const *u64) block)[])
-        if next != 0 and not .isBlockAddress(next) do
-            allocatorCorruptedFreeList()
+        #static if #safety(Swag.SafetyWhat.Memory)
+        {
+            if next != 0 and not .isBlockAddress(next) do
+                allocatorCorruptedFreeList()
+        }
+
         return next
     }
 
@@ -498,23 +507,29 @@ impl AllocatorPage
         return next - .areaStart < .areaEnd - .areaStart
     }
 
-    // A free block of sixteen bytes or more carries a canary in its second word, derived from
-    // the page key. Handing the block out again checks it, so a write through a pointer kept
-    // past its free that reaches the start of the block - where an object's fields begin - is
-    // reported instead of silently corrupting the next owner's data. The 8-byte class has no
-    // room for it.
+    // Under memory safety, a free block of sixteen bytes or more carries a canary in its second
+    // word, derived from the page key. Handing the block out again checks it, so a write through
+    // a pointer kept past its free that reaches the start of the block - where an object's fields
+    // begin - is reported instead of silently corrupting the next owner's data. The 8-byte class
+    // has no room for it.
     #[Swag.Inline]
     mtd markFree(address: u64)
     {
-        if .blockSize >= 16 do
-            (cast(*u64) (address + 8))[] = ~.key
+        #static if #safety(Swag.SafetyWhat.Memory)
+        {
+            if .blockSize >= 16 do
+                (cast(*u64) (address + 8))[] = ~.key
+        }
     }
 
     #[Swag.Inline]
     mtd checkStillFree(block: u64)
     {
-        if .blockSize >= 16 and (cast(const *u64) (block + 8))[] != ~.key do
-            allocatorFreedBlockWritten()
+        #static if #safety(Swag.SafetyWhat.Memory)
+        {
+            if .blockSize >= 16 and (cast(const *u64) (block + 8))[] != ~.key do
+                allocatorFreedBlockWritten()
+        }
     }
 
     #[Swag.Inline]

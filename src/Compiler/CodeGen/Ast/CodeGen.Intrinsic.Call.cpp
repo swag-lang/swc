@@ -1083,11 +1083,7 @@ namespace
         if (dataPayload && dataPayload->calledFn != nullptr)
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), dataPayload->calledFn);
 
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(!children.empty());
-
-        const AstNodeRef          exprRef     = children[0];
+        const AstNodeRef          exprRef     = codeGen.ast().oneNode(node.spanChildrenRef);
         CodeGenNodePayload        exprPayload = codeGen.payload(exprRef);
         TypeRef                   exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
         const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
@@ -1125,11 +1121,7 @@ namespace
 
     Result codeGenKindOf(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(!children.empty());
-
-        const AstNodeRef    exprRef     = children[0];
+        const AstNodeRef    exprRef     = codeGen.ast().oneNode(node.spanChildrenRef);
         CodeGenNodePayload  exprPayload = codeGen.payload(exprRef);
         TypeRef             exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
         CodeGenNodePayload& result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
@@ -2534,9 +2526,8 @@ Result AstIntrinsicCallExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
     if (intrinsicId != TokenId::IntrinsicAssert)
         return Result::Continue;
 
-    SmallVector<AstNodeRef> children;
-    codeGen.ast().appendNodes(children, spanChildrenRef);
-    if (children.empty() || codeGen.resolvedNodeRef(childRef) != codeGen.resolvedNodeRef(children.front()))
+    const AstNodeRef conditionRef = codeGen.ast().nthNode(spanChildrenRef, 0);
+    if (conditionRef.isInvalid() || codeGen.resolvedNodeRef(childRef) != codeGen.resolvedNodeRef(conditionRef))
         return Result::Continue;
 
     // Branch before visiting the diagnostic arguments: successful assertions do not evaluate them.

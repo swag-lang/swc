@@ -1349,10 +1349,9 @@ namespace
     {
         // The installed context outlives the statement, so a frame-local one is only sound
         // while the frame lives.
-        SmallVector<AstNodeRef> children;
-        sema.ast().appendNodes(children, node.spanChildrenRef);
-        if (!children.empty())
-            SWC_RESULT(SemaEscape::checkSetContext(sema, sema.curNodeRef(), children.front()));
+        const AstNodeRef contextRef = sema.ast().nthNode(node.spanChildrenRef, 0);
+        if (contextRef.isValid())
+            SWC_RESULT(SemaEscape::checkSetContext(sema, sema.curNodeRef(), contextRef));
 
         if (sema.isNativeBuild())
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::TlsAlloc, node.codeRef()));
@@ -1375,13 +1374,12 @@ namespace
     // block, exactly like the surviving branch of a guard-style `if ... do return`.
     void setupIntrinsicAssertNarrowFacts(Sema& sema, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        sema.ast().appendNodes(children, node.spanChildrenRef);
-        if (children.empty())
+        const AstNodeRef conditionRef = sema.ast().nthNode(node.spanChildrenRef, 0);
+        if (conditionRef.isInvalid())
             return;
 
         SemaHelpers::NarrowGuards guards;
-        SemaHelpers::collectNarrowGuards(sema, children[0], guards);
+        SemaHelpers::collectNarrowGuards(sema, conditionRef, guards);
         if (guards.whenTrue.empty())
             return;
 

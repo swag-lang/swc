@@ -1057,17 +1057,16 @@ namespace
             intrinsic.intrinsicId != TokenId::IntrinsicDataOf)
             return {};
 
-        SmallVector<AstNodeRef> children;
-        sema.ast().appendNodes(children, intrinsic.spanChildrenRef);
-        if (children.empty())
+        const AstNodeRef storageRef = sema.ast().nthNode(intrinsic.spanChildrenRef, 0);
+        if (storageRef.isInvalid())
             return {};
 
-        SemaEscapeInfo info = borrowInfoFromStorageExpression(sema, children.front(), expressionTypeRef(sema, intrinsicRef), budget);
+        SemaEscapeInfo info = borrowInfoFromStorageExpression(sema, storageRef, expressionTypeRef(sema, intrinsicRef), budget);
         if (info.hasBorrow() && intrinsic.intrinsicId == TokenId::IntrinsicDataOf)
         {
             // `any.buffer` opens the same erased payload as a dynamic cast. A raw
             // pointer cast after this projection must not erase that lifetime.
-            const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, children.front()));
+            const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, storageRef));
             if (operandTypeRef.isValid() && sema.typeMgr().get(unwrapAliasEnum(sema, operandTypeRef)).isAny())
                 info.viaErasedPayload = true;
         }

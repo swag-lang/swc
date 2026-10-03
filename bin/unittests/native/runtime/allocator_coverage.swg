@@ -894,3 +894,37 @@ func freeAddress(itf: IAllocator, address: u64)
     Swag.assert(alloc.stats().countAlloc == 0)
     alloc.releaseAll()
 }
+
+// ----------------------------------------------------------------------------
+// A header-path block reserves a rounded size but commits only what the request
+// reaches, and a reallocation that stays inside the reservation commits the next
+// pages in place instead of moving the data.
+// ----------------------------------------------------------------------------
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    var req: AllocatorRequest
+    req.size = 66000
+    itf.alloc(&req)
+    let address = req.address
+    Swag.assert(address != null)
+    (cast([*] u8) address)[65999] = 7
+
+    let header = cast(*AllocatorHeader) (cast([*] u8) address - #sizeof(AllocatorHeader))
+    Swag.assert(header.commitSize < header.allocSize)
+
+    let committed = alloc.stats().sizeCommitted
+    req.oldSize = req.size
+    req.size    = 72000
+    itf.realloc(&req)
+    Swag.assert(req.address == address)
+    Swag.assert(alloc.stats().sizeCommitted > committed)
+    Swag.assert((cast([*] u8) address)[65999] == 7)
+    (cast([*] u8) address)[71999] = 9
+
+    itf.free(&req)
+    Swag.assert(alloc.stats().countAlloc == 0)
+    alloc.releaseAll()
+}

@@ -113,10 +113,15 @@ struct AllocatorStats
 
 struct AllocatorThreadClass
 {
-    // The page the fast path serves from, plus every other page this heap owns for the class.
+    // The page the fast path serves from, plus every other page this heap owns for the class that
+    // may still have a block to give.
     page:  *AllocatorPage?
     first: *AllocatorPage?
     last:  *AllocatorPage?
+
+    // Pages found exhausted, which the slow path no longer scans. A local free moves its page
+    // back; a remote free queues it on the allocator's revisit stack.
+    full: *AllocatorPage?
 }
 
 struct AllocatorThreadHeap
@@ -158,6 +163,10 @@ struct Allocator
     firstSegment:   *AllocatorSegment?
     firstHeap:      *AllocatorThreadHeap?
     firstAbandoned: *AllocatorPage?
+
+    // Full pages that received a remote free, pushed by the freeing thread and taken back by
+    // their owners' slow paths. A lock-free stack of pages: page metadata outlives every heap.
+    revisitPages: u64
 
     // Every live header belongs to one list so bulk release can discover it. Only tracked blocks
     // enter firstAlloc and supply detailed leak reports; ordinary headers enter firstUntracked.
@@ -290,6 +299,33 @@ private func setCurrentAllocatorThreadHeap(heap: *AllocatorThreadHeap?)
 }
 
 private func currentThreadId()->u64 => __hostCurrentThreadId()
+
+// Queues a page that a remote free found on its owner's full list. The page is pushed once
+// until a drain takes it; the queue belongs to the allocator, never to a heap, because a heap can
+// retire at any moment while a page's metadata lives as long as its segment.
+func allocatorQueueRevisit(page: *AllocatorPage)
+{
+    if Swag.atomcmpxchg(&page.revisitQueued, 0, 1) != 0 do
+        return
+
+    let allocator = cast(*Allocator?) allocatorSegmentOf(page).allocator
+    if not allocator
+    {
+        discard Swag.atomxchg(&page.revisitQueued, 0)
+        return
+    }
+
+    let stack = &allocator.revisitPages
+    var head  = atomicGet(stack)
+    while true
+    {
+        page.revisitNext = head
+        let seen = Swag.atomcmpxchg(stack, head, cast(u64) page)
+        if seen == head do
+            return
+        head = seen
+    }
+}
 
 impl Allocator
 {
@@ -550,29 +586,34 @@ impl Allocator
 
         for i in AllocatorClassCount
         {
-            let cls  = &heap.classes[i]
-            var scan = cls.first
-            while scan
+            let cls = &heap.classes[i]
+            for list in [cls.first, cls.full]
             {
-                let next = scan.nextPage
-                scan.collectRemote()
-                if scan.used == 0 do
-                    allocatorSegmentOf(scan).releasePage(scan)
-                else
+                var scan = list
+                while scan
                 {
-                    scan.ownerHeap  = null
-                    scan.state      = .Abandoned
-                    scan.prevPage   = null
-                    scan.nextPage   = .firstAbandoned
-                    .firstAbandoned = scan
-                }
+                    let next = scan.nextPage
+                    scan.inFull = 0
+                    scan.collectRemote()
+                    if scan.used == 0 do
+                        allocatorSegmentOf(scan).releasePage(scan)
+                    else
+                    {
+                        scan.ownerHeap  = null
+                        scan.state      = .Abandoned
+                        scan.prevPage   = null
+                        scan.nextPage   = .firstAbandoned
+                        .firstAbandoned = scan
+                    }
 
-                scan = next
+                    scan = next
+                }
             }
 
             cls.page  = null
             cls.first = null
             cls.last  = null
+            cls.full  = null
         }
 
         .unlinkHeap(heap)
@@ -612,9 +653,35 @@ impl Allocator
         cls.last = page
     }
 
+    mtd linkPageFront(heap: *AllocatorThreadHeap, page: *AllocatorPage)
+    {
+        let cls = &heap.classes[page.classIndex]
+        page.prevPage = null
+        page.nextPage = cls.first
+        if cls.first do
+            cls.first.prevPage = page
+        else do
+            cls.last = page
+        cls.first = page
+    }
+
+    // Unlinks a page from whichever of its class's lists holds it.
     mtd unlinkPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
     {
         let cls = &heap.classes[page.classIndex]
+        if page.inFull
+        {
+            if page.prevPage do
+                page.prevPage.nextPage = page.nextPage
+            else do
+                cls.full = page.nextPage
+            if page.nextPage do
+                page.nextPage.prevPage = page.prevPage
+            page.prevPage = null
+            page.nextPage = null
+            return
+        }
+
         if page.prevPage do
             page.prevPage.nextPage = page.nextPage
         else do
@@ -701,33 +768,86 @@ impl Allocator
         return page
     }
 
-    // Runs when the current page has nothing left: collects what other threads freed, then looks
-    // through the heap's other pages, then asks for a new one.
+    // Moves a page the slow path found exhausted to its class's full list. The page is marked
+    // before its remote list is read again; 'pushRemote' publishes a block before reading the
+    // mark, so one of the two always sees the other and no block freed into a page going full is
+    // stranded there. Returns false, the page back on the scanned list, when such a block arrived.
+    mtd parkFullPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)->bool
+    {
+        .unlinkPage(heap, page)
+        discard Swag.atomxchg(&page.inFull, 1)
+        if atomicGet(&page.remoteFree) != 0
+        {
+            discard Swag.atomxchg(&page.inFull, 0)
+            .linkPageFront(heap, page)
+            return false
+        }
+
+        let cls = &heap.classes[page.classIndex]
+        page.prevPage = null
+        page.nextPage = cls.full
+        if cls.full do
+            cls.full.prevPage = page
+        cls.full = page
+        return true
+    }
+
+    // Puts a full page back on the scanned list, first in line, because it now has a block.
+    mtd unparkFullPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
+    {
+        .unlinkPage(heap, page)
+        discard Swag.atomxchg(&page.inFull, 0)
+        .linkPageFront(heap, page)
+    }
+
+    // Takes back the full pages of this heap that received remote frees. Pages of other heaps
+    // go back on the stack for their owners.
+    mtd reviveFullPages(heap: *AllocatorThreadHeap)
+    {
+        if atomicGet(&.revisitPages) == 0 do
+            return
+
+        var list = Swag.atomxchg(&.revisitPages, 0)
+        while list
+        {
+            let page = cast(*AllocatorPage) list
+            list = page.revisitNext
+            discard Swag.atomxchg(&page.revisitQueued, 0)
+            if page.ownerHeap == heap
+            {
+                if page.inFull do
+                    .unparkFullPage(heap, page)
+            }
+            elif page.ownerHeap and atomicGet(&page.inFull) do
+                allocatorQueueRevisit(page)
+        }
+    }
+
+    // Runs when the current page has nothing left: takes back full pages that other threads
+    // freed into, then looks through the pages that may still give a block, parking the
+    // exhausted ones on the full list so that a growing live set is not rescanned page after
+    // page, then asks for a new one.
     mtd acquireBlockSlow(heap: *AllocatorThreadHeap, classIndex: u32)->u64
     {
         let cls = &heap.classes[classIndex]
-
-        if cls.page
-        {
-            cls.page.collectRemote()
-            let block = cls.page.acquireBlock()
-            if block != 0 do
-                return block
-        }
+        .reviveFullPages(heap)
 
         var scan = cls.first
         while scan
         {
             let next = scan.nextPage
-            if scan != cls.page
+            scan.collectRemote()
+            var block = scan.acquireBlock()
+            if block == 0 and not .parkFullPage(heap, scan)
             {
                 scan.collectRemote()
-                let block = scan.acquireBlock()
-                if block != 0
-                {
-                    cls.page = scan
-                    return block
-                }
+                block = scan.acquireBlock()
+            }
+
+            if block != 0
+            {
+                cls.page = scan
+                return block
             }
 
             scan = next
@@ -1232,6 +1352,8 @@ impl Allocator
             if not heap do
                 return false
 
+            if page.inFull do
+                .unparkFullPage(heap, page)
             page.releaseBlock(address)
             if page.used == 0 do
                 .retirePage(heap, page)
@@ -1443,6 +1565,8 @@ impl Allocator
 
         if owned
         {
+            if page.inFull do
+                .unparkFullPage(heap!, page)
             page.releaseBlock(address)
             if page.used == 0 do
                 .retirePage(heap!, page)
@@ -1525,21 +1649,26 @@ impl Allocator
         let heap = currentAllocatorThreadHeap()
         if heap and heap.allocator == me
         {
+            .reviveFullPages(heap)
             for i in AllocatorClassCount
             {
-                let cls  = &heap.classes[i]
-                var scan = cls.first
-                while scan
+                let cls = &heap.classes[i]
+                for list in [cls.first, cls.full]
                 {
-                    let next = scan.nextPage
-                    scan.collectRemote()
-                    if scan.used == 0 and scan != cls.page
+                    var scan = list
+                    while scan
                     {
-                        .unlinkPage(heap, scan)
-                        allocatorSegmentOf(scan).releasePage(scan)
-                    }
+                        let next = scan.nextPage
+                        scan.collectRemote()
+                        if scan.used == 0 and scan != cls.page
+                        {
+                            .unlinkPage(heap, scan)
+                            discard Swag.atomxchg(&scan.inFull, 0)
+                            allocatorSegmentOf(scan).releasePage(scan)
+                        }
 
-                    scan = next
+                        scan = next
+                    }
                 }
             }
         }
@@ -1625,6 +1754,14 @@ impl Allocator
             let other = .firstHeap
             .unlinkHeap(other)
             .osFree(other, #sizeof(AllocatorThreadHeap))
+        }
+
+        var revisit = Swag.atomxchg(&.revisitPages, 0)
+        while revisit
+        {
+            let page = cast(*AllocatorPage) revisit
+            revisit = page.revisitNext
+            discard Swag.atomxchg(&page.revisitQueued, 0)
         }
 
         var segment: *AllocatorSegment? = .firstSegment

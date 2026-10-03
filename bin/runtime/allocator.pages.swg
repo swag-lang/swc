@@ -80,6 +80,15 @@ struct AllocatorPage
 
     unitIndex: u32
     state:     AllocatorPageState
+
+    // Set while the page sits on its heap's full list, where the slow path no longer scans it.
+    // A remote free that finds it set queues the page for its owner to take back.
+    inFull: u32
+
+    // Set while the page is on the allocator's revisit stack, linked through 'revisitNext'. Only
+    // the queue and its drain touch these, so a page reused in between keeps them intact.
+    revisitQueued: u32
+    revisitNext:   u64
 }
 
 // The first line is read on every free and changes almost never; the masks, which every thread
@@ -259,6 +268,7 @@ impl AllocatorPage
         .classIndex  = classIndex
         .unitIndex   = unitIndex
         .state       = .Owned
+        .inFull      = 0
 
         .setupBlockDivision(blockSize)
     }
@@ -376,8 +386,15 @@ impl AllocatorPage
         {
             (cast(*u64) address)[] = .encode(head)
             let seen = Swag.atomcmpxchg(&.remoteFree, head, address)
-            if seen == head do
+            if seen == head
+            {
+                // The exchange above is a full barrier, so this read pairs with the owner's
+                // 'parkFullPage', which marks the page before reading the remote list again.
+                if atomicGet(&.inFull) != 0 do
+                    allocatorQueueRevisit(me)
                 return
+            }
+
             head = seen
         }
     }

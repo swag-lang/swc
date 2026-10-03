@@ -238,7 +238,7 @@ public:
     void                                resetPreparedJitFunctions();
     uint64_t                            nativeGlobalFunctionInitTargetsVersion() const noexcept { return nativeGlobalFunctionInitTargetsVersion_.load(std::memory_order_acquire); }
     std::vector<SymbolFunction*>        nativeGlobalFunctionInitTargetsSnapshot() const;
-    std::vector<SymbolVariable*>        nativeGlobalVariablesSnapshot() const;
+    std::vector<SymbolVariable*>        nativeGlobalFunctionVariablesSnapshot() const;
     std::vector<SymbolFunction*>        jitPreparedFunctionsSnapshot() const;
     const std::vector<SymbolFunction*>& nativeCodeSegment() const { return nativeCodeSegment_; }
     const std::vector<SymbolFunction*>& nativeTestFunctions() const { return nativeTestFunctions_; }
@@ -733,6 +733,7 @@ private:
     std::unordered_set<SymbolFunction*>                   nativeGlobalFunctionInitTargetsSet_;
     std::vector<SymbolVariable*>                          nativeGlobalVariables_;
     std::unordered_set<SymbolVariable*>                   nativeGlobalVariablesSet_;
+    std::vector<SymbolVariable*>                          nativeGlobalFunctionVariables_;
     std::vector<SymbolFunction*>                          jitPreparedFunctions_;
     std::unordered_set<SymbolFunction*>                   jitPreparedFunctionsSet_;
     std::unordered_set<Utf8>                              resolvedFilePaths_;

@@ -887,16 +887,20 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
     if (!canRegisterNativeGlobalVariable(*this, *symbol))
         return;
 
-    bool inserted = false;
+    const bool hasFunctionInit = symbol->globalStorageKind() == DataSegmentKind::GlobalInit && symbol->globalFunctionInit() != nullptr;
+    bool       inserted        = false;
     {
         const std::unique_lock lock(nativeGlobalVariablesMutex_);
         inserted = appendUniqueBuckets({{&nativeGlobalVariables_, &nativeGlobalVariablesSet_}}, symbol);
+        // A completed variable's initializer cannot change. Keep the small subset
+        // that JIT patches rather than filtering every global for each #run.
+        if (inserted && hasFunctionInit)
+            nativeGlobalFunctionVariables_.push_back(symbol);
     }
 
     if (inserted)
     {
-        if (symbol->globalStorageKind() == DataSegmentKind::GlobalInit &&
-            symbol->globalFunctionInit() != nullptr)
+        if (hasFunctionInit)
             invalidateGlobalFunctionBindings();
         notifyAlive();
     }
@@ -1027,10 +1031,10 @@ std::vector<SymbolFunction*> CompilerInstance::nativeGlobalFunctionInitTargetsSn
     return nativeGlobalFunctionInitTargets_;
 }
 
-std::vector<SymbolVariable*> CompilerInstance::nativeGlobalVariablesSnapshot() const
+std::vector<SymbolVariable*> CompilerInstance::nativeGlobalFunctionVariablesSnapshot() const
 {
     const std::shared_lock lock(nativeGlobalVariablesMutex_);
-    return nativeGlobalVariables_;
+    return nativeGlobalFunctionVariables_;
 }
 
 std::vector<SymbolFunction*> CompilerInstance::jitPreparedFunctionsSnapshot() const

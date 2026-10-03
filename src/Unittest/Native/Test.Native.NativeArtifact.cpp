@@ -1476,6 +1476,8 @@ func addOne(value: s32)->s32
 }
 
 var GAddOne: UnaryFn = &addOne
+var GValue = 41
+var GZero: s32
 
 #init
 {
@@ -1487,7 +1489,7 @@ var GAddOne: UnaryFn = &addOne
 
 #test
 {
-    Swag.assert(GAddOne(41) == 42)
+    Swag.assert(GAddOne(GValue + GZero) == 42)
 }
 
 #main
@@ -1542,6 +1544,13 @@ var GAddOne: UnaryFn = &addOne
         return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "GAddOne global init target does not match its registration");
     if (initTargets.front() != addOneFunction)
         return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native init target does not match its registration");
+
+    const auto functionGlobals = compiler.nativeGlobalFunctionVariablesSnapshot();
+    if (functionGlobals.size() != 1 || functionGlobals.front() != globalFunctionPtr)
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native function globals do not contain exactly GAddOne");
+    if (!findGlobalByName(compilerCtx, compiler.nativeGlobalVariables(), "GValue") ||
+        !findGlobalByName(compilerCtx, compiler.nativeGlobalVariables(), "GZero"))
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "ordinary native globals are missing");
 
     if (!hasUniquePointers(std::span{compiler.nativeCodeSegment()}))
         return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native code segment contains duplicates");
@@ -1600,6 +1609,8 @@ var GAddOne: UnaryFn = &addOne
         return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native drop functions changed after duplicate registration");
     if (compiler.nativeGlobalVariables().size() != globalVariableCount)
         return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native globals changed after duplicate registration");
+    if (compiler.nativeGlobalFunctionVariablesSnapshot() != functionGlobals)
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native function globals changed after duplicate registration");
     if (compiler.nativeGlobalFunctionInitTargetsSnapshot().size() != initTargetCount)
         return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native init targets changed after duplicate registration");
     if (compiler.nativeGlobalFunctionInitTargetsVersion() != initTargetVersion)

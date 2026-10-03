@@ -1076,13 +1076,19 @@ namespace
         return Result::Continue;
     }
 
-    Result patchConstantFunctionRelocations(TaskContext& ctx, JITRelocationPatchContext& patchContext, const SymbolFunction* ownerFunction, const ConstantRef constantRef, const void* ptr)
+    Result patchConstantFunctionRelocations(TaskContext& ctx, JITRelocationPatchContext& patchContext, const SymbolFunction* ownerFunction, const MicroRelocation& relocation, const void* ptr)
     {
         if (!ptr)
             return Result::Continue;
 
+        // Address relocations have just resolved this exact source. Recovering it
+        // from the pointer repeats the shard lookup. Island copies still name a
+        // separate payload, so keep resolving their actual source address.
+        if (relocation.hasConstantSource() && !relocation.requiresConstantCopy())
+            return patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, relocation.constantShard, relocation.constantOffset);
+
         DataSegmentRef sourceRef;
-        if (!ctx.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, constantRef, ptr))
+        if (!ctx.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, ptr))
             return Result::Continue;
 
         return patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, sourceRef.shardIndex, sourceRef.offset);
@@ -1128,7 +1134,7 @@ namespace
             }
 
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
-                SWC_RESULT(patchConstantFunctionRelocations(ctx, patchContext, ownerFunction, reloc.constantRef, reinterpret_cast<const void*>(targetAddress)));
+                SWC_RESULT(patchConstantFunctionRelocations(ctx, patchContext, ownerFunction, reloc, reinterpret_cast<const void*>(targetAddress)));
 
             if (reloc.form == MicroRelocation::Form::Relative32)
             {
@@ -1264,8 +1270,11 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 
 Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 {
+    const auto globals = ctx.compiler().nativeGlobalFunctionVariablesSnapshot();
+    if (globals.empty())
+        return Result::Continue;
+
     const TaskScopedContext   scopedContext(ctx);
-    const auto                globals = ctx.compiler().nativeGlobalVariablesSnapshot();
     JITRelocationPatchContext patchContext;
     const bool                patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
     std::vector<uint64_t>     sortedReferencedGlobalInitOffsets;
@@ -1275,6 +1284,8 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
     if (patchReferencedGlobalsOnly)
     {
         collectJitGlobalInitRelocationOffsets(ctx, sortedReferencedGlobalInitOffsets);
+        if (sortedReferencedGlobalInitOffsets.empty())
+            return Result::Continue;
         std::ranges::sort(sortedReferencedGlobalInitOffsets);
     }
 
@@ -1282,16 +1293,12 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
     // of the module made each compile-time call allocate and clear a table of that size.
     for (const SymbolVariable* symVar : globals)
     {
-        if (!symVar)
-            continue;
-        if (!symVar->hasGlobalStorage())
-            continue;
-        if (symVar->globalStorageKind() != DataSegmentKind::GlobalInit)
-            continue;
+        SWC_ASSERT(symVar != nullptr);
+        SWC_ASSERT(symVar->hasGlobalStorage());
+        SWC_ASSERT(symVar->globalStorageKind() == DataSegmentKind::GlobalInit);
 
         SymbolFunction* targetFunction = symVar->globalFunctionInit();
-        if (!targetFunction)
-            continue;
+        SWC_ASSERT(targetFunction != nullptr);
 
         const TypeInfo& storageType = ctx.typeMgr().get(symVar->typeRef());
         const uint64_t  storageSize = storageType.sizeOf(ctx);

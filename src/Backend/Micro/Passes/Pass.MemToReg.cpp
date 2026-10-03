@@ -1212,12 +1212,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
                 const MicroReg base         = viaBase ? ops[baseIndex].reg : MicroReg::invalid();
                 const bool     framePointer = !base.isValid() || isFrameRegister(base) || isTracked(base) || base == stackPointer;
-                for (size_t i = 0; i < pendingStores.size();)
+                if (framePointer)
+                    pendingStores.clear();
+                else
                 {
-                    if (framePointer || reachableByUnknownPointer(pendingStores[i]))
-                        pendingStores.erase(pendingStores.begin() + i);
-                    else
-                        ++i;
+                    const auto removed = std::ranges::remove_if(pendingStores, reachableByUnknownPointer);
+                    pendingStores.resize(static_cast<size_t>(removed.begin() - pendingStores.begin()));
                 }
             }
 

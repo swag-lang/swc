@@ -1245,14 +1245,13 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             return; // same register, or memory-to-memory
         if (!fromReg.isValid() && !toReg.isValid())
             return;
-        Connector connector;
+        Connector& connector  = connectors.emplace_back();
         connector.beforeIndex = beforeIndex;
         connector.dst         = toReg;
         connector.src         = fromReg;
         connector.denseIndex  = denseIndex;
         connector.from        = fromReg.isValid() && toReg.isValid() ? fromNode : nullptr;
         connector.phase       = phase;
-        connectors.push_back(connector);
     };
 
     // Adjacent-node connectors: a true split (A.end == B.start) inside a
@@ -1449,14 +1448,13 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 }
                 else
                 {
-                    Trampoline trampoline;
-                    trampoline.jumpIndex  = p;
-                    trampoline.inverted   = inverted;
-                    trampoline.opBits     = predOps[1].opBits;
-                    trampoline.origTarget = predOps[2].valueU64;
-                    trampoline.newLabel   = context_->builder->createLabel();
-                    trampolines.push_back(trampoline);
-                    trampJump = p;
+                    Trampoline& trampoline = trampolines.emplace_back();
+                    trampoline.jumpIndex   = p;
+                    trampoline.inverted    = inverted;
+                    trampoline.opBits      = predOps[1].opBits;
+                    trampoline.origTarget  = predOps[2].valueU64;
+                    trampoline.newLabel    = context_->builder->createLabel();
+                    trampJump              = p;
                 }
             }
 

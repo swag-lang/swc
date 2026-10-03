@@ -1212,12 +1212,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
                 const MicroReg base         = viaBase ? ops[baseIndex].reg : MicroReg::invalid();
                 const bool     framePointer = !base.isValid() || isFrameRegister(base) || isTracked(base) || base == stackPointer;
-                for (size_t i = 0; i < pendingStores.size();)
+                if (framePointer)
+                    pendingStores.clear();
+                else
                 {
-                    if (framePointer || reachableByUnknownPointer(pendingStores[i]))
-                        pendingStores.erase(pendingStores.begin() + i);
-                    else
-                        ++i;
+                    const auto removed = std::ranges::remove_if(pendingStores, reachableByUnknownPointer);
+                    pendingStores.resize(static_cast<size_t>(removed.begin() - pendingStores.begin()));
                 }
             }
 
@@ -1916,13 +1916,20 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         uint8_t defined = 0;
         uint8_t zero    = 0;
     };
-    std::unordered_map<uint32_t, RecordState> recordStateAt;
+    std::optional<std::unordered_map<uint32_t, RecordState>> recordStateAt;
     if (!records.empty())
     {
         const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
         const uint32_t               n   = cfg.instructionCount();
         const auto                   refs = cfg.instructionRefs();
         const uint32_t               entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+
+        // Every record uses this graph. Reject an unsupported graph before
+        // allocating per-record access maps and instruction-state arrays.
+        if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            records.clear();
+        else
+            recordStateAt.emplace();
 
         SmallVector<RecordWord> kept;
         for (RecordWord& record : records)
@@ -1961,37 +1968,33 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // starts with nothing defined.
             std::vector<RecordState> in(n, RecordState{all, all});
             std::vector<uint8_t>     reached(n, 0);
-            bool                     valid = entry != MicroPassHelpers::MicroDomTree::K_INVALID_NODE && !cfg.hasUnsupportedControlFlowForCfgLiveness();
-            if (valid)
+            in[entry]      = RecordState{};
+            reached[entry] = 1;
+            bool changed   = true;
+            for (uint32_t sweep = 0; changed && sweep < 64; ++sweep)
             {
-                in[entry]      = RecordState{};
-                reached[entry] = 1;
-                bool changed   = true;
-                for (uint32_t sweep = 0; changed && sweep < 64; ++sweep)
+                changed = false;
+                for (uint32_t index = 0; index < n; ++index)
                 {
-                    changed = false;
-                    for (uint32_t index = 0; index < n; ++index)
+                    if (!reached[index])
+                        continue;
+                    const RecordState out = transfer(index, in[index]);
+                    for (const uint32_t succ : cfg.successors(index))
                     {
-                        if (!reached[index])
-                            continue;
-                        const RecordState out = transfer(index, in[index]);
-                        for (const uint32_t succ : cfg.successors(index))
+                        const RecordState merged{
+                            .defined = static_cast<uint8_t>(reached[succ] ? in[succ].defined & out.defined : out.defined),
+                            .zero    = static_cast<uint8_t>(reached[succ] ? in[succ].zero & out.zero : out.zero),
+                        };
+                        if (!reached[succ] || merged.defined != in[succ].defined || merged.zero != in[succ].zero)
                         {
-                            const RecordState merged{
-                                .defined = static_cast<uint8_t>(reached[succ] ? in[succ].defined & out.defined : out.defined),
-                                .zero    = static_cast<uint8_t>(reached[succ] ? in[succ].zero & out.zero : out.zero),
-                            };
-                            if (!reached[succ] || merged.defined != in[succ].defined || merged.zero != in[succ].zero)
-                            {
-                                reached[succ] = 1;
-                                in[succ]      = merged;
-                                changed       = true;
-                            }
+                            reached[succ] = 1;
+                            in[succ]      = merged;
+                            changed       = true;
                         }
                     }
                 }
-                valid = !changed;
             }
+            bool valid = !changed;
 
             // A field store and a read need the whole word; a whole store
             // needs nothing.
@@ -2012,7 +2015,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 const bool rewritesFlags = acc.isWrite ? !wholeStore : acc.offset != record.offset;
                 if (rewritesFlags && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, acc.ref, context.builder))
                     valid = false;
-                recordStateAt[acc.ref.get()] = in[index];
+                (*recordStateAt)[acc.ref.get()] = in[index];
             }
             if (valid)
                 kept.push_back(std::move(record));
@@ -2079,20 +2082,23 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         writeInst->op                = MicroInstrOpcode::LoadRegReg;
         writeInst->numOperands       = 3;
 
-        const MicroInstrRef                    afterWrite = storage.findNextInstructionRef(split.writeRef);
-        std::unordered_map<uint64_t, MicroReg> fields;
-        std::unordered_map<uint64_t, MicroReg> floatFields;
-        fields[0] = word;
+        const MicroInstrRef     afterWrite = storage.findNextInstructionRef(split.writeRef);
+        uint64_t                fieldShift = 0;
+        MicroReg                field      = word;
+        std::array<MicroReg, 2> floatFields{MicroReg::invalid(), MicroReg::invalid()};
         // Low fields first: the word's last reader is then the copy that
         // shifts it, which the allocator can make the word itself.
         std::ranges::stable_sort(split.reads, [](const SlotAccess& a, const SlotAccess& b) { return a.offset < b.offset; });
         for (const SlotAccess& acc : split.reads)
         {
             const uint64_t shift = (acc.offset - split.offset) * 8;
-            const auto [found, inserted] = fields.try_emplace(shift);
-            if (inserted)
+            // Equal offsets are contiguous, so only the current field and its
+            // two floating widths can be reused by a later read.
+            if (shift != fieldShift)
             {
-                const MicroReg    field = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                field      = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                fieldShift = shift;
+                floatFields.fill(MicroReg::invalid());
                 MicroInstrOperand copyOps[3];
                 copyOps[0].reg    = field;
                 copyOps[1].reg    = word;
@@ -2104,30 +2110,27 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 shiftOps[2].microOp = MicroOp::ShiftRight;
                 shiftOps[3].setImmediateValue(ApInt(shift, 64));
                 storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
-                found->second = field;
             }
 
             const MicroInstr* read     = storage.ptr(acc.ref);
             const MicroReg    valueReg = read ? slotValueRegister(read->op, read->ops(operands)) : MicroReg::invalid();
             if (!valueReg.isVirtualFloat())
             {
-                rewriteSlotAccess(storage, operands, acc, found->second);
+                rewriteSlotAccess(storage, operands, acc, field);
                 continue;
             }
 
-            const uint64_t floatKey = shift * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0);
-            const auto [floatIt, floatInserted] = floatFields.try_emplace(floatKey);
-            if (floatInserted)
+            MicroReg& floatField = floatFields[acc.bits == MicroOpBits::B64 ? 1 : 0];
+            if (!floatField.isValid())
             {
-                const MicroReg    floatField = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);
+                floatField = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);
                 MicroInstrOperand moveOps[3];
                 moveOps[0].reg    = floatField;
-                moveOps[1].reg    = found->second;
+                moveOps[1].reg    = field;
                 moveOps[2].opBits = acc.bits;
                 storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::LoadRegReg, moveOps);
-                floatIt->second = floatField;
             }
-            rewriteSlotAccess(storage, operands, acc, floatIt->second);
+            rewriteSlotAccess(storage, operands, acc, floatField);
         }
     }
 
@@ -2245,7 +2248,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // the value in.
             // Over a word known to be zero, the field is the whole word.
             const uint64_t    fieldMask = (count == 8 ? ~0ull : (1ull << (count * 8)) - 1) << shift;
-            const RecordState state     = recordStateAt[acc.ref.get()];
+            const RecordState state     = (*recordStateAt)[acc.ref.get()];
             const uint8_t     byteMask  = static_cast<uint8_t>(((1u << count) - 1) << rel);
             const bool        wordZero  = state.zero == static_cast<uint8_t>((1u << record.bytes) - 1);
             if ((state.zero & byteMask) != byteMask)

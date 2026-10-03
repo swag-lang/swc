@@ -1338,10 +1338,11 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
         changed = false;
         for (const auto& [from, to] : copies)
         {
-            if (rejected.contains(from) != rejected.contains(to))
+            const bool fromRejected = rejected.contains(from);
+            const bool toRejected   = rejected.contains(to);
+            if (fromRejected != toRejected)
             {
-                rejected.insert(from);
-                rejected.insert(to);
+                rejected.insert(fromRejected ? to : from);
                 changed = true;
             }
         }

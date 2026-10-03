@@ -1760,12 +1760,11 @@ namespace
                     continue;
                 }
 
-                SeedGroup group;
-                group.rootKey = rootKey;
-                group.offset  = candidates[index].offset;
+                SeedGroup& group = vectorized.emplace_back();
+                group.rootKey    = rootKey;
+                group.offset     = candidates[index].offset;
                 for (uint32_t lane = 0; lane < fn.shape.count(); ++lane)
                     group.tuple.ids[lane] = candidates[index + lane].valueId;
-                vectorized.push_back(group);
                 index += fn.shape.count();
             }
         }

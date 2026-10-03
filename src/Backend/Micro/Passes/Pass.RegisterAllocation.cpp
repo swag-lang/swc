@@ -1415,11 +1415,7 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
     }
 
     // Loops whose furthest back-edge this was are finished.
-    for (size_t residencyIndex = activeLoopResidency_.size(); residencyIndex > 0; --residencyIndex)
-    {
-        if (activeLoopResidency_[residencyIndex - 1].tail == instructionIndex)
-            activeLoopResidency_.erase(activeLoopResidency_.begin() + static_cast<ptrdiff_t>(residencyIndex - 1));
-    }
+    std::erase_if(activeLoopResidency_, [&](const LoopResidency& residency) { return residency.tail == instructionIndex; });
 }
 
 void MicroRegisterAllocationPass::assignGlobalRegisters()

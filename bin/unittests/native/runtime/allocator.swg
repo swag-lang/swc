@@ -45,6 +45,107 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         done:      *s32
     }
 
+    // Threads exchanging blocks through a shared table, so most frees are remote. Each block
+    // stores its size in its first word and a pattern derived from its address at its end and
+    // middle; a block handed out twice, or overwritten by the allocator, breaks the pattern.
+    const ExchangeSlots = 256'u64
+
+    struct AllocatorExchange
+    {
+        allocator: IAllocator
+        slots:     [ExchangeSlots] u64
+        errors:    u64
+    }
+
+    struct AllocatorExchangeWorker
+    {
+        exchange: *AllocatorExchange?
+        seed:     u64
+    }
+
+    #[Swag.Safety(.Overflow, false)]
+    func exchangeNext(state: *u64)->u64
+    {
+        state[] ^= state[] << 13
+        state[] ^= state[] >> 7
+        state[] ^= state[] << 17
+        return state[]
+    }
+
+    #[Swag.Safety(.Overflow, false)]
+    func exchangeStamp(address: u64, size: u64)->u8 => cast(u8) ((address >> 4) ^ size ^ 0x5A)
+
+    func exchangeSize(state: *u64)->u64
+    {
+        let r = exchangeNext(state)
+        switch r % 100
+        {
+        case 0 until 80: return 9 + (r >> 8) % 256
+        case 80 until 97: return 256 + (r >> 8) % 20000
+        }
+
+        return 65536 + (r >> 8) % 200000
+    }
+
+    #[Swag.CallingConvention(.C)]
+    func allocatorExchangeThread(param: *void)->AllocatorThreadTest.DWORD
+    {
+        let worker   = cast(*AllocatorExchangeWorker) param
+        let exchange = worker.exchange!
+        var state    = worker.seed
+        for 20000
+        {
+            let slot = exchangeNext(&state) % ExchangeSlots
+            let old  = Swag.atomxchg(&exchange.slots[slot], 0)
+            if old
+            {
+                let bytes = cast([*] u8) old
+                let size  = (cast(const *u64) old)[]
+                if bytes[size - 1] != exchangeStamp(old, size) or (size > 16 and bytes[size / 2] != exchangeStamp(old, size)) do
+                    discard Swag.atomadd(&exchange.errors, 1)
+
+                var req: AllocatorRequest
+                req.address = cast(*void) old
+                req.size    = size
+                if exchangeNext(&state) % 8 == 0
+                {
+                    req.oldSize = size
+                    req.size    = exchangeSize(&state)
+                    exchange.allocator.realloc(&req)
+                    if (cast(const *u64) req.address!)[] != size do
+                        discard Swag.atomadd(&exchange.errors, 1)
+                }
+
+                exchange.allocator.free(&req)
+            }
+
+            var req: AllocatorRequest
+            req.size      = exchangeSize(&state)
+            req.alignment = exchangeNext(&state) % 16 == 0 ? 64'u32 : 0'u32
+            exchange.allocator.alloc(&req)
+            let address = cast(u64) req.address
+            if req.alignment and (address & 63) != 0 do
+                discard Swag.atomadd(&exchange.errors, 1)
+
+            (cast(*u64) address)[] = req.size
+            let bytes = cast([*] u8) address
+            bytes[req.size - 1] = exchangeStamp(address, req.size)
+            if req.size > 16 do
+                bytes[req.size / 2] = exchangeStamp(address, req.size)
+
+            let previous = Swag.atomxchg(&exchange.slots[slot], address)
+            if previous
+            {
+                var free: AllocatorRequest
+                free.address = cast(*void) previous
+                exchange.allocator.free(&free)
+            }
+        }
+
+        releaseAllocatorThreadCache()
+        return 0
+    }
+
     #[Swag.CallingConvention(.C)]
     func allocatorRemoteFreeThread(param: *void)->AllocatorThreadTest.DWORD
     {
@@ -919,5 +1020,48 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
         var freeAll: AllocatorRequest
         itf.freeAll(&freeAll)
+    }
+
+    // Waves of threads trading blocks of every path (small, medium, large, aligned, reallocated)
+    // and exiting with blocks still live elsewhere: remote frees into full pages, abandoned pages,
+    // the large-block cache and the double-free and write-after-free checks all run together.
+    #test
+    {
+        var alloc: Allocator
+        var exchange = AllocatorExchange{allocator: makeAllocator(&alloc, fillMemory: false)}
+
+        for wave in 3
+        {
+            var workers: [4] AllocatorExchangeWorker
+            var handles: [4] (*void?)
+            for i in 4
+            {
+                workers[i].exchange = &exchange
+                workers[i].seed     = 0x9E37_79B9'u64 * (wave * 4 + i + 1)
+                var threadId: AllocatorThreadTest.DWORD
+                handles[i] = AllocatorThreadTest.CreateThread(null, 0, &allocatorExchangeThread, &workers[i], 0, &threadId)
+            }
+
+            for i in 4
+            {
+                discard AllocatorThreadTest.WaitForSingleObject(handles[i]!, AllocatorThreadTest.INFINITE)
+                AllocatorThreadTest.CloseHandle(handles[i]!)
+            }
+        }
+
+        Swag.assert(exchange.errors == 0)
+        for slot in ExchangeSlots
+        {
+            if exchange.slots[slot]
+            {
+                var req: AllocatorRequest
+                req.address = cast(*void) exchange.slots[slot]
+                exchange.allocator.free(&req)
+            }
+        }
+
+        Swag.assert(alloc.stats().countAlloc == 0)
+        var freeAll: AllocatorRequest
+        exchange.allocator.freeAll(&freeAll)
     }
 }

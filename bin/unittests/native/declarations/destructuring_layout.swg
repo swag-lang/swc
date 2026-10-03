@@ -2,6 +2,19 @@
 
 struct Empty {}
 
+// Constant named fields retain their values when bound in a different order.
+#test
+{
+    const first, second: u32 = 21
+    var {label: name, count: total, ready: active} = {count: first + second, ready: true, label: "constant"}
+    Swag.assert(name == "constant")
+    Swag.assert(total == 42)
+    Swag.assert(active)
+
+    total += 1
+    Swag.assert(total == 43)
+}
+
 #[Swag.NoInline]
 func runtimeByte(value: u8)->u8 => value
 

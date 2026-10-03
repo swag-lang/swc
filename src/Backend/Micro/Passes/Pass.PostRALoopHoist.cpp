@@ -1472,7 +1472,11 @@ namespace
                             otherOps[2].opBits == ops[2].opBits && otherOps[4].valueU64 == offset &&
                             (otherOps[3].microOp == MicroOp::And || otherOps[3].microOp == MicroOp::Or || otherOps[3].microOp == MicroOp::Xor))
                         {
-                            hasRelocatedUse |= relocatedRefs.contains(refs[j].get());
+                            if (relocatedRefs.contains(refs[j].get()))
+                            {
+                                hasRelocatedUse = true;
+                                break;
+                            }
                             foldedRefs.push_back(refs[j]);
                         }
                     }

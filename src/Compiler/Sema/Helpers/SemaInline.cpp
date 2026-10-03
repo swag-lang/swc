@@ -1759,6 +1759,9 @@ namespace
 
         identifiers.clear();
         collectInlineClosureCaptureIdentifiers(sema, sourceAst, bodyRef, identifiers, false);
+        // By-reference captures are a subset: an empty full scan needs no second walk.
+        if (identifiers.empty())
+            return;
         outIdentifiers.captured.insert(identifiers.begin(), identifiers.end());
 
         identifiers.clear();

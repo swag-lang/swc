@@ -1095,11 +1095,23 @@ impl Allocator
     // on the calling thread's current page for that class. Returns zero whenever anything else
     // has to happen; the general path then repeats every check and handles it.
     // A zero size wraps to the largest value, so one comparison rejects it with the sizes no class
-    // carries.
+    // carries. Every class but the 8-byte one is 16-byte aligned, so an alignment up to 16 only
+    // moves the smallest requests one class up.
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
-    mtd allocateFast(size: u64)->u64
+    mtd allocateFast(size: u64, alignment: u32)->u64
     {
         if size - 1 >= AllocatorMaxClassSize do
+            return 0
+
+        var classIndex = sizeClass(size)
+        if alignment > 8
+        {
+            if alignment != AllocatorPagePathAlignment do
+                return 0
+            if classIndex == 0 do
+                classIndex = 1
+        }
+        elif alignment & (alignment - 1) do
             return 0
 
         let heap = fastThreadHeap()
@@ -1108,7 +1120,7 @@ impl Allocator
         if heap.allocator != me do
             return 0
 
-        let page = heap.classes[sizeClass(size)].page
+        let page = heap.classes[classIndex].page
         if not page do
             return 0
 
@@ -1696,9 +1708,9 @@ impl IAllocator for Allocator
 
     mtd impl alloc(request: *AllocatorRequest)
     {
-        if not .slowPath and request.alignment == 0
+        if not .slowPath
         {
-            let block = .allocateFast(request.size)
+            let block = .allocateFast(request.size, request.alignment)
             if block != 0
             {
                 request.address = cast(*void) block

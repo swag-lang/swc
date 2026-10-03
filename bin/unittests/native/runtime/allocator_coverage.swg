@@ -867,3 +867,30 @@ func freeAddress(itf: IAllocator, address: u64)
 
     alloc.releaseAll()
 }
+
+// ----------------------------------------------------------------------------
+// The inline path serves every power-of-two alignment up to 16: an 8-byte request
+// aligned on 16 moves one class up, and anything stricter or malformed falls to
+// the general path, which answers it.
+// ----------------------------------------------------------------------------
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    for alignment in [0'u32, 1, 2, 4, 8, 16, 32]
+    {
+        for size in [1'u64, 8, 9, 24, 100]
+        {
+            let address = allocOne(itf, size, alignment)
+            Swag.assert(address != null)
+            Swag.assert(alignment == 0 or (cast(u64) address & (cast(u64) alignment - 1)) == 0)
+            freeOne(itf, address)
+        }
+    }
+
+    Swag.assert(allocOne(itf, 8, 3) == null)
+    Swag.assert(allocOne(itf, 0, 16) == null)
+    Swag.assert(alloc.stats().countAlloc == 0)
+    alloc.releaseAll()
+}

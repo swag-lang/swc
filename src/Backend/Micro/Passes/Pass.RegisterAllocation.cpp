@@ -675,6 +675,10 @@ void MicroRegisterAllocationPass::computeConcreteClaimPositions()
     // operand, defined by an ABI shuffle, clobbered by a call, or merely live
     // between two of those. A global may not take a register over any of them.
     concreteClaimPositionsByDenseIndex_.resize(denseConcreteRegs_.regs().size());
+    // Shrinking has already discarded unused lists. Reset only the retained
+    // lists, and only when this run actually needs concrete claims.
+    for (auto& positions : concreteClaimPositionsByDenseIndex_)
+        positions.clear();
     concreteClaimPositionsComputed_ = true;
     if (denseConcreteRegs_.regs().empty())
         return;
@@ -2175,6 +2179,12 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     states_.resize(virtualRegs.size());
     usePositionsByDenseVirtual_.resize(virtualRegs.size());
     concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
+    // Retain inner capacities, but do not clear lists that resize just destroyed.
+    // Runs without virtual registers never reach or query these buffers.
+    for (auto& positions : usePositionsByDenseVirtual_)
+        positions.clear();
+    for (auto& positions : concreteTouchPositionsByDenseIndex_)
+        positions.clear();
     definitionCounts_.assign(virtualRegs.size(), 0);
 
     // Packed construction can consume scalar inputs. Keep those spill slots at
@@ -4325,11 +4335,6 @@ void MicroRegisterAllocationPass::clearState()
     defVirtualIndices_.clear();
     useConcreteIndices_.clear();
     defConcreteIndices_.clear();
-    // Keep the inner capacities for the next function's register positions.
-    for (auto& positions : usePositionsByDenseVirtual_)
-        positions.clear();
-    for (auto& positions : concreteTouchPositionsByDenseIndex_)
-        positions.clear();
     nextUsePositionCursor_.clear();
     nextConcreteTouchCursor_.clear();
     liveInVirtualBits_.clear();
@@ -4337,9 +4342,6 @@ void MicroRegisterAllocationPass::clearState()
     predecessors_ = {};
     virtualSpanLo_.clear();
     virtualSpanHi_.clear();
-    // Keep each register's position buffer for the next function on this worker.
-    for (auto& positions : concreteClaimPositionsByDenseIndex_)
-        positions.clear();
     concreteClaimPositionsComputed_ = false;
     denseGlobalPhysRegs_.clear();
     pendingBorrowRestores_.clear();

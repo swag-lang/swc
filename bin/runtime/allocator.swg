@@ -70,6 +70,15 @@ struct AllocatorHeader
     magic:      u32
 }
 
+// One entry of the cache of freed header-path blocks. 'stamp' orders the entries by age.
+struct AllocatorCachedBlock
+{
+    address:   u64
+    reserved:  u64
+    committed: u64
+    stamp:     u64
+}
+
 struct AllocatorFooter
 {
     magic: u32
@@ -158,14 +167,14 @@ struct Allocator
     quarantineBytes: u64
     quarantineCount: u64
 
-    // Recently freed header-path blocks, kept committed for reuse inside a fixed
-    // budget. A decoder that frees and reallocates an image-sized buffer per call
-    // would otherwise pay a release, a reserve, and a fault per touched page on
-    // every cycle. The first sixteen bytes of a cached block hold its list node:
-    // next address, then size.
-    firstCachedBlock: u64
+    // Recently freed header-path blocks, kept committed for reuse inside a budget. A
+    // decoder that frees and reallocates an image-sized buffer per call would otherwise
+    // pay a release, a reserve, and a fault per touched page on every cycle. The index
+    // lives here rather than in the blocks, so searching it never touches cold memory.
+    cachedBlocks:     [AllocatorBlockCacheMaxCount] AllocatorCachedBlock
     cachedBlockBytes: u64
     cachedBlockCount: u64
+    cachedBlockStamp: u64
 
     nextId:       u32
     installMagic: u32 = 0
@@ -883,40 +892,36 @@ impl Allocator
         defer .mutex.unlock()
 
         let limit    = size > Swag.U64.Max / 2 ? Swag.U64.Max : size * 2
-        var bestPrev = 0'u64
-        var best     = 0'u64
+        var best     = .cachedBlockCount
         var bestSize = Swag.U64.Max
-        var prev     = 0'u64
-        var scan     = .firstCachedBlock
-        while scan
+        for i in .cachedBlockCount
         {
-            let node = cast([*] u64) scan
-            if node[1] >= size and node[1] <= limit and node[1] < bestSize
+            let reserved = .cachedBlocks[i].reserved
+            if reserved >= size and reserved <= limit and reserved < bestSize
             {
-                bestPrev = prev
-                best     = scan
-                bestSize = node[1]
-                if bestSize == size do
+                best     = i
+                bestSize = reserved
+                if reserved == size do
                     break
             }
-
-            prev = scan
-            scan = node[0]
         }
 
-        if not best do
+        if best == .cachedBlockCount do
             return null
 
-        let node = cast([*] u64) best
-        if bestPrev do
-            (cast(*u64) bestPrev)[] = node[0]
-        else do
-            .firstCachedBlock = node[0]
-        .cachedBlockBytes -= node[2]
+        let entry = .cachedBlocks[best]
+        .removeCachedBlock(best)
+        blockSize[]  = entry.reserved
+        commitSize[] = entry.committed
+        return cast([*] u8) entry.address
+    }
+
+    // Removes entry 'index' by moving the last entry into its place. The caller holds the mutex.
+    mtd removeCachedBlock(index: u64)
+    {
+        .cachedBlockBytes -= .cachedBlocks[index].committed
         .cachedBlockCount -= 1
-        blockSize[]  = bestSize
-        commitSize[] = node[2]
-        return cast([*] u8) best
+        .cachedBlocks[index] = .cachedBlocks[.cachedBlockCount]
     }
 
     // The bytes the cache may keep committed: as much as the program holds live through the
@@ -932,8 +937,6 @@ impl Allocator
     // Keeps a freed operating-system block committed for reuse. Beyond the budget the
     // oldest cached blocks go back to the operating system first, so the resident cost
     // of the cache stays bounded whatever the churn. The budget counts committed bytes.
-    // A cached block's first three words hold its list node: next address, reserved size,
-    // committed size.
     mtd cacheFreedBlock(address: [*] void?, size: u64, committed: u64)
     {
         if not address do
@@ -950,30 +953,24 @@ impl Allocator
         while .cachedBlockCount != 0 and
               (.cachedBlockCount >= AllocatorBlockCacheMaxCount or .cachedBlockBytes + committed > budget)
         {
-            var prev = 0'u64
-            var scan = .firstCachedBlock
-            while (cast(const *u64) scan)[]
+            var oldest = 0'u64
+            for i in 1 until .cachedBlockCount
             {
-                prev = scan
-                scan = (cast(const *u64) scan)[]
+                if .cachedBlocks[i].stamp < .cachedBlocks[oldest].stamp do
+                    oldest = i
             }
 
-            let node        = cast([*] u64) scan
-            let evictCommit = node[2]
-            if prev do
-                (cast(*u64) prev)[] = 0
-            else do
-                .firstCachedBlock = 0
-            .cachedBlockBytes -= evictCommit
-            .cachedBlockCount -= 1
-            .osFree(cast(*void) scan, evictCommit)
+            let evicted = .cachedBlocks[oldest]
+            .removeCachedBlock(oldest)
+            .osFree(cast(*void) evicted.address, evicted.committed)
         }
 
-        let node = cast([*] u64) address
-        node[0]           = .firstCachedBlock
-        node[1]           = size
-        node[2]           = committed
-        .firstCachedBlock = cast(u64) address
+        .cachedBlockStamp += 1
+        let entry = &.cachedBlocks[.cachedBlockCount]
+        entry.address     = cast(u64) address
+        entry.reserved    = size
+        entry.committed   = committed
+        entry.stamp       = .cachedBlockStamp
         .cachedBlockBytes += committed
         .cachedBlockCount += 1
         .mutex.unlock()
@@ -982,16 +979,8 @@ impl Allocator
     // Gives every cached block back to the operating system. The caller holds the mutex.
     mtd drainBlockCache()
     {
-        var cached = .firstCachedBlock
-        while cached
-        {
-            let node = cast([*] u64) cached
-            let next = node[0]
-            .osFree(cast(*void) cached, node[2])
-            cached = next
-        }
-
-        .firstCachedBlock = 0
+        for i in .cachedBlockCount do
+            .osFree(cast(*void) .cachedBlocks[i].address, .cachedBlocks[i].committed)
         .cachedBlockBytes = 0
         .cachedBlockCount = 0
     }

@@ -27,7 +27,7 @@ manipulate blocks without locks or atomics. These are useful locality and metada
 preserve them while resolving the open contracts below.
 
 Historical measurements against the previous design on the same machine, alternating both binaries
-(`bench/` has no allocator workload yet — runtime.allocator.001):
+(before `bench/allocator` existed; every campaign now records the allocator — runtime.allocator.001):
 
 | workload | before | after |
 | --- | --- | --- |
@@ -62,32 +62,140 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-02 20:23 — Retention no longer gains after the hot-path work; csvagg concern was placement.
-- Accepted campaign `20261001-165313` reports binarytrees at 35.727 ms for Swag native Release
-  against 10.290 ms for Node 20.15.1 (3.47x). Node bumps a nursery pointer and never frees
-  node by node; these are different reclamation strategies.
-- October 2, pinned in-process pairs of `allocate`+`freeBlock` (16-byte request, page path):
-  31 ns at `b8b74a13d`, 25.5 ns after the thread heap moved from `FlsGetValue` to a
-  thread-local copy (`0f53f7392`), 18.5 ns once the narrowed-receiver inlining (`ff2ddb959`)
-  let `acquireBlock`, `releaseBlock` and `checkPageAddress` inline. The benchmark's own pair
-  (`benchAlloc`/`benchFree`, through `getContext` and the interface) went 52 -> 44.5 -> 36 ns.
-  Native binarytrees paired medians: 0.901 and 0.903 for the first step, 0.861 for the second
-  (A/A controls 0.952-1.026). The common path now calls only `TlsGetValue`.
-- What remains per pair: two `getContext` calls, now one external `TlsGetValue` each after
-  `0c757abe9` (binarytrees 0.831/0.873, wordfreq 0.915/0.962), the interface call and its
-  diagnostic-mode test, and `allocatorPageOf`'s arena walk on free.
-- Parked, branch `perf/prompt2-20261002-retain` (`7294cb746`): emptied non-current pages stay
-  committed within 16 page units per heap and restart carving in address order, removing all 61
-  decommit/commit pairs of a binarytrees run. Against the October 2 evening allocator it no longer
-  gains: wordfreq 0.99, binarytrees 0.98-1.00 at two worker counts. csvagg, earlier 1.02-1.06, is
-  neutral across five function orders (1, 4, 6, 12, 22 workers), so that was placement.
-- A cheaper thread-heap lookup must preserve foreign-thread cleanup and the FLS lifetime
-  contract; the thread-local copy owns nothing and is cleared by the FLS callback.
-- Next: measure what the interface dispatch and the free-side arena walk still cost against the
-  JIT's mimalloc path; retry page retention only if a workload shows decommit traffic again.
+- Updated: 2026-10-03 08:24 — Lean inline alloc/free paths, measured against mimalloc; a direct TEB read is not the lever.
+- October 3, `bench/allocator` (median of five rotating rounds, through `Memory.alloc`): pair
+  28.4 -> 26.5 ns, trees 34.4 -> 26.6 ns, churn 53.7 -> 49.2 ns, against 4.3 / 7.3 / 17.9 ns for
+  mimalloc and 29.9 / 44.3 / 68.3 ns for the C heap. Native binarytrees paired median 0.87.
+- `impl alloc` and `impl free` now try an inline path first (alignment up to 16, a page of the
+  calling thread, no diagnostic mode, `slowPath` caches the mode test) and leave everything else
+  to a non-inlined general path; panics moved out of line; page metadata is two cache lines.
+- What is left per pair is code generation, not allocator work: two `getContext` calls, two
+  interface calls, two `TlsGetValue` calls, and the prologues those calls force (five saved
+  registers in each entry point). A C probe prices `TlsGetValue` at 0.85 ns against 0.60 ns for
+  a direct `gs:[0x30]` TEB read, so a thread-block intrinsic would save about 1 ns per pair and
+  is not worth new language surface; a leaf entry point without any call is what would pay.
+- Next: once the backend can keep a call-free fast path a leaf (no callee-saved spills on the
+  common path), re-measure pair/trees; otherwise look at `Memory.alloc`'s request setup.
 - Complete when: generated-code attribution and comparable application/allocator measurements
   establish the remaining policy, preserving lifetime and error behavior.
 - Related: runtime.allocator.001, runtime.allocator.016.
+
+### runtime.allocator.004 — Make remote frees batched rather than one atomic each
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-03 08:24 — Remote frees are now one compare-exchange from the inline path; batching not attempted.
+- `pushRemote` links the block and publishes it with one compare-exchange; the owner takes the
+  whole list with one exchange, so no ABA case exists (nothing is ever popped singly). The
+  per-block `remoteCount` atomic is gone: `stats()` counts the list on demand under the page's
+  `remoteLock`, which now only orders the owner's detach against that walk. A free of another
+  thread's page block pushes from the inline path.
+- `bench/allocator` xfer (producer/consumer pairs): 2 pairs 139 -> 111 ns, 4 pairs
+  112.9 -> 94.8 ns per block, against 82.8 / 71.3 ns for mimalloc and 127.9 / 97.9 ns for the
+  C heap.
+- Next: measure whether a per-thread batch of remote blocks (one publication per batch) closes
+  the remaining distance to mimalloc, and bound the owner's drain.
+- Complete when: the selected synchronization policy has contention and p99 evidence plus
+  concurrent retirement/adoption regression coverage.
+- Related: runtime.allocator.001, runtime.allocator.003.
+
+### runtime.allocator.001 — Add a reproducible allocator benchmark suite
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-03 08:24 — `bench/allocator` exists and every campaign records it against mimalloc and the C heap.
+- `bench/allocator/src/allocbench.swg` and `allocbench.c` run thirteen identical workloads (pair,
+  trees, mixed churn, 4-64 KiB and 64 KiB-1 MiB live sets, realloc growth, a spread of live sizes,
+  multi-thread churns, producer/consumer remote frees). The campaign's execution phase builds the
+  C program over the vendored mimalloc and over the C heap, runs each workload in fresh pinned
+  processes in rotating order, and records medians, peak working set and peak commit;
+  `history.py` keeps the geometric means of Swag's ratios, and `bench.html` draws them.
+  `bench/allocator/run.py` does the same without recording, with `--against` for an earlier build.
+- Still missing from the original scope: p50/p99 latency per operation, OS-call counts and
+  retained memory after idle and after `trim()`, aligned (32/64-byte) workloads, live-set growth
+  without frees, and application traces. The parity gate below is not met yet.
+- Define the parity gate before tuning: a geometric-mean throughput within 10% of mimalloc, no
+  representative workload more than 25% slower, and no unbounded retained-memory case.
+- Next: add latency percentiles and the missing workloads to `allocbench`, keeping the same
+  output contract so the history stays continuous.
+- Complete when: repeated comparable results cover the listed workloads and the existing parity
+  gate, with application time, latency tails, retention, build settings and measurement limits
+  recorded.
+
+### runtime.allocator.010 — Decide what the security properties are, and write them down
+
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-10-03 08:24 — Double frees are caught anywhere in a page's lists, local and remote, at no measurable cost.
+- Free-list heads are plain addresses in the page metadata and every stored link is keyed, the
+  end of a list included, and a block handed out has its first word cleared. A free block
+  therefore reads as one from its first word: `looksFree` tests it on every free, and only a
+  match (a live block matches by coincidence about once in 2^40 frees) walks the lists. The
+  owner checks its own and the remote list, another thread the remote list. The A, B, A
+  sequence that used to create a cycle now panics with "memory block is freed twice"
+  (`allocator_coverage.swg`); a panic hook that resumes leaves the lists intact. Corrupted
+  links are still rejected at pop and collect time, and every check runs in both presets.
+- Not covered: a block freed by its owner and freed again by another thread while it sits on the
+  owner's list (only the remote list is safe to walk from another thread); a free of a block on an
+  abandoned page.
+- Electric placement rounds the starting address down for alignment. With alignment 16 and
+  size 129, the payload ends 15 bytes before the guard; a one-byte overflow remains accessible.
+  Electric blocks have no footer. Decide how alignment, exact-bound checking and guard placement
+  compose, and test non-multiple sizes explicitly.
+- `quarantine` never evicts in electric mode, so freed addresses are not reused before teardown,
+  but their payload stays committed/readable/writable. Retention can grow without a byte limit.
+  Stale-read interception is already owned by compiler.safety.004; retaining an address is not
+  interception. Ordinary page allocations also reuse memory without stale-access instrumentation.
+- `fillFree` writes a pattern, but `checkFree` checks only header/footer magic. It does not scan
+  the freed payload for later writes. `fillMemory` alone does not enable diagnostic mode or
+  quarantine.
+- Elsewhere: mimalloc secure mode adds protections such as randomized allocation and encoded
+  lists; Scudo checks allocation state/header integrity; hardened_malloc offers isolated metadata,
+  canaries, randomization and quarantine according to configuration.
+- Next: aligned guard slack and write-after-free inside the payload; choose the supported
+  guarantees, then make comments and public documentation distinguish detection, mitigation,
+  optional diagnostics and unsupported cases.
+- Complete when: every claimed guarantee has a focused regression and accurate documentation,
+  with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
+- Related: compiler.safety.004, runtime.allocator.001.
+
+### runtime.allocator.003 — Return idle memory without being asked
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-03 08:24 — Emptied pages stay committed within a process-wide budget; trim() drains the large-block cache.
+- An emptied page now returns to its segment still committed while the process-wide idle budget
+  allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
+  system call; past the budget it is decommitted. `trim()` and teardown decommit idle pages, and
+  `trim()` now also gives the large-block cache back. The cache's budget follows the bytes held
+  live through the header path (at least 16 MiB, at most 256 MiB, 64 entries).
+- Measured on `bench/allocator` medium (256 live 4-64 KiB blocks): 213 -> 51 ns per operation,
+  peak working set 11.8 -> 19.8 MB (mimalloc 36.5 ns, 19.2 MB). A 2 MiB / one-eighth budget
+  brings the working set back to 13.4 MB and the time back to 242 ns: the budget is the trade.
+- Still open: nothing purges without a call. A program that bursts and then idles keeps up to the
+  idle budget plus the cache budget until it trims or exits; an inactive live owner keeps its
+  remotely returned blocks uncollected.
+- Next: decide whether a time-based purge on the slow paths is worth its cost, or document that
+  bound as the contract; measure burst/idle with an owner kept alive.
+- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
+  idle/trim behavior and documented bounds.
+- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
+
+### runtime.allocator.005 — Serve small over-aligned requests from pages
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-03 08:24 — Blocks above 64 KiB now reuse cached reservations; only over-aligned small requests remain.
+- Header-path blocks are reserved at one of eight sizes per power of two and commit only what the
+  request reaches; freed ones go to a best-fit cache (up to twice the request) indexed in the
+  allocator, a cached block that committed less gets the missing pages, and a reallocation inside
+  the reservation commits in place. `bench/allocator` large (32 live 64 KiB-1 MiB blocks):
+  137 µs -> 2.0 µs per operation (mimalloc 1.5 µs) at 44 MB peak working set against 71 MB;
+  four threads 73.5 µs -> 1.4 µs (mimalloc 0.67 µs at 250 MB); realloc growth to 4 MiB
+  17.1 -> 11.9 µs per step (mimalloc 10.4 µs).
+- Remaining: alignment above 16 bytes still bypasses pages, so a 256-byte payload aligned to 64
+  takes its own reservation and system calls. The cache is one mutex per allocator; four threads
+  still run half as fast as mimalloc on large blocks.
+- Next: give 32/64-byte alignments a page path (aligned classes or aligned carving), and measure
+  a per-thread front for the large-block cache.
+- Complete when: aligned small requests no longer reach the system, with alignment regressions,
+  and the large-block cache scales with threads.
+- Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006
 
 ### runtime.allocator.017 — Medium pages commit all eight units for their first block
 
@@ -129,45 +237,6 @@ medium tier is separated. Benchmark large growth and release independently of si
 
 - Complete when: The huge-allocation threshold and reserve/commit/release policy are documented and tested, and isolated large-growth and release benchmarks report latency and memory retention separately from size-class caching.
 
-### runtime.allocator.010 — Decide what the security properties are, and write them down
-
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-09-11 21:18 — Remove corrected documentation claims; retain the unproved hardening contracts.
-- Evidence: `allocator.pages.swg::encode/decode/acquireBlock/isBlockAddress` obfuscate links
-  with a per-page key and validate decoded block boundaries before allocation. Small live blocks
-  have no header/footer or exact requested-size record. These checks are useful corruption
-  detection, not complete spatial or temporal memory safety.
-- `allocator.swg::freeBlock` only compares a local free with the list head. With at least three
-  blocks of a class allocated, releasing A, then B, then A can pass that check and create a
-  free-list cycle while another block remains live. Remote publication has no equivalent
-  duplicate check. Reproduce through a harness that reaches the allocator rather than relying on
-  a statically obvious invalid source that the compiler may reject.
-- `assertIsAllocated` explicitly walks free lists, but ordinary free does not. A block-boundary
-  check alone does not prove current liveness; a stale address can name a reused slot, and a
-  corrupted link can name another valid block on the same page.
-- Electric placement rounds the starting address down for alignment. With alignment 16 and
-  size 129, the payload ends 15 bytes before the guard; a one-byte overflow remains accessible.
-  The allocator comments now describe this alignment slack accurately. Electric blocks have
-  no footer. Decide how alignment, exact-bound checking and guard placement
-  compose, and test non-multiple sizes explicitly.
-- `quarantine` never evicts in electric mode, so freed addresses are not reused before teardown,
-  but their payload stays committed/readable/writable. Retention can grow without a byte limit.
-  Stale-read interception is already owned by compiler.safety.004; retaining an address is not
-  interception. Ordinary page allocations also reuse memory without stale-access instrumentation.
-- `fillFree` writes a pattern, but `checkFree` checks only header/footer magic. It does not scan
-  the freed payload for later writes; the allocator comments now state that boundary. `fillMemory` alone does not enable diagnostic mode or quarantine.
-- Elsewhere: mimalloc secure mode adds protections such as randomized allocation and encoded
-  lists; Scudo checks allocation state/header integrity; hardened_malloc offers isolated metadata,
-  canaries, randomization and quarantine according to configuration. Swag's current checks do not
-  establish comparable hardening. See the primary sources in this file's introduction.
-- Next: reproduce nonconsecutive local and remote double frees, aligned guard slack and
-  write-after-free inside the payload; choose the supported guarantees and implement the
-  necessary checks. Make comments and public documentation distinguish detection, mitigation,
-  optional diagnostics and unsupported cases. Measure their cost separately from normal Release.
-- Complete when: every claimed guarantee has a focused regression and accurate documentation,
-  with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
-- Related: compiler.safety.004, runtime.allocator.001.
-
 ### runtime.allocator.016 — Avoid repeated scans of full pages during live-set growth
 
 - Recorded: 2026-09-11 16:29
@@ -182,126 +251,6 @@ medium tier is separated. Benchmark large growth and release independently of si
 - Complete when: growth no longer repeatedly scans all full pages, with measured scaling and
   regressions for remote returns, page retirement and adoption.
 - Related: runtime.allocator.001, runtime.allocator.002, runtime.allocator.004.
-
-### runtime.allocator.003 — Return idle memory without being asked
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-09-11 16:29 — Quantify current-page retention and include idle remote owners.
-- `trim()` decommits empty pages of the calling heap except the current page of each size class,
-  collects empty abandoned pages, and releases segments left without a page. Nothing calls it on
-  its own. A program that allocates in bursts retains committed pages until it exits or trims by hand.
-- Decide the policy: a bounded amount of idle committed memory per heap, a purge delay after which
-  an untouched page is decommitted, or an explicit contract that trimming is the caller's job.
-  Whichever it is, write it down — "give memory back eventually" with no rule is how an allocator
-  ends up with an unbounded case that only shows on someone else's machine.
-- An abandoned page whose class nobody allocates again is only collected by `trim()`. Bound that
-  too, or state that a thread exiting mid-workload can retain its pages until the next trim.
-- The newer header-block cache is separately bounded by 96 MiB/twelve entries and is drained by
-  allocator teardown. `trim()` currently walks pages and segments, not this cache. Include its
-  explicit-trim and idle-purge behavior in the same policy.
-- Static evidence: retaining one current page in all 45 classes keeps up to roughly 8 MiB of
-  pages per thread (33 small pages and 12 medium pages), before other retained pages/metadata.
-  An owner that remains alive but stops allocating can leave remotely returned blocks uncollected;
-  the retained live-owner case must be covered separately from abandoned pages.
-- Exact-size header-cache reuse can retain committed memory without satisfying nearby sizes.
-  Account for its global-per-allocator mutex and bounded budget when choosing a purge policy.
-- Next: measure burst/idle, inactive live owners, abandoned pages and explicit trim with the
-  benchmark in runtime.allocator.001, then define and implement the retention policy.
-- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
-  idle/trim behavior and documented bounds.
-- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
-
-### runtime.allocator.005 — Add a medium-allocation tier above 64 KiB
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-09-11 16:29 — Record the 64 KiB gap and the cost of small over-aligned requests.
-- Requests above 64 KiB still use the header path. That path now reuses exact-size freed OS
-  blocks of at least 512 KiB, bounded by 96 MiB and twelve blocks. `popCachedBlock` takes a matching
-  block; `cacheFreedBlock` evicts the oldest retained blocks when either budget would be exceeded.
-  Smaller header allocations and cache misses still take the OS allocation path.
-- Measure the size/lifetime distribution on compiler, standard-library, GUI and Swag Vault
-  traces against this implementation. Determine whether a segment-backed medium size-class tier
-  improves allocation latency or retained memory beyond the existing bounded cache. Keep the
-  cache's current behavior as the comparison baseline rather than assuming one OS call per request.
-
-- Static evidence: `allocator.swg::allocateHeaderBlock/cacheFreedBlock` send ordinary 128 KiB
-  and 256 KiB buffers through host reserve+commit and release on each allocation/free pair.
-  The cache threshold is rounded OS allocation size, including header/alignment/footer overhead,
-  rather than the requested payload size.
-- Alignment above 16 bytes also bypasses pages: a 256-byte payload aligned to 64 currently takes
-  its own OS allocation and is too small for the header cache. Include small SIMD/cacheline-aligned
-  requests in the same tier investigation, not only payloads above 64 KiB.
-- Exact-size matching is by rounded OS size; nearby requests sharing that rounded size can hit,
-  while requests in different rounded sizes cannot reuse a larger cached block.
-- Next: compare the existing cache with a segment-backed medium/aligned strategy on these
-  boundaries and representative buffer/image traces.
-- Complete when: measured evidence selects the medium/aligned policy and establishes its
-  latency, alignment correctness, fragmentation and retention behavior.
-- Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006
-
-### runtime.allocator.004 — Make remote frees batched rather than one atomic each
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-09-11 16:29 — Record spin contention and full remote-list draining.
-- A block freed by a thread that does not own its page increments `remoteCount` atomically and
-  pushes through the page's `remoteLock`. The owner detaches the list under that lock and walks it
-  afterward. A producer/consumer pair still pays synchronization for each returned block.
-- Measure whether a per-page batch handoff pays for itself against the current single push, using
-  the producer/consumer workload from runtime.allocator.001. Bound the drain so one allocation cannot inherit an
-  arbitrarily long pause.
-- Static evidence: `allocator.pages.swg::pushRemote` performs an atomic `remoteCount` increment,
-  then acquires `remoteLock`; `lockRemote` retries CAS without a pause or backoff. This is a
-  per-page spin lock, not a lock-free remote-free path. Multiple consumers of one producer's
-  page contend on the same lock and counter.
-- `collectRemote` detaches under that lock and walks the complete list outside it. Its work is
-  proportional to the returned list, so a slow allocation inherits a potentially long drain.
-  Compare against mimalloc's documented separate remote-list CAS publication, without assuming
-  that copying its algorithm preserves Swag's retirement/adoption invariants.
-- Next: benchmark many-to-one returns and drain latency, then evaluate bounded batch publication
-  and collection while preserving concurrent page retirement and adoption.
-- Complete when: the selected synchronization policy has contention and p99 evidence plus
-  concurrent retirement/adoption regression coverage.
-- Related: runtime.allocator.001, runtime.allocator.003.
-
-### runtime.allocator.001 — Add a reproducible allocator benchmark suite
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-09-11 16:29 — Record the comparative review and the workload and accounting requirements.
-- The numbers above come from a throwaway probe. Nothing in the repository measures the allocator,
-  so a regression in it is invisible until something else gets slower.
-- Compare the runtime allocator directly with the repository's vendored mimalloc build, using the
-  same allocation traces and a release x64 executable.
-- Cover warm and cold single-thread allocation, mixed size classes, random lifetimes, realloc,
-  aligned and large blocks, producer/consumer remote frees, thread churn, and sustained
-  multi-thread contention.
-- Record throughput, p50/p99 latency, OS calls, committed bytes, peak working set, and retained
-  memory after idle and after `trim()`. Keep machine noise out of the result with warm-up, repeated
-  samples, and median reporting: the probe above varied by a factor of three between runs on an
-  otherwise idle machine, and only alternating the two binaries made the comparison readable.
-- Define the parity gate before tuning: a geometric-mean throughput within 10% of mimalloc, no
-  representative workload more than 25% slower, and no unbounded retained-memory case.
-- Add boundary workloads immediately below/at/above 64 KiB and 512 KiB of rounded OS size,
-  ordinary and 16/32/64-byte alignment, live-set growth without frees, realloc growth/shrink,
-  many consumers returning one producer's pages, and burst/idle phases while owners stay alive.
-  Distinguish header-cache hits from misses and record the exact allocator versions/options.
-- Measure end-to-end application time as well as allocator-only throughput. Touch every allocated
-  payload, retain observable results, and use identical traces, warm-up and order-alternated
-  repeated samples. Cover image/buffer/SIMD workloads and representative GUI/application traces.
-- Audit accounting before treating it as evidence: `stats().sizeCached` does not include the
-  header-block cache, `countOsReserve` currently counts arena reservations rather than every
-  header-path reservation, and concurrent `stats()` is not a synchronized exact snapshot of
-  local allocation activity. Cross-check with host memory/call measurements; never substitute
-  virtual reservations for committed or resident memory.
-- Run normal Release allocation separately from diagnostic allocation: both presets leave
-  tracking, stack capture, electric mode and fill disabled; DevMode enables leak reporting,
-  whereas Release disables it. Diagnostic mode routes all allocations through OS-backed headers
-  and serializes interface operations with the allocator mutex. A diagnostic run cannot establish
-  ordinary allocation throughput.
-- Next: implement the shared Swag/mimalloc trace driver and account for these boundaries before
-  choosing a hot-path optimization or a replacement backend.
-- Complete when: repeated comparable results cover the listed workloads and the existing parity
-  gate, with application time, latency tails, retention, build settings and measurement limits
-  recorded.
 
 ### runtime.allocator.007 — Tune size classes from traces rather than from the table
 

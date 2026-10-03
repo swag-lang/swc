@@ -928,3 +928,29 @@ func freeAddress(itf: IAllocator, address: u64)
     Swag.assert(alloc.stats().countAlloc == 0)
     alloc.releaseAll()
 }
+
+// ----------------------------------------------------------------------------
+// The cache of freed large blocks keeps at most its entry count, evicting the
+// oldest first, and trim() gives every cached block back.
+// ----------------------------------------------------------------------------
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    const Count = AllocatorBlockCacheMaxCount + 6
+    var addresses: [Count] u64
+    for i in Count do
+        addresses[i] = cast(u64) allocOne(itf, 100_000)
+    for i in Count do
+        freeOne(itf, cast(*void) addresses[i])
+
+    Swag.assert(alloc.cachedBlockCount == AllocatorBlockCacheMaxCount)
+    for i in alloc.cachedBlockCount do
+        Swag.assert(alloc.cachedBlocks[i].stamp > 6)
+
+    alloc.trim()
+    Swag.assert(alloc.cachedBlockCount == 0)
+    Swag.assert(alloc.cachedBlockBytes == 0)
+    alloc.releaseAll()
+}

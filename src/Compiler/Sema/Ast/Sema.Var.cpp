@@ -327,18 +327,19 @@ namespace
                     continue;
                 }
 
-                SmallVector4<uint64_t> nextInner;
-                if (!deduceArrayDimsFromType(sema, elemTypeRef, nextInner))
-                    return false;
-
                 if (!hasInner)
                 {
-                    innerDims = std::move(nextInner);
-                    hasInner  = true;
+                    if (!deduceArrayDimsFromType(sema, elemTypeRef, innerDims))
+                        return false;
+                    hasInner = true;
                 }
-                else if (nextInner.size() != innerDims.size() || !std::equal(nextInner.begin(), nextInner.end(), innerDims.begin()))
+                else
                 {
-                    return false;
+                    SmallVector4<uint64_t> nextInner;
+                    if (!deduceArrayDimsFromType(sema, elemTypeRef, nextInner))
+                        return false;
+                    if (nextInner.size() != innerDims.size() || !std::equal(nextInner.begin(), nextInner.end(), innerDims.begin()))
+                        return false;
                 }
             }
 
@@ -363,11 +364,11 @@ namespace
             const TypeInfo& type = sema.typeMgr().get(typeRef);
             if (!type.isArray())
                 break;
-            SmallVector4<uint64_t> dims;
-            const auto&            payloadDims = type.payloadArrayDims();
-            dims.insert(dims.end(), payloadDims.begin(), payloadDims.end());
-            outNodes.push_back({std::move(dims), type.flags()});
-            typeRef = type.payloadArrayElemTypeRef();
+            auto&       node        = outNodes.emplace_back();
+            const auto& payloadDims = type.payloadArrayDims();
+            node.dims.insert(node.dims.end(), payloadDims.begin(), payloadDims.end());
+            node.flags = type.flags();
+            typeRef    = type.payloadArrayElemTypeRef();
         }
 
         outBaseTypeRef = typeRef;

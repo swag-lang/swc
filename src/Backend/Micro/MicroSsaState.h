@@ -27,12 +27,6 @@ public:
         bool valid() const { return valueId != K_INVALID_VALUE; }
     };
 
-    struct RegValueEntry
-    {
-        MicroReg reg     = MicroReg::invalid();
-        uint32_t valueId = K_INVALID_VALUE;
-    };
-
     struct UseSite
     {
         enum class Kind : uint8_t
@@ -86,9 +80,12 @@ public:
     // (results nothing reads) contribute nothing — unlike valueInfo()->uses.size(),
     // which counts those phantom phi inputs and over-reports the fan-out of loop
     // scratch temporaries.
-    uint32_t                   transitiveInstructionUseCount(uint32_t valueId, uint32_t cap) const;
-    const MicroInstrUseDef*    instrUseDef(MicroInstrRef instRef) const;
-    bool                       defValue(MicroReg reg, MicroInstrRef instRef, uint32_t& outValueId) const;
+    uint32_t                transitiveInstructionUseCount(uint32_t valueId, uint32_t cap) const;
+    const MicroInstrUseDef* instrUseDef(MicroInstrRef instRef) const;
+    bool                    defValue(MicroReg reg, MicroInstrRef instRef, uint32_t& outValueId) const;
+    // Dominance from the first instruction, excluding unreachable components.
+    // Uses this SSA snapshot even if a later pass has erased an instruction.
+    bool                       definitionDominates(uint32_t valueId, MicroInstrRef instRef) const;
     const ValueInfo*           valueInfo(uint32_t valueId) const;
     const PhiInfo*             phiInfo(uint32_t phiIndex) const;
     const PhiInfo*             phiInfoForValue(uint32_t valueId) const;
@@ -98,10 +95,11 @@ public:
 private:
     struct InstrInfo
     {
-        uint32_t                    renamePosition = K_INVALID_VALUE;
-        MicroInstrUseDef            useDef;
-        SmallVector4<RegValueEntry> defValues;
-        SmallVector4<uint32_t>      defRegIndices;
+        uint32_t         renamePosition = K_INVALID_VALUE;
+        MicroInstrUseDef useDef;
+        // renameBlock creates an instruction's definitions consecutively.
+        uint32_t               firstDefValue = K_INVALID_VALUE;
+        SmallVector4<uint32_t> defRegIndices;
 
         // Incremental use/def cache. `useDef` is a pure function of the instruction's
         // opcode and its operands' raw words (the register/mode fields; the arbitrary
@@ -125,7 +123,8 @@ private:
         SmallVector<uint32_t, 2> domChildren;
         SmallVector<uint32_t, 2> dominanceFrontier;
         SmallVector<uint32_t, 2> phis;
-        uint32_t                 idom = std::numeric_limits<uint32_t>::max();
+        uint32_t                 idom      = std::numeric_limits<uint32_t>::max();
+        uint32_t                 renameEnd = 0;
     };
 
     struct RenameState
@@ -154,8 +153,7 @@ private:
 
     static constexpr uint32_t K_INVALID_BLOCK = std::numeric_limits<uint32_t>::max();
 
-    static bool     isTrackedReg(MicroReg reg);
-    static uint32_t findRegValue(std::span<const RegValueEntry> entries, MicroReg reg);
+    static bool isTrackedReg(MicroReg reg);
 
     void            resetForBuild(MicroStorage& storage);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);

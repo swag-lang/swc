@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/Global.h"
@@ -1479,28 +1480,96 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         packedArgs[i + packedArgBaseOffset].numBits = 64;
     }
 
-    MicroBuilder builder(ctx);
-
-    void* const           retOutPtr = retType.isIndirect ? nullptr : ret.valuePtr;
-    const ABICall::Return retMeta   = {
-          .valuePtr   = retOutPtr,
-          .isVoid     = retType.isVoid,
-          .isFloat    = retType.isFloat,
-          .isIndirect = retType.isIndirect,
-          .numBits    = retType.numBits,
+    struct CallFrame
+    {
+        void*               target;
+        const ABICall::Arg* arguments;
+        void*               result;
     };
-    ABICall::callAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
-    builder.emitRet();
 
-    MachineCode loweredCode;
-    SWC_RESULT(loweredCode.emit(ctx, builder));
+    struct Invoker
+    {
+        CallConvKind          callConv;
+        bool                  unwind;
+        bool                  debugInfo;
+        SmallVector<uint16_t> signature;
+        JITMemory             memory;
+    };
 
-    JITMemory executableMemory;
-    SWC_RESULT(emit(ctx, executableMemory, loweredCode.bytes, loweredCode.codeRelocations, loweredCode.unwindInfo));
+    struct InvokerCache
+    {
+        JITMemoryManager     memoryManager;
+        std::vector<Invoker> entries;
+    };
 
-    void* invoker = executableMemory.entryPoint();
-    SWC_ASSERT(invoker != nullptr);
-    return call(ctx, invoker);
+    // The wrapper depends only on the ABI shape. All addresses and values arrive in a
+    // per-call frame, including during recursive calls. Own its pages independently of any
+    // CompilerInstance, and unregister unwind records before releasing those pages.
+    thread_local InvokerCache cache;
+    const auto&               backend      = ctx.compiler().buildCfg().backend;
+    const bool                unwind       = ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || backend.enableExceptions || backend.debugInfo;
+    const bool                directReturn = !retType.isVoid && !retType.isIndirect;
+    SmallVector<uint16_t>     signature;
+    signature.reserve(packedArgs.size() + 1);
+    signature.push_back(directReturn ? static_cast<uint16_t>(retType.numBits | (retType.isFloat ? 0x100 : 0)) : 0);
+    for (const auto& arg : packedArgs)
+        signature.push_back(arg.isFloat ? static_cast<uint16_t>(arg.numBits | 0x100) : 64);
+
+    void* invoker = nullptr;
+    for (const auto& entry : cache.entries)
+    {
+        if (entry.callConv == callConvKind && entry.unwind == unwind && entry.debugInfo == backend.debugInfo && entry.signature == signature)
+        {
+            invoker = entry.memory.entryPoint();
+            break;
+        }
+    }
+
+    if (!invoker)
+    {
+        MicroBuilder   builder(ctx);
+        const MicroReg frameReg  = MicroReg::virtualIntReg(1);
+        const MicroReg argsReg   = MicroReg::virtualIntReg(2);
+        const MicroReg targetReg = MicroReg::virtualIntReg(3);
+        const MicroReg resultReg = MicroReg::virtualIntReg(4);
+        builder.emitLoadRegReg(frameReg, CallConv::get(CallConvKind::C).intArgRegs[0], MicroOpBits::B64);
+        builder.emitLoadRegMem(argsReg, frameReg, offsetof(CallFrame, arguments), MicroOpBits::B64);
+        builder.emitLoadRegMem(targetReg, frameReg, offsetof(CallFrame, target), MicroOpBits::B64);
+        if (directReturn)
+            builder.emitLoadRegMem(resultReg, frameReg, offsetof(CallFrame, result), MicroOpBits::B64);
+
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(packedArgs.size());
+        for (uint32_t i = 0; i < packedArgs.size(); ++i)
+        {
+            const auto&    arg     = packedArgs[i];
+            const uint8_t  numBits = arg.isFloat ? arg.numBits : 64;
+            const MicroReg argReg  = arg.isFloat ? MicroReg::virtualFloatReg(i + 5) : MicroReg::virtualIntReg(i + 5);
+            builder.emitLoadRegMem(argReg, argsReg, i * sizeof(ABICall::Arg), microOpBitsFromBitWidth(numBits));
+            preparedArgs.push_back({.srcReg = argReg, .isFloat = arg.isFloat, .numBits = numBits});
+        }
+
+        const auto preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs);
+        ABICall::callReg(builder, callConvKind, targetReg, preparedCall);
+        if (directReturn)
+            ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, resultReg, retType);
+        builder.setRetUsesAbiRegs(false, false);
+        builder.emitRet();
+
+        MachineCode loweredCode;
+        SWC_RESULT(loweredCode.emit(ctx, builder));
+        SWC_ASSERT(loweredCode.codeRelocations.empty());
+
+        JITMemory executableMemory;
+        prepare(cache.memoryManager, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, {});
+        finalize(executableMemory);
+        invoker = executableMemory.entryPoint();
+        cache.entries.push_back({callConvKind, unwind, backend.debugInfo, std::move(signature), std::move(executableMemory)});
+    }
+
+    const CallFrame frame        = {targetFn, packedArgs.data(), ret.valuePtr};
+    const uint64_t  frameAddress = reinterpret_cast<uint64_t>(&frame);
+    return call(ctx, invoker, &frameAddress);
 }
 
 namespace

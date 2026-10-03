@@ -58,11 +58,16 @@ std::byte* JITMemoryManager::allocateSlow(const uint32_t allocationSize)
     std::byte* dst = nullptr;
     {
         const std::unique_lock lock(mutex_);
-        for (const auto& block : blocks_)
+        for (size_t index = firstAvailableBlock_; index < blocks_.size(); ++index)
         {
-            if (tryAllocateFromBlock(dst, *block, allocationSize))
+            Block*     block     = blocks_[index].get();
+            const bool allocated = tryAllocateFromBlock(dst, *block, allocationSize);
+            if (block->allocated.load(std::memory_order_relaxed) == block->size)
+                std::swap(blocks_[firstAvailableBlock_++], blocks_[index]);
+
+            if (allocated)
             {
-                currentBlock_.store(block.get(), std::memory_order_release);
+                currentBlock_.store(block, std::memory_order_release);
                 return dst;
             }
         }
@@ -79,6 +84,8 @@ std::byte* JITMemoryManager::allocateSlow(const uint32_t allocationSize)
         blocks_.push_back(std::move(block));
         const bool allocated = tryAllocateFromBlock(dst, *blockPtr, allocationSize);
         SWC_ASSERT(allocated);
+        if (allocationSize == blockSize)
+            std::swap(blocks_[firstAvailableBlock_++], blocks_.back());
         currentBlock_.store(blockPtr, std::memory_order_release);
     }
 

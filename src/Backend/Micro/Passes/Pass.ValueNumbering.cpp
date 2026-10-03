@@ -542,8 +542,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
     // These CFG checks can reject a function without constructing its SSA.
     std::optional<MicroSsaState> localSsaState;
-    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*        ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
+    MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*         ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 
@@ -772,15 +772,23 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             if (shape.readsMemory && !constantPoolLoad && cand.epoch != memoryEpoch &&
                 (!immutableLoad || cand.callCount != callCount))
                 continue;
-            // Only matching expressions need dominance. All rewrites are still
-            // queued, so this sees the same CFG as an eager construction would.
-            if (!dominatorsReady)
+            // The SSA rename walk already describes the entry's dominator
+            // subtrees. Only an unusual nonzero entry needs its own tree.
+            if (entry == 0)
             {
-                dom             = MicroPassHelpers::computeInstructionDominators(cfg, entry);
-                dominatorsReady = true;
+                if (!ssaState->definitionDominates(cand.defValueId, instRef))
+                    continue;
             }
-            if (!dom.dominates(cand.index, i))
-                continue;
+            else
+            {
+                if (!dominatorsReady)
+                {
+                    dom             = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+                    dominatorsReady = true;
+                }
+                if (!dom.dominates(cand.index, i))
+                    continue;
+            }
 
             // Two loads of one cell are the same value only when they widen it
             // the same way; otherwise the earlier result still holds the bytes
@@ -837,14 +845,14 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (!replaced)
         {
             NumberingEntry& numbered = bucket.emplace_back();
-            numbered.index          = i;
-            numbered.defReg         = dstReg;
-            numbered.defValueId     = myValueId;
-            numbered.epoch          = memoryEpoch;
-            numbered.callCount      = callCount;
-            numbered.op             = inst->op;
-            numbered.movBits        = movBits;
-            numbered.key            = std::move(key);
+            numbered.index           = i;
+            numbered.defReg          = dstReg;
+            numbered.defValueId      = myValueId;
+            numbered.epoch           = memoryEpoch;
+            numbered.callCount       = callCount;
+            numbered.op              = inst->op;
+            numbered.movBits         = movBits;
+            numbered.key             = std::move(key);
         }
     }
 

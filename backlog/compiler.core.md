@@ -9,7 +9,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 
 - Recorded: 2026-10-01 17:08
-- Updated: 2026-10-03 15:59 — Fixed the per-rerun call-argument storage and the read-only data order; generated names still vary.
+- Updated: 2026-10-03 18:10 — Fixed a third cause, location constants sharded by pointer; global layout still varies.
 - Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
   Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
   3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
@@ -21,21 +21,24 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   That routine serializes already generated prologue operations; the record differences also
   occur between runs of the same changed binary. This does not establish when the variation
   was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
-- October 3: two causes found and fixed. A by-value aggregate argument that folds to a constant
-  (`#curlocation` in every `Swag.panic` call) had its call-argument storage detached by the
-  folding cast and registered again on every sema rerun, each copy keeping a frame slot:
-  `allocatorCorruptedFreeList` in the runtime got a 0x40 to 0x130-byte frame from one build of
-  the same benchmark to the next. And `.rdata` was laid out by constant shard and creation
-  offset, which follow job scheduling; it now follows the order the code reaches each constant.
-  Repeated `sort` and `wordfreq` builds now have identical `.pdata` and `.xdata`, and most
-  pairs differ only by the header time stamp, with one worker or six.
-- What still varies: some pairs built with six workers still differ in `.rdata` from near its
-  start, and in `.text` through its RIP-relative displacements. The differing `.rdata` bytes
-  were values that differ by one, which points at generated unique names
-  (`__call_arg_ref_storage_349`, for example) whose counters follow creation order.
-- Next: find which generated names reach `.rdata` and give them a stable key (owner and
-  position) instead of a global counter; then repeat the unwind record comparison to see
-  whether another prologue cause remains.
+- October 3: three causes found and fixed. A by-value aggregate argument that folds to a
+  constant (`#curlocation` in every `Swag.panic` call) had its call-argument storage detached
+  by the folding cast and registered again on every sema rerun, each copy keeping a frame
+  slot: `allocatorCorruptedFreeList` in the runtime got a 0x40 to 0x130-byte frame from one
+  build of the same benchmark to the next. `.rdata` was laid out by constant shard and
+  creation offset, which follow job scheduling; it now follows the order the code reaches
+  each constant. And a source-location constant chose its shard from the function's address
+  and the source view's load index, so two locations in one file shared their file-name
+  string in some builds and not in others, shifting the whole section; the shard now comes
+  from the file and function names. Over five pairs each of `sort`, `wordfreq` and `nbody`
+  builds, the code (ignoring addresses), `.pdata` and `.xdata` no longer vary, and `.rdata`
+  differed in one pair only, by 41 bytes, next to a `.data` difference.
+- What still varies: the offsets of globals in `.data` and `.bss`. They are assigned while
+  sema runs in parallel, so the addresses that code and relocations use differ from one
+  build to the next (48 to 5,800 bytes per pair).
+- Next: give globals a layout decided at emission from a stable key (module, file, declaration
+  order) instead of first-come offsets, keeping the JIT's addresses valid; then repeat the
+  unwind record comparison to see whether another prologue cause remains.
 - Complete when: the source of the different prologues is explained and corrected at its
   owning boundary, with stable normalized output and the affected native tests green.
 

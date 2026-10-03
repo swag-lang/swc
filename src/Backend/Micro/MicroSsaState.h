@@ -111,9 +111,8 @@ private:
         // is conservative — any change that could alter use/def also changes a word —
         // so a stale hit is impossible. Slots are reset between builds but this cache
         // is deliberately preserved.
-        MicroInstrOpcode       cachedOp          = MicroInstrOpcode::OpBinaryRegImm;
-        uint8_t                cachedNumOperands = 0;
-        uint32_t               useDefCacheEpoch  = 0;
+        MicroInstrOpcode       cachedOp         = MicroInstrOpcode::OpBinaryRegImm;
+        uint32_t               useDefCacheEpoch = 0;
         SmallVector4<uint64_t> cachedOperandWords;
     };
 

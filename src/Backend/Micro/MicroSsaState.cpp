@@ -96,7 +96,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         // refresh the cache. See InstrInfo for why this key is sound.
         const MicroInstrOperand* ops         = inst->ops(operands);
         const uint8_t            numOperands = inst->numOperands;
-        bool                     reuseUseDef = info.useDefCacheEpoch == useDefCacheEpoch_ && info.cachedOp == inst->op && info.cachedNumOperands == numOperands && info.cachedOperandWords.size() == numOperands;
+        bool                     reuseUseDef = info.useDefCacheEpoch == useDefCacheEpoch_ && info.cachedOp == inst->op && info.cachedOperandWords.size() == numOperands;
         if (reuseUseDef)
         {
             for (uint8_t i = 0; i < numOperands; ++i)
@@ -113,9 +113,8 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         {
             inst->collectUseDef(info.useDef, operands, encoder);
 
-            info.cachedOp          = inst->op;
-            info.cachedNumOperands = numOperands;
-            info.useDefCacheEpoch  = useDefCacheEpoch_;
+            info.cachedOp         = inst->op;
+            info.useDefCacheEpoch = useDefCacheEpoch_;
             info.cachedOperandWords.clear();
             for (uint8_t i = 0; i < numOperands; ++i)
                 info.cachedOperandWords.push_back(ops[i].valueU64);
@@ -917,7 +916,7 @@ uint32_t MicroSsaState::createValue(const MicroReg reg, const uint32_t blockInde
 {
     const uint32_t valueId = valueInfoCount_++;
     if (valueId >= valueInfos_.size())
-        valueInfos_.push_back({});
+        valueInfos_.emplace_back();
 
     ValueInfo& info = valueInfos_[valueId];
     info.reg        = reg;
@@ -934,7 +933,7 @@ uint32_t MicroSsaState::createPhi(const uint32_t blockIndex, const MicroReg reg,
     BlockInfo&     block    = blocks_[blockIndex];
     const uint32_t phiIndex = phiInfoCount_++;
     if (phiIndex >= phiInfos_.size())
-        phiInfos_.push_back({});
+        phiInfos_.emplace_back();
 
     PhiInfo& phi      = phiInfos_[phiIndex];
     phi.reg           = reg;

@@ -42,6 +42,11 @@ enum AllocatorPageState
     Abandoned
 }
 
+// Two cache lines. The first holds everything the owning thread reads and writes on every
+// allocation and free; the second holds the links, the identity, and the fields other threads
+// write. Pages of different threads sit side by side in a segment, so a page must never share
+// a line with its neighbour, and remote frees must not invalidate the owner's hot line.
+#[Swag.Align(64)]
 struct AllocatorPage
 {
     // Heads of the owner's and the remote free lists, as plain block addresses, zero when empty.
@@ -49,34 +54,35 @@ struct AllocatorPage
     // write into a freed block therefore yields an address the pop-time check rejects instead of
     // the address the writer chose, and a free block is recognizable from its first word alone,
     // which is what makes a double free cheap to detect.
-    freeList:   u64
-    remoteFree: u64
-    key:        u64
+    freeList: u64
+    key:      u64
 
     areaStart: u64
     areaEnd:   u64
     carved:    u64
 
+    // Blocks handed out, including those still waiting on 'remoteFree'. Only the owning thread
+    // writes it, so the fast paths need no atomic to keep it exact.
+    used: u32
+
+    blockSize:  u32
+    blockInv:   u32
+    blockLimit: u32
+    blockShift: u32
+    classIndex: u32
+
     ownerHeap: *AllocatorThreadHeap?
     nextPage:  *AllocatorPage?
     prevPage:  *AllocatorPage?
 
-    blockSize:  u32
-    blockShift: u32
-    blockInv:   u32
-    blockLimit: u32
-
-    // Blocks handed out, including those still waiting on 'remoteFree'. Only the owning thread
-    // writes it, so the fast paths need no atomic to keep it exact.
-    used: u32
+    remoteFree: u64
 
     // Blocks pushed by another thread and not yet collected. Live blocks are 'used - remoteCount'.
     remoteCount: u32
     remoteLock:  u32
 
-    classIndex: u32
-    unitIndex:  u32
-    state:      AllocatorPageState
+    unitIndex: u32
+    state:     AllocatorPageState
 }
 
 struct AllocatorSegment

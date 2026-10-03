@@ -1567,18 +1567,23 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // no candidate can use instruction ordinals or the entry boundary.
     if (hasFieldSplitWrite && hasNarrowFieldRead)
     {
-        std::unordered_map<uint32_t, uint32_t> position;
-        uint32_t                               entryEnd = std::numeric_limits<uint32_t>::max();
-        uint32_t                               index    = 0;
-        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++index)
-        {
-            position[it.current.get()] = index;
-            const MicroInstrDef& info  = MicroInstr::info(it->op);
-            if (entryEnd == std::numeric_limits<uint32_t>::max() &&
-                (it->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
-                 info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction)))
-                entryEnd = index;
-        }
+        std::optional<std::unordered_map<uint32_t, uint32_t>> position;
+        uint32_t                                              entryEnd        = std::numeric_limits<uint32_t>::max();
+        const auto                                            ensurePositions = [&] {
+            if (position)
+                return;
+            auto&    ordinals = position.emplace();
+            uint32_t index    = 0;
+            for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++index)
+            {
+                ordinals[it.current.get()] = index;
+                const MicroInstrDef& info  = MicroInstr::info(it->op);
+                if (entryEnd == std::numeric_limits<uint32_t>::max() &&
+                    (it->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                     info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction)))
+                    entryEnd = index;
+            }
+        };
 
         for (const auto& [offset, slot] : slots)
         {
@@ -1603,7 +1608,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             const MicroInstr* writeInst = storage.ptr(write->ref);
             if (!writeInst || writeInst->op != MicroInstrOpcode::LoadMemReg || !writeInst->ops(operands)[1].reg.isAnyInt())
                 continue;
-            const uint32_t writePos = position[write->ref.get()];
+            ensurePositions();
+            const uint32_t writePos = (*position)[write->ref.get()];
             const uint64_t end      = offset + 8;
             if (writePos >= entryEnd || overlapsPoisonedVariable(offset, end) || (unknownSpaceEscaped && !insideKnownVariable(offset, end)))
                 continue;
@@ -1626,7 +1632,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     if (acc.ref == write->ref)
                         continue;
                     const MicroInstr* read = storage.ptr(acc.ref);
-                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || position[acc.ref.get()] <= writePos)
+                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || (*position)[acc.ref.get()] <= writePos)
                     {
                         usable = false;
                         break;
@@ -1681,20 +1687,19 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             uint32_t ordinal = 0;
             uint32_t breaks  = 0;
         };
-        std::unordered_map<uint32_t, InstructionPosition> positions;
-        bool       ordinalsReady = false;
-        const auto ensureOrdinals = [&] {
-            if (ordinalsReady)
+        std::optional<std::unordered_map<uint32_t, InstructionPosition>> positions;
+        const auto                                                       ensureOrdinals = [&] {
+            if (positions)
                 return;
-            ordinalsReady   = true;
-            uint32_t index  = 0;
-            uint32_t breaks = 0;
+            auto&    ordinals = positions.emplace();
+            uint32_t index    = 0;
+            uint32_t breaks   = 0;
             for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++index)
             {
                 const MicroInstrDef& info = MicroInstr::info(it->op);
                 if (it->op == MicroInstrOpcode::Label)
                     ++breaks;
-                positions[it.current.get()] = {index, breaks};
+                ordinals[it.current.get()] = {index, breaks};
                 if (info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                     info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     ++breaks;
@@ -1743,7 +1748,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
 
             ensureOrdinals();
-            const InstructionPosition writePosition = positions[write->ref.get()];
+            const InstructionPosition writePosition = (*positions)[write->ref.get()];
 
             LaneSplit      split;
             split.offset   = offset;
@@ -1770,7 +1775,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                         usable = false;
                         break;
                     }
-                    const InstructionPosition readPosition = positions[acc.ref.get()];
+                    const InstructionPosition readPosition = (*positions)[acc.ref.get()];
                     if (readPosition.ordinal <= writePosition.ordinal || readPosition.breaks != writePosition.breaks)
                     {
                         usable = false;

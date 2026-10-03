@@ -809,7 +809,7 @@ namespace
         if (castNodeRef.isInvalid() || castData.sourceArgRef.isInvalid() || sema.isGlobalScope())
             return Result::Continue;
 
-        auto& storageSym = SemaHelpers::getOrCreateRuntimeStorageSymbol(sema, castNodeRef, sema.node(castNodeRef), "__cast_runtime_storage");
+        auto& storageSym = SemaHelpers::getOrCreateRuntimeStorageSymbol(sema, castNodeRef, sema.node(castNodeRef), dstTypeRef, "__cast_runtime_storage");
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, dstTypeRef));
 
         SmallVector<ResolvedCallArgument> resolvedArgs;

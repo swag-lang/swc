@@ -403,7 +403,8 @@ namespace
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
             if (!inst)
                 return false;
-            useDefs[i]                     = inst->collectUseDef(operands, context.encoder);
+            useDefs[i] = {};
+            inst->collectUseDef(useDefs[i], operands, context.encoder);
             const MicroInstrUseDef* useDef = &useDefs[i];
             for (const MicroReg def : useDef->defs)
             {

@@ -281,10 +281,8 @@ namespace
             }
         }
 
-        bool anyEscapedObject = false;
-        for (const FrameObject& object : out.objects)
-            anyEscapedObject = anyEscapedObject || object.escaped;
-        out.wholeFramePrivate = !out.spSpaceEscapes && !out.localSpaceEscapes && !anyEscapedObject;
+        out.wholeFramePrivate = !out.spSpaceEscapes && !out.localSpaceEscapes &&
+                                std::ranges::none_of(out.objects, &FrameObject::escaped);
     }
 
     // The extent of the source object containing `offset`, as a write range
@@ -416,12 +414,8 @@ namespace
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || useDef.isCall)
                 return false;
 
-            bool usesDead = false;
-            bool defsDead = false;
-            for (const MicroReg use : useDef.uses)
-                usesDead = usesDead || use == dead;
-            for (const MicroReg def : useDef.defs)
-                defsDead = defsDead || def == dead;
+            const bool usesDead = std::ranges::find(useDef.uses, dead) != useDef.uses.end();
+            const bool defsDead = std::ranges::find(useDef.defs, dead) != useDef.defs.end();
 
             // A read-modify-write of the destination is both, and rewriting only
             // its read half would change what it writes.
@@ -690,9 +684,7 @@ namespace
                     continue;
 
                 const FrameRef slotRef{use.base, offset, offset + getNumBytes(bits)};
-                bool           blocked = false;
-                for (const FrameRef& range : blockedRanges)
-                    blocked = blocked || overlaps(slotRef, range);
+                bool           blocked = std::ranges::any_of(blockedRanges, [&](const FrameRef& range) { return overlaps(slotRef, range); });
                 if (blocked || !slotIsUnreachable(reach, context, slotRef, conv))
                     continue;
 
@@ -726,8 +718,8 @@ namespace
                 {
                     if (!inBody[k] || k == use.storeIndex - 1)
                         continue;
-                    for (const MicroReg def : liveness.useDefs[k].defs)
-                        otherDefinition = otherDefinition || def == source;
+                    const auto& defs = liveness.useDefs[k].defs;
+                    otherDefinition  = std::ranges::find(defs, source) != defs.end();
                 }
                 if (otherDefinition)
                     continue;
@@ -761,9 +753,7 @@ namespace
             slotRef.lo   = offset;
             slotRef.hi   = offset + getNumBytes(use.bits);
 
-            bool blocked = false;
-            for (const FrameRef& range : blockedRanges)
-                blocked = blocked || overlaps(slotRef, range);
+            const bool blocked = std::ranges::any_of(blockedRanges, [&](const FrameRef& range) { return overlaps(slotRef, range); });
             if (blocked)
                 continue;
 
@@ -800,16 +790,9 @@ namespace
                 }
                 if (!inBody[k])
                     continue;
-                for (const MicroReg def : liveness.useDefs[k].defs)
-                {
-                    if (def == use.reg)
-                        usable = false;
-                }
-                for (const MicroReg used : liveness.useDefs[k].uses)
-                {
-                    if (used == use.reg)
-                        usable = false;
-                }
+                const MicroInstrUseDef& useDef = liveness.useDefs[k];
+                usable = std::ranges::find(useDef.defs, use.reg) == useDef.defs.end() &&
+                         std::ranges::find(useDef.uses, use.reg) == useDef.uses.end();
             }
             if (!usable)
                 continue;

@@ -782,9 +782,7 @@ namespace
                 // address computation the multiply-to-lea rewrite produced,
                 // `%r = &[%r + %r*2]`. A definition that does not is a full
                 // def and starts a fresh value.
-                bool selfUse = false;
-                for (const MicroReg use : useDef->uses)
-                    selfUse = selfUse || use == destReg;
+                const bool selfUse = std::ranges::find(useDef->uses, destReg) != useDef->uses.end();
 
                 const bool eligible = isEligibleOpcode(inst->op) || isEligiblePairedComputeOpcode(inst->op);
                 if (!eligible)
@@ -1200,8 +1198,7 @@ namespace
                         if (hoistSet.contains(s))
                             continue;
                         const MicroInstrUseDef* ud = &useDefs[s];
-                        for (const MicroReg use : ud->uses)
-                            violated = violated || use == reg;
+                        violated = std::ranges::find(ud->uses, reg) != ud->uses.end();
                     }
 
                     // An exit taken mid-web leaves the register holding an

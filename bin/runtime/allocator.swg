@@ -37,6 +37,12 @@ const AllocatorBlockCacheMaxCount = 64'u64
 // Header-path blocks above this size are rounded to eight sizes per power of two.
 const AllocatorLargeRoundMin = 64'u64 * 1024
 
+// Idle pages and cached large blocks that stay unused this long go back to the system at the next
+// slow path of their allocator. Nothing runs in the background: a program that stops allocating
+// keeps them until it allocates again, trims, or exits.
+const AllocatorPurgeDelayMs = 500'u64
+private var g_AllocatorPurgeDelayTicks: u64
+
 private const AllocatorInvalidFlsId = 0xFFFF_FFFF'u64
 private const AllocatorInvalidTlsId = Swag.U64.Max
 
@@ -73,13 +79,15 @@ struct AllocatorHeader
     magic:      u32
 }
 
-// One entry of the cache of freed header-path blocks. 'stamp' orders the entries by age.
+// One entry of the cache of freed header-path blocks. 'stamp' orders the entries by age, and
+// 'freedAt' is the monotonic tick of the free, which the idle purge compares with its delay.
 struct AllocatorCachedBlock
 {
     address:   u64
     reserved:  u64
     committed: u64
     stamp:     u64
+    freedAt:   u64
 }
 
 struct AllocatorFooter
@@ -131,6 +139,9 @@ struct AllocatorThreadHeap
     prevHeap:  *AllocatorThreadHeap?
     threadId:  u64
     retired:   u32
+
+    // Counts slow-path page refills, to read the clock for the idle purge only now and then.
+    purgeCountdown: u32
     classes:   [AllocatorClassCount] AllocatorThreadClass
 }
 
@@ -167,6 +178,9 @@ struct Allocator
     // Full pages that received a remote free, pushed by the freeing thread and taken back by
     // their owners' slow paths. A lock-free stack of pages: page metadata outlives every heap.
     revisitPages: u64
+
+    // Monotonic tick after which idle memory is purged, or zero when no purge is pending.
+    purgeDeadline: u64
 
     // Every live header belongs to one list so bulk release can discover it. Only tracked blocks
     // enter firstAlloc and supply detailed leak reports; ordinary headers enter firstUntracked.
@@ -792,12 +806,13 @@ impl Allocator
         return true
     }
 
-    // Puts a full page back on the scanned list, first in line, because it now has a block.
+    // Puts a full page back on the scanned list, behind the pages already there. Clearing the
+    // mark needs no barrier: a remote free that still sees it only queues the page once more.
     mtd unparkFullPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
     {
         .unlinkPage(heap, page)
-        discard Swag.atomxchg(&page.inFull, 0)
-        .linkPageFront(heap, page)
+        page.inFull = 0
+        .linkPage(heap, page)
     }
 
     // Takes back the full pages of this heap that received remote frees. Pages of other heaps
@@ -823,6 +838,68 @@ impl Allocator
         }
     }
 
+    // Gives idle pages back once idle memory has existed for the purge delay, and cached large
+    // blocks freed longer ago than that delay.
+    // The first slow path that sees idle memory arms the deadline; the first one past it purges.
+    // Costs one clock read per slow path while idle memory exists, and nothing otherwise.
+    mtd maybePurge()
+    {
+        if allocatorIdleBytes() == 0 and atomicGet(&.cachedBlockCount) == 0
+        {
+            if atomicGet(&.purgeDeadline) != 0 do
+                discard Swag.atomxchg(&.purgeDeadline, 0)
+            return
+        }
+
+        var delay = atomicGet(&g_AllocatorPurgeDelayTicks)
+        if delay == 0
+        {
+            delay = Swag.max(__hostMonotonicFrequency() * AllocatorPurgeDelayMs / 1000, 1)
+            discard Swag.atomxchg(&g_AllocatorPurgeDelayTicks, delay)
+        }
+
+        let now      = __hostMonotonicTicks()
+        let deadline = atomicGet(&.purgeDeadline)
+        if deadline == 0
+        {
+            discard Swag.atomcmpxchg(&.purgeDeadline, 0, now + delay)
+            return
+        }
+
+        if now < deadline or Swag.atomcmpxchg(&.purgeDeadline, deadline, 0) != deadline do
+            return
+
+        .segmentMutex.lock()
+        var segment: *AllocatorSegment? = .firstSegment
+        while segment
+        {
+            segment.decommitIdlePages()
+            segment = segment.nextSegment
+        }
+
+        .segmentMutex.unlock()
+
+        if not .diagnosticMode()
+        {
+            .mutex.lock()
+            var i = 0'u64
+            while i < .cachedBlockCount
+            {
+                let entry = .cachedBlocks[i]
+                if now - entry.freedAt < delay
+                {
+                    i += 1
+                    continue
+                }
+
+                .removeCachedBlock(i)
+                .osFree(cast(*void) entry.address, entry.committed)
+            }
+
+            .mutex.unlock()
+        }
+    }
+
     // Runs when the current page has nothing left: takes back full pages that other threads
     // freed into, then looks through the pages that may still give a block, parking the
     // exhausted ones on the full list so that a growing live set is not rescanned page after
@@ -831,6 +908,12 @@ impl Allocator
     {
         let cls = &heap.classes[classIndex]
         .reviveFullPages(heap)
+
+        // A page runs out every few hundred allocations; one in 64 is often enough to notice that
+        // idle memory has outlived the purge delay, and keeps the clock off the common slow path.
+        heap.purgeCountdown += 1
+        if (heap.purgeCountdown & 63) == 0 do
+            .maybePurge()
 
         var scan = cls.first
         while scan
@@ -1111,6 +1194,7 @@ impl Allocator
         entry.reserved    = size
         entry.committed   = committed
         entry.stamp       = .cachedBlockStamp
+        entry.freedAt     = __hostMonotonicTicks()
         .cachedBlockBytes += committed
         .cachedBlockCount += 1
         .mutex.unlock()
@@ -1282,8 +1366,11 @@ impl Allocator
 
         if .diagnosticMode() do
             .quarantine(header)
-        else do
+        else
+        {
             .cacheFreedBlock(header.allocAddr, header.allocSize, header.commitSize)
+            .maybePurge()
+        }
     }
 
     // ###################################################################################

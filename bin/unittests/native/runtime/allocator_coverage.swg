@@ -1035,3 +1035,28 @@ func writeAt(address: u64, value: u64)
     Swag.assert(alloc.stats().countAlloc == 0)
     alloc.releaseAll()
 }
+
+// ----------------------------------------------------------------------------
+// Cached large blocks left unused for the purge delay go back to the system at a
+// later free of the allocator, without any call to trim(); a block freed since
+// stays cached.
+// ----------------------------------------------------------------------------
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    freeOne(itf, allocOne(itf, 300_000))
+    Swag.assert(alloc.cachedBlockCount == 1)
+    Swag.assert(alloc.purgeDeadline != 0)
+
+    // Age the cached block and the armed deadline rather than wait for them.
+    alloc.cachedBlocks[0].freedAt = 0
+    alloc.purgeDeadline           = 1
+
+    freeOne(itf, allocOne(itf, 2_000_000))
+    Swag.assert(alloc.cachedBlockCount == 1)
+    Swag.assert(alloc.cachedBlocks[0].reserved >= 2_000_000)
+    Swag.assert(alloc.purgeDeadline == 0)
+    alloc.releaseAll()
+}

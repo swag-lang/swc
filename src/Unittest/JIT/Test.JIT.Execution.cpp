@@ -7,6 +7,7 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemory.h"
+#include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/JIT/JITPatchJob.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -27,6 +28,48 @@
 #endif
 
 SWC_BEGIN_NAMESPACE();
+
+SWC_TEST_BEGIN(JIT_ConcurrentAllocationsPreserveContentsAcrossFullAndPartialBlocks)
+{
+    constexpr size_t                  WORKER_COUNT           = 4;
+    constexpr size_t                  ALLOCATIONS_PER_WORKER = 128;
+    constexpr std::array<uint32_t, 6> SIZES                  = {1, 4097, 16384, 49152, 65536, 65537};
+
+    JITMemoryManager memoryManager;
+
+    std::array<std::array<JITMemory, ALLOCATIONS_PER_WORKER>, WORKER_COUNT> allocations;
+    std::array<std::thread, WORKER_COUNT>                                   workers;
+    for (size_t worker = 0; worker < WORKER_COUNT; ++worker)
+    {
+        workers[worker] = std::thread([&, worker] {
+            for (size_t index = 0; index < ALLOCATIONS_PER_WORKER; ++index)
+            {
+                JITMemory& memory = allocations[worker][index];
+                memoryManager.allocate(memory, SIZES[(worker + index) % SIZES.size()]);
+                std::memset(memory.entryPoint(), static_cast<int>(worker * ALLOCATIONS_PER_WORKER + index), memory.size());
+            }
+        });
+    }
+    for (auto& worker : workers)
+        worker.join();
+
+    std::vector<std::pair<uintptr_t, uint32_t>> ranges;
+    for (size_t worker = 0; worker < WORKER_COUNT; ++worker)
+    {
+        for (size_t index = 0; index < ALLOCATIONS_PER_WORKER; ++index)
+        {
+            const JITMemory& memory   = allocations[worker][index];
+            const auto       bytes    = std::span(static_cast<const uint8_t*>(memory.entryPoint()), memory.size());
+            const auto       expected = static_cast<uint8_t>(worker * ALLOCATIONS_PER_WORKER + index);
+            SWC_ASSERT(std::ranges::all_of(bytes, [expected](uint8_t value) { return value == expected; }));
+            ranges.emplace_back(reinterpret_cast<uintptr_t>(memory.entryPoint()), memory.size());
+        }
+    }
+    std::ranges::sort(ranges);
+    for (size_t index = 1; index < ranges.size(); ++index)
+        SWC_ASSERT(ranges[index - 1].first + ranges[index - 1].second <= ranges[index].first);
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(JIT_DependencyOrderPreservesCyclesSharedChildrenAndIgnoredNodes)
 {
@@ -370,7 +413,7 @@ namespace
                 return JobResult::Done;
             }
 
-            slept_ = true;
+            slept_               = true;
             ctx().state().kind   = kind_;
             ctx().state().symbol = function_;
             if (publishBeforeParking_)

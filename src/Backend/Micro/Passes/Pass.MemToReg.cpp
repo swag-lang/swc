@@ -2149,14 +2149,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         writeInst->op                = MicroInstrOpcode::LoadRegReg;
         writeInst->numOperands       = 3;
 
-        const MicroInstrRef                    afterWrite = storage.findNextInstructionRef(split.writeRef);
-        std::unordered_map<uint64_t, MicroReg> lanes;
+        const MicroInstrRef afterWrite = storage.findNextInstructionRef(split.writeRef);
+        // Eligibility admits only aligned 32- and 64-bit reads within one 16-byte vector.
+        std::array<MicroReg, 8> lanes{};
         for (const SlotAccess& acc : split.reads)
         {
-            const uint64_t at  = acc.offset - split.offset;
-            const uint64_t key = at * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0);
-            const auto [found, inserted] = lanes.try_emplace(key);
-            if (inserted)
+            const uint64_t at   = acc.offset - split.offset;
+            MicroReg&      lane = lanes[(at / 4) * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0)];
+            if (!lane.isValid())
             {
                 MicroReg laneSource = vector;
                 if (at != 0)
@@ -2171,16 +2171,15 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::VecShuffleRegRegImm, shuffleOps);
                 }
 
-                const MicroReg    lane = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                lane = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
                 MicroInstrOperand moveOps[3];
                 moveOps[0].reg    = lane;
                 moveOps[1].reg    = laneSource;
                 moveOps[2].opBits = acc.bits;
                 storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::LoadRegReg, moveOps);
-                found->second = lane;
             }
 
-            rewriteSlotAccess(storage, operands, acc, found->second);
+            rewriteSlotAccess(storage, operands, acc, lane);
         }
     }
 

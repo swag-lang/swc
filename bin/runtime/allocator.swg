@@ -175,12 +175,6 @@ struct Allocator
     firstHeap:      *AllocatorThreadHeap?
     firstAbandoned: *AllocatorPage?
 
-    // Full pages that received a remote free, pushed by the freeing thread and taken back by
-    // their owners' slow paths. A lock-free stack of pages: page metadata outlives every heap.
-    revisitPages: u64
-
-    // Monotonic tick after which idle memory is purged, or zero when no purge is pending.
-    purgeDeadline: u64
 
     // Every live header belongs to one list so bulk release can discover it. Only tracked blocks
     // enter firstAlloc and supply detailed leak reports; ordinary headers enter firstUntracked.
@@ -202,6 +196,17 @@ struct Allocator
     cachedBlockCount: u64
     cachedBlockStamp: u64
 
+    // Full pages that received a remote free, pushed by the freeing thread and taken back by
+    // their owners' slow paths. A lock-free stack of pages: page metadata outlives every heap.
+    // It and the purge deadline, which every large free reads, sit on a line of their own, away
+    // from the list heads and counters other threads write on every header-path operation.
+    #[Swag.Align(64)]
+    revisitPages: u64
+
+    // Monotonic tick after which idle memory is purged, or zero when no purge is pending.
+    purgeDeadline: u64
+
+    #[Swag.Align(64)]
     nextId:       u32
     installMagic: u32 = 0
 
@@ -844,13 +849,6 @@ impl Allocator
     // Costs one clock read per slow path while idle memory exists, and nothing otherwise.
     mtd maybePurge()
     {
-        if allocatorIdleBytes() == 0 and atomicGet(&.cachedBlockCount) == 0
-        {
-            if atomicGet(&.purgeDeadline) != 0 do
-                discard Swag.atomxchg(&.purgeDeadline, 0)
-            return
-        }
-
         var delay = atomicGet(&g_AllocatorPurgeDelayTicks)
         if delay == 0
         {
@@ -858,14 +856,17 @@ impl Allocator
             discard Swag.atomxchg(&g_AllocatorPurgeDelayTicks, delay)
         }
 
-        let now      = __hostMonotonicTicks()
+        // An armed deadline is the common case while idle memory exists; only arming it reads the
+        // counters other threads keep writing.
         let deadline = atomicGet(&.purgeDeadline)
         if deadline == 0
         {
-            discard Swag.atomcmpxchg(&.purgeDeadline, 0, now + delay)
+            if allocatorIdleBytes() != 0 or atomicGet(&.cachedBlockCount) != 0 do
+                discard Swag.atomcmpxchg(&.purgeDeadline, 0, __hostMonotonicTicks() + delay)
             return
         }
 
+        let now = __hostMonotonicTicks()
         if now < deadline or Swag.atomcmpxchg(&.purgeDeadline, deadline, 0) != deadline do
             return
 
@@ -885,8 +886,9 @@ impl Allocator
             var i = 0'u64
             while i < .cachedBlockCount
             {
+                // A block freed by a thread that read the clock after this one is newer than 'now'.
                 let entry = .cachedBlocks[i]
-                if now - entry.freedAt < delay
+                if entry.freedAt >= now or now - entry.freedAt < delay
                 {
                     i += 1
                     continue
@@ -1172,6 +1174,9 @@ impl Allocator
             return
         }
 
+        // Read before taking the lock, which every thread cycling large blocks contends for.
+        let now = __hostMonotonicTicks()
+
         .mutex.lock()
         while .cachedBlockCount != 0 and
               (.cachedBlockCount >= AllocatorBlockCacheMaxCount or .cachedBlockBytes + committed > budget)
@@ -1194,7 +1199,7 @@ impl Allocator
         entry.reserved    = size
         entry.committed   = committed
         entry.stamp       = .cachedBlockStamp
-        entry.freedAt     = __hostMonotonicTicks()
+        entry.freedAt     = now
         .cachedBlockBytes += committed
         .cachedBlockCount += 1
         .mutex.unlock()

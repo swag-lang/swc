@@ -165,7 +165,7 @@ private:
     void            renameBlock(uint32_t blockIndex, RenameState& state);
     static uint32_t currentValue(const RenameState& state, uint32_t regIndex);
     void            assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const RenameState& state);
-    void            pushCurrentValue(RenameState& state, uint32_t regIndex, uint32_t valueId, uint32_t blockIndex);
+    void            pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId, uint32_t blockIndex);
     void            setCurrentValue(RenameState& state, uint32_t regIndex, uint32_t valueId);
     uint32_t        createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
     uint32_t        createPhi(uint32_t blockIndex, MicroReg reg, uint32_t regIndex);
@@ -187,12 +187,11 @@ private:
     // Reused across builds: every entry is cleared before it is read.
     std::vector<SmallVector4<uint32_t>> defBlocksByReg_;
     // Phi placement and renaming overwrite these workspaces on every build.
-    std::vector<uint32_t>     phiInWorkStamps_;
-    std::vector<uint32_t>     phiHasPhiStamps_;
-    uint32_t                  phiStamp_ = 1;
-    std::vector<uint32_t>     phiWorkList_;
-    RenameState               renameState_;
-    std::vector<RestorePoint> renameRestores_;
+    std::vector<uint32_t> phiInWorkStamps_;
+    std::vector<uint32_t> phiHasPhiStamps_;
+    uint32_t              phiStamp_ = 1;
+    std::vector<uint32_t> phiWorkList_;
+    RenameState           renameState_;
     // Snapshot membership stays valid across erasures until the next build.
     std::vector<uint8_t>   liveInstructionSlots_;
     uint8_t                liveInstructionEpoch_ = 0;

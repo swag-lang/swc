@@ -62,7 +62,7 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-03 15:48 — Recorded that the JIT runs binarytrees faster than native code.
+- Updated: 2026-10-03 18:45 — Attributed the JIT gap to mimalloc; register-only calls no longer keep per-call stack adjustments (benefit not established).
 - October 3, `bench/allocator` (median of five rotating rounds, through `Memory.alloc`): pair
   28.4 -> 26.5 ns, trees 34.4 -> 26.6 ns, churn 53.7 -> 49.2 ns, against 4.3 / 7.3 / 17.9 ns for
   mimalloc and 29.9 / 44.3 / 68.3 ns for the C heap. Native binarytrees paired median 0.87.
@@ -75,9 +75,35 @@ alone. Comparative reference points for that investigation:
   a direct `gs:[0x30]` TEB read, so a thread-block intrinsic would save about 1 ns per pair and
   is not worth new language surface; a leaf entry point without any call is what would pay.
 - Campaign `20261002-201919` runs binarytrees in 16.0 ms under the swc JIT and 22.3 ms native,
-  while the JIT is about 14% slower than native over the other tasks. Which allocator and
-  context path the JIT's `benchAlloc` reaches has not been established; check it before
-  attributing the native gap to generated code.
+  while the JIT is about 14% slower than native over the other tasks. Under the JIT the context
+  allocator is the compiler's own mimalloc (`runtimeAllocatorAlloc`/`Free` in
+  `src/Main/CompilerInstance.cpp`, reached through a native interface adapter; alignment 16 goes
+  to `mi_malloc_aligned`), so that gap compares mimalloc with this allocator, not two code
+  generators.
+- Native pair as emitted by master `1898124b1` (binarytrees, release): `benchAlloc` calls
+  `__tlsGetPtr` (one `TlsGetValue` through the import thunk, then a store of the slot into the
+  context), then the interface `alloc` (a second `TlsGetValue` for the thread heap); `free` is
+  the same. Four `TlsGetValue`, two `__tlsGetPtr` frames and two indirect calls per pair. The
+  interface `alloc` saved six registers and a frame pointer, `free` six and a frame pointer,
+  `__tlsGetPtr` two and a frame pointer, and every C call was bracketed by `sub/add rsp, 0x28`:
+  stack-adjust normalization gave up whenever a call ran above the deepest scope. On
+  `perf/prompt2-alloc-20261003` (`051f0f056`) a call whose own `sub` reserves only shadow space
+  and alignment pad moves to the frame depth: `alloc` saves three registers, `free` four,
+  `__tlsGetPtr` one, none keeps a frame pointer; in the whole binary frame-pointer setups go
+  20 -> 1 and calls preceded by `sub rsp` 146 -> 4; the bench functions themselves are
+  unchanged. Four A/B windows taken under heavy foreign load (A/A interquartile ranges of 5-20%,
+  every task 1.2-3x its usual time) gave binarytrees B/A medians 1.038, 1.038, 1.088 and 1.057
+  (60 rounds, p25 1.020, control 1.000), with the candidate's minimum slower each time and every
+  other task inside its control. `bench/allocator` under the same load contradicted itself
+  (pair +8% then +7%, trees +8% then -5%). Not integrated: benefit not established and a
+  binarytrees slowdown is likely although the fast paths only lost instructions. Re-measure in
+  a quiet window; if it reproduces, separate layout (the hot runtime functions all moved by
+  16-64 bytes) from the frames before keeping or reverting the rule.
+- Still between this allocator and mimalloc's fast path, beyond code generation: encoded free-list
+  links, the freed-block canary written on free and checked on allocation, `looksFree` and the
+  block-index (multiply/rotate) check on every free, the arena range test in `allocatorPageOf`,
+  and two thread-slot lookups where mimalloc reads one static TLS slot. Each is a stated safety
+  property (runtime.allocator.010); dropping any is a policy decision, not a tuning step.
 - Next: once the backend can keep a call-free fast path a leaf (no callee-saved spills on the
   common path), re-measure pair/trees; otherwise look at `Memory.alloc`'s request setup.
 - Complete when: generated-code attribution and comparable application/allocator measurements

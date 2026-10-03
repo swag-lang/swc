@@ -177,6 +177,10 @@ struct Allocator
     fillAlloc:          bool
     fillFree:           bool
     electricMode:       bool
+
+    // Set when any diagnostic mode or fill pattern is on, which sends every operation through
+    // the general path. Kept in step with the flags above by 'configure'.
+    slowPath: bool
 }
 
 private var g_DefaultAllocator: Allocator
@@ -365,6 +369,7 @@ impl Allocator
         .fillAlloc          = fillMemory
         .fillFree           = fillMemory
         .electricMode       = electricMode
+        .slowPath           = .diagnosticMode() or fillMemory
     }
 
     mtd installed()->bool => .installMagic == InstalledMagic
@@ -1086,6 +1091,61 @@ impl Allocator
     // Public operations
     // ###################################################################################
 
+    // The common allocation: a default alignment, a size a page class carries, and a block ready
+    // on the calling thread's current page for that class. Returns zero whenever anything else
+    // has to happen; the general path then repeats every check and handles it.
+    // A zero size wraps to the largest value, so one comparison rejects it with the sizes no class
+    // carries.
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
+    mtd allocateFast(size: u64)->u64
+    {
+        if size - 1 >= AllocatorMaxClassSize do
+            return 0
+
+        let heap = fastThreadHeap()
+        if not heap do
+            return 0
+        if heap.allocator != me do
+            return 0
+
+        let page = heap.classes[sizeClass(size)].page
+        if not page do
+            return 0
+
+        return page.acquireBlock()
+    }
+
+    // The common free: a page block owned by the calling thread, which goes back on the page's
+    // own list. Returns false, having changed nothing, for anything else - a block of another
+    // thread, a header-path block, a null or bogus address, an apparent double free - and the
+    // general path then handles or diagnoses it.
+    #[Swag.Inline]
+    mtd freeFast(address: u64)->bool
+    {
+        let page = allocatorPageOf(address)
+        if not page do
+            return false
+
+        // A page that no heap owns has a null owner, so a null heap never matches it.
+        let heap = fastThreadHeap()
+        if page.ownerHeap != heap do
+            return false
+        if not heap do
+            return false
+        if not page.isBlockAddress(address) do
+            return false
+
+        // Every free block reads as one, so a block that does not cannot be a double free. One
+        // that does goes to the general path, which walks the lists to tell.
+        if page.looksFree(address) do
+            return false
+
+        page.releaseBlock(address)
+        if page.used == 0 do
+            .retirePage(heap, page)
+        return true
+    }
+
     // A page-path block needs no header, so a request only leaves that path when it asks for more
     // than a page can carve, for a stricter alignment, or while a diagnostic mode is recording.
     #[Swag.Inline]
@@ -1255,20 +1315,28 @@ impl Allocator
 
         .checkPageAddress(page, address, request.callerLoc)
 
+        // Only the owning thread may touch the page's own free list; anyone else hands the block
+        // over through the page's atomic list, which the owner drains when it runs dry. A block
+        // whose first word reads as a free-list link is looked up in the lists the caller may
+        // walk: the owner sees both, another thread only the remote list.
+        let heap      = currentAllocatorThreadHeap()
+        let owned     = heap != null and page.ownerHeap == heap
+        let looksFree = page.looksFree(address)
+        if looksFree and ((owned and page.holdsOwnFreeBlock(address)) or page.holdsRemoteFreeBlock(address))
+        {
+            // A panic hook may resume; the block is already free, so there is nothing left to do.
+            Swag.panic("memory block is freed twice", request.callerLoc)
+            return
+        }
+
         if .fillFree do
             Swag.memset(cast(*void) address, FreeByte, page.blockSize)
 
-        // Only the owning thread may touch the page's own free list; anyone else hands the block
-        // over through the page's atomic list, which the owner drains when it runs dry.
-        let heap = currentAllocatorThreadHeap()
-        if heap and page.ownerHeap == heap
+        if owned
         {
-            if page.freeList == page.encode(address) do
-                Swag.panic("memory block is freed twice", request.callerLoc)
-
             page.releaseBlock(address)
             if page.used == 0 do
-                .retirePage(heap, page)
+                .retirePage(heap!, page)
         }
         else do
             page.pushRemote(address)
@@ -1618,6 +1686,22 @@ impl IAllocator for Allocator
 
     mtd impl alloc(request: *AllocatorRequest)
     {
+        if not .slowPath and request.alignment == 0
+        {
+            let block = .allocateFast(request.size)
+            if block != 0
+            {
+                request.address = cast(*void) block
+                return
+            }
+        }
+
+        .allocateGeneral(request)
+    }
+
+    #[Swag.NoInline]
+    mtd allocateGeneral(request: *AllocatorRequest)
+    {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
         request.address = null
@@ -1632,6 +1716,18 @@ impl IAllocator for Allocator
     }
 
     mtd impl free(request: *AllocatorRequest)
+    {
+        if not .slowPath and .freeFast(cast(u64) request.address)
+        {
+            request.address = null
+            return
+        }
+
+        .freeGeneral(request)
+    }
+
+    #[Swag.NoInline]
+    mtd freeGeneral(request: *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)

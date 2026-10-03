@@ -44,8 +44,11 @@ enum AllocatorPageState
 
 struct AllocatorPage
 {
-    // Free-list links are stored obfuscated with 'key'. A stray write into a freed block therefore
-    // yields an address the pop-time check rejects, instead of the address the writer chose.
+    // Heads of the owner's and the remote free lists, as plain block addresses, zero when empty.
+    // The link a free block stores is obfuscated with 'key', the end of a list included. A stray
+    // write into a freed block therefore yields an address the pop-time check rejects instead of
+    // the address the writer chose, and a free block is recognizable from its first word alone,
+    // which is what makes a double free cheap to detect.
     freeList:   u64
     remoteFree: u64
     key:        u64
@@ -126,8 +129,10 @@ private var g_AllocatorArenaCount:  u32
 private var g_AllocatorFreeSegment: *AllocatorSegment?
 private var g_AllocatorKeySeed:     u64
 
-// Bytes of free pages left committed for reuse, and the most the process keeps.
-const AllocatorIdleMaxBytes = 8'u64 * 1024 * 1024
+// Bytes of free pages left committed for reuse. The process keeps up to a quarter of what it
+// has committed, and never less than the floor, so the budget grows with the number of threads
+// churning pages while a quiet program holds little.
+const AllocatorIdleMinBytes = 8'u64 * 1024 * 1024
 private var g_AllocatorIdleBytes: u64
 
 // Committed bytes and the OS calls behind them, published for the allocator's statistics.
@@ -205,6 +210,14 @@ private func allocatorNextKey(seed: u64)->u64
     return value | 1
 }
 
+// Out of line, so the fast paths that can detect a corrupted list do not carry the panic's
+// arguments in their own frames.
+#[Swag.NoInline]
+func allocatorCorruptedFreeList()
+{
+    Swag.panic("allocator free list is corrupted", #curlocation)
+}
+
 impl AllocatorPage
 {
     // The block area of page 'index', which starts after the segment header for the first page.
@@ -263,11 +276,12 @@ impl AllocatorPage
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd isBlockAddress(address: u64)->bool
     {
-        if address < .areaStart or address >= .areaEnd do
+        // An address below the area wraps to a huge offset, so one comparison bounds both ends.
+        let offset = address - .areaStart
+        if offset >= .areaEnd - .areaStart do
             return false
 
-        let offset = cast(u32) (address - .areaStart)
-        return Swag.ror(offset * .blockInv, cast(u8) .blockShift) <= .blockLimit
+        return Swag.ror(cast(u32) offset * .blockInv, cast(u8) .blockShift) <= .blockLimit
     }
 
     #[Swag.Inline]
@@ -294,31 +308,24 @@ impl AllocatorPage
         discard Swag.atomxchg(&.remoteLock, 0)
     }
 
-    // Moves the blocks other threads freed onto the owner's free list. A page can alternate between
-    // owners and the abandoned list while frees are still arriving, so detaching the intrusive list
-    // is serialized with its producers. Once detached, no producer can reach those links again.
+    // Moves the blocks other threads freed onto the owner's free list. Producers only ever push,
+    // and this takes the whole list in one exchange, so a block can never be popped from under a
+    // producer that is linking in front of it and no ABA case exists. The lock only orders this
+    // detach against 'holdsFreeBlock', which walks the list without taking it.
     mtd collectRemote()
     {
-        .lockRemote()
-        if .remoteFree == 0
-        {
-            .unlockRemote()
+        if atomicGet(&.remoteFree) == 0 do
             return
-        }
 
-        var list = .remoteFree
-        .remoteFree = 0
+        .lockRemote()
+        var list = Swag.atomxchg(&.remoteFree, 0)
         .unlockRemote()
         var taken = 0'u32
 
         while list != 0
         {
-            let block = .decode(list)
-            if not .isBlockAddress(block) do
-                Swag.panic("allocator free list is corrupted", #curlocation)
-
-            let next = (cast(*u64) block)[]
-            (cast(*u64) block)[] = .freeList
+            let next = .nextFree(list)
+            (cast(*u64) list)[] = .encode(.freeList)
             .freeList = list
             list      = next
             taken     += 1
@@ -330,16 +337,21 @@ impl AllocatorPage
     }
 
     // Pushes a block freed by a thread that does not own the page. The page metadata outlives every
-    // block it carries, so this never dereferences storage that could already be gone.
+    // block it carries, so this never dereferences storage that could already be gone. The block
+    // belongs to the pusher until the exchange publishes it, so writing its link needs no lock.
     mtd pushRemote(address: u64)
     {
-        let encoded = .encode(address)
         discard Swag.atomadd(&.remoteCount, 1)
 
-        .lockRemote()
-        (cast(*u64) address)[] = .remoteFree
-        .remoteFree = encoded
-        .unlockRemote()
+        var head = atomicGet(&.remoteFree)
+        while true
+        {
+            (cast(*u64) address)[] = .encode(head)
+            let seen = Swag.atomcmpxchg(&.remoteFree, head, address)
+            if seen == head do
+                return
+            head = seen
+        }
     }
 
     // Hands out the next block, from the free list first and from the untouched tail after that.
@@ -347,14 +359,15 @@ impl AllocatorPage
     #[Swag.Inline]
     mtd acquireBlock()->u64
     {
-        let head = .freeList
-        if head != 0
+        let block = .freeList
+        if block != 0
         {
-            let block = .decode(head)
-            if not .isBlockAddress(block) do
-                Swag.panic("allocator free list is corrupted", #curlocation)
-            .freeList = (cast(*u64) block)[]
+            .freeList = .nextFree(block)
             .used     += 1
+
+            // A block handed out must not keep reading as free, or freeing it before its first
+            // word is written would look like a double free and cost a walk of the lists.
+            (cast(*u64) block)[] = 0
             return block
         }
 
@@ -374,39 +387,70 @@ impl AllocatorPage
     // the free path.
     mtd holdsFreeBlock(address: u64)->bool
     {
-        let wanted = .encode(address)
+        if .holdsOwnFreeBlock(address) do
+            return true
+        return .holdsRemoteFreeBlock(address)
+    }
 
+    // Walks the owner's list, so only the owning thread, or a caller that holds the page while no
+    // heap owns it, may ask.
+    mtd holdsOwnFreeBlock(address: u64)->bool
+    {
         var scan = .freeList
         while scan != 0
         {
-            if scan == wanted do
+            if scan == address do
                 return true
-            scan = (cast(*u64) .decode(scan))[]
+            scan = .nextFree(scan)
         }
-
-        .lockRemote()
-        scan = .remoteFree
-        while scan != 0
-        {
-            if scan == wanted
-            {
-                .unlockRemote()
-                return true
-            }
-
-            scan = (cast(*u64) .decode(scan))[]
-        }
-
-        .unlockRemote()
 
         return false
+    }
+
+    // Any thread may ask: producers only prepend, and the lock keeps the owner from detaching the
+    // list during the walk.
+    mtd holdsRemoteFreeBlock(address: u64)->bool
+    {
+        .lockRemote()
+        defer .unlockRemote()
+
+        var scan = atomicGet(&.remoteFree)
+        while scan != 0
+        {
+            if scan == address do
+                return true
+            scan = .nextFree(scan)
+        }
+
+        return false
+    }
+
+    // Reads the link a free block stores. A link that names no block of this page, other than
+    // the end of the list, means the block was overwritten after it was freed.
+    #[Swag.Inline]
+    mtd nextFree(block: u64)->u64
+    {
+        let next = .decode((cast(const *u64) block)[])
+        if next != 0 and not .isBlockAddress(next) do
+            allocatorCorruptedFreeList()
+        return next
+    }
+
+    // Reports whether a block's first word reads as a free-list link, which every free block
+    // holds. A live block holds it only by a one-in-billions coincidence of its data with the
+    // page key, so a match calls for a walk of the lists to tell a double free from that.
+    #[Swag.Inline]
+    mtd looksFree(address: u64)->bool
+    {
+        let next = .decode((cast(const *u64) address)[])
+        return next == 0 or .isBlockAddress(next)
     }
 
     #[Swag.Inline]
     mtd releaseBlock(address: u64)
     {
-        (cast(*u64) address)[] = .freeList
-        .freeList = .encode(address)
+        (cast(*u64) address)[] = .encode(.freeList)
+        .freeList = address
         Swag.assert(.used > 0)
         .used -= 1
     }
@@ -568,10 +612,11 @@ impl AllocatorSegment
 // Charges 'size' bytes to the idle budget, or reports that the budget has no room for them.
 func allocatorReserveIdle(size: u64)->bool
 {
+    let budget  = Swag.max(atomicGet(&g_AllocatorCommittedBytes) / 4, AllocatorIdleMinBytes)
     var current = atomicGet(&g_AllocatorIdleBytes)
     while true
     {
-        if current + size > AllocatorIdleMaxBytes do
+        if current + size > budget do
             return false
         let seen = Swag.atomcmpxchg(&g_AllocatorIdleBytes, current, current + size)
         if seen == current do
@@ -701,15 +746,16 @@ func allocatorReleaseSegment(segment: *AllocatorSegment)
 
 // Recovers the page owning an address, or null when the address did not come from a segment. Two
 // range tests and a shift replace every per-block header the old layout needed.
-#[Swag.Inline]
+#[Swag.Inline, Swag.Safety(.Overflow, false)]
 func allocatorPageOf(address: u64)->*AllocatorPage?
 {
     // Plain loads: the target is x86-64, where a store is visible to another core in program
     // order, and a caller that reached this address already synchronized with its producer.
+    // An address below an arena wraps to a huge offset, so one comparison bounds both ends.
     for i in g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[i]
-        if address < arena.base or address >= arena.used do
+        if address - arena.base >= arena.used - arena.base do
             continue
 
         let segment = cast(*AllocatorSegment) (address & ~(AllocatorSegmentSize - 1))

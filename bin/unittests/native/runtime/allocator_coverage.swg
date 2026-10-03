@@ -269,7 +269,7 @@ func freeOne(itf: IAllocator, address: *void?)
     freeOne(itf, second)
 
     // 'second' is now the head and its stored link must decode to 'first'.
-    Swag.assert(page.decode(page.freeList) == cast(u64) second)
+    Swag.assert(page.freeList == cast(u64) second)
     let storedLink = (cast(const *u64) second)[]
     Swag.assert(storedLink != cast(u64) first)
     Swag.assert(page.decode(storedLink) == cast(u64) first)
@@ -811,4 +811,59 @@ func freeOne(itf: IAllocator, address: *void?)
 
         alloc.releaseAll()
     }
+}
+
+// ----------------------------------------------------------------------------
+// A double free is caught wherever the block sits in the page's free list, not
+// only at its head: a free block reads as one from its first word, and the free
+// path then walks the list to confirm. A block handed out again no longer reads
+// as free, so freeing it once more is legal.
+// ----------------------------------------------------------------------------
+var g_DoubleFreePanics: u32
+
+func recordDoubleFreePanic(message: string?, _loc: SourceCodeLocation)
+{
+    if message == "memory block is freed twice" do
+        g_DoubleFreePanics += 1
+}
+
+// Frees a block through its integer address, which the static analysis does not follow: the
+// double frees below are the point of the test.
+func freeAddress(itf: IAllocator, address: u64)
+{
+    freeOne(itf, cast(*void) address)
+}
+
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    let first  = allocOne(itf, 64)
+    let second = allocOne(itf, 64)
+    let third  = allocOne(itf, 64)
+    freeOne(itf, first)
+    freeOne(itf, second)
+    freeOne(itf, third)
+
+    let cxt      = Swag.getContext()
+    let previous = cxt.panic
+    cxt.panic          = &recordDoubleFreePanic
+    g_DoubleFreePanics = 0
+    freeAddress(itf, cast(u64) first)
+    freeAddress(itf, cast(u64) second)
+    cxt.panic = previous
+    Swag.assert(g_DoubleFreePanics == 2)
+
+    // The lists are intact: the three blocks come back, and each can be freed again.
+    let again0 = allocOne(itf, 64)
+    let again1 = allocOne(itf, 64)
+    let again2 = allocOne(itf, 64)
+    Swag.assert(again0 == third and again1 == second and again2 == first)
+    freeOne(itf, again0)
+    freeOne(itf, again1)
+    freeOne(itf, again2)
+    Swag.assert(alloc.stats().countAlloc == 0)
+
+    alloc.releaseAll()
 }

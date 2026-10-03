@@ -51,8 +51,12 @@ struct AllocatorTracking
 struct AllocatorHeader
 {
     allocAddr: [*] void?
-    allocSize: u64
-    userSize:  u64
+
+    // Bytes reserved at 'allocAddr', and the leading part of them that is committed. Only a
+    // block of the cached path commits less than it reserves.
+    allocSize:  u64
+    commitSize: u64
+    userSize:   u64
     blockSize: u64
     prev:      *AllocatorHeader?
     next:      *AllocatorHeader?
@@ -380,6 +384,23 @@ impl Allocator
     // ###################################################################################
     // Operating system blocks, used by the header path and by the thread-heap records
     // ###################################################################################
+
+    // Reserves 'reserveSize' bytes and commits the first 'commitSize' of them.
+    mtd osAllocPartial(reserveSize: u64, commitSize: u64)->[*] u8?
+    {
+        let address = __hostPageReserve(reserveSize)
+        if not address do
+            return null
+        if not __hostPageCommit(address, commitSize)
+        {
+            __hostPageRelease(address, reserveSize)
+            return null
+        }
+
+        atomicAddU64(&g_AllocatorCommittedBytes, commitSize)
+        atomicAddU64(&g_AllocatorOsCommitCount, 1)
+        return address
+    }
 
     mtd osAlloc(size: u64)->[*] u8?
     {
@@ -830,7 +851,7 @@ impl Allocator
             Swag.assert(.quarantineBytes >= oldest.allocSize)
             .quarantineBytes -= oldest.allocSize
             .quarantineCount -= 1
-            .osFree(oldest.allocAddr, oldest.allocSize)
+            .osFree(oldest.allocAddr, oldest.commitSize)
         }
     }
 
@@ -852,8 +873,8 @@ impl Allocator
     // Serves the cached block that fits 'size' best, accepting up to twice the request: a cached
     // block is already committed and touched, so handing out a larger one costs no memory, while
     // a miss costs a reservation, a commit, and a page fault per page. Returns null when nothing
-    // fits, and the size of the block it returns in 'blockSize'.
-    mtd popCachedBlock(size: u64, blockSize: *u64)->[*] u8?
+    // fits, and the reserved and committed sizes of the block it returns.
+    mtd popCachedBlock(size: u64, blockSize: *u64, commitSize: *u64)->[*] u8?
     {
         if .cachedBlockCount == 0 do
             return null
@@ -891,9 +912,10 @@ impl Allocator
             (cast(*u64) bestPrev)[] = node[0]
         else do
             .firstCachedBlock = node[0]
-        .cachedBlockBytes -= bestSize
+        .cachedBlockBytes -= node[2]
         .cachedBlockCount -= 1
-        blockSize[] = bestSize
+        blockSize[]  = bestSize
+        commitSize[] = node[2]
         return cast([*] u8) best
     }
 
@@ -909,22 +931,24 @@ impl Allocator
 
     // Keeps a freed operating-system block committed for reuse. Beyond the budget the
     // oldest cached blocks go back to the operating system first, so the resident cost
-    // of the cache stays bounded whatever the churn.
-    mtd cacheFreedBlock(address: [*] void?, size: u64)
+    // of the cache stays bounded whatever the churn. The budget counts committed bytes.
+    // A cached block's first three words hold its list node: next address, reserved size,
+    // committed size.
+    mtd cacheFreedBlock(address: [*] void?, size: u64, committed: u64)
     {
         if not address do
             return
 
         let budget = .blockCacheBudget()
-        if size > budget
+        if committed > budget
         {
-            .osFree(cast(*void) address, size)
+            .osFree(cast(*void) address, committed)
             return
         }
 
         .mutex.lock()
         while .cachedBlockCount != 0 and
-              (.cachedBlockCount >= AllocatorBlockCacheMaxCount or .cachedBlockBytes + size > budget)
+              (.cachedBlockCount >= AllocatorBlockCacheMaxCount or .cachedBlockBytes + committed > budget)
         {
             var prev = 0'u64
             var scan = .firstCachedBlock
@@ -934,22 +958,23 @@ impl Allocator
                 scan = (cast(const *u64) scan)[]
             }
 
-            let node      = cast([*] u64) scan
-            let evictSize = node[1]
+            let node        = cast([*] u64) scan
+            let evictCommit = node[2]
             if prev do
                 (cast(*u64) prev)[] = 0
             else do
                 .firstCachedBlock = 0
-            .cachedBlockBytes -= evictSize
+            .cachedBlockBytes -= evictCommit
             .cachedBlockCount -= 1
-            .osFree(cast(*void) scan, evictSize)
+            .osFree(cast(*void) scan, evictCommit)
         }
 
         let node = cast([*] u64) address
         node[0]           = .firstCachedBlock
         node[1]           = size
+        node[2]           = committed
         .firstCachedBlock = cast(u64) address
-        .cachedBlockBytes += size
+        .cachedBlockBytes += committed
         .cachedBlockCount += 1
         .mutex.unlock()
     }
@@ -962,7 +987,7 @@ impl Allocator
         {
             let node = cast([*] u64) cached
             let next = node[0]
-            .osFree(cast(*void) cached, node[1])
+            .osFree(cast(*void) cached, node[2])
             cached = next
         }
 
@@ -992,8 +1017,9 @@ impl Allocator
             return
         }
 
-        var base:     [*] u8?
-        var userAddr: u64
+        var base:       [*] u8?
+        var userAddr:   u64
+        var commitSize: u64 = allocSize
 
         if .electricMode
         {
@@ -1004,14 +1030,35 @@ impl Allocator
         }
         else
         {
+            // The reservation is rounded so blocks of neighbouring sizes can share it, but only
+            // the pages the request reaches are committed; a cached block that committed fewer
+            // gets the missing pages committed here.
             if not .diagnosticMode()
             {
-                allocSize = largeBlockSize(allocSize)
-                base      = .popCachedBlock(allocSize, &allocSize)
-            }
+                let needed = allocSize
+                allocSize = largeBlockSize(needed)
+                base      = .popCachedBlock(allocSize, &allocSize, &commitSize)
+                if base and commitSize < needed
+                {
+                    if allocatorOsCommit(cast(u64) base + commitSize, needed - commitSize) do
+                        commitSize = needed
+                    else
+                    {
+                        .cacheFreedBlock(cast([*] void) base, allocSize, commitSize)
+                        base = null
+                    }
+                }
 
-            if not base do
+                if not base
+                {
+                    allocSize  = largeBlockSize(needed)
+                    commitSize = needed
+                    base       = .osAllocPartial(allocSize, commitSize)
+                }
+            }
+            else do
                 base = .osAlloc(allocSize)
+
             if base do
                 userAddr = memAlign(cast(u64) base + prefix, alignment)
         }
@@ -1025,6 +1072,7 @@ impl Allocator
         let header = .headerOf(userAddr)
         header.allocAddr  = cast([*] void) base
         header.allocSize  = allocSize
+        header.commitSize = commitSize
         header.userSize   = request.size
         header.blockSize  = blockSize
         header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking) base : null
@@ -1051,16 +1099,38 @@ impl Allocator
                 Swag.assert(false)
         }
 
-        // Outside the diagnostic modes the whole block past the header is usable, so a later
-        // reallocation that still fits only moves the footer.
+        // Outside the diagnostic modes the whole committed block past the header is usable, so
+        // a later reallocation that still fits only moves the footer.
         if not .diagnosticMode() and not .electricMode do
-            header.blockSize = cast(u64) base + allocSize - #sizeof(AllocatorFooter) - userAddr
+            header.blockSize = cast(u64) base + commitSize - #sizeof(AllocatorFooter) - userAddr
 
         atomicAddU64(&.headerCount, 1)
         atomicAddU64(&.headerBytes, header.blockSize)
         .linkAllocated(header)
 
         request.address = cast(*void) userAddr
+    }
+
+    // Commits enough of the block's reservation for 'size' bytes of payload, when it has room.
+    // On failure the block is left as it was and the caller moves the data.
+    mtd growHeaderBlock(header: *AllocatorHeader, size: u64)
+    {
+        let base     = cast(u64) header.allocAddr
+        let userAddr = cast(u64) .userAddress(header)
+        let room     = base + header.allocSize - userAddr
+        if size > room or room - size < #sizeof(AllocatorFooter) do
+            return
+
+        let commitEnd = memAlign(userAddr + size + #sizeof(AllocatorFooter) - base, cast(u32) AllocatorCommitGranularity)
+        if commitEnd <= header.commitSize do
+            return
+        if not allocatorOsCommit(base + header.commitSize, commitEnd - header.commitSize) do
+            return
+
+        let blockSize = base + commitEnd - #sizeof(AllocatorFooter) - userAddr
+        atomicAddU64(&.headerBytes, blockSize - header.blockSize)
+        header.commitSize = commitEnd
+        header.blockSize  = blockSize
     }
 
     mtd freeHeaderBlock(address: u64, callerLoc: SourceCodeLocation)
@@ -1084,7 +1154,7 @@ impl Allocator
         if .diagnosticMode() do
             .quarantine(header)
         else do
-            .cacheFreedBlock(header.allocAddr, header.allocSize)
+            .cacheFreedBlock(header.allocAddr, header.allocSize, header.commitSize)
     }
 
     // ###################################################################################
@@ -1095,11 +1165,23 @@ impl Allocator
     // on the calling thread's current page for that class. Returns zero whenever anything else
     // has to happen; the general path then repeats every check and handles it.
     // A zero size wraps to the largest value, so one comparison rejects it with the sizes no class
-    // carries.
+    // carries. Every class but the 8-byte one is 16-byte aligned, so an alignment up to 16 only
+    // moves the smallest requests one class up.
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
-    mtd allocateFast(size: u64)->u64
+    mtd allocateFast(size: u64, alignment: u32)->u64
     {
         if size - 1 >= AllocatorMaxClassSize do
+            return 0
+
+        var classIndex = sizeClass(size)
+        if alignment > 8
+        {
+            if alignment != AllocatorPagePathAlignment do
+                return 0
+            if classIndex == 0 do
+                classIndex = 1
+        }
+        elif alignment & (alignment - 1) do
             return 0
 
         let heap = fastThreadHeap()
@@ -1108,7 +1190,7 @@ impl Allocator
         if heap.allocator != me do
             return 0
 
-        let page = heap.classes[sizeClass(size)].page
+        let page = heap.classes[classIndex].page
         if not page do
             return 0
 
@@ -1255,6 +1337,11 @@ impl Allocator
             .checkAllocated(oldHeader, request.callerLoc)
             oldBlockSize = oldHeader.blockSize
             oldCopySize  = oldHeader.userSize
+
+            // Growing past the committed end of a block whose reservation still covers the request
+            // commits the next pages in place instead of moving the data.
+            if request.size > oldHeader.blockSize and request.alignment <= oldHeader.alignment and not .diagnosticMode() and not oldHeader.isElectric do
+                .growHeaderBlock(oldHeader, request.size)
 
             // Growing inside the block the header already covers only moves the footer.
             if request.size <= oldHeader.blockSize and request.alignment <= oldHeader.alignment and not oldHeader.isElectric
@@ -1545,7 +1632,7 @@ impl Allocator
         {
             let header = .firstQuarantine
             .firstQuarantine = header.next
-            .osFree(header.allocAddr, header.allocSize)
+            .osFree(header.allocAddr, header.commitSize)
         }
 
         .lastQuarantine  = null
@@ -1556,14 +1643,14 @@ impl Allocator
         {
             let header = .firstAlloc
             .unlinkAllocated(header)
-            .osFree(header.allocAddr, header.allocSize)
+            .osFree(header.allocAddr, header.commitSize)
         }
 
         while .firstUntracked
         {
             let header = .firstUntracked
             .unlinkAllocated(header)
-            .osFree(header.allocAddr, header.allocSize)
+            .osFree(header.allocAddr, header.commitSize)
         }
 
         // The callers hold the mutex.
@@ -1696,9 +1783,9 @@ impl IAllocator for Allocator
 
     mtd impl alloc(request: *AllocatorRequest)
     {
-        if not .slowPath and request.alignment == 0
+        if not .slowPath
         {
-            let block = .allocateFast(request.size)
+            let block = .allocateFast(request.size, request.alignment)
             if block != 0
             {
                 request.address = cast(*void) block

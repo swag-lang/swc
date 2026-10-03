@@ -32,6 +32,7 @@ use a quiet machine: the multi-thread workloads move with scheduling.
 | `large` | 32 live blocks of 64 KiB to 1 MiB, replaced at random, one byte touched per 4 KiB |
 | `realloc` | a buffer doubled from 16 bytes to 4 MiB by reallocation, 2 000 times |
 | `spread` | ten live blocks of each of twelve sizes, as a long-running application holds them |
+| `grow` | four million 32-byte blocks allocated before any is freed: live-set growth |
 | `xfer` | producer/consumer pairs: one thread allocates, the other frees every block |
 
 `name:N` runs a workload on N threads, each with its own live set (N pairs for `xfer`).

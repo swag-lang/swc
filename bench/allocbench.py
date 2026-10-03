@@ -23,8 +23,8 @@ HERE = os.path.join(tc.BENCH, "allocator")
 IMPLEMENTATIONS = ("swag", "mimalloc", "crt")
 
 # 'name' runs on one thread, 'name:N' on N threads (N producer/consumer pairs for xfer).
-WORKLOADS = ["pair", "trees", "churn", "medium", "large", "realloc", "spread", "spread:8",
-             "churn:4", "medium:4", "large:4", "xfer:2", "xfer:4"]
+WORKLOADS = ["pair", "trees", "churn", "medium", "large", "realloc", "spread", "grow",
+             "spread:8", "churn:4", "medium:4", "large:4", "xfer:2", "xfer:4"]
 REPS = 5
 
 PAT = re.compile(r"ns/op=([\d.]+)")

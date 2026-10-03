@@ -151,6 +151,20 @@ static uint64_t run(int workload, uint64_t seed)
         }
         return operations;
     }
+    case 8:
+    {
+        const uint64_t count     = 4000000;
+        char**         addresses = (char**)ALLOC(count * sizeof(char*));
+        for (uint64_t i = 0; i < count; i++)
+        {
+            addresses[i]    = (char*)ALLOC(32);
+            addresses[i][0] = 1;
+        }
+        for (uint64_t i = 0; i < count; i++)
+            FREE(addresses[i]);
+        FREE(addresses);
+        return count * 2;
+    }
     case 6:
     {
         char* addresses[120];
@@ -225,9 +239,9 @@ static DWORD WINAPI threadEntry(void* param)
 
 int main(int argc, char** argv)
 {
-    static const char* names[] = {"pair", "trees", "churn", "medium", "large", "realloc", "spread", "xfer"};
+    static const char* names[] = {"pair", "trees", "churn", "medium", "large", "realloc", "spread", "xfer", "grow"};
     int                workload = -1;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 9; i++)
     {
         if (argc > 1 && !strcmp(argv[1], names[i]))
             workload = i;
@@ -236,7 +250,7 @@ int main(int argc, char** argv)
     int threads = argc > 2 ? atoi(argv[2]) : 1;
     if (workload < 0 || threads < 1 || threads > 16)
     {
-        printf("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|xfer> [threads 1-16]\n");
+        printf("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer> [threads 1-16]\n");
         return 0;
     }
 

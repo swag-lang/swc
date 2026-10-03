@@ -154,9 +154,10 @@ machine's drift, where two minimums taken minutes apart do not.
 The execution phase also measures the Swag runtime allocator against the vendored
 [mimalloc](../src/Support/Memory/mimalloc/readme.md), compiled with MSVC `/O2`, and against the C
 runtime heap. One Swag program, `allocator/src/allocbench.swg`, and one C program,
-`allocator/src/allocbench.c`, run the same thirteen workloads: one block allocated and freed,
+`allocator/src/allocbench.c`, run the same fourteen workloads: one block allocated and freed,
 binary trees, a 50 000-block mixed-size churn, 4-64 KiB and 64 KiB-1 MiB live sets, buffers
-doubled by reallocation, a few live blocks of many sizes, the churns again on four threads, and
+doubled by reallocation, a few live blocks of many sizes, a live set growing to four million
+blocks, the churns again on four threads, and
 producer/consumer pairs whose frees are all remote. The Swag program allocates through
 `Memory.alloc` and `Memory.free`, the path ordinary code takes, so its time includes the
 context lookup and the interface call; its peak working set includes the `core` module it

@@ -59,6 +59,112 @@ alone. Comparative reference points for that investigation:
 | [TCMalloc](https://google.github.io/tcmalloc/design.html) | Per-CPU caches, batched transfers and a hugepage-aware backend are useful architectural reference points. Its [per-CPU restartable sequences](https://google.github.io/tcmalloc/rseq.html) use Linux facilities, so this is not a direct Windows backend comparison. |
 | [Scudo](https://llvm.org/docs/ScudoHardenedAllocator.html) and [hardened_malloc](https://github.com/GrapheneOS/hardened_malloc) | Hardening reference points for state/integrity checks, metadata isolation, randomization and quarantine. Features differ by allocator and configuration; do not imply all protections are enabled by default or provide complete memory safety. |
 
+### runtime.allocator.010 — Decide what the security properties are, and write them down
+
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-10-03 08:56 — Writes into the start of a freed block are reported when it is handed out again.
+- Free-list heads are plain addresses in the page metadata and every stored link is keyed, the
+  end of a list included, and a block handed out has its first word cleared. A free block
+  therefore reads as one from its first word: `looksFree` tests it on every free, and only a
+  match (a live block matches by coincidence about once in 2^40 frees) walks the lists. The
+  owner checks its own and the remote list, another thread the remote list. The A, B, A
+  sequence that used to create a cycle now panics with "memory block is freed twice"
+  (`allocator_coverage.swg`); a panic hook that resumes leaves the lists intact. Corrupted
+  links are still rejected at pop and collect time, and every check runs in both presets.
+- A free block of sixteen bytes or more carries a canary derived from the page key in its second
+  word, checked when the block is handed out again: a write through a stale pointer into the
+  first sixteen bytes panics with "memory block was written after being freed" (2-3% on the
+  micro-benchmarks). Writes further into the payload, and into 8-byte blocks, are not seen.
+- Not covered: a block freed by its owner and freed again by another thread while it sits on the
+  owner's list (only the remote list is safe to walk from another thread); a free of a block on an
+  abandoned page.
+- Electric placement rounds the starting address down for alignment. With alignment 16 and
+  size 129, the payload ends 15 bytes before the guard; a one-byte overflow remains accessible.
+  Electric blocks have no footer. Decide how alignment, exact-bound checking and guard placement
+  compose, and test non-multiple sizes explicitly.
+- `quarantine` never evicts in electric mode, so freed addresses are not reused before teardown,
+  but their payload stays committed/readable/writable. Retention can grow without a byte limit.
+  Stale-read interception is already owned by compiler.safety.004; retaining an address is not
+  interception. Ordinary page allocations also reuse memory without stale-access instrumentation.
+- `fillFree` writes a pattern, but `checkFree` checks only header/footer magic. It does not scan
+  the freed payload for later writes. `fillMemory` alone does not enable diagnostic mode or
+  quarantine.
+- Elsewhere: mimalloc secure mode adds protections such as randomized allocation and encoded
+  lists; Scudo checks allocation state/header integrity; hardened_malloc offers isolated metadata,
+  canaries, randomization and quarantine according to configuration.
+- Next: aligned guard slack and write-after-free inside the payload; choose the supported
+  guarantees, then make comments and public documentation distinguish detection, mitigation,
+  optional diagnostics and unsupported cases.
+- Complete when: every claimed guarantee has a focused regression and accurate documentation,
+  with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
+- Related: compiler.safety.004, runtime.allocator.001.
+
+### runtime.allocator.016 — Avoid repeated scans of full pages during live-set growth
+
+- Recorded: 2026-09-11 16:29
+- Updated: 2026-10-03 08:56 — Measured with the new `grow` workload: about 2 ns of 17 per operation at four million blocks.
+- Evidence: `allocator.swg::acquireBlockSlow` walks the class list from its beginning once the
+  current page is exhausted, revisiting full pages and collecting their remote lists before
+  acquiring a new page, so filling P pages costs O(P squared) page visits. `bench/allocator`
+  `grow` (four million live 32-byte blocks, about 1 950 pages of one class) runs at 17.3 ns per
+  operation against 6.2 ns for mimalloc and 29.6 ns for the C heap; the scans account for
+  roughly 2 ns of it there, and grow with the square of the live set beyond.
+- A full-page queue alone is not enough: a remote free into a queued page must bring it back
+  without the remote thread touching the owning heap, which can retire at any time. Page
+  metadata outlives heaps, so an allocator-wide lock-free stack of pages to revisit (pushed by
+  the remote free that finds a page marked full, drained by the owners' slow paths) is the
+  candidate that keeps that invariant.
+- Next: implement the full queue with local-free return and that revisit stack; measure `grow`
+  at 4 M and 40 M blocks and the xfer workloads.
+- Complete when: growth no longer repeatedly scans all full pages, with measured scaling and
+  regressions for remote returns, page retirement and adoption.
+- Related: runtime.allocator.001, runtime.allocator.002, runtime.allocator.004.
+
+### runtime.allocator.005 — Scale the large-block cache with threads
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-03 08:56 — Alignments up to 64 bytes are now served from pages; the large-block cache's single lock remains.
+- Header-path blocks are reserved at one of eight sizes per power of two and commit only what the
+  request reaches; freed ones go to a best-fit cache (up to twice the request) indexed in the
+  allocator, a cached block that committed less gets the missing pages, and a reallocation inside
+  the reservation commits in place. `bench/allocator` large (32 live 64 KiB-1 MiB blocks):
+  137 µs -> 2.0 µs per operation (mimalloc 1.5 µs) at 44 MB peak working set against 71 MB;
+  four threads 73.5 µs -> 1.1-1.4 µs (mimalloc 0.67 µs at 250 MB); realloc growth to 4 MiB
+  17.1 -> 11.9 µs per step (mimalloc 10.4 µs).
+- A request aligned on 32 or 64 bytes now moves to the smallest class whose size is a multiple of
+  the alignment and comes from pages (200 000 pairs of 256 bytes aligned on 64: 0.77 s -> 0.06 s).
+  Only alignments beyond 64 take the header path.
+- Remaining: every header-path allocation and free takes the header-list mutex and the cache
+  mutex. Four threads cycling large buffers still run half as fast as mimalloc, which keeps
+  almost twice the memory.
+- Next: measure a small per-thread front for the cache, and a header list that does not need the
+  allocator-wide lock outside the diagnostic modes.
+- Complete when: four threads cycling large buffers are within the parity gate of
+  runtime.allocator.001 without more retained memory than mimalloc.
+- Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006
+
+### runtime.allocator.003 — Return idle memory without being asked
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-03 08:56 — trim() now decommits idle pages in every segment, not only in emptied ones.
+- An emptied page now returns to its segment still committed while the process-wide idle budget
+  allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
+  system call; past the budget it is decommitted. `trim()` decommits the idle pages of every
+  segment, teardown those of the segments it releases, and `trim()` also gives the large-block
+  cache back. The cache's budget follows the bytes held
+  live through the header path (at least 16 MiB, at most 256 MiB, 64 entries).
+- Measured on `bench/allocator` medium (256 live 4-64 KiB blocks): 213 -> 51 ns per operation,
+  peak working set 11.8 -> 19.8 MB (mimalloc 36.5 ns, 19.2 MB). A 2 MiB / one-eighth budget
+  brings the working set back to 13.4 MB and the time back to 242 ns: the budget is the trade.
+- Still open: nothing purges without a call. A program that bursts and then idles keeps up to the
+  idle budget plus the cache budget until it trims or exits; an inactive live owner keeps its
+  remotely returned blocks uncollected.
+- Next: decide whether a time-based purge on the slow paths is worth its cost, or document that
+  bound as the contract; measure burst/idle with an owner kept alive.
+- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
+  idle/trim behavior and documented bounds.
+- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
+
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
@@ -120,83 +226,6 @@ alone. Comparative reference points for that investigation:
   gate, with application time, latency tails, retention, build settings and measurement limits
   recorded.
 
-### runtime.allocator.010 — Decide what the security properties are, and write them down
-
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-10-03 08:24 — Double frees are caught anywhere in a page's lists, local and remote, at no measurable cost.
-- Free-list heads are plain addresses in the page metadata and every stored link is keyed, the
-  end of a list included, and a block handed out has its first word cleared. A free block
-  therefore reads as one from its first word: `looksFree` tests it on every free, and only a
-  match (a live block matches by coincidence about once in 2^40 frees) walks the lists. The
-  owner checks its own and the remote list, another thread the remote list. The A, B, A
-  sequence that used to create a cycle now panics with "memory block is freed twice"
-  (`allocator_coverage.swg`); a panic hook that resumes leaves the lists intact. Corrupted
-  links are still rejected at pop and collect time, and every check runs in both presets.
-- Not covered: a block freed by its owner and freed again by another thread while it sits on the
-  owner's list (only the remote list is safe to walk from another thread); a free of a block on an
-  abandoned page.
-- Electric placement rounds the starting address down for alignment. With alignment 16 and
-  size 129, the payload ends 15 bytes before the guard; a one-byte overflow remains accessible.
-  Electric blocks have no footer. Decide how alignment, exact-bound checking and guard placement
-  compose, and test non-multiple sizes explicitly.
-- `quarantine` never evicts in electric mode, so freed addresses are not reused before teardown,
-  but their payload stays committed/readable/writable. Retention can grow without a byte limit.
-  Stale-read interception is already owned by compiler.safety.004; retaining an address is not
-  interception. Ordinary page allocations also reuse memory without stale-access instrumentation.
-- `fillFree` writes a pattern, but `checkFree` checks only header/footer magic. It does not scan
-  the freed payload for later writes. `fillMemory` alone does not enable diagnostic mode or
-  quarantine.
-- Elsewhere: mimalloc secure mode adds protections such as randomized allocation and encoded
-  lists; Scudo checks allocation state/header integrity; hardened_malloc offers isolated metadata,
-  canaries, randomization and quarantine according to configuration.
-- Next: aligned guard slack and write-after-free inside the payload; choose the supported
-  guarantees, then make comments and public documentation distinguish detection, mitigation,
-  optional diagnostics and unsupported cases.
-- Complete when: every claimed guarantee has a focused regression and accurate documentation,
-  with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
-- Related: compiler.safety.004, runtime.allocator.001.
-
-### runtime.allocator.003 — Return idle memory without being asked
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-03 08:24 — Emptied pages stay committed within a process-wide budget; trim() drains the large-block cache.
-- An emptied page now returns to its segment still committed while the process-wide idle budget
-  allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
-  system call; past the budget it is decommitted. `trim()` and teardown decommit idle pages, and
-  `trim()` now also gives the large-block cache back. The cache's budget follows the bytes held
-  live through the header path (at least 16 MiB, at most 256 MiB, 64 entries).
-- Measured on `bench/allocator` medium (256 live 4-64 KiB blocks): 213 -> 51 ns per operation,
-  peak working set 11.8 -> 19.8 MB (mimalloc 36.5 ns, 19.2 MB). A 2 MiB / one-eighth budget
-  brings the working set back to 13.4 MB and the time back to 242 ns: the budget is the trade.
-- Still open: nothing purges without a call. A program that bursts and then idles keeps up to the
-  idle budget plus the cache budget until it trims or exits; an inactive live owner keeps its
-  remotely returned blocks uncollected.
-- Next: decide whether a time-based purge on the slow paths is worth its cost, or document that
-  bound as the contract; measure burst/idle with an owner kept alive.
-- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
-  idle/trim behavior and documented bounds.
-- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
-
-### runtime.allocator.005 — Serve small over-aligned requests from pages
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-03 08:24 — Blocks above 64 KiB now reuse cached reservations; only over-aligned small requests remain.
-- Header-path blocks are reserved at one of eight sizes per power of two and commit only what the
-  request reaches; freed ones go to a best-fit cache (up to twice the request) indexed in the
-  allocator, a cached block that committed less gets the missing pages, and a reallocation inside
-  the reservation commits in place. `bench/allocator` large (32 live 64 KiB-1 MiB blocks):
-  137 µs -> 2.0 µs per operation (mimalloc 1.5 µs) at 44 MB peak working set against 71 MB;
-  four threads 73.5 µs -> 1.4 µs (mimalloc 0.67 µs at 250 MB); realloc growth to 4 MiB
-  17.1 -> 11.9 µs per step (mimalloc 10.4 µs).
-- Remaining: alignment above 16 bytes still bypasses pages, so a 256-byte payload aligned to 64
-  takes its own reservation and system calls. The cache is one mutex per allocator; four threads
-  still run half as fast as mimalloc on large blocks.
-- Next: give 32/64-byte alignments a page path (aligned classes or aligned carving), and measure
-  a per-thread front for the large-block cache.
-- Complete when: aligned small requests no longer reach the system, with alignment regressions,
-  and the large-block cache scales with threads.
-- Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006
-
 ### runtime.allocator.017 — Medium pages commit all eight units for their first block
 
 - Recorded: 2026-09-29 16:26
@@ -236,21 +265,6 @@ medium tier is separated. Benchmark large growth and release independently of si
 - Related: runtime.allocator.001, runtime.allocator.005
 
 - Complete when: The huge-allocation threshold and reserve/commit/release policy are documented and tested, and isolated large-growth and release benchmarks report latency and memory retention separately from size-class caching.
-
-### runtime.allocator.016 — Avoid repeated scans of full pages during live-set growth
-
-- Recorded: 2026-09-11 16:29
-- Evidence: static review of `allocator.swg::acquireBlockSlow`. Once the current page is exhausted,
-  allocation walks the class list from its beginning, revisiting full pages and collecting remote
-  lists before acquiring a new page. If old pages remain full, filling P pages can accumulate
-  O(P squared) page visits. Segment acquisition also scans segment lists under `segmentMutex`.
-  This is a complexity finding; its application-time impact has not been measured.
-- Next: add same-class monotonically growing live sets and partially freed variants to the common
-  benchmark, count visits and measure p99. Evaluate separate full/available page queues or another
-  bounded search policy while retaining remote-free discovery and abandoned-page adoption.
-- Complete when: growth no longer repeatedly scans all full pages, with measured scaling and
-  regressions for remote returns, page retirement and adoption.
-- Related: runtime.allocator.001, runtime.allocator.002, runtime.allocator.004.
 
 ### runtime.allocator.007 — Tune size classes from traces rather than from the table
 

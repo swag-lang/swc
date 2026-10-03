@@ -1510,47 +1510,38 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
     std::vector<RematRecipe> remat(virtualCount);
     {
-        struct DefinitionSite
-        {
-            uint32_t count     = 0;
-            uint32_t lastIndex = 0;
-        };
-        std::vector<DefinitionSite> definitions(virtualCount);
+        // Liveness already counted these definitions. The interval walk has
+        // not changed them, so record only their positions, directly in the recipes.
         for (uint32_t idx = 0; idx < instructionCount_; ++idx)
         {
             for (const uint32_t denseIndex : defVirtualIndices_[idx])
-            {
-                DefinitionSite& site = definitions[denseIndex];
-                ++site.count;
-                site.lastIndex = idx;
-            }
+                remat[denseIndex].defIndex = idx;
         }
-        std::unordered_map<uint32_t, const MicroRelocation*> relocationByInstruction;
-        bool relocationsIndexed = false;
+        std::optional<std::unordered_map<uint32_t, const MicroRelocation*>> relocationByInstruction;
         // Only relocation-backed rematerializations need this function-wide index.
         const auto findRelocation = [&](const MicroInstrRef ref) -> const MicroRelocation* {
-            if (!relocationsIndexed)
+            if (!relocationByInstruction)
             {
+                relocationByInstruction.emplace();
                 for (const MicroRelocation& relocation : context_->builder->codeRelocations())
                 {
                     if (relocation.instructionRef.isValid())
-                        relocationByInstruction[relocation.instructionRef.get()] = &relocation;
+                        (*relocationByInstruction)[relocation.instructionRef.get()] = &relocation;
                 }
-                relocationsIndexed = true;
             }
-            const auto found = relocationByInstruction.find(ref.get());
-            return found == relocationByInstruction.end() ? nullptr : found->second;
+            const auto found = relocationByInstruction->find(ref.get());
+            return found == relocationByInstruction->end() ? nullptr : found->second;
         };
         for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         {
-            if (definitions[denseIndex].count != 1)
+            if (definitionCounts_[denseIndex] != 1)
                 continue;
-            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[definitions[denseIndex].lastIndex];
+            RematRecipe&             recipe = remat[denseIndex];
+            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[recipe.defIndex];
             const MicroInstr*        inst   = instructions_->ptr(defRef);
             const MicroInstrOperand* ops    = inst ? inst->ops(*operands_) : nullptr;
             if (!ops || ops[0].reg != virtualRegs[denseIndex])
                 continue;
-            RematRecipe& recipe = remat[denseIndex];
             switch (inst->op)
             {
                 case MicroInstrOpcode::LoadRegImm:
@@ -1656,7 +1647,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             RematRecipe& recipe = remat[denseIndex];
             if (!recipe.valid)
                 continue;
-            recipe.defIndex             = definitions[denseIndex].lastIndex;
             const LiveInterval* defNode = locate(denseIndex, recipe.defIndex * 2 + 1);
             if (!defNode || !defNode->usePositions.empty())
                 continue;

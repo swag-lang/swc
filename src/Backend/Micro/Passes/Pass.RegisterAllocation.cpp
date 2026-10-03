@@ -679,13 +679,14 @@ void MicroRegisterAllocationPass::computeConcreteClaimPositions()
     if (denseConcreteRegs_.regs().empty())
         return;
 
-    // Ascending instruction indices and adjacent duplicate suppression keep
+    // Use lists are already unique. Only definitions and live-in positions
+    // can repeat an earlier claim at this instruction. Ascending indices keep
     // every register's positions strictly ordered without a separate sort.
     const uint32_t wordCount = denseConcreteRegs_.wordCount();
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
         for (const uint32_t denseIndex : useConcreteIndices_[idx])
-            appendUniquePosition(concreteClaimPositionsByDenseIndex_[denseIndex], idx);
+            concreteClaimPositionsByDenseIndex_[denseIndex].push_back(idx);
         for (const uint32_t denseIndex : defConcreteIndices_[idx])
             appendUniquePosition(concreteClaimPositionsByDenseIndex_[denseIndex], idx);
 
@@ -2192,12 +2193,13 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             states_[denseIndex].wideFloat = true;
     }
 
+    // Each instruction's use lists are unique; a definition can repeat a use.
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
         for (const uint32_t denseIndex : useVirtualIndices_[idx])
         {
             SWC_ASSERT(denseIndex < usePositionsByDenseVirtual_.size());
-            appendUniquePosition(usePositionsByDenseVirtual_[denseIndex], idx);
+            usePositionsByDenseVirtual_[denseIndex].push_back(idx);
         }
 
         for (const uint32_t denseIndex : defVirtualIndices_[idx])
@@ -2209,7 +2211,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         for (const uint32_t denseIndex : useConcreteIndices_[idx])
         {
             SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
-            appendUniquePosition(concreteTouchPositionsByDenseIndex_[denseIndex], idx);
+            concreteTouchPositionsByDenseIndex_[denseIndex].push_back(idx);
         }
 
         for (const uint32_t denseIndex : defConcreteIndices_[idx])

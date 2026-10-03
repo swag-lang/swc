@@ -121,8 +121,9 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
         Swag.assert(allocator.stats().sizeCommitted == before)
         itf.freeAll(&request)
         Swag.assert(allocator.stats().sizeCommitted == before)
+        // Beyond a cache line, a small request still takes the header path.
         request.size      = 8
-        request.alignment = 64
+        request.alignment = 128
         itf.alloc(&request)
         Swag.assert(request.address != null)
         itf.freeAll(&request)

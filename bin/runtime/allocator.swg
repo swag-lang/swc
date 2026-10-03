@@ -22,8 +22,11 @@ const AllocatorMediumFirstClass = 33'u32
 const AllocatorMaxClassSize     = 65536'u64
 
 // Blocks of class 1 and above are a multiple of 16 bytes and start on a 16-byte boundary, so the
-// page path already satisfies any alignment up to that. Anything stricter takes the header path.
+// page path already satisfies any alignment up to that. Up to a cache line, a stricter alignment
+// moves the request to a class whose size is a multiple of it; anything stricter takes the header
+// path.
 const AllocatorPagePathAlignment = 16'u32
+const AllocatorPageAlignmentMax  = 64'u32
 
 // Bounds of the committed cache of freed header-path blocks. The budget between the two byte
 // bounds follows the bytes held live through the header path.
@@ -325,6 +328,23 @@ impl Allocator
         let bucket = 63 - cast(u32) Swag.bitCountLz(value)
         let step   = cast(u32) ((value >> (bucket - 2)) & 3)
         return 9 + (bucket - 7) * 4 + step
+    }
+
+    // A block starts at its page's block area, which is aligned on the commit granularity, plus a
+    // multiple of its class size. A class whose size is a multiple of 'alignment' therefore aligns
+    // every one of its blocks. Returns the smallest such class from 'index' up, or an invalid class
+    // when none is left below the page-path limit.
+    func alignedClass(index: u32, alignment: u32)->u32
+    {
+        var candidate = index
+        while candidate < AllocatorClassCount
+        {
+            if (classSize(candidate) & (cast(u64) alignment - 1)) == 0 do
+                return candidate
+            candidate += 1
+        }
+
+        return AllocatorInvalidClass
     }
 
     func classUnitShift(index: u32)->u32 => index >= AllocatorMediumFirstClass ? AllocatorMediumUnitShift : AllocatorSmallUnitShift
@@ -1228,7 +1248,8 @@ impl Allocator
     }
 
     // A page-path block needs no header, so a request only leaves that path when it asks for more
-    // than a page can carve, for a stricter alignment, or while a diagnostic mode is recording.
+    // than a page can carve, for an alignment beyond a cache line, or while a diagnostic mode is
+    // recording.
     #[Swag.Inline]
     mtd usesHeaderPath(request: *AllocatorRequest, classIndex: u32)->bool
     {
@@ -1236,7 +1257,7 @@ impl Allocator
             return true
         if classIndex == AllocatorInvalidClass do
             return true
-        return request.alignment > AllocatorPagePathAlignment
+        return request.alignment > AllocatorPageAlignmentMax
     }
 
     mtd allocate(request: *AllocatorRequest)
@@ -1260,6 +1281,8 @@ impl Allocator
         // The 8-byte class is the only one that is not 16-byte aligned.
         if classIndex == 0 and request.alignment > 8 do
             classIndex = 1
+        if request.alignment > AllocatorPagePathAlignment and request.alignment <= AllocatorPageAlignmentMax and classIndex != AllocatorInvalidClass do
+            classIndex = alignedClass(classIndex, request.alignment)
 
         if .usesHeaderPath(request, classIndex)
         {
@@ -1349,7 +1372,7 @@ impl Allocator
 
         // A page block keeps its address whenever the request still fits its class, which is what
         // makes a growing buffer stop calling the operating system.
-        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPagePathAlignment and (request.alignment == 0 or (oldAddress & (cast(u64) request.alignment - 1)) == 0) and not .diagnosticMode()
+        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPageAlignmentMax and (request.alignment == 0 or (oldAddress & (cast(u64) request.alignment - 1)) == 0) and not .diagnosticMode()
         {
             request.address = cast(*void) oldAddress
             return

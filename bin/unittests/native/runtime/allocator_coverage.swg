@@ -1000,3 +1000,35 @@ func writeAt(address: u64, value: u64)
     freeOne(itf, third)
     alloc.releaseAll()
 }
+
+// ----------------------------------------------------------------------------
+// Alignments up to a cache line are served from pages, by a class whose size is
+// a multiple of the alignment; a stricter one still takes the header path.
+// ----------------------------------------------------------------------------
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    for alignment in [32'u32, 64]
+    {
+        for size in [1'u64, 24, 33, 100, 200, 1000, 5000, 40000]
+        {
+            let address = allocOne(itf, size, alignment)
+            Swag.assert(address != null)
+            Swag.assert((cast(u64) address & (cast(u64) alignment - 1)) == 0)
+            let page = allocatorPageOf(cast(u64) address)
+            Swag.assert(page != null)
+            Swag.assert(page.blockSize >= size and page.blockSize % alignment == 0)
+            freeOne(itf, address)
+        }
+    }
+
+    let strict = allocOne(itf, 100, 128)
+    Swag.assert(strict != null and (cast(u64) strict & 127) == 0)
+    Swag.assert(allocatorPageOf(cast(u64) strict) == null)
+    freeOne(itf, strict)
+
+    Swag.assert(alloc.stats().countAlloc == 0)
+    alloc.releaseAll()
+}

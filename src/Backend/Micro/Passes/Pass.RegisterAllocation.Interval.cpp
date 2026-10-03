@@ -647,8 +647,8 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // with nextUsePos; splitting instead of whole-value eviction. Pure
     // analysis - nothing here mutates the function.
     std::vector<LiveInterval> fixed;
-    SmallVector<MicroReg>     poolRegs;
-    buildFixedIntervals(fixed, poolRegs);
+    buildFixedIntervals(fixed, out.poolRegs);
+    const auto& poolRegs = out.poolRegs;
 
     out.nodes = std::move(intervals);
 
@@ -675,7 +675,6 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // Per-register ownership among active/inactive is tracked through the
     // node's assignedReg; fixed intervals are consulted by pool index.
     const size_t poolCount = poolRegs.size();
-    out.poolRegs           = poolRegs;
 
     // The debug local-stack base lives in the register the ABI keeps outside
     // both pools for it, for its whole life and never split, exactly as
@@ -2521,7 +2520,7 @@ bool MicroRegisterAllocationPass::runIntervalAllocation()
     // What the later sweeps need from the first: the registers a scratch may
     // borrow around when nothing is free, and the debug local-stack base.
     context_->intervalAllocated  = true;
-    context_->globalReservedRegs = result.poolRegs;
+    context_->globalReservedRegs = std::move(result.poolRegs);
     if (result.debugStackBasePhys.isValid())
         context_->debugStackBasePhysReg = result.debugStackBasePhys;
 

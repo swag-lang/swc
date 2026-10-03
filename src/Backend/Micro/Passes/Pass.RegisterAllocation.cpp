@@ -3925,9 +3925,6 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 if (!reg.isVirtual())
                     continue;
 
-                if (!containsKey(protectedKeys, reg))
-                    protectedKeys.push_back(reg);
-
                 AllocRequest* existing = nullptr;
                 for (auto& request : allocRequests)
                 {
@@ -3940,6 +3937,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
                 if (!existing)
                 {
+                    protectedKeys.push_back(reg);
                     auto& request            = allocRequests.emplace_back();
                     request.virtReg          = reg;
                     request.virtKey          = reg;
@@ -3961,10 +3959,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             const auto& vregsForPairs = denseVirtualRegs_.regs();
             for (const LoopResidency& residency : activeLoopResidency_)
             {
-                bool isBackEdge = false;
-                for (const uint32_t backEdge : residency.backEdges)
-                    isBackEdge = isBackEdge || backEdge == idx;
-                if (!isBackEdge)
+                if (std::ranges::find(residency.backEdges, idx) == residency.backEdges.end())
                     continue;
                 for (const auto& [expectedDense, expectedPhys] : residency.expected)
                     appendUniqueReg(protectedKeys, vregsForPairs[expectedDense]);
@@ -3973,28 +3968,23 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         for (auto& request : allocRequests)
         {
-            if (!instOps || !request.isDef || request.isUse)
-                continue;
-            if (!isRegisterCopyLike(it->op) || instOps[0].reg != request.virtKey)
-                continue;
+            if (instOps && request.isDef && !request.isUse && isRegisterCopyLike(it->op) && instOps[0].reg == request.virtKey)
+            {
+                const MicroReg srcReg = instOps[1].reg;
+                if (request.virtKey.isSameClass(srcReg))
+                {
+                    if (srcReg.isVirtual())
+                        request.transferSource = srcReg;
+                    else if (srcReg.isInt() || srcReg.isFloat())
+                        request.preferredPhysReg = srcReg;
+                }
+            }
 
-            const MicroReg srcReg = instOps[1].reg;
-            if (!request.virtKey.isSameClass(srcReg))
-                continue;
-
-            if (srcReg.isVirtual())
-                request.transferSource = srcReg;
-            else if (srcReg.isInt() || srcReg.isFloat())
-                request.preferredPhysReg = srcReg;
-        }
-
-        // Failing anything better, put a value back where the last edge left it. The two arms of
-        // a diamond otherwise pick freely, the join finds them disagreeing and drops the mapping,
-        // and the value both arms just computed goes to memory and comes back. A value that a
-        // copy can keep in its source register is left alone: outranking that transfer was
-        // measured to change nothing, so the cheaper rule stands.
-        for (auto& request : allocRequests)
-        {
+            // Failing anything better, put a value back where the last edge left it. The two arms of
+            // a diamond otherwise pick freely, the join finds them disagreeing and drops the mapping,
+            // and the value both arms just computed goes to memory and comes back. A value that a
+            // copy can keep in its source register is left alone: outranking that transfer was
+            // measured to change nothing, so the cheaper rule stands.
             if (request.preferredPhysReg.isValid() || request.transferSource.isValid())
                 continue;
             const uint32_t denseIndex = denseVirtualIndex(request.virtKey);

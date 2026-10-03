@@ -45,6 +45,13 @@ namespace
         // meets it, instead of every function walking its own body a second time.
         static constexpr uint32_t K_NO_FUNCTION = UINT32_MAX;
 
+        enum class InlineConstraint : uint8_t
+        {
+            None,
+            BlockedCall,
+            Cycle,
+        };
+
         uint32_t addFunction(const Ast& ast, const AstFunctionDecl& decl)
         {
             if (decl.tokNameRef.isInvalid())
@@ -70,12 +77,6 @@ namespace
                 if (indices_[i] == UINT32_MAX)
                     connect(i);
             }
-        }
-
-        bool isCyclic(const std::string_view name) const
-        {
-            const auto it = nameIndices_.find(name);
-            return it != nameIndices_.end() && cyclic_[it->second];
         }
 
         void findBlockedCalls(const std::unordered_set<std::string_view>& metaNames, const std::unordered_set<std::string_view>* unsupportedNames)
@@ -106,12 +107,15 @@ namespace
             }
         }
 
-        bool callsBlockedFunction(const std::string_view name) const
+        InlineConstraint inlineConstraint(const std::string_view name) const
         {
-            if (blockedCalls_.empty())
-                return false;
             const auto it = nameIndices_.find(name);
-            return it != nameIndices_.end() && (blockedCalls_[it->second] & BLOCKED_CALLER);
+            if (it == nameIndices_.end())
+                return InlineConstraint::None;
+            // A blocked call leaves the existing flags alone, even when its caller is cyclic.
+            if (!blockedCalls_.empty() && (blockedCalls_[it->second] & BLOCKED_CALLER))
+                return InlineConstraint::BlockedCall;
+            return cyclic_[it->second] ? InlineConstraint::Cycle : InlineConstraint::None;
         }
 
     private:
@@ -334,12 +338,16 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             // callee owns a closure, local function, error-management scope, or another construct
             // the parser already rejected, moving the wrapper merely hides the same unsupported
             // materialization one call deeper.
-            if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.callsBlockedFunction(name))
-                continue;
-            if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.isCyclic(name))
+            if (bodyHasCall && callGraphIt != callGraphs.end())
             {
-                mutableDecl->flags().remove(AstFunctionFlagsE::AutoInlineBody);
-                continue;
+                const auto constraint = callGraphIt->second.inlineConstraint(name);
+                if (constraint == AutoInlineCallGraph::InlineConstraint::BlockedCall)
+                    continue;
+                if (constraint == AutoInlineCallGraph::InlineConstraint::Cycle)
+                {
+                    mutableDecl->flags().remove(AstFunctionFlagsE::AutoInlineBody);
+                    continue;
+                }
             }
 
             const auto it               = callCounts.find(name);

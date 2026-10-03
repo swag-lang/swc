@@ -1350,12 +1350,11 @@ void CodeGen::pushDeferScope(AstNodeRef scopeRef, AstNodeRef breakOwnerRef, AstN
     if (switchCaseRef.isValid())
         switchCaseRef = resolvedNodeRef(switchCaseRef);
 
-    CodeGenDeferScope deferScope;
+    auto& deferScope         = deferScopes_.emplace_back();
     deferScope.scopeRef      = scopeRef;
     deferScope.breakOwnerRef = breakOwnerRef;
     deferScope.switchCaseRef = switchCaseRef;
     deferScope.entryRef      = builder().instructions().lastInstructionRef();
-    deferScopes_.push_back(std::move(deferScope));
 }
 
 void CodeGen::initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar)

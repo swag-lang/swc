@@ -3127,10 +3127,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         if (hasConcreteTouchInRange(reg, lo, hi))
             continue;
 
-        bool alreadyBorrowed = false;
-        for (const BorrowRestore& restore : pendingBorrowRestores_)
-            alreadyBorrowed = alreadyBorrowed || restore.physReg == reg;
-        if (alreadyBorrowed)
+        if (std::ranges::find(pendingBorrowRestores_, reg, &BorrowRestore::physReg) != pendingBorrowRestores_.end())
             continue;
 
         const MicroOpBits bits     = isFloat ? MicroOpBits::B128 : MicroOpBits::B64;
@@ -4233,8 +4230,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             bool fallsThrough = false;
             if (keepAcrossBoundaries_ && controlFlowGraph_)
             {
-                for (const uint32_t succIdx : controlFlowGraph_->successors(idx))
-                    fallsThrough = fallsThrough || succIdx == idx + 1;
+                const auto& successors = controlFlowGraph_->successors(idx);
+                fallsThrough = std::ranges::find(successors, idx + 1) != successors.end();
             }
 
             if (!fallsThrough)

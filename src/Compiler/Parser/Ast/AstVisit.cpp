@@ -36,9 +36,7 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     stack_.clear();
     children_.clear();
 
-    Frame fr;
-    resetFrame(fr, root);
-    stack_.push_back(fr);
+    resetFrame(stack_.emplace_back(), root);
 }
 
 void AstVisit::restartCurrentNode(AstNodeRef nodeRef)
@@ -209,13 +207,12 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
             continue;
         }
 
-        Frame childFrame;
-        resetFrame(childFrame, childRef);
         frame.nextChildIx++;
         frame.pendingPostChild = true;
         frame.postChildState   = Frame::CallState::NotCalled;
         frame.preChildState    = Frame::CallState::NotCalled;
-        stack_.push_back(childFrame);
+        // Finish parent updates before growth can invalidate its reference.
+        resetFrame(stack_.emplace_back(), childRef);
 
         return AstVisitResult::Continue;
     }

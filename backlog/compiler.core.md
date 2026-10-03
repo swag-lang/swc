@@ -42,6 +42,58 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: the source of the different prologues is explained and corrected at its
   owning boundary, with stable normalized output and the affected native tests green.
 
+### compiler.core.075 — Aligned node references collapse semantic metadata partitions
+
+- Recorded: 2026-10-03 16:28
+- Evidence: `NodePayload` selects each of its 16 shards with `nodeRef.get() % 16`.
+  The reference contains an AST byte offset aligned to at least eight bytes, so only
+  two shards can receive payload storage or side-table entries. Readers of a sparse
+  side table also lose most of the intended empty-shard early exits.
+- Experiment: replacing all 22 selectors with `Math::hash(nodeRef.get()) % 16`
+  passed concurrent publication/readback coverage, both JIT suites, and semantic
+  tests; all 116 benchmark functions retained identical normalized pre-emit code.
+  Five paired six-worker Release rebuilds increased peak committed memory by a
+  median 17% on `core` and 3% on `gui`. Wall-time medians moved by +3% and -6%,
+  respectively, on a machine with substantial background-load variation. A quieter
+  single-worker pair also made `core` about 6% slower. The change was not retained:
+  distributing every file's small payloads over more 16 KiB pages has a definite
+  cost, without a sufficiently clear overall compilation-time win.
+- Next: separate sparse side-table distribution from payload-page allocation, or
+  reduce initial storage without reducing the supported contiguous symbol-list
+  size. Compare one-worker and parallel rebuilds on both modules under stable load.
+- Complete when: the partitioning improvement has concurrent read/write coverage
+  and a measured compilation-time benefit with its memory cost explicitly bounded.
+
+### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
+
+- Recorded: 2026-09-30 08:32
+- Updated: 2026-10-03 15:03 — Removed the cached invoker and constant-target query costs.
+- Area: compiler/JIT, compile-time execution, compilation time
+- Evidence: read from the code while the 2026-09-30 prompt-4 run removed the neighbouring costs (a
+  JIT order is now revalidated by the call-graph epochs of its own closure instead of being walked
+  again whenever any function gains a call edge; the referenced global-init offsets are gathered
+  as a list). None of the following was measured in that run; each is a count of work per call.
+  - `patchConstantFunctionRelocationsRec` walks the whole constant closure of each constant a
+    patched function names, once per function, taking the allocation lock and the relocation lock
+    and filling a fresh relocation vector for every allocation it visits. The walk the semantic
+    side makes over the same graph (`collectConstantJitTargets`) remembers an allocation per
+    relocation version; this one remembers nothing between functions.
+  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
+    memo keys on the count of semantically completed symbols, which moves for as long as sema
+    runs, so during that whole phase each call rescans every forwarding edge not yet applied -
+    and an edge whose callee never frees its parameter is never applied. A worklist keyed by
+    callee would touch an edge only when its callee's mask or either end's completion moves.
+  - `JIT::patchGlobalFunctionVariables` copies the module's whole global-variable list under a
+    lock and scans it on every compile-time call, to patch the few function-initialized globals the
+    running call graph references.
+- Next: measure the remaining allocation and relocation walks on a `gui` release rebuild.
+  Before remembering patched allocations across functions, preserve deferred-function registration
+  and the `Pause` path; a memo must account for both.
+- Complete when: each item is either removed with a test of compile-time execution behind it, or
+  recorded as measured and not worth its risk.
+- Related: compiler.core.056, compiler.core.030.
+
+
 ### compiler.core.072 — Link preparation lowers the native image on one thread
 
 - Recorded: 2026-10-01 14:25
@@ -254,48 +306,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: both files retain their error state and attributable diagnostics in ordinary and
   one-line output, with source expectation checking independent of job order and worker count.
 
-### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
-
-- Recorded: 2026-09-30 08:32
-- Updated: 2026-09-30 10:22 — remove the scheduler costs resolved by the dependency-indexed job loop
-- Area: compiler/JIT, compile-time execution, compilation time
-- Evidence: read from the code while the 2026-09-30 prompt-4 run removed the neighbouring costs (a
-  JIT order is now revalidated by the call-graph epochs of its own closure instead of being walked
-  again whenever any function gains a call edge; the referenced global-init offsets are gathered
-  as a list). None of the following was measured in that run; each is a count of work per call.
-  - `JIT::emitAndCall` builds a `MicroBuilder`, runs the micro pipeline over an invoker thunk,
-    allocates executable memory, flips its protection and registers unwind information for
-    **every** compile-time call, then throws all of it away. The thunk differs between calls only
-    by the target address and the argument values it bakes in as immediates.
-  - `patchConstantFunctionRelocationsRec` walks the whole constant closure of each constant a
-    patched function names, once per function, taking the allocation lock and the relocation lock
-    and filling a fresh relocation vector for every allocation it visits. The walk the semantic
-    side makes over the same graph (`collectConstantJitTargets`) remembers an allocation per
-    relocation version; this one remembers nothing between functions.
-  - `hasUnpublishedFunctionConstants` (`SemaJIT.cpp`) runs for every constant-call fold, after
-    the callee is prepared: it gathers the constant relocations of every function in the callee's
-    JIT order and hands them to `ConstantManager::hasUnpublishedFunctionRelocations`, which walks
-    the union of their constant closures with a lock, a binary search, a relocation copy and a
-    hash node per allocation. The per-function target lists `constantJitTargetsOf` already caches
-    hold the same function targets for the relocations that carry a constant source; the verdict
-    "nothing unpublished" also only changes when the closure does, since a JIT entry is never
-    withdrawn during a build.
-  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
-    memo keys on the count of semantically completed symbols, which moves for as long as sema
-    runs, so during that whole phase each call rescans every forwarding edge not yet applied -
-    and an edge whose callee never frees its parameter is never applied. A worklist keyed by
-    callee would touch an edge only when its callee's mask or either end's completion moves.
-  - `JIT::patchGlobalFunctionVariables` copies the module's whole global-variable list under a
-    lock and scans it on every compile-time call, to patch the few function-initialized globals the
-    running call graph references.
-- Next: measure the first item on the `gui` release rebuild (14 617 compile-time calls on
-  2026-09-16), since it is the only one with a fixed cost per call; an invoker that reads its
-  arguments from a block instead of baking them in can be lowered once per signature shape.
-  For the second, decide whether a patched allocation can be remembered across functions: the
-  deferred-function registration and the `Pause` path are what a memo has to keep exact.
-- Complete when: each item is either removed with a test of compile-time execution behind it, or
-  recorded as measured and not worth its risk.
-- Related: compiler.core.056, compiler.core.030.
 
 ### compiler.core.007 — Workspace front ends and code generation run serially
 

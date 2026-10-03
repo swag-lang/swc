@@ -47,12 +47,32 @@ bool MicroSsaState::isTrackedReg(const MicroReg reg)
 
 void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
 {
-    resetForBuild(storage);
-
     const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
     const auto                   instructionRefs  = controlFlowGraph.instructionRefs();
     const bool                   reuseBlocks      = blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() &&
                              instructionRefs_.size() == instructionRefs.size();
+    // SSA depends on instruction order, control flow and register use/def, not on
+    // the operation or immediate that computes a value. An operand-only rewrite
+    // can invalidate the analysis without changing any of those inputs.
+    if (reuseBlocks && storage_ == &storage)
+    {
+        bool reuseValues = true;
+        for (const MicroInstrRef instRef : instructionRefs_)
+        {
+            if (!updateUseDef(instrInfos_[instRef.get()], *storage.ptr(instRef), operands, encoder, true))
+            {
+                reuseValues = false;
+                break;
+            }
+        }
+        if (reuseValues)
+        {
+            valid_ = true;
+            return;
+        }
+    }
+
+    resetForBuild(storage);
     if (!reuseBlocks)
         instructionRefs_.assign(instructionRefs.begin(), instructionRefs.end());
     if (liveInstructionSlots_.size() < storage.slotCount())
@@ -80,34 +100,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         const MicroInstr* inst = storage.ptr(instRef);
         SWC_ASSERT(inst != nullptr);
 
-        // Reuse the cached use/def when this slot still holds an instruction with the
-        // same opcode and operand words as the previous build; otherwise recompute and
-        // refresh the cache. See InstrInfo for why this key is sound.
-        const MicroInstrOperand* ops         = inst->ops(operands);
-        const uint8_t            numOperands = inst->numOperands;
-        bool                     reuseUseDef = info.useDefCacheEpoch == useDefCacheEpoch_ && info.cachedOp == inst->op && info.cachedOperandWords.size() == numOperands;
-        if (reuseUseDef)
-        {
-            for (uint8_t i = 0; i < numOperands; ++i)
-            {
-                if (info.cachedOperandWords[i] != ops[i].valueU64)
-                {
-                    reuseUseDef = false;
-                    break;
-                }
-            }
-        }
-
-        if (!reuseUseDef)
-        {
-            inst->collectUseDef(info.useDef, operands, encoder);
-
-            info.cachedOp         = inst->op;
-            info.useDefCacheEpoch = useDefCacheEpoch_;
-            info.cachedOperandWords.clear();
-            for (uint8_t i = 0; i < numOperands; ++i)
-                info.cachedOperandWords.push_back(ops[i].valueU64);
-        }
+        updateUseDef(info, *inst, operands, encoder, false);
 
         for (const MicroReg reg : info.useDef.defs)
         {
@@ -152,6 +145,46 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
     renameIntoSsa();
 
     valid_ = true;
+}
+
+bool MicroSsaState::updateUseDef(InstrInfo& info, const MicroInstr& inst, const MicroOperandStorage& operands, const Encoder* encoder, const bool comparePrevious)
+{
+    const MicroInstrOperand* ops         = inst.ops(operands);
+    const uint8_t            numOperands = inst.numOperands;
+    bool                     reuseUseDef = info.useDefCacheEpoch == useDefCacheEpoch_ && info.cachedOp == inst.op && info.cachedOperandWords.size() == numOperands;
+    if (reuseUseDef)
+    {
+        for (uint8_t i = 0; i < numOperands; ++i)
+        {
+            if (info.cachedOperandWords[i] != ops[i].valueU64)
+            {
+                reuseUseDef = false;
+                break;
+            }
+        }
+    }
+    if (reuseUseDef)
+        return true;
+
+    bool unchanged = false;
+    if (comparePrevious)
+    {
+        MicroInstrUseDef useDef;
+        inst.collectUseDef(useDef, operands, encoder);
+        unchanged = info.useDefCacheEpoch == useDefCacheEpoch_ &&
+                    info.useDef.isCall == useDef.isCall && info.useDef.callConv == useDef.callConv &&
+                    std::ranges::equal(info.useDef.uses, useDef.uses) && std::ranges::equal(info.useDef.defs, useDef.defs);
+        info.useDef = std::move(useDef);
+    }
+    else
+        inst.collectUseDef(info.useDef, operands, encoder);
+
+    info.cachedOp         = inst.op;
+    info.useDefCacheEpoch = useDefCacheEpoch_;
+    info.cachedOperandWords.clear();
+    for (uint8_t i = 0; i < numOperands; ++i)
+        info.cachedOperandWords.push_back(ops[i].valueU64);
+    return unchanged;
 }
 
 const MicroSsaState* MicroSsaState::ensureFor(const MicroPassContext& context, MicroSsaState& localState)

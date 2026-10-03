@@ -155,6 +155,7 @@ private:
 
     static bool isTrackedReg(MicroReg reg);
 
+    bool            updateUseDef(InstrInfo& info, const MicroInstr& inst, const MicroOperandStorage& operands, const Encoder* encoder, bool comparePrevious);
     void            resetForBuild(MicroStorage& storage);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
     bool            computeDominators(bool acyclic); // true when any dominance frontier exists

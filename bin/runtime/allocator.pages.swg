@@ -224,6 +224,12 @@ func allocatorCorruptedFreeList()
     Swag.panic("allocator free list is corrupted", #curlocation)
 }
 
+#[Swag.NoInline]
+func allocatorFreedBlockWritten()
+{
+    Swag.panic("memory block was written after being freed", #curlocation)
+}
+
 impl AllocatorPage
 {
     // The block area of page 'index', which starts after the segment header for the first page.
@@ -364,6 +370,7 @@ impl AllocatorPage
     // belongs to the pusher until the exchange publishes it, so writing its link needs no lock.
     mtd pushRemote(address: u64)
     {
+        .markFree(address)
         var head = atomicGet(&.remoteFree)
         while true
         {
@@ -383,6 +390,7 @@ impl AllocatorPage
         let block = .freeList
         if block != 0
         {
+            .checkStillFree(block)
             .freeList = .nextFree(block)
             .used     += 1
 
@@ -471,9 +479,29 @@ impl AllocatorPage
         return next - .areaStart < .areaEnd - .areaStart
     }
 
+    // A free block of sixteen bytes or more carries a canary in its second word, derived from
+    // the page key. Handing the block out again checks it, so a write through a pointer kept
+    // past its free that reaches the start of the block - where an object's fields begin - is
+    // reported instead of silently corrupting the next owner's data. The 8-byte class has no
+    // room for it.
+    #[Swag.Inline]
+    mtd markFree(address: u64)
+    {
+        if .blockSize >= 16 do
+            (cast(*u64) (address + 8))[] = ~.key
+    }
+
+    #[Swag.Inline]
+    mtd checkStillFree(block: u64)
+    {
+        if .blockSize >= 16 and (cast(const *u64) (block + 8))[] != ~.key do
+            allocatorFreedBlockWritten()
+    }
+
     #[Swag.Inline]
     mtd releaseBlock(address: u64)
     {
+        .markFree(address)
         (cast(*u64) address)[] = .encode(.freeList)
         .freeList = address
         Swag.assert(.used > 0)

@@ -954,3 +954,49 @@ func freeAddress(itf: IAllocator, address: u64)
     Swag.assert(alloc.cachedBlockBytes == 0)
     alloc.releaseAll()
 }
+
+// ----------------------------------------------------------------------------
+// A write through a pointer kept past its free, at the start of the block, is
+// reported when the block is handed out again.
+// ----------------------------------------------------------------------------
+var g_FreedWritePanics: u32
+
+func recordFreedWritePanic(message: string?, _loc: SourceCodeLocation)
+{
+    if message == "memory block was written after being freed" do
+        g_FreedWritePanics += 1
+}
+
+// Writes through an integer address, which the static analysis does not follow: the write
+// after free is the point of the test.
+func writeAt(address: u64, value: u64)
+{
+    (cast(*u64) address)[] = value
+}
+
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    let block = allocOne(itf, 48)
+    freeOne(itf, block)
+    writeAt(cast(u64) block + 8, 0x1234)
+
+    let cxt      = Swag.getContext()
+    let previous = cxt.panic
+    cxt.panic         = &recordFreedWritePanic
+    g_FreedWritePanics = 0
+    let again = allocOne(itf, 48)
+    cxt.panic = previous
+    Swag.assert(g_FreedWritePanics == 1)
+    Swag.assert(again == block)
+
+    // A block written only while it is live is handed out again without a report.
+    (cast([*] u8) again!)[47] = 1
+    freeOne(itf, again)
+    let third = allocOne(itf, 48)
+    Swag.assert(third == block)
+    freeOne(itf, third)
+    alloc.releaseAll()
+}

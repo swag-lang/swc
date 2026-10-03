@@ -113,6 +113,54 @@ namespace PostRaPeephole
                     return false;
             }
         }
+
+        // The bits one of the producers above leaves defined in its
+        // destination: 8 or 16 for a byte or word write, which keeps the rest
+        // of the register; 32 for a value whose upper half is clear; 64 for
+        // the whole register.
+        uint32_t producerWrittenBits(const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::SetCondReg:
+                    return 8;
+                case MicroInstrOpcode::LoadRegPtrImm:
+                case MicroInstrOpcode::LoadRegPtrReloc:
+                    return getNumBits(ops[1].opBits);
+                case MicroInstrOpcode::LoadRegImm:
+                    if (ops[1].opBits == MicroOpBits::B64 && !ops[2].hasWideImmediateValue() && ops[2].valueU64 <= UINT32_MAX)
+                        return 32;
+                    return getNumBits(ops[1].opBits);
+                case MicroInstrOpcode::LoadZeroExtRegReg:
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                    if (ops[2].opBits == MicroOpBits::B64 && getNumBits(ops[3].opBits) <= 32)
+                        return 32;
+                    return getNumBits(ops[2].opBits);
+                default:
+                    return getNumBits(ops[2].opBits);
+            }
+        }
+
+        // Whether writing the producer's result straight into the copy's
+        // destination leaves there what the copy would have. A 32-bit copy
+        // clears the upper half, so it renames only a value whose upper half
+        // is already clear; a byte or word copy keeps the rest of its
+        // destination, so it renames only a write of the same width, which
+        // keeps it too; a byte or word producer keeps the rest of its own
+        // register, which a wider copy would have carried over.
+        bool copyRenamesProducer(const MicroInstr& producer, const MicroInstrOperand* producerOps, const MicroOpBits copyBits)
+        {
+            const uint32_t written = producerWrittenBits(producer, producerOps);
+            switch (copyBits)
+            {
+                case MicroOpBits::B64:
+                    return written >= 32;
+                case MicroOpBits::B32:
+                    return written == 32;
+                default:
+                    return written == getNumBits(copyBits);
+            }
+        }
     }
 
     // A copy whose destination already holds exactly what it is about to be
@@ -3534,6 +3582,8 @@ namespace PostRaPeephole
         if (prevUseDef.defs.size() != 1 || prevUseDef.defs[0] != src)
             return false;
         if (prevOps[0].reg != src)
+            return false;
+        if (!copyRenamesProducer(*prev, prevOps, copyOps[2].opBits))
             return false;
 
         if (!regDeadAfter(ctx, copyRef, src))

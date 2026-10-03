@@ -2884,6 +2884,116 @@ SWC_TEST_BEGIN(PostRAPeephole_DwordCopyOfWideValue_NotForwardedToWideReader)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // Retargeting the producer of a copy at the copy's destination is only a
+    // rename when the producer writes exactly the bits the copy moves: a
+    // 32-bit copy clears the upper half, a byte or word copy keeps the rest of
+    // its destination, and a byte or word producer keeps the rest of its own.
+    // `rcx` is the base, `r9` the producer's register, and the copy's is the
+    // return register, which the return reads whole.
+    struct ForwardWidthCase
+    {
+        MicroOpBits producerBits;
+        MicroOpBits copyBits;
+        bool        destinationLive;
+    };
+
+    void emitForwardWidthCase(MicroBuilder& builder, const ForwardWidthCase& shape)
+    {
+        constexpr MicroReg rcx = MicroReg::intReg(2);
+        constexpr MicroReg r9  = MicroReg::intReg(9);
+        const MicroReg     rax = CallConv::get(CallConvKind::Swag).intReturn;
+        if (shape.destinationLive)
+            builder.emitLoadRegMem(rax, rcx, 16, MicroOpBits::B64);
+        if (shape.producerBits == MicroOpBits::B8 || shape.producerBits == MicroOpBits::B16)
+            builder.emitLoadRegMem(r9, rcx, 24, MicroOpBits::B64);
+        builder.emitLoadRegMem(r9, rcx, 0, shape.producerBits);
+        builder.emitLoadRegReg(rax, r9, shape.copyBits);
+        // The forward needs r9 to die after the copy, which the linear scan
+        // only sees at a redefinition.
+        builder.emitLoadRegImm(r9, ApInt(uint64_t{1}, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(rcx, 8, r9, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    // Whether the load at offset 0 now writes the copy's destination at `bits`.
+    bool loadsIntoCopyDestination(const MicroBuilder& builder, MicroOpBits bits)
+    {
+        const MicroReg rax = CallConv::get(CallConvKind::Swag).intReturn;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[0].reg == rax && ops[3].valueU64 == 0 && ops[2].opBits == bits)
+                return true;
+        }
+        return false;
+    }
+}
+
+// mov r9, [rcx] ; mov eax, r9d: the copy drops the upper half the load wrote.
+// `mov rax, [rcx]` would return all of it.
+SWC_TEST_BEGIN(PostRAPeephole_DwordCopyOfQwordLoad_NotRetargeted)
+{
+    MicroBuilder builder(ctx);
+    emitForwardWidthCase(builder, {.producerBits = MicroOpBits::B64, .copyBits = MicroOpBits::B32, .destinationLive = false});
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (loadsIntoCopyDestination(builder, MicroOpBits::B64))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// mov r9, [rcx] ; mov al, r9b: the copy keeps the upper bytes rax already
+// held. `mov rax, [rcx]` would replace them.
+SWC_TEST_BEGIN(PostRAPeephole_ByteCopyOfQwordLoad_NotRetargeted)
+{
+    MicroBuilder builder(ctx);
+    emitForwardWidthCase(builder, {.producerBits = MicroOpBits::B64, .copyBits = MicroOpBits::B8, .destinationLive = true});
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (loadsIntoCopyDestination(builder, MicroOpBits::B64))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// mov r9b, [rcx] ; mov rax, r9: the copy takes the upper bytes r9 held
+// before the load. `mov al, [rcx]` would keep those of rax instead.
+SWC_TEST_BEGIN(PostRAPeephole_QwordCopyOfByteLoad_NotRetargeted)
+{
+    MicroBuilder builder(ctx);
+    emitForwardWidthCase(builder, {.producerBits = MicroOpBits::B8, .copyBits = MicroOpBits::B64, .destinationLive = true});
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (loadsIntoCopyDestination(builder, MicroOpBits::B8))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The same widths on both sides are a rename: a 32-bit load copied at 32
+// bits, a byte load copied as a byte, a qword copied whole.
+SWC_TEST_BEGIN(PostRAPeephole_MatchingWidthCopies_Retargeted)
+{
+    const ForwardWidthCase shapes[] = {
+        {.producerBits = MicroOpBits::B32, .copyBits = MicroOpBits::B32, .destinationLive = false},
+        {.producerBits = MicroOpBits::B8, .copyBits = MicroOpBits::B8, .destinationLive = true},
+        {.producerBits = MicroOpBits::B64, .copyBits = MicroOpBits::B64, .destinationLive = false},
+    };
+    for (const ForwardWidthCase& shape : shapes)
+    {
+        MicroBuilder builder(ctx);
+        emitForwardWidthCase(builder, shape);
+        SWC_RESULT(runPostRaPeepholePass(builder));
+        if (!loadsIntoCopyDestination(builder, shape.producerBits))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A byte copy feeding a byte extension: the extension reads the source.
 SWC_TEST_BEGIN(PostRAPeephole_ByteCopyForwardsIntoByteExtend)
 {

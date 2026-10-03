@@ -73,6 +73,81 @@ SWC_TEST_BEGIN(InductionVariable_CountsDefinitionsAndUsesForCarriedSums)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InductionVariable_CarriesAddressesWithUnencodableScales)
+{
+    // `p = &[base + i * 56 + 8]`: no addressing mode or lea pair scales by
+    // 56, so the address costs a multiply on every trip. It is carried
+    // instead: the address becomes a copy of a register stepped by 56, and
+    // the counter, read by nothing else, dies with its step. Scales the
+    // address arithmetic or a shift computes stay (8, 24 = 3 * 8, 16), and
+    // so does a counter stepped by a register.
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        constexpr MicroReg induction = MicroReg::virtualIntReg(1);
+        constexpr MicroReg base      = MicroReg::virtualIntReg(2);
+        constexpr MicroReg count     = MicroReg::virtualIntReg(3);
+        constexpr MicroReg address   = MicroReg::virtualIntReg(4);
+        constexpr MicroReg step      = MicroReg::virtualIntReg(5);
+        const uint64_t     scale     = variant == 1 ? 8 : variant == 3 ? 24 : variant == 4 ? 16 : 56;
+        const MicroReg     sp        = CallConv::get(CallConvKind::Swag).stackPointer;
+        MicroBuilder       builder(ctx);
+        const auto         header = builder.createLabel();
+        builder.emitLoadRegImm(induction, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(step, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, base, induction, scale, 8, MicroOpBits::B64);
+        const auto addressRef = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(sp, 0x40, address, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitOpBinaryRegReg(induction, step, MicroOp::Add, MicroOpBits::B64);
+        else
+            builder.emitOpBinaryRegImm(induction, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        const auto stepRef = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, header);
+        builder.emitRet();
+
+        MicroPassContext passContext;
+        passContext.builder      = &builder;
+        passContext.instructions = &builder.instructions();
+        passContext.operands     = &builder.operands();
+        passContext.callConvKind = CallConvKind::Swag;
+        MicroInductionVariablePass pass;
+        SWC_RESULT(pass.run(passContext));
+
+        const auto* addressInst = builder.instructions().ptr(addressRef);
+        if (variant != 0)
+        {
+            if (!addressInst || addressInst->op != MicroInstrOpcode::LoadAddrAmcRegMem || !builder.instructions().ptr(stepRef))
+                return Result::Error;
+            continue;
+        }
+
+        if (!addressInst || addressInst->op != MicroInstrOpcode::LoadRegReg || builder.instructions().ptr(stepRef))
+            return Result::Error;
+        const MicroReg carrier       = addressInst->ops(builder.operands())[1].reg;
+        uint32_t       carrierSteps  = 0;
+        uint32_t       carrierScales = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op != MicroInstrOpcode::OpBinaryRegImm || ops[0].reg != carrier)
+                continue;
+            if (ops[2].microOp == MicroOp::Add && ops[3].valueU64 == 56)
+                ++carrierSteps;
+            if (ops[2].microOp == MicroOp::MultiplySigned && ops[3].valueU64 == 56)
+                ++carrierScales;
+        }
+        if (carrierSteps != 1 || carrierScales != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InductionVariable_ProductsKeepPriorityWhenCarrierIsRejected)
 {
     // Without a product both sums can be carried. An accepted product takes

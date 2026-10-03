@@ -193,7 +193,7 @@ Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadN
     if (storageTypeRef.isInvalid())
         return Result::Continue;
 
-    auto& storageSym = getOrCreateRuntimeStorageSymbol(sema, payloadNodeRef, storageNode, privateName);
+    auto& storageSym = getOrCreateRuntimeStorageSymbol(sema, payloadNodeRef, storageNode, storageTypeRef, privateName);
     SWC_RESULT(ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, storageTypeRef));
     return Result::Continue;
 }
@@ -428,7 +428,7 @@ Result SemaHelpers::attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNod
     return attachRuntimeStorageIfNeeded(sema, node, literalView.typeRef(), "__literal_runtime_storage");
 }
 
-SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, std::string_view privateName)
+SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName)
 {
     auto& payload = ensureCodeGenLoweringPayload(sema, payloadNodeRef);
     if (payload.runtimeStorageSym != nullptr)
@@ -440,8 +440,15 @@ SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNode
         return *boundStorage;
     }
 
-    auto& sym                 = registerUniqueRuntimeStorageSymbol(sema, storageNode, privateName);
-    payload.runtimeStorageSym = &sym;
+    if (payload.registeredRuntimeStorageSym && payload.registeredRuntimeStorageSym->typeRef() == storageTypeRef)
+    {
+        payload.runtimeStorageSym = payload.registeredRuntimeStorageSym;
+        return *payload.runtimeStorageSym;
+    }
+
+    auto& sym                           = registerUniqueRuntimeStorageSymbol(sema, storageNode, privateName);
+    payload.runtimeStorageSym           = &sym;
+    payload.registeredRuntimeStorageSym = &sym;
     return sym;
 }
 

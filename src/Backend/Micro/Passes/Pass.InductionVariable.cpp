@@ -98,7 +98,7 @@ namespace
     {
         CopyThenOp,   // `mov t, a` followed by the destructive op on t
         ThreeOperand, // `t = a op b`
-        AddressOfSum, // `t = &[a + b + disp]`
+        AddressOfSum, // `t = &[a + b * scale + disp]`
     };
 
     // One product or sum of an induction found in the body.
@@ -112,6 +112,7 @@ namespace
         bool          isSum              = false;
         MicroReg      otherReg           = MicroReg::invalid(); // the invariant stride or base; invalid for an immediate stride
         uint64_t      otherImm           = 0;                   // the immediate stride, or the sum's displacement
+        uint64_t      scale              = 1;                   // what a sum multiplies the induction by
         MicroOp       mulOp              = MicroOp::MultiplySigned;
         MicroInstrRef copyOfInductionRef = MicroInstrRef::invalid(); // a sum's copy of the induction, erased with the sum
     };
@@ -124,12 +125,13 @@ namespace
         bool     isSum       = false;
         MicroReg otherReg    = MicroReg::invalid();
         uint64_t otherImm    = 0;
+        uint64_t scale       = 1;
     };
 
     bool sameFamily(const Carrier& carrier, const Candidate& candidate)
     {
         return carrier.inductionIx == candidate.inductionIx && carrier.isSum == candidate.isSum &&
-               carrier.otherReg == candidate.otherReg && carrier.otherImm == candidate.otherImm;
+               carrier.otherReg == candidate.otherReg && carrier.otherImm == candidate.otherImm && carrier.scale == candidate.scale;
     }
 
     MicroInstrOperand regOperand(const MicroReg reg)
@@ -587,12 +589,31 @@ namespace
                 {
                     // ops: [0] dst, [1] base, [2] index, [3] opBitsDst, [4] opBitsValue, [5] mul, [6] add
                     bits = ops[3].opBits;
-                    if (!ops[0].reg.isVirtualInt() || !isCounterBits(bits) || ops[4].opBits != bits || ops[5].valueU64 != 1)
+                    if (!ops[0].reg.isVirtualInt() || !isCounterBits(bits) || ops[4].opBits != bits)
                         continue;
                     const MicroReg lhs = throughAdjacentCopy(ref, ops[1].reg, candidate.copyOfInductionRef);
                     const MicroReg rhs = throughAdjacentCopy(ref, ops[2].reg, candidate.copyOfInductionRef);
-                    if (!splitPair(lhs, rhs, candidate.inductionIx, candidate.otherReg))
-                        continue;
+                    if (ops[5].valueU64 == 1)
+                    {
+                        if (!splitPair(lhs, rhs, candidate.inductionIx, candidate.otherReg))
+                            continue;
+                    }
+                    else
+                    {
+                        // A scale the address arithmetic computes (a scale, a
+                        // lea and a scale) or a shift does costs about what
+                        // the carried step would, and keeps the address
+                        // rooted on one definition the vectorizer can follow.
+                        // Any other one is a multiply on every trip, which
+                        // the carried address replaces with an add.
+                        if (isAddressMultiplier(ops[5].valueU64) || std::has_single_bit(ops[5].valueU64) || !isInvariantReg(lhs))
+                            continue;
+                        candidate.inductionIx = inductionIndexOf(rhs);
+                        candidate.otherReg    = lhs;
+                        candidate.scale       = ops[5].valueU64;
+                        if (candidate.inductionIx == K_INVALID || inductions[candidate.inductionIx].stepReg.isValid())
+                            continue;
+                    }
                     candidate.shape    = Shape::AddressOfSum;
                     candidate.isSum    = true;
                     candidate.otherImm = ops[6].valueU64;
@@ -671,9 +692,28 @@ namespace
                     carrier.isSum       = candidate.isSum;
                     carrier.otherReg    = candidate.otherReg;
                     carrier.otherImm    = candidate.otherImm;
+                    carrier.scale       = candidate.scale;
 
                     const MicroInstrRef afterStepRef = storage.findNextInstructionRef(induction.stepRef);
-                    if (candidate.isSum)
+                    if (candidate.isSum && candidate.scale != 1)
+                    {
+                        // Preheader: p = induction * scale + base (+ disp).
+                        // Behind the induction's step: p += scale * step.
+                        const auto disp       = static_cast<int64_t>(candidate.otherImm);
+                        const auto signedStep = induction.stepOp == MicroOp::Add ? static_cast<int64_t>(induction.stepImm) : -static_cast<int64_t>(induction.stepImm);
+                        const auto delta      = static_cast<int64_t>(wrapToBits(candidate.scale * static_cast<uint64_t>(signedStep), induction.bits));
+                        if (induction.bits == MicroOpBits::B64 && (!fitsSigned32(disp) || !fitsSigned32(delta) || !fitsSigned32(static_cast<int64_t>(candidate.scale))))
+                            continue;
+                        SWC_ASSERT(nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX);
+                        carrier.reg = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                        insertCopy(storage, operands, headerRef, carrier.reg, induction.reg, induction.bits);
+                        insertOpRegImm(storage, operands, headerRef, carrier.reg, MicroOp::MultiplySigned, wrapToBits(candidate.scale, induction.bits), induction.bits);
+                        insertOpRegReg(storage, operands, headerRef, carrier.reg, candidate.otherReg, MicroOp::Add, induction.bits);
+                        if (candidate.otherImm != 0)
+                            insertOpRegImm(storage, operands, headerRef, carrier.reg, MicroOp::Add, wrapToBits(candidate.otherImm, induction.bits), induction.bits);
+                        insertOpRegImm(storage, operands, afterStepRef, carrier.reg, MicroOp::Add, static_cast<uint64_t>(delta), induction.bits);
+                    }
+                    else if (candidate.isSum)
                     {
                         // Preheader: p = base + induction (+ disp). Behind the
                         // induction's step: the same step.

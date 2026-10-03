@@ -7,7 +7,13 @@
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/Command/Command.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
+#include "Main/Stats.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -110,6 +116,63 @@ SWC_TEST_BEGIN(NodePayload_MutableAndConstSymbolListsPreserveFlagsAndOrder)
         if ((constNode->payloadBits() & NODE_PAYLOAD_FLAGS_MASK) != (test.flags | markerFlag))
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+// A call argument that folds to a constant aggregate keeps one runtime storage. The cast that
+// folds detaches the storage from the argument node, and sema runs the call again while it
+// waits for the callee declared further down: every rerun reattached a new storage and
+// reserved another frame slot, so the frame grew with the number of reruns and depended on
+// scheduling.
+SWC_TEST_BEGIN(NodePayload_FoldedAggregateArgumentKeepsOneRuntimeStorage)
+{
+    static constexpr std::string_view SOURCE     = R"(#[Swag.NoInline]
+func foldedLocationCaller()->u32 => lateLocationLine(#curlocation)
+
+#[Swag.NoInline]
+func lateLocationLine(loc: Swag.SourceCodeLocation)->u32 => loc.lineStart + 1
+
+#test
+{
+    Swag.assert(foldedLocationCaller() != 0)
+}
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NodePayload", "FoldedAggregateArgumentKeepsOneRuntimeStorage");
+
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Test;
+    cmdLine.buildCfg = "release";
+    cmdLine.name     = "compiler_test_folded_argument_storage";
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const TaskContext     compilerCtx(compiler);
+    const SymbolFunction* caller = nullptr;
+    for (const SymbolFunction* function : compiler.nativeCodeSegment())
+    {
+        if (function && function->name(compilerCtx) == "foldedLocationCaller")
+            caller = function;
+    }
+
+    if (!caller)
+        return Result::Error;
+
+    uint32_t argumentStorages = 0;
+    for (const SymbolVariable* local : caller->localVariables())
+    {
+        if (local && local->name(compilerCtx).starts_with("__call_arg_ref_storage"))
+            argumentStorages++;
+    }
+
+    if (argumentStorages != 1)
+        return Result::Error;
 }
 SWC_TEST_END()
 

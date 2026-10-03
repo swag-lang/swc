@@ -15,10 +15,76 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
+
+- Recorded: 2026-09-06 14:23
+- Updated: 2026-10-03 15:48 — A store-to-load forwarding pass across the latch was built and measured without a gain.
+- Area: compiler/backend
+- Found while: comparing the unchanged Leven benchmark with clang-cl and MSVC, 2026-09-06.
+- Evidence: after the boolean-select fold, Swag's inner DP loop has 22 instructions / five memory
+  operations; clang-cl has 16 / three and MSVC 18 / five. Swag's five accesses name the input byte
+  and DP rows, not allocator spill slots. Clang carries the already loaded `row0[y+1]` forward as
+  the next `row0[y]`, and the just-stored `row1[y+1]` forward as the next `row1[y]`.
+- October 3: a pre-RA pass modelled on LLVM's LoopLoadElimination (single-block rotated loop,
+  index stepped by a constant, every other store proven disjoint by root, index and offset)
+  carries the just-stored `row1[y + 1]` into the next trip's `row1[y]`: memory operations 5 to
+  4, but 20 instructions after allocation instead of 18. It fires once in the 12 tasks and
+  never in std core, pixel or video. Paired leven medians 0.984, 1.033, 0.990 and 0.992 on a
+  loaded machine establish no gain, so it stays on `perf/prompt2-float-20261003`
+  (`dc9290f89`) with its C++ and native tests. The inner loop runs 4 to 10 trips, where its
+  exit and setup cost more than the removed store-to-load latency. Also carrying the loaded
+  `row0[y + 1]` spilled the row value inside the loop (median 1.016).
+- Next: measure the pending pass on a quiet machine with an unchanged-binary control; carry
+  the loaded row value only with a register-pressure estimate that avoids the spill.
+- Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
+  current experiment identifies the specific missing proof or register-pressure cost.
+
+### compiler.optimization.105 — Prove lz77's signed remainder bounds
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-03 15:48 — Bounded remainders multiply; listed what the candidate loop still lacks.
+- Area: compiler/backend, value ranges and signed remainder lowering.
+- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
+  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
+  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
+  loop has six instructions and two reads. Swag now matches those counts after
+  caching the invariant index in an otherwise unused caller-saved SIMD register.
+  The latch transfers its bits back to a GP register; one seed load runs before
+  the loop. These static changes have not been timed in a new full campaign.
+- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
+  floor-modulo result for a positive power-of-two divisor permits masking even for
+  negative inputs; Swag's signed remainder has a different contract. The previously
+  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
+  remaining remainders requires proving the counters' bounds under its own semantics.
+- October 3: an unsigned remainder by a constant whose dividend is bounded multiplies by a
+  dword magic number, so the checksum loop `hc = (hc * 31 + comp[k]) % 1000003` has 12
+  instructions instead of 18 and a carried chain of about 12 cycles (clang's two-way unrolled
+  loop takes about 13 per element). Paired lz77 medians were 0.961 in two controlled windows;
+  the second window's spread overlaps its unchanged-binary control.
+- Pending on `perf/prompt2-int-20261003` (`2b23c932f`), correct but without an established
+  gain: a byte or word load whose upper bits nobody reads becomes `movzx`, as clang and Odin
+  emit in the byte-compare loop.
+- Pending on `perf/prompt2-int-20261003` (`27ef513e8`), correct but without an established
+  gain: a multiplication by 2^n+1 or 2^n-1 becomes a shift and an add or subtract as clang emits
+  it (lz77 `imul` 94 to 80, checksum chain 12 to 11 cycles).
+- The candidate loop has 19 instructions against clang's 16 and Odin's 18. `i` lives in xmm2
+  and is restored on every candidate while rbx is unused (allocator policy
+  `K_MIN_FREE_PERSISTENT_INT`); post-RA copy forwarding excludes indexed loads, so
+  `mov rax, [rsi + 8 * r10]; mov r10, rax` stays; the `l < limit` guard before the byte loop
+  stays where clang proves `n - i >= 4`.
+- Next: follow the loop-carried counters through SSA ranges and exit conditions.
+  Establish nonnegativity before replacing sign correction; retain negative-input
+  controls and do not infer a bound merely from this benchmark's current inputs.
+- Complete when: each removable sign correction has a sound range proof, exact
+  checksums and unrelated positive/negative coverage, with the candidate and byte
+  loops retaining their instruction and memory counts without a loss elsewhere.
+
+
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 17:32 — Reused factor destinations for scalar contraction without changing live upper lanes.
+- Updated: 2026-10-03 15:48 — Carried the body stride as a pointer; measured the store-forwarding stall and retried root pairing.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20261001-103647`, built from `49f7e665d`, reports
   native at 23.5431 ms, JIT at 25.9971 ms and Zig 0.15.2 at 16.45 ms, with
@@ -60,6 +126,19 @@ block, and the hot path keeps the register.
   while rebuilding vector producers, reaching 119 frame accesses. A narrower scalar-capture
   trial removes one memory access but no instruction and leaves ten roots, with setup cost
   not yet justified. These prototypes were removed.
+- October 3: the position loop now carries `base + i * 56` as a pointer (the induction-variable
+  pass carries any scale no address mode forms), so it no longer multiplies and is no longer
+  packed. Its packed form read vx/vy with one 16-byte load right after the timestep stored them
+  as two 8-byte values; hand-written variants put that store-forwarding stall at about 3% of
+  nbody (packed 24.61 ms min, scalar 23.85, packed with two 8-byte loads 23.88). The SLP pass
+  already refuses an overlapping store in the same block, and a probe found no packed load
+  after a narrower aliasing store in an earlier block or trip in the 12 tasks or in std core,
+  pixel and video, so no separate rule was kept. Pairing only the ten roots and divisions was
+  retried: 1.21-1.24x slower, frame accesses in `advance` 44 to 103.
+- Zig and Rust inline the timestep and keep the 35 body fields in registers across steps.
+  Swag calls `advance` once per step, saving and restoring ten XMM registers, and reloads the
+  bodies through the slice. Zig issues 6 roots and 6 divisions per step, Rust 7 + 7, clang and
+  Swag 10 + 10, in the order of their times (16.0, 19.7, 21.6 and 21.4 ms).
 - Remaining gap: pack coordinate producers, roots/divisions and their scalar consumers as
   one plan, with a register-pressure estimate. Pairing only the expensive operations is
   insufficient. The position loop already packs x/y updates without frame traffic.
@@ -69,32 +148,6 @@ block, and the hot path keeps the register.
 - Complete when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
-
-
-### compiler.optimization.105 — Prove lz77's signed remainder bounds
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-01 15:46 — Closed the candidate-loop spill gap and narrowed the remaining work to signed bounds.
-- Area: compiler/backend, value ranges and signed remainder lowering.
-- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
-  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
-  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
-  loop has six instructions and two reads. Swag now matches those counts after
-  caching the invariant index in an otherwise unused caller-saved SIMD register.
-  The latch transfers its bits back to a GP register; one seed load runs before
-  the loop. These static changes have not been timed in a new full campaign.
-- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
-  floor-modulo result for a positive power-of-two divisor permits masking even for
-  negative inputs; Swag's signed remainder has a different contract. The previously
-  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
-  remaining remainders requires proving the counters' bounds under its own semantics.
-- Next: follow the loop-carried counters through SSA ranges and exit conditions.
-  Establish nonnegativity before replacing sign correction; retain negative-input
-  controls and do not infer a bound merely from this benchmark's current inputs.
-- Complete when: each removable sign correction has a sound range proof, exact
-  checksums and unrelated positive/negative coverage, with the candidate and byte
-  loops retaining their instruction and memory counts without a loss elsewhere.
 
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
@@ -983,21 +1036,6 @@ block, and the hot path keeps the register.
   distinguish allocator spill storage from addressable program objects before refining aliasing.
 - Complete when: current loop dumps either retire this lead or identify a measured promotion or
   residency improvement with aliasing and multi-slot regression coverage.
-
-### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
-
-- Recorded: 2026-09-06 14:23
-- Area: compiler/backend
-- Found while: comparing the unchanged Leven benchmark with clang-cl and MSVC, 2026-09-06.
-- Evidence: after the boolean-select fold, Swag's inner DP loop has 22 instructions / five memory
-  operations; clang-cl has 16 / three and MSVC 18 / five. Swag's five accesses name the input byte
-  and DP rows, not allocator spill slots. Clang carries the already loaded `row0[y+1]` forward as
-  the next `row0[y]`, and the just-stored `row1[y+1]` forward as the next `row1[y]`.
-- Next: establish the two rows' disjointness, then evaluate forwarding those adjacent elements
-  across one loop backedge. Prove the entry values, affine stride, intervening writes, and exits;
-  keep this separate from frame-slot promotion and compare every benchmark loop for new spills.
-- Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
-  current experiment identifies the specific missing proof or register-pressure cost.
 
 ### compiler.optimization.015 — Carried-slot promotion still rejects multiple accesses or distinct exits
 

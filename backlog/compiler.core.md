@@ -6,6 +6,39 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.074 — Repeated native rebuilds choose different prologues
+
+- Recorded: 2026-10-01 17:08
+- Updated: 2026-10-03 15:59 — Fixed the per-rerun call-argument storage and the read-only data order; generated names still vary.
+- Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
+  Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
+  3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
+  records without addresses finds eleven changed groups, including one removed leaf record,
+  different saved registers, and stack allocations changing from `0x700` to `0xAF0`.
+  Both commands cap the outer script and inner compiler at six workers and use isolated
+  temporary caches. No compiler rebuild occurs between them.
+- Scope: this was observed while removing the redundant sort in `X64UnwindWindows::buildInfo`.
+  That routine serializes already generated prologue operations; the record differences also
+  occur between runs of the same changed binary. This does not establish when the variation
+  was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
+- October 3: two causes found and fixed. A by-value aggregate argument that folds to a constant
+  (`#curlocation` in every `Swag.panic` call) had its call-argument storage detached by the
+  folding cast and registered again on every sema rerun, each copy keeping a frame slot:
+  `allocatorCorruptedFreeList` in the runtime got a 0x40 to 0x130-byte frame from one build of
+  the same benchmark to the next. And `.rdata` was laid out by constant shard and creation
+  offset, which follow job scheduling; it now follows the order the code reaches each constant.
+  Repeated `sort` and `wordfreq` builds now have identical `.pdata` and `.xdata`, and most
+  pairs differ only by the header time stamp, with one worker or six.
+- What still varies: some pairs built with six workers still differ in `.rdata` from near its
+  start, and in `.text` through its RIP-relative displacements. The differing `.rdata` bytes
+  were values that differ by one, which points at generated unique names
+  (`__call_arg_ref_storage_349`, for example) whose counters follow creation order.
+- Next: find which generated names reach `.rdata` and give them a stable key (owner and
+  position) instead of a global counter; then repeat the unwind record comparison to see
+  whether another prologue cause remains.
+- Complete when: the source of the different prologues is explained and corrected at its
+  owning boundary, with stable normalized output and the affected native tests green.
+
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 
 - Recorded: 2026-09-30 08:32
@@ -35,26 +68,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   recorded as measured and not worth its risk.
 - Related: compiler.core.056, compiler.core.030.
 
-### compiler.core.074 — Repeated native rebuilds choose different prologues
-
-- Recorded: 2026-10-01 17:08
-- Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
-  Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
-  3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
-  records without addresses finds eleven changed groups, including one removed leaf record,
-  different saved registers, and stack allocations changing from `0x700` to `0xAF0`.
-  Both commands cap the outer script and inner compiler at six workers and use isolated
-  temporary caches. No compiler rebuild occurs between them.
-- Scope: this was observed while removing the redundant sort in `X64UnwindWindows::buildInfo`.
-  That routine serializes already generated prologue operations; the record differences also
-  occur between runs of the same changed binary. This does not establish when the variation
-  was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
-- Next: identify the affected functions from their native symbols, reduce one differing
-  prologue to a standalone input, and compare its semantic and Micro instruction streams
-  across repeated builds. Check whether a single worker or explicit inline decisions remove
-  the variation before changing any optimizer policy.
-- Complete when: the source of the different prologues is explained and corrected at its
-  owning boundary, with stable normalized output and the affected native tests green.
 
 ### compiler.core.072 — Link preparation lowers the native image on one thread
 

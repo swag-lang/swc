@@ -490,6 +490,46 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 }
 SWC_TEST_END()
 
+// Read-only data is laid out in the order the code reaches it, not in the order the constants
+// were created: creation order follows compilation job scheduling, so laying the section out by
+// it made two builds of the same program differ.
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataFollowsReferenceOrder)
+{
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_follows_reference_order", Runtime::BuildCfgBackendKind::SharedLibrary);
+
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+
+    constexpr std::string_view createdFirst  = "__native_rdata_created_first__";
+    constexpr std::string_view createdSecond = "__native_rdata_created_second__";
+
+    DataSegment&      segment       = fixture.compiler->cstMgr().shardDataSegment(0);
+    Runtime::String*  firstStorage  = nullptr;
+    Runtime::String*  secondStorage = nullptr;
+    const ConstantRef firstRef      = addStringConstant(*fixture.compilerCtx, *fixture.compiler, segment, createdFirst, firstStorage);
+    const ConstantRef secondRef     = addStringConstant(*fixture.compilerCtx, *fixture.compiler, segment, createdSecond, secondStorage);
+
+    MachineCode readsSecond = makeConstantAddressCode(secondRef, secondStorage);
+    MachineCode readsFirst  = makeConstantAddressCode(firstRef, firstStorage);
+    addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, readsSecond, "rdata_reads_second");
+    addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, readsFirst, "rdata_reads_first");
+
+    SWC_RESULT(fixture.artifactBuilder->build());
+
+    const std::span<const std::byte> bytes      = fixture.nativeBuilder->mergedRData.bytes.span();
+    const auto                       positionOf = [&](std::string_view text) {
+        const auto* first = reinterpret_cast<const std::byte*>(text.data());
+        return std::ranges::search(bytes, std::span<const std::byte>{first, text.size()}).begin() - bytes.begin();
+    };
+
+    const auto secondPosition = positionOf(createdSecond);
+    const auto firstPosition  = positionOf(createdFirst);
+    if (secondPosition >= std::ssize(bytes) || firstPosition >= std::ssize(bytes))
+        return Result::Error;
+    if (secondPosition > firstPosition)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_LargeSparseStructDefaultsStayComposable)
 {
     static constexpr std::string_view SOURCE     = R"(struct SparseLeaf

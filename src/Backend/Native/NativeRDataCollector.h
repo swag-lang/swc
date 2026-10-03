@@ -45,7 +45,8 @@ private:
     NativeBackendBuilder* builder_ = nullptr;
     // Map values remain stable across rehashes; work lists borrow them until emission ends.
     std::array<std::unordered_map<uint32_t, ReachableRDataAllocation>, ConstantManager::SHARD_COUNT> allocations_;
-    std::array<std::vector<const ReachableRDataAllocation*>, ConstantManager::SHARD_COUNT>           reachableAllocations_;
+    // Every reached allocation, in the order the roots reached it, which is the emission order.
+    std::vector<PendingRDataAllocation>                                                              reachableAllocations_;
     std::vector<PendingRDataAllocation>                                                              pending_;
 };
 

@@ -25,7 +25,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_INVALID    = std::numeric_limits<uint32_t>::max();
     constexpr uint32_t K_MAX_ROUNDS = 64;
 
     using NaturalLoop = MicroPassHelpers::NaturalLoop;
@@ -326,19 +325,8 @@ namespace
 
         const auto instrRefs = cfg.instructionRefs();
 
-        uint32_t entry      = K_INVALID;
-        bool     multiEntry = false;
-        for (uint32_t i = 0; i < n; ++i)
-        {
-            if (cfg.predecessors(i).empty())
-            {
-                if (entry == K_INVALID)
-                    entry = i;
-                else
-                    multiEntry = true;
-            }
-        }
-        if (entry == K_INVALID || multiEntry)
+        const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+        if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return false;
 
         const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);

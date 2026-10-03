@@ -1339,13 +1339,6 @@ namespace
         if (!liveness.valid)
             return false;
         const auto refs = cfg.instructionRefs();
-        const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
-        std::unordered_set<uint32_t> relocatedRefs;
-        for (const MicroRelocation& relocation : context.builder->codeRelocations())
-        {
-            if (relocation.instructionRef.isValid())
-                relocatedRefs.insert(relocation.instructionRef.get());
-        }
 
         SmallVector<MicroReg, 8> savedRegs;
         for (uint32_t i = 0; i < n; ++i)
@@ -1366,6 +1359,14 @@ namespace
         }
         if (savedRegs.empty())
             return false;
+
+        const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
+        std::unordered_set<uint32_t> relocatedRefs;
+        for (const MicroRelocation& relocation : context.builder->codeRelocations())
+        {
+            if (relocation.instructionRef.isValid())
+                relocatedRefs.insert(relocation.instructionRef.get());
+        }
 
         for (const auto& loop : loopsByHeader | std::views::values)
         {

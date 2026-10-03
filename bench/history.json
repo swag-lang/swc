@@ -340,7 +340,8 @@
         "index": 0.8717195085822651,
         "since": "d36631d85"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -683,7 +684,8 @@
         "index": 0.9994672267253435,
         "since": "d36631d85"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -1026,7 +1028,8 @@
         "index": 1.0,
         "since": "d36631d85"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -1369,7 +1372,8 @@
         "index": 1.258855033024958,
         "since": "d36631d85"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -1758,7 +1762,8 @@
         "index": 1.0,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -2147,7 +2152,8 @@
         "index": 1.250814162405828,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -2536,7 +2542,8 @@
         "index": 1.276472282990944,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -2925,7 +2932,8 @@
         "index": 1.1693411201816573,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -3314,7 +3322,8 @@
         "index": 1.2606645510388064,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -3703,7 +3712,8 @@
         "index": 1.2849991648296608,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -4092,7 +4102,8 @@
         "index": 1.2603839922839108,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -4481,7 +4492,8 @@
         "index": 1.247233983871921,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -4832,7 +4844,8 @@
         "index": 1.335199772435071,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -5224,7 +5237,8 @@
         "index": 1.2628043542261853,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -5616,7 +5630,8 @@
         "index": 24.786332346402276,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -6008,7 +6023,8 @@
         "index": 1.198611887689454,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -6400,7 +6416,8 @@
         "index": 1.2705839493987403,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -6696,7 +6713,8 @@
     "hello_jit_ms": 106.4708,
     "hello_build_ms": null,
     "hello_build_peak_mb": null,
-    "loop": {}
+    "loop": {},
+    "allocator": null
   },
   {
     "meta": {
@@ -7088,7 +7106,8 @@
         "index": 1.387089963744378,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -7480,7 +7499,8 @@
         "index": 1.1451394516709443,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -7872,7 +7892,8 @@
         "index": 1.2159132840563467,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -8264,7 +8285,8 @@
         "index": 1.2830585580957605,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -8656,7 +8678,8 @@
         "index": 1.3098852109997141,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -9048,7 +9071,8 @@
         "index": 1.3180709388364533,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -9440,7 +9464,8 @@
         "index": 1.3419496124466463,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -9832,7 +9857,8 @@
         "index": 1.2743872256778193,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -10224,7 +10250,8 @@
         "index": 1.3024748706180873,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -10762,7 +10789,8 @@
         "index": 1.3038828130826117,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -11300,7 +11328,8 @@
         "index": 0.958369202908957,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -11838,7 +11867,8 @@
         "index": 1.2236643402536722,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -12376,7 +12406,8 @@
         "index": 1.2119840886185593,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -12914,7 +12945,8 @@
         "index": 1.2063703179962872,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -13452,7 +13484,8 @@
         "index": 1.2403101545911324,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -13990,7 +14023,8 @@
         "index": 1.3236593628503308,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -14528,7 +14562,8 @@
         "index": 1.23260693797432,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -15066,7 +15101,8 @@
         "index": 1.336945755752726,
         "since": "a4677422e"
       }
-    }
+    },
+    "allocator": null
   },
   {
     "meta": {
@@ -15483,6 +15519,7 @@
     "hello_jit_ms": 92.0004,
     "hello_build_ms": null,
     "hello_build_peak_mb": null,
-    "loop": {}
+    "loop": {},
+    "allocator": null
   }
 ]

@@ -1553,6 +1553,16 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 </tbody></table></div>
 </section>
 
+<section id="allocateur">
+    <div class="sh"><h2>Allocateur</h2></div>
+    <p class="cap">L&rsquo;allocateur du runtime Swag contre mimalloc (vendoris&eacute;, compil&eacute; avec MSVC /O2)
+    et le tas du runtime C, sur les m&ecirc;mes charges&nbsp;: <code>bench/allocator</code>. Chaque charge tourne dans
+    un processus neuf, &eacute;pingl&eacute;, les trois allocateurs en alternance&nbsp;; m&eacute;diane des tours, en
+    nanosecondes par op&eacute;ration. Le programme Swag alloue par <code>Memory.alloc</code>/<code>Memory.free</code>,
+    le chemin du code ordinaire, et le pic de working set inclut le module <code>core</code> qu&rsquo;il importe.</p>
+    <p class="cap">Aucune mesure de l&rsquo;allocateur dans cette campagne.</p>
+</section>
+
 <section id="ressources">
     <div class="sh"><h2>M&eacute;moire, latence, taille</h2></div>
     <div class="grid2">

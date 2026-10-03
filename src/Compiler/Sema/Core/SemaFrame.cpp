@@ -55,8 +55,8 @@ void SemaFrame::popBindingType()
 
 void SemaFrame::clearBindingTypes()
 {
-    while (bindingTypes_.size() > scopeBindingCount_)
-        bindingTypes_.pop_back();
+    if (bindingTypes_.size() > scopeBindingCount_)
+        bindingTypes_.resize(scopeBindingCount_);
 }
 
 void SemaFrame::pushBindingVar(SymbolVariable* sym)

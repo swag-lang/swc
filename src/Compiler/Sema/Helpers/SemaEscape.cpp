@@ -5440,7 +5440,7 @@ namespace SemaEscape
         // an edge that has already handed its release on is never looked at again.
         if (!needsReturnSummaries)
         {
-            ctx.compiler().withFreesForwardings([](std::vector<SemaEscapeFreesForwarding>& forwardings) {
+            ctx.compiler().withFreesForwardings([](std::span<SemaEscapeFreesForwarding> forwardings) {
                 bool changed = true;
                 while (changed)
                 {

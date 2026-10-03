@@ -1419,7 +1419,11 @@ size_t CompilerInstance::freeForwardingEdgeCount() const
 
 std::vector<SemaEscapeSummaryEdge> CompilerInstance::takeEscapeSummaryEdges()
 {
+    // Match withFreesForwardings' lock order and invalidate its append cursor
+    // together with the graph, even if the next graph has the same edge count.
+    const std::scoped_lock fixpointLock(freesForwardingsMutex_);
     const std::unique_lock lock(deferredEscapeChecksMutex_);
+    freesForwardings_.clear();
     freeForwardingEdgeIndices_.clear();
     returnEdgeIndices_.clear();
     returnEdgesByCaller_.clear();

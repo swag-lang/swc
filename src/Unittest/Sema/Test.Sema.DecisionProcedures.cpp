@@ -815,6 +815,41 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesKeepDirectForwardingTransitive)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sema_CompletedFreesSummariesFollowAppendedAndReplacementEdges)
+{
+    CompletedFreesFixture fixture(ctx);
+    auto*                 first   = fixture.addFunction();
+    auto*                 later   = fixture.addFunction();
+    auto*                 leaf    = fixture.addFunction();
+    auto*                 pending = fixture.addFunction(false);
+    leaf->addFreesParam(2);
+    fixture.addEdge({.caller = first, .callee = leaf, .callerParamIndex = 0, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    fixture.addEdge({.caller = pending, .callee = leaf, .callerParamIndex = 1, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    fixture.propagate();
+    if (first->freesParamsMask() != 1 || pending->freesParamsMask())
+        return Result::Error;
+
+    // A new caller must see already propagated facts. An old edge whose caller
+    // completes later must still be considered after the append.
+    fixture.addEdge({.caller = later, .callee = first, .callerParamIndex = 3, .calleeParamIndex = 0, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    pending->setSemaCompleted(ctx);
+    fixture.propagate();
+    if (later->freesParamsMask() != 8 || pending->freesParamsMask() != 2)
+        return Result::Error;
+
+    // Replacing the graph with equally many edges must forget all old cache
+    // entries, including their completion markers.
+    ctx.compiler().takeEscapeSummaryEdges();
+    auto* replacement = fixture.addFunction();
+    for (uint32_t i = 0; i < 3; ++i)
+        fixture.addEdge({.caller = replacement, .callee = leaf, .callerParamIndex = i, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    fixture.propagate();
+    if (replacement->freesParamsMask() != 7)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
 {
     CompletedFreesFixture fixture(ctx);

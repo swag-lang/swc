@@ -318,30 +318,26 @@ public:
         });
     }
 
-    // Hands the module's release forwardings to `fn`, rebuilt from the recorded edges only when
-    // new ones have arrived. The closure over them is a module-wide fixpoint that every
-    // compile-time call needs closed, so it is kept, not recomputed from scratch each time.
+    // Recorded edges only append until takeEscapeSummaryEdges resets the graph.
+    // Preserve the completed forwardings when unrelated edges arrive, and copy
+    // only newly recorded ones before closing the module-wide fixpoint.
     template<typename Fn>
     void withFreesForwardings(Fn&& fn)
     {
         const std::scoped_lock fixpointLock(freesForwardingsMutex_);
         {
             const std::shared_lock lock(deferredEscapeChecksMutex_);
-            if (freesForwardingsVersion_ != escapeSummaryEdgesVersion_.load(std::memory_order_acquire))
-            {
-                freesForwardings_.clear();
+            SWC_ASSERT(freesForwardings_.size() <= freeForwardingEdgeIndices_.size());
+            if (freesForwardings_.empty())
                 freesForwardings_.reserve(freeForwardingEdgeIndices_.size());
-                for (const uint32_t index : freeForwardingEdgeIndices_)
-                {
-                    const SemaEscapeSummaryEdge& edge = escapeSummaryEdges_[index];
-                    freesForwardings_.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, false});
-                }
-
-                freesForwardingsVersion_ = escapeSummaryEdgesVersion_.load(std::memory_order_acquire);
+            for (size_t i = freesForwardings_.size(); i < freeForwardingEdgeIndices_.size(); ++i)
+            {
+                const SemaEscapeSummaryEdge& edge = escapeSummaryEdges_[freeForwardingEdgeIndices_[i]];
+                freesForwardings_.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, false});
             }
         }
 
-        fn(freesForwardings_);
+        fn(std::span{freesForwardings_});
     }
     uint64_t                           escapeSummaryEdgesVersion() const noexcept { return escapeSummaryEdgesVersion_.load(std::memory_order_acquire); }
     bool                               freesPropagationNeedsReturnSummaries() const noexcept { return guardedFreeForwardingEdgeCount_.load(std::memory_order_acquire) != 0; }
@@ -697,7 +693,6 @@ private:
     // the edges, the release masks and the call graph it was given, so the same signature twice is
     // the same fixpoint twice.
     std::vector<SemaEscapeFreesForwarding>                freesForwardings_;
-    uint64_t                                              freesForwardingsVersion_ = 0;
     std::mutex                                            freesForwardingsMutex_;
     mutable std::mutex                                    freesPropagationMutex_;
     std::array<uint64_t, 8>                               freesPropagationSignatures_{};

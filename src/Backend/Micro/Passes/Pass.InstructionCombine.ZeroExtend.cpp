@@ -300,12 +300,19 @@ namespace InstructionCombine
                     return getNumBits(ops[2].opBits) >= 32 ? getBitsMask(ops[3].opBits) : K_UNBOUNDED;
 
                 // A 32-bit move clears the upper half; a byte or word move keeps it.
+                // A copy forwards one value without branching, so it does not
+                // count against the depth: a value carried around a loop meets
+                // several on its way back to the phi that merges it.
                 case MicroInstrOpcode::LoadRegReg:
-                    if (ops[2].opBits == MicroOpBits::B64)
-                        return regUpperBound(ctx, ops[1].reg, value->instRef, visited, depth);
-                    if (ops[2].opBits == MicroOpBits::B32)
-                        return std::min(regUpperBound(ctx, ops[1].reg, value->instRef, visited, depth), getBitsMask(MicroOpBits::B32));
-                    return K_UNBOUNDED;
+                {
+                    if ((ops[2].opBits != MicroOpBits::B64 && ops[2].opBits != MicroOpBits::B32) || !ops[1].reg.isVirtualInt())
+                        return K_UNBOUNDED;
+                    const MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(ops[1].reg, value->instRef);
+                    if (!source.valid())
+                        return K_UNBOUNDED;
+                    const uint64_t bound = valueUpperBound(ctx, source.valueId, visited, depth);
+                    return ops[2].opBits == MicroOpBits::B64 ? bound : std::min(bound, getBitsMask(MicroOpBits::B32));
+                }
 
                 case MicroInstrOpcode::LoadRegMem:
                     return ops[2].opBits == MicroOpBits::B32 ? getBitsMask(MicroOpBits::B32) : K_UNBOUNDED;
@@ -334,6 +341,13 @@ namespace InstructionCombine
                             return std::min(input, imm);
                         case MicroOp::ShiftRight:
                             return imm < getNumBits(bits) ? input >> imm : K_UNBOUNDED;
+                        case MicroOp::DivideUnsigned:
+                            return imm ? input / imm : K_UNBOUNDED;
+                        // Whatever the dividend, a remainder stays below the
+                        // divisor: a hash folded modulo a prime is bounded by
+                        // that prime around its loop.
+                        case MicroOp::ModuloUnsigned:
+                            return imm ? std::min(input, imm - 1) : K_UNBOUNDED;
                         case MicroOp::Add:
                             bound = boundedAdd(input, imm);
                             break;
@@ -368,6 +382,18 @@ namespace InstructionCombine
                     {
                         case MicroOp::And:
                             return std::min(left, right);
+                        // The divisor may still sit in a register the first
+                        // sweep has not folded; a zero one faults instead.
+                        case MicroOp::DivideUnsigned:
+                        {
+                            uint64_t divisor = 0;
+                            if (!regConstant(ctx, ops[1].reg, value->instRef, divisor))
+                                return left;
+                            divisor &= mask;
+                            return divisor ? left / divisor : K_UNBOUNDED;
+                        }
+                        case MicroOp::ModuloUnsigned:
+                            return right ? std::min(left, right - 1) : K_UNBOUNDED;
                         case MicroOp::Add:
                             bound = boundedAdd(left, right);
                             break;
@@ -543,6 +569,11 @@ namespace InstructionCombine
     // `imul r, r, 16843010; shr r, 32`. With M = ceil(2^k / d) and
     // e = M * d - 2^k, `x * M >> k` is `x / d` for every x with x * e < 2^k.
     // The divisor may still sit in a register the first sweep has not folded.
+    //
+    // A remainder takes the same quotient in a fresh register and subtracts it
+    // multiplied back: `(h * 31 + byte) % 1000003` around a hash loop becomes
+    // three multiplies and a shift instead of a 64-bit multiply-high and its
+    // fixup, the chain every trip waits on.
     bool tryDivideBoundedByConstant(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa)
@@ -554,7 +585,8 @@ namespace InstructionCombine
         const bool        immediate = inst.op == MicroInstrOpcode::OpBinaryRegImm;
         const MicroOpBits bits      = immediate ? ops[1].opBits : ops[2].opBits;
         const MicroOp     op        = immediate ? ops[2].microOp : ops[3].microOp;
-        if (op != MicroOp::DivideUnsigned || !ops[0].reg.isVirtualInt() || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+        const bool remainder = op == MicroOp::ModuloUnsigned;
+        if ((op != MicroOp::DivideUnsigned && !remainder) || !ops[0].reg.isVirtualInt() || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
             return false;
 
         uint64_t divisor = 0;
@@ -569,14 +601,19 @@ namespace InstructionCombine
             return false;
         }
         divisor &= getBitsMask(bits);
-        if (divisor < 3 || std::has_single_bit(divisor) || divisor > 0xFFFFFFFFu)
+        // The remainder multiplies the quotient back by the divisor as a
+        // sign-extended dword immediate.
+        if (divisor < 3 || std::has_single_bit(divisor) || divisor > (remainder ? 0x7FFFFFFFu : 0xFFFFFFFFu))
             return false;
 
         const MicroSsaState::ReachingDef reaching = ctx.ssa->reachingDef(ops[0].reg, ref);
         if (!reaching.valid())
             return false;
+        // The bound is on the whole register: a qword dividend below 2^32 has
+        // a clear upper half whatever defines it. A dword one is read on its
+        // low half, so the definitions must clear the other one as well.
         SmallVector<uint32_t> visited;
-        if (!valueIsZeroExtended32(ctx, reaching.valueId, visited, 0))
+        if (bits == MicroOpBits::B32 && !valueIsZeroExtended32(ctx, reaching.valueId, visited, 0))
             return false;
         visited.clear();
         const uint64_t bound = valueUpperBound(ctx, reaching.valueId, visited, 0);
@@ -604,22 +641,60 @@ namespace InstructionCombine
 
         if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
             return false;
+        if (remainder)
+        {
+            ctx.ensureVirtualIndices();
+            if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX)
+                return false;
+        }
         if (!claimWithZeroExtendDefinitions(ctx, ref, reaching.valueId))
             return false;
 
+        const MicroReg dividend = ops[0].reg;
+        const MicroReg quotient = remainder ? MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++) : dividend;
+        if (remainder)
+        {
+            MicroInstrOperand copyOps[3];
+            copyOps[0].reg    = quotient;
+            copyOps[1].reg    = dividend;
+            copyOps[2].opBits = MicroOpBits::B64;
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadRegReg, copyOps);
+        }
+
         MicroInstrOperand mulOps[4];
-        mulOps[0].reg     = ops[0].reg;
+        mulOps[0].reg     = quotient;
         mulOps[1].opBits  = MicroOpBits::B64;
         mulOps[2].microOp = MicroOp::MultiplySigned;
         mulOps[3].setImmediateValue(ApInt(multiplier, 64));
         ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, mulOps);
 
         MicroInstrOperand shiftOps[4];
-        shiftOps[0].reg     = ops[0].reg;
+        shiftOps[0].reg     = quotient;
         shiftOps[1].opBits  = MicroOpBits::B64;
         shiftOps[2].microOp = MicroOp::ShiftRight;
         shiftOps[3].setImmediateValue(ApInt(shift, 64));
-        ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+        if (!remainder)
+        {
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+            return true;
+        }
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+
+        // The product of the quotient and the divisor never passes the
+        // dividend, so the difference keeps the upper half clear.
+        MicroInstrOperand backOps[4];
+        backOps[0].reg     = quotient;
+        backOps[1].opBits  = MicroOpBits::B64;
+        backOps[2].microOp = MicroOp::MultiplySigned;
+        backOps[3].setImmediateValue(ApInt(divisor, 64));
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, backOps);
+
+        MicroInstrOperand subOps[4];
+        subOps[0].reg     = dividend;
+        subOps[1].reg     = quotient;
+        subOps[2].opBits  = MicroOpBits::B64;
+        subOps[3].microOp = MicroOp::Subtract;
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegReg, subOps);
         return true;
     }
 

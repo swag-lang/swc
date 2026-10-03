@@ -4664,6 +4664,78 @@ SWC_TEST_END()
 
 namespace
 {
+    // (zext(byte) * 31 + zext(byte)) % divisor, all of it at 64 bits.
+    void emitBoundedQwordRemainder(MicroBuilder& builder, uint64_t divisor)
+    {
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg right = MicroReg::virtualIntReg(3);
+
+        builder.emitLoadZeroExtendRegMem(left, base, 0, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitOpBinaryRegImm(left, ApInt(uint64_t{31}, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+        builder.emitLoadZeroExtendRegMem(right, base, 1, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitOpBinaryRegReg(left, right, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(left, ApInt(divisor, 64), MicroOp::ModuloUnsigned, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 8, left, MicroOpBits::B64);
+        builder.emitRet();
+    }
+}
+
+// A qword below 2^32 needs no zero-extending definition: 31 * 255 + 255 modulo
+// a prime multiplies by 2^32 / 1000003 rounded up, shifts, and subtracts the
+// quotient multiplied back by the divisor.
+SWC_TEST_BEGIN(InstCombine_BoundedQwordRemainder_UsesSmallMultiplier)
+{
+    MicroBuilder builder(ctx);
+    emitBoundedQwordRemainder(builder, 1000003);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    bool modulo     = false;
+    bool multiplier = false;
+    bool shift      = false;
+    bool back       = false;
+    bool subtract   = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
+        {
+            modulo |= ops[2].microOp == MicroOp::ModuloUnsigned;
+            multiplier |= ops[2].microOp == MicroOp::MultiplySigned && ops[3].valueU64 == 4295;
+            shift |= ops[2].microOp == MicroOp::ShiftRight && ops[3].valueU64 == 32;
+            back |= ops[2].microOp == MicroOp::MultiplySigned && ops[3].valueU64 == 1000003;
+        }
+        else if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+        {
+            subtract |= ops[3].microOp == MicroOp::Subtract;
+        }
+    }
+    return !modulo && multiplier && shift && back && subtract ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// The quotient is multiplied back as a sign-extended dword immediate, which a
+// divisor of 2^31 or more is not.
+SWC_TEST_BEGIN(InstCombine_BoundedRemainderByHugeDivisor_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitBoundedQwordRemainder(builder, 0x80000001);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == MicroOp::ModuloUnsigned)
+            return Result::Continue;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
+namespace
+{
     // T = x ; T op= x, the copy and the operation at the given widths; x is
     // stored again afterwards when `readAgain`.
     void emitSquare(MicroBuilder& builder, MicroOpBits copyBits, bool readAgain)

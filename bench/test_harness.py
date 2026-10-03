@@ -215,6 +215,11 @@ class HarnessTests(unittest.TestCase):
                             entries[language] = copy.deepcopy(entries["rust"])
                     for language in ("zig", "d-ldc", "odin", "go", "java-hotspot"):
                         result["hello_build"][language] = copy.deepcopy(result["hello_build"]["rust"])
+                    result["allocator"] = {workload: {name: {"ns": ns, "samples": [ns], "peak_bytes": 8 << 20,
+                                                             "peak_working_set_bytes": 6 << 20}
+                                                      for name, ns in (("swag", 30.0), ("mimalloc", 10.0),
+                                                                       ("crt", 60.0))}
+                                           for workload in ("pair", "churn:4")}
                 page = Path(folder, "bench.html")
                 readme = Path(folder, "README.md")
                 readme.write_text(mkpage.README_BEGIN + "\n" + mkpage.README_END)
@@ -233,6 +238,12 @@ class HarnessTests(unittest.TestCase):
                 self.assertIn("build speedup vs fastest rival", rendered)
                 self.assertIn("fastest non-Swag build time / swc build time", readme.read_text(encoding="utf-8"))
                 self.assertNotIn("build MSVC / swc", rendered)
+                self.assertIn('<section id="allocateur">', rendered)
+                if extended:
+                    self.assertIn("swag / mimalloc", rendered)
+                    self.assertIn("temps / mimalloc", rendered)
+                elif not original.get("allocator"):
+                    self.assertIn("Aucune mesure de l&rsquo;allocateur", rendered)
                 if extended:
                     # The page names D alone; the README table keeps its compiler.
                     for shown, tabled in (("Zig", "Zig"), ('class="rl">D <span', "D (LDC)"),

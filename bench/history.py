@@ -17,6 +17,7 @@ import os
 import statistics
 import subprocess
 
+import allocbench
 import toolchains as tc
 
 HISTORY = os.path.join(tc.BENCH, "history.json")
@@ -484,6 +485,10 @@ def condense(results, refs=None, baseline=None):
             "since": None,
         }
     entry["loop"] = loop
+
+    # The allocator against mimalloc and the C runtime heap, measured in the same rounds:
+    # the ratios need no machine correction and are what the history follows.
+    entry["allocator"] = allocbench.condense(results.get("allocator"))
     return entry
 
 

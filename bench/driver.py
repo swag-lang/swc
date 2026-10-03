@@ -35,6 +35,7 @@ import subprocess
 import sys
 import time
 
+import allocbench
 import history
 import toolchains as tc
 import winproc
@@ -239,6 +240,7 @@ def campaign_errors(results):
         for name, entry in results.get(family, {}).items():
             if entry.get("error"):
                 errors.append("%s/%s: %s" % (family, name, entry["error"]))
+    errors += ["allocator/%s" % error for error in allocbench.errors(results.get("allocator"))]
     for task, entries in results["tasks"].items():
         seen = {}
         for name, entry in entries.items():
@@ -614,15 +616,32 @@ def main():
             results["tasks"][task][name] = entry
         sys.stdout.flush()
 
+    if measure_run:
+        # The allocator is measured against its own competitors, mimalloc and the C runtime
+        # heap, in the same rounds: their ratio needs no machine correction. The programs are
+        # built outside the clock.
+        probe = calibrate("allocator", reps=6, quiet=True)
+        results["calibration"]["probes"]["allocator"] = probe
+        print("== allocator == (machine %.1f ms)" % (probe or 0.0))
+        exes, build_errors = allocbench.build(swc, env, os.path.join(tc.OUT, "allocator"),
+                                              args.swc_cores)
+        results["allocator"] = allocbench.measure(exes, 1 if args.quick else allocbench.REPS)
+        for name, error in build_errors.items():
+            print("  %-20s BUILD ERROR %s" % (name, error))
+            for accs in results["allocator"].values():
+                accs[name] = {"error": error}
+        sys.stdout.flush()
+
     results["calibration"]["end"] = calibrate("end")
     if results["calibration"]["end"] is None:
         return 1
     s, e = results["calibration"]["start"], results["calibration"]["end"]
     results["calibration"]["drift_pct"] = (e - s) / s * 100.0
 
+    # Probes run in sweep order: the tasks, then the sections measured after them.
     timeline = [("start", s)] + sorted(results["calibration"]["probes"].items(),
                                        key=lambda kv: tasks.index(kv[0])
-                                       if kv[0] in tasks else 0) + [("end", e)]
+                                       if kv[0] in tasks else len(tasks)) + [("end", e)]
     timeline = [(tag, value) for tag, value in timeline if value]
 
     # What matters is a probe out of line with the ones around it, not the spread of

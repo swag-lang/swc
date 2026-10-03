@@ -1315,10 +1315,7 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
     {
         LoopResidency& residency = activeLoopResidency_[residencyIndex - 1];
 
-        bool isBackEdge = false;
-        for (const uint32_t backEdge : residency.backEdges)
-            isBackEdge = isBackEdge || backEdge == instructionIndex;
-        if (!isBackEdge)
+        if (std::ranges::find(residency.backEdges, instructionIndex) == residency.backEdges.end())
             continue;
 
         // Demote pairs nothing consumed: no emitted read depends on them, so
@@ -1349,14 +1346,12 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
             const uint32_t denseIndex = mappedVirtualIndices_[listIndex];
             const MicroReg physReg    = states_[denseIndex].phys;
 
-            bool contradicts = false;
-            for (const auto& [expectedDense, expectedPhys] : residency.expected)
-            {
+            const bool contradicts = std::ranges::any_of(residency.expected, [&](const auto& expected) {
+                const auto& [expectedDense, expectedPhys] = expected;
                 if (expectedDense == denseIndex)
-                    contradicts = contradicts || expectedPhys != physReg;
-                else if (expectedPhys == physReg)
-                    contradicts = true;
-            }
+                    return expectedPhys != physReg;
+                return expectedPhys == physReg;
+            });
 
             if (!contradicts)
             {

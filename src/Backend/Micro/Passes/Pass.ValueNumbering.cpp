@@ -614,7 +614,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         const bool cheapToRecreate = inst->op == MicroInstrOpcode::LoadRegImm &&
                                      (!dstReg.isVirtualFloat() ||
                                       (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
-                                      ops[2].immediateValue().isZero());
+                                      ops[2].isImmediateZero());
         const bool aliasOnly = cheapToRecreate || shape.crossFileMove;
 
         if (shape.crossFileMove && (!dstReg.isVirtualFloat() || ops[1].reg.isVirtualFloat()))

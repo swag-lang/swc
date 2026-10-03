@@ -86,14 +86,13 @@ namespace InstructionCombine
         void emitInsertBefore(MicroInstrRef ref, MicroInstrOpcode op, std::span<const MicroInstrOperand> newOps)
         {
             SWC_ASSERT(newOps.size() <= Action::K_MAX_OPS);
-            Action action;
+            Action& action = actions.emplace_back();
             action.ref    = ref;
             action.newOp  = op;
             action.numOps = static_cast<uint8_t>(newOps.size());
             action.insert = true;
             for (size_t idx = 0; idx < newOps.size(); ++idx)
                 action.ops[idx] = newOps[idx];
-            actions.push_back(action);
         }
 
         // Whether the instruction sits inside a natural loop. The loop bodies

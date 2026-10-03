@@ -120,6 +120,11 @@ struct MicroInstrOperand
         return valueInt.bitWidth() > 64 && valueInt.as64() == valueU64;
     }
 
+    bool isImmediateZero() const
+    {
+        return valueU64 == 0 && (!hasWideImmediateValue() || valueInt.isZero());
+    }
+
     const ApInt& wideImmediateValue() const
     {
         return valueInt;

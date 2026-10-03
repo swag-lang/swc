@@ -492,7 +492,7 @@ namespace
 
         // Positive zero needs no constant load or GP staging. Test its bits so
         // negative zero keeps its sign, and leave address relocations intact.
-        if (inst.op == MicroInstrOpcode::LoadRegImm && ops[2].immediateValue().isZero())
+        if (inst.op == MicroInstrOpcode::LoadRegImm && ops[2].isImmediateZero())
         {
             std::array<MicroInstrOperand, 2> clearOps;
             clearOps[0].reg    = dstReg;

@@ -64,25 +64,22 @@ namespace MicroPeephole
 
         void emitErase(MicroInstrRef ref)
         {
-            ACTION action;
+            ACTION& action = actions.emplace_back();
             action.ref   = ref;
             action.erase = true;
-            actions.push_back(action);
         }
 
         void emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock = false)
         {
             SWC_ASSERT(newOps.size() <= ACTION::K_MAX_OPS);
 
-            ACTION action;
+            ACTION& action  = actions.emplace_back();
             action.ref      = ref;
             action.newOp    = newOp;
             action.numOps   = static_cast<uint8_t>(newOps.size());
             action.allocOps = allocNewBlock;
             for (size_t idx = 0; idx < newOps.size(); ++idx)
                 action.ops[idx] = newOps[idx];
-
-            actions.push_back(action);
         }
 
         const MicroInstr* instruction(MicroInstrRef ref) const

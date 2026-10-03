@@ -1274,7 +1274,7 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
             continue;
 
         auto&         regState = states_[candidate.denseIndex];
-        PendingInsert preload;
+        PendingInsert& preload  = pending.emplace_back();
         if (regState.rematerializable)
         {
             queueRematerializedLoad(preload, taken, regState);
@@ -1284,7 +1284,6 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
             SWC_ASSERT(regState.hasSpill);
             queueSpillLoad(preload, taken, regState, stackDepth);
         }
-        pending.push_back(preload);
 
         mapVirtReg(virtKey, taken);
         regState.dirty = false;
@@ -1394,7 +1393,7 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
                 continue;
             }
 
-            PendingInsert fixup;
+            PendingInsert& fixup = pending.emplace_back();
             if (regState.rematerializable)
             {
                 queueRematerializedLoad(fixup, expectedPhys, regState);
@@ -1404,7 +1403,6 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
                 SWC_ASSERT(regState.hasSpill);
                 queueSpillLoad(fixup, expectedPhys, regState, stackDepth);
             }
-            pending.push_back(fixup);
 
             mapVirtReg(virtKey, expectedPhys);
             regState.dirty = false;
@@ -2700,9 +2698,8 @@ bool MicroRegisterAllocationPass::spillOrRematerializeLiveValue(MicroReg physReg
     if (!regState.dirty && hadSpillSlot)
         return false;
 
-    PendingInsert spillPending;
+    PendingInsert& spillPending = pending.emplace_back();
     queueSpillStore(spillPending, physReg, regState, stackDepth);
-    pending.push_back(spillPending);
     regState.dirty = false;
     return true;
 }
@@ -3141,7 +3138,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         spillFrameUsed_ += slotSize;
         context_->passChanged = true;
 
-        PendingInsert save;
+        PendingInsert& save  = pending.emplace_back();
         save.op              = MicroInstrOpcode::LoadMemReg;
         save.numOps          = 4;
         save.ops[0].reg      = conv_->stackPointer;
@@ -3149,7 +3146,6 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         save.ops[2].opBits   = bits;
         save.ops[3].valueU64 = spillMemOffset(slotOffset, stackDepth);
         noteSpillAccess(save.ops[3].valueU64, bits);
-        pending.push_back(save);
 
         pendingBorrowRestores_.push_back({.physReg = reg, .slotOffset = slotOffset, .slotBits = bits, .atIndex = hi + 1});
 
@@ -3322,12 +3318,11 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
 
     if (request.isUse)
     {
-        PendingInsert loadPending;
+        PendingInsert& loadPending = pending.emplace_back();
         if (regState.rematerializable)
             queueRematerializedLoad(loadPending, physReg, regState);
         else
             queueSpillLoad(loadPending, physReg, regState, stackDepth);
-        pending.push_back(loadPending);
         regState.dirty = false;
     }
 
@@ -3402,9 +3397,8 @@ void MicroRegisterAllocationPass::saveRestorePinnedAcrossCall(const uint32_t ins
             continue;
 
         auto&         regState = states_[denseIndex];
-        PendingInsert save;
+        PendingInsert& save     = pending.emplace_back();
         queueSpillStore(save, regState.phys, regState, stackDepth);
-        pending.push_back(save);
         pendingBorrowRestores_.push_back({.physReg = regState.phys, .slotOffset = regState.spillOffset, .slotBits = regState.spillBits, .atIndex = instructionIndex + 1});
     }
 }
@@ -4177,9 +4171,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 // values stay register-resident across the loop and are exempt.
                 if (regState.loopCarriedHome && !regState.pinned && regState.mapped && regState.hasSpill)
                 {
-                    PendingInsert storePending;
+                    PendingInsert& storePending = deferredLoopCarriedStores_.emplace_back();
                     queueSpillStore(storePending, physReg, regState, stackDepth);
-                    deferredLoopCarriedStores_.push_back(storePending);
                     regState.dirty = false;
                 }
             }

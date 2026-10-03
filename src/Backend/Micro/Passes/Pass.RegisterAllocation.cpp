@@ -277,34 +277,40 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         bool replacedUses = false;
         for (auto scanIt = it; scanIt != endIt; ++scanIt)
         {
-            const MicroInstrDef& info               = MicroInstr::info(scanIt->op);
-            MicroInstrOperand*   scanOps            = scanIt->ops(*operands_);
-            const auto           modes              = scanOps ? info.resolvedRegModes(scanOps) : info.regModes;
-            bool                 definesSource      = false;
-            bool                 definesDestination = false;
-            bool                 usesDestination    = false;
+            const MicroInstrDef& info            = MicroInstr::info(scanIt->op);
+            MicroInstrOperand*   scanOps         = scanIt->ops(*operands_);
+            const auto           modes           = scanOps ? info.resolvedRegModes(scanOps) : info.regModes;
+            bool                 redefined       = false;
+            bool                 usesDestination = false;
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
             {
                 scanIt->collectUseDef(useDef, *operands_, context_->encoder);
-                definesSource      = containsKey(useDef.defs, srcReg);
-                definesDestination = containsKey(useDef.defs, dstReg);
-                usesDestination    = containsKey(useDef.uses, dstReg);
+                if (containsKey(useDef.defs, srcReg) || containsKey(useDef.defs, dstReg))
+                    break;
+                usesDestination = containsKey(useDef.uses, dstReg);
             }
             else if (scanOps)
             {
                 for (size_t i = 0; i < modes.size(); ++i)
                 {
-                    if (scanOps[i].reg == srcReg)
-                        definesSource |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+                    if (scanOps[i].reg == srcReg && (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef))
+                    {
+                        redefined = true;
+                        break;
+                    }
                     if (scanOps[i].reg == dstReg)
                     {
-                        definesDestination |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
-                        usesDestination |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
+                        if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                        {
+                            redefined = true;
+                            break;
+                        }
+                        usesDestination |= modes[i] == MicroInstrRegMode::Use;
                     }
                 }
             }
-            if (definesSource || definesDestination)
+            if (redefined)
                 break;
 
             if (usesDestination && scanOps)
@@ -2004,14 +2010,14 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
     {
         const MicroInstr&    inst    = *instructions_->ptr(ref);
         const MicroInstrDef& info    = MicroInstr::info(inst.op);
-        bool                 used    = false;
         bool                 defined = false;
         if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
             (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
         {
             const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context_->encoder);
-            used                          = containsKey(useDef.uses, dstReg);
-            defined                       = containsKey(useDef.defs, dstReg);
+            if (containsKey(useDef.uses, dstReg))
+                return false;
+            defined = containsKey(useDef.defs, dstReg);
         }
         else if (const MicroInstrOperand* ops = inst.ops(*operands_))
         {
@@ -2020,12 +2026,11 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
             {
                 if (modes[i] == MicroInstrRegMode::None || ops[i].reg != dstReg)
                     continue;
-                used |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
-                defined |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+                if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
+                    return false;
+                defined |= modes[i] == MicroInstrRegMode::Def;
             }
         }
-        if (used)
-            return false;
         if (defined)
             return true;
         if (inst.op != MicroInstrOpcode::Label &&

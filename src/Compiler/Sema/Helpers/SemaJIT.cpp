@@ -148,6 +148,8 @@ namespace
         return sema.cstMgr().hasUnpublishedFunctionRelocations(roots.span());
     }
 
+    std::shared_ptr<const SymbolFunction::ConstantJitTargetList> constantJitTargetsOf(Sema& sema, const SymbolFunction& function);
+
     bool hasUnpublishedFunctionConstants(Sema& sema, const SymbolFunction& function)
     {
         SmallVector<DataSegmentRef> roots;
@@ -164,13 +166,28 @@ namespace
                 return;
             }
 
+            bool checkedConstantSources = false;
             for (const MicroRelocation& relocation : called->loweredCode().codeRelocations)
             {
                 if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
                     continue;
                 if (relocation.hasConstantSource())
                 {
-                    roots.push_back({.shardIndex = relocation.constantShard, .offset = relocation.constantOffset});
+                    if (checkedConstantSources)
+                        continue;
+                    checkedConstantSources = true;
+                    // Preparation already discovers these targets. Reuse its versioned
+                    // closure, but recheck publication: JIT entries change independently
+                    // of the constant graph, including targets allowed to remain unresolved.
+                    const auto targets = constantJitTargetsOf(sema, *called);
+                    for (const auto& target : *targets)
+                    {
+                        if (!target.first->isForeign() && !target.first->jitEntryAddress())
+                        {
+                            unpublished = true;
+                            return;
+                        }
+                    }
                 }
                 else
                 {

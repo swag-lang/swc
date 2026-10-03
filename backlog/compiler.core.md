@@ -6,6 +6,35 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
+
+- Recorded: 2026-09-30 08:32
+- Updated: 2026-10-03 15:03 — Removed the cached invoker and constant-target query costs.
+- Area: compiler/JIT, compile-time execution, compilation time
+- Evidence: read from the code while the 2026-09-30 prompt-4 run removed the neighbouring costs (a
+  JIT order is now revalidated by the call-graph epochs of its own closure instead of being walked
+  again whenever any function gains a call edge; the referenced global-init offsets are gathered
+  as a list). None of the following was measured in that run; each is a count of work per call.
+  - `patchConstantFunctionRelocationsRec` walks the whole constant closure of each constant a
+    patched function names, once per function, taking the allocation lock and the relocation lock
+    and filling a fresh relocation vector for every allocation it visits. The walk the semantic
+    side makes over the same graph (`collectConstantJitTargets`) remembers an allocation per
+    relocation version; this one remembers nothing between functions.
+  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
+    memo keys on the count of semantically completed symbols, which moves for as long as sema
+    runs, so during that whole phase each call rescans every forwarding edge not yet applied -
+    and an edge whose callee never frees its parameter is never applied. A worklist keyed by
+    callee would touch an edge only when its callee's mask or either end's completion moves.
+  - `JIT::patchGlobalFunctionVariables` copies the module's whole global-variable list under a
+    lock and scans it on every compile-time call, to patch the few function-initialized globals the
+    running call graph references.
+- Next: measure the remaining allocation and relocation walks on a `gui` release rebuild.
+  Before remembering patched allocations across functions, preserve deferred-function registration
+  and the `Pause` path; a memo must account for both.
+- Complete when: each item is either removed with a test of compile-time execution behind it, or
+  recorded as measured and not worth its risk.
+- Related: compiler.core.056, compiler.core.030.
+
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 
 - Recorded: 2026-10-01 17:08
@@ -239,48 +268,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: both files retain their error state and attributable diagnostics in ordinary and
   one-line output, with source expectation checking independent of job order and worker count.
 
-### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
-
-- Recorded: 2026-09-30 08:32
-- Updated: 2026-09-30 10:22 — remove the scheduler costs resolved by the dependency-indexed job loop
-- Area: compiler/JIT, compile-time execution, compilation time
-- Evidence: read from the code while the 2026-09-30 prompt-4 run removed the neighbouring costs (a
-  JIT order is now revalidated by the call-graph epochs of its own closure instead of being walked
-  again whenever any function gains a call edge; the referenced global-init offsets are gathered
-  as a list). None of the following was measured in that run; each is a count of work per call.
-  - `JIT::emitAndCall` builds a `MicroBuilder`, runs the micro pipeline over an invoker thunk,
-    allocates executable memory, flips its protection and registers unwind information for
-    **every** compile-time call, then throws all of it away. The thunk differs between calls only
-    by the target address and the argument values it bakes in as immediates.
-  - `patchConstantFunctionRelocationsRec` walks the whole constant closure of each constant a
-    patched function names, once per function, taking the allocation lock and the relocation lock
-    and filling a fresh relocation vector for every allocation it visits. The walk the semantic
-    side makes over the same graph (`collectConstantJitTargets`) remembers an allocation per
-    relocation version; this one remembers nothing between functions.
-  - `hasUnpublishedFunctionConstants` (`SemaJIT.cpp`) runs for every constant-call fold, after
-    the callee is prepared: it gathers the constant relocations of every function in the callee's
-    JIT order and hands them to `ConstantManager::hasUnpublishedFunctionRelocations`, which walks
-    the union of their constant closures with a lock, a binary search, a relocation copy and a
-    hash node per allocation. The per-function target lists `constantJitTargetsOf` already caches
-    hold the same function targets for the relocations that carry a constant source; the verdict
-    "nothing unpublished" also only changes when the closure does, since a JIT entry is never
-    withdrawn during a build.
-  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
-    memo keys on the count of semantically completed symbols, which moves for as long as sema
-    runs, so during that whole phase each call rescans every forwarding edge not yet applied -
-    and an edge whose callee never frees its parameter is never applied. A worklist keyed by
-    callee would touch an edge only when its callee's mask or either end's completion moves.
-  - `JIT::patchGlobalFunctionVariables` copies the module's whole global-variable list under a
-    lock and scans it on every compile-time call, to patch the few function-initialized globals the
-    running call graph references.
-- Next: measure the first item on the `gui` release rebuild (14 617 compile-time calls on
-  2026-09-16), since it is the only one with a fixed cost per call; an invoker that reads its
-  arguments from a block instead of baking them in can be lowered once per signature shape.
-  For the second, decide whether a patched allocation can be remembered across functions: the
-  deferred-function registration and the `Pause` path are what a memo has to keep exact.
-- Complete when: each item is either removed with a test of compile-time execution behind it, or
-  recorded as measured and not worth its risk.
-- Related: compiler.core.056, compiler.core.030.
 
 ### compiler.core.007 — Workspace front ends and code generation run serially
 

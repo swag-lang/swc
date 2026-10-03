@@ -475,8 +475,10 @@ namespace
                     const auto it = privateGlobalBases.find(use);
                     if (it == privateGlobalBases.end())
                         continue;
-                    const size_t occurrences = std::ranges::count(useDefs[i].uses, use) + std::ranges::count(useDefs[i].defs, use);
-                    if (!hasBase || !instOps || instOps[baseIndex].reg != use || occurrences != 1)
+                    // This loop already proves one use; only a sole base use with no definition stays private.
+                    if (!hasBase || !instOps || instOps[baseIndex].reg != use ||
+                        std::ranges::count(useDefs[i].uses, use) != 1 ||
+                        std::ranges::find(useDefs[i].defs, use) != useDefs[i].defs.end())
                         materializedPrivateGlobals.insert(it->second);
                 }
             }

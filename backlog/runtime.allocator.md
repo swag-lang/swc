@@ -59,6 +59,31 @@ alone. Comparative reference points for that investigation:
 | [TCMalloc](https://google.github.io/tcmalloc/design.html) | Per-CPU caches, batched transfers and a hugepage-aware backend are useful architectural reference points. Its [per-CPU restartable sequences](https://google.github.io/tcmalloc/rseq.html) use Linux facilities, so this is not a direct Windows backend comparison. |
 | [Scudo](https://llvm.org/docs/ScudoHardenedAllocator.html) and [hardened_malloc](https://github.com/GrapheneOS/hardened_malloc) | Hardening reference points for state/integrity checks, metadata isolation, randomization and quarantine. Features differ by allocator and configuration; do not imply all protections are enabled by default or provide complete memory safety. |
 
+### runtime.allocator.002 — Close the remaining distance on the allocation hot path
+
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-10-03 15:48 — Recorded that the JIT runs binarytrees faster than native code.
+- October 3, `bench/allocator` (median of five rotating rounds, through `Memory.alloc`): pair
+  28.4 -> 26.5 ns, trees 34.4 -> 26.6 ns, churn 53.7 -> 49.2 ns, against 4.3 / 7.3 / 17.9 ns for
+  mimalloc and 29.9 / 44.3 / 68.3 ns for the C heap. Native binarytrees paired median 0.87.
+- `impl alloc` and `impl free` now try an inline path first (alignment up to 16, a page of the
+  calling thread, no diagnostic mode, `slowPath` caches the mode test) and leave everything else
+  to a non-inlined general path; panics moved out of line; page metadata is two cache lines.
+- What is left per pair is code generation, not allocator work: two `getContext` calls, two
+  interface calls, two `TlsGetValue` calls, and the prologues those calls force (five saved
+  registers in each entry point). A C probe prices `TlsGetValue` at 0.85 ns against 0.60 ns for
+  a direct `gs:[0x30]` TEB read, so a thread-block intrinsic would save about 1 ns per pair and
+  is not worth new language surface; a leaf entry point without any call is what would pay.
+- Campaign `20261002-201919` runs binarytrees in 16.0 ms under the swc JIT and 22.3 ms native,
+  while the JIT is about 14% slower than native over the other tasks. Which allocator and
+  context path the JIT's `benchAlloc` reaches has not been established; check it before
+  attributing the native gap to generated code.
+- Next: once the backend can keep a call-free fast path a leaf (no callee-saved spills on the
+  common path), re-measure pair/trees; otherwise look at `Memory.alloc`'s request setup.
+- Complete when: generated-code attribution and comparable application/allocator measurements
+  establish the remaining policy, preserving lifetime and error behavior.
+- Related: runtime.allocator.001.
+
 ### runtime.allocator.003 — Return idle memory without being asked
 
 - Recorded: 2026-08-05 10:27
@@ -148,27 +173,6 @@ alone. Comparative reference points for that investigation:
 - Complete when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006
-
-### runtime.allocator.002 — Close the remaining distance on the allocation hot path
-
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-10-03 08:24 — Lean inline alloc/free paths, measured against mimalloc; a direct TEB read is not the lever.
-- October 3, `bench/allocator` (median of five rotating rounds, through `Memory.alloc`): pair
-  28.4 -> 26.5 ns, trees 34.4 -> 26.6 ns, churn 53.7 -> 49.2 ns, against 4.3 / 7.3 / 17.9 ns for
-  mimalloc and 29.9 / 44.3 / 68.3 ns for the C heap. Native binarytrees paired median 0.87.
-- `impl alloc` and `impl free` now try an inline path first (alignment up to 16, a page of the
-  calling thread, no diagnostic mode, `slowPath` caches the mode test) and leave everything else
-  to a non-inlined general path; panics moved out of line; page metadata is two cache lines.
-- What is left per pair is code generation, not allocator work: two `getContext` calls, two
-  interface calls, two `TlsGetValue` calls, and the prologues those calls force (five saved
-  registers in each entry point). A C probe prices `TlsGetValue` at 0.85 ns against 0.60 ns for
-  a direct `gs:[0x30]` TEB read, so a thread-block intrinsic would save about 1 ns per pair and
-  is not worth new language surface; a leaf entry point without any call is what would pay.
-- Next: once the backend can keep a call-free fast path a leaf (no callee-saved spills on the
-  common path), re-measure pair/trees; otherwise look at `Memory.alloc`'s request setup.
-- Complete when: generated-code attribution and comparable application/allocator measurements
-  establish the remaining policy, preserving lifetime and error behavior.
-- Related: runtime.allocator.001.
 
 ### runtime.allocator.004 — Make remote frees batched rather than one atomic each
 

@@ -155,8 +155,9 @@ func freeOne(itf: IAllocator, address: *void?)
 }
 
 // ----------------------------------------------------------------------------
-// A block bigger than any class takes the header path: no page carries it, and
-// freeing it hands its memory straight back to the operating system.
+// A block bigger than any class takes the header path: no page carries it. Its
+// header covers the whole rounded block, and freeing it keeps the block cached, so
+// a later request of a neighbouring size reuses it without calling the system.
 // ----------------------------------------------------------------------------
 #test
 {
@@ -169,7 +170,7 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.assert(allocatorPageOf(cast(u64) address) == null)
 
     let header = cast(*AllocatorHeader) (cast([*] u8) address - #sizeof(AllocatorHeader))
-    Swag.assert(header.blockSize == big)
+    Swag.assert(header.blockSize >= big)
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(alloc.stats().countAlloc == 1)
 
@@ -178,6 +179,16 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.assert(after.countAlloc == 0)
     Swag.assert(after.countPage == 0)
     Swag.assert(after.sizeCached == 0)
+
+    let reused = allocOne(itf, big - 2048)
+    Swag.assert(reused == address)
+    Swag.assert(alloc.stats().countOsCommit == after.countOsCommit)
+    freeOne(itf, reused)
+
+    // Trimming gives the cached block back to the system.
+    let committed = alloc.stats().sizeCommitted
+    alloc.trim()
+    Swag.assert(alloc.stats().sizeCommitted < committed)
 
     alloc.releaseAll()
 }
@@ -258,7 +269,7 @@ func freeOne(itf: IAllocator, address: *void?)
     freeOne(itf, second)
 
     // 'second' is now the head and its stored link must decode to 'first'.
-    Swag.assert(page.decode(page.freeList) == cast(u64) second)
+    Swag.assert(page.freeList == cast(u64) second)
     let storedLink = (cast(const *u64) second)[]
     Swag.assert(storedLink != cast(u64) first)
     Swag.assert(page.decode(storedLink) == cast(u64) first)
@@ -800,4 +811,59 @@ func freeOne(itf: IAllocator, address: *void?)
 
         alloc.releaseAll()
     }
+}
+
+// ----------------------------------------------------------------------------
+// A double free is caught wherever the block sits in the page's free list, not
+// only at its head: a free block reads as one from its first word, and the free
+// path then walks the list to confirm. A block handed out again no longer reads
+// as free, so freeing it once more is legal.
+// ----------------------------------------------------------------------------
+var g_DoubleFreePanics: u32
+
+func recordDoubleFreePanic(message: string?, _loc: SourceCodeLocation)
+{
+    if message == "memory block is freed twice" do
+        g_DoubleFreePanics += 1
+}
+
+// Frees a block through its integer address, which the static analysis does not follow: the
+// double frees below are the point of the test.
+func freeAddress(itf: IAllocator, address: u64)
+{
+    freeOne(itf, cast(*void) address)
+}
+
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc, fillMemory: false)
+
+    let first  = allocOne(itf, 64)
+    let second = allocOne(itf, 64)
+    let third  = allocOne(itf, 64)
+    freeOne(itf, first)
+    freeOne(itf, second)
+    freeOne(itf, third)
+
+    let cxt      = Swag.getContext()
+    let previous = cxt.panic
+    cxt.panic          = &recordDoubleFreePanic
+    g_DoubleFreePanics = 0
+    freeAddress(itf, cast(u64) first)
+    freeAddress(itf, cast(u64) second)
+    cxt.panic = previous
+    Swag.assert(g_DoubleFreePanics == 2)
+
+    // The lists are intact: the three blocks come back, and each can be freed again.
+    let again0 = allocOne(itf, 64)
+    let again1 = allocOne(itf, 64)
+    let again2 = allocOne(itf, 64)
+    Swag.assert(again0 == third and again1 == second and again2 == first)
+    freeOne(itf, again0)
+    freeOne(itf, again1)
+    freeOne(itf, again2)
+    Swag.assert(alloc.stats().countAlloc == 0)
+
+    alloc.releaseAll()
 }

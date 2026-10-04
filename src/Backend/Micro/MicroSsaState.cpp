@@ -265,30 +265,35 @@ void MicroSsaState::invalidate()
     valid_ = false;
 }
 
-MicroSsaState::ReachingDef MicroSsaState::reachingDef(const MicroReg reg, const MicroInstrRef beforeInstRef) const
+uint32_t MicroSsaState::reachingValueId(const MicroReg reg, const MicroInstrRef beforeInstRef) const
 {
     SWC_ASSERT(storage_ != nullptr);
 
     if (!valid_ || !isTrackedReg(reg))
-        return {};
+        return K_INVALID_VALUE;
 
     const uint32_t slot = beforeInstRef.get();
     SWC_ASSERT(slot < instrInfos_.size());
     SWC_ASSERT(slot < liveInstructionSlots_.size());
 
     if (liveInstructionSlots_[slot] != liveInstructionEpoch_)
-        return {};
+        return K_INVALID_VALUE;
 
     const uint32_t regIndex = trackedRegs_.find(reg);
     if (regIndex == MicroDenseRegIndex::K_INVALID_INDEX)
-        return {};
+        return K_INVALID_VALUE;
 
     const uint32_t position = instrInfos_[slot].renamePosition;
     const auto&    values   = reachingValuesByReg_[regIndex];
     const auto     after    = std::ranges::upper_bound(values, position, {}, &ReachingValue::position);
     if (after == values.begin())
-        return {};
-    const uint32_t valueId = (after - 1)->valueId;
+        return K_INVALID_VALUE;
+    return (after - 1)->valueId;
+}
+
+MicroSsaState::ReachingDef MicroSsaState::reachingDef(const MicroReg reg, const MicroInstrRef beforeInstRef) const
+{
+    const uint32_t valueId = reachingValueId(reg, beforeInstRef);
     if (valueId == K_INVALID_VALUE)
         return {};
 

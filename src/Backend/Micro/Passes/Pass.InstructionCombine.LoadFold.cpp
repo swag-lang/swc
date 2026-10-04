@@ -1273,7 +1273,7 @@ namespace InstructionCombine
             return false;
         const MicroReg factor      = multiply[1].reg;
         const auto     factorValue = ctx.ssa->reachingDef(factor, product.instRef);
-        if (!factorValue.valid() || ctx.ssa->reachingDef(factor, ref).valueId != factorValue.valueId)
+        if (!factorValue.valid() || ctx.ssa->reachingValueId(factor, ref) != factorValue.valueId)
             return false;
 
         bool          reached = false;

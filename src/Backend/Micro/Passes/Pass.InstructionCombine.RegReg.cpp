@@ -136,9 +136,9 @@ namespace InstructionCombine
                 if (source != sourceCopyOps[1].reg || source != decrementOps[1].reg)
                     continue;
                 const auto sourceValue = ctx.ssa->reachingDef(source, nonZero.compareRef);
-                if (!sourceValue.valid() || ctx.ssa->reachingDef(source, sourceCopy.instRef).valueId != sourceValue.valueId ||
-                    ctx.ssa->reachingDef(source, decrement.instRef).valueId != sourceValue.valueId ||
-                    ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId)
+                if (!sourceValue.valid() || ctx.ssa->reachingValueId(source, sourceCopy.instRef) != sourceValue.valueId ||
+                    ctx.ssa->reachingValueId(source, decrement.instRef) != sourceValue.valueId ||
+                    ctx.ssa->reachingValueId(source, ref) != sourceValue.valueId)
                     continue;
 
                 if (!ctx.nextVirtualFloatRegIndex)
@@ -204,7 +204,7 @@ namespace InstructionCombine
                 if (!copy || copy[1].reg != ops[1].reg || getNumBits(copy[2].opBits) < getNumBits(bits))
                     return false;
                 const auto source = ctx.ssa->reachingDef(ops[1].reg, def.instRef);
-                if (!source.valid() || ctx.ssa->reachingDef(ops[1].reg, ref).valueId != source.valueId)
+                if (!source.valid() || ctx.ssa->reachingValueId(ops[1].reg, ref) != source.valueId)
                     return false;
                 copyRef = def.instRef;
             }
@@ -276,8 +276,8 @@ namespace InstructionCombine
                 const bool     encodable   = factor == 1 || factor == 2 || factor == 3 || factor == 5 || factor == 9;
                 const MicroReg source      = addresses[0][1].reg;
                 const auto     sourceValue = ctx.ssa->reachingDef(source, defs[0].instRef);
-                if (!encodable || !sourceValue.valid() || ctx.ssa->reachingDef(source, defs[1].instRef).valueId != sourceValue.valueId ||
-                    ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId ||
+                if (!encodable || !sourceValue.valid() || ctx.ssa->reachingValueId(source, defs[1].instRef) != sourceValue.valueId ||
+                    ctx.ssa->reachingValueId(source, ref) != sourceValue.valueId ||
                     !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef,
                                    copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
                     return false;
@@ -396,8 +396,8 @@ namespace InstructionCombine
                 const MicroReg source      = initialCopies[0][1].reg;
                 const auto     sourceValue = ctx.ssa->reachingDef(source, initial[0].instRef);
                 if (source != initialCopies[1][1].reg || !sourceValue.valid() ||
-                    ctx.ssa->reachingDef(source, initial[1].instRef).valueId != sourceValue.valueId ||
-                    ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId)
+                    ctx.ssa->reachingValueId(source, initial[1].instRef) != sourceValue.valueId ||
+                    ctx.ssa->reachingValueId(source, ref) != sourceValue.valueId)
                     return false;
 
                 const uint64_t shift0  = shifts[0][3].valueU64;
@@ -413,7 +413,7 @@ namespace InstructionCombine
                         factor = (1ull << delta) - 1;
                 }
                 if ((factor != 2 && factor != 3 && factor != 5 && factor != 9) ||
-                    ctx.ssa->reachingDef(regs[lowSide], ref).valueId != defs[lowSide].valueId ||
+                    ctx.ssa->reachingValueId(regs[lowSide], ref) != defs[lowSide].valueId ||
                     !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
                     !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef,
                                    copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
@@ -486,7 +486,7 @@ namespace InstructionCombine
             if (!copied || !copied[1].reg.isVirtualInt() || getNumBits(copied[2].opBits) < 32)
                 return false;
             const auto source = ctx.ssa->reachingDef(copied[1].reg, input.instRef);
-            if (!source.valid() || ctx.ssa->reachingDef(copied[1].reg, ref).valueId != source.valueId ||
+            if (!source.valid() || ctx.ssa->reachingValueId(copied[1].reg, ref) != source.valueId ||
                 !ctx.claimAll({ref, mask.instRef, input.instRef, copyRef.isValid() ? copyRef : ref}))
                 return false;
             MicroInstrOperand shift[5];
@@ -531,8 +531,8 @@ namespace InstructionCombine
             const MicroReg sourceReg = shifts[0][1].reg;
             const auto     source    = ctx.ssa->reachingDef(sourceReg, defs[0].instRef);
             if (shifts[0][4].microOp == shifts[1][4].microOp || sourceReg != shifts[1][1].reg || !source.valid() ||
-                ctx.ssa->reachingDef(sourceReg, defs[1].instRef).valueId != source.valueId ||
-                ctx.ssa->reachingDef(sourceReg, ref).valueId != source.valueId)
+                ctx.ssa->reachingValueId(sourceReg, defs[1].instRef) != source.valueId ||
+                ctx.ssa->reachingValueId(sourceReg, ref) != source.valueId)
                 return false;
             for (uint32_t negativeSide = 0; negativeSide < 2; ++negativeSide)
             {
@@ -603,8 +603,8 @@ namespace InstructionCombine
                 if (positiveCount != count || !count.isVirtualInt() || count == ops[0].reg)
                     continue;
                 const auto countValue = ctx.ssa->reachingDef(count, countRef);
-                if (!countValue.valid() || ctx.ssa->reachingDef(count, positiveRef).valueId != countValue.valueId ||
-                    ctx.ssa->reachingDef(count, ref).valueId != countValue.valueId ||
+                if (!countValue.valid() || ctx.ssa->reachingValueId(count, positiveRef) != countValue.valueId ||
+                    ctx.ssa->reachingValueId(count, ref) != countValue.valueId ||
                     !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, negative.instRef,
                                    copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref,
                                    negativeCopy.isValid() ? negativeCopy : ref, zeroRef.isValid() ? zeroRef : ref,
@@ -677,7 +677,7 @@ namespace InstructionCombine
                 inputOps[0][1].reg != inputOps[1][1].reg)
                 return false;
             const auto source = ctx.ssa->reachingDef(inputOps[0][1].reg, inputs[0].instRef);
-            if (!source.valid() || ctx.ssa->reachingDef(inputOps[1][1].reg, inputs[1].instRef).valueId != source.valueId)
+            if (!source.valid() || ctx.ssa->reachingValueId(inputOps[1][1].reg, inputs[1].instRef) != source.valueId)
                 return false;
             if (shifts[0][1].opBits != bits &&
                 (bits != MicroOpBits::B32 || shifts[0][1].opBits != MicroOpBits::B64 || !isValueZeroExtended32(ctx, source.valueId)))
@@ -795,7 +795,7 @@ namespace InstructionCombine
                 lhs.source != rhs.source || lhs.defRef == rhs.defRef)
                 return false;
             const auto source = ctx.ssa->reachingDef(lhs.source, lhs.sourceRef);
-            if (!source.valid() || ctx.ssa->reachingDef(rhs.source, rhs.sourceRef).valueId != source.valueId)
+            if (!source.valid() || ctx.ssa->reachingValueId(rhs.source, rhs.sourceRef) != source.valueId)
                 return false;
             if (!ctx.claimAll({ref, lhs.defRef, rhs.defRef, lhs.copyRef.isValid() ? lhs.copyRef : ref, rhs.copyRef.isValid() ? rhs.copyRef : ref,
                                lhs.sourceCopyRef.isValid() ? lhs.sourceCopyRef : ref, rhs.sourceCopyRef.isValid() ? rhs.sourceCopyRef : ref}))
@@ -1055,15 +1055,15 @@ namespace InstructionCombine
                         if (mask != inputs[normalSide][normalMask])
                             continue;
                         const auto maskValue = ctx.ssa->reachingDef(mask, inverseInput.instRef);
-                        if (!maskValue.valid() || ctx.ssa->reachingDef(mask, inputRefs[normalSide][normalMask]).valueId != maskValue.valueId ||
-                            ctx.ssa->reachingDef(mask, ref).valueId != maskValue.valueId)
+                        if (!maskValue.valid() || ctx.ssa->reachingValueId(mask, inputRefs[normalSide][normalMask]) != maskValue.valueId ||
+                            ctx.ssa->reachingValueId(mask, ref) != maskValue.valueId)
                             continue;
                         const MicroReg a      = inputs[normalSide][1 - normalMask];
                         const MicroReg b      = inputs[invertedSide][1 - invertedMask];
                         const auto     aValue = ctx.ssa->reachingDef(a, inputRefs[normalSide][1 - normalMask]);
                         const auto     bValue = ctx.ssa->reachingDef(b, inputRefs[invertedSide][1 - invertedMask]);
                         if (ops[0].reg == a || ops[0].reg == b || ops[0].reg == mask || !aValue.valid() || !bValue.valid() ||
-                            ctx.ssa->reachingDef(a, ref).valueId != aValue.valueId || ctx.ssa->reachingDef(b, ref).valueId != bValue.valueId)
+                            ctx.ssa->reachingValueId(a, ref) != aValue.valueId || ctx.ssa->reachingValueId(b, ref) != bValue.valueId)
                             continue;
                         if (!ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, initial[0].instRef, initial[1].instRef,
                                            inverseDef.instRef, inverseInput.instRef, inverseCopy.isValid() ? inverseCopy : ref,
@@ -1146,8 +1146,8 @@ namespace InstructionCombine
                     const MicroReg reg   = inputs[0][input];
                     const auto     value = ctx.ssa->reachingDef(reg, inputRefs[0][input]);
                     equal &= value.valid() && reg == inputs[1][input ^ order] &&
-                             ctx.ssa->reachingDef(reg, inputRefs[1][input ^ order]).valueId == value.valueId &&
-                             ctx.ssa->reachingDef(reg, ref).valueId == value.valueId;
+                             ctx.ssa->reachingValueId(reg, inputRefs[1][input ^ order]) == value.valueId &&
+                             ctx.ssa->reachingValueId(reg, ref) == value.valueId;
                 }
                 if (!equal || ops[0].reg == inputs[0][1] ||
                     !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, initial[0].instRef, initial[1].instRef,
@@ -1213,7 +1213,7 @@ namespace InstructionCombine
                 if (other != lea[1].reg)
                     continue;
                 const auto base = ctx.ssa->reachingDef(other, address.instRef);
-                if (!base.valid() || ctx.ssa->reachingDef(other, otherRef).valueId != base.valueId ||
+                if (!base.valid() || ctx.ssa->reachingValueId(other, otherRef) != base.valueId ||
                     !ctx.claimAll({ref, address.instRef, addressCopy.isValid() ? addressCopy : ref, otherCopy.isValid() ? otherCopy : ref}))
                     continue;
                 MicroInstrOperand result[3];
@@ -1288,7 +1288,7 @@ namespace InstructionCombine
                     if (other != inputs[common])
                         continue;
                     const auto commonValue = ctx.ssa->reachingDef(other, inputRefs[common]);
-                    if (!commonValue.valid() || ctx.ssa->reachingDef(other, otherRef).valueId != commonValue.valueId)
+                    if (!commonValue.valid() || ctx.ssa->reachingValueId(other, otherRef) != commonValue.valueId)
                         continue;
                     const uint32_t negatedIndex = outer == MicroOp::Xor ? common : 1 - common;
                     const MicroReg negated      = inputs[negatedIndex];
@@ -1296,8 +1296,8 @@ namespace InstructionCombine
                     const auto     negatedValue = ctx.ssa->reachingDef(negated, inputRefs[negatedIndex]);
                     const auto     normalValue  = ctx.ssa->reachingDef(normal, inputRefs[1 - negatedIndex]);
                     if (!negatedValue.valid() || !normalValue.valid() ||
-                        ctx.ssa->reachingDef(negated, ref).valueId != negatedValue.valueId ||
-                        ctx.ssa->reachingDef(normal, ref).valueId != normalValue.valueId ||
+                        ctx.ssa->reachingValueId(negated, ref) != negatedValue.valueId ||
+                        ctx.ssa->reachingValueId(normal, ref) != normalValue.valueId ||
                         !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                         continue;
                     if (!ctx.nextVirtualFloatRegIndex)
@@ -1401,12 +1401,12 @@ namespace InstructionCombine
                     if (other != inputs[common])
                         continue;
                     const auto commonValue = ctx.ssa->reachingDef(other, inputRefs[common]);
-                    if (!commonValue.valid() || ctx.ssa->reachingDef(other, otherRef).valueId != commonValue.valueId)
+                    if (!commonValue.valid() || ctx.ssa->reachingValueId(other, otherRef) != commonValue.valueId)
                         continue;
                     const uint32_t resultIndex = (outer == MicroOp::Xor || arithmetic) ? 1 - common : common;
                     const MicroReg result      = inputs[resultIndex];
                     const auto     resultValue = ctx.ssa->reachingDef(result, inputRefs[resultIndex]);
-                    if (!resultValue.valid() || ctx.ssa->reachingDef(result, ref).valueId != resultValue.valueId)
+                    if (!resultValue.valid() || ctx.ssa->reachingValueId(result, ref) != resultValue.valueId)
                         continue;
                     if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
                         !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
@@ -1485,7 +1485,7 @@ namespace InstructionCombine
                     continue;
                 const auto productQuotient = ctx.ssa->reachingDef(quotient, productDef.instRef);
                 if (!productQuotient.valid() || productQuotient.valueId != quotientDef.valueId ||
-                    ctx.ssa->reachingDef(quotient, ref).valueId != quotientDef.valueId)
+                    ctx.ssa->reachingValueId(quotient, ref) != quotientDef.valueId)
                     continue;
 
                 bool                            foldLogicalHalf = false;
@@ -1568,7 +1568,7 @@ namespace InstructionCombine
             if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) <= index)
                 return;
             const auto source = ctx.ssa->reachingDef(copy[1].reg, initial.instRef);
-            if (!source.valid() || ctx.ssa->reachingDef(copy[1].reg, productRef).valueId != source.valueId ||
+            if (!source.valid() || ctx.ssa->reachingValueId(copy[1].reg, productRef) != source.valueId ||
                 !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, shifted.instRef, ctx.builder))
                 return;
             bit.reg      = copy[1].reg;
@@ -1635,7 +1635,7 @@ namespace InstructionCombine
                     continue;
                 const MicroReg input      = copied[1].reg;
                 const auto     inputValue = ctx.ssa->reachingDef(input, initial.instRef);
-                if (!inputValue.valid() || ctx.ssa->reachingDef(input, ref).valueId != inputValue.valueId ||
+                if (!inputValue.valid() || ctx.ssa->reachingValueId(input, ref) != inputValue.valueId ||
                     !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, mask.instRef, ctx.builder) ||
                     !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                     continue;
@@ -1753,9 +1753,9 @@ namespace InstructionCombine
                     const MicroReg factor      = inputs[1 - common];
                     const auto     factorValue = ctx.ssa->reachingDef(factor, inputRefs[1 - common]);
                     if (!commonValue.valid() || !factorValue.valid() ||
-                        ctx.ssa->reachingDef(other, otherRef).valueId != commonValue.valueId ||
-                        ctx.ssa->reachingDef(other, ref).valueId != commonValue.valueId ||
-                        ctx.ssa->reachingDef(factor, ref).valueId != factorValue.valueId)
+                        ctx.ssa->reachingValueId(other, otherRef) != commonValue.valueId ||
+                        ctx.ssa->reachingValueId(other, ref) != commonValue.valueId ||
+                        ctx.ssa->reachingValueId(factor, ref) != factorValue.valueId)
                         continue;
                     if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
                         !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, product.instRef, ctx.builder))
@@ -1850,8 +1850,8 @@ namespace InstructionCombine
             if (common != copyOps[1][1].reg || common == regs[0] || common == regs[1] || common == ops[0].reg)
                 return false;
             const auto commonValue = ctx.ssa->reachingDef(common, initial[0].instRef);
-            if (!commonValue.valid() || ctx.ssa->reachingDef(common, initial[1].instRef).valueId != commonValue.valueId ||
-                ctx.ssa->reachingDef(common, ref).valueId != commonValue.valueId)
+            if (!commonValue.valid() || ctx.ssa->reachingValueId(common, initial[1].instRef) != commonValue.valueId ||
+                ctx.ssa->reachingValueId(common, ref) != commonValue.valueId)
                 return false;
 
             bool          seenSecond = false;
@@ -1967,8 +1967,8 @@ namespace InstructionCombine
         // and the writeback: it must not be redefined across the region.
         const auto reachAInit = ctx.ssa->reachingDef(a, initRef);
         if (!reachAInit.valid() ||
-            ctx.ssa->reachingDef(a, opRef).valueId != reachAInit.valueId ||
-            ctx.ssa->reachingDef(a, writebackRef).valueId != reachAInit.valueId)
+            ctx.ssa->reachingValueId(a, opRef) != reachAInit.valueId ||
+            ctx.ssa->reachingValueId(a, writebackRef) != reachAInit.valueId)
             return false;
 
         // Confine init/op/writeback to one basic block and confirm A is not read

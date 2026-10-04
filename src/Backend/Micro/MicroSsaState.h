@@ -73,6 +73,7 @@ public:
     void invalidate();
     bool isValid() const { return valid_; }
 
+    uint32_t    reachingValueId(MicroReg reg, MicroInstrRef beforeInstRef) const;
     ReachingDef reachingDef(MicroReg reg, MicroInstrRef beforeInstRef) const;
     bool        isRegUsedAfter(MicroReg reg, MicroInstrRef afterInstRef) const;
     // Number of distinct instruction uses a value reaches, counting transitively

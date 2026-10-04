@@ -471,7 +471,7 @@ namespace InstructionCombine
         for (const MicroSsaState::UseSite& use : resultInfo->uses)
         {
             if (use.kind != MicroSsaState::UseSite::Kind::Instruction || ctx.isClaimed(use.instRef) || ctx.isRelocated(use.instRef) ||
-                ctx.ssa->reachingDef(right, use.instRef).valueId != rightValue.valueId)
+                ctx.ssa->reachingValueId(right, use.instRef) != rightValue.valueId)
                 return false;
             if (std::ranges::find(uses, use.instRef) == uses.end())
                 uses.push_back(use.instRef);

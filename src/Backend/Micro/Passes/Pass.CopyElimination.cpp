@@ -216,8 +216,8 @@ namespace
                      (canonicalValue.reg.isVirtual() && builder->shouldPreserveVirtualCopy(canonicalValue.reg))))
                     continue;
 
-                const auto rootReachingDef = ssaState.reachingDef(canonicalValue.reg, instRef);
-                if (!rootReachingDef.valid() || rootReachingDef.valueId != canonicalValue.valueId)
+                const uint32_t rootValueId = ssaState.reachingValueId(canonicalValue.reg, instRef);
+                if (rootValueId != canonicalValue.valueId)
                     continue;
 
                 if (builder)

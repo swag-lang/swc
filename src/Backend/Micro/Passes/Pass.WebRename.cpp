@@ -201,7 +201,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
             if (base == storedValues.end())
                 continue;
             const auto stored = base->second.find(offset);
-            if (stored != base->second.end() && ssa->reachingDef(stored->second.source, it.current).valueId != stored->second.value)
+            if (stored != base->second.end() && ssa->reachingValueId(stored->second.source, it.current) != stored->second.value)
                 candidates.insert(stored->second.source);
         }
     }
@@ -250,7 +250,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
             uint32_t inputValue = MicroSsaState::K_INVALID_VALUE;
             if (modes[operand] == MicroInstrRegMode::Use || modes[operand] == MicroInstrRegMode::UseDef)
             {
-                inputValue = ssa->reachingDef(reg, it.current).valueId;
+                inputValue = ssa->reachingValueId(reg, it.current);
                 if (inputValue == MicroSsaState::K_INVALID_VALUE)
                     excluded.insert(reg);
             }
@@ -314,7 +314,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
             if (modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef)
                 ssa->defValue(reg, it.current, id);
             else
-                id = ssa->reachingDef(reg, it.current).valueId;
+                id = ssa->reachingValueId(reg, it.current);
             if (id == MicroSsaState::K_INVALID_VALUE)
                 continue;
             const auto name = names.find(webs.root(id));

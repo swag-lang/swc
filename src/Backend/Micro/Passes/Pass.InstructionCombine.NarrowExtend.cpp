@@ -882,7 +882,7 @@ namespace InstructionCombine
             if (!ext || !ext[1].reg.isVirtualInt() || getNumBits(ext[3].opBits) < 8 || getNumBits(ext[2].opBits) <= getNumBits(ext[3].opBits))
                 return MicroReg::invalid();
             const MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(ext[1].reg, def.instRef);
-            if (!source.valid() || ctx.ssa->reachingDef(ext[1].reg, atRef).valueId != source.valueId)
+            if (!source.valid() || ctx.ssa->reachingValueId(ext[1].reg, atRef) != source.valueId)
                 return MicroReg::invalid();
 
             outSourceBits = ext[3].opBits;

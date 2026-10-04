@@ -75,11 +75,8 @@ bool tryGetSsaValue(T_VALUE& outValue, const std::vector<T_VALUE>& values, const
 template<typename T_VALUE, typename T_TRAITS>
 bool tryGetSsaReachingValue(T_VALUE& outValue, const MicroSsaState& ssaState, const std::vector<T_VALUE>& values, const std::vector<uint8_t>& flags, MicroReg reg, MicroInstrRef instRef)
 {
-    const auto reachingDef = ssaState.reachingDef(reg, instRef);
-    if (!reachingDef.valid())
-        return false;
-
-    return tryGetSsaValue<T_VALUE, T_TRAITS>(outValue, values, flags, reachingDef.valueId);
+    const uint32_t valueId = ssaState.reachingValueId(reg, instRef);
+    return tryGetSsaValue<T_VALUE, T_TRAITS>(outValue, values, flags, valueId);
 }
 
 inline bool tryGetKnownReachingValue(MicroSsaKnownValue& outValue, const MicroSsaKnownValueContext& context, const std::vector<MicroSsaKnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)

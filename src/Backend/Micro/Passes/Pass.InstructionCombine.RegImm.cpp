@@ -253,7 +253,7 @@ namespace InstructionCombine
                 return false;
             const MicroReg source       = copy[1].reg;
             const auto     sourceAtCopy = ctx.ssa->reachingDef(source, def.instRef);
-            if (!sourceAtCopy.valid() || ctx.ssa->reachingDef(source, ref).valueId != sourceAtCopy.valueId)
+            if (!sourceAtCopy.valid() || ctx.ssa->reachingValueId(source, ref) != sourceAtCopy.valueId)
                 return false;
 
             if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
@@ -766,14 +766,14 @@ namespace InstructionCombine
                 continue;
             const MicroReg source      = copied[1].reg;
             const auto     sourceValue = ctx.ssa->reachingDef(source, original.instRef);
-            if (!sourceValue.valid() || ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId)
+            if (!sourceValue.valid() || ctx.ssa->reachingValueId(source, ref) != sourceValue.valueId)
                 continue;
             if (!constant)
             {
                 const MicroReg other      = inputs[1 - side];
                 const auto     otherValue = ctx.ssa->reachingDef(other, inputRefs[1 - side]);
                 if (!other.isVirtualInt() || other == ops[0].reg || !otherValue.valid() ||
-                    ctx.ssa->reachingDef(other, ref).valueId != otherValue.valueId)
+                    ctx.ssa->reachingValueId(other, ref) != otherValue.valueId)
                     continue;
             }
             if (!ctx.claimAll({ref, sum.instRef, complement.instRef, original.instRef,

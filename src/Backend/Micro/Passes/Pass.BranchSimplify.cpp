@@ -842,8 +842,8 @@ namespace
             ValueIntervals tested;
             if (!tryGetTakenValues(tested, jumpOps[0].cpuCond, imm, bits))
                 continue;
-            const MicroSsaState::ReachingDef value = ssaState.reachingDef(reg, layout.order[ordinal - 1]);
-            if (!value.valid())
+            const uint32_t valueId = ssaState.reachingValueId(reg, layout.order[ordinal - 1]);
+            if (valueId == MicroSsaState::K_INVALID_VALUE)
                 continue;
 
             // Most backward walks remain in straight-line code. Clear the
@@ -921,8 +921,8 @@ namespace
                 uint64_t    factImm  = 0;
                 if (!compareBefore(factJump, factReg, factBits, factImm) || factReg != reg || factBits != bits)
                     continue;
-                const MicroSsaState::ReachingDef factValue = ssaState.reachingDef(factReg, layout.order[factJump - 1]);
-                if (!factValue.valid() || factValue.valueId != value.valueId)
+                const uint32_t factValueId = ssaState.reachingValueId(factReg, layout.order[factJump - 1]);
+                if (factValueId != valueId)
                     continue;
                 ValueIntervals known;
                 if (!tryGetTakenValues(known, factCond, factImm, factBits) || known.empty())
@@ -5873,12 +5873,12 @@ namespace
     {
         if (left.bits != right.bits || left.mul != right.mul || left.add != right.add)
             return false;
-        const MicroSsaState::ReachingDef leftBase   = ssa.reachingDef(left.base, left.atRef);
-        const MicroSsaState::ReachingDef rightBase  = ssa.reachingDef(right.base, right.atRef);
-        const MicroSsaState::ReachingDef leftIndex  = ssa.reachingDef(left.index, left.atRef);
-        const MicroSsaState::ReachingDef rightIndex = ssa.reachingDef(right.index, right.atRef);
-        return leftBase.valid() && rightBase.valid() && leftBase.valueId == rightBase.valueId &&
-               leftIndex.valid() && rightIndex.valid() && leftIndex.valueId == rightIndex.valueId;
+        const uint32_t leftBase   = ssa.reachingValueId(left.base, left.atRef);
+        const uint32_t rightBase  = ssa.reachingValueId(right.base, right.atRef);
+        const uint32_t leftIndex  = ssa.reachingValueId(left.index, left.atRef);
+        const uint32_t rightIndex = ssa.reachingValueId(right.index, right.atRef);
+        return leftBase != MicroSsaState::K_INVALID_VALUE && leftBase == rightBase &&
+               leftIndex != MicroSsaState::K_INVALID_VALUE && leftIndex == rightIndex;
     }
 
     // A narrow saturating subtraction can repeat both indexed reads in its
@@ -6827,7 +6827,7 @@ namespace
 
         // The skipping path carries D's entry value to the join; the move
         // needs that value to exist.
-        if (!scan.ssa->reachingDef(triangle.result, triangle.jumpRef).valid())
+        if (scan.ssa->reachingValueId(triangle.result, triangle.jumpRef) == MicroSsaState::K_INVALID_VALUE)
             return false;
 
         triangle.sinkCompare = triangle.arm.definesFlags;

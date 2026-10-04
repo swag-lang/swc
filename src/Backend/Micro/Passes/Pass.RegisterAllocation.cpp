@@ -439,12 +439,11 @@ bool MicroRegisterAllocationPass::isLiveInAt(MicroReg key, uint32_t instructionI
     return DenseBits::contains(liveInRow, denseIndex);
 }
 
-bool MicroRegisterAllocationPass::isConcreteLiveInAt(MicroReg key, uint32_t instructionIndex) const
+bool MicroRegisterAllocationPass::isConcreteLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const
 {
     if (instructionIndex >= instructionCount_)
         return false;
 
-    const uint32_t denseIndex = denseConcreteRegs_.find(key);
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
         return false;
 
@@ -456,9 +455,8 @@ bool MicroRegisterAllocationPass::isConcreteLiveInAt(MicroReg key, uint32_t inst
     return DenseBits::contains(liveInRow, denseIndex);
 }
 
-bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const
+bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKey, uint32_t denseIndex, uint32_t instructionIndex) const
 {
-    const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= concreteTouchPositionsByDenseIndex_.size())
         return false;
 
@@ -479,7 +477,8 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
         return false;
     if (isPhysRegForbiddenForVirtual(virtKey, physReg))
         return false;
-    if (!allowConcreteLive && hasFutureConcreteTouchConflict(virtKey, physReg, instructionIndex))
+    const uint32_t concreteIndex = denseConcreteRegs_.find(physReg);
+    if (!allowConcreteLive && hasFutureConcreteTouchConflict(virtKey, concreteIndex, instructionIndex))
         return false;
 
     // The future-touch test above asks whether the REQUESTING value is still
@@ -492,7 +491,7 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
     // path can make the clobber safe — and by construction it only triggers
     // between a concrete definition and its read, so registers stay available
     // before their setup and after their last concrete read.
-    if (isConcreteLiveInAt(physReg, instructionIndex))
+    if (isConcreteLiveInAt(concreteIndex, instructionIndex))
         return false;
 
     // A register the first sweep reserved for a whole live range stays
@@ -4059,7 +4058,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 {
                     if (!request.virtReg.isSameClass(key))
                         continue;
-                    if (!isConcreteLiveInAt(key, idx))
+                    if (!isConcreteLiveInAt(denseConcreteRegs_.find(key), idx))
                         continue;
                     if (containsKey(mentionedConcreteRegs, key))
                         continue;

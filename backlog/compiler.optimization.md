@@ -752,7 +752,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-23 13:07 — Took the structural half; the entry keeps the rebuild count.
+- Updated: 2026-10-04 07:45 — Recorded further structural savings; rebuild count and quantitative gain remain open.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
   `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on

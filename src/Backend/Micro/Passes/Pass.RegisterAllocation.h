@@ -252,8 +252,8 @@ private:
     bool              isPoolRegister(MicroReg reg) const;
     bool              isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
     bool              isLiveInAt(MicroReg key, uint32_t instructionIndex) const;
-    bool              isConcreteLiveInAt(MicroReg key, uint32_t instructionIndex) const;
-    bool              hasFutureConcreteTouchConflict(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const;
+    bool              isConcreteLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const;
+    bool              hasFutureConcreteTouchConflict(MicroReg virtKey, uint32_t denseIndex, uint32_t instructionIndex) const;
     bool              canUsePhysical(MicroReg virtKey, uint32_t instructionIndex, MicroReg physReg, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive) const;
     bool              tryTakeSpecificPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t instructionIndex, MicroReg preferredPhysReg, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys) const;
     bool              tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t instructionIndex, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys) const;

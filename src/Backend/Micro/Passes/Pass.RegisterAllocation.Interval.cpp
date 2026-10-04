@@ -2227,8 +2227,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
 
     // A copy between two distinct virtual registers of one class that copies
     // every bit: the only definition that leaves both holding the same contents.
-    const auto fullCopyOperands = [&](const uint32_t idx, MicroReg& outDst, MicroReg& outSrc) {
-        const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);
+    const auto fullCopyOperands = [&](MicroReg& outDst, MicroReg& outSrc, const MicroInstr* inst, const uint32_t idx) {
         if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
             return false;
         const MicroInstrOperand* ops = inst->ops(*operands_);
@@ -2326,9 +2325,10 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     const MicroReg         debugBase = context_->debugStackBaseVirtualReg;
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
-        MicroReg dstReg;
-        MicroReg srcReg;
-        if (!fullCopyOperands(idx, dstReg, srcReg))
+        MicroReg          dstReg;
+        MicroReg          srcReg;
+        const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);
+        if (!fullCopyOperands(dstReg, srcReg, inst, idx))
             continue;
         if (dstReg == debugBase || srcReg == debugBase)
             continue;
@@ -2377,14 +2377,14 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         const auto& defs = defVirtualIndices_[idx];
         const auto& uses = useVirtualIndices_[idx];
 
-        MicroReg   copyDst;
-        MicroReg   copySrc;
-        const bool isCopy = fullCopyOperands(idx, copyDst, copySrc);
+        MicroReg          copyDst;
+        MicroReg          copySrc;
+        const MicroInstr* inst   = instructions_->ptr(instrRefs[idx]);
+        const bool        isCopy = fullCopyOperands(copyDst, copySrc, inst, idx);
 
         // A value an instruction names outside its register operands (an
         // encoder-implied use or definition) cannot be renamed there.
         regRefs.clear();
-        const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);
         if (inst)
             inst->collectRegOperands(*operands_, regRefs, context_->encoder);
         const auto namedByOperand = [&](const uint32_t dense) {
@@ -2474,10 +2474,19 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         bool                     copiesWhole = false;
         if (inst.op == MicroInstrOpcode::LoadRegReg && ops && ops[1].reg.isVirtual())
         {
-            const uint32_t src = denseVirtualRegs_.find(ops[1].reg);
-            copiesWhole        = ops[1].reg.isVirtualInt() ? ops[2].opBits == MicroOpBits::B64 ||
-                                                          (ops[2].opBits == MicroOpBits::B32 && src != MicroDenseRegIndex::K_INVALID_INDEX && zeroHigh[src])
-                                                           : ops[2].opBits == MicroOpBits::B128;
+            if (ops[1].reg.isVirtualInt())
+            {
+                copiesWhole = ops[2].opBits == MicroOpBits::B64;
+                if (ops[2].opBits == MicroOpBits::B32)
+                {
+                    const uint32_t src = denseVirtualRegs_.find(ops[1].reg);
+                    copiesWhole        = src != MicroDenseRegIndex::K_INVALID_INDEX && zeroHigh[src];
+                }
+            }
+            else
+            {
+                copiesWhole = ops[2].opBits == MicroOpBits::B128;
+            }
         }
 
         regRefs.clear();

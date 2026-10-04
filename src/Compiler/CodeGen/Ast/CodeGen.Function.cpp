@@ -385,7 +385,7 @@ namespace
                 continue;
             }
 
-            CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, *symVar, paramInfo);
+            CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, *symVar, &paramInfo);
         }
     }
 

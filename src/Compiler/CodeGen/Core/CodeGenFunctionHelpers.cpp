@@ -631,7 +631,7 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
     }
 }
 
-CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
+CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo)
 {
     const SymbolVariable* canonicalParam = resolveCanonicalParameter(symbolFunc, symVar);
     const SymbolVariable& payloadSym     = canonicalParam ? *canonicalParam : symVar;
@@ -652,9 +652,9 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
         return payload;
     }
 
-    FunctionParameterInfo effectiveParamInfo = paramInfo;
-    if (&payloadSym != &symVar)
-        effectiveParamInfo = functionParameterInfo(codeGen, symbolFunc, payloadSym);
+    // Existing payloads and local homes need no ABI layout. Resolve it only
+    // for a load, using supplied metadata when it describes the canonical symbol.
+    const FunctionParameterInfo effectiveParamInfo = paramInfo && &payloadSym == &symVar ? *paramInfo : functionParameterInfo(codeGen, symbolFunc, payloadSym);
 
     CodeGenNodePayload outPayload;
     outPayload.typeRef = payloadSym.typeRef();
@@ -671,12 +671,6 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
     if (&payloadSym != &symVar)
         codeGen.setVariablePayload(symVar, outPayload);
     return outPayload;
-}
-
-CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
-{
-    const FunctionParameterInfo paramInfo = functionParameterInfo(codeGen, symbolFunc, symVar);
-    return materializeFunctionParameter(codeGen, symbolFunc, symVar, paramInfo);
 }
 
 uint32_t CodeGenFunctionHelpers::checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo)

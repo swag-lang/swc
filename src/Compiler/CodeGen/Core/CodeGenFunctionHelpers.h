@@ -64,8 +64,7 @@ namespace CodeGenFunctionHelpers
     // callee without losing the mark.
     void                  markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg);
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
-    CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
-    CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
+    CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo = nullptr);
     uint32_t              checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo);
     bool                  shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, bool isIndirect, bool isFloat, uint8_t numBits);
     Result                emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);

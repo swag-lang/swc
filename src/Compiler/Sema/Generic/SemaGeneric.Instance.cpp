@@ -131,7 +131,10 @@ namespace SemaGeneric
             if (declaredTypeRef.isValid())
             {
                 arg.typeRef = declaredTypeRef;
-                if (arg.cstRef.isValid() && sema.cstMgr().get(arg.cstRef).typeRef() != declaredTypeRef)
+                if (arg.cstRef.isInvalid())
+                    return Result::Continue;
+                const TypeRef constantTypeRef = sema.cstMgr().get(arg.cstRef).typeRef();
+                if (constantTypeRef != declaredTypeRef)
                 {
                     // Value generic arguments are constants, but the instance key
                     // must store them in the declared type. Reuse normal implicit
@@ -140,7 +143,7 @@ namespace SemaGeneric
                     castRequest.errorNodeRef = errorNodeRef;
                     castRequest.srcConstRef  = arg.cstRef;
 
-                    const auto res = Cast::castAllowed(sema, castRequest, sema.cstMgr().get(arg.cstRef).typeRef(), declaredTypeRef);
+                    const auto res = Cast::castAllowed(sema, castRequest, constantTypeRef, declaredTypeRef);
                     if (res != Result::Continue)
                     {
                         if (res == Result::Error)

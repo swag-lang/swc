@@ -270,8 +270,7 @@ namespace SemaGeneric
         {
             TypeRef typeRef = typeView.typeRef();
             SWC_RESULT(specializeExplicitGenericTypeArgFromContext(sema, nodeRef, typeRef));
-            const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-            if (!sema.isValue(nodeRef) || typeInfo.isAggregate())
+            if (!sema.isValue(nodeRef) || sema.typeMgr().get(typeRef).isAggregate())
             {
                 // Explicit type arguments only need the resolved type. Avoid forcing symbol payload
                 // queries on complex type syntax such as quoted generic specializations or
@@ -315,7 +314,7 @@ namespace SemaGeneric
         if (outArg.typeRef.isValid())
         {
             const TypeInfo& typeInfo = *view.type();
-            if (typeInfo.isScalarUnsized() && outArg.cstRef.isValid())
+            if (typeInfo.isScalarUnsized())
             {
                 ConstantRef newCstRef = ConstantRef::invalid();
                 SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeRef, outArg.cstRef, TypeInfo::Sign::Unknown));

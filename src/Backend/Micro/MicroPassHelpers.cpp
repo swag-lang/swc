@@ -476,7 +476,8 @@ bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cf
     {
         const uint32_t i = worklist.back();
         worklist.pop_back();
-        if (i >= count || visited[i] == visitStamp)
+        SWC_ASSERT(i < count);
+        if (visited[i] == visitStamp)
             continue;
         visited[i] = visitStamp;
 
@@ -1001,7 +1002,8 @@ void MicroPassHelpers::NaturalLoop::collectBody(const MicroControlFlowGraph& cfg
         stack.pop_back();
         for (const uint32_t pred : cfg.predecessors(node))
         {
-            if (pred < n && !inBody[pred])
+            SWC_ASSERT(pred < n);
+            if (!inBody[pred])
             {
                 inBody[pred] = 1;
                 ++bodySize;
@@ -1023,7 +1025,8 @@ std::unordered_map<uint32_t, MicroPassHelpers::NaturalLoop> MicroPassHelpers::fi
         for (const uint32_t v : cfg.successors(u))
         {
             // A back edge is an edge to a node that dominates its own source.
-            if (v < n && dom.dominates(v, u))
+            SWC_ASSERT(v < n);
+            if (dom.dominates(v, u))
             {
                 NaturalLoop& loop = loopsByHeader[v];
                 loop.header       = v;
@@ -1076,7 +1079,8 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
             uint32_t newIdom = MicroDomTree::K_INVALID_NODE;
             for (const uint32_t pred : cfg.predecessors(node))
             {
-                if (pred >= n || idom[pred] == MicroDomTree::K_INVALID_NODE)
+                SWC_ASSERT(pred < n);
+                if (idom[pred] == MicroDomTree::K_INVALID_NODE)
                     continue;
                 newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
             }
@@ -1103,7 +1107,8 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
             if (childCursor[u] < succ.size())
             {
                 const uint32_t v = succ[childCursor[u]++];
-                if (v < n && !visited[v])
+                SWC_ASSERT(v < n);
+                if (!visited[v])
                 {
                     visited[v] = 1;
                     rpo.push_back(v);
@@ -1146,7 +1151,8 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
                 {
                     for (const uint32_t pred : predecessors)
                     {
-                        if (pred >= n || idom[pred] == MicroDomTree::K_INVALID_NODE)
+                        SWC_ASSERT(pred < n);
+                        if (idom[pred] == MicroDomTree::K_INVALID_NODE)
                             continue;
                         newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
                     }

@@ -597,7 +597,8 @@ void MicroRegisterAllocationPass::computeLoopDepth()
     {
         for (const uint32_t p : predecessors_[s])
         {
-            if (p >= s && p < instructionCount_)
+            SWC_ASSERT(p < instructionCount_);
+            if (p >= s)
             {
                 ++delta[s];
                 --delta[p + 1];
@@ -1045,8 +1046,9 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
                 break;
             }
         }
-        if (!hasBackEdge || !entryOk || tail >= instructionCount_)
+        if (!hasBackEdge || !entryOk)
             continue;
+        SWC_ASSERT(tail < instructionCount_);
 
         bool sealed = true;
         for (uint32_t inner = header + 1; inner <= tail && sealed; ++inner)

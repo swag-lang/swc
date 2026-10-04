@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-10-04 07:45 — Recorded further structural savings; rebuild count and quantitative gain remain open.
+- Updated: 2026-10-04 08:52 — Withdrew queue-time visit marking because it can delay early exits.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
   `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
@@ -84,12 +84,16 @@ block, and the hot path keeps the register.
   selection passed 241 native tests; timing and peak memory were not measured.
 - The 2026-10-04 prompt-4 campaign removed another repeated prefix walk: when the SSA reuse
   probe finds changed use/def data, the full rebuild reuses the prefix it already refreshed.
-  Phi-use traversals now mark values when queued, avoiding duplicate worklist entries. Queries
-  that need only a reaching value's identity no longer resolve its defining instruction, and a
+  Queries that need only a reaching value's identity no longer resolve its defining instruction, and a
   block's sole predecessor supplies its immediate dominator directly. These preserve the rebuild
   count and generated-code decisions. The Release compiler passed 3,600 native and 1,508 JIT tests
   in devmode, plus 274 native optimizer tests in release. Timing and peak memory were not measured;
   the remaining rebuild-count and quantitative-gain questions are unchanged.
+- Rejected during the same campaign's review: marking phi-use values when queued removes
+  duplicate pending entries but changes depth-first visit priority. If a pending value is reached
+  again, skipping that push can visit another subtree before finding a use or reaching the count
+  cap. The same issue applies to CPU-flag reachability. Both retain marking on removal; a future
+  queue change must preserve early-exit order or establish its CPU tradeoff through measurement.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.

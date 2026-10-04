@@ -1085,7 +1085,8 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
 
     const uint32_t visitStamp = useVisitStamp_++;
     useVisitStack_.clear();
-    useVisitStamps_[valueId] = visitStamp;
+    // Mark on removal to preserve depth-first priority for repeated edges.
+    // Marking pending values can delay an early exit behind another subtree.
     useVisitStack_.push_back(valueId);
 
     uint32_t count = 0;
@@ -1095,6 +1096,10 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
         useVisitStack_.pop_back();
 
         SWC_ASSERT(currentValueId < valueInfoCount_);
+        if (useVisitStamps_[currentValueId] == visitStamp)
+            continue;
+        useVisitStamps_[currentValueId] = visitStamp;
+
         const ValueInfo& info = valueInfos_[currentValueId];
         for (const UseSite& useSite : info.uses)
         {
@@ -1112,12 +1117,7 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
             if (nextValueId == K_INVALID_VALUE)
                 continue;
 
-            // Mark on insertion: several phi inputs can name the same value,
-            // including a value already waiting below this one on the stack.
             SWC_ASSERT(nextValueId < valueInfoCount_);
-            if (useVisitStamps_[nextValueId] == visitStamp)
-                continue;
-            useVisitStamps_[nextValueId] = visitStamp;
             useVisitStack_.push_back(nextValueId);
         }
     }
@@ -1146,7 +1146,6 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
 
     const uint32_t visitStamp = useVisitStamp_++;
     useVisitStack_.clear();
-    useVisitStamps_[valueId] = visitStamp;
     useVisitStack_.push_back(valueId);
 
     while (!useVisitStack_.empty())
@@ -1155,6 +1154,10 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
         useVisitStack_.pop_back();
 
         SWC_ASSERT(currentValueId < valueInfoCount_);
+        if (useVisitStamps_[currentValueId] == visitStamp)
+            continue;
+        useVisitStamps_[currentValueId] = visitStamp;
+
         const ValueInfo& info = valueInfos_[currentValueId];
         for (const UseSite& useSite : info.uses)
         {
@@ -1168,9 +1171,6 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
                 continue;
 
             SWC_ASSERT(nextValueId < valueInfoCount_);
-            if (useVisitStamps_[nextValueId] == visitStamp)
-                continue;
-            useVisitStamps_[nextValueId] = visitStamp;
             useVisitStack_.push_back(nextValueId);
         }
     }

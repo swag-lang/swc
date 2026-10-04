@@ -291,7 +291,7 @@ private func allocatorThreadHeapTlsId()->u64
 private func fastThreadHeap()->*AllocatorThreadHeap?
 {
     let id = atomicGet(&g_AllocatorThreadHeapTlsId)
-    return id != AllocatorInvalidTlsId ? cast(*AllocatorThreadHeap?) __hostTlsGet(id) : null
+    return id != AllocatorInvalidTlsId ? cast(*AllocatorThreadHeap?) __tlsGetValue(id) : null
 }
 
 private func setFastThreadHeap(heap: *AllocatorThreadHeap?)

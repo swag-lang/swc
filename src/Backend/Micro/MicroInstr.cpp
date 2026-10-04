@@ -104,11 +104,11 @@ namespace
 
     void addMaskedCallArgRegs(MicroInstrUseDef& useDef, const MicroRegSpan regs, const uint8_t mask, size_t defaultCount)
     {
+        SWC_ASSERT(std::ranges::all_of(regs, &MicroReg::isInt));
         if (mask == K_CALL_ARG_MASK_ALL)
         {
             const size_t count = std::min(regs.size(), defaultCount);
-            for (size_t i = 0; i < count; ++i)
-                useDef.addUse(regs[i]);
+            useDef.uses.append(regs.data(), count);
             return;
         }
 
@@ -116,7 +116,7 @@ namespace
         for (size_t i = 0; i < maskableCount; ++i)
         {
             if (mask & static_cast<uint8_t>(1u << i))
-                useDef.addUse(regs[i]);
+                useDef.uses.push_back(regs[i]);
         }
     }
 }
@@ -159,15 +159,17 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
         // Every call stores its integer and float masks immediately after the convention.
         addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, opcodeInfo.callConvIndex + 1), defaultArgCount);
         const CallFloatArgs floatArgs = callFloatArgs(operands);
+        SWC_ASSERT(std::ranges::all_of(callConv.floatArgRegs, &MicroReg::isFloat));
         for (uint32_t index = 0; index < std::min<size_t>(callConv.floatArgRegs.size(), 8); ++index)
         {
             if (floatArgs.laneMask(index))
-                useDef.addUse(callConv.floatArgRegs[index]);
+                useDef.uses.push_back(callConv.floatArgRegs[index]);
         }
-        for (const MicroReg reg : callConv.intTransientRegs)
-            useDef.addDef(reg);
-        for (const MicroReg reg : callConv.floatTransientRegs)
-            useDef.addDef(reg);
+        // ABI tables contain physical registers, so no operand-sentinel filtering is needed.
+        SWC_ASSERT(std::ranges::all_of(callConv.intTransientRegs, &MicroReg::isInt));
+        SWC_ASSERT(std::ranges::all_of(callConv.floatTransientRegs, &MicroReg::isFloat));
+        useDef.defs.append(callConv.intTransientRegs.data(), callConv.intTransientRegs.size());
+        useDef.defs.append(callConv.floatTransientRegs.data(), callConv.floatTransientRegs.size());
     }
 
     if (ops)

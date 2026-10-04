@@ -2320,8 +2320,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         const bool    hotCall    = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
         const uint8_t weight     = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
         const auto&   successors = controlFlowGraph.successors(idx);
-        if (successors.size() == 1 && successors[0] < instructionCount_)
+        if (successors.size() == 1)
         {
+            SWC_ASSERT(successors[0] < instructionCount_);
             const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount);
             std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
         }
@@ -2330,9 +2331,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             std::ranges::fill(tempOutVirtual_, 0);
             for (const uint32_t succIdx : successors)
             {
-                if (succIdx >= instructionCount_)
-                    continue;
-
+                SWC_ASSERT(succIdx < instructionCount_);
                 const auto succInVirtual = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
                 for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
                     tempOutVirtual_[word] |= succInVirtual[word];
@@ -2380,7 +2379,8 @@ void MicroRegisterAllocationPass::computeReachability()
 
         for (const uint32_t succIdx : controlFlowGraph_->successors(instructionIndex))
         {
-            if (succIdx >= instructionCount_ || reachableInstructions_[succIdx])
+            SWC_ASSERT(succIdx < instructionCount_);
+            if (reachableInstructions_[succIdx])
                 continue;
 
             reachableInstructions_[succIdx] = 1;
@@ -2394,8 +2394,9 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
     SWC_ASSERT(controlFlowGraph_ != nullptr);
 
     const auto& successors = controlFlowGraph_->successors(instructionIndex);
-    if (successors.size() == 1 && successors[0] < instructionCount_)
+    if (successors.size() == 1)
     {
+        SWC_ASSERT(successors[0] < instructionCount_);
         const auto succInVirtual  = DenseBits::row(liveInVirtualBits_, successors[0], denseVirtualRegs_.wordCount());
         const auto succInConcrete = DenseBits::row(liveInConcreteBits_, successors[0], denseConcreteRegs_.wordCount());
         std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
@@ -2410,9 +2411,7 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
 
     for (const uint32_t succIdx : successors)
     {
-        if (succIdx >= instructionCount_)
-            continue;
-
+        SWC_ASSERT(succIdx < instructionCount_);
         const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, denseVirtualRegs_.wordCount());
         const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, denseConcreteRegs_.wordCount());
         for (size_t word = 0; word < tempOutVirtual_.size(); ++word)

@@ -516,6 +516,9 @@ namespace
         ReadBeforeOverwrite,
         EscapeBeforeForeignRead,
         NotOnEntryLine,
+        GlobalCopyInLoop,
+        ConstantCopyInLoop,
+        PointerConstantInLoop,
     };
 
     // Clears the tile with two vector stores, loads a row through a pointer the
@@ -536,7 +539,10 @@ namespace
 
         builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
         builder.emitLoadRegReg(source, MicroReg::intReg(2), MicroOpBits::B64);
-        if (tileCase == TileCase::NotOnEntryLine)
+        const bool relocatedRead = tileCase == TileCase::GlobalCopyInLoop ||
+                                   tileCase == TileCase::ConstantCopyInLoop ||
+                                   tileCase == TileCase::PointerConstantInLoop;
+        if (tileCase == TileCase::NotOnEntryLine || relocatedRead)
         {
             MicroLabelRef label;
             builder.emitLabel(label);
@@ -549,7 +555,22 @@ namespace
             builder.emitLoadRegMem(peek, frame, 0x34, MicroOpBits::B32);
         if (tileCase == TileCase::EscapeBeforeForeignRead)
             builder.emitLoadRegReg(MicroReg::intReg(1), rows, MicroOpBits::B64);
-        builder.emitLoadVecRegMem(row, source, 0, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(row, relocatedRead ? MicroReg::instructionPointer() : source, 0, MicroOpBits::B128);
+        if (relocatedRead)
+        {
+            MicroRelocation relocation;
+            relocation.kind           = tileCase == TileCase::GlobalCopyInLoop ? MicroRelocation::Kind::GlobalInitAddress : MicroRelocation::Kind::ConstantAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = builder.instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
+            if (relocation.kind == MicroRelocation::Kind::ConstantAddress)
+                relocation.constantRef = ConstantRef(0);
+            if (tileCase == TileCase::ConstantCopyInLoop)
+            {
+                relocation.constantShard  = 0;
+                relocation.constantOffset = 0;
+            }
+            builder.addRelocation(relocation);
+        }
         builder.emitStoreVecMemReg(rows, 0, row, MicroOpBits::B128);
         if (tileCase == TileCase::PartialOverwrite)
             builder.emitLoadMemReg(rows, 0x10, source, MicroOpBits::B64);
@@ -583,6 +604,12 @@ SWC_TEST_BEGIN(MemToReg_DeadFillIsErased)
     SWC_RESULT(runTileCase(ctx, TileCase::Overwritten, fillStores));
     if (fillStores != 0)
         return Result::Error;
+    SWC_RESULT(runTileCase(ctx, TileCase::GlobalCopyInLoop, fillStores));
+    if (fillStores != 0)
+        return Result::Error;
+    SWC_RESULT(runTileCase(ctx, TileCase::ConstantCopyInLoop, fillStores));
+    if (fillStores != 0)
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()
@@ -605,6 +632,9 @@ SWC_TEST_BEGIN(MemToReg_LiveFillIsKept)
     if (fillStores != 2)
         return Result::Error;
     SWC_RESULT(runTileCase(ctx, TileCase::NotOnEntryLine, fillStores));
+    if (fillStores != 2)
+        return Result::Error;
+    SWC_RESULT(runTileCase(ctx, TileCase::PointerConstantInLoop, fillStores));
     if (fillStores != 2)
         return Result::Error;
     return Result::Continue;

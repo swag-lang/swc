@@ -1072,6 +1072,23 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         if (overlappingWrites && wrappingRanges.empty())
         {
+            // Constant and global copies can read between the clear and the
+            // field stores, including inside a loop where the local escaped
+            // on a previous iteration. Their relocated storage is not a frame
+            // alias; an arbitrary pointer-valued constant still might be.
+            SmallVector<uint32_t> dataReads;
+            for (const MicroRelocation& relocation : context.builder->codeRelocations())
+            {
+                if (relocation.form != MicroRelocation::Form::Relative32)
+                    continue;
+                if ((relocation.kind == MicroRelocation::Kind::ConstantAddress && relocation.hasConstantSource()) ||
+                    relocation.kind == MicroRelocation::Kind::GlobalInitAddress ||
+                    relocation.kind == MicroRelocation::Kind::GlobalZeroAddress ||
+                    relocation.kind == MicroRelocation::Kind::CompilerAddress)
+                    dataReads.push_back(relocation.instructionRef.get());
+            }
+            std::ranges::sort(dataReads);
+
             thread_local std::unordered_map<uint32_t, const SlotAccess*> accessOf;
             accessOf.clear();
             for (const auto& [offset, slot] : slots)
@@ -1210,6 +1227,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     reads = inst.op == MicroInstrOpcode::Pop || inst.op == MicroInstrOpcode::LoadRegTlsSlot ||
                             inst.op == MicroInstrOpcode::SanityInvalidate || inst.op == MicroInstrOpcode::Breakpoint;
                 if (!reads)
+                    continue;
+
+                const bool plainLoad = inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem ||
+                                       inst.op == MicroInstrOpcode::LoadSignedExtRegMem || inst.op == MicroInstrOpcode::LoadZeroExtRegMem;
+                if (plainLoad && std::ranges::binary_search(dataReads, ref.get()))
                     continue;
 
                 const MicroReg base         = viaBase ? ops[baseIndex].reg : MicroReg::invalid();

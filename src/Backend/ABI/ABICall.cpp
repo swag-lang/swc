@@ -502,7 +502,10 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
 ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args)
 {
     // Move lowered argument values into the concrete ABI argument registers/stack slots.
-    PreparedCall    preparedCall;
+    PreparedCall preparedCall;
+    if (args.empty())
+        return preparedCall;
+
     const CallConv& conv            = CallConv::get(callConvKind);
     const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
     const auto      argLayouts      = collectArgLayouts(args);
@@ -510,8 +513,6 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     const CallArgMasks argMasks     = computeCallArgMasks(conv, argLayouts.span());
     preparedCall.intArgMask         = argMasks.ints;
     preparedCall.floatArgMask       = argMasks.floats;
-    if (args.empty())
-        return preparedCall;
 
     if (argMasks.hasStackArgs || argMasks.hasRegisterHomeSlot)
     {

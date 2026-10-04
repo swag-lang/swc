@@ -51,7 +51,12 @@ Utf8 nativeArtifactScopeName(const CompilerInstance& compiler)
 
 Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, const std::string_view baseName)
 {
-    return std::format("{}_{:08x}", baseName, Math::hash(nativeArtifactScopeName(compiler).view()));
+    return nativeScopedSectionBaseSymbol(Math::hash(nativeArtifactScopeName(compiler).view()), baseName);
+}
+
+Utf8 nativeScopedSectionBaseSymbol(const uint32_t scopeHash, const std::string_view baseName)
+{
+    return std::format("{}_{:08x}", baseName, scopeHash);
 }
 
 Utf8 nativeScopedRDataAllocationSymbol(const uint32_t scopeHash, const uint32_t shardIndex, const uint32_t sourceOffset)
@@ -253,7 +258,7 @@ namespace
 
     Utf8 buildLocalFunctionSymbolName(const NativeBackendBuilder& builder, const NativeFunctionInfo& info, const uint32_t ordinal)
     {
-        const uint32_t scopeHash = Math::hash(nativeArtifactScopeName(builder.compiler()).view());
+        const uint32_t scopeHash = builder.scopedSymbolNames().scopeHash;
         return std::format("__swc_fn_{:08x}_{:06}_{:08x}", scopeHash, ordinal, Math::hash(info.sortKey));
     }
 
@@ -1123,10 +1128,10 @@ Result NativeBackendBuilder::resolveFunctionSymbolName(Utf8& outName, const Symb
 const NativeBackendBuilder::ScopedSymbolNames& NativeBackendBuilder::scopedSymbolNames() const
 {
     std::call_once(scopedSymbolNamesOnce_, [this] {
-        scopedSymbolNames_.rdataBase = nativeScopedSectionBaseSymbol(compiler(), K_R_DATA_BASE_SYMBOL);
-        scopedSymbolNames_.dataBase  = nativeScopedSectionBaseSymbol(compiler(), K_DATA_BASE_SYMBOL);
-        scopedSymbolNames_.bssBase   = nativeScopedSectionBaseSymbol(compiler(), K_BSS_BASE_SYMBOL);
         scopedSymbolNames_.scopeHash = Math::hash(nativeArtifactScopeName(compiler()).view());
+        scopedSymbolNames_.rdataBase = nativeScopedSectionBaseSymbol(scopedSymbolNames_.scopeHash, K_R_DATA_BASE_SYMBOL);
+        scopedSymbolNames_.dataBase  = nativeScopedSectionBaseSymbol(scopedSymbolNames_.scopeHash, K_DATA_BASE_SYMBOL);
+        scopedSymbolNames_.bssBase   = nativeScopedSectionBaseSymbol(scopedSymbolNames_.scopeHash, K_BSS_BASE_SYMBOL);
     });
 
     return scopedSymbolNames_;

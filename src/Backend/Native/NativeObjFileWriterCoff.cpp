@@ -218,17 +218,17 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
         NativeSectionRelocation relocation = sourceRelocation;
         relocation.offset -= allocation.emittedOffset;
         if (rdataBaseName.empty())
-            rdataBaseName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
+            rdataBaseName = builder_->scopedSymbolNames().rdataBase;
         if (relocation.symbolName == rdataBaseName)
         {
             const auto* targetAllocation = builder_->tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend));
             if (!targetAllocation)
             {
-                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(builder_->compiler(), allocation.shardIndex, allocation.sourceOffset);
+                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(builder_->scopedSymbolNames().scopeHash, allocation.shardIndex, allocation.sourceOffset);
                 return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
             }
 
-            relocation.symbolName = nativeScopedRDataAllocationSymbol(builder_->compiler(), targetAllocation->shardIndex, targetAllocation->sourceOffset);
+            relocation.symbolName = nativeScopedRDataAllocationSymbol(builder_->scopedSymbolNames().scopeHash, targetAllocation->shardIndex, targetAllocation->sourceOffset);
             relocation.addend -= targetAllocation->emittedOffset;
         }
 
@@ -361,7 +361,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                 continue;
 
             addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = nativeScopedRDataAllocationSymbol(builder_->compiler(), allocation.shardIndex, allocation.sourceOffset),
+                                                        .name          = nativeScopedRDataAllocationSymbol(builder_->scopedSymbolNames().scopeHash, allocation.shardIndex, allocation.sourceOffset),
                                                         .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                                                         .value         = 0,
                                                         .type          = 0,
@@ -379,7 +379,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         if (section.data.name == ".rdata")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL),
+                                                        .name          = builder_->scopedSymbolNames().rdataBase,
                                                         .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                                                         .value         = 0,
                                                         .type          = 0,
@@ -389,7 +389,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         else if (section.data.name == ".data")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL),
+                                                        .name          = builder_->scopedSymbolNames().dataBase,
                                                         .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                                                         .value         = 0,
                                                         .type          = 0,
@@ -399,7 +399,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         else if (section.data.name == ".bss")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = nativeScopedSectionBaseSymbol(builder_->compiler(), K_BSS_BASE_SYMBOL),
+                                                        .name          = builder_->scopedSymbolNames().bssBase,
                                                         .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                                                         .value         = 0,
                                                         .type          = 0,

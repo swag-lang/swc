@@ -598,11 +598,11 @@ namespace
         {
             SWC_ASSERT(builder_ != nullptr);
             if (!builder_->mergedRData.bytes.empty())
-                SWC_RESULT(appendDataSection(builder_->mergedRData, nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL)));
+                SWC_RESULT(appendDataSection(builder_->mergedRData, builder_->scopedSymbolNames().rdataBase));
             if (!builder_->mergedData.bytes.empty())
-                SWC_RESULT(appendDataSection(builder_->mergedData, nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL)));
+                SWC_RESULT(appendDataSection(builder_->mergedData, builder_->scopedSymbolNames().dataBase));
             if (builder_->mergedBss.bss)
-                SWC_RESULT(appendDataSection(builder_->mergedBss, nativeScopedSectionBaseSymbol(builder_->compiler(), K_BSS_BASE_SYMBOL)));
+                SWC_RESULT(appendDataSection(builder_->mergedBss, builder_->scopedSymbolNames().bssBase));
             return Result::Continue;
         }
 

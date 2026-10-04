@@ -207,19 +207,6 @@ public:
 
     static bool parseNativeTestProgressEvent(NativeTestProgressEvent& outEvent, std::string_view line);
 
-private:
-    struct NativeTestProgressContext;
-
-    static void forwardNativeTestProgress(void* userData, std::string_view line);
-    void        updateNativeTestProgress(ScopedTimedLog& stage, std::string_view line);
-    size_t      selectedNativeTestCount() const;
-    void        parseNativeTestSummary(const std::string& output);
-    Result      validateTarget();
-    void        prepareFunctionCache();
-    Result      buildObjects();
-    Result      runGeneratedArtifact();
-    Result      runAfterLink();
-
     // What every data relocation names: the three section base symbols and the scope hash an
     // allocation symbol is built from. They depend only on the artifact's scope name, which is
     // fixed for the whole back end, so they are formatted once instead of once per relocation.
@@ -232,6 +219,19 @@ private:
     };
 
     const ScopedSymbolNames& scopedSymbolNames() const;
+
+private:
+    struct NativeTestProgressContext;
+
+    static void forwardNativeTestProgress(void* userData, std::string_view line);
+    void        updateNativeTestProgress(ScopedTimedLog& stage, std::string_view line);
+    size_t      selectedNativeTestCount() const;
+    void        parseNativeTestSummary(const std::string& output);
+    Result      validateTarget();
+    void        prepareFunctionCache();
+    Result      buildObjects();
+    Result      runGeneratedArtifact();
+    Result      runAfterLink();
 
     mutable std::once_flag                                               scopedSymbolNamesOnce_;
     mutable ScopedSymbolNames                                            scopedSymbolNames_;

@@ -46,7 +46,7 @@ Result NativeRDataCollector::collectFunctionRoots()
 
 Result NativeRDataCollector::collectGlobalRoots()
 {
-    const Utf8 ownerName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL);
+    const Utf8& ownerName = builder_->scopedSymbolNames().dataBase;
     for (const DataSegmentRelocation& relocation : builder_->compiler().globalInitSegment().copyRelocations())
     {
         if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
@@ -201,7 +201,7 @@ Result NativeRDataCollector::emitReachableAllocations()
                     return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, entry.allocation->ownerName);
 
                 if (rdataBaseName.empty())
-                    rdataBaseName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
+                    rdataBaseName = builder_->scopedSymbolNames().rdataBase;
                 record.symbolName = rdataBaseName;
                 record.addend     = targetOffset;
                 builder_->mergedRData.relocations.push_back(std::move(record));

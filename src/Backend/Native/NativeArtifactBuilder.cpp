@@ -416,13 +416,14 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     if (machineCode->emit(ctx, builder) != Result::Continue)
         return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
 
+    const Utf8         artifactScope = nativeArtifactScopeName(compiler);
     NativeFunctionInfo info;
     info.machineCode = machineCode.get();
-    info.sortKey     = runtimeHookSymbolName(nativeArtifactScopeName(compiler).view());
+    info.sortKey     = runtimeHookSymbolName(artifactScope.view());
     info.symbolName  = info.sortKey;
     if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
         info.exportName = K_SHARED_RUNTIME_HOOK_SYMBOL;
-    info.debugName = std::format("{}::__runtimeHook", nativeArtifactScopeName(compiler));
+    info.debugName = std::format("{}::__runtimeHook", artifactScope);
     info.exported  = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
 
     builder_->generatedMachineCodes.push_back(std::move(machineCode));
@@ -740,7 +741,7 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
                 if (relocation.targetShardIndex == INVALID_REF)
                 {
                     if (dataBaseName.empty())
-                        dataBaseName = nativeScopedSectionBaseSymbol(compiler, K_DATA_BASE_SYMBOL);
+                        dataBaseName = builder_->scopedSymbolNames().dataBase;
                     record.symbolName = dataBaseName;
                     record.addend     = relocation.targetOffset;
                 }
@@ -748,10 +749,10 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
                 {
                     uint32_t targetOffset = 0;
                     if (!builder_->tryMapRDataSourceOffset(targetOffset, relocation.targetShardIndex, relocation.targetOffset))
-                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, nativeScopedSectionBaseSymbol(compiler, K_DATA_BASE_SYMBOL));
+                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, builder_->scopedSymbolNames().dataBase);
 
                     if (rdataBaseName.empty())
-                        rdataBaseName = nativeScopedSectionBaseSymbol(compiler, K_R_DATA_BASE_SYMBOL);
+                        rdataBaseName = builder_->scopedSymbolNames().rdataBase;
                     record.symbolName = rdataBaseName;
                     record.addend     = targetOffset;
                 }

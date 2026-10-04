@@ -24,31 +24,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef unwrapAliasTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return typeRef;
-
-        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
-    TypeRef normalizeIndexOperandTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        const TypeRef normalizedTypeRef = unwrapAliasTypeRef(codeGen, typeRef);
-        if (!normalizedTypeRef.isValid())
-            return normalizedTypeRef;
-
-        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
-        if (normalizedType.isEnum())
-            return normalizedType.payloadSymEnum().underlyingTypeRef();
-
-        return normalizedTypeRef;
-    }
-
     MicroReg copyAddressBaseReg(CodeGen& codeGen, const MicroReg baseReg)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -108,18 +83,36 @@ namespace
 
     void normalizeIndexReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
     {
-        const TypeRef normalizedTypeRef = normalizeIndexOperandTypeRef(codeGen, ioTypeRef);
-        if (!normalizedTypeRef.isValid())
+        if (!ioTypeRef.isValid())
             return;
 
-        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
-        if (!normalizedType.isReference())
+        TypeRef         normalizedTypeRef = ioTypeRef;
+        const TypeInfo* normalizedType    = &codeGen.typeMgr().get(normalizedTypeRef);
+        if (normalizedType->isAlias())
+        {
+            const TypeRef unwrappedTypeRef = normalizedType->unwrap(codeGen.ctx(), normalizedTypeRef, TypeExpandE::Alias);
+            if (unwrappedTypeRef.isValid())
+            {
+                normalizedTypeRef = unwrappedTypeRef;
+                normalizedType    = &codeGen.typeMgr().get(normalizedTypeRef);
+            }
+        }
+
+        if (normalizedType->isEnum())
+        {
+            normalizedTypeRef = normalizedType->payloadSymEnum().underlyingTypeRef();
+            if (!normalizedTypeRef.isValid())
+                return;
+            normalizedType = &codeGen.typeMgr().get(normalizedTypeRef);
+        }
+
+        if (!normalizedType->isReference())
         {
             ioTypeRef = normalizedTypeRef;
             return;
         }
 
-        const TypeRef payloadTypeRef = normalizedType.payloadTypeRef();
+        const TypeRef payloadTypeRef = normalizedType->payloadTypeRef();
         if (!codeGen.typeMgr().get(payloadTypeRef).isInt())
             return;
 

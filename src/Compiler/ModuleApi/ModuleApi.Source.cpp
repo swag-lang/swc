@@ -18,15 +18,17 @@ namespace
 
     TokenRef moduleApiCallExprEndTokRef(const Ast& ast, const AstNode& node)
     {
-        if (!node.is(AstNodeId::CallExpr) || !ast.hasSourceView())
+        if (!ast.hasSourceView() || !node.tokRef().isValid())
             return TokenRef::invalid();
 
-        const TokenRef openTokRef = node.tokRef();
-        if (!openTokRef.isValid())
+        TokenRef openTokRef = node.tokRef();
+        if (node.is(AstNodeId::IntrinsicCallExpr))
+            openTokRef = TokenRef(openTokRef.get() + 1);
+        else if (node.isNot(AstNodeId::CallExpr))
             return TokenRef::invalid();
 
         const SourceView& srcView = ast.srcView();
-        if (srcView.token(openTokRef).id != TokenId::SymLeftParen)
+        if (openTokRef.get() >= srcView.numTokens() || srcView.token(openTokRef).id != TokenId::SymLeftParen)
             return TokenRef::invalid();
 
         return ModuleApi::matchingModuleApiDelimiter(srcView, openTokRef, TokenId::SymLeftParen, TokenId::SymRightParen);

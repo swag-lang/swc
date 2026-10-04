@@ -6,6 +6,26 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.076 — Folded scalar references lose their module API dependency
+
+- Recorded: 2026-10-04 14:33
+- Evidence: with the DevMode compiler, a public `#[Swag.Inline]` function
+  `func exposed()->s32 => Hidden` and `private const Hidden = 42` passes module API
+  publication. The generated body still names `Hidden`, but the private declaration is
+  absent. A separate `#main` calling `exposed()` through `--import-api-file` fails with
+  `unknown symbol 'Hidden'`. A dynamically indexed private constant array retains its
+  symbol and is correctly rejected during publication.
+- Cause: semantic constant conversion replaces the identifier's symbol payload with a
+  constant payload. `validateGeneratedInlineBody` can no longer see that source dependency,
+  while the API generator copies the original source spelling. This predates the diagnostic
+  that replaced silently removing `Inline` for unavailable body dependencies.
+- Next: preserve source dependencies through constant folding, or materialize folded values
+  in published bodies. Decide this at the semantic/source-export boundary rather than
+  guessing bindings from identifier text. Cover qualified names and constants hidden by
+  opaque types, and verify calls from a separate importer.
+- Complete when: publication rejects every unavailable folded dependency with the inline
+  export diagnostic, or emits a self-contained equivalent body that the importer accepts.
+
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 
 - Recorded: 2026-09-30 08:32

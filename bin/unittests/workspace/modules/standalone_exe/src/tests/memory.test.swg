@@ -3,6 +3,13 @@
 
 using Core
 
+#test
+{
+    Swag.assert(Memory.align(17'u64, 16) == 32)
+    Swag.assert(Memory.align(32'u64, 16) == 32)
+    Swag.assert(Memory.align(17'u64, 0) == 24)
+}
+
 struct RequestRecorder
 {
     #[Swag.Align(64)]

@@ -269,7 +269,7 @@ impl Hidden
 func exposed()->*Swag.Context => Swag.getContext()
 )",
          {},
-         "=> Swag.getContext",
+         "=> Swag.getContext()",
          "static-library",
          "discard exposed()"},
         {"Assertion", R"(#global public

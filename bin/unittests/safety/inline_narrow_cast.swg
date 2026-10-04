@@ -1,6 +1,6 @@
 #global private
 
-#[Swag.Inline]
+#[Swag.Inline, Swag.Safety(.Overflow, true)]
 func narrow(value: u32)->u16
 {
     return cast(u16) value // swc-expected-error {{safety_err_runtime}}

@@ -442,18 +442,20 @@ namespace
             }
         }
 
-        const TypeRef storedTypeRef = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Type).typeRef();
+        const SemaNodeView storedView    = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Type);
+        const TypeRef      storedTypeRef = storedView.typeRef();
         if (storedTypeRef.isValid())
         {
-            const TypeInfo& storedType = codeGen.typeMgr().get(storedTypeRef);
+            const TypeInfo& storedType = *storedView.type();
             if (storedType.isArray() || storedType.isStruct())
                 return storedTypeRef;
         }
 
-        const TypeRef currentTypeRef = codeGen.viewType(nodeRef).typeRef();
+        const SemaNodeView currentView    = codeGen.viewType(nodeRef);
+        const TypeRef      currentTypeRef = currentView.typeRef();
         if (currentTypeRef.isValid())
         {
-            const TypeInfo& currentType = codeGen.typeMgr().get(currentTypeRef);
+            const TypeInfo& currentType = *currentView.type();
             if (currentType.isArray() || currentType.isStruct() || currentType.isAggregateArray() || currentType.isAggregateStruct())
                 return currentTypeRef;
         }

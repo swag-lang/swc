@@ -13,6 +13,7 @@
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -964,9 +965,8 @@ namespace
     // Element-wise simd compare: the result is a mask vector, not a bool.
     Result emitRelationalVector(CodeGen& codeGen, const AstRelationalExpr& node, TokenId tokId)
     {
-        const SemaNodeView leftView   = codeGen.viewType(node.nodeLeftRef);
-        const TypeRef      vecTypeRef = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), leftView.typeRef());
-        const TypeInfo&    vecType    = codeGen.typeMgr().get(vecTypeRef);
+        const SemaNodeView leftView = codeGen.viewType(node.nodeLeftRef);
+        const TypeInfo&    vecType  = SemaHelpers::aliasEnumType(codeGen.sema(), leftView);
         SWC_ASSERT(vecType.isSimd());
         const TypeInfo& laneType = codeGen.typeMgr().get(vecType.payloadSimdLaneTypeRef());
 
@@ -993,8 +993,8 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
             return emitSpecialRelational(codeGen, tok.id, calledFn, resultTypeRef, *relationalPayload);
     }
 
-    const TypeRef resultTypeRef = codeGen.viewType(codeGen.curNodeRef()).typeRef();
-    if (resultTypeRef.isValid() && codeGen.typeMgr().get(resultTypeRef).isSimd())
+    const SemaNodeView resultView = codeGen.curViewType();
+    if (resultView.type() && resultView.type()->isSimd())
         return emitRelationalVector(codeGen, *this, tok.id);
 
     if (tok.id == TokenId::SymLessEqualGreater)

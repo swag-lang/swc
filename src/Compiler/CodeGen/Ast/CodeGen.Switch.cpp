@@ -389,12 +389,13 @@ namespace
                 continue;
             }
             SWC_ASSERT(switchState.dynamicCastFunction);
-            const TypeRef   resultTypeRef = codeGen.viewType(expr.castRef).typeRef();
-            const TypeInfo& resultType    = codeGen.typeMgr().get(resultTypeRef);
-            const TypeRef   targetTypeRef = resultType.isInterface()
-                                                ? codeGen.typeMgr().addType(TypeInfo::makeValuePointer(codeGen.viewType(expr.typeExprRef).typeRef(), resultType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero))
-                                                : resultTypeRef;
-            MicroReg        targetTypeReg = MicroReg::invalid();
+            const SemaNodeView resultView    = codeGen.viewType(expr.castRef);
+            const TypeRef      resultTypeRef = resultView.typeRef();
+            const TypeInfo&    resultType    = *resultView.type();
+            const TypeRef      targetTypeRef = resultType.isInterface()
+                                                   ? codeGen.typeMgr().addType(TypeInfo::makeValuePointer(codeGen.viewType(expr.typeExprRef).typeRef(), resultType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero))
+                                                   : resultTypeRef;
+            MicroReg           targetTypeReg = MicroReg::invalid();
             SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, targetTypeRef));
             const MicroReg zeroReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegImm(zeroReg, ApInt(0, 64), MicroOpBits::B64);

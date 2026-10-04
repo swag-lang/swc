@@ -258,7 +258,7 @@ private:
     bool              tryTakeSpecificPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t instructionIndex, MicroReg preferredPhysReg, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys) const;
     bool              tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t instructionIndex, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys) const;
     void              returnToFreePool(MicroReg reg);
-    uint32_t          distanceToNextUse(MicroReg key, uint32_t instructionIndex) const;
+    uint32_t          distanceToNextUse(uint32_t denseIndex, uint32_t instructionIndex) const;
     void              advanceCurrentPositionCursors(uint32_t instructionIndex);
     void              prepareInstructionData();
     void              computeLoopDepth();
@@ -313,7 +313,7 @@ private:
     void              flushQueuedErasures();
     void              applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst) const;
     static void       mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth);
-    bool              isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const;
+    bool              isCandidateBetter(uint32_t candidateDense, uint32_t currentBestDense, uint32_t instructionIndex, uint32_t stamp) const;
     bool              selectEvictionCandidate(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;
     FreePools         pickFreePools(const AllocRequest& request);
     bool              tryTakePreferredPhysical(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys);

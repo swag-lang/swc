@@ -1965,12 +1965,9 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
     }
 }
 
-uint32_t MicroRegisterAllocationPass::distanceToNextUse(MicroReg key, uint32_t instructionIndex) const
+uint32_t MicroRegisterAllocationPass::distanceToNextUse(uint32_t denseIndex, uint32_t instructionIndex) const
 {
-    const uint32_t denseIndex = denseVirtualRegs_.find(key);
-    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= usePositionsByDenseVirtual_.size())
-        return std::numeric_limits<uint32_t>::max();
-
+    SWC_ASSERT(denseIndex < usePositionsByDenseVirtual_.size());
     const auto& positions = usePositionsByDenseVirtual_[denseIndex];
     auto        cursor    = nextUsePositionCursor_[denseIndex];
     advancePositionCursor(cursor, positions, instructionIndex);
@@ -2825,35 +2822,32 @@ void MicroRegisterAllocationPass::mergeLabelStackDepth(std::unordered_map<MicroL
     labelStackDepth.try_emplace(labelRef, stackDepth);
 }
 
-bool MicroRegisterAllocationPass::isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const
+bool MicroRegisterAllocationPass::isCandidateBetter(uint32_t candidateDense, uint32_t currentBestDense, uint32_t instructionIndex, uint32_t stamp) const
 {
-    if (!currentBestReg.isValid())
+    if (currentBestDense == MicroDenseRegIndex::K_INVALID_INDEX)
         return true;
 
-    const bool candidateDead = !isLiveOut(candidateKey, stamp);
-    const bool bestDead      = !isLiveOut(currentBestKey, stamp);
+    const bool candidateDead = liveStampByDenseIndex_[candidateDense] != stamp;
+    const bool bestDead      = liveStampByDenseIndex_[currentBestDense] != stamp;
     if (candidateDead != bestDead)
         return candidateDead;
 
-    const auto& candidateState = stateForVirtual(candidateKey);
-    const auto& bestState      = stateForVirtual(currentBestKey);
+    const auto& candidateState = states_[candidateDense];
+    const auto& bestState      = states_[currentBestDense];
 
     const bool candidateCleanSpill = candidateState.hasSpill && !candidateState.dirty;
     const bool bestCleanSpill      = bestState.hasSpill && !bestState.dirty;
     if (candidateCleanSpill != bestCleanSpill)
         return candidateCleanSpill;
 
-    const uint32_t candidateDistance = distanceToNextUse(candidateKey, instructionIndex);
-    const uint32_t bestDistance      = distanceToNextUse(currentBestKey, instructionIndex);
+    const uint32_t candidateDistance = distanceToNextUse(candidateDense, instructionIndex);
+    const uint32_t bestDistance      = distanceToNextUse(currentBestDense, instructionIndex);
     if (candidateDistance != bestDistance)
         return candidateDistance > bestDistance;
 
-    const bool candidatePersistent = isPersistentPhysReg(candidateReg);
-    const bool bestPersistent      = isPersistentPhysReg(currentBestReg);
-    if (candidatePersistent != bestPersistent)
-        return !candidatePersistent;
-
-    return candidateKey.hash() > currentBestKey.hash();
+    // The caller filters every candidate to the same persistent/transient pool.
+    const auto& virtualRegs = denseVirtualRegs_.regs();
+    return virtualRegs[candidateDense].hash() > virtualRegs[currentBestDense].hash();
 }
 
 bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const
@@ -2862,6 +2856,7 @@ bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg requestVirtKe
     outVirtKey = MicroReg::invalid();
     outPhys    = MicroReg::invalid();
 
+    uint32_t    bestDense   = MicroDenseRegIndex::K_INVALID_INDEX;
     const auto& virtualRegs = denseVirtualRegs_.regs();
     for (const uint32_t mappedDenseIndex : mappedVirtualIndices_)
     {
@@ -2897,14 +2892,15 @@ bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg requestVirtKe
         if (!canUsePhysical(requestVirtKey, instructionIndex, physReg, forbiddenPhysRegs, allowConcreteLive))
             continue;
 
-        if (isCandidateBetter(virtKey, physReg, outVirtKey, outPhys, instructionIndex, stamp))
-        {
-            outVirtKey = virtKey;
-            outPhys    = physReg;
-        }
+        if (isCandidateBetter(mappedDenseIndex, bestDense, instructionIndex, stamp))
+            bestDense = mappedDenseIndex;
     }
 
-    return outPhys.isValid();
+    if (bestDense == MicroDenseRegIndex::K_INVALID_INDEX)
+        return false;
+    outVirtKey = virtualRegs[bestDense];
+    outPhys    = states_[bestDense].phys;
+    return true;
 }
 
 MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePools(const AllocRequest& request)
@@ -3515,7 +3511,7 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
         spillOrRematerializeLiveValue(regState.phys, regState, stackDepth, pending);
 
         if (!sealedRegion &&
-            distanceToNextUse(virtKey, instructionIndex) > K_KEEP_MAX_NEXT_USE_DISTANCE &&
+            distanceToNextUse(denseIndex, instructionIndex) > K_KEEP_MAX_NEXT_USE_DISTANCE &&
             !isExpectedResident(denseIndex))
         {
             dropMappedVirtualNoStore(denseIndex);

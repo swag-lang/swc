@@ -162,19 +162,23 @@ namespace
 
     bool typeHasUnionStorageRec(const TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visited)
     {
-        typeRef              = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo& type = ctx.typeMgr().get(typeRef);
-        if (!type.isArray() && !type.isStruct())
+        const TypeInfo* type = &ctx.typeMgr().get(typeRef);
+        if (type->isAlias() || type->isEnum())
+        {
+            typeRef = type->unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+            type    = &ctx.typeMgr().get(typeRef);
+        }
+        if (!type->isArray() && !type->isStruct())
             return false;
         if (!visited.insert(typeRef).second)
             return false;
-        if (type.isArray())
-            return typeHasUnionStorageRec(ctx, type.payloadArrayElemTypeRef(), visited);
-        if (type.isStruct())
+        if (type->isArray())
+            return typeHasUnionStorageRec(ctx, type->payloadArrayElemTypeRef(), visited);
+        if (type->isStruct())
         {
-            if (type.payloadSymStruct().isUnion())
+            if (type->payloadSymStruct().isUnion())
                 return true;
-            for (const SymbolVariable* field : type.payloadSymStruct().fields())
+            for (const SymbolVariable* field : type->payloadSymStruct().fields())
             {
                 if (field && typeHasUnionStorageRec(ctx, field->typeRef(), visited))
                     return true;

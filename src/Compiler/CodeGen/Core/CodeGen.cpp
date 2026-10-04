@@ -141,10 +141,7 @@ namespace
         if (!typeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid())
-            return rawTypeRef;
-        return typeRef;
+        return codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
     }
 
     void mergeNodeLoweringMetadata(CodeGenNodePayload& dst, const CodeGenLoweringPayload& src)
@@ -297,7 +294,7 @@ namespace
             return false;
 
         const TypeInfo& originalType  = codeGen.typeMgr().get(typeRef);
-        const TypeRef   rawTypeRef    = originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeRef   rawTypeRef    = originalType.isAlias() ? originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias) : TypeRef::invalid();
         const bool      resolvedAlias = rawTypeRef.isValid() && rawTypeRef != typeRef;
         if (resolvedAlias)
             typeRef = rawTypeRef;

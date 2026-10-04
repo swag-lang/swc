@@ -150,8 +150,7 @@ namespace
 
     bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, std::span<const std::byte> payload)
     {
-        if (payload.size() != sizeof(Runtime::ClosureValue))
-            return false;
+        SWC_ASSERT(payload.size() == sizeof(Runtime::ClosureValue));
 
         const auto* runtimeClosure = reinterpret_cast<const Runtime::ClosureValue*>(payload.data());
         if (!requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeClosure->invoke))
@@ -548,8 +547,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
 
     if (typeInfo.isSlice())
     {
-        if (payload.size() != sizeof(Runtime::Slice<std::byte>))
-            return false;
+        SWC_ASSERT(payload.size() == sizeof(Runtime::Slice<std::byte>));
 
         // The empty test comes first: a slice element type never had to be laid out for the
         // enclosing payload to exist (a slice is two pointers whatever it points to), so its
@@ -581,8 +579,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
 
     if (typeInfo.isAny())
     {
-        if (payload.size() != sizeof(Runtime::Any))
-            return false;
+        SWC_ASSERT(payload.size() == sizeof(Runtime::Any));
 
         const auto* runtimeAny = reinterpret_cast<const Runtime::Any*>(payload.data());
         if (!runtimeAny->type)
@@ -593,8 +590,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
 
     if (typeInfo.isInterface())
     {
-        if (payload.size() != sizeof(Runtime::Interface))
-            return false;
+        SWC_ASSERT(payload.size() == sizeof(Runtime::Interface));
 
         const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(payload.data());
         return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeInterface->obj) &&
@@ -652,14 +648,13 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
         for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
         {
             const TypeInfo& fieldType = typeMgr.get(fieldTypeRef);
-            uint32_t        align     = fieldType.alignOf(ctx);
             const uint64_t  fieldSize = fieldType.sizeOf(ctx);
-            if (!align)
-                align = 1;
-
             if (!fieldSize)
                 continue;
 
+            uint32_t align = fieldType.alignOf(ctx);
+            if (!align)
+                align = 1;
             offset = Math::alignUpU64(offset, align);
             if (offset + fieldSize > payload.size())
                 return false;
@@ -676,8 +671,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
 
     if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isTypeInfo() || typeInfo.isCString() || typeInfo.isFunction())
     {
-        if (payload.size() != sizeof(uint64_t))
-            return false;
+        SWC_ASSERT(payload.size() == sizeof(uint64_t));
 
         const uint64_t rawPtr = *reinterpret_cast<const uint64_t*>(payload.data());
         if (requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, reinterpret_cast<const void*>(rawPtr)))

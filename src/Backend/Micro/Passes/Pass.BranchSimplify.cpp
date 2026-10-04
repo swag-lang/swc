@@ -7329,7 +7329,8 @@ namespace
 
             for (const uint32_t successorIndex : cfg.successors(currentIndex))
             {
-                if (successorIndex >= reachable.size() || reachable[successorIndex])
+                SWC_ASSERT(successorIndex < reachable.size());
+                if (reachable[successorIndex])
                     continue;
 
                 reachable[successorIndex] = 1;

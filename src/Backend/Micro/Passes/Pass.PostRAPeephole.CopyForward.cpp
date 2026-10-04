@@ -85,11 +85,6 @@ namespace PostRaPeephole
             return false;
         }
 
-        bool regDeadAfter(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
-        {
-            return regIsDeadAfter(ctx, fromRef, reg);
-        }
-
         // Producers whose only register write is a pure Def at ops[0]. Anything
         // that consumes its own destination (UseDef) or has fixed-register
         // semantics beyond what regModes expresses is excluded.
@@ -3586,7 +3581,7 @@ namespace PostRaPeephole
         if (!copyRenamesProducer(*prev, prevOps, copyOps[2].opBits))
             return false;
 
-        if (!regDeadAfter(ctx, copyRef, src))
+        if (!regIsDeadAfter(ctx, copyRef, src, copyOps[2].opBits))
             return false;
 
         if (ctx.encoder)

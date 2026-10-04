@@ -4,16 +4,20 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/X64Encoder.h"
+#include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Report/Logger.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -34,6 +38,39 @@ namespace
         passContext.spillAreaLo           = spillLo;
         passContext.spillAreaHi           = spillHi;
         return builder.runPasses(passManager, encoder, passContext);
+    }
+
+    // Execute physical, encoder-conforming IR directly so a wider reader observes
+    // the upper bits that byte and word writes retain. No allocator or DCE pass
+    // may remove that observation while this peephole is being tested.
+    Result executeForwardingCase(TaskContext& ctx, MicroBuilder& builder, uint64_t* values, bool optimize)
+    {
+        X64Encoder encoder(ctx);
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            MicroConformanceIssue issue;
+            if (encoder.queryConformanceIssue(issue, inst, inst.ops(builder.operands())))
+                return Result::Error;
+        }
+        if (optimize)
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+        MicroEmitPass    emit;
+        MicroPassManager passes;
+        passes.addStartPass(emit);
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::C;
+        SWC_RESULT(builder.runPasses(passes, &encoder, passContext));
+
+        ByteArray code;
+        code.resize(encoder.size());
+        encoder.copyTo(code);
+        JITMemory memory;
+        SWC_RESULT(JIT::emit(ctx, memory, code, {}, {}));
+        using TestFn  = void (*)(uint64_t*);
+        const auto fn = reinterpret_cast<TestFn>(memory.entryPoint());
+        fn(values);
+        return Result::Continue;
     }
 
     Result runLegalizePass(MicroBuilder& builder, Encoder& encoder)
@@ -1460,6 +1497,124 @@ SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Nop) != 0)
         return Result::Error;
     return Result::Continue;
+}
+SWC_TEST_END()
+
+// A byte or word reload changes only the low part of the physical register.
+// It cannot prove the previous full-width immediate dead after its first store.
+SWC_TEST_BEGIN(PostRAPeephole_ImmediateSurvivesPartialRedefinition)
+{
+    const MicroReg     base        = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg value       = MicroReg::intReg(8);
+    constexpr uint64_t original    = 0x12345678;
+    constexpr uint64_t replacement = 0xABCDEFFEDCBA9876;
+    bool               valid       = true;
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool optimize : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(value, ApInt(0x55555555, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(value, ApInt(original, 64), MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 0, value, MicroOpBits::B64);
+            builder.emitLoadRegMem(value, base, 16, bits);
+            builder.emitLoadMemReg(base, 8, value, MicroOpBits::B64);
+            builder.emitRet();
+
+            uint64_t values[] = {0, 0, replacement};
+            SWC_RESULT(executeForwardingCase(ctx, builder, values, optimize));
+            const uint64_t mask     = getBitsMask(bits);
+            const uint64_t expected = getNumBits(bits) < 32 ? (original & ~mask) | (replacement & mask) : replacement & mask;
+            if (values[0] != original || values[1] != expected)
+            {
+                Logger::print(ctx, std::format("[partial-redefinition] bits={} optimized={} stores={:X},{:X} expected={:X},{:X}\n", getNumBits(bits), optimize, values[0], values[1], original, expected));
+                valid = false;
+            }
+            if (optimize && getNumBits(bits) >= 32 && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) == 0)
+                valid = false;
+        }
+    }
+    return valid ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A narrow immediate does not describe the upper bits carried by a wider
+// consumer. A dword producer does describe the whole value, through zeroing.
+SWC_TEST_BEGIN(PostRAPeephole_ImmediateForwardingRespectsProducerWidth)
+{
+    const MicroReg     base        = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg value       = MicroReg::intReg(8);
+    constexpr uint64_t original    = 0x12345678;
+    constexpr uint64_t replacement = 0x76;
+    bool               valid       = true;
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const MicroOpBits readBits : {bits, MicroOpBits::B64})
+        {
+            for (const bool optimize : {false, true})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegImm(value, ApInt(original, 64), MicroOpBits::B64);
+                builder.emitLoadRegImm(value, ApInt(replacement, getNumBits(bits)), bits);
+                builder.emitLoadMemReg(base, 0, value, readBits);
+                builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+                builder.emitRet();
+
+                uint64_t values[] = {0};
+                SWC_RESULT(executeForwardingCase(ctx, builder, values, optimize));
+                const uint64_t fullValue = getNumBits(bits) < 32 ? (original & ~getBitsMask(bits)) | replacement : replacement;
+                const uint64_t expected  = fullValue & getBitsMask(readBits);
+                if (values[0] != expected)
+                {
+                    Logger::print(ctx, std::format("[producer-width] bits={} optimized={} store={:X} expected={:X}\n", getNumBits(bits), optimize, values[0], expected));
+                    valid = false;
+                }
+                if (optimize && (readBits == bits || getNumBits(bits) >= 32) && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) == 0)
+                    valid = false;
+            }
+        }
+    }
+    return valid ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// Retargeting a producer into the copy destination must preserve source bits
+// that a later partial write leaves observable through a full-width store.
+SWC_TEST_BEGIN(PostRAPeephole_CopyProducerSurvivesPartialRedefinition)
+{
+    const MicroReg     base        = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg value       = MicroReg::intReg(8);
+    constexpr MicroReg copied      = MicroReg::intReg(9);
+    constexpr uint64_t original    = 0x12345678;
+    constexpr uint64_t replacement = 0xABCDEFFEDCBA9876;
+    bool               valid       = true;
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool optimize : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(value, ApInt(0x55555555, 64), MicroOpBits::B64);
+            builder.emitLoadRegMem(value, base, 24, MicroOpBits::B64);
+            builder.emitLoadRegReg(copied, value, MicroOpBits::B64);
+            builder.emitLoadRegMem(value, base, 16, bits);
+            builder.emitLoadMemReg(base, 0, copied, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 8, value, MicroOpBits::B64);
+            builder.emitRet();
+
+            uint64_t values[] = {0, 0, replacement, original};
+            SWC_RESULT(executeForwardingCase(ctx, builder, values, optimize));
+            const uint64_t mask     = getBitsMask(bits);
+            const uint64_t expected = getNumBits(bits) < 32 ? (original & ~mask) | (replacement & mask) : replacement & mask;
+            if (values[0] != original || values[1] != expected)
+            {
+                Logger::print(ctx, std::format("[copy-partial-redefinition] bits={} optimized={} stores={:X},{:X} expected={:X},{:X}\n", getNumBits(bits), optimize, values[0], values[1], original, expected));
+                valid = false;
+            }
+            if (optimize && getNumBits(bits) >= 32 && hasLoadRegReg(builder, copied, value))
+                valid = false;
+        }
+    }
+    return valid ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

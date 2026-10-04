@@ -195,10 +195,10 @@ namespace PostRaPeephole
         return touch;
     }
 
-    // Mirrors the "dead after consumer" scan used by the forwarding rules.
+    // Linear "dead after consumer" scan shared by the forwarding rules.
     // Fallthrough-jumps-to-next-label count as no-ops because a sibling pattern
     // in this same pass erases them.
-    bool regIsDeadAfter(const Context& ctx, const MicroInstrRef fromRef, const MicroReg reg)
+    bool regIsDeadAfter(const Context& ctx, const MicroInstrRef fromRef, const MicroReg reg, const MicroOpBits materializedBits)
     {
         constexpr int K_MAX_LIVENESS_WINDOW = 32;
 
@@ -209,17 +209,32 @@ namespace PostRaPeephole
             if (!inst)
                 return false;
 
-            const RegTouch touch = regTouch(ctx, *inst, reg);
+            const MicroInstrDef&     info  = MicroInstr::info(inst->op);
+            const MicroInstrOperand* ops   = inst->ops(*ctx.operands);
+            const RegTouch           touch = regTouch(ctx, *inst, reg);
             if (touch.use)
                 return false;
             if (touch.def)
-                return true;
+            {
+                if (!reg.isAnyInt())
+                    return true;
+
+                // The first size operand names the register result; later
+                // sizes describe an extension source or indexed address.
+                // Size-free integer definitions are full-width except SETcc.
+                uint32_t writtenBits = 64;
+                if (inst->op == MicroInstrOpcode::SetCondReg)
+                    writtenBits = 8;
+                else if (info.opBitsMask)
+                    writtenBits = getNumBits(ops[std::countr_zero(info.opBitsMask)].opBits);
+                if (writtenBits >= 32 || writtenBits >= getNumBits(materializedBits))
+                    return true;
+            }
 
             if (inst->op == MicroInstrOpcode::JumpCond &&
-                isRedundantFallthroughJumpToNextLabel(ctx, cur, *inst, inst->ops(*ctx.operands)))
+                isRedundantFallthroughJumpToNextLabel(ctx, cur, *inst, ops))
                 continue;
 
-            const MicroInstrDef& info = MicroInstr::info(inst->op);
             if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction))

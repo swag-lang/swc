@@ -25,47 +25,9 @@ namespace PostRaPeephole
             return op != MicroOp::MultiplySigned || bits != MicroOpBits::B8;
         }
 
-        // True iff `reg` is guaranteed dead starting at the instruction after
-        // `fromRef`: the next touch within the window is a definition, with
-        // no intervening read. Labels are pure markers and safe to walk past.
-        // Jumps whose target is the very next label (tryEraseTrivial's
-        // "fallthrough jump" case) are about to be erased by a sibling rule
-        // in the same pass; treat them as no-ops so we don't miss folds
-        // whose liveness window the stale terminator would otherwise close.
-        bool regDeadAfter(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
-        {
-            MicroInstrRef cur = ctx.nextRef(fromRef);
-            for (int step = 0; step < K_MAX_LIVENESS_WINDOW && cur.isValid(); ++step, cur = ctx.nextRef(cur))
-            {
-                const MicroInstr* inst = ctx.instruction(cur);
-                if (!inst)
-                    return false;
-
-                const MicroInstrDef& info = MicroInstr::info(inst->op);
-
-                const RegTouch touch = regTouch(ctx, *inst, reg);
-                if (touch.use)
-                    return false;
-                if (touch.def)
-                    return true;
-
-                const MicroInstrOperand* ops = inst->ops(*ctx.operands);
-                if (isRedundantFallthroughJumpToNextLabel(ctx, cur, *inst, ops))
-                    continue;
-
-                if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
-                    return false;
-                if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
-                    return false;
-                if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
-                    return false;
-            }
-            return false;
-        }
-
         // True iff `reg` is proven live at the instruction after `fromRef`: its
         // next touch within the window is a read, with no intervening
-        // redefinition. The opposite of regDeadAfter, but deliberately
+        // redefinition. The opposite of regIsDeadAfter, but deliberately
         // conservative — barriers and an exhausted window return false (treat
         // as "not provably live") so callers only act on certain liveness.
         bool regUsedBeforeRedef(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
@@ -210,7 +172,8 @@ namespace PostRaPeephole
         const MicroReg immReg = defOps[0].reg;
         if (!immReg.isAnyInt())
             return false;
-        const uint64_t imm = defOps[2].valueU64;
+        const MicroOpBits materializedBits = defOps[1].opBits;
+        const uint64_t    imm              = defOps[2].valueU64 & getBitsMask(materializedBits);
 
         // First instruction reaching `immReg` after the LoadRegImm is our
         // candidate consumer. Bail on any control flow in between: the
@@ -267,6 +230,10 @@ namespace PostRaPeephole
         ConsumerRewrite rewrite;
         if (!buildRewrite(rewrite, *consumer, consumerOps, immReg, imm))
             return false;
+        // Every immediate form built above carries its value width at slot 1.
+        // A narrow load leaves the upper bits unknown; a dword load clears them.
+        if (getNumBits(materializedBits) < 32 && getNumBits(rewrite.ops[1].opBits) > getNumBits(materializedBits))
+            return false;
 
         // Pre-RA Legalize materialized this LoadRegImm + reg-form consumer
         // specifically because the immediate can't be encoded inline on this
@@ -281,7 +248,7 @@ namespace PostRaPeephole
                 return false;
         }
 
-        if (!regDeadAfter(ctx, consumerRef, immReg))
+        if (!regIsDeadAfter(ctx, consumerRef, immReg, materializedBits))
             return false;
 
         if (!ctx.claimAll({defRef, consumerRef}))

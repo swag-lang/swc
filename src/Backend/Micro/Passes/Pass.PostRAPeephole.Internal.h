@@ -228,9 +228,9 @@ namespace PostRaPeephole
     bool tryMoveSpillReloadBeforeSourceOverwrite(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryForwardStoredValueToReload(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
 
-    // Walks forward from `fromRef`: the register is dead iff the next thing that
-    // touches it is a redefinition, with no read in between.
-    bool regIsDeadAfter(const Context& ctx, MicroInstrRef fromRef, MicroReg reg);
+    // Proves that a later definition overwrites every materialized bit without
+    // an intervening read. Byte/word definitions retain other integer bits.
+    bool regIsDeadAfter(const Context& ctx, MicroInstrRef fromRef, MicroReg reg, MicroOpBits materializedBits = MicroOpBits::B64);
 }
 
 SWC_END_NAMESPACE();

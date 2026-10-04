@@ -1605,9 +1605,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             }
         }
         std::erase_if(connectors, [&](const Connector& connector) { return !connector.dst.isValid() && remat[connector.denseIndex].valid; });
-        std::erase_if(trampolines, [&](const Trampoline& trampoline) {
-            return std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.trampJump == trampoline.jumpIndex; });
-        });
         // A register node the definition's register flows into without a
         // connector still reads the definition: a split child that kept the
         // register, or a label the value crosses in the same register on
@@ -1746,7 +1743,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         }
         if (!resolutionStoreCost.empty())
         {
-            bool rewritten = false;
             for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
             {
                 if (!resolutionStoreCost[denseIndex])
@@ -1773,13 +1769,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                     continue;
                 std::erase_if(connectors, [&](const Connector& connector) { return connector.denseIndex == denseIndex && !connector.dst.isValid() && !isParkStore(connector); });
                 connectors.insert(connectors.end(), defStores.begin(), defStores.end());
-                rewritten = true;
-            }
-            if (rewritten)
-            {
-                std::erase_if(trampolines, [&](const Trampoline& trampoline) {
-                    return std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.trampJump == trampoline.jumpIndex; });
-                });
             }
         }
     }
@@ -1934,6 +1923,14 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         return a.order < b.order;
     });
 
+    // Both store-removal stages can orphan a trampoline. Its connectors all sit
+    // immediately after its jump and sort before plain connectors at that point,
+    // so the final ordering answers membership without a full scan per trampoline.
+    std::erase_if(trampolines, [&](const Trampoline& trampoline) {
+        const uint32_t beforeIndex = trampoline.jumpIndex + 1;
+        const auto     connector   = std::ranges::lower_bound(connectors, beforeIndex, {}, &Connector::beforeIndex);
+        return connector == connectors.end() || connector->trampJump != trampoline.jumpIndex;
+    });
     std::ranges::sort(trampolines, {}, &Trampoline::jumpIndex);
     const auto trampolineFor = [&](const uint32_t jumpIndex) -> const Trampoline* {
         const auto it = std::ranges::lower_bound(trampolines, jumpIndex, {}, &Trampoline::jumpIndex);

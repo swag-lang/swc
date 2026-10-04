@@ -3427,10 +3427,7 @@ namespace PostRaPeephole
             const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm || next->op == MicroInstrOpcode::TestRegImm;
             const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
             const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
-            // An exchange writes its second operand too: renaming it would
-            // swap a different register (a parallel-move cycle at a loop edge
-            // then leaves a value in the wrong register).
-            const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg && next->ops(*ctx.operands)[3].microOp != MicroOp::Exchange;
+            const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg;
             const bool three  = next->op == MicroInstrOpcode::OpBinaryRegRegReg;
             // A store or a memory update reads its value operand; the base stays.
             const bool memory    = next->op == MicroInstrOpcode::LoadMemReg || next->op == MicroInstrOpcode::OpBinaryMemReg;
@@ -3455,9 +3452,12 @@ namespace PostRaPeephole
                     const uint32_t firstOperand = compareRegs || compareImm ? 0 : 1;
                     const uint32_t lastOperand  = indexedAddress || three ? 2 : compareImm ? 0
                                                                                            : 1;
+                    const auto modes = info.resolvedRegModes(ops);
                     for (uint32_t i = firstOperand; i <= lastOperand; ++i)
                     {
-                        if (rewritten[i].reg == copyOps[0].reg)
+                        // Exchanges also write their value operand. Forwarding a
+                        // copy into that operand would overwrite the source register.
+                        if (modes[i] == MicroInstrRegMode::Use && rewritten[i].reg == copyOps[0].reg)
                         {
                             // VEX scalar arithmetic copies its first input's upper
                             // lanes; sqrt and bitwise forms also read beyond the

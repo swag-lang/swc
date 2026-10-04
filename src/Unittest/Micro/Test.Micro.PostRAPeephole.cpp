@@ -2730,6 +2730,34 @@ SWC_TEST_BEGIN(PostRAPeephole_CopySourceNotForwardedIntoExchange)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_CopySourceNotForwardedIntoMemoryExchange)
+{
+    const auto&    conv = CallConv::get(CallConvKind::Swag);
+    const MicroReg src  = conv.intRegs[0];
+    const MicroReg dst  = conv.intRegs[1];
+    const MicroReg base = conv.intRegs[2];
+    for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(dst, src, bits);
+        builder.emitOpBinaryMemReg(base, 0, dst, MicroOp::Exchange, bits);
+        builder.emitLoadRegReg(conv.intReturn, src, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runPostRaPeepholePass(builder));
+
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
+            return Result::Error;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryMemReg && (ops[0].reg != base || ops[1].reg != dst))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // `mov r, a; add r, b; cmp r, 0; je` - either the compare goes and the add
 // keeps setting the flags, or the add becomes a flag-free `lea` and the
 // compare stays. Never both in one sweep.

@@ -291,6 +291,32 @@ uint32_t MicroSsaState::reachingValueId(const MicroReg reg, const MicroInstrRef 
     return (after - 1)->valueId;
 }
 
+bool MicroSsaState::sameValueAt(const MicroReg reg, const MicroInstrRef first, const MicroInstrRef second) const
+{
+    SWC_ASSERT(storage_ != nullptr);
+
+    if (!valid_ || !isTrackedReg(reg))
+        return false;
+
+    const uint32_t firstSlot  = first.get();
+    const uint32_t secondSlot = second.get();
+    SWC_ASSERT(firstSlot < instrInfos_.size() && secondSlot < instrInfos_.size());
+    SWC_ASSERT(firstSlot < liveInstructionSlots_.size() && secondSlot < liveInstructionSlots_.size());
+    if (liveInstructionSlots_[firstSlot] != liveInstructionEpoch_ || liveInstructionSlots_[secondSlot] != liveInstructionEpoch_)
+        return false;
+
+    const uint32_t regIndex = trackedRegs_.find(reg);
+    if (regIndex == MicroDenseRegIndex::K_INVALID_INDEX)
+        return false;
+
+    const auto& values     = reachingValuesByReg_[regIndex];
+    const auto  afterFirst = std::ranges::upper_bound(values, instrInfos_[firstSlot].renamePosition, {}, &ReachingValue::position);
+    if (afterFirst == values.begin() || (afterFirst - 1)->valueId == K_INVALID_VALUE)
+        return false;
+    const auto afterSecond = std::ranges::upper_bound(values, instrInfos_[secondSlot].renamePosition, {}, &ReachingValue::position);
+    return afterSecond != values.begin() && (afterFirst - 1)->valueId == (afterSecond - 1)->valueId;
+}
+
 MicroSsaState::ReachingDef MicroSsaState::reachingDef(const MicroReg reg, const MicroInstrRef beforeInstRef) const
 {
     const uint32_t valueId = reachingValueId(reg, beforeInstRef);

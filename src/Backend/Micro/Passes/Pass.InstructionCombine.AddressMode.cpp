@@ -140,9 +140,7 @@ namespace InstructionCombine
             // Soundness: the copy's source must still hold the same SSA value
             // at the memory op, otherwise substituting it would read a newer
             // value and change semantics.
-            const auto srcAtCopy = ctx.ssa->reachingDef(candidate, copyReaching.instRef);
-            const auto srcAtMem  = ctx.ssa->reachingDef(candidate, ctx.memRef);
-            if (!srcAtCopy.valid() || !srcAtMem.valid() || srcAtCopy.valueId != srcAtMem.valueId)
+            if (!ctx.ssa->sameValueAt(candidate, copyReaching.instRef, ctx.memRef))
                 return;
 
             outCopyRef     = copyReaching.instRef;
@@ -198,9 +196,7 @@ namespace InstructionCombine
             bool sameSources = true;
             for (const MicroReg source : {address[1].reg, address[2].reg})
             {
-                const auto atOriginal  = ctx.ssa->reachingDef(source, original.instRef);
-                const auto atCandidate = ctx.ssa->reachingDef(source, candidateRef);
-                if (!atOriginal.valid() || !atCandidate.valid() || atOriginal.valueId != atCandidate.valueId)
+                if (!ctx.ssa->sameValueAt(source, original.instRef, candidateRef))
                 {
                     sameSources = false;
                     break;
@@ -289,14 +285,6 @@ namespace InstructionCombine
     {
         using MicroPassHelpers::AmcLayout;
         using MicroPassHelpers::amcLayoutFor;
-
-        // True when `reg` holds the same SSA value at both instructions.
-        bool sameValueAt(const Context& ctx, MicroReg reg, MicroInstrRef atA, MicroInstrRef atB)
-        {
-            const auto a = ctx.ssa->reachingDef(reg, atA);
-            const auto b = ctx.ssa->reachingDef(reg, atB);
-            return a.valid() && b.valid() && a.valueId == b.valueId;
-        }
     }
 
     // Fold `lea idx2, [idx + C]` into the displacement of an indexed access:
@@ -340,7 +328,7 @@ namespace InstructionCombine
         const MicroReg leaBase = leaOps[1].reg;
         if (!leaBase.isVirtualInt())
             return false;
-        if (!sameValueAt(ctx, leaBase, reaching.instRef, ref))
+        if (!ctx.ssa->sameValueAt(leaBase, reaching.instRef, ref))
             return false;
 
         const uint64_t mulValue = ops[layout.mulIdx].valueU64;
@@ -431,7 +419,7 @@ namespace InstructionCombine
                 return false;
             if (!valueHasSingleUse(*ctx.ssa, inOps[0].reg, shifted.instRef))
                 return false;
-            if (!sameValueAt(ctx, inOps[1].reg, shifted.instRef, atRef))
+            if (!ctx.ssa->sameValueAt(inOps[1].reg, shifted.instRef, atRef))
                 return false;
 
             out.indexReg  = inOps[1].reg;
@@ -557,7 +545,7 @@ namespace InstructionCombine
                 continue;
             // Removing the copy makes the address read the product directly.
             // Its register must still hold that definition at the add.
-            if (copyRef.isValid() && !sameValueAt(ctx, product, copyRef, ref))
+            if (copyRef.isValid() && !ctx.ssa->sameValueAt(product, copyRef, ref))
                 continue;
             if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
                 continue;
@@ -624,7 +612,7 @@ namespace InstructionCombine
             switch (def.inst->op)
             {
                 case MicroInstrOpcode::LoadAddrRegMem:
-                    if (defOps[2].opBits != MicroOpBits::B64 || !defOps[1].reg.isVirtualInt() || !sameValueAt(ctx, defOps[1].reg, def.instRef, at))
+                    if (defOps[2].opBits != MicroOpBits::B64 || !defOps[1].reg.isVirtualInt() || !ctx.ssa->sameValueAt(defOps[1].reg, def.instRef, at))
                         return false;
                     if (!moveBy(defOps[3].valueU64, false))
                         return false;
@@ -641,7 +629,7 @@ namespace InstructionCombine
                         return false;
                     const MicroInstrOperand* copyOps = copy.inst->ops(*ctx.operands);
                     if (!copyOps || copyOps[0].reg != index || !copyOps[1].reg.isVirtualInt() || copyOps[2].opBits != MicroOpBits::B64 ||
-                        !sameValueAt(ctx, copyOps[1].reg, copy.instRef, at))
+                        !ctx.ssa->sameValueAt(copyOps[1].reg, copy.instRef, at))
                         return false;
                     if (!moveBy(defOps[3].valueU64, defOps[2].microOp == MicroOp::Subtract))
                         return false;
@@ -652,7 +640,7 @@ namespace InstructionCombine
                 case MicroInstrOpcode::LoadAddrAmcRegMem:
                     if (def.inst->numOperands > 8 || defOps[3].opBits != MicroOpBits::B64 || defOps[4].opBits != MicroOpBits::B64 ||
                         !defOps[1].reg.isVirtualInt() || !defOps[2].reg.isVirtualInt() ||
-                        !sameValueAt(ctx, defOps[1].reg, def.instRef, at) || !sameValueAt(ctx, defOps[2].reg, def.instRef, at))
+                        !ctx.ssa->sameValueAt(defOps[1].reg, def.instRef, at) || !ctx.ssa->sameValueAt(defOps[2].reg, def.instRef, at))
                         return false;
                     if (!moveBy(defOps[6].valueU64, false))
                         return false;
@@ -1065,7 +1053,7 @@ namespace InstructionCombine
         const MicroReg leaBase = leaOps[1].reg;
         if (!leaBase.isVirtualInt())
             return false;
-        if (!sameValueAt(ctx, leaBase, reaching.instRef, ref))
+        if (!ctx.ssa->sameValueAt(leaBase, reaching.instRef, ref))
             return false;
 
         const int64_t newOff = static_cast<int64_t>(ops[layout.offIdx].valueU64) + static_cast<int64_t>(leaOps[3].valueU64);
@@ -1120,7 +1108,7 @@ namespace InstructionCombine
         const MicroReg base = copyOps[1].reg;
         if (!base.isVirtualInt() || base == dst)
             return false;
-        if (ctx.ssa->transitiveInstructionUseCount(copy.valueId, 2) != 1 || !sameValueAt(ctx, base, copy.instRef, ref))
+        if (ctx.ssa->transitiveInstructionUseCount(copy.valueId, 2) != 1 || !ctx.ssa->sameValueAt(base, copy.instRef, ref))
             return false;
 
         // The sum is an address: its one reader is a memory access, or a lea,

@@ -11,13 +11,6 @@ namespace InstructionCombine
 {
     namespace
     {
-        bool sameValueAt(const Context& ctx, MicroReg reg, MicroInstrRef first, MicroInstrRef second)
-        {
-            const uint32_t firstId  = ctx.ssa->reachingValueId(reg, first);
-            const uint32_t secondId = ctx.ssa->reachingValueId(reg, second);
-            return firstId != MicroSsaState::K_INVALID_VALUE && firstId == secondId;
-        }
-
         bool isAllOnesLoad(const MicroSsaState::ReachingDef& def, const MicroOperandStorage& operands, MicroOpBits bits)
         {
             if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegImm)
@@ -48,7 +41,7 @@ namespace InstructionCombine
             copy[1].reg == cmp[0].reg || copy[1].reg == cmp[1].reg ||
             !valueHasSingleUse(*ctx.ssa, copied, def.instRef))
             return false;
-        if (!sameValueAt(ctx, copy[1].reg, def.instRef, cmpRef) ||
+        if (!ctx.ssa->sameValueAt(copy[1].reg, def.instRef, cmpRef) ||
             !ctx.claimAll({cmpRef, def.instRef}))
             return false;
         MicroInstrOperand rewritten[7] = {};
@@ -118,9 +111,9 @@ namespace InstructionCombine
             result == fallback || result == cmp[0].reg || result == cmp[1].reg ||
             temp == result || temp == fallback || temp == cmp[0].reg || temp == cmp[1].reg)
             return false;
-        if (!sameValueAt(ctx, cmp[0].reg, cmpRef, loadRef) ||
-            !sameValueAt(ctx, cmp[1].reg, cmpRef, loadRef) ||
-            !sameValueAt(ctx, fallback, initRef, cmpRef))
+        if (!ctx.ssa->sameValueAt(cmp[0].reg, cmpRef, loadRef) ||
+            !ctx.ssa->sameValueAt(cmp[1].reg, cmpRef, loadRef) ||
+            !ctx.ssa->sameValueAt(fallback, initRef, cmpRef))
             return false;
         uint32_t tempValue = 0;
         if (!ctx.ssa->defValue(temp, loadRef, tempValue) || singleDirectInstructionUse(*ctx.ssa, tempValue) != copyRef ||
@@ -231,7 +224,7 @@ namespace InstructionCombine
             !lea[3].valueU64 ||
             static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(lea[3].valueU64))) != lea[3].valueU64)
             return false;
-        if (!sameValueAt(ctx, copy[0].reg, address.instRef, copyRef))
+        if (!ctx.ssa->sameValueAt(copy[0].reg, address.instRef, copyRef))
             return false;
         const auto* value = ctx.ssa->valueInfo(address.valueId);
         if (!value || ctx.ssa->transitiveInstructionUseCount(address.valueId, 3) != 2)
@@ -373,7 +366,7 @@ namespace InstructionCombine
             return false;
         const MicroInstrOperand* copyOps = sumInput.inst->ops(*ctx.operands);
         if (!copyOps || copyOps[0].reg != addOps[0].reg || copyOps[1].reg != cmpOps[0].reg ||
-            getNumBits(copyOps[2].opBits) < getNumBits(bits) || !sameValueAt(ctx, cmpOps[0].reg, sumInput.instRef, cmpRef))
+            getNumBits(copyOps[2].opBits) < getNumBits(bits) || !ctx.ssa->sameValueAt(cmpOps[0].reg, sumInput.instRef, cmpRef))
             return false;
 
         const MicroSsaState::ReachingDef limitDef = ctx.ssa->reachingDef(cmpOps[1].reg, cmpRef);
@@ -381,7 +374,7 @@ namespace InstructionCombine
             return false;
         const MicroInstrOperand* subOps = limitDef.inst->ops(*ctx.operands);
         if (!subOps || subOps[0].reg != cmpOps[1].reg || subOps[1].reg != addOps[1].reg || subOps[2].opBits != bits ||
-            subOps[3].microOp != MicroOp::Subtract || !sameValueAt(ctx, addOps[1].reg, limitDef.instRef, sumDef.instRef))
+            subOps[3].microOp != MicroOp::Subtract || !ctx.ssa->sameValueAt(addOps[1].reg, limitDef.instRef, sumDef.instRef))
             return false;
 
         const MicroSsaState::ReachingDef limitInput = ctx.ssa->reachingDef(subOps[0].reg, limitDef.instRef);
@@ -590,7 +583,7 @@ namespace InstructionCombine
 
         // left and right keep their values, and the moved pair's register is
         // not touched in between.
-        if (!sameValueAt(ctx, left, copyRef, ref) || !sameValueAt(ctx, right, subRef, ref))
+        if (!ctx.ssa->sameValueAt(left, copyRef, ref) || !ctx.ssa->sameValueAt(right, subRef, ref))
             return false;
         // Copies of T move along with it; nothing else in between may mention
         // T or those copies.

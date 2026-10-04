@@ -2218,8 +2218,9 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         {
             if (ops[2].opBits != MicroOpBits::B64)
             {
-                const uint32_t src = denseVirtualRegs_.find(ops[1].reg);
-                if (ops[2].opBits != MicroOpBits::B32 || src == MicroDenseRegIndex::K_INVALID_INDEX || !zeroHigh[src])
+                SWC_ASSERT(useVirtualIndices_[idx].size() == 1);
+                const uint32_t src = useVirtualIndices_[idx].front();
+                if (ops[2].opBits != MicroOpBits::B32 || !zeroHigh[src])
                     return false;
             }
         }
@@ -2314,13 +2315,16 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         if (context_->builder->shouldPreserveVirtualCopy(dstReg) || context_->builder->shouldPreserveVirtualCopy(srcReg))
             continue;
 
-        const uint32_t dst = denseVirtualRegs_.find(dstReg);
-        const uint32_t src = denseVirtualRegs_.find(srcReg);
-        if (dst == MicroDenseRegIndex::K_INVALID_INDEX || src == MicroDenseRegIndex::K_INVALID_INDEX)
-            continue;
+        SWC_ASSERT(defVirtualIndices_[idx].size() == 1 && useVirtualIndices_[idx].size() == 1);
+        const uint32_t dst = defVirtualIndices_[idx].front();
+        const uint32_t src = useVirtualIndices_[idx].front();
 
-        computeCurrentLiveOutBits(idx);
-        if (!DenseBits::contains(tempOutVirtual_, src) || !DenseBits::contains(tempOutVirtual_, dst))
+        // A register copy only falls through. Its live-out is the next row;
+        // probing two bits needs no copies of the virtual and concrete rows.
+        if (idx + 1 == instructionCount_)
+            continue;
+        const auto liveOut = DenseBits::row(liveInVirtualBits_, idx + 1, wordCount);
+        if (!DenseBits::contains(liveOut, src) || !DenseBits::contains(liveOut, dst))
             continue;
 
         if (!sourceLeavesCopyBlock(idx, src))

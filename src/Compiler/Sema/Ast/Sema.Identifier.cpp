@@ -561,7 +561,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     // Can be forced to false in case of an identifier inside a #defined
     // Swag.compiler()NotDefined
     const SemaNodeView view = sema.curViewConstant();
-    if (view.cstRef().isValid())
+    // Macro injection pre-resolves caller names before declarations in the injected
+    // block exist. A caller constant still needs the local-shadow check below.
+    if (view.cstRef().isValid() && !hasFlag(AstIdentifierFlagsE::MacroInjectCallerBinding))
         return Result::Continue;
 
     if (hasFlag(AstIdentifierFlagsE::ConstantBinding))

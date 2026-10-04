@@ -389,7 +389,7 @@ TypeRef TypeInfo::payloadTypeRef() const noexcept
     return payloadTypeRef_.typeRef;
 }
 
-bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const IdentifierRef name, const std::string_view nameText) const noexcept
+bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const TaskContext& ctx, const IdentifierRef name) const noexcept
 {
     if (!isAggregateStruct())
         return false;
@@ -404,7 +404,8 @@ bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const Identifi
         }
     }
 
-    size_t implicitIndex = 0;
+    const std::string_view nameText      = ctx.idMgr().get(name).name;
+    size_t                 implicitIndex = 0;
     if (parseImplicitAggregateItemIndex(implicitIndex, nameText) && implicitIndex < names.size() && !names[implicitIndex].isValid())
     {
         outIndex = implicitIndex;
@@ -412,12 +413,6 @@ bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const Identifi
     }
 
     return false;
-}
-
-bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const TaskContext& ctx, const IdentifierRef name) const noexcept
-{
-    const std::string_view nameText = ctx.idMgr().get(name).name;
-    return tryGetAggregateMemberIndexByName(outIndex, name, nameText);
 }
 
 TypeRef TypeInfo::unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef) const noexcept

@@ -1127,19 +1127,14 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
     constexpr size_t K_RESIDENT_MIN_FREE_INT   = 4;
     constexpr size_t K_RESIDENT_MIN_FREE_FLOAT = 2;
 
-    const auto countMappedOfClass = [&](const bool forFloat) {
-        size_t count = 0;
-        for (const uint32_t denseIndex : mappedVirtualIndices_)
-            count += states_[denseIndex].phys.isFloat() == forFloat ? 1 : 0;
-        return count;
-    };
-
     // Keep only mappings the loop actually reads and whose register nothing
     // fixed can touch inside the region. A value merely carried through holds
     // a register for nothing; a register with a concrete claim inside the
     // loop could not be restored at the back-edge; and a caller-saved
     // register does not survive the calls the loop makes.
-    const bool loopHasCall = intervalHasCall(region.header, region.tail);
+    const bool loopHasCall     = intervalHasCall(region.header, region.tail);
+    size_t     mappedIntRegs   = 0;
+    size_t     mappedFloatRegs = 0;
     for (size_t listIndex = 0; listIndex < mappedVirtualIndices_.size();)
     {
         const uint32_t denseIndex = mappedVirtualIndices_[listIndex];
@@ -1158,20 +1153,22 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
             continue;
         }
 
+        ++(physReg.isFloat() ? mappedFloatRegs : mappedIntRegs);
         ++listIndex;
     }
 
     // Solvency cap: the pairs are protected from eviction at every back-edge,
     // so each class must keep enough unprotected registers for the worst
     // instruction there. Shed the least-read pairs beyond the cap.
-    const size_t totalIntRegs   = freeIntTransient_.size() + freeIntPersistent_.size() + countMappedOfClass(false);
-    const size_t totalFloatRegs = freeFloatTransient_.size() + freeFloatPersistent_.size() + countMappedOfClass(true);
+    const size_t totalIntRegs   = freeIntTransient_.size() + freeIntPersistent_.size() + mappedIntRegs;
+    const size_t totalFloatRegs = freeFloatTransient_.size() + freeFloatPersistent_.size() + mappedFloatRegs;
     for (int classPass = 0; classPass < 2; ++classPass)
     {
-        const bool   forFloat = classPass == 1;
-        const size_t cap      = forFloat ? (totalFloatRegs > K_RESIDENT_MIN_FREE_FLOAT ? totalFloatRegs - K_RESIDENT_MIN_FREE_FLOAT : 0)
-                                         : (totalIntRegs > K_RESIDENT_MIN_FREE_INT ? totalIntRegs - K_RESIDENT_MIN_FREE_INT : 0);
-        while (countMappedOfClass(forFloat) > cap)
+        const bool   forFloat    = classPass == 1;
+        const size_t cap         = forFloat ? (totalFloatRegs > K_RESIDENT_MIN_FREE_FLOAT ? totalFloatRegs - K_RESIDENT_MIN_FREE_FLOAT : 0)
+                                            : (totalIntRegs > K_RESIDENT_MIN_FREE_INT ? totalIntRegs - K_RESIDENT_MIN_FREE_INT : 0);
+        size_t       mappedCount = forFloat ? mappedFloatRegs : mappedIntRegs;
+        while (mappedCount > cap)
         {
             uint32_t worstDense = std::numeric_limits<uint32_t>::max();
             uint32_t worstUses  = std::numeric_limits<uint32_t>::max();
@@ -1192,6 +1189,7 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
             if (worstDense == std::numeric_limits<uint32_t>::max())
                 break;
             dropMappedVirtualNoStore(worstDense);
+            --mappedCount;
         }
     }
 

@@ -626,6 +626,44 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataRelativeReferencesAccountForTrailingImmediate)
+{
+    const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("rdata_relative_trailing_immediate", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+    DataSegment&                    segment  = fixture.compiler->cstMgr().shardDataSegment(0);
+    Runtime::String*                storage  = nullptr;
+    const ConstantRef               constant = addStringConstant(*fixture.compilerCtx, *fixture.compiler, segment, "relative constant", storage);
+    const auto*                     interior = reinterpret_cast<const std::byte*>(storage) + offsetof(Runtime::String, length);
+    MachineCode                     code     = makeConstantAddressCode(constant, interior);
+    addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, code, "relative_constant");
+    SWC_RESULT(fixture.artifactBuilder->build());
+
+    for (const bool split : {false, true})
+    {
+        uint64_t baseAddend = 0;
+        for (const uint32_t trailing : {0u, 1u, 2u, 4u})
+        {
+            ByteArray                            bytes(24);
+            std::vector<NativeSectionRelocation> records;
+            const NativeCodeRelocationTarget     target{.bytes = &bytes, .relocations = &records, .functionOffset = 8, .splitRDataReferences = split};
+            MicroRelocation                      relocation = code.codeRelocations.front();
+            relocation.form                                 = MicroRelocation::Form::Relative32;
+            relocation.codeOffset                           = 2;
+            relocation.relativeEndOffset                    = 6 + trailing;
+            SWC_RESULT(fixture.nativeBuilder->appendCodeRelocation(target, "relative_constant", relocation));
+            if (records.size() != 1 || records.front().offset != 10 || records.front().type != IMAGE_REL_AMD64_REL32)
+                return Result::Error;
+            if (!trailing)
+                baseAddend = records.front().addend;
+            uint32_t patched = 0;
+            std::memcpy(&patched, bytes.data() + 10, sizeof(patched));
+            if (records.front().addend != baseAddend - trailing || patched != static_cast<uint32_t>(baseAddend - trailing))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_RDataKeepsGrowingCyclicDependencies)
 {
     const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());

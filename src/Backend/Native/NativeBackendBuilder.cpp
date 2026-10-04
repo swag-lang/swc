@@ -1194,10 +1194,12 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
 
             if (relocation.form == MicroRelocation::Form::Relative32)
             {
-                // REL32 resolves to target + addend - (field + 4). The
-                // displacement is the last four bytes of the load, so that
-                // "+ 4" lands exactly on the instruction end that RIP holds.
-                SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
+                // RIP refers to the whole instruction's end. A folded memory
+                // comparison can place its immediate after the displacement.
+                SWC_ASSERT(relocation.relativeEndOffset >= relocation.codeOffset + sizeof(uint32_t));
+                const uint32_t trailingBytes = relocation.relativeEndOffset - relocation.codeOffset - sizeof(uint32_t);
+                SWC_ASSERT(trailingBytes <= 4);
+                record.addend -= trailingBytes;
                 record.type = IMAGE_REL_AMD64_REL32;
                 BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
                 break;

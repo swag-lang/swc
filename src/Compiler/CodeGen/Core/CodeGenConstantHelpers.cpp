@@ -18,14 +18,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    ConstantValue makeMaterializedConstantValue(CodeGen& codeGen, TypeRef typeRef, std::span<const std::byte> storedBytes, DataSegmentRef dataSegmentRef)
+    ConstantValue makeMaterializedConstantValue(TaskContext& ctx, const TypeInfo& originalType, const TypeInfo& storageType, std::span<const std::byte> storedBytes, DataSegmentRef dataSegmentRef)
     {
-        TaskContext&    ctx            = codeGen.ctx();
-        const TypeInfo& originalType   = ctx.typeMgr().get(typeRef);
-        const TypeRef   storageTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum) : typeRef;
-
-        const TypeInfo& storageType = storageTypeRef == typeRef ? originalType : ctx.typeMgr().get(storageTypeRef);
-        ConstantValue   result;
+        const TypeRef typeRef        = originalType.typeRef();
+        const TypeRef storageTypeRef = storageType.typeRef();
+        ConstantValue result;
 
         if (storageType.isArray() || storageType.isSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
@@ -40,7 +37,7 @@ namespace
         result.setDataSegmentRef(dataSegmentRef);
         if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
         {
-            const ConstantRef storageRef = codeGen.cstMgr().addConstant(ctx, result);
+            const ConstantRef storageRef = ctx.cstMgr().addConstant(ctx, result);
             return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);
         }
 
@@ -130,7 +127,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const std::span<const std::byte> storedBytes = sizeOf ? std::span{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
     const DataSegmentRef             dataRef{.shardIndex = placementShardIndex, .offset = offset};
-    const ConstantValue              value = makeMaterializedConstantValue(codeGen, typeRef, storedBytes, dataRef);
+    const ConstantValue              value = makeMaterializedConstantValue(ctx, typeInfo, storageType, storedBytes, dataRef);
     if (!value.isValid())
         return ConstantRef::invalid();
 

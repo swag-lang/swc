@@ -109,14 +109,11 @@ namespace
         return result;
     }
 
-    ConstantValue makeMaterializedConstantValue(Sema& sema, TypeRef typeRef, std::span<const std::byte> storedBytes, DataSegmentRef dataSegmentRef)
+    ConstantValue makeMaterializedConstantValue(TaskContext& ctx, const TypeInfo& originalType, const TypeInfo& storageType, std::span<const std::byte> storedBytes, DataSegmentRef dataSegmentRef)
     {
-        TaskContext&    ctx            = sema.ctx();
-        const TypeInfo& originalType   = ctx.typeMgr().get(typeRef);
-        const TypeRef   storageTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum) : typeRef;
-
-        const TypeInfo& storageType = storageTypeRef == typeRef ? originalType : ctx.typeMgr().get(storageTypeRef);
-        ConstantValue   result;
+        const TypeRef typeRef        = originalType.typeRef();
+        const TypeRef storageTypeRef = storageType.typeRef();
+        ConstantValue result;
 
         if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregateStruct() || storageType.isAggregateArray() || (storageType.isFunction() && storageType.isLambdaClosure()))
             result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
@@ -131,7 +128,7 @@ namespace
         result.setDataSegmentRef(dataSegmentRef);
         if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
         {
-            const ConstantRef storageRef = sema.cstMgr().addConstant(ctx, result);
+            const ConstantRef storageRef = ctx.cstMgr().addConstant(ctx, result);
             return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);
         }
 
@@ -408,7 +405,9 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
         else
             segment.addRelocation(offset + relocation.offset, {.shardIndex = relocation.targetShardIndex, .offset = relocation.targetOffset});
     }
-    const ConstantValue result = makeMaterializedConstantValue(sema, typeRef, {storage, static_cast<size_t>(size)}, {.shardIndex = shardIndex, .offset = offset});
+    const TypeRef       storageTypeRef = type.isAlias() || type.isEnum() ? type.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum) : typeRef;
+    const TypeInfo&     storageType    = storageTypeRef == typeRef ? type : sema.typeMgr().get(storageTypeRef);
+    const ConstantValue result         = makeMaterializedConstantValue(sema.ctx(), type, storageType, {storage, static_cast<size_t>(size)}, {.shardIndex = shardIndex, .offset = offset});
     // Equal union bytes can carry different relocation inventories (an integer view
     // versus a pointer view). Byte-only constant interning cannot merge those facts.
     return sema.cstMgr().addUniqueMaterializedPayloadConstant(result);
@@ -720,7 +719,7 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const DataSegmentRef             dataRef{.shardIndex = placementShardIndex, .offset = offset};
     const std::span<const std::byte> storedBytes = sizeOf ? std::span{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
-    const ConstantValue              result      = makeMaterializedConstantValue(sema, typeRef, storedBytes, dataRef);
+    const ConstantValue              result      = makeMaterializedConstantValue(ctx, typeInfo, storageType, storedBytes, dataRef);
     if (!result.isValid())
         return ConstantRef::invalid();
 

@@ -160,6 +160,9 @@ const INFINITE                = 0xFFFFFFFF
 const CREATE_SUSPENDED        = 0x00000004
 const MAXIMUM_WAIT_OBJECTS    = 64'u32
 
+// Returned by [[Win32.TlsAlloc]] when no TLS index can be allocated.
+const TLS_OUT_OF_INDEXES = 0xFFFFFFFF'u32
+
 const CREATE_UNICODE_ENVIRONMENT = 0x00000400
 const CREATE_NO_WINDOW = 0x08000000
 
@@ -630,6 +633,18 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetCurrentThreadId()->DWORD
     func GetCurrentThread()->HANDLE
     func GetThreadTimes(hThread: HANDLE, lpCreationTime, lpExitTime, lpKernelTime, lpUserTime: *FILETIME)->BOOL
+
+    // Allocates a process TLS index with a null value on every thread, or returns `TLS_OUT_OF_INDEXES` on failure.
+    func TlsAlloc()->DWORD
+
+    // Releases a TLS index without freeing its stored values; returns nonzero on success.
+    func TlsFree(dwTlsIndex: DWORD)->BOOL
+
+    // Reads this thread's value; null is valid, and success clears `GetLastError` to zero.
+    func TlsGetValue(dwTlsIndex: DWORD)->LPVOID
+
+    // Sets this thread's value, which may be null; returns nonzero on success.
+    func TlsSetValue(dwTlsIndex: DWORD, lpTlsValue: LPVOID)->BOOL
 
     func AcquireSRWLockExclusive(SRWLock: *SRWLOCK)
     func AcquireSRWLockShared(SRWLock: *SRWLOCK)

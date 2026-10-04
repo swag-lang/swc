@@ -972,6 +972,12 @@ namespace
 
     void pinResolvedCallCallee(Sema& sema, AstNodeRef calleeRef, const SymbolFunction& fn)
     {
+        // An indirect call resolves to a signature, not an executable declaration.
+        // Its cloned local may not have been rebound yet, so inspecting only the
+        // cloned identifier can mistake a function-valued variable for an overload.
+        if (fn.decl() && fn.decl()->is(AstNodeId::LambdaType))
+            return;
+
         const AstNodeRef identifierRef = SemaHelpers::unwrapCallCalleeRef(sema, calleeRef);
         if (identifierRef.isInvalid() || !sema.node(identifierRef).is(AstNodeId::Identifier))
             return;

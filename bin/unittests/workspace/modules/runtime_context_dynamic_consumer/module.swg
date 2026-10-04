@@ -3,6 +3,7 @@
 // process — two allocators, two runtime contexts — and nothing the compiler sees says so, because
 // the library is named by a path this program computes while it runs.
 #import("core", location: "swag@std", link: "shared-library")
+#import("win32", location: "swag@std")
 
 #run
 {

@@ -1373,7 +1373,7 @@ namespace
 
     bool inlineBindingNeedsRepeatedRValueMaterialization(Sema& sema, const SemaClone::ParamBinding& binding, const InlineBindingUse& use)
     {
-        if (!binding.exprRef.isValid() || !binding.idRef.isValid())
+        if (!binding.exprRef.isValid() || !binding.idRef.isValid() || use.count <= 1)
             return false;
         if (sema.viewConstant(binding.exprRef).hasConstant())
             return false;
@@ -1394,7 +1394,7 @@ namespace
                 return false;
         }
 
-        return use.count > 1;
+        return true;
     }
 
     bool inlineBindingExprIsDirectStableLValue(Sema& sema, AstNodeRef exprRef)
@@ -1451,13 +1451,13 @@ namespace
 
     bool inlineBindingNeedsRepeatedLValueMaterialization(Sema& sema, const SemaClone::ParamBinding& binding, const InlineBindingUse& use)
     {
-        if (!binding.exprRef.isValid() || !binding.idRef.isValid())
+        if (!binding.exprRef.isValid() || !binding.idRef.isValid() || use.count <= 1)
             return false;
         if (!sema.isLValue(binding.exprRef))
             return false;
         if (inlineBindingExprIsDirectStableLValue(sema, binding.exprRef))
             return false;
-        return use.count > 1;
+        return true;
     }
 
     // A by-address parameter bound to an expression that types as its POINTEE: the call
@@ -1465,13 +1465,11 @@ namespace
     // the binding must restore the pointer level a raw substitution would drop.
     bool inlineBindingSourceTypesAsPointee(Sema& sema, AstNodeRef exprRef)
     {
-        const TypeRef sourceTypeRef = sema.viewType(exprRef).typeRef();
-        if (!sourceTypeRef.isValid())
+        const SemaNodeView sourceView = sema.viewType(exprRef);
+        if (!sourceView.type())
             return false;
 
-        const TypeRef   unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
-        const TypeInfo& resolvedSourceType     = sema.typeMgr().get(resolvedSourceTypeRef);
+        const TypeInfo& resolvedSourceType = SemaHelpers::aliasEnumType(sema, sourceView);
         return !resolvedSourceType.isPointerOrReference() && !resolvedSourceType.isNull();
     }
 
@@ -1487,11 +1485,10 @@ namespace
         const AstNode& node = sema.node(nodeRef);
         if (node.is(AstNodeId::MemberAccessExpr) || node.is(AstNodeId::Identifier))
         {
-            const TypeRef resolvedTypeRef = sema.viewType(nodeRef).typeRef();
-            if (resolvedTypeRef.isValid())
+            const SemaNodeView resolvedView = sema.viewType(nodeRef);
+            if (const TypeInfo* resolvedType = resolvedView.type())
             {
-                const TypeInfo& resolvedType = sema.typeMgr().get(resolvedTypeRef);
-                if (resolvedType.isValuePointer() && !resolvedType.isNullable())
+                if (resolvedType->isValuePointer() && !resolvedType->isNullable())
                 {
                     const Symbol* sym = sema.viewSymbol(nodeRef).sym();
                     if (sym && sym->isVariable())

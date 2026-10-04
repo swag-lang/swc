@@ -1127,15 +1127,25 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     });
     std::vector<LiveInterval> sorted;
     sorted.reserve(out.nodes.size());
-    for (const uint32_t i : order)
-        sorted.push_back(std::move(out.nodes[i]));
-    out.nodes = std::move(sorted);
+    // Splitting retains an initial node for every dense value. Sorted groups therefore visit
+    // every dense index in order, and its offset fits in the already-consumed prefix of order.
+    // Reuse that prefix so the group table need not coexist with both node arrays.
+    uint32_t nextDenseIndex = 0;
+    for (uint32_t position = 0; position < order.size(); ++position)
+    {
+        LiveInterval& node = out.nodes[order[position]];
+        if (node.denseIndex == nextDenseIndex)
+        {
+            SWC_ASSERT(nextDenseIndex <= position);
+            order[nextDenseIndex++] = position;
+        }
+        sorted.push_back(std::move(node));
+    }
+    SWC_ASSERT(nextDenseIndex == virtualCount && virtualCount < order.size());
+    order[virtualCount] = static_cast<uint32_t>(sorted.size());
 
-    out.valueNodesBegin.assign(virtualCount + 1, 0);
-    for (const LiveInterval& node : out.nodes)
-        ++out.valueNodesBegin[node.denseIndex + 1];
-    for (size_t i = 1; i <= virtualCount; ++i)
-        out.valueNodesBegin[i] += out.valueNodesBegin[i - 1];
+    out.nodes = std::move(sorted);
+    out.valueNodesBegin.assign(order.begin(), order.begin() + static_cast<ptrdiff_t>(virtualCount + 1));
 
     return true;
 }

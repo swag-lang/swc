@@ -1,6 +1,7 @@
 # Optimization Backlog
 
-Backend optimization passes, register allocation, and the performance of the code `swc` generates.
+Intermodule and backend optimization, register allocation, final image layout, and the performance
+of the code `swc` generates.
 Frontend and lowering defects are [compiler.core.md](compiler.core.md).
 
 Entries are ordered from the most recently updated down. [README.md](README.md) defines
@@ -17,6 +18,496 @@ the executable Micro instruction stream has no explicit phi instruction. Since b
 that the straight-line path steps over — a safety panic, a cold refill — no longer constrains the split
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
+
+The intermodule program below applies to **every Swag module whose matching implementation is
+available locally**: application modules, sibling workspaces, vendored dependencies, package
+caches, third-party checkouts, and the standard library. Availability and semantic proof decide
+eligibility; origin, license, module name, and installation path do not. An open-source dependency
+benefits because its implementation can be analyzed. A proprietary dependency supplied with source
+gets the same benefit. No transformation in this program may require a `std` whitelist or a
+library-specific name match.
+
+Source availability and a closed set of callers are separate facts. A body can be available for
+optimizing a known direct call while exports, plugins, callbacks, or a replaceable shared library
+still prevent whole-program assumptions. Preserve a canonical externally callable version wherever
+the boundary requires it. A local file with the same module name is not proof that it implements
+the binary selected by the build. Other-language sources require a supported frontend or compatible
+optimization representation; merely finding their text does not make them Swag bodies.
+
+The intended pipeline is resolved typed bodies and summaries, global symbol/call resolution,
+bounded interprocedural transformations, ABI lowering, the existing Micro pipeline, then final
+layout and relocation. Reuse semantic analysis and local passes. Keep compile-time execution as
+a separate consumer of the resolved program; importing a body must not re-execute module setup
+or compile-time side effects.
+
+These waves express dependencies, not promises of measured speedups. Each entry owns an
+independently finishable outcome and stays here while its next outcome remains open.
+
+| Wave | Deliverable | Entry identifiers |
+| --- | --- | --- |
+| Foundation | Local implementation discovery, typed bodies, global index, incremental reuse | compiler.optimization.106, compiler.optimization.107, compiler.optimization.108, compiler.optimization.109 |
+| First useful release | Effect summaries and automatic intermodule inlining | compiler.optimization.110, compiler.optimization.111 |
+| Contextual optimization | Specialization, devirtualization, aggregate transport, allocation elimination, loop proofs, partial inlining | compiler.optimization.112, compiler.optimization.113, compiler.optimization.114, compiler.optimization.115, compiler.optimization.116, compiler.optimization.117 |
+| Late code and data | Callee register contracts and whole-image liveness | compiler.optimization.118, compiler.optimization.119 |
+| Measured deployment | Profile feedback and final code/data placement | compiler.optimization.120, compiler.optimization.121 |
+| Advanced experiments | Partial evaluation, CPU variants, private data representations | compiler.optimization.122, compiler.optimization.123, compiler.optimization.124 |
+
+For each implementation, select validation using
+[validate-swag-changes](../.agents/skills/validate-swag-changes/SKILL.md). Import, publication,
+identity, and cache cases belong in `bin/unittests/workspace`; runtime code shapes in `native`;
+compile-time behavior in `jit`; guarded paths in `safety` or `sanity`; graph, cache, IR, ABI,
+linker, and profile helpers in the corresponding C++ tests. Dedicated debug-information fixtures
+opt into `--debug`. Scheduling/publication changes also exercise both compiler executables and
+real parallelism. Follow shared load admission and six-worker limits for every command.
+
+Before the first transformation, establish baselines for small and large module graphs, deep wrapper
+chains, diamond dependencies, recursion, generics, callbacks, aggregate returns, and mixed source,
+binary, and shared dependencies. Include a standalone third-party workspace outside `bin/std`.
+Compile equivalent eligible modules under different names and roots, including a read-only package
+root, and require equivalent decisions after path normalization. Synthetic cases prove decisions;
+representative applications measure value.
+
+Record runtime distributions, text/data size, startup and allocation counts where affected, cold
+and warm build wall/CPU time, peak committed memory, imported-body counts, and incremental
+invalidation fan-out. Compare enabled/disabled transformations with identical inputs/compiler
+builds, unchanged-binary controls, and alternating runs on a quiet machine. Set explicit code-growth,
+compile-time, and memory budgets from those baselines before default rollout; instruction-count
+reductions alone do not establish a performance win. Measure a private helper edit, public signature
+edit, unrelated edit, and profile change separately.
+
+Expose deterministic decision records: unavailable/incompatible body, open binding, unsupported
+semantics, insufficient benefit, exhausted budget, imported body, selected clone, and invalidating
+dependencies. Preserve source/inline provenance, stack walking, diagnostics, cleanup, error
+propagation, evaluation order, and effective safety/sanity/FP contracts. Optimization level must
+not change which source programs are well-typed. Cheap proven transformations should become normal
+for eligible modules; costly experiments stay selectable until measured. Keep existing `Never`,
+`Inline`, and `NoInline` contracts explicit. This plan invents no command-line spellings or
+new language syntax.
+
+### compiler.optimization.106 — Resolve local implementations and optimization boundaries
+
+- Recorded: 2026-10-04 16:08
+- Updated: 2026-10-04 16:18 — Identify the existing dependency snapshots and the API/native publication handoff.
+- Evidence: `SemaInline::shouldAutoInline` in
+  [SemaInline.cpp](../src/Compiler/Sema/Helpers/SemaInline.cpp) rejects another module namespace.
+  [ModuleApiExport.Generate.cpp](../src/Compiler/ModuleApi/ModuleApiExport.Generate.cpp) normally
+  publishes ordinary functions as `Foreign` declarations and preserves explicit inline bodies.
+  A source installation alone therefore does not supply an optimization body.
+- Resolution seam: `DependencyPlanBuilder::resolveNode` in
+  [CompilerInstance.Module.cpp](../src/Main/CompilerInstance.Module.cpp) already captures API bytes
+  under `ModuleApi::DirectoryAccess`, retains original artifact paths in `sourcePaths`, and records
+  consumer mirror paths separately. `ModuleSetupInputApplier` selects static/shared linkage for
+  the actual closure. Extend that resolved graph rather than adding a second module search.
+- Next: prototype a provider mapping the selected module/function identity to its exact immutable
+  implementation and build contract. Compare in-process handoff for sibling modules with a
+  published descriptor/body store for independently built packages. Prove both through two local
+  workspaces and an unannotated scalar helper before expanding the supported body shapes.
+- Publication: `exportModuleApi` publishes before native generation; deferred linking can overlap
+  compilation of the next module. Freeze the API/body generation together, then certify its match
+  to the selected artifact at native publication/link consumption. A later reread of a source path,
+  a matching module name, or unchanged size/timestamps is insufficient. Do not introduce a mandatory
+  native-link barrier before consumers can analyze bodies; final binding must validate assumptions
+  or discard/recompile affected variants before emitting the image.
+- Scope: track source/IR availability, implementation identity, binding stability, external visibility,
+  address escape, and whether all callers are known as separate facts. Distinguish a Swag import
+  lowered through `Foreign` from an opaque external implementation without changing its ABI.
+  Cover transitive imports, overrides, multiple versions, generated sources, and read-only packages.
+  Resolve the dependency selected by the build; do not scan unrelated files or fetch missing source.
+- Fallback: absent/incompatible optional optimization material keeps the ordinary verified artifact
+  path. A source/binary mismatch must never optimize one implementation while linking another;
+  use normal rebuild policy or decline the optimization.
+- Regression matrix: source/API/artifact edits with preserved sizes and timestamps; interrupted and
+  concurrent publication; original versus mirrored dependency paths; relocated read-only packages;
+  the same module name at different versions; and shared/static alternatives of one dependency.
+  Capture generated and compile-time-dependent implementation context through the build model;
+  source-file hashes alone cannot reconstruct a resolved body or authorize its reuse.
+- Complete when: equivalent local, vendored, and third-party implementations expose equivalent
+  eligible bodies; mismatched and opaque imports stay correct; shared exports retain their required
+  binding; decision records identify the exact eligibility reason.
+- Related: compiler.optimization.107, compiler.optimization.109.
+
+### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
+
+- Recorded: 2026-10-04 16:08
+- Evidence: ordinary inlining clones and re-analyzes syntax, with exclusions for aggregates,
+  generics, fallible functions, and static storage in `SemaInline.cpp`.
+  [CodeGenCallHelpers.Call.cpp](../src/Compiler/CodeGen/Core/CodeGenCallHelpers.Call.cpp) assigns
+  concrete argument registers/stack slots through `ABICall::prepareArgs` before Micro passes.
+- Next: prototype an immutable, typed, serializable scalar body with calls, parameters, returns,
+  memory objects, and symbolic globals above the ABI. Compare a frozen resolved-body representation
+  with a compact new IR on size and lowering cost; select the smallest correct design.
+- Scope: stable symbol/type identities, control flow, explicit effects, source provenance,
+  configuration, and ownership/cleanup/error edges. Private helpers remain compiler-visible without
+  becoming source-public. Cloned function-local globals/TLS still refer to their original storage.
+- Expansion: preserve generic-instance identity, moves/copies/drops, `defer`, fallible returns,
+  nullable facts, receivers, closures, and variadics before admitting each shape. Macros/mixins and
+  compile-time constructs retain their semantic expansion rules; optimize their resolved runtime
+  result without replaying expansion in the consumer.
+- Complete when: body round trips and cross-module cloning preserve behavior and locations, static
+  storage has one identity, unsupported shapes fall back cleanly, and existing Micro lowering
+  consumes bodies without a second semantic analysis of ordinary function syntax.
+- Related: compiler.optimization.106, compiler.optimization.108.
+
+### compiler.optimization.108 — Build a bounded global call index and optimization driver
+
+- Recorded: 2026-10-04 16:08
+- Evidence: [MicroPassManager.cpp](../src/Backend/Micro/MicroPassManager.cpp) operates on individual
+  functions; semantic automatic inlining has a limited call graph; the linker resolves emitted
+  symbols. These are not a general selective importer and interprocedural transformation driver.
+- Next: summarize identities, cost, direct edges, possible indirect targets, address uses, visibility,
+  and referenced data. Resolve a combined index for the actual link closure and import only selected
+  bodies. Analyze recursive strongly connected components with conservative fixed points.
+- Algorithm: publish completed immutable facts, use change-driven worklists and explicit widening/
+  budgets, and reschedule only affected functions. Revisit reachability after graph changes.
+  Alternate specialization, devirtualization, inlining, and local simplification in bounded rounds,
+  then lower ABI and run Micro. Separate proof facts from profitability estimates.
+- Scheduling: parallel independent partitions under a memory budget, evict unused imports, and use
+  stable work ordering and deterministic budget allocation. Avoid semantic wait cycles and
+  publication barriers that require every dependency to finish native linking first.
+- Elsewhere: [ThinLTO](https://clang.llvm.org/docs/ThinLTO.html) combines compact summaries, selective
+  function importing, parallel backends, and incremental reuse.
+- Complete when: recursive, diamond, and large sparse graphs converge deterministically with bounded
+  imported memory; newly direct/dead edges trigger targeted reanalysis; unrelated partitions stay
+  reusable; instrumentation accounts for time and memory by phase.
+- Related: compiler.optimization.107, compiler.optimization.109, compiler.core.073.
+
+### compiler.optimization.109 — Cache bodies and the assumptions used by callers
+
+- Recorded: 2026-10-04 16:08
+- Evidence: [NativeBackendBuilder.cpp](../src/Backend/Native/NativeBackendBuilder.cpp) fingerprints
+  Micro for its native function cache and currently excludes bodies with relocations. Importing
+  implementations creates dependencies that public API fingerprints alone cannot describe.
+- Next: define separate immutable caches for typed bodies/summaries and native variants. Key variants
+  by body, referenced types/constants, compiler/IR schema, target/CPU, semantic configuration,
+  optimization policy, and relevant profile identity.
+- Dependencies: track imported private bodies, propagated effects/value facts, specialized arguments,
+  binding resolution, and devirtualization assumptions. Include negative/global facts: adding a
+  target or caller may invalidate uniqueness or all-callers proofs without changing an old body.
+- Publication: content-addressed records, atomic completion, schema rejection, concurrent readers,
+  cancellation-safe writes, and consumer-owned writable caches for read-only packages. Logical
+  identity should allow harmless path relocation without confusing distinct builds. Track generated
+  and compile-time inputs through the build model; untracked environmental dependencies prevent reuse.
+- Complete when: private edits invalidate affected callers/variants, unrelated edits retain hits,
+  target/configuration/summary/profile changes cannot reuse stale code, and interrupted concurrent
+  builds cannot publish partial artifacts. Measure cold, warm, and edit/rebuild costs separately.
+- Related: compiler.optimization.106, compiler.optimization.108, compiler.core.030.
+
+### compiler.optimization.110 — Infer interprocedural memory and value summaries
+
+- Recorded: 2026-10-04 16:08
+- Evidence: `SymbolFunction` already carries borrow/escape/release summaries; API publication exports
+  `BorrowSummary` and `ReadOnly`; LICM and selected post-allocation passes consume direct readonly
+  calls. Extend this foundation instead of introducing a separate incompatible effect system.
+- Next: summarize reads/writes by parameter-derived/global region, capture, allocation/release,
+  ambient-state access, callback effects, and return ranges/nullability/alignment/argument relations.
+  Compute transitive facts over recursive components and serialize them with their body/configuration.
+- Consumers: preserve facts through calls in value numbering, load/store elimination, LICM, and
+  range propagation. Unknown external/indirect behavior remains unknown. Keep noncapture, readonly,
+  purity, no-alias, termination, and failure distinct; model atomics, volatile accesses, TLS/context
+  mutation, aliasing, and reentrant callbacks.
+- Proof: deleting an unused call also needs termination/error and other observable effects to permit
+  removal; readonly alone is insufficient. Reuse existing borrow proofs where their meaning matches,
+  without treating a lifetime guarantee as a stronger alias guarantee.
+- Complete when: a third-party readonly helper preserves an unrelated load without being inlined;
+  transitive writers/callbacks invalidate it; recursion converges; summary-only imports help callers
+  even when their bodies are not imported.
+- Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.055,
+  compiler.optimization.020.
+
+### compiler.optimization.111 — Inline ordinary functions across module boundaries
+
+- Recorded: 2026-10-04 16:08
+- Evidence: the namespace guard in `SemaInline::shouldAutoInline` prevents automatic intermodule
+  inlining. Its signature/body exclusions are correctness boundaries; deleting the guard or marking
+  every export `Inline` does not implement general importing.
+- Next: inline resolved unannotated scalar/pointer direct callees from any eligible module using
+  typed bodies. Fold caller constants and simplify immediately, then expand supported shapes with
+  focused regression coverage.
+- Cost model: estimate residual work after substitution, loop depth/frequency, duplicated code,
+  register pressure, frame growth, and downstream vectorization. Bound total caller growth,
+  recursion, imported bytes, and compilation work. A single-caller bonus requires proof that the
+  final call/body can disappear; share growth budgets with unrolling.
+- Semantics: retain effective callee contracts, evaluation order, cleanup, and unique storage.
+  Preserve canonical bodies for remaining calls/observed addresses. Honor `Never` and `NoInline`;
+  define interaction with explicit `Inline` without incidentally changing its semantics.
+- Complete when: profitable unannotated helpers and private helper chains in unrelated packages
+  inline automatically, forbidden/oversized cases remain calls, and runtime, size, compile-time,
+  and memory results justify the default policy. Import visibility never changes source validity.
+- Related: compiler.optimization.107, compiler.optimization.108, compiler.optimization.110,
+  compiler.core.071, compiler.optimization.022.
+
+### compiler.optimization.112 — Specialize ordinary calls on constants and known callbacks
+
+- Recorded: 2026-10-04 16:08
+- Evidence: separately compiled functions lose call-site constants and callback identities. Existing
+  generics and constant folding do not constitute a general intermodule residual-function pipeline.
+- Next: clone an ordinary function for a proven constant scalar/enum/mode argument, simplify it,
+  and redirect eligible calls without requiring generics in source. Extend to lengths, alignment,
+  known callback targets, and profitable type/context facts.
+- Sharing: intern semantic specialization keys so callers reuse variants. Propagate through wrappers
+  and recursive components with bounded variant counts; preserve a general version where needed.
+  Never duplicate a static/TLS object along with a cloned body.
+- Policy: charge growth/work to the shared driver budgets. Profile-frequent values require a guard
+  and general fallback; proven constants do not. Avoid cloning for large or rare constant domains.
+- Elsewhere: [GCC interprocedural options](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)
+  describe constant propagation and cloning.
+- Complete when: consumers share useful mode-specific variants with dead branches removed, known
+  comparators become direct calls, general callers remain correct, and bounded clone families show
+  measured value beyond merely removing call instructions.
+- Related: compiler.optimization.109, compiler.optimization.110, compiler.optimization.111,
+  compiler.optimization.120.
+
+### compiler.optimization.113 — Devirtualize interfaces, callbacks, and stable context regions
+
+- Recorded: 2026-10-04 16:08
+- Evidence: `SemaInline::tryInlineCall` leaves dynamic interface dispatch intact. Global value flow
+  can establish targets more precisely than an interface type; local source availability alone does
+  not prove a closed implementation set.
+- Next: track function/interface targets through construction, assignment, parameters, returns, and
+  closures, then replace proven singleton targets with direct calls across modules. Preserve receiver
+  adjustment, capture layout, lifetime, and canonical function identity.
+- Expansion: identify regions with a stable allocator, writer, comparator, or other interface value,
+  using context read/write summaries. Specialize their call chains for that proven context; stop at
+  mutation, unknown callbacks/reentrancy, or external escape.
+- Boundaries: exported interfaces, plugins, shared libraries, and unknown FFI callbacks retain
+  open-world behavior. Profile-dominant targets may get guarded fast paths with complete fallbacks;
+  frequency never proves that other targets are impossible.
+- Elsewhere: [LLVM WholeProgramDevirt](https://llvm.org/docs/doxygen/WholeProgramDevirt_8cpp_source.html)
+  demonstrates whole-program virtual-call reasoning.
+- Complete when: a third-party interface pipeline becomes direct where proven, dynamic implementations
+  still work, new reachable targets invalidate cached proofs, and context mutation/reentrancy defeats
+  invalid region specialization.
+- Related: compiler.optimization.108, compiler.optimization.110, compiler.optimization.112.
+
+### compiler.optimization.114 — Specialize aggregate transport and internal signatures
+
+- Recorded: 2026-10-04 16:08
+- Evidence: compiler.optimization.022 owns a local aggregate-copy gap. Cross-module body/use
+  information additionally permits changing internal calls instead of transporting the entire
+  public ABI representation.
+- Next: create an internal worker taking only needed scalar fields and returning consumed values;
+  keep a canonical ABI entry for external/indirect/unrewritten calls. Apply argument promotion,
+  unused-argument elimination, return decomposition, and caller return-storage reuse.
+- Proof: preserve by-value snapshots under alias writes, argument effects, copy/drop hooks, moves,
+  failures, and address identity. Unused result fields do not authorize removing observable work.
+  Materialize objects whose address, layout, or whole-object operations remain observable.
+- Expansion: scalarize short-lived aggregates through module boundaries and feed existing
+  memory-to-register/vectorization passes. Keep the existing local copy-materialization entry as
+  the owner of that defect rather than duplicating its work here.
+- Complete when: eligible third-party aggregate round trips lose redundant copies/hidden return
+  storage, external wrappers retain their ABI, and alias/lifecycle regressions prove value semantics.
+  Report throughput, frame size, and code size.
+- Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.022,
+  compiler.optimization.046.
+
+### compiler.optimization.115 — Eliminate proven temporary allocations across calls
+
+- Recorded: 2026-10-04 16:08
+- Evidence: borrowing, escape, release, and ownership analysis already exists; imported bodies can
+  expose producer/consumer lifetimes hidden by module calls. Nonescape alone does not permit
+  suppressing allocations with observable behavior.
+- Next: choose one temporary with bounded size/lifetime and matched cleanup; prove scalar replacement,
+  stack placement, or construction directly into consumer storage. Start with existing contracts.
+- Proof: preserve allocator hooks, allocation failure behavior, finalization, address comparisons,
+  alignment, provenance, and diagnostics required by the configuration. Custom allocators may
+  observe every operation. If current semantics lack the necessary freedom, first decide a narrowly
+  scoped explicit contract rather than silently changing those semantics.
+- Expansion: eliminate redundant ownership transfers/copies along the same lifetime and fuse
+  construction/consumption where effects allow it. Bound stack growth; reject unbounded promotion.
+- Complete when: an ordinary dependency pipeline loses a measured temporary allocation while escapes,
+  observable allocators, failures, and cleanup ordering retain their behavior. Report allocation count,
+  stack footprint, compilation cost, and runtime.
+- Related: compiler.optimization.110, compiler.optimization.113, compiler.optimization.114.
+
+### compiler.optimization.116 — Carry intermodule proofs into loop and vector optimization
+
+- Recorded: 2026-10-04 16:08
+- Evidence: Micro already has LICM, induction analysis, unrolling, and SLP. Existing leads identify
+  lost alias/range facts; imported bodies can expose simpler loops and stronger facts to these passes.
+- Next: propagate proven lengths, strides, alignment, disjoint regions, and return ranges through
+  calls. Remove repeated enabled guards, hoist stable memory, simplify induction, and expose
+  vectorizable work after specialization/inlining.
+- Expansion: investigate bounded loop unswitching, runtime alias/alignment versioning, loop
+  vectorization, and producer/consumer loop fusion where dependence/effect proofs permit. Keep the
+  general path when a runtime precondition fails; coordinate growth with inlining and unrolling.
+- Semantics: respect signed arithmetic/overflow, configured FP behavior, traps/error order, zero-trip
+  loops, atomics, and observable memory. This work does not change safety-guard defaults.
+- Complete when: loops crossing third-party helper boundaries retain facts and gain demonstrated
+  optimization; overlap, changing lengths, overflow, and guarded fallback cases remain correct.
+  Existing local gaps remain with their existing entries.
+- Related: compiler.optimization.110, compiler.optimization.111, compiler.optimization.112,
+  compiler.optimization.020, compiler.optimization.105, compiler.safety.008.
+
+### compiler.optimization.117 — Inline fast paths while sharing cold continuations
+
+- Recorded: 2026-10-04 16:08
+- Evidence: `MicroColdBlockLayoutPass` already moves selected cold blocks within functions.
+  Whole-body inlining can still duplicate refill/allocation/error paths; rejecting the whole body
+  also loses profitable small fast paths.
+- Next: identify a cheap guard/hot body plus a cold continuation, outline the continuation into a
+  shared worker, and inline only the profitable part across modules. Start from structural evidence,
+  then incorporate profile weights.
+- Contracts: preserve live-in/live-out values, stack/borrow lifetimes, cleanup ownership, error
+  edges, and source locations. Keep call/return and unwind behavior valid; avoid charging the hot
+  path for cold-only frame/register requirements where feasible.
+- Cost: account for new marshaling/spills as well as saved bytes. Share equivalent continuations
+  only when state, effects, and identity permit.
+- Complete when: a package-local refill or checked-operation pattern gains an inlined fast path
+  and one correct shared slow path, measured growth is bounded, and failure/cleanup/stack-walking
+  coverage remains green.
+- Related: compiler.optimization.111, compiler.optimization.114, compiler.optimization.120.
+
+### compiler.optimization.118 — Use precise callee register contracts for internal calls
+
+- Recorded: 2026-10-04 16:08
+- Evidence: `ABICall`, `CallConv`, and register allocation represent concrete ABI register effects.
+  A known direct implementation may clobber fewer registers than its ABI permits, even when
+  inlining is undesirable.
+- Next: publish actual callee clobber masks after lowering, including transitive calls, and retain
+  caller values in proven preserved registers. Lower acyclic callees first; use conservative fixed
+  points or the ordinary ABI inside recursive components.
+- Expansion: measure internal worker conventions with argument/result placement chosen for a call
+  cluster, redundant save/restore removal, and legal sibling/tail calls. Preserve platform unwind
+  requirements and canonical ABI entries for external/indirect/address-taken uses.
+- Stability: invalidate callers when contracts change, avoid allocation oscillation, and do not
+  infer preservation through unknown calls, instrumentation, or patchable targets. Bound the
+  compilation serialization introduced by bottom-up lowering.
+- Elsewhere: [GCC interprocedural register allocation](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#index-fipa-ra)
+  exploits registers known not to be clobbered by callees.
+- Complete when: noninlined third-party helpers permit fewer caller spills under verified contracts,
+  recursive/opaque cases remain sound, and runtime savings justify code-size and scheduling costs.
+- Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.114.
+
+### compiler.optimization.119 — Recompute whole-image liveness after specialization
+
+- Recorded: 2026-10-04 16:08
+- Evidence: `partitionArchiveObjects` already emits one function/read-only allocation per archive
+  member; `PELinker::resolveSymbols` extracts demanded members and folds some identical functions/
+  data. Transformations can create new dead code/data and reveal equivalence before machine emission.
+- Next: define complete artifact roots and recompute reachability after graph-changing passes,
+  before emission and when binding changes the graph. Include entry points, exports, initializers,
+  address uses, callback registrations, interface tables, runtime type information, TLS, and
+  explicitly retained symbols.
+- Expansion: omit unreachable bodies, data, and metadata edges; remove initialization only when
+  its effects permit; recover granularity where unrelated writable globals share an object.
+  Evaluate semantic merging of specialized/generic bodies beyond byte equality while preserving
+  observable function/data addresses and mutable-storage identity.
+- Boundaries: reflection and dynamic lookup contribute roots under their actual contracts.
+  Unknown external behavior stays conservative. Debug provenance must not unnecessarily retain
+  executable code, and unused globals do not imply effect-free initializers.
+- Complete when: specialized third-party features lose their unused implementation/data closure,
+  registered callbacks and reflection survive, initialization order/effects remain correct, and
+  text/data/startup gains are measured against the existing linker.
+- Related: compiler.optimization.108, compiler.optimization.112, compiler.optimization.113.
+
+### compiler.optimization.120 — Collect and consume stable application profiles
+
+- Recorded: 2026-10-04 16:08
+- Evidence: no general profile-feedback pipeline was found in the inspected optimization/linking
+  paths. Call frequency, branch bias, and target/value distributions can distinguish profitable
+  specialization from harmful code growth.
+- Next: implement end-to-end function/call/branch instrumentation with stable logical identities,
+  including imported/inlined origins. Define versioning, merging, saturation, workload weighting,
+  and matching to compiler/configuration/body identity.
+- Expansion: bounded indirect-target and useful value histograms, followed by a separate assessment
+  of sampling import on supported platforms. Attribute counts through cloning/inlining/outlining
+  without double counting or applying old binary addresses to a new layout.
+- Consumption: feed inlining, specialization, devirtualization, loop decisions, and cold paths.
+  Missing/partial/stale profiles fall back predictably with decision records. Profiles guide
+  profitability; they never prove an unobserved branch/target impossible.
+- Complete when: training and held-out workloads show repeatable benefit, collection overhead and
+  storage are measured, profile changes correctly affect variants/caches, and unprofiled or changed
+  dependencies compile correctly.
+- Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.113,
+  compiler.optimization.117.
+
+### compiler.optimization.121 — Optimize final code and data layout with retained structure
+
+- Recorded: 2026-10-04 16:08
+- Evidence: local cold-block placement and loop alignment exist; the integrated linker owns final
+  symbols/relocations. It can retain function/block boundaries and profile edges instead of
+  reconstructing them from an executable.
+- Next: retain layout metadata through object/cache boundaries and reorder functions by weighted
+  call locality with deterministic static fallback. Measure instruction-cache behavior and binary
+  size before expanding to block splitting or data placement.
+- Expansion: global hot/cold separation, constants near consumers, final-size/profile-aware
+  alignment, and eligible branch relaxation/re-encoding once distances are known. Respect
+  displacement limits and identity constraints; allow bounded feedback when final sizes change
+  earlier profitability estimates.
+- Output: update relocations, debug ranges/inline provenance, unwind/exception records, runtime
+  symbol tables, and cached offsets together. Keep target-specific restrictions behind backend
+  interfaces; deterministic placement needs stable global-data identities too.
+- Elsewhere: [BOLT](https://github.com/llvm/llvm-project/blob/main/bolt/README.md) demonstrates
+  profile-guided post-link layout. Its ELF implementation is a design reference, not a drop-in
+  replacement for Swag's PE backend.
+- Complete when: large modular consumers have reproducible valid images and measured locality gains,
+  stack-walking/debug fixtures pass, unprofiled builds retain useful placement, and runtime, size,
+  startup, and build costs are evaluated separately.
+- Related: compiler.optimization.118, compiler.optimization.119, compiler.optimization.120,
+  compiler.core.074.
+
+### compiler.optimization.122 — Partially evaluate dependency code and freeze eligible data
+
+- Recorded: 2026-10-04 16:08
+- Evidence: Swag already has compile-time execution and purity analysis. Imported resolved bodies
+  could extend constant reasoning to ordinary functions with partly static inputs without explicit
+  compile-time annotations at every call.
+- Next: reuse typed-body evaluation for bounded pure computations with known inputs, or residualize
+  partly known computations into smaller runtime bodies. Do not replay module setup or execute
+  arbitrary effectful dependency code while trying an optimization.
+- Expansion: precompute deterministic dispatch/parsing tables, immutable initialization, and
+  schema/format-dependent work when inputs and target behavior are known. Keep data relocatable
+  and shareable; host-process pointers are not target-program addresses.
+- Proof: preserve observable I/O/state, nondeterminism, allocation effects, and failure timing.
+  Respect target integer/FP semantics and configuration. Bound steps, recursion, memory, and output
+  size; exhaustion retains the runtime computation.
+- Complete when: ordinary third-party computations lose proven static work, partial inputs yield
+  bounded reusable residual bodies, host/target differences are respected, and unsupported/effectful/
+  expensive computations reliably remain at runtime.
+- Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.112,
+  compiler.optimization.119.
+
+### compiler.optimization.123 — Generate profitable CPU variants across source modules
+
+- Recorded: 2026-10-04 16:08
+- Evidence: a final application may target a known CPU or a baseline with optional extensions.
+  Source-visible dependency kernels can follow the same target policy as their callers instead of
+  being limited to a separately built library's instruction selection.
+- Next: prove consistent fixed-target propagation through imports/caches/specialized callees,
+  then prototype two measured kernel variants behind one baseline-safe dispatcher. Select kernels
+  by cost/profile evidence instead of cloning whole dependencies.
+- Scope: account for OS-enabled vector state as well as CPU features; isolate unsupported
+  instructions behind the guard; hoist dispatch outside hot loops when stable. Preserve canonical
+  exported/address-taken identity, unwind, and debug behavior.
+- Policy: bound variant count and code growth, key profiles/caches by feature sets, and omit dispatch
+  for fixed-target builds. This is ahead-of-time multiversioning; deploying the compiler's JIT
+  inside applications would require a separate runtime/deployment decision.
+- Complete when: a third-party kernel has a measured faster variant on supporting hardware, the
+  baseline runs on the declared minimum target, dispatch is correctly gated/amortized, and build
+  cost plus artifact growth justify the chosen variants.
+- Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.120.
+
+### compiler.optimization.124 — Evaluate private data representation specialization
+
+- Recorded: 2026-10-04 16:08
+- Evidence: global use/escape facts can expose internal data, but source availability alone does
+  not allow changing Swag layout, reflection, addresses, or serialized representations. This is
+  an exploratory outcome after the shared proof infrastructure.
+- Next: inventory representation-observing operations and select one workload with known producers/
+  consumers. Compare field elimination, hot/cold splitting, compact tags, or array-of-structures
+  to structure-of-arrays conversion; prototype one only after establishing legality and expected value.
+- Proof: account for offsets, size/alignment queries, pointer arithmetic/casts, whole-object copies/
+  comparisons, reflection, serialization, FFI, debug inspection, concurrency, and identity. Preserve
+  observed representation or establish a correct boundary conversion. Do not silently redefine
+  ordinary public/source-observable types.
+- Decision: determine whether current semantics admit useful cases or a narrowly scoped explicit
+  representation-freedom contract is needed. Any language/API change follows its own syntax,
+  documentation, and compatibility workflow; this plan does not preselect one.
+- Complete when: the investigation delivers a legal measured prototype and bounded implementation
+  decision, or establishes why the benefit does not justify the required semantic freedom.
+  Speculative transformations must not become default behavior without that evidence.
+- Related: compiler.optimization.110, compiler.optimization.114, compiler.optimization.115,
+  compiler.optimization.119.
 
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 

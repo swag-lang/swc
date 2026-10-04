@@ -31,7 +31,11 @@ private:
         uint16_t type          = 0;
         uint8_t  storageClass  = 0;
         uint8_t  numAuxSymbols = 0;
+        uint32_t stringOffset  = 0;
     };
+
+    // The string offset occupies the record's former tail padding on the 64-bit host.
+    static_assert(sizeof(CoffSymbolRecord) == sizeof(Utf8) + 16);
 
     struct CoffSectionBuild
     {
@@ -78,7 +82,7 @@ private:
     void          addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
     static void   addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices, CoffSymbolRecord record);
     static void   addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
-    static Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices);
+    static Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices);
 
     NativeBackendBuilder* builder_ = nullptr;
 };

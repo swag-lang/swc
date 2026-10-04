@@ -423,12 +423,12 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
     }
 }
 
-Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices)
+Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices)
 {
     outBytes.clear();
     CoffStringTable stringTable;
-    for (const auto& symbol : symbols)
-        stringTable.add(symbol.name.view());
+    for (auto& symbol : symbols)
+        symbol.stringOffset = stringTable.add(symbol.name.view());
 
     uint32_t fileOffset = sizeof(IMAGE_FILE_HEADER) + static_cast<uint32_t>(sections.size()) * sizeof(IMAGE_SECTION_HEADER);
     fileOffset          = Math::alignUpU32(fileOffset, 4);
@@ -540,7 +540,7 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
         else
         {
             record.N.Name.Short = 0;
-            record.N.Name.Long  = stringTable.offsets.at(symbol.name.view());
+            record.N.Name.Long  = symbol.stringOffset;
         }
 
         record.Value              = symbol.value;

@@ -387,7 +387,7 @@ func exposed(value: s32)->s32 => helper(value)
         }
 
         const fs::path consumer = module / "consumer.swg";
-        SWC_RESULT(CompilerTestFile::writeText(consumer, std::format("using InlineApi\n#test\n{{\n    {}\n}}\n", test.use)));
+        SWC_RESULT(CompilerTestFile::writeText(consumer, std::format("using InlineApi\n#main\n{{\n    {}\n}}\n", test.use)));
         const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
         result.output.clear();
         result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);

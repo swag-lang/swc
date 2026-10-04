@@ -1305,10 +1305,6 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
     if (!resolvedNodeRef.isValid() || !typeRef.isValid())
         return false;
 
-    const TypeInfo& valueType          = codeGen.typeMgr().get(typeRef);
-    const TypeRef   unwrappedValueType = valueType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-    const TypeRef   storageValueType   = unwrappedValueType.isValid() ? unwrappedValueType : typeRef;
-
     for (size_t parentIndex = 0;; ++parentIndex)
     {
         const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
@@ -1337,10 +1333,7 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
         if (!symVar.typeRef().isValid())
             return false;
 
-        const TypeInfo& storageType          = codeGen.typeMgr().get(symVar.typeRef());
-        const TypeRef   unwrappedStorageType = storageType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias);
-        const TypeRef   storageTypeRef       = unwrappedStorageType.isValid() ? unwrappedStorageType : symVar.typeRef();
-        if (storageTypeRef != storageValueType)
+        if (symVar.typeRef() != typeRef && codeGen.typeMgr().unwrapAlias(codeGen.ctx(), symVar.typeRef()) != codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef))
             return false;
 
         if (usesCallerReturnStorage(codeGen, symVar))
@@ -1397,11 +1390,7 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
     const TypeRef returnTypeRef = inlineCtx ? inlineCtx->payload->returnTypeRef : codeGen.function().returnTypeRef();
     if (!returnTypeRef.isValid())
         return false;
-    const TypeInfo& valueType          = codeGen.typeMgr().get(typeRef);
-    const TypeRef   unwrappedValueType = valueType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-    const TypeInfo& returnType         = codeGen.typeMgr().get(returnTypeRef);
-    const TypeRef   unwrappedReturnRef = returnType.unwrap(codeGen.ctx(), returnTypeRef, TypeExpandE::Alias);
-    if ((unwrappedValueType.isValid() ? unwrappedValueType : typeRef) != (unwrappedReturnRef.isValid() ? unwrappedReturnRef : returnTypeRef))
+    if (typeRef != returnTypeRef && codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef) != codeGen.typeMgr().unwrapAlias(codeGen.ctx(), returnTypeRef))
         return false;
 
     AstNodeRef directExprRef = codeGen.viewZero(nodeRef).nodeRef();

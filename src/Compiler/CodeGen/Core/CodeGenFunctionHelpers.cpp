@@ -591,7 +591,10 @@ const SymbolVariable* CodeGenFunctionHelpers::resolveCanonicalParameter(const Sy
     if (symVar.hasParameterIndex() && symVar.parameterIndex() < params.size())
     {
         const SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
-        if (canonicalParam && canonicalParam != &symVar)
+        // The indexed symbol already proves this is the canonical parameter.
+        if (canonicalParam == &symVar)
+            return nullptr;
+        if (canonicalParam)
             return canonicalParam;
     }
 

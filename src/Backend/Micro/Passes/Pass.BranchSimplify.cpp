@@ -5241,7 +5241,7 @@ namespace
         const MicroStorage*                    storage  = nullptr;
         const MicroOperandStorage*             operands = nullptr;
         std::unordered_map<uint64_t, uint32_t> labelReferences;
-        std::unordered_set<uint32_t>           relocated;
+        const std::unordered_set<uint32_t>*    relocated = nullptr;
     };
 
     // Collect up to K_MAX_IF_CONVERT_ARM_INSTR speculatable instructions after
@@ -5256,7 +5256,7 @@ namespace
             const MicroInstrOperand* ops  = inst ? inst->ops(*scan.operands) : nullptr;
             if (!inst || !isSpeculatableArmInstruction(*inst, ops))
                 return true;
-            if (outArm.refs.size() >= K_MAX_IF_CONVERT_ARM_INSTR || scan.relocated.contains(outStopRef.get()))
+            if (outArm.refs.size() >= K_MAX_IF_CONVERT_ARM_INSTR || scan.relocated->contains(outStopRef.get()))
                 return false;
             outArm.refs.push_back(outStopRef);
             outStopRef = scan.storage->findNextInstructionRef(outStopRef);
@@ -5289,7 +5289,7 @@ namespace
         // The jump arm's label is reached from this branch alone, so folding
         // the arm into the straight line strands no other path.
         out.armLabelRef = scan.storage->findNextInstructionRef(out.joinJumpRef);
-        if (!out.armLabelRef.isValid() || scan.relocated.contains(out.armLabelRef.get()))
+        if (!out.armLabelRef.isValid() || scan.relocated->contains(out.armLabelRef.get()))
             return false;
         const MicroInstr* armLabelInst = scan.storage->ptr(out.armLabelRef);
         uint32_t          labelId      = 0;
@@ -5456,7 +5456,7 @@ namespace
             return false;
 
         diamond.flagsRef = scan.storage->findPreviousInstructionRef(diamond.jumpRef);
-        if (!diamond.flagsRef.isValid() || scan.relocated.contains(diamond.flagsRef.get()))
+        if (!diamond.flagsRef.isValid() || scan.relocated->contains(diamond.flagsRef.get()))
             return false;
         const MicroInstr* flagsInst = scan.storage->ptr(diamond.flagsRef);
         if (flagsInst->op != MicroInstrOpcode::CmpRegReg && flagsInst->op != MicroInstrOpcode::CmpRegImm)
@@ -5499,15 +5499,6 @@ namespace
             ++scan.labelReferences[ops[2].valueU64];
         }
 
-        if (context.builder)
-        {
-            for (const MicroRelocation& reloc : context.builder->codeRelocations())
-            {
-                if (reloc.instructionRef.isValid())
-                    scan.relocated.insert(reloc.instructionRef.get());
-            }
-        }
-
         return true;
     }
 
@@ -5518,13 +5509,21 @@ namespace
     // rewritten either.
     struct DiamondScanCache
     {
-        DiamondScan scan;
-        bool        built  = false;
-        bool        usable = false;
+        DiamondScan         scan;
+        RelocationRefCache* relocations = nullptr;
+        bool                built       = false;
+        bool                usable      = false;
+
+        void reset(RelocationRefCache& source)
+        {
+            relocations = &source;
+            built       = false;
+        }
 
         void invalidate()
         {
             built = false;
+            relocations->invalidate();
         }
     };
 
@@ -5533,9 +5532,10 @@ namespace
         if (!cache.built)
         {
             cache.scan.labelReferences.clear();
-            cache.scan.relocated.clear();
             cache.usable = prepareDiamondScan(cache.scan, storage, operands, context);
-            cache.built  = true;
+            if (cache.usable)
+                cache.scan.relocated = &cache.relocations->get(context);
+            cache.built = true;
         }
 
         // Every transform that reads SSA installs its own state; none inherits the
@@ -5572,7 +5572,7 @@ namespace
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
-            if (cmp.op != MicroInstrOpcode::CmpRegReg || scan.relocated.contains(cmpRef.get()))
+            if (cmp.op != MicroInstrOpcode::CmpRegReg || scan.relocated->contains(cmpRef.get()))
                 continue;
             const MicroInstrOperand* cmpOps = cmp.ops(operands);
             if (!cmpOps || (cmpOps[2].opBits != MicroOpBits::B32 && cmpOps[2].opBits != MicroOpBits::B64) ||
@@ -5583,7 +5583,7 @@ namespace
             const MicroInstr*   sourceLoad    = storage.ptr(sourceLoadRef);
             const auto*         sourceLoadOps = sourceLoad ? sourceLoad->ops(operands) : nullptr;
             if (!sourceLoad || sourceLoad->op != MicroInstrOpcode::LoadAmcRegMem || !sourceLoadOps ||
-                scan.relocated.contains(sourceLoadRef.get()) || sourceLoadOps[0].reg != cmpOps[1].reg ||
+                scan.relocated->contains(sourceLoadRef.get()) || sourceLoadOps[0].reg != cmpOps[1].reg ||
                 sourceLoadOps[3].opBits != cmpOps[2].opBits)
                 continue;
 
@@ -5592,7 +5592,7 @@ namespace
             const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
             if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
                 jumpOps[0].cpuCond == MicroCond::Unconditional || !conditionSupportsConditionalMove(jumpOps[0].cpuCond) ||
-                scan.relocated.contains(jumpRef.get()))
+                scan.relocated->contains(jumpRef.get()))
                 continue;
 
             const MicroInstrRef fallthroughRef = storage.findNextInstructionRef(jumpRef);
@@ -5600,14 +5600,14 @@ namespace
             const auto*         fallthroughOps = fallthrough ? fallthrough->ops(operands) : nullptr;
             if (!fallthrough || fallthrough->op != MicroInstrOpcode::LoadRegReg || !fallthroughOps ||
                 fallthroughOps[1].reg != cmpOps[0].reg || fallthroughOps[2].opBits != cmpOps[2].opBits ||
-                scan.relocated.contains(fallthroughRef.get()))
+                scan.relocated->contains(fallthroughRef.get()))
                 continue;
 
             const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(fallthroughRef);
             const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
             const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
             if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
-                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated->contains(joinJumpRef.get()))
                 continue;
 
             uint32_t armLabelId  = 0;
@@ -5622,7 +5622,7 @@ namespace
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
             const MicroInstr*   armLabel     = storage.ptr(armLabelRef);
             uint32_t            foundLabelId = 0;
-            if (!armLabel || scan.relocated.contains(armLabelRef.get()) ||
+            if (!armLabel || scan.relocated->contains(armLabelRef.get()) ||
                 !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
                 continue;
 
@@ -5630,7 +5630,7 @@ namespace
             const MicroInstr*   reload    = storage.ptr(reloadRef);
             const auto*         reloadOps = reload ? reload->ops(operands) : nullptr;
             if (!reload || reload->op != MicroInstrOpcode::LoadAmcRegMem || !reloadOps ||
-                scan.relocated.contains(reloadRef.get()) || reloadOps[0].reg != fallthroughOps[0].reg ||
+                scan.relocated->contains(reloadRef.get()) || reloadOps[0].reg != fallthroughOps[0].reg ||
                 reloadOps[1].reg != sourceLoadOps[1].reg || reloadOps[2].reg != sourceLoadOps[2].reg ||
                 reloadOps[3].opBits != sourceLoadOps[3].opBits || reloadOps[4].opBits != sourceLoadOps[4].opBits ||
                 reloadOps[5].valueU64 != sourceLoadOps[5].valueU64 || reloadOps[6].valueU64 != sourceLoadOps[6].valueU64)
@@ -5697,7 +5697,7 @@ namespace
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
-            if (cmp.op != MicroInstrOpcode::CmpRegReg || scan.relocated.contains(cmpRef.get()))
+            if (cmp.op != MicroInstrOpcode::CmpRegReg || scan.relocated->contains(cmpRef.get()))
                 continue;
             const MicroInstrOperand* cmpOps = cmp.ops(operands);
             if (!cmpOps || (cmpOps[2].opBits != MicroOpBits::B32 && cmpOps[2].opBits != MicroOpBits::B64))
@@ -5713,7 +5713,7 @@ namespace
                 !leftSource || leftSource->op != MicroInstrOpcode::LoadAmcRegMem || !leftSourceOps ||
                 rightSourceOps[0].reg != cmpOps[1].reg || leftSourceOps[0].reg != cmpOps[0].reg ||
                 rightSourceOps[3].opBits != cmpOps[2].opBits || leftSourceOps[3].opBits != cmpOps[2].opBits ||
-                scan.relocated.contains(rightSourceRef.get()) || scan.relocated.contains(leftSourceRef.get()))
+                scan.relocated->contains(rightSourceRef.get()) || scan.relocated->contains(leftSourceRef.get()))
                 continue;
 
             const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
@@ -5721,7 +5721,7 @@ namespace
             const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
             if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
                 jumpOps[0].cpuCond == MicroCond::Unconditional || !conditionSupportsConditionalMove(jumpOps[0].cpuCond) ||
-                scan.relocated.contains(jumpRef.get()))
+                scan.relocated->contains(jumpRef.get()))
                 continue;
 
             const MicroInstrRef forwardCopyRef   = storage.findNextInstructionRef(jumpRef);
@@ -5746,7 +5746,7 @@ namespace
             const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
             const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
             if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
-                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated->contains(joinJumpRef.get()))
                 continue;
 
             uint32_t armLabelId  = 0;
@@ -5896,7 +5896,7 @@ namespace
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
-            if (cmp.op != MicroInstrOpcode::CmpAmcReg || scan.relocated.contains(cmpRef.get()))
+            if (cmp.op != MicroInstrOpcode::CmpAmcReg || scan.relocated->contains(cmpRef.get()))
                 continue;
             const MicroInstrOperand* cmpOps = cmp.ops(operands);
             if (!cmpOps || (cmpOps[4].opBits != MicroOpBits::B8 && cmpOps[4].opBits != MicroOpBits::B16) ||
@@ -5909,28 +5909,28 @@ namespace
             const auto*         rightSourceOps = rightSource ? rightSource->ops(operands) : nullptr;
             if (!rightSource || rightSource->op != MicroInstrOpcode::LoadAmcRegMem || !rightSourceOps ||
                 rightSourceOps[0].reg != cmpOps[2].reg || rightSourceOps[3].opBits != bits ||
-                rightSourceOps[4].opBits != MicroOpBits::B64 || scan.relocated.contains(rightSourceRef.get()))
+                rightSourceOps[4].opBits != MicroOpBits::B64 || scan.relocated->contains(rightSourceRef.get()))
                 continue;
 
             const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
             const MicroInstr*   jump    = storage.ptr(jumpRef);
             const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
             if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
-                jumpOps[0].cpuCond != MicroCond::AboveOrEqual || scan.relocated.contains(jumpRef.get()))
+                jumpOps[0].cpuCond != MicroCond::AboveOrEqual || scan.relocated->contains(jumpRef.get()))
                 continue;
 
             const MicroInstrRef zeroRef = storage.findNextInstructionRef(jumpRef);
             const MicroInstr*   zero    = storage.ptr(zeroRef);
             const auto*         zeroOps = zero ? zero->ops(operands) : nullptr;
             if (!zero || zero->op != MicroInstrOpcode::LoadRegImm || !zeroOps || zeroOps[2].valueU64 != 0 ||
-                !zeroOps[0].reg.isVirtualInt() || scan.relocated.contains(zeroRef.get()))
+                !zeroOps[0].reg.isVirtualInt() || scan.relocated->contains(zeroRef.get()))
                 continue;
 
             const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(zeroRef);
             const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
             const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
             if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
-                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated->contains(joinJumpRef.get()))
                 continue;
 
             uint32_t armLabelId  = 0;
@@ -5945,7 +5945,7 @@ namespace
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
             const MicroInstr*   armLabel     = storage.ptr(armLabelRef);
             uint32_t            foundLabelId = 0;
-            if (!armLabel || scan.relocated.contains(armLabelRef.get()) ||
+            if (!armLabel || scan.relocated->contains(armLabelRef.get()) ||
                 !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
                 continue;
 
@@ -6063,7 +6063,7 @@ namespace
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
-            if (cmp.op != MicroInstrOpcode::CmpRegReg || scan.relocated.contains(cmpRef.get()))
+            if (cmp.op != MicroInstrOpcode::CmpRegReg || scan.relocated->contains(cmpRef.get()))
                 continue;
             const MicroInstrOperand* cmpOps = cmp.ops(operands);
             if (!cmpOps || (cmpOps[2].opBits != MicroOpBits::B8 && cmpOps[2].opBits != MicroOpBits::B16))
@@ -6081,14 +6081,14 @@ namespace
                 rightSourceOps[0].reg != cmpOps[1].reg || leftSourceOps[0].reg != cmpOps[0].reg ||
                 rightSourceOps[3].opBits != bits || leftSourceOps[3].opBits != bits ||
                 rightSourceOps[4].opBits != MicroOpBits::B64 || leftSourceOps[4].opBits != MicroOpBits::B64 ||
-                scan.relocated.contains(rightSourceRef.get()) || scan.relocated.contains(leftSourceRef.get()))
+                scan.relocated->contains(rightSourceRef.get()) || scan.relocated->contains(leftSourceRef.get()))
                 continue;
 
             const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
             const MicroInstr*   jump    = storage.ptr(jumpRef);
             const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
             if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
-                jumpOps[0].cpuCond != MicroCond::AboveOrEqual || scan.relocated.contains(jumpRef.get()))
+                jumpOps[0].cpuCond != MicroCond::AboveOrEqual || scan.relocated->contains(jumpRef.get()))
                 continue;
 
             const MicroInstrRef forwardCopyRef   = storage.findNextInstructionRef(jumpRef);
@@ -6117,7 +6117,7 @@ namespace
             const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
             const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
             if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
-                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated->contains(joinJumpRef.get()))
                 continue;
 
             uint32_t armLabelId  = 0;
@@ -6132,7 +6132,7 @@ namespace
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
             const MicroInstr*   armLabel     = storage.ptr(armLabelRef);
             uint32_t            foundLabelId = 0;
-            if (!armLabel || scan.relocated.contains(armLabelRef.get()) ||
+            if (!armLabel || scan.relocated->contains(armLabelRef.get()) ||
                 !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
                 continue;
 
@@ -6277,7 +6277,7 @@ namespace
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
-            if (cmp.op != MicroInstrOpcode::CmpAmcImm || scan.relocated.contains(cmpRef.get()))
+            if (cmp.op != MicroInstrOpcode::CmpAmcImm || scan.relocated->contains(cmpRef.get()))
                 continue;
             const MicroInstrOperand* cmpOps = cmp.ops(operands);
             if (!cmpOps)
@@ -6288,23 +6288,23 @@ namespace
             const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
             if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
                 jumpOps[0].cpuCond == MicroCond::Unconditional || !conditionSupportsConditionalMove(jumpOps[0].cpuCond) ||
-                scan.relocated.contains(jumpRef.get()))
+                scan.relocated->contains(jumpRef.get()))
                 continue;
 
             const MicroInstrRef fallthroughRef  = storage.findNextInstructionRef(jumpRef);
             const MicroInstr*   fallthrough     = storage.ptr(fallthroughRef);
             const auto*         fallthroughOps  = fallthrough ? fallthrough->ops(operands) : nullptr;
             const bool          hasFallbackCopy = fallthrough && fallthrough->op == MicroInstrOpcode::LoadRegReg &&
-                                         fallthroughOps && !scan.relocated.contains(fallthroughRef.get());
+                                         fallthroughOps && !scan.relocated->contains(fallthroughRef.get());
             const bool hasFallbackImmediate = fallthrough && fallthrough->op == MicroInstrOpcode::LoadRegImm &&
-                                              fallthroughOps && !scan.relocated.contains(fallthroughRef.get());
+                                              fallthroughOps && !scan.relocated->contains(fallthroughRef.get());
             if (!hasFallbackCopy && !hasFallbackImmediate)
                 continue;
             const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(fallthroughRef);
             const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
             const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
             if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
-                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated->contains(joinJumpRef.get()))
                 continue;
 
             uint32_t armLabelId  = 0;
@@ -6319,14 +6319,14 @@ namespace
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
             const MicroInstr*   armLabel     = storage.ptr(armLabelRef);
             uint32_t            foundLabelId = 0;
-            if (!armLabel || scan.relocated.contains(armLabelRef.get()) ||
+            if (!armLabel || scan.relocated->contains(armLabelRef.get()) ||
                 !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
                 continue;
 
             const MicroInstrRef loadRef = storage.findNextInstructionRef(armLabelRef);
             const MicroInstr*   load    = storage.ptr(loadRef);
             const auto*         loadOps = load ? load->ops(operands) : nullptr;
-            if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || !loadOps || scan.relocated.contains(loadRef.get()) ||
+            if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || !loadOps || scan.relocated->contains(loadRef.get()) ||
                 loadOps[1].reg != cmpOps[0].reg || loadOps[2].reg != cmpOps[1].reg ||
                 loadOps[3].opBits != cmpOps[2].opBits || loadOps[4].opBits != cmpOps[3].opBits ||
                 loadOps[5].valueU64 != cmpOps[4].valueU64 || loadOps[6].valueU64 != cmpOps[5].valueU64)
@@ -6401,7 +6401,7 @@ namespace
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;
-            if (jumpInst.op != MicroInstrOpcode::JumpCond || scan.relocated.contains(it.current.get()))
+            if (jumpInst.op != MicroInstrOpcode::JumpCond || scan.relocated->contains(it.current.get()))
                 continue;
             const MicroInstrOperand* jumpOps = jumpInst.ops(operands);
             if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
@@ -6409,19 +6409,19 @@ namespace
 
             const MicroInstrRef flagsRef = storage.findPreviousInstructionRef(it.current);
             const MicroInstr*   flags    = flagsRef.isValid() ? storage.ptr(flagsRef) : nullptr;
-            if (!flags || scan.relocated.contains(flagsRef.get()) || !MicroPassHelpers::instructionActuallyDefinesCpuFlags(*flags, flags->ops(operands)))
+            if (!flags || scan.relocated->contains(flagsRef.get()) || !MicroPassHelpers::instructionActuallyDefinesCpuFlags(*flags, flags->ops(operands)))
                 continue;
 
             const MicroInstrRef firstLoadRef = storage.findNextInstructionRef(it.current);
             const MicroInstr*   firstLoad    = storage.ptr(firstLoadRef);
-            if (!firstLoad || (firstLoad->op != MicroInstrOpcode::LoadRegMem && firstLoad->op != MicroInstrOpcode::LoadAmcRegMem) || scan.relocated.contains(firstLoadRef.get()))
+            if (!firstLoad || (firstLoad->op != MicroInstrOpcode::LoadRegMem && firstLoad->op != MicroInstrOpcode::LoadAmcRegMem) || scan.relocated->contains(firstLoadRef.get()))
                 continue;
             const MicroInstrOperand* firstOps = firstLoad->ops(operands);
 
             const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(firstLoadRef);
             const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
             const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
-            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated->contains(joinJumpRef.get()))
                 continue;
 
             uint32_t armLabelId  = 0;
@@ -6435,12 +6435,12 @@ namespace
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
             const MicroInstr*   armLabel     = storage.ptr(armLabelRef);
             uint32_t            foundLabelId = 0;
-            if (!armLabel || scan.relocated.contains(armLabelRef.get()) || !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
+            if (!armLabel || scan.relocated->contains(armLabelRef.get()) || !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
                 continue;
 
             const MicroInstrRef secondLoadRef = storage.findNextInstructionRef(armLabelRef);
             const MicroInstr*   secondLoad    = storage.ptr(secondLoadRef);
-            if (!secondLoad || secondLoad->op != firstLoad->op || scan.relocated.contains(secondLoadRef.get()))
+            if (!secondLoad || secondLoad->op != firstLoad->op || scan.relocated->contains(secondLoadRef.get()))
                 continue;
             const MicroInstrOperand* secondOps = secondLoad->ops(operands);
 
@@ -6601,8 +6601,8 @@ namespace
             const MicroInstrRef firstJumpRef     = storage.findPreviousInstructionRef(secondCompareRef);
             const MicroInstrRef firstCompareRef  = storage.findPreviousInstructionRef(firstJumpRef);
             if (!secondCompareRef.isValid() || !firstJumpRef.isValid() || !firstCompareRef.isValid() ||
-                scan.relocated.contains(secondCompareRef.get()) || scan.relocated.contains(firstJumpRef.get()) ||
-                scan.relocated.contains(firstCompareRef.get()))
+                scan.relocated->contains(secondCompareRef.get()) || scan.relocated->contains(firstJumpRef.get()) ||
+                scan.relocated->contains(firstCompareRef.get()))
                 continue;
 
             const MicroInstr*        secondCompareInst = storage.ptr(secondCompareRef);
@@ -6837,7 +6837,7 @@ namespace
             return false;
 
         triangle.flagsRef = scan.storage->findPreviousInstructionRef(triangle.jumpRef);
-        if (!triangle.flagsRef.isValid() || scan.relocated.contains(triangle.flagsRef.get()))
+        if (!triangle.flagsRef.isValid() || scan.relocated->contains(triangle.flagsRef.get()))
             return false;
         const MicroInstr* flagsInst = scan.storage->ptr(triangle.flagsRef);
         if (flagsInst->op != MicroInstrOpcode::CmpRegReg && flagsInst->op != MicroInstrOpcode::CmpRegImm)
@@ -6989,7 +6989,7 @@ namespace
         bool definedFlagsSoFar = false;
         for (MicroInstrRef cur = scan.storage->findNextInstructionRef(fromRef); cur.isValid(); cur = scan.storage->findNextInstructionRef(cur))
         {
-            if (scan.relocated.contains(cur.get()))
+            if (scan.relocated->contains(cur.get()))
                 return false;
 
             const MicroInstr*        inst = scan.storage->ptr(cur);
@@ -7061,7 +7061,7 @@ namespace
         // The rest starts at the jump's label, right after the early return,
         // and nothing else lands there.
         out.labelRef = scan.storage->findNextInstructionRef(out.arm.retRef);
-        if (!out.labelRef.isValid() || scan.relocated.contains(out.labelRef.get()))
+        if (!out.labelRef.isValid() || scan.relocated->contains(out.labelRef.get()))
             return false;
         const MicroInstr* labelInst    = scan.storage->ptr(out.labelRef);
         uint32_t          foundLabelId = 0;
@@ -7104,7 +7104,7 @@ namespace
             return false;
 
         out.flagsRef = scan.storage->findPreviousInstructionRef(jumpRef);
-        if (!out.flagsRef.isValid() || scan.relocated.contains(out.flagsRef.get()))
+        if (!out.flagsRef.isValid() || scan.relocated->contains(out.flagsRef.get()))
             return false;
         const MicroInstr* flagsInst = scan.storage->ptr(out.flagsRef);
         if (flagsInst->op != MicroInstrOpcode::CmpRegReg && flagsInst->op != MicroInstrOpcode::CmpRegImm)
@@ -7625,7 +7625,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     }
 
     thread_local DiamondScanCache diamondCache;
-    diamondCache.invalidate();
+    // Earlier transforms may already have indexed this unchanged relocation list.
+    diamondCache.reset(relocationCache);
     if (convertComparedLoadDiamond(storage, operands, context, diamondCache))
     {
         changed = true;

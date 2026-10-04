@@ -1274,6 +1274,11 @@ body {
         --swag-header-height: 58px;
     }
 
+    /* Wrapped navigation has no fixed height and must not cover anchor targets. */
+    .site-header {
+        position: static;
+    }
+
     .site-nav {
         flex-wrap: wrap;
         gap: 8px;

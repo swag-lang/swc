@@ -2,6 +2,9 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/SourceFile.h"
 #include "Doc/DocApi.h"
 #include "Doc/DocGenerator.h"
 #include "Doc/DocMarkdown.h"
@@ -347,6 +350,130 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocRuntimeExcludesPrivateDeclarations)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocSourceLinksUseDeclarationLines)
+{
+    // The final declaration has no trailing newline: adding one to an already
+    // one-based source line would link beyond the end of this file.
+    static constexpr std::string_view SOURCE     = "#global public\nfunc first() {}\n\nfunc last() {}";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "DocSourceLinksUseDeclarationLines");
+    ScopedDocTestDirectory            directory("source-lines");
+    if (!directory.ready())
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command      = CommandKind::Doc;
+    cmdLine.name         = "compiler_doc_lines_test";
+    cmdLine.docOutputDir = directory.root();
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    compiler.buildCfg().repoPath    = runtimeString("https://example.invalid/source");
+    Runtime::BuildCfgGenDoc& genDoc = compiler.buildCfg().genDoc;
+    genDoc.kind                     = Runtime::BuildCfgDocKind::Api;
+    genDoc.outputName               = runtimeString("source-lines");
+
+    TaskContext                  compilerCtx(compiler);
+    DocGenerator::GenerateResult generated;
+    const DocGenerator           generator(compilerCtx);
+    SWC_RESULT(generator.generate(generated));
+
+    std::string             content;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::readTextFile(directory.root() / "source-lines.html", content, ioError));
+    const std::string sourceUrl = std::format("https://example.invalid/source/{}#L", sourcePath.filename().generic_string());
+    if (!content.contains(std::format("href=\"{}2\"", sourceUrl)) || !content.contains(std::format("href=\"{}4\"", sourceUrl)))
+        return Result::Error;
+    if (content.contains(std::format("href=\"{}3\"", sourceUrl)) || content.contains(std::format("href=\"{}5\"", sourceUrl)))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocGeneratedSourceLinksUsePhysicalOrigins)
+{
+    ScopedDocTestDirectory directory("generated-source-links");
+    if (!directory.ready())
+        return Result::Error;
+
+    static constexpr std::string_view SOURCE        = "#global public\nfunc ordinary() {}\n";
+    const fs::path                    sourcePath    = directory.root() / "source.swg";
+    const fs::path                    unlocatedPath = directory.root() / "unlocated.swgsrc";
+    const fs::path                    locatedPath   = directory.root() / "located.swgsrc";
+    FileSystem::IoErrorInfo           ioError;
+    SWC_RESULT(FileSystem::writeBinaryFile(sourcePath, SOURCE.data(), SOURCE.size(), ioError));
+
+    CommandLine cmdLine;
+    cmdLine.command      = CommandKind::Doc;
+    cmdLine.name         = "compiler_doc_origins_test";
+    cmdLine.docOutputDir = directory.root();
+    cmdLine.files.insert(sourcePath);
+    cmdLine.files.insert(unlocatedPath);
+    cmdLine.files.insert(locatedPath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, unlocatedPath, "#global public\nfunc unlocated() {}\n");
+    Unittest::registerTestSource(compiler, locatedPath, "#global public\nfunc located() {}\n");
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    SourceCodeRef origin;
+    SourceView*   locatedView = nullptr;
+    for (const SourceFile* file : compiler.files())
+    {
+        if (file->path() == sourcePath)
+        {
+            const SourceView& view = file->ast().srcView();
+            for (uint32_t index = 0; index < view.numTokens(); ++index)
+            {
+                const TokenRef token(index);
+                if (view.tokenString(token) == "ordinary")
+                    origin = {.srcViewRef = view.ref(), .tokRef = token};
+            }
+        }
+        if (file->path() == unlocatedPath || file->path() == locatedPath)
+        {
+            // Model the two provenance states produced by compileString and #ast.
+            compiler.file(file->ref()).addFlag(FileFlagsE::CustomSrc);
+            if (file->path() == locatedPath)
+                locatedView = &compiler.srcView(file->ast().srcView().ref());
+        }
+    }
+    if (!origin.isValid() || !locatedView)
+        return Result::Error;
+    locatedView->setDebugSourceCodeRef(origin);
+
+    compiler.buildCfg().repoPath    = runtimeString("https://example.invalid/source");
+    Runtime::BuildCfgGenDoc& genDoc = compiler.buildCfg().genDoc;
+    genDoc.kind                     = Runtime::BuildCfgDocKind::Api;
+    genDoc.outputName               = runtimeString("generated-source-links");
+    TaskContext                  compilerCtx(compiler);
+    DocGenerator::GenerateResult generated;
+    const DocGenerator           generator(compilerCtx);
+    SWC_RESULT(generator.generate(generated));
+
+    std::string content;
+    SWC_RESULT(FileSystem::readTextFile(directory.root() / "generated-source-links.html", content, ioError));
+    for (const std::string_view name : {"ordinary", "located", "unlocated"})
+    {
+        if (!content.contains(std::format("id=\"Compiler_doc_origins_test_{}\"", name)))
+            return Result::Error;
+    }
+    if (content.contains(".swgsrc#L"))
+        return Result::Error;
+    if (countOccurrences(content, "href=\"https://example.invalid/source/source.swg#L2\"") != 2)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocGeneratesPublicApiAndHonorsNoDoc)
 {
     // The first declaration deliberately omits the blank comment line so this test
@@ -395,6 +522,25 @@ impl Counter
     {
         .value += 1
     }
+}
+
+#[Swag.NoDoc]
+struct HiddenOwner {}
+
+impl HiddenOwner
+{
+    mtd hiddenOwnerMethod() {}
+}
+
+#[Swag.NoDoc]
+enum HiddenMode
+{
+    Value
+}
+
+impl HiddenMode
+{
+    mtd hiddenEnumMethod() {}
 }
 
 // A value whose state can be reset.
@@ -594,6 +740,10 @@ func hidden(value: s32)->s32
     if (documentedSummary == std::string::npos || documentedRowEnd == std::string::npos || documentedDetail == std::string::npos || documentedDetail < documentedRowEnd)
         return Result::Error;
     if (!content.contains("id=\"Compiler_doc_test_DocApi_Counter_increment\"") || !content.contains("Increase the counter by one."))
+        return Result::Error;
+    if (content.contains("HiddenOwner") || content.contains("hiddenOwnerMethod") || content.contains("HiddenMode") || content.contains("hiddenEnumMethod"))
+        return Result::Error;
+    if (runtimeContent.contains("ErrorCapture") || !runtimeContent.contains("id=\"Swag_Error_capture\""))
         return Result::Error;
     if (!content.contains("id=\"Compiler_doc_test_DocApi_Resettable_reset\"") || !content.contains("Reset the value to zero."))
         return Result::Error;

@@ -37,9 +37,9 @@ const AllocatorBlockCacheMaxCount = 64'u64
 // Header-path blocks above this size are rounded to eight sizes per power of two.
 const AllocatorLargeRoundMin = 64'u64 * 1024
 
-// Idle pages and cached large blocks that stay unused this long go back to the system at the next
-// slow path of their allocator. Nothing runs in the background: a program that stops allocating
-// keeps them until it allocates again, trims, or exits.
+// Idle pages and cached large blocks that stay unused this long go back to the system at a
+// periodic purge check reached by an allocator slow path. Nothing runs in the background: a
+// program that stops allocating keeps them until it allocates again, trims, or exits.
 const AllocatorPurgeDelayMs = 500'u64
 private var g_AllocatorPurgeDelayTicks: u64
 
@@ -844,8 +844,8 @@ impl Allocator
 
     // Gives idle pages back once idle memory has existed for the purge delay, and cached large
     // blocks freed longer ago than that delay.
-    // The first slow path that sees idle memory arms the deadline; the first one past it purges.
-    // Costs one clock read per slow path while idle memory exists, and nothing otherwise.
+    // The first check that sees idle memory arms the deadline; the first one past it purges.
+    // Costs one clock read per check while idle memory exists, and nothing otherwise.
     mtd maybePurge()
     {
         var delay = atomicGet(&g_AllocatorPurgeDelayTicks)
@@ -967,7 +967,7 @@ impl Allocator
         return .acquireBlockSlow(heap, classIndex)
     }
 
-    // Decommits a page whose last block just came back. The page the fast path is serving from is
+    // Returns an empty page to its segment. The page the fast path is serving from is
     // kept, so an allocate/free pair on a single block never touches the operating system.
     mtd retirePage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
     {
@@ -1422,8 +1422,9 @@ impl Allocator
 
     // The common free: a page block, which goes back on the page's own list when the calling
     // thread owns the page and on its remote list otherwise. Returns false, having changed
-    // nothing, for anything else - a header-path block, a null or bogus address, an apparent
-    // double free, a page without an owner - and the general path then handles or diagnoses it.
+    // nothing, for a header-path block, a null address, or a page without an owner. Under memory
+    // safety, a bogus block address or an apparent double free also returns false. The general
+    // path then handles or diagnoses the rejected request.
     #[Swag.Inline]
     mtd freeFast(address: u64)->bool
     {

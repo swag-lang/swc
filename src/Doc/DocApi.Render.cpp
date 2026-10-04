@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Doc/DocApi.h"
+#include "Backend/Encoder/EncoderDebugInfo.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -263,9 +264,10 @@ namespace
         }
     }
 
-    Utf8 sourceLink(const CompilerInstance& compiler, const SourcePaths& sourcePaths, const DocOverload& overload, const bool runtime)
+    Utf8 sourceLink(const TaskContext& ctx, const SourcePaths& sourcePaths, const DocOverload& overload, const bool runtime)
     {
-        Utf8 repoPath = compiler.buildCfg().repoPath;
+        const CompilerInstance& compiler = ctx.compiler();
+        Utf8                    repoPath = compiler.buildCfg().repoPath;
         if (runtime)
             repoPath = "https://github.com/swag-lang/swc/blob/master/bin/runtime";
         if (repoPath.empty() || !overload.file)
@@ -274,11 +276,28 @@ namespace
         const auto pathIt = sourcePaths.find(overload.file);
         SWC_ASSERT(pathIt != sourcePaths.end());
 
+        Utf8     sourcePath = pathIt->second;
+        uint32_t sourceLine = overload.sourceLine;
+        if (overload.file->hasFlag(FileFlagsE::CustomSrc))
+        {
+            // Generated dumps are local diagnostic artifacts, never repository sources.
+            // Keep a source link only when the recorded origin reaches a physical file.
+            ResolvedDebugSourceInfo origin;
+            if (!overload.symbol || !tryResolveDebugSourceInfo(ctx, origin, {.sourceCodeRef = overload.symbol->codeRef()}))
+                return {};
+            const SourceFile* sourceFile = origin.codeRange.srcView ? origin.codeRange.srcView->file() : nullptr;
+            std::error_code   ec;
+            if (!sourceFile || sourceFile->hasFlag(FileFlagsE::CustomSrc) || !fs::is_regular_file(sourceFile->path(), ec))
+                return {};
+            sourcePath = buildSourcePath(compiler, *sourceFile, runtime);
+            sourceLine = origin.codeRange.line;
+        }
+
         Utf8 result = repoPath;
         if (!result.empty() && result.back() != '/')
             result += "/";
-        result += pathIt->second;
-        result.append(std::format("#L{}", overload.sourceLine));
+        result += sourcePath;
+        result.append(std::format("#L{}", sourceLine));
         return result;
     }
 
@@ -661,7 +680,7 @@ namespace
         // A namespace can be reopened by any number of source files. Its merged symbol does not
         // have one meaningful declaration site, and parallel sema completion can leave any of
         // those declarations on the symbol. Do not publish an arbitrary, unstable source link.
-        const Utf8 link   = item.kind == DocItemKind::Namespace ? Utf8{} : sourceLink(renderCtx.ctx->compiler(), sourcePaths, first, runtime);
+        const Utf8 link   = item.kind == DocItemKind::Namespace ? Utf8{} : sourceLink(*renderCtx.ctx, sourcePaths, first, runtime);
         const Utf8 anchor = DocMarkdown::makeAnchor(item.fullName);
 
         content += "<section class=\"api-symbol\">\n";

@@ -37,6 +37,8 @@ Utf8 DocApi::displayNameFor(const std::string_view fullName, const DocItemKind k
 
 namespace
 {
+    const Symbol* documentationOwner(const Symbol& symbol);
+
     int itemSortOrder(const DocItemKind kind)
     {
         return static_cast<int>(kind);
@@ -69,6 +71,11 @@ bool DocApi::hasNoDocAttribute(const Symbol& symbol)
     {
         if (const AttributeList* attrs = scan->attributesIfAny(); attrs && attrs->hasRtFlag(RtAttributeFlagsE::NoDoc))
             return true;
+        // A separate impl has its own lexical scope; its methods still belong to
+        // the documented type. Keep checking the lexical chain for scoped NoDoc too.
+        const Symbol* owner = documentationOwner(*scan);
+        if (owner && owner != scan->ownerSymMap() && hasNoDocAttribute(*owner))
+            return true;
         scan = scan->ownerSymMap();
     }
     return false;
@@ -76,8 +83,6 @@ bool DocApi::hasNoDocAttribute(const Symbol& symbol)
 
 namespace
 {
-    const Symbol* documentationOwner(const Symbol& symbol);
-
     bool hasPrivateDocumentationOwner(const Symbol& symbol)
     {
         for (const Symbol* scope = &symbol; scope;)
@@ -1015,7 +1020,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         candidate.overload.file         = file;
         candidate.overload.signature    = buildDisplaySignature(workerCtx, *file, declRef, rootRef);
         candidate.overload.commentLines = symbolCommentLines(workerCtx, *symbol, *file, declRef, rootRef);
-        candidate.overload.sourceLine   = symbol->codeRange(workerCtx).line + 1;
+        candidate.overload.sourceLine   = symbol->codeRange(workerCtx).line;
         collectGenericNames(workerCtx, *symbol, candidate.overload.genericNames);
         candidate.valid = true;
     });

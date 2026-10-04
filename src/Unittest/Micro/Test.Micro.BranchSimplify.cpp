@@ -623,6 +623,98 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExit)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(BranchSimplify_ThreadsConstantIncomingEdges)
+{
+    for (const uint64_t highBits : {0ull, 0x100ull})
+    {
+        const MicroReg input  = MicroReg::virtualIntReg(10);
+        const MicroReg output = MicroReg::virtualIntReg(11);
+        const MicroReg value  = MicroReg::virtualIntReg(12);
+        const MicroReg copied = MicroReg::virtualIntReg(13);
+        MicroBuilder   builder(ctx);
+        const auto     other = builder.createLabel();
+        const auto     join  = builder.createLabel();
+        const auto     zero  = builder.createLabel();
+
+        builder.emitCmpRegImm(input, ApInt(7, 64), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, other);
+        builder.emitLoadMemImm(output, 0, ApInt(10, 64), MicroOpBits::B32);
+        builder.emitLoadRegImm(copied, ApInt(highBits | 1, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(value, copied, MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(other);
+        builder.emitLoadMemImm(output, 0, ApInt(20, 64), MicroOpBits::B32);
+        builder.emitLoadRegImm(value, ApInt(highBits, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(join);
+        builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, zero);
+        builder.emitLoadMemReg(output, 4, value, MicroOpBits::B8);
+        builder.emitRet();
+        builder.placeLabel(zero);
+        builder.emitLoadMemReg(output, 8, value, MicroOpBits::B8);
+        builder.emitRet();
+
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        if (countConditionalJumps(builder) != 1 || anyJumpTargetsLabel(builder, join))
+            return Result::Error;
+        // The merge value remains live after the branch, and all stores must survive.
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 2 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 2)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(BranchSimplify_ConstantEdgeKeepsEffectsAndLiveFlags)
+{
+    for (uint32_t mode = 0; mode < 4; ++mode)
+    {
+        const MicroReg input  = MicroReg::virtualIntReg(10);
+        const MicroReg output = MicroReg::virtualIntReg(11);
+        const MicroReg value  = MicroReg::virtualIntReg(12);
+        const MicroReg flags  = MicroReg::virtualIntReg(13);
+        MicroBuilder   builder(ctx);
+        const auto     other = builder.createLabel();
+        const auto     join  = builder.createLabel();
+        const auto     zero  = builder.createLabel();
+
+        builder.emitCmpRegImm(input, ApInt(7, 64), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, other);
+        builder.emitLoadMemImm(output, 0, ApInt(10, 64), MicroOpBits::B32);
+        builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(other);
+        builder.emitLoadMemImm(output, 0, ApInt(20, 64), MicroOpBits::B32);
+        builder.emitLoadRegReg(value, input, MicroOpBits::B64);
+        builder.placeLabel(join);
+        if (mode == 0)
+            builder.emitLoadMemImm(output, 12, ApInt(30, 64), MicroOpBits::B32);
+        builder.emitCmpRegImm(value, ApInt(0, 64), mode == 3 ? MicroOpBits::B64 : MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, zero);
+        if (mode == 1)
+        {
+            builder.emitSetCondReg(flags, MicroCond::Below);
+            builder.emitLoadMemReg(output, 4, flags, MicroOpBits::B8);
+        }
+        builder.emitRet();
+        builder.placeLabel(zero);
+        if (mode == 2)
+        {
+            builder.emitSetCondReg(flags, MicroCond::Below);
+            builder.emitLoadMemReg(output, 8, flags, MicroOpBits::B8);
+        }
+        builder.emitRet();
+
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        if (!anyJumpTargetsLabel(builder, join))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(BranchSimplify_ThreadsInlinedBooleanReturnToSoleBranch)
 {
     for (uint32_t mode = 0; mode < 4; ++mode)

@@ -972,7 +972,7 @@ namespace
         return changed;
     }
 
-    bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const ProgramLayout& layout)
+    bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const ProgramLayout& layout, MicroBuilder* builder)
     {
         const KnownValueContext context{&ssaState, &storage, &operands};
 
@@ -1033,7 +1033,88 @@ namespace
                 currentFlagDef = MicroInstrRef::invalid();
         }
 
-        return changed;
+        if (changed || !builder || !layout.hasImmediateCompare)
+            return changed;
+
+        // A join can merge different constants even though each incoming edge decides
+        // its test. Keep the assignments and bypass only the compare and branch:
+        //     value = 1; jump JOIN; ...; JOIN: compare value, 0; je ELSE
+        // The SSA value at the incoming jump, rather than at JOIN, proves this edge.
+        SmallVector<std::pair<MicroInstrRef, uint32_t>, 4> edges;
+        SmallVector<std::pair<MicroInstrRef, uint32_t>, 4> fallThroughLabels;
+        for (const MicroInstrRef edgeRef : layout.order)
+        {
+            const MicroInstr* edge = storage.ptr(edgeRef);
+            if (!edge || edge->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* edgeOps = edge->ops(operands);
+            if (!edgeOps || edgeOps[0].cpuCond != MicroCond::Unconditional)
+                continue;
+            uint32_t joinId = 0;
+            if (!tryGetJumpTargetLabelId(joinId, *edge, edgeOps))
+                continue;
+            const auto join = layout.labelOrdinalById.find(joinId);
+            if (join == layout.labelOrdinalById.end())
+                continue;
+            size_t ordinal = join->second + 1;
+            while (ordinal < layout.order.size() && storage.ptr(layout.order[ordinal])->op == MicroInstrOpcode::Label)
+                ++ordinal;
+            if (ordinal + 2 >= layout.order.size())
+                continue;
+            const MicroInstr* compare = storage.ptr(layout.order[ordinal]);
+            const MicroInstr* branch  = storage.ptr(layout.order[ordinal + 1]);
+            if (!compare || compare->op != MicroInstrOpcode::CmpRegImm || !branch || branch->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* compared = compare->ops(operands);
+            const auto* branched = branch->ops(operands);
+            if (!compared || !branched || !compared[0].reg.isVirtualInt() || compared[2].hasWideImmediateValue())
+                continue;
+            KnownValue value;
+            bool       taken = false;
+            if (!tryGetKnownReachingValue(value, context, knownValues, knownFlags, compared[0].reg, edgeRef) ||
+                !isKnownAtLeast(value, compared[1].opBits) ||
+                !tryEvaluateCompareCondition(taken, value.value, compared[2].valueU64, compared[1].opBits, branched[0].cpuCond) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, layout.order[ordinal + 1]))
+                continue;
+
+            uint32_t targetId = 0;
+            if (taken)
+            {
+                if (!tryGetJumpTargetLabelId(targetId, *branch, branched) || targetId == joinId)
+                    continue;
+            }
+            else
+            {
+                const MicroInstrRef nextRef = layout.order[ordinal + 2];
+                const MicroInstr*   next    = storage.ptr(nextRef);
+                if (!tryGetLabelId(targetId, *next, next->ops(operands)))
+                {
+                    for (const auto& [ref, id] : fallThroughLabels)
+                    {
+                        if (ref == nextRef)
+                            targetId = id;
+                    }
+                    if (!targetId)
+                    {
+                        targetId = builder->createLabel().get();
+                        fallThroughLabels.push_back({nextRef, targetId});
+                    }
+                }
+            }
+            edges.push_back({edgeRef, targetId});
+        }
+
+        // Analyze the unchanged CFG first; every bypass leaves the original value and
+        // effects intact, and the existing DCE pass can remove newly unused assignments.
+        for (const auto& [ref, id] : fallThroughLabels)
+        {
+            MicroInstrOperand labelOps[1];
+            labelOps[0].valueU64 = id;
+            storage.insertDerivedBefore(operands, ref, MicroInstrOpcode::Label, labelOps);
+        }
+        for (const auto& [ref, id] : edges)
+            storage.ptr(ref)->ops(operands)[2].valueU64 = id;
+        return !edges.empty();
     }
 
     // A boolean materialized from a decided comparison is that constant:
@@ -7444,7 +7525,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     };
 
     if (ssaState && ssaState->isValid())
-        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout));
+        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout, context.builder));
     // The SSA snapshot describes the code before any fold above.
     // Implied branch facts come only from immediate compares. Avoid building
     // its label maps for a branchy function without one.

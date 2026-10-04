@@ -199,11 +199,9 @@ namespace
 
         TaskContext&    ctx              = codeGen.ctx();
         const TypeInfo& targetType       = ctx.typeMgr().get(targetTypeRef);
-        TypeRef         storageTypeRef   = targetTypeRef;
-        const TypeRef   unaliasedTypeRef = targetType.unwrap(ctx, targetTypeRef, TypeExpandE::Alias);
-        if (unaliasedTypeRef.isValid())
-            storageTypeRef = unaliasedTypeRef;
-        const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
+        const TypeRef   unaliasedTypeRef = targetType.isAlias() ? targetType.unwrap(ctx, targetTypeRef, TypeExpandE::Alias) : TypeRef::invalid();
+        const TypeRef   storageTypeRef   = unaliasedTypeRef.isValid() ? unaliasedTypeRef : targetTypeRef;
+        const TypeInfo& storageType      = unaliasedTypeRef.isValid() ? ctx.typeMgr().get(unaliasedTypeRef) : targetType;
 
         const ConstantValue& defaultCst = codeGen.cstMgr().get(defaultCstRef);
         if (prefersAddressBackedCallConstantPayload(storageType))
@@ -251,7 +249,7 @@ namespace
 
         if (defaultCst.typeRef().isValid())
         {
-            const TypeRef defaultTypeRef = ctx.typeMgr().get(defaultCst.typeRef()).unwrap(ctx, defaultCst.typeRef(), TypeExpandE::Alias);
+            const TypeRef defaultTypeRef = ctx.typeMgr().unwrapAlias(ctx, defaultCst.typeRef());
             if (defaultTypeRef.isValid() && defaultTypeRef == storageTypeRef && emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, defaultCstRef))
                 return true;
         }

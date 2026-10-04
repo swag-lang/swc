@@ -1106,16 +1106,15 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
                 continue;
             }
 
-            if (useSite.kind != UseSite::Kind::Phi)
-                continue;
-
-            const PhiInfo* phi = phiInfo(useSite.phiIndex);
-            if (!phi || phi->resultValueId == K_INVALID_VALUE)
+            // Phi uses come from this build's successor phi lists.
+            SWC_ASSERT(useSite.kind == UseSite::Kind::Phi);
+            SWC_ASSERT(useSite.phiIndex < phiInfoCount_);
+            const uint32_t nextValueId = phiInfos_[useSite.phiIndex].resultValueId;
+            if (nextValueId == K_INVALID_VALUE)
                 continue;
 
             // Mark on insertion: several phi inputs can name the same value,
             // including a value already waiting below this one on the stack.
-            const uint32_t nextValueId = phi->resultValueId;
             SWC_ASSERT(nextValueId < valueInfoCount_);
             if (useVisitStamps_[nextValueId] == visitStamp)
                 continue;
@@ -1163,16 +1162,12 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
             if (useSite.kind == UseSite::Kind::Instruction)
                 return true;
 
-            if (useSite.kind != UseSite::Kind::Phi)
+            SWC_ASSERT(useSite.kind == UseSite::Kind::Phi);
+            SWC_ASSERT(useSite.phiIndex < phiInfoCount_);
+            const uint32_t nextValueId = phiInfos_[useSite.phiIndex].resultValueId;
+            if (nextValueId == K_INVALID_VALUE)
                 continue;
 
-            const PhiInfo* phi = phiInfo(useSite.phiIndex);
-            if (!phi)
-                continue;
-            if (phi->resultValueId == K_INVALID_VALUE)
-                continue;
-
-            const uint32_t nextValueId = phi->resultValueId;
             SWC_ASSERT(nextValueId < valueInfoCount_);
             if (useVisitStamps_[nextValueId] == visitStamp)
                 continue;

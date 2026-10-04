@@ -318,7 +318,7 @@ private:
     FreePools         pickFreePools(const AllocRequest& request);
     bool              tryTakePreferredPhysical(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys);
     bool              tryTakeFreePhysical(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys);
-    void              unmapVirtReg(MicroReg virtKey);
+    void              unmapVirtReg(VRegState& regState);
     void              mapVirtReg(MicroReg virtKey, MicroReg physReg);
     bool              tryTransferCopySource(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending, bool allowLiveSourceSpill, bool allowConcreteLive, MicroReg& outPhys);
     bool              selectEvictionCandidateWithFallback(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool preferPersistentPool, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;

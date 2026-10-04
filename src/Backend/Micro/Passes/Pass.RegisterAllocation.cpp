@@ -2955,9 +2955,8 @@ bool MicroRegisterAllocationPass::tryTakeFreePhysical(const AllocRequest& reques
     return false;
 }
 
-void MicroRegisterAllocationPass::unmapVirtReg(MicroReg virtKey)
+void MicroRegisterAllocationPass::unmapVirtReg(VRegState& regState)
 {
-    auto& regState = stateForVirtual(virtKey);
     if (!regState.mapped)
         return;
 
@@ -3020,17 +3019,17 @@ bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest& requ
     if (!canUsePhysical(request.virtKey, request.instructionIndex, sourcePhys, forbiddenPhysRegs, allowConcreteLive))
         return false;
 
-    const auto& dstState = stateForVirtual(request.virtKey);
+    auto& dstState = stateForVirtual(request.virtKey);
     if (dstState.mapped && dstState.phys != sourcePhys)
     {
         const MicroReg dstPhys = dstState.phys;
-        unmapVirtReg(request.virtKey);
+        unmapVirtReg(dstState);
         returnToFreePool(dstPhys);
     }
 
     if (sourceLiveOut)
         spillOrRematerializeLiveValue(sourcePhys, sourceState, stackDepth, pending);
-    unmapVirtReg(request.transferSource);
+    unmapVirtReg(sourceState);
     mapVirtReg(request.virtKey, sourcePhys);
     outPhys = sourcePhys;
     return true;
@@ -3214,7 +3213,7 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& reque
     const bool victimLiveOut = isLiveOut(victimKey, stamp);
     if (victimLiveOut)
         spillOrRematerializeLiveValue(victimReg, victimState, stackDepth, pending);
-    unmapVirtReg(victimKey);
+    unmapVirtReg(victimState);
     return victimReg;
 }
 
@@ -3294,7 +3293,7 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
         const MicroReg conflictedPhys = regState.phys;
         if (request.isUse)
             spillOrRematerializeLiveValue(conflictedPhys, regState, stackDepth, pending);
-        unmapVirtReg(request.virtKey);
+        unmapVirtReg(regState);
         returnToFreePool(conflictedPhys);
     }
 
@@ -3352,7 +3351,7 @@ void MicroRegisterAllocationPass::spillMappedVirtualsForConcreteTouches(MicroReg
 
         if (isLiveOut(virtKey, stamp))
             spillOrRematerializeLiveValue(physReg, regState, stackDepth, pending);
-        unmapVirtReg(virtKey);
+        unmapVirtReg(regState);
         returnToFreePool(physReg);
     }
 }
@@ -3377,7 +3376,7 @@ void MicroRegisterAllocationPass::spillCallLiveOut(uint32_t stamp, int64_t stack
         }
 
         spillOrRematerializeLiveValue(physReg, regState, stackDepth, pending);
-        unmapVirtReg(virtKey);
+        unmapVirtReg(regState);
         returnToFreePool(physReg);
     }
 }
@@ -3727,8 +3726,9 @@ void MicroRegisterAllocationPass::expireDeadMappings(uint32_t stamp)
             continue;
         }
 
-        const MicroReg deadReg = states_[denseIndex].phys;
-        unmapVirtReg(virtKey);
+        auto&          regState = states_[denseIndex];
+        const MicroReg deadReg  = regState.phys;
+        unmapVirtReg(regState);
         returnToFreePool(deadReg);
     }
 }

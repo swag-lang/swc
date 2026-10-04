@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Support/Math/Hash.h"
 #include "Support/Thread/JobManager.h"
 #include "Unittest/Unittest.h"
 
@@ -40,7 +41,94 @@ namespace
             return result;
         }
     };
+
+    class PublishingSymbolMap final : public SymbolMap
+    {
+    public:
+        PublishingSymbolMap(uint32_t rounds, Symbol* symbol) :
+            SymbolMap(nullptr, TokenRef::invalid(), SymbolKind::Namespace, IdentifierRef::invalid(), {}),
+            tables_(std::make_unique<ProbeTable[]>(rounds)),
+            key_(static_cast<uint64_t>(symbol->idRef().get()) + 1),
+            slot_(slotFor(symbol->idRef()))
+        {
+            // Each round owns a fresh append-only table. No reader can observe a reset slot.
+            for (uint32_t round = 0; round < rounds; ++round)
+            {
+                auto& table           = tables_[round];
+                table.header.keys     = table.keys.data();
+                table.header.heads    = table.heads.data();
+                table.header.capacity = 2;
+                table.heads[slot_].store(symbol, std::memory_order_relaxed);
+            }
+            smallSize_.store(SMALL_CAP + 1, std::memory_order_relaxed);
+        }
+
+        static uint32_t slotFor(IdentifierRef id) { return (Math::hash(id.get()) >> SHARD_BITS) & 1; }
+        void            selectRound(uint32_t round) { bigTable_.store(&tables_[round].header, std::memory_order_release); }
+        void            publish(uint32_t round) { tables_[round].keys[slot_].store(key_, std::memory_order_release); }
+
+    private:
+        struct ProbeTable
+        {
+            HeadTable                            header;
+            std::array<std::atomic<uint64_t>, 2> keys{};
+            std::array<std::atomic<Symbol*>, 2>  heads{};
+        };
+
+        std::unique_ptr<ProbeTable[]> tables_;
+        uint64_t                      key_;
+        uint32_t                      slot_;
+    };
 }
+
+SWC_TEST_BEGIN(SymbolMap_MissingLookupNeverReturnsConcurrentCollision)
+{
+    constexpr uint32_t  NUM_ROUNDS = 32768;
+    const IdentifierRef present    = ctx.idMgr().addIdentifier("concurrent_probe_present");
+    IdentifierRef       missing;
+    for (uint32_t index = 0;; ++index)
+    {
+        missing = ctx.idMgr().addIdentifierOwned(std::format("concurrent_probe_missing_{}", index));
+        if (PublishingSymbolMap::slotFor(present) == PublishingSymbolMap::slotFor(missing))
+            break;
+    }
+    SymbolVariable        symbol(nullptr, TokenRef::invalid(), present, {});
+    PublishingSymbolMap   symbols(NUM_ROUNDS, &symbol);
+    std::atomic<uint32_t> started{0};
+    std::atomic<uint32_t> ready{0};
+    std::atomic<uint32_t> finished{0};
+    bool                  valid = true;
+
+    // These threads do not allocate in compiler arenas. The handshakes keep each table alive
+    // and selected until its reader is done, while key publication races only with lookups.
+    std::thread reader([&] {
+        for (uint32_t round = 0; round < NUM_ROUNDS; ++round)
+        {
+            while (started.load(std::memory_order_acquire) != round + 1)
+                std::this_thread::yield();
+            ready.store(round + 1, std::memory_order_release);
+            for (uint32_t probe = 0; probe < 128; ++probe)
+                if (symbols.findFirstSymbol(missing))
+                    valid = false;
+            finished.store(round + 1, std::memory_order_release);
+        }
+    });
+
+    for (uint32_t round = 0; round < NUM_ROUNDS; ++round)
+    {
+        symbols.selectRound(round);
+        started.store(round + 1, std::memory_order_release);
+        while (ready.load(std::memory_order_acquire) != round + 1)
+            std::this_thread::yield();
+        symbols.publish(round);
+        while (finished.load(std::memory_order_acquire) != round + 1)
+            std::this_thread::yield();
+    }
+    reader.join();
+    if (!valid || symbols.findFirstSymbol(missing) || symbols.findFirstSymbol(present) != &symbol)
+        return Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(SymbolMap_InternedIdentifiersUseEveryShard)
 {

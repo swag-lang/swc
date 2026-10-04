@@ -261,10 +261,20 @@ Symbol* SymbolMap::tableFindHead(const HeadTable* table, IdentifierRef idRef, ui
     if (!table)
         return nullptr;
 
-    const uint32_t slot = tableSlot(*table, shardKey(idRef), hash);
-    if (!table->keys[slot].load(std::memory_order_acquire))
-        return nullptr;
-    return table->heads[slot].load(std::memory_order_acquire);
+    const uint64_t key  = shardKey(idRef);
+    const uint32_t mask = table->capacity - 1;
+    uint32_t       slot = (hash >> SHARD_BITS) & mask;
+    while (true)
+    {
+        // Decide from this observation: an empty slot can acquire a different key before
+        // another load. Once our key is published, its head can only change to a homonym.
+        const uint64_t slotKey = table->keys[slot].load(std::memory_order_acquire);
+        if (slotKey == key)
+            return table->heads[slot].load(std::memory_order_acquire);
+        if (!slotKey)
+            return nullptr;
+        slot = (slot + 1) & mask;
+    }
 }
 
 void SymbolMap::tablePlace(HeadTable& table, uint32_t slot, uint64_t key, Symbol* head) noexcept

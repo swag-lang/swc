@@ -19,5 +19,5 @@ SWC_DIAG_DEF(lex_err_empty_hex_escape, Error, "empty hexadecimal escape '{tok}';
 SWC_DIAG_DEF(lex_err_too_many_char_char, Error, "character literal contains {value} characters; [help] use a string literal \"...\" for multiple characters")
 SWC_DIAG_DEF(lex_err_too_many_char_char, Error, "character literal contains more than one character; [help] use a string literal \"...\" for multiple characters")
 SWC_DIAG_DEF(lex_err_invalid_number_suffix, Error, "identifier '{tok}' is attached to a numeric literal; [help] add a space between the number and the identifier")
-SWC_DIAG_DEF(lex_err_invalid_char, Error, "character U+{value} is not allowed in source code; [help] use non-ASCII characters only inside comments, strings, and character literals")
+SWC_DIAG_DEF(lex_err_invalid_char, Error, "character U+{value} is not allowed in source code; [help] remove this character, or enclose it in a comment or literal")
 SWC_DIAG_DEF(lex_err_reserved_identifier, Error, "identifier '{tok}' is reserved; [help] names starting with '__' are reserved for compiler and runtime internals")

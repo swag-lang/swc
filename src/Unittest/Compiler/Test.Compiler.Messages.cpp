@@ -163,6 +163,28 @@ SWC_TEST_BEGIN(Compiler_DiagnosticCatalogFollowsSwagMessageStyle)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_InvalidCharacterHelpCoversAsciiAndUnicode)
+{
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.logColor    = false;
+    cmdLine.syntaxColor = false;
+
+    const TaskContext localCtx(ctx.global(), cmdLine);
+    for (const char* value : {"0024", "0060", "20AC"})
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::lex_err_invalid_char);
+        diag.addArgument(Diagnostic::ARG_VALUE, value);
+
+        const Utf8 text     = DiagnosticBuilder(localCtx, diag).build();
+        const Utf8 expected = Utf8("character U+") + value + " is not allowed in source code";
+        if (text.find(expected) == Utf8::npos ||
+            text.find("help: remove this character, or enclose it in a comment or literal") == Utf8::npos)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_DiagnosticSimdOperatorReportsOnlyCurrentContract)
 {
     CommandLine cmdLine;

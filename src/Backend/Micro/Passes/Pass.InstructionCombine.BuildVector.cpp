@@ -358,8 +358,7 @@ namespace InstructionCombine
                     if (!lane.reg.isVirtualInt())
                         return false;
                     const uint32_t atStore = ctx.ssa->reachingValueId(lane.reg, ref);
-                    const uint32_t atLoad  = ctx.ssa->reachingValueId(lane.reg, loadRef);
-                    if (atStore == MicroSsaState::K_INVALID_VALUE || atStore != atLoad)
+                    if (atStore == MicroSsaState::K_INVALID_VALUE || atStore != ctx.ssa->reachingValueId(lane.reg, loadRef))
                         return false;
                     lane.valueId = atStore;
                 }

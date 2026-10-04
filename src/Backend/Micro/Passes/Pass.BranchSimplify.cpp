@@ -5873,12 +5873,11 @@ namespace
     {
         if (left.bits != right.bits || left.mul != right.mul || left.add != right.add)
             return false;
-        const uint32_t leftBase   = ssa.reachingValueId(left.base, left.atRef);
-        const uint32_t rightBase  = ssa.reachingValueId(right.base, right.atRef);
-        const uint32_t leftIndex  = ssa.reachingValueId(left.index, left.atRef);
-        const uint32_t rightIndex = ssa.reachingValueId(right.index, right.atRef);
-        return leftBase != MicroSsaState::K_INVALID_VALUE && leftBase == rightBase &&
-               leftIndex != MicroSsaState::K_INVALID_VALUE && leftIndex == rightIndex;
+        const uint32_t leftBase = ssa.reachingValueId(left.base, left.atRef);
+        if (leftBase == MicroSsaState::K_INVALID_VALUE || leftBase != ssa.reachingValueId(right.base, right.atRef))
+            return false;
+        const uint32_t leftIndex = ssa.reachingValueId(left.index, left.atRef);
+        return leftIndex != MicroSsaState::K_INVALID_VALUE && leftIndex == ssa.reachingValueId(right.index, right.atRef);
     }
 
     // A narrow saturating subtraction can repeat both indexed reads in its

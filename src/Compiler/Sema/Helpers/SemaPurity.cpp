@@ -202,13 +202,17 @@ namespace
                 const SemaNodeView result = sema.viewTypeConstant(currentRef);
                 if (!result.hasType())
                     return false;
-                if (!result.hasConstant() && result.type()->isIntLike())
+                if (!result.hasConstant() && (result.type()->isIntLike() || result.type()->isAnyPointer()))
                 {
                     const AstNodeRef   operandRef = node.is(AstNodeId::CastExpr) ? node.cast<AstCastExpr>().nodeExprRef : node.cast<AstAutoCastExpr>().nodeExprRef;
                     const SemaNodeView operand    = sema.viewType(operandRef);
-                    // Integer addresses depend on where the program is loaded. Folding a
-                    // call through JIT would freeze the compiler process's address instead.
-                    if (!operand.hasType() || operand.type()->isAnyPointer())
+                    if (!operand.hasType())
+                        return false;
+                    // Integer addresses and opaque function pointers lose their relocation
+                    // when returned as JIT bytes. They must use the loaded program's address.
+                    const TypeRef   operandTypeRef = operand.type()->unwrap(sema.ctx(), operand.typeRef(), TypeExpandE::Alias);
+                    const TypeInfo& operandType    = sema.typeMgr().get(operandTypeRef);
+                    if (operandType.isFunction() || (result.type()->isIntLike() && operandType.isAnyPointer()))
                         return false;
                 }
             }

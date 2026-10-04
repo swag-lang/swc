@@ -1133,12 +1133,23 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
             {
                 if (node == entry)
                     continue;
-                uint32_t newIdom = MicroDomTree::K_INVALID_NODE;
-                for (const uint32_t pred : cfg.predecessors(node))
+                uint32_t    newIdom      = MicroDomTree::K_INVALID_NODE;
+                const auto& predecessors = cfg.predecessors(node);
+                if (predecessors.size() == 1)
                 {
-                    if (pred >= n || idom[pred] == MicroDomTree::K_INVALID_NODE)
-                        continue;
-                    newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
+                    // A non-entry DFS node's sole predecessor is its tree parent,
+                    // already processed in reverse postorder. It is also its idom.
+                    newIdom = predecessors.front();
+                    SWC_ASSERT(newIdom < n && idom[newIdom] != MicroDomTree::K_INVALID_NODE);
+                }
+                else
+                {
+                    for (const uint32_t pred : predecessors)
+                    {
+                        if (pred >= n || idom[pred] == MicroDomTree::K_INVALID_NODE)
+                            continue;
+                        newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
+                    }
                 }
                 if (newIdom != MicroDomTree::K_INVALID_NODE && newIdom != idom[node])
                 {

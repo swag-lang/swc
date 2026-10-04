@@ -636,17 +636,28 @@ bool MicroSsaState::computeDominators(const bool acyclic)
                 const uint32_t blockIndex = postOrder[rpoSize - 1 - i];
                 uint32_t       newIdom    = K_INVALID;
 
-                for (const uint32_t predecessorBlock : blocks_[blockIndex].predecessors)
+                const auto& predecessors = blocks_[blockIndex].predecessors;
+                if (predecessors.size() == 1)
                 {
-                    if (rpoStamp[predecessorBlock] != rpoComponentStamp)
-                        continue;
-                    if (idomValues[predecessorBlock] == K_INVALID_BLOCK)
-                        continue;
+                    // The only incoming edge of a non-root DFS block is its
+                    // tree edge, whose source precedes it in reverse postorder.
+                    newIdom = predecessors.front();
+                    SWC_ASSERT(rpoStamp[newIdom] == rpoComponentStamp && idomValues[newIdom] != K_INVALID_BLOCK);
+                }
+                else
+                {
+                    for (const uint32_t predecessorBlock : predecessors)
+                    {
+                        if (rpoStamp[predecessorBlock] != rpoComponentStamp)
+                            continue;
+                        if (idomValues[predecessorBlock] == K_INVALID_BLOCK)
+                            continue;
 
-                    if (newIdom == K_INVALID)
-                        newIdom = predecessorBlock;
-                    else
-                        newIdom = intersectIdom(predecessorBlock, newIdom, idomValues, rpoPosition);
+                        if (newIdom == K_INVALID)
+                            newIdom = predecessorBlock;
+                        else
+                            newIdom = intersectIdom(predecessorBlock, newIdom, idomValues, rpoPosition);
+                    }
                 }
 
                 if (newIdom != K_INVALID && idomValues[blockIndex] != newIdom)

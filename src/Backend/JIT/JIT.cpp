@@ -1434,14 +1434,19 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     uint32_t                     indirectArgStorageSize = 0;
     const bool                   hasIndirectRetArg      = retType.isIndirect;
     const uint32_t               packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
+    const bool                   directReturn           = !retType.isVoid && !retType.isIndirect;
 
     packedArgs.resize(args.size() + packedArgBaseOffset);
+    SmallVector<uint16_t> signature;
+    signature.reserve(packedArgs.size() + 1);
+    signature.push_back(directReturn ? static_cast<uint16_t>(retType.numBits | (retType.isFloat ? 0x100 : 0)) : 0);
 
     if (hasIndirectRetArg)
     {
         packedArgs[0].value   = reinterpret_cast<uint64_t>(ret.valuePtr);
         packedArgs[0].isFloat = false;
         packedArgs[0].numBits = 64;
+        signature.push_back(64);
     }
 
     const auto numArgs = static_cast<uint32_t>(args.size());
@@ -1455,6 +1460,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         if (!argType.isIndirect)
         {
             packedArgs[i + packedArgBaseOffset] = packArgValue(argType, arg.valuePtr);
+            signature.push_back(argType.isFloat ? static_cast<uint16_t>(argType.numBits | 0x100) : 64);
             continue;
         }
 
@@ -1475,6 +1481,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 
         packedArgs[i + packedArgBaseOffset].isFloat = false;
         packedArgs[i + packedArgBaseOffset].numBits = 64;
+        signature.push_back(64);
     }
 
     SmallVector<uint8_t> indirectArgStorage;
@@ -1515,14 +1522,8 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     // per-call frame, including during recursive calls. Own its pages independently of any
     // CompilerInstance, and unregister unwind records before releasing those pages.
     thread_local InvokerCache cache;
-    const auto&               backend      = ctx.compiler().buildCfg().backend;
-    const bool                unwind       = ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || backend.enableExceptions || backend.debugInfo;
-    const bool                directReturn = !retType.isVoid && !retType.isIndirect;
-    SmallVector<uint16_t>     signature;
-    signature.reserve(packedArgs.size() + 1);
-    signature.push_back(directReturn ? static_cast<uint16_t>(retType.numBits | (retType.isFloat ? 0x100 : 0)) : 0);
-    for (const auto& arg : packedArgs)
-        signature.push_back(arg.isFloat ? static_cast<uint16_t>(arg.numBits | 0x100) : 64);
+    const auto&               backend = ctx.compiler().buildCfg().backend;
+    const bool                unwind  = ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || backend.enableExceptions || backend.debugInfo;
 
     void* invoker = nullptr;
     for (const auto& entry : cache.entries)

@@ -15,6 +15,7 @@
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -59,6 +60,10 @@ namespace
 
     bool isGeneratedInlineBodySymbolAvailable(TaskContext& ctx, const SymbolFunction& function, const Symbol& symbol)
     {
+        // Namespace paths are reconstructed around the generated declarations, independently
+        // of the access recorded on the namespace symbol itself.
+        if (symbol.isNamespace())
+            return true;
         if (!isCurrentModuleSymbol(ctx.compiler(), symbol) || isWholeFileExportedSymbol(ctx.compiler(), symbol))
             return true;
 
@@ -93,58 +98,54 @@ namespace
         return symbol.isPublic();
     }
 
-    bool isGeneratedInlineBodyIntrinsicExportable(TaskContext& ctx, const Ast& ast, const AstNodeRef nodeRef, const AstNode& node)
+    Result reportInlineBodyExportError(TaskContext& ctx, const SymbolFunction& function, const SourceCodeRange& range, std::string_view because, const Symbol* referencedSymbol = nullptr)
     {
-        if (node.isNot(AstNodeId::IntrinsicCallExpr))
-            return true;
-
-        // A generated API carries the body, not the intrinsic's effect contract. One that
-        // computes from its operands alone means the same thing wherever it is re-emitted; an
-        // atomic, a context query, or a report about the running program answers about the
-        // module it runs in, and stays behind the foreign call that owns that boundary.
-        SWC_UNUSED(ctx);
-        SWC_UNUSED(ast);
-        SWC_UNUSED(nodeRef);
-        return Token::isPortableIntrinsic(node.cast<AstIntrinsicCallExpr>().intrinsicId);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_inline_body_not_exportable, ctx.compiler().srcView(function.srcViewRef()).fileRef());
+        diag.addArgument(Diagnostic::ARG_SYM, function.getFullScopedName(ctx));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.last().addSpan(range, "", DiagnosticSeverity::Error);
+        if (referencedSymbol)
+            diag.last().addSpan(referencedSymbol->codeRange(ctx), "referenced symbol is declared here", DiagnosticSeverity::Note);
+        diag.report(ctx);
+        return Result::Error;
     }
 
-    bool canExportGeneratedInlineBody(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const SymbolFunction& function)
+    Result validateGeneratedInlineBody(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const SymbolFunction& function)
     {
         const auto* functionDecl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
         if (!root.file || !functionDecl || functionDecl->nodeBodyRef.isInvalid())
-            return false;
+            return reportInlineBodyExportError(ctx, function, function.codeRange(ctx), "the function has no body");
 
-        bool       canExport = true;
-        const Ast& ast       = root.file->ast();
+        Result     result = Result::Continue;
+        const Ast& ast    = root.file->ast();
         Ast::visit(ast, functionDecl->nodeBodyRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
-            if (!isGeneratedInlineBodyIntrinsicExportable(ctx, ast, nodeRef, node))
-            {
-                canExport = false;
-                return Ast::VisitResult::Stop;
-            }
-
-            const NodePayload::StoredView view = root.file->nodePayloadContext().viewStored(ctx, nodeRef);
-            if (view.hasSymbol && view.sym && !isGeneratedInlineBodySymbolAvailable(ctx, function, *view.sym))
-            {
-                canExport = false;
-                return Ast::VisitResult::Stop;
-            }
-
+            const NodePayload::StoredView view        = root.file->nodePayloadContext().viewStored(ctx, nodeRef);
+            const Symbol*                 unavailable = nullptr;
             if (view.hasSymbolList)
             {
                 for (const Symbol* symbol : view.symList)
                 {
                     if (symbol && !isGeneratedInlineBodySymbolAvailable(ctx, function, *symbol))
                     {
-                        canExport = false;
-                        return Ast::VisitResult::Stop;
+                        unavailable = symbol;
+                        break;
                     }
                 }
+            }
+            else if (view.hasSymbol && view.sym && !isGeneratedInlineBodySymbolAvailable(ctx, function, *view.sym))
+                unavailable = view.sym;
+
+            if (unavailable)
+            {
+                const AstNode& focus   = node.is(AstNodeId::CallExpr) ? ast.node(node.cast<AstCallExpr>().nodeExprRef) : node;
+                const Utf8     because = std::format("symbol '{}' is not exposed by the module API", unavailable->getFullScopedName(ctx));
+                result                 = reportInlineBodyExportError(ctx, function, focus.codeRange(ctx), because.view(), unavailable);
+                return Ast::VisitResult::Stop;
             }
 
             return Ast::VisitResult::Continue;
         });
-        return canExport;
+        return result;
     }
 
     bool tryGetSwagAttributeIntValue(uint32_t& outValue, TaskContext& ctx, const Symbol& symbol, std::string_view attrName)
@@ -1167,11 +1168,14 @@ namespace ModuleApiExport
         {
             SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
 
+            if (symbolFunction->supportsPublicApiForeignExport() && symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Inline))
+            {
+                SWC_RESULT(validateGeneratedInlineBody(ctx, root, *symbolFunction));
+                return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
+            }
+
             if (symbolFunction->supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
             {
-                if (symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Inline) && canExportGeneratedInlineBody(ctx, root, *symbolFunction))
-                    return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
-
                 outSnippet = buildFunctionSnippet(ctx, root, eol);
                 return Result::Continue;
             }

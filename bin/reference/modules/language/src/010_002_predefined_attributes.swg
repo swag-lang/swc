@@ -62,6 +62,14 @@ needs 'typeinfo' and cannot exist in the bootstrap.
 'PrintAst' and 'PrintMicro' are development aids: they write compiler output and
 should not be used for program logic.
 
+'Inline' on a public function also applies to calls from another module. The
+generated module API carries its body; '#global export' is not needed for this.
+If the body cannot be exposed, compilation reports an error instead of silently
+removing 'Inline'. Remove the attribute or make the body exportable, for example
+by exposing a helper it calls. A reference to a hidden member of an opaque type
+also prevents export. Intrinsics such as assertions, context access, and atomic
+operations do not prevent a body from being exposed.
+
 # Testing
 
 | Attribute | Purpose |

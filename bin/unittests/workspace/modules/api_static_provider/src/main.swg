@@ -85,6 +85,5 @@ impl StaticOpaqueInline
         .value = value
     }
 
-    #[Swag.Inline]
     mtd getValue()->u32 => .value
 }

@@ -223,6 +223,160 @@ func importedFailure()->s32 => MissingImportedBodySymbol
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InlineBodyExportContract)
+{
+    ApiPublicationTestDirectory directory("InlineBodies");
+    struct Case
+    {
+        std::string_view name;
+        std::string_view source;
+        std::string_view because;
+        std::string_view inlineBody;
+        std::string_view artifactKind = "static-library";
+    };
+    const Case cases[] = {
+        {"PrivateHelper", R"(#global public
+private func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         "symbol 'helper' is not exposed by the module API"},
+        {"InternalHelper", R"(#global public
+internal func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         "symbol 'InlineApi.helper' is not exposed by the module API"},
+        {"PrivateConstant", R"(#global public
+private const Hidden = 42
+#[Swag.Inline]
+func exposed()->s32 => Hidden
+)",
+         "symbol 'Hidden' is not exposed by the module API"},
+        {"OpaqueMember", R"(#global public
+#[Swag.Opaque]
+struct Hidden { value: s32 }
+impl Hidden
+{
+    #[Swag.Inline]
+    mtd exposed()->s32 => .value
+}
+)",
+         "is not exposed by the module API"},
+        {"Intrinsic", R"(#global public
+#[Swag.Inline]
+func exposed()->*Swag.Context => Swag.getContext()
+)",
+         {},
+         "=> Swag.getContext()"},
+        {"Assertion", R"(#global public
+#[Swag.Inline]
+func exposed(value: s32)->s32
+{
+    Swag.assert(value > 0)
+    return value
+}
+)",
+         {},
+         "Swag.assert(value > 0)"},
+        {"Atomic", R"(#global public
+#[Swag.Inline]
+func exposed(value: *s32)->s32 => Swag.atomadd(value, 1)
+)",
+         {},
+         "=> Swag.atomadd(value, 1)"},
+        {"PublicHelper", R"(#global public
+func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {},
+         "=> helper(value)"},
+        {"QualifiedHelper", R"(#global public
+namespace Nested { func helper(value: s32)->s32 => value + 1 }
+#[Swag.Inline]
+func exposed(value: s32)->s32 => Nested.helper(value)
+)",
+         {},
+         "=> Nested.helper(value)"},
+        {"PublicOverload", R"(#global public
+private func helper(value: f32)->f32 => value + 1
+func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {},
+         "=> helper(value)"},
+        {"NoInline", R"(#global public
+private func helper(value: s32)->s32 => value + 1
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {}},
+        {"PrivateInline", R"(#global public
+#[Swag.Inline]
+private func helper(value: s32)->s32 => value + 1
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {}},
+        {"SourceApi", R"(#global public
+private func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         "symbol 'helper' is not exposed by the module API",
+         {},
+         "export"},
+        {"WholeFile", R"(#global export
+private func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {},
+         "=> helper(value)"},
+    };
+
+    for (const Case& test : cases)
+    {
+        const fs::path module = directory.path() / test.name;
+        const fs::path api    = module / "api";
+        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+        SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", test.source));
+        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "InlineApi", "--artifact-kind", Utf8(test.artifactKind), "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
+        ImportResult            result;
+        Os::ProcessRunOptions   options;
+        options.capturedOutput = &result.output;
+        options.forwardOutput  = false;
+        options.timeoutMs      = 15000;
+        result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != test.because.empty())
+        {
+            std::println(stderr, "[inline API {}] {}", test.name, result.output);
+            return Result::Error;
+        }
+
+        if (!test.because.empty())
+        {
+            if (result.output.find("cannot export the body of inline function '") == std::string::npos ||
+                result.output.find(test.because) == std::string::npos ||
+                result.output.find("remove 'Swag.Inline' or make the function body exportable") == std::string::npos)
+            {
+                std::println(stderr, "[inline API {}] {}", test.name, result.output);
+                return Result::Error;
+            }
+            continue;
+        }
+
+        std::string             generated;
+        FileSystem::IoErrorInfo ioError;
+        const fs::path          apiFile = api / (test.name == "WholeFile" ? "provider.swg" : std::string(test.name) + ".swg");
+        SWC_RESULT(FileSystem::readTextFile(apiFile, generated, ioError));
+        if ((generated.find("Swag.Inline") != std::string::npos) != !test.inlineBody.empty() ||
+            (!test.inlineBody.empty() && generated.find(test.inlineBody) == std::string::npos))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterWaitsForCompletePublication)
 {
     ApiPublicationTestDirectory directory("Concurrent");

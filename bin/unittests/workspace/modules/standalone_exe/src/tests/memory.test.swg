@@ -33,8 +33,8 @@ impl Swag.IAllocator for RequestRecorder
     mtd impl assertAllocated(request: *Swag.AllocatorRequest) {}
 }
 
-// Source-exported allocation wrappers must keep the request and allocator selection intact
-// when expanded in a module that imports core's generated API.
+// Allocation wrappers must keep the request and allocator selection intact
+// when called from a module that imports core's generated API.
 #test
 {
     var contextRecorder:  RequestRecorder

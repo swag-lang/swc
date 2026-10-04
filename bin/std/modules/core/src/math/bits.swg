@@ -80,10 +80,10 @@ private const Rev8Arr: [256] u8 = [
 }
 
 // Returns `x` with the order of its bits reversed, the most significant bit becoming the least significant.
-#[ConstExpr, Swag.Inline]
+#[ConstExpr]
 func reverse(x: u8)->u8 => Rev8Arr[x]
 
-#[ConstExpr, Swag.Inline]
+#[ConstExpr]
 func reverse(x: u16)->u16 => cast(u16) Rev8Arr[x >> 8] | cast(u16) Rev8Arr[x & 0xFF] << 8
 
 #[ConstExpr, Safety(.Overflow, false)]

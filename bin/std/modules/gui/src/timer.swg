@@ -15,7 +15,6 @@ struct Timer
 impl Timer
 {
     // Restarts the period from the current instant.
-    #[Swag.Inline]
     mtd restart()
     {
         .stopwatch.reset()

@@ -22,12 +22,11 @@ public struct RichEditLine
 
 impl RichEditLine
 {
+    // Returns the number of runes and style references in this line.
+    public mtd length() => .styles.count
+
     #[Swag.Inline]
-    {
-        // Returns the number of runes and style references in this line.
-        public mtd length() => .styles.count
-        mtd isVisible()     => .hidden == 0
-    }
+    mtd isVisible() => .hidden == 0
 
     // Returns the rune at `index`.
     public mtd runeAt(index: u64)->rune => .chars[index]

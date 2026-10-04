@@ -11,7 +11,7 @@ namespace CodeGenReferenceHelpers
         while (ioTypeRef.isValid())
         {
             const TypeInfo& typeInfo  = codeGen.typeMgr().get(ioTypeRef);
-            const TypeRef   unwrapped = typeInfo.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
+            const TypeRef   unwrapped = typeInfo.isAlias() ? typeInfo.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias) : TypeRef::invalid();
             if (unwrapped.isValid())
             {
                 ioTypeRef = unwrapped;

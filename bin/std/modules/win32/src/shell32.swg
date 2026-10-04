@@ -265,8 +265,9 @@ struct GUID
     }
 }
 
-// Names of the two registered formats that carry a file the source holds in memory rather than
-// on disk: the group descriptor lists what is offered, and one `FileContents` medium per index
+// Registered formats for files held in memory rather than on disk.
+//
+// The group descriptor lists what is offered, and one `FileContents` medium per index
 // carries the bytes. This is how a mail client hands over an attachment.
 const CFSTR_FILEDESCRIPTORW = "FileGroupDescriptorW"
 const CFSTR_FILECONTENTS    = "FileContents"
@@ -310,8 +311,9 @@ struct FILEDESCRIPTORW
     }
 }
 
-// The descriptor block is this header followed by `cItems` descriptors, so the declared array
-// is the first of them rather than the whole list.
+// Header followed by `cItems` file descriptors.
+//
+// The declared array is the first descriptor rather than the whole list.
 struct FILEGROUPDESCRIPTORW
 {
     public
@@ -329,8 +331,9 @@ const CLSID_DragDropHelper  = GUID{0x4657278A, 0x411B, 0x11D2, [0x83, 0x9A, 0x00
 const IID_IDropTargetHelper = GUID{0x4657278B, 0x411B, 0x11D2, [0x83, 0x9A, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0xD0]}
 const IID_IDragSourceHelper = GUID{0xDE5BF786, 0x477A, 0x11D2, [0x83, 0x9D, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0xD0]}
 
-// The color key value meaning "this picture names no transparent color", which is what a bitmap
-// carrying its own alpha uses.
+// Color key indicating that a picture has no transparent color.
+//
+// A bitmap carrying its own alpha uses this value.
 const CLR_NONE = 0xFFFFFFFF'u32
 
 // The picture a source hands the drag helper, and where the pointer sits inside it.

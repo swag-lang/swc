@@ -14,14 +14,16 @@ const AllocatorSegmentShift    = 22'u64
 const AllocatorSegmentSize     = 1'u64 << AllocatorSegmentShift
 const AllocatorUnitsPerSegment = cast(u32) (AllocatorSegmentSize >> AllocatorPageShift)
 
-// Small classes get one 64 KiB unit per page, medium classes get eight. Both hold at least eight
-// blocks, which is what keeps the page table's cost per block negligible.
+// Small classes get one 64 KiB unit per page, medium classes get eight.
+//
+// Both hold at least eight blocks, which is what keeps the page table's cost per block negligible.
 const AllocatorSmallUnitShift  = 0'u32
 const AllocatorMediumUnitShift = 3'u32
 
-// One reservation covers a gibibyte of address space and costs no memory until a segment inside it
-// is committed. A program that exhausts every reservation keeps working through the header path,
-// so this bound degrades throughput rather than failing an allocation.
+// One reservation covers a gibibyte of address space and costs no memory until a segment inside it is committed.
+//
+// A program that exhausts every reservation keeps working through the header path, so this bound degrades
+// throughput rather than failing an allocation.
 const AllocatorArenaSize = 1'u64 << 30
 const AllocatorMaxArenas = 16'u32
 
@@ -42,10 +44,12 @@ enum AllocatorPageState: u8
     Abandoned
 }
 
-// Two cache lines. The first holds everything the owning thread reads and writes on every
-// allocation and free; the second holds the links, the identity, and the fields other threads
-// write. Pages of different threads sit side by side in a segment, so a page must never share
-// a line with its neighbour, and remote frees must not invalidate the owner's hot line.
+// Two cache lines.
+//
+// The first holds everything the owning thread reads and writes on every allocation and free; the second holds
+// the links, the identity, and the fields other threads write. Pages of different threads sit side by side in
+// a segment, so a page must never share a line with its neighbour, and remote frees must not invalidate the
+// owner's hot line.
 #[Swag.Align(64)]
 struct AllocatorPage
 {
@@ -96,8 +100,10 @@ struct AllocatorPage
 #assert(AllocatorUnitsPerSegment <= 256 and AllocatorClassCount <= 256)
 #assert(#sizeof(AllocatorPage) == 128)
 
-// The first line is read on every free and changes almost never; the masks, which every thread
-// claiming or releasing a page moves, live on a line of their own so they never invalidate it.
+// Keeps frequently read segment metadata on a cache line separate from mutable masks.
+//
+// The first line is read on every free and changes almost never; the masks, which every thread claiming or
+// releasing a page moves, live on a line of their own so they never invalidate it.
 struct AllocatorSegment
 {
     magic:     u64
@@ -126,8 +132,10 @@ struct AllocatorSegment
     pages: [AllocatorUnitsPerSegment] AllocatorPage
 }
 
-// The header claims the front of the segment; the first page starts right after it and simply
-// holds fewer blocks than its peers, so no address space is lost to the table.
+// The space reserved for the segment header before the first page.
+//
+// The header claims the front of the segment; the first page starts right after it and simply holds fewer
+// blocks than its peers, so no address space is lost to the table.
 const AllocatorSegmentHeaderBytes = (cast(u64) #sizeof(AllocatorSegment) + AllocatorCommitGranularity - 1) & ~(AllocatorCommitGranularity - 1)
 
 struct AllocatorArena
@@ -149,9 +157,10 @@ private var g_AllocatorArenaCount:  u32
 private var g_AllocatorFreeSegment: *AllocatorSegment?
 private var g_AllocatorKeySeed:     u64
 
-// Bytes of free pages left committed for reuse. The process keeps up to a quarter of what it
-// has committed, and never less than the floor, so the budget grows with the number of threads
-// churning pages while a quiet program holds little.
+// Bytes of free pages left committed for reuse.
+//
+// The process keeps up to a quarter of what it has committed, and never less than the floor, so the budget
+// grows with the number of threads churning pages while a quiet program holds little.
 const AllocatorIdleMinBytes = 8'u64 * 1024 * 1024
 private var g_AllocatorIdleBytes: u64
 
@@ -232,8 +241,7 @@ private func allocatorNextKey(seed: u64)->u64
     return value | 1
 }
 
-// Out of line, so the fast paths that can detect a corrupted list do not carry the panic's
-// arguments in their own frames.
+// Out of line, so the fast paths that can detect a corrupted list do not carry the panic's arguments in their own frames.
 #[Swag.NoInline]
 func allocatorCorruptedFreeList()
 {
@@ -282,9 +290,9 @@ impl AllocatorPage
     }
 
     // Precomputes the exact-division test used to reject an interior or bogus address on free.
-    // Multiplying by the inverse of the odd factor and rotating out the power of two turns
-    // divisibility into one unsigned comparison. The Newton iteration converges modulo 2^32,
-    // so it wraps on purpose.
+    //
+    // Multiplying by the inverse of the odd factor and rotating out the power of two turns divisibility into
+    // one unsigned comparison. The Newton iteration converges modulo 2^32, so it wraps on purpose.
     #[Swag.Safety(.Overflow, false)]
     mtd setupBlockDivision(blockSize: u32)
     {
@@ -299,9 +307,10 @@ impl AllocatorPage
         .blockInv = inverse
     }
 
-    // Accepts only an address that starts a block of this page. A free list corrupted by an
-    // overflow, an interior pointer, and a stale pointer all fail here rather than later. The
-    // divisibility test multiplies modulo 2^32, so it wraps by design.
+    // Accepts only an address that starts a block of this page.
+    //
+    // A free list corrupted by an overflow, an interior pointer, and a stale pointer all fail here rather than
+    // later. The divisibility test multiplies modulo 2^32, so it wraps by design.
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd isBlockAddress(address: u64)->bool
     {
@@ -319,8 +328,9 @@ impl AllocatorPage
     #[Swag.Inline]
     mtd decode(link: u64)->u64 => link ^ .key
 
-    // Blocks pushed by other threads and not yet collected. Counted on demand, so a remote free
-    // pays one compare-exchange and nothing else.
+    // Blocks pushed by other threads and not yet collected.
+    //
+    // Counted on demand, so a remote free pays one compare-exchange and nothing else.
     mtd remoteCount()->u32
     {
         .lockRemote()
@@ -356,9 +366,10 @@ impl AllocatorPage
         discard Swag.atomxchg(&.remoteLock, 0)
     }
 
-    // Moves the blocks other threads freed onto the owner's free list. Producers only ever push,
-    // and this takes the whole list in one exchange, so a block can never be popped from under a
-    // producer that is linking in front of it and no ABA case exists. The lock only orders this
+    // Moves the blocks other threads freed onto the owner's free list.
+    //
+    // Producers only ever push, and this takes the whole list in one exchange, so a block can never be popped
+    // from under a producer that is linking in front of it and no ABA case exists. The lock only orders this
     // detach against 'holdsFreeBlock', which walks the list without taking it.
     mtd collectRemote()
     {
@@ -383,9 +394,11 @@ impl AllocatorPage
         .used -= taken
     }
 
-    // Pushes a block freed by a thread that does not own the page. The page metadata outlives every
-    // block it carries, so this never dereferences storage that could already be gone. The block
-    // belongs to the pusher until the exchange publishes it, so writing its link needs no lock.
+    // Pushes a block freed by a thread that does not own the page.
+    //
+    // The page metadata outlives every block it carries, so this never dereferences storage that could already
+    // be gone. The block belongs to the pusher until the exchange publishes it, so writing its link needs no
+    // lock.
     mtd pushRemote(address: u64)
     {
         .markFree(address)
@@ -408,6 +421,7 @@ impl AllocatorPage
     }
 
     // Hands out the next block, from the free list first and from the untouched tail after that.
+    //
     // Returning zero means the page is exhausted and the caller must look further.
     #[Swag.Inline]
     mtd acquireBlock()->u64
@@ -442,8 +456,9 @@ impl AllocatorPage
     }
 
     // Reports whether the block at 'address' is currently waiting on one of the page's free lists.
-    // Linear in the number of free blocks, so this belongs to a check a caller asked for, never to
-    // the free path.
+    //
+    // Linear in the number of free blocks, so this belongs to a check a caller asked for, never to the free
+    // path.
     mtd holdsFreeBlock(address: u64)->bool
     {
         if .holdsOwnFreeBlock(address) do
@@ -451,8 +466,7 @@ impl AllocatorPage
         return .holdsRemoteFreeBlock(address)
     }
 
-    // Walks the owner's list, so only the owning thread, or a caller that holds the page while no
-    // heap owns it, may ask.
+    // Walks the owner's list, so only the owning thread, or a caller that holds the page while no heap owns it, may ask.
     mtd holdsOwnFreeBlock(address: u64)->bool
     {
         var scan = .freeList
@@ -466,8 +480,7 @@ impl AllocatorPage
         return false
     }
 
-    // Any thread may ask: producers only prepend, and the lock keeps the owner from detaching the
-    // list during the walk.
+    // Any thread may ask: producers only prepend, and the lock keeps the owner from detaching the list during the walk.
     mtd holdsRemoteFreeBlock(address: u64)->bool
     {
         .lockRemote()
@@ -484,9 +497,10 @@ impl AllocatorPage
         return false
     }
 
-    // Reads the link a free block stores. Under memory safety, a link that names no block of
-    // this page, other than the end of the list, means the block was overwritten after it was
-    // freed.
+    // Reads the link a free block stores.
+    //
+    // Under memory safety, a link that names no block of this page, other than the end of the list, means the
+    // block was overwritten after it was freed.
     #[Swag.Inline]
     mtd nextFree(block: u64)->u64
     {
@@ -500,11 +514,13 @@ impl AllocatorPage
         return next
     }
 
-    // Reports whether a block's first word reads as a free-list link, which every free block
-    // holds: the end of the list, or an address inside the page's block area. A live block holds
-    // one only by a coincidence of its data with the page key, about one chance in 2^40, so a
-    // match calls for a walk of the lists to tell a double free from that. The range test alone
-    // is enough to keep coincidences that rare, so the divisibility test is not repeated here.
+    // Reports whether a block's first word reads as a free-list link.
+    //
+    // Reports whether a block's first word reads as a free-list link, which every free block holds: the end of
+    // the list, or an address inside the page's block area. A live block holds one only by a coincidence of
+    // its data with the page key, about one chance in 2^40, so a match calls for a walk of the lists to tell a
+    // double free from that. The range test alone is enough to keep coincidences that rare, so the
+    // divisibility test is not repeated here.
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd looksFree(address: u64)->bool
     {
@@ -514,11 +530,11 @@ impl AllocatorPage
         return next - .areaStart < .areaEnd - .areaStart
     }
 
-    // Under memory safety, a free block of sixteen bytes or more carries a canary in its second
-    // word, derived from the page key. Handing the block out again checks it, so a write through
-    // a pointer kept past its free that reaches the start of the block - where an object's fields
-    // begin - is reported instead of silently corrupting the next owner's data. The 8-byte class
-    // has no room for it.
+    // Under memory safety, a free block of sixteen bytes or more carries a canary in its second word, derived from the page key.
+    //
+    // Handing the block out again checks it, so a write through a pointer kept past its free that reaches the
+    // start of the block - where an object's fields begin - is reported instead of silently corrupting the
+    // next owner's data. The 8-byte class has no room for it.
     #[Swag.Inline]
     mtd markFree(address: u64)
     {
@@ -554,8 +570,10 @@ impl AllocatorSegment
 {
     mtd segmentBase()->u64 => cast(u64) me
 
-    // The committed extent of one page. The first page shares its unit with the header, which is
-    // committed for the segment's whole life, so only the remainder is committed and decommitted.
+    // The committed extent of one page.
+    //
+    // The first page shares its unit with the header, which is committed for the segment's whole life, so only
+    // the remainder is committed and decommitted.
     mtd pageCommitStart(index: u32)->u64
     {
         let base  = .segmentBase()
@@ -569,8 +587,10 @@ impl AllocatorSegment
         return .segmentBase() + cast(u64) unitIndex * AllocatorPageSize
     }
 
-    // Claims a free page for a size class. Several threads carve pages from the same segment, so
-    // the mask moves only through compare-exchange and the loser simply retries.
+    // Claims a free page for a size class.
+    //
+    // Several threads carve pages from the same segment, so the mask moves only through compare-exchange and
+    // the loser simply retries.
     mtd acquirePage(classIndex: u32, blockSize: u32)->*AllocatorPage?
     {
         var mask = .pageMask
@@ -605,9 +625,11 @@ impl AllocatorSegment
         }
     }
 
-    // Returns a page with no live block. It stays committed while the process-wide idle budget
-    // allows, so the next page any class needs costs no system call and no page fault; past the
-    // budget its units are decommitted and the resident cost drops back to the segment header.
+    // Returns a page with no live block.
+    //
+    // It stays committed while the process-wide idle budget allows, so the next page any class needs costs no
+    // system call and no page fault; past the budget its units are decommitted and the resident cost drops
+    // back to the segment header.
     mtd releasePage(page: *AllocatorPage)
     {
         Swag.assert(page.used == 0)
@@ -629,8 +651,10 @@ impl AllocatorSegment
         .clearPageBit(bit)
     }
 
-    // Decommits every idle page of the segment. A page is claimed first, exactly as an allocation
-    // would claim it, so no other thread can be reusing it while its units go away.
+    // Decommits every idle page of the segment.
+    //
+    // A page is claimed first, exactly as an allocation would claim it, so no other thread can be reusing it
+    // while its units go away.
     mtd decommitIdlePages()
     {
         var idle = atomicGet(&.idleMask)
@@ -822,8 +846,10 @@ func allocatorAcquireSegment(owner: *void, unitShift: u32)->*AllocatorSegment?
     return segment
 }
 
-// Returns an emptied segment to the shared pool. Its header stays committed and its address stays
-// reserved for the process lifetime, which is what keeps an address-to-page lookup always safe.
+// Returns an emptied segment to the shared pool.
+//
+// Its header stays committed and its address stays reserved for the process lifetime, which is what keeps an
+// address-to-page lookup always safe.
 func allocatorReleaseSegment(segment: *AllocatorSegment)
 {
     Swag.assert(segment.isEmpty())
@@ -838,8 +864,9 @@ func allocatorReleaseSegment(segment: *AllocatorSegment)
     g_AllocatorFreeSegment = segment
 }
 
-// Recovers the page owning an address, or null when the address did not come from a segment. Two
-// range tests and a shift replace every per-block header the old layout needed.
+// Recovers the page owning an address, or null when the address did not come from a segment.
+//
+// Two range tests and a shift replace every per-block header the old layout needed.
 #[Swag.Inline, Swag.Safety(.Overflow, false)]
 func allocatorPageOf(address: u64)->*AllocatorPage?
 {
@@ -864,8 +891,10 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
     return null
 }
 
-// The page of an address known to lie below an arena's bump cursor, where every segment-aligned
-// address starts a segment whose header is committed.
+// The page of an address known to lie below an arena's bump cursor.
+//
+// The page of an address known to lie below an arena's bump cursor, where every segment-aligned address starts
+// a segment whose header is committed.
 #[Swag.Inline]
 func allocatorPageInSegment(address: u64)->*AllocatorPage?
 {

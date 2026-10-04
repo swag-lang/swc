@@ -90,8 +90,7 @@ struct TagBinDiagnostics
     }
 }
 
-// One field entry of a section index: where the payload sits, and which shape entry
-// describes it.
+// One field entry of a section index, locating its payload and the shape entry that describes it.
 struct TagBinFieldRef
 {
     public

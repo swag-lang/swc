@@ -621,7 +621,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </section>
 <h3 id="types">Types</h3>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_Bus" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Bus</span> <a class="api-item-permalink" href="#Audio_Bus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L9">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_Bus" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Bus</span> <a class="api-item-permalink" href="#Audio_Bus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L8">src</a></div>
 <p>Groups voices in a controllable submix.</p>
 <p>Route one or more <a href="#Audio_Voice">Audio.Voice</a> instances through a bus with <a href="#Audio_Voice_setRouting">Audio.Voice.setRouting</a>. Volume changes apply to every routed voice. Buses may target a parent bus to form a mixing graph.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_Bus">Bus</a></span></span></div>
@@ -655,7 +655,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_Codec" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Codec</span> <a class="api-item-permalink" href="#Audio_Codec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L265">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_Codec" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Codec</span> <a class="api-item-permalink" href="#Audio_Codec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L264">src</a></div>
 <p>Stores the source, destination, and concrete type of a codec instance.</p>
 <p>Every codec implementation declares a <span class="code-inline">Codec</span> as its first field: a voice reads the concrete type and the allocator back from it to destroy the instance. <a href="#Audio_registerCodec">Audio.registerCodec</a> and <a href="#Audio_registerPacketCodec">Audio.registerPacketCodec</a> check this layout at compile time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_Codec">Codec</a></span></span></div>
@@ -671,7 +671,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_CodecProgress" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.CodecProgress</span> <a class="api-item-permalink" href="#Audio_CodecProgress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L163">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_CodecProgress" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.CodecProgress</span> <a class="api-item-permalink" href="#Audio_CodecProgress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L162">src</a></div>
 <p>Describes the byte-level progress of one incremental codec operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_CodecProgress">CodecProgress</a></span></span></div>
 </section>
@@ -686,7 +686,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-interface"><span id="Audio_ICodec" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Audio.ICodec</span> <a class="api-item-permalink" href="#Audio_ICodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L17">src</a></div>
+<div class="api-item api-item-interface"><span id="Audio_ICodec" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Audio.ICodec</span> <a class="api-item-permalink" href="#Audio_ICodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L16">src</a></div>
 <p>Converts encoded audio incrementally between sound-file encodings.</p>
 <p>A codec instance is created per streaming voice. Implementations borrow the input and output buffers only for the duration of each call and must never read or write beyond the supplied byte lengths.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Audio_ICodec">ICodec</a></span></span></div>
@@ -706,7 +706,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-interface"><span id="Audio_IPacketCodec" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Audio.IPacketCodec</span> <a class="api-item-permalink" href="#Audio_IPacketCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L42">src</a></div>
+<div class="api-item api-item-interface"><span id="Audio_IPacketCodec" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Audio.IPacketCodec</span> <a class="api-item-permalink" href="#Audio_IPacketCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L41">src</a></div>
 <p>Decodes independently indexed compressed access units to interleaved PCM16.</p>
 <p>Packet codecs are used by container readers such as MP4. One instance belongs to one voice, so implementations may retain overlap, prediction, and filter state between calls.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Audio_IPacketCodec">IPacketCodec</a></span></span></div>
@@ -726,7 +726,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_PacketDurationProbe" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.PacketDurationProbe</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L112">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_PacketDurationProbe" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.PacketDurationProbe</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L111">src</a></div>
 <p>Measures the duration of the packets a container indexes, in stream order.</p>
 <p>A Vorbis packet's duration depends on the block size of the packet before it and on the modes the stream's setup header declares, and an Opus packet's on its table of contents; every other packet codec states its duration in the packet itself, which <a href="#Audio_packetFrameCount">Audio.packetFrameCount</a> reads. One probe serves one stream: create it from the decoder configuration the container carries, then feed it every packet of the stream in order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_PacketDurationProbe">PacketDurationProbe</a></span></span></div>
@@ -744,7 +744,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_PacketStreamOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.PacketStreamOptions</span> <a class="api-item-permalink" href="#Audio_PacketStreamOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L88">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_PacketStreamOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.PacketStreamOptions</span> <a class="api-item-permalink" href="#Audio_PacketStreamOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L87">src</a></div>
 <p>Configures an indexed compressed sound stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_PacketStreamOptions">PacketStreamOptions</a></span></span></div>
 </section>
@@ -765,7 +765,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_SoundFile" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundFile</span> <a class="api-item-permalink" href="#Audio_SoundFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L121">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_SoundFile" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundFile</span> <a class="api-item-permalink" href="#Audio_SoundFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L120">src</a></div>
 <p>Describes a validated sound source that may be prefetched or streamed.</p>
 <p>The value owns the bytes exposed by <a href="#Audio_SoundFile_preloadedData">Audio.SoundFile.preloadedData</a>. When the payload is not prefetched, voices reopen the source path and read the payload on demand. Keep this value alive while any voice borrows it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
@@ -830,7 +830,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_SoundPacket" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundPacket</span> <a class="api-item-permalink" href="#Audio_SoundPacket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L105">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_SoundPacket" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundPacket</span> <a class="api-item-permalink" href="#Audio_SoundPacket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L104">src</a></div>
 <p>Locates one indexed packet or chunk in a source file.</p>
 <p>Payloads need not be contiguous. <span class="code-inline">sampleFrameCount</span> is the number of decoded sample frames contributed by the packet, across all interleaved channels. Packet order is playback order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_SoundPacket">SoundPacket</a></span></span></div>
@@ -848,13 +848,13 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Audio_SoundPcm16Consumer" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Audio.SoundPcm16Consumer</span> <a class="api-item-permalink" href="#Audio_SoundPcm16Consumer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.decode.swg#L17">src</a></div>
+<div class="api-item api-item-alias"><span id="Audio_SoundPcm16Consumer" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Audio.SoundPcm16Consumer</span> <a class="api-item-permalink" href="#Audio_SoundPcm16Consumer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.decode.swg#L16">src</a></div>
 <p>Receives one borrowed chunk of interleaved PCM16 samples.</p>
 <p>The slice remains valid only for the duration of the call. Return <span class="code-inline">true</span> to continue decoding or <span class="code-inline">false</span> to stop successfully after this chunk.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Audio_SoundPcm16Consumer">SoundPcm16Consumer</a></span> = <span class="SKwd">func</span>||(<span class="SKwd">const</span> [..] <span class="STpe">s16</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_Voice" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Voice</span> <a class="api-item-permalink" href="#Audio_Voice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L40">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_Voice" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Voice</span> <a class="api-item-permalink" href="#Audio_Voice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L39">src</a></div>
 <p>Controls one playback instance of a sound file.</p>
 <p>A voice borrows its source <a href="#Audio_SoundFile">Audio.SoundFile</a>, which must remain alive until the voice is destroyed. Use <a href="#Audio_Voice_play">Audio.Voice.play</a> for fire-and-forget playback or <a href="#Audio_Voice_create">Audio.Voice.create</a> when the caller needs explicit control.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
@@ -914,7 +914,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </table>
 <h3 id="enumerations">Enumerations</h3>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Audio_DriverKind" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.DriverKind</span> <a class="api-item-permalink" href="#Audio_DriverKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L5">src</a></div>
+<div class="api-item api-item-enum"><span id="Audio_DriverKind" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.DriverKind</span> <a class="api-item-permalink" href="#Audio_DriverKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L4">src</a></div>
 <p>Selects the engine backend.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Audio_DriverKind">DriverKind</a></span></span></div>
 </section>
@@ -931,7 +931,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Audio_SoundFileEncoding" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.SoundFileEncoding</span> <a class="api-item-permalink" href="#Audio_SoundFileEncoding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L67">src</a></div>
+<div class="api-item api-item-enum"><span id="Audio_SoundFileEncoding" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.SoundFileEncoding</span> <a class="api-item-permalink" href="#Audio_SoundFileEncoding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L66">src</a></div>
 <p>Describes the in-memory encoding of sound samples.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span></span></div>
 </section>
@@ -974,7 +974,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Audio_SoundFileFields" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.SoundFileFields</span> <a class="api-item-permalink" href="#Audio_SoundFileFields" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L52">src</a></div>
+<div class="api-item api-item-enum"><span id="Audio_SoundFileFields" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.SoundFileFields</span> <a class="api-item-permalink" href="#Audio_SoundFileFields" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L51">src</a></div>
 <p>Identifies which sound-file properties were discovered while loading.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Audio_SoundFileFields">SoundFileFields</a></span></span></div>
@@ -1006,7 +1006,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Audio_VoiceCreateFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoiceCreateFlags</span> <a class="api-item-permalink" href="#Audio_VoiceCreateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L6">src</a></div>
+<div class="api-item api-item-enum"><span id="Audio_VoiceCreateFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoiceCreateFlags</span> <a class="api-item-permalink" href="#Audio_VoiceCreateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L5">src</a></div>
 <p>Selects optional backend capabilities for a new voice.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Audio_VoiceCreateFlags">VoiceCreateFlags</a></span></span></div>
@@ -1024,7 +1024,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Audio_VoicePlayFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoicePlayFlags</span> <a class="api-item-permalink" href="#Audio_VoicePlayFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L15">src</a></div>
+<div class="api-item api-item-enum"><span id="Audio_VoicePlayFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoicePlayFlags</span> <a class="api-item-permalink" href="#Audio_VoicePlayFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L14">src</a></div>
 <p>Controls one playback run and its end-of-playback lifetime.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Audio_VoicePlayFlags">VoicePlayFlags</a></span></span></div>
@@ -1045,378 +1045,378 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </table>
 <h3 id="constants">Constants</h3>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Audio_Voice_DecodedBufferSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.DecodedBufferSize</span> <a class="api-item-permalink" href="#Audio_Voice_DecodedBufferSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L44">src</a></div>
+<div class="api-item api-item-const"><span id="Audio_Voice_DecodedBufferSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.DecodedBufferSize</span> <a class="api-item-permalink" href="#Audio_Voice_DecodedBufferSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L43">src</a></div>
 <p>Least capacity in bytes of each decoded streaming buffer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Audio_Voice_DecodedBufferSize">DecodedBufferSize</a></span> = <span class="SNum">65536</span>'<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Audio_Voice_NumDecodedBuffers" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.NumDecodedBuffers</span> <a class="api-item-permalink" href="#Audio_Voice_NumDecodedBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L43">src</a></div>
+<div class="api-item api-item-const"><span id="Audio_Voice_NumDecodedBuffers" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.NumDecodedBuffers</span> <a class="api-item-permalink" href="#Audio_Voice_NumDecodedBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L42">src</a></div>
 <p>Number of decoded buffers rotated during streaming.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Audio_Voice_NumDecodedBuffers">NumDecodedBuffers</a></span> = <span class="SNum">3</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Audio_Voice_StreamBufferSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.StreamBufferSize</span> <a class="api-item-permalink" href="#Audio_Voice_StreamBufferSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L42">src</a></div>
+<div class="api-item api-item-const"><span id="Audio_Voice_StreamBufferSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.StreamBufferSize</span> <a class="api-item-permalink" href="#Audio_Voice_StreamBufferSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L41">src</a></div>
 <p>Number of encoded bytes read per streaming step.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Audio_Voice_StreamBufferSize">StreamBufferSize</a></span>  = <span class="SNum">16</span> * <span class="SNum">1024</span>'<span class="STpe">u64</span></span></div>
 </section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_activeDriverKind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.activeDriverKind</span> <a class="api-item-permalink" href="#Audio_activeDriverKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L48">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_activeDriverKind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.activeDriverKind</span> <a class="api-item-permalink" href="#Audio_activeDriverKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L47">src</a></div>
 <p>Returns the resolved backend of the current engine, or <a href="#Audio_DriverKind_Default">Audio.DriverKind.Default</a> when no engine exists.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">activeDriverKind</span>()-&gt;<span class="SCst"><a href="#Audio_DriverKind">DriverKind</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_createEngine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.createEngine</span> <a class="api-item-permalink" href="#Audio_createEngine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L12">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_createEngine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.createEngine</span> <a class="api-item-permalink" href="#Audio_createEngine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L11">src</a></div>
 <p>Creates the process-wide audio engine.</p>
 <p>Call this once before using <a href="#Audio_SoundFile">Audio.SoundFile</a>, <a href="#Audio_Voice">Audio.Voice</a>, or <a href="#Audio_Bus">Audio.Bus</a>. <span class="code-inline">kind</span> selects the native or headless backend. Pair a successful call with <a href="#Audio_destroyEngine">Audio.destroyEngine</a> after all voices and buses have been released.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createEngine</span>(kind: <span class="SCst"><a href="#Audio_DriverKind">DriverKind</a></span> = .<span class="SCst">Default</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_createNoSoundEngine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.createNoSoundEngine</span> <a class="api-item-permalink" href="#Audio_createNoSoundEngine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L31">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_createNoSoundEngine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.createNoSoundEngine</span> <a class="api-item-permalink" href="#Audio_createNoSoundEngine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L30">src</a></div>
 <p>Creates the process-wide engine without opening an audio device.</p>
 <p>This is equivalent to <a href="#Audio_createEngine">Audio.createEngine</a> with <a href="#Audio_DriverKind_NoSound">Audio.DriverKind.NoSound</a> and is intended for deterministic tests and headless programs.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createNoSoundEngine</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_decibelsToLinearGain" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.decibelsToLinearGain</span> <a class="api-item-permalink" href="#Audio_decibelsToLinearGain" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/helpers.swg#L7">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_decibelsToLinearGain" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.decibelsToLinearGain</span> <a class="api-item-permalink" href="#Audio_decibelsToLinearGain" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/helpers.swg#L6">src</a></div>
 <p>Converts a gain in decibels to a linear amplitude ratio.</p>
 <p>Values at or below <span class="code-inline">-100 dB</span> map to silence.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decibelsToLinearGain</span>(decibels: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_destroyEngine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.destroyEngine</span> <a class="api-item-permalink" href="#Audio_destroyEngine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L37">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_destroyEngine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.destroyEngine</span> <a class="api-item-permalink" href="#Audio_destroyEngine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L36">src</a></div>
 <p>Destroys the process-wide audio engine and its backend resources.</p>
 <p>Voices and buses still alive are stopped and released first, so every pointer to them is invalid afterward. Calling this without an engine does nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">destroyEngine</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_isEngineCreated" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.isEngineCreated</span> <a class="api-item-permalink" href="#Audio_isEngineCreated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L45">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_isEngineCreated" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.isEngineCreated</span> <a class="api-item-permalink" href="#Audio_isEngineCreated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L44">src</a></div>
 <p>Returns whether the process-wide audio engine is currently available.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isEngineCreated</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_isPacketEncoding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.isPacketEncoding</span> <a class="api-item-permalink" href="#Audio_isPacketEncoding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L61">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_isPacketEncoding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.isPacketEncoding</span> <a class="api-item-permalink" href="#Audio_isPacketEncoding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L60">src</a></div>
 <p>Returns whether <span class="code-inline">encoding</span> names packets a packet codec decodes.</p>
 <p>A packetized sound is one whose payload is a sequence of independently indexed compressed access units; the uncompressed encodings are chunked instead, and go through the PCM path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPacketEncoding</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_linearGainToDecibels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.linearGainToDecibels</span> <a class="api-item-permalink" href="#Audio_linearGainToDecibels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/helpers.swg#L17">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_linearGainToDecibels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.linearGainToDecibels</span> <a class="api-item-permalink" href="#Audio_linearGainToDecibels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/helpers.swg#L16">src</a></div>
 <p>Converts a linear amplitude ratio to decibels.</p>
 <p>Zero and negative inputs map to <span class="code-inline">-100 dB</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">linearGainToDecibels</span>(gain: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_outputVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.outputVolume</span> <a class="api-item-permalink" href="#Audio_outputVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L62">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_outputVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.outputVolume</span> <a class="api-item-permalink" href="#Audio_outputVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L61">src</a></div>
 <p>Returns the current mastering output gain as a linear value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">outputVolume</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_outputVolumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.outputVolumeDb</span> <a class="api-item-permalink" href="#Audio_outputVolumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L73">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_outputVolumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.outputVolumeDb</span> <a class="api-item-permalink" href="#Audio_outputVolumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L72">src</a></div>
 <p>Returns the mastering output gain in decibels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">outputVolumeDb</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_packetEncodingNeedsConfig" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.packetEncodingNeedsConfig</span> <a class="api-item-permalink" href="#Audio_packetEncodingNeedsConfig" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L74">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_packetEncodingNeedsConfig" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.packetEncodingNeedsConfig</span> <a class="api-item-permalink" href="#Audio_packetEncodingNeedsConfig" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L73">src</a></div>
 <p>Returns whether packets of <span class="code-inline">encoding</span> need the decoder configuration their container carries.</p>
 <p>That configuration travels beside the stream: the AAC audio-specific config, the FLAC stream information, the Vorbis headers, the Opus identification header.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">packetEncodingNeedsConfig</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_packetFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.packetFrameCount</span> <a class="api-item-permalink" href="#Audio_packetFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L89">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_packetFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.packetFrameCount</span> <a class="api-item-permalink" href="#Audio_packetFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L88">src</a></div>
 <p>Returns the number of sample frames one packet of <span class="code-inline">encoding</span> decodes to.</p>
 <p>A container builds its packet index before any decoding happens, so this reads the count out of the packet header rather than decoding the packet. <span class="code-inline">packet</span> needs to hold the header only, not the whole access unit. Vorbis and Opus packets do not carry their duration in a way this can read alone; a container measures them through <a href="#Audio_PacketDurationProbe">Audio.PacketDurationProbe</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">packetFrameCount</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>, packet: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_registerCodec" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.registerCodec</span> <a class="api-item-permalink" href="#Audio_registerCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L208">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_registerCodec" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.registerCodec</span> <a class="api-item-permalink" href="#Audio_registerCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L207">src</a></div>
 <p>Registers a codec implementation for subsequent voice creation.</p>
 <p><span class="code-inline">T</span> must implement <a href="#Audio_ICodec">Audio.ICodec</a>. Registration stores its type and interface dispatch table; codec instances are allocated on demand.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerCodec</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_registerPacketCodec" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.registerPacketCodec</span> <a class="api-item-permalink" href="#Audio_registerPacketCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L228">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_registerPacketCodec" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.registerPacketCodec</span> <a class="api-item-permalink" href="#Audio_registerPacketCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L227">src</a></div>
 <p>Registers a packet codec implementation for subsequent voice creation.</p>
 <p><span class="code-inline">T</span> must implement <a href="#Audio_IPacketCodec">Audio.IPacketCodec</a>. Registration stores its type and interface dispatch table; codec instances are allocated on demand.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerPacketCodec</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_setOutputVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.setOutputVolume</span> <a class="api-item-permalink" href="#Audio_setOutputVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_setOutputVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.setOutputVolume</span> <a class="api-item-permalink" href="#Audio_setOutputVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L53">src</a></div>
 <p>Sets the mastering output gain.</p>
 <p><span class="code-inline">volume</span> is a linear gain and is clamped to the range <span class="code-inline">0</span> through <span class="code-inline">1</span>. Fails with <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a> when no engine exists.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setOutputVolume</span>(volume: <span class="STpe">f32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_setOutputVolumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.setOutputVolumeDb</span> <a class="api-item-permalink" href="#Audio_setOutputVolumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L70">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_setOutputVolumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.setOutputVolumeDb</span> <a class="api-item-permalink" href="#Audio_setOutputVolumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L69">src</a></div>
 <p>Sets the mastering output gain in decibels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setOutputVolumeDb</span>(decibels: <span class="STpe">f32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Bus_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.create</span> <a class="api-item-permalink" href="#Audio_Bus_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L32">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Bus_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.create</span> <a class="api-item-permalink" href="#Audio_Bus_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L31">src</a></div>
 <p>Creates a bus with the requested channel count.</p>
 <p>When <span class="code-inline">parent</span> is non-null, this bus sends its output to that bus; otherwise it sends to the mastering output. The caller owns the returned allocation and must eventually call <a href="#Audio_Bus_destroy">Audio.Bus.destroy</a>. The parent must outlive this bus. Success returns a non-null pointer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(channelCount: <span class="STpe">u32</span>, parent: *<span class="SCst"><a href="#Audio_Bus">Bus</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Audio_Bus">Bus</a></span>? <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Bus_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.destroy</span> <a class="api-item-permalink" href="#Audio_Bus_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L58">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Bus_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.destroy</span> <a class="api-item-permalink" href="#Audio_Bus_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L57">src</a></div>
 <p>Destroys the native submix and frees this bus immediately.</p>
 <p>Voices and child buses must be rerouted or destroyed first. The pointer is invalid after this method returns.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Bus_setVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolume</span> <a class="api-item-permalink" href="#Audio_Bus_setVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L429">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Bus_setVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolume</span> <a class="api-item-permalink" href="#Audio_Bus_setVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L428">src</a></div>
 <p>Sets this bus's linear gain.</p>
 <p><span class="code-inline">volume</span> is clamped to the range <span class="code-inline">0</span> through <span class="code-inline">1</span>. <span class="code-inline">batchId</span> is forwarded to backends that support deferred operation sets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolume</span>(volume: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Bus_setVolumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolumeDb</span> <a class="api-item-permalink" href="#Audio_Bus_setVolumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L71">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Bus_setVolumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolumeDb</span> <a class="api-item-permalink" href="#Audio_Bus_setVolumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L70">src</a></div>
 <p>Sets the bus gain in decibels.</p>
 <p><span class="code-inline">batchId</span> is forwarded to backends that support deferred operation sets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeDb</span>(decibels: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Bus_volume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.volume</span> <a class="api-item-permalink" href="#Audio_Bus_volume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L449">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Bus_volume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.volume</span> <a class="api-item-permalink" href="#Audio_Bus_volume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L448">src</a></div>
 <p>Returns this bus's current linear gain.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">volume</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Bus_volumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.volumeDb</span> <a class="api-item-permalink" href="#Audio_Bus_volumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L74">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Bus_volumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.volumeDb</span> <a class="api-item-permalink" href="#Audio_Bus_volumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L73">src</a></div>
 <p>Returns the current bus gain in decibels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">volumeDb</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_ICodec_canDecode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.canDecode</span> <a class="api-item-permalink" href="#Audio_ICodec_canDecode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L23">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_ICodec_canDecode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.canDecode</span> <a class="api-item-permalink" href="#Audio_ICodec_canDecode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L22">src</a></div>
 <p>Returns whether this codec can consume <span class="code-inline">encoding</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canDecode</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_ICodec_canEncode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.canEncode</span> <a class="api-item-permalink" href="#Audio_ICodec_canEncode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L20">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_ICodec_canEncode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.canEncode</span> <a class="api-item-permalink" href="#Audio_ICodec_canEncode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L19">src</a></div>
 <p>Returns whether this codec can produce <span class="code-inline">encoding</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canEncode</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_ICodec_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.decode</span> <a class="api-item-permalink" href="#Audio_ICodec_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L35">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_ICodec_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.decode</span> <a class="api-item-permalink" href="#Audio_ICodec_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L34">src</a></div>
 <p>Decodes one chunk and reports produced and consumed byte counts.</p>
 <p>At most <span class="code-inline">destinationSize</span> bytes may be written to <span class="code-inline">destination</span>, and at most <span class="code-inline">sourceSize</span> bytes may be read from <span class="code-inline">source</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decode</span>(destination: [*] <span class="STpe">void</span>, destinationSize: <span class="STpe">u64</span>, source: <span class="SKwd">const</span> [*] <span class="STpe">void</span>, sourceSize: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Audio_CodecProgress">CodecProgress</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_ICodec_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.initialize</span> <a class="api-item-permalink" href="#Audio_ICodec_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L29">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_ICodec_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.initialize</span> <a class="api-item-permalink" href="#Audio_ICodec_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L28">src</a></div>
 <p>Initializes decoder state and returns the number of input bytes consumed.</p>
 <p><span class="code-inline">source</span> contains up to <span class="code-inline">sourceSize</span> bytes from the start of the encoded stream. Implementations may consume headers or initial sample data.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">initialize</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">void</span>, sourceSize: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_IPacketCodec_canDecode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPacketCodec.canDecode</span> <a class="api-item-permalink" href="#Audio_IPacketCodec_canDecode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L45">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_IPacketCodec_canDecode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPacketCodec.canDecode</span> <a class="api-item-permalink" href="#Audio_IPacketCodec_canDecode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L44">src</a></div>
 <p>Returns whether this codec can consume <span class="code-inline">encoding</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canDecode</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_IPacketCodec_decodePacket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPacketCodec.decodePacket</span> <a class="api-item-permalink" href="#Audio_IPacketCodec_decodePacket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_IPacketCodec_decodePacket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPacketCodec.decodePacket</span> <a class="api-item-permalink" href="#Audio_IPacketCodec_decodePacket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L53">src</a></div>
 <p>Decodes one complete access unit to interleaved PCM16 and returns bytes written.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decodePacket</span>(destination: [*] <span class="STpe">void</span>, destinationSize: <span class="STpe">u64</span>, packet: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_IPacketCodec_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPacketCodec.initialize</span> <a class="api-item-permalink" href="#Audio_IPacketCodec_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L48">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_IPacketCodec_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPacketCodec.initialize</span> <a class="api-item-permalink" href="#Audio_IPacketCodec_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L47">src</a></div>
 <p>Initializes codec state from the container's decoder configuration.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">initialize</span>(config: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, sampleRateHz, channels: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_IPacketCodec_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPacketCodec.reset</span> <a class="api-item-permalink" href="#Audio_IPacketCodec_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L51">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_IPacketCodec_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPacketCodec.reset</span> <a class="api-item-permalink" href="#Audio_IPacketCodec_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L50">src</a></div>
 <p>Restores the state used before the first access unit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_frames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.frames</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_frames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L142">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_frames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.frames</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_frames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L141">src</a></div>
 <p>Returns the number of sample frames <span class="code-inline">packet</span> decodes to.</p>
 <p>The probe also remembers what the next packet needs to know about this one, so packets must be fed in stream order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frames</span>(packet: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.initialize</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L128">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.initialize</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L127">src</a></div>
 <p>Prepares the probe for one stream of <span class="code-inline">encoding</span>, whose decoder configuration is <span class="code-inline">config</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">initialize</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>, config: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.opDrop</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L121">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.opDrop</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L120">src</a></div>
 <p>Releases the duration-tracking state owned by this probe.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_canLoad" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.canLoad</span> <a class="api-item-permalink" href="#Audio_SoundFile_canLoad" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L170">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_canLoad" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.canLoad</span> <a class="api-item-permalink" href="#Audio_SoundFile_canLoad" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L169">src</a></div>
 <p>Returns whether <a href="#Audio_SoundFile_load">Audio.SoundFile.load</a> accepts the extension of <span class="code-inline">fileName</span>.</p>
 <p>The comparison is case-insensitive and does not open the file or validate its contents. An empty name or a name without an extension returns <span class="code-inline">false</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canLoad</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_decodableExtensions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.decodableExtensions</span> <a class="api-item-permalink" href="#Audio_SoundFile_decodableExtensions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L157">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_decodableExtensions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.decodableExtensions</span> <a class="api-item-permalink" href="#Audio_SoundFile_decodableExtensions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L156">src</a></div>
 <p>Returns the filename extensions accepted by <a href="#Audio_SoundFile_load">Audio.SoundFile.load</a>.</p>
 <p>Entries are lowercase and dot-prefixed. The returned array is owned by the caller and can be used to build file-dialog filters or format-viewer registries.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodableExtensions</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_decodePcm16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.decodePcm16</span> <a class="api-item-permalink" href="#Audio_SoundFile_decodePcm16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.decode.swg#L27">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_decodePcm16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.decodePcm16</span> <a class="api-item-permalink" href="#Audio_SoundFile_decodePcm16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.decode.swg#L26">src</a></div>
 <p>Decodes this sound sequentially to interleaved PCM16 chunks.</p>
 <p>Compressed packets are decoded in playback order and codec priming is omitted, so the total delivered frame count matches <a href="#Audio_SoundFile_sampleFrameCount">Audio.SoundFile.sampleFrameCount</a>. PCM sources are converted without requiring an audio engine. <span class="code-inline">consumer</span> borrows each bounded chunk only until it returns; returning <span class="code-inline">false</span> cancels the remaining work without failure.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decodePcm16</span>(consumer: <span class="SCst"><a href="#Audio_SoundPcm16Consumer">SoundPcm16Consumer</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_displayName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.displayName</span> <a class="api-item-permalink" href="#Audio_SoundFile_displayName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L292">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_displayName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.displayName</span> <a class="api-item-permalink" href="#Audio_SoundFile_displayName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L291">src</a></div>
 <p>Returns the human-readable track name supplied by the containing media, or an empty string.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayName</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_durationInSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.durationInSeconds</span> <a class="api-item-permalink" href="#Audio_SoundFile_durationInSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L282">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_durationInSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.durationInSeconds</span> <a class="api-item-permalink" href="#Audio_SoundFile_durationInSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L281">src</a></div>
 <p>Returns the playback duration in seconds.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">durationInSeconds</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_hasField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.hasField</span> <a class="api-item-permalink" href="#Audio_SoundFile_hasField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L298">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_hasField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.hasField</span> <a class="api-item-permalink" href="#Audio_SoundFile_hasField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L297">src</a></div>
 <p>Returns whether the loader validated the requested property.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasField</span>(field: <span class="SCst"><a href="#Audio_SoundFileFields">SoundFileFields</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_isDataPreloaded" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.isDataPreloaded</span> <a class="api-item-permalink" href="#Audio_SoundFile_isDataPreloaded" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L182">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_isDataPreloaded" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.isDataPreloaded</span> <a class="api-item-permalink" href="#Audio_SoundFile_isDataPreloaded" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L181">src</a></div>
 <p>Returns whether the complete payload is retained in memory.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isDataPreloaded</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_isPacketStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.isPacketStream</span> <a class="api-item-permalink" href="#Audio_SoundFile_isPacketStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L185">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_isPacketStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.isPacketStream</span> <a class="api-item-permalink" href="#Audio_SoundFile_isPacketStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L184">src</a></div>
 <p>Returns whether this source is made of independently indexed packets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isPacketStream</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_language" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.language</span> <a class="api-item-permalink" href="#Audio_SoundFile_language" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L295">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_language" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.language</span> <a class="api-item-permalink" href="#Audio_SoundFile_language" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L294">src</a></div>
 <p>Returns the language code supplied by the containing media, or an empty string.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">language</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.load</span> <a class="api-item-permalink" href="#Audio_SoundFile_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L306">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.load</span> <a class="api-item-permalink" href="#Audio_SoundFile_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L305">src</a></div>
 <p>Loads and validates a sound file.</p>
 <p><span class="code-inline">preloadData</span> keeps the complete payload in memory; otherwise voices stream it from <span class="code-inline">path</span>. A compressed file is always streamed — keeping it in memory would keep the wrong bytes — so <span class="code-inline">preloadData</span> applies to PCM WAV alone; an ADPCM WAV is indexed and streamed like any other compressed source. Unsupported extensions, encodings, and malformed files fail.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(path: <span class="STpe">string</span>, preloadData = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_numChannels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.numChannels</span> <a class="api-item-permalink" href="#Audio_SoundFile_numChannels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L270">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_numChannels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.numChannels</span> <a class="api-item-permalink" href="#Audio_SoundFile_numChannels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L269">src</a></div>
 <p>Returns the number of interleaved channels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">numChannels</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_openPacketStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.openPacketStream</span> <a class="api-item-permalink" href="#Audio_SoundFile_openPacketStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L333">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_openPacketStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.openPacketStream</span> <a class="api-item-permalink" href="#Audio_SoundFile_openPacketStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L332">src</a></div>
 <p>Creates a streamed compressed sound from a container's packet index.</p>
 <p>The packet table and decoder configuration are copied, while media bytes stay in <span class="code-inline">path</span> and are read only as playback reaches them. Memory holds the compact packet index, never the compressed media payload. <span class="code-inline">frameCount</span> is validated against the sum of packet durations. <span class="code-inline">options.timelineStartSeconds</span> locates frame zero on an enclosing media timeline; voice seeking and playback positions remain local to this sound. The optional display name and language are copied from <span class="code-inline">options</span> and remain valid for this value's lifetime.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openPacketStream</span>(path: <span class="STpe">string</span>, encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>, sampleRateHz, channels: <span class="STpe">u32</span>, frameCount: <span class="STpe">u64</span>, packets: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Audio_SoundPacket">SoundPacket</a></span>, decoderConfig: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, options: <span class="SCst"><a href="#Audio_PacketStreamOptions">PacketStreamOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_openPcmPacketStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.openPcmPacketStream</span> <a class="api-item-permalink" href="#Audio_SoundFile_openPcmPacketStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L421">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_openPcmPacketStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.openPcmPacketStream</span> <a class="api-item-permalink" href="#Audio_SoundFile_openPcmPacketStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L420">src</a></div>
 <p>Creates a streamed PCM sound from a container's chunk index.</p>
 <p>The chunk table is copied, while sample bytes stay in <span class="code-inline">path</span> and are read only as playback reaches them. Every chunk must hold complete interleaved sample frames in playback order. Supported encodings are 8-, 16-, 24-, and 32-bit integer PCM.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openPcmPacketStream</span>(path: <span class="STpe">string</span>, encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>, sampleRateHz, channels: <span class="STpe">u32</span>, packets: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Audio_SoundPacket">SoundPacket</a></span>)-&gt;<span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_packet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.packet</span> <a class="api-item-permalink" href="#Audio_SoundFile_packet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L194">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_packet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.packet</span> <a class="api-item-permalink" href="#Audio_SoundFile_packet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L193">src</a></div>
 <p>Returns packet <span class="code-inline">index</span> in playback order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">packet</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Audio_SoundPacket">SoundPacket</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_packetCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.packetCount</span> <a class="api-item-permalink" href="#Audio_SoundFile_packetCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L191">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_packetCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.packetCount</span> <a class="api-item-permalink" href="#Audio_SoundFile_packetCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L190">src</a></div>
 <p>Returns the number of indexed packets or chunks in this source.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">packetCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_payloadSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.payloadSize</span> <a class="api-item-permalink" href="#Audio_SoundFile_payloadSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L264">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_payloadSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.payloadSize</span> <a class="api-item-permalink" href="#Audio_SoundFile_payloadSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L263">src</a></div>
 <p>Returns the payload size in bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">payloadSize</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_preloadedData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.preloadedData</span> <a class="api-item-permalink" href="#Audio_SoundFile_preloadedData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L179">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_preloadedData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.preloadedData</span> <a class="api-item-permalink" href="#Audio_SoundFile_preloadedData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L178">src</a></div>
 <p>Returns the payload bytes retained in memory.</p>
 <p>The slice is empty when loading used <span class="code-inline">preloadData: false</span> and remains valid only while this sound file remains alive and unchanged.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">preloadedData</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_readPayload" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.readPayload</span> <a class="api-item-permalink" href="#Audio_SoundFile_readPayload" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L207">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_readPayload" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.readPayload</span> <a class="api-item-permalink" href="#Audio_SoundFile_readPayload" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L206">src</a></div>
 <p>Reads an owned range of the validated audio payload.</p>
 <p><span class="code-inline">offset</span> is relative to the first payload byte. The range is clamped at the payload end, and an offset at or beyond that end returns an empty array. A prefetched sound copies from memory; a streamed sound opens its own <a href="std.core.html#Core_ByteSource">Core.ByteSource</a> on the file and can therefore be sampled independently of any voice reading the same file.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">readPayload</span>(offset, count: <span class="STpe">u64</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleEncoding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleEncoding</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleEncoding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L258">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleEncoding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleEncoding</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleEncoding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L257">src</a></div>
 <p>Returns the validated payload encoding.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sampleEncoding</span>()-&gt;<span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleFrameCount</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L261">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleFrameCount</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L260">src</a></div>
 <p>Returns the number of sample frames across all channels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sampleFrameCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleRateHz" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleRateHz</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleRateHz" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L267">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleRateHz" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleRateHz</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleRateHz" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L266">src</a></div>
 <p>Returns the sample rate in hertz.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sampleRateHz</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleStorageBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleStorageBits</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleStorageBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L276">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleStorageBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleStorageBits</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleStorageBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L275">src</a></div>
 <p>Returns the storage width of one channel sample, in bits.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sampleStorageBits</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleValidBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleValidBits</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleValidBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L279">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_sampleValidBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sampleValidBits</span> <a class="api-item-permalink" href="#Audio_SoundFile_sampleValidBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L278">src</a></div>
 <p>Returns the significant width of one sample, in bits.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sampleValidBits</span>()-&gt;<span class="STpe">u16</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_sourcePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sourcePath</span> <a class="api-item-permalink" href="#Audio_SoundFile_sourcePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L173">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_sourcePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.sourcePath</span> <a class="api-item-permalink" href="#Audio_SoundFile_sourcePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L172">src</a></div>
 <p>Returns the source path used to load this sound.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_speakerChannelMask" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.speakerChannelMask</span> <a class="api-item-permalink" href="#Audio_SoundFile_speakerChannelMask" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L273">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_speakerChannelMask" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.speakerChannelMask</span> <a class="api-item-permalink" href="#Audio_SoundFile_speakerChannelMask" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L272">src</a></div>
 <p>Returns the speaker-position mask, or zero when the source omits it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">speakerChannelMask</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_SoundFile_timelineStartSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.timelineStartSeconds</span> <a class="api-item-permalink" href="#Audio_SoundFile_timelineStartSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L289">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_SoundFile_timelineStartSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.timelineStartSeconds</span> <a class="api-item-permalink" href="#Audio_SoundFile_timelineStartSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L288">src</a></div>
 <p>Returns the position of frame zero on the containing media timeline, in seconds.</p>
 <p>Standalone sounds and complete container tracks start at zero. A container may expose a bounded packet window with a later origin so a player can seek without indexing the entire media file first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">timelineStartSeconds</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.create</span> <a class="api-item-permalink" href="#Audio_Voice_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L127">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.create</span> <a class="api-item-permalink" href="#Audio_Voice_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L126">src</a></div>
 <p>Creates a controllable playback instance for a sound file.</p>
 <p>Multiple voices may borrow the same <a href="#Audio_SoundFile">Audio.SoundFile</a>. <span class="code-inline">file</span> must outlive the returned voice. The caller owns the voice and must call <a href="#Audio_Voice_destroy">Audio.Voice.destroy</a> unless a later playback uses <a href="#Audio_VoicePlayFlags_DestroyOnStop">Audio.VoicePlayFlags.DestroyOnStop</a>. Success returns a non-null pointer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(file: <span class="SKwd">const</span> *<span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span>, createFlags = <span class="SCst"><a href="#Audio_VoiceCreateFlags">VoiceCreateFlags</a></span>.<span class="SCst">Default</span>)-&gt;*<span class="SCst"><a href="#Audio_Voice">Voice</a></span>? <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.destroy</span> <a class="api-item-permalink" href="#Audio_Voice_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L323">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.destroy</span> <a class="api-item-permalink" href="#Audio_Voice_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L322">src</a></div>
 <p>Schedules this voice and its native resources for destruction.</p>
 <p>Destruction is idempotent and completes on the audio update path. Do not use the pointer after requesting destruction.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_frequencyRatio" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.frequencyRatio</span> <a class="api-item-permalink" href="#Audio_Voice_frequencyRatio" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L334">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_frequencyRatio" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.frequencyRatio</span> <a class="api-item-permalink" href="#Audio_Voice_frequencyRatio" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L333">src</a></div>
 <p>Returns the current playback frequency ratio.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frequencyRatio</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_isPlaying" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.isPlaying</span> <a class="api-item-permalink" href="#Audio_Voice_isPlaying" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L332">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_isPlaying" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.isPlaying</span> <a class="api-item-permalink" href="#Audio_Voice_isPlaying" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L331">src</a></div>
 <p>Returns whether the voice is currently marked as playing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isPlaying</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.opDrop</span> <a class="api-item-permalink" href="#Audio_Voice_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.opDrop</span> <a class="api-item-permalink" href="#Audio_Voice_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L114">src</a></div>
 <p>Releases codec and streaming resources owned by this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_pause" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.pause</span> <a class="api-item-permalink" href="#Audio_Voice_pause" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L196">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_pause" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.pause</span> <a class="api-item-permalink" href="#Audio_Voice_pause" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L195">src</a></div>
 <p>Pauses playback while preserving the current stream position.</p>
 <p>Calling this on a voice that is not playing has no effect.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pause</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_play" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.play</span> <a class="api-item-permalink" href="#Audio_Voice_play" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L157">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_play" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.play</span> <a class="api-item-permalink" href="#Audio_Voice_play" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L156">src</a></div>
 <p>Creates and immediately starts a voice.</p>
 <p>The default play flags provide fire-and-forget lifetime by scheduling the voice for destruction when playback finishes. The returned pointer can be retained to adjust playback while it remains valid.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
@@ -1426,58 +1426,58 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">play</span>(playFlags = <span class="SCst"><a href="#Audio_VoicePlayFlags">VoicePlayFlags</a></span>.<span class="SCst">None</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_playbackPositionSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.playbackPositionSeconds</span> <a class="api-item-permalink" href="#Audio_Voice_playbackPositionSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L312">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_playbackPositionSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.playbackPositionSeconds</span> <a class="api-item-permalink" href="#Audio_Voice_playbackPositionSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L311">src</a></div>
 <p>Returns the output-device playback position in seconds.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">playbackPositionSeconds</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_playbackSampleFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.playbackSampleFrame</span> <a class="api-item-permalink" href="#Audio_Voice_playbackSampleFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L302">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_playbackSampleFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.playbackSampleFrame</span> <a class="api-item-permalink" href="#Audio_Voice_playbackSampleFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L301">src</a></div>
 <p>Returns the decoded source sample frame currently heard at the output device.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">playbackSampleFrame</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_seekSampleFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.seekSampleFrame</span> <a class="api-item-permalink" href="#Audio_Voice_seekSampleFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L235">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_seekSampleFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.seekSampleFrame</span> <a class="api-item-permalink" href="#Audio_Voice_seekSampleFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L234">src</a></div>
 <p>Seeks to a decoded sample frame and preserves whether playback was running.</p>
 <p>Compressed packet sources restart on the packet containing <span class="code-inline">frame</span>; decoded frames before the requested position are discarded before submission. Indexed PCM sources seek directly inside their chunk. The backend queue is flushed, so <a href="#Audio_Voice_playbackSampleFrame">Audio.Voice.playbackSampleFrame</a> immediately uses the new position as its origin. A <span class="code-inline">frame</span> past the end is clamped to it. Fails with <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a> when the voice is not valid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">seekSampleFrame</span>(frame: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_setFrequencyRatio" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setFrequencyRatio</span> <a class="api-item-permalink" href="#Audio_Voice_setFrequencyRatio" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L312">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_setFrequencyRatio" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setFrequencyRatio</span> <a class="api-item-permalink" href="#Audio_Voice_setFrequencyRatio" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L311">src</a></div>
 <p>Sets the playback frequency ratio.</p>
 <p><span class="code-inline">1</span> preserves the source pitch, values below <span class="code-inline">1</span> lower it, and values above <span class="code-inline">1</span> raise it. Create the voice with <a href="#Audio_VoiceCreateFlags_PitchControl">Audio.VoiceCreateFlags.PitchControl</a> before changing this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFrequencyRatio</span>(ratio: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_setRouting" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setRouting</span> <a class="api-item-permalink" href="#Audio_Voice_setRouting" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L359">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_setRouting" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setRouting</span> <a class="api-item-permalink" href="#Audio_Voice_setRouting" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L358">src</a></div>
 <p>Replaces the buses that receive this voice.</p>
 <p>An empty slice routes directly to the mastering output. Every bus must be valid and must outlive this routing relationship.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRouting</span>(buses: <span class="SKwd">const</span> [..] *<span class="SCst"><a href="#Audio_Bus">Bus</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_setVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolume</span> <a class="api-item-permalink" href="#Audio_Voice_setVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L266">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_setVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolume</span> <a class="api-item-permalink" href="#Audio_Voice_setVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L265">src</a></div>
 <p>Sets this voice's linear gain.</p>
 <p><span class="code-inline">volume</span> is clamped to the range <span class="code-inline">0</span> through <span class="code-inline">1</span>. <span class="code-inline">batchId</span> is forwarded to backends that support deferred operation sets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolume</span>(volume: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_setVolumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolumeDb</span> <a class="api-item-permalink" href="#Audio_Voice_setVolumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L337">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_setVolumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolumeDb</span> <a class="api-item-permalink" href="#Audio_Voice_setVolumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L336">src</a></div>
 <p>Sets this voice's gain in decibels.</p>
 <p><span class="code-inline">batchId</span> is forwarded to backends that support deferred operation sets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeDb</span>(decibels: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_stop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.stop</span> <a class="api-item-permalink" href="#Audio_Voice_stop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L210">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_stop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.stop</span> <a class="api-item-permalink" href="#Audio_Voice_stop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L209">src</a></div>
 <p>Stops playback, discards queued backend buffers, and rewinds to the beginning.</p>
 <p>If the active play flags include <a href="#Audio_VoicePlayFlags_DestroyOnStop">Audio.VoicePlayFlags.DestroyOnStop</a>, this also schedules destruction.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">stop</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_volume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.volume</span> <a class="api-item-permalink" href="#Audio_Voice_volume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L286">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_volume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.volume</span> <a class="api-item-permalink" href="#Audio_Voice_volume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L285">src</a></div>
 <p>Returns this voice's current linear gain.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">volume</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_volumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.volumeDb</span> <a class="api-item-permalink" href="#Audio_Voice_volumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L340">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_volumeDb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.volumeDb</span> <a class="api-item-permalink" href="#Audio_Voice_volumeDb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L339">src</a></div>
 <p>Returns this voice's current gain in decibels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">volumeDb</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>

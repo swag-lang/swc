@@ -176,8 +176,9 @@ func(T) reverseSlice(values: [..] T)->ReversedSlice'T => {values: values}
 #[Swag.NoDoc, Swag.Inline]
 func(T) reverseSlice(values: const [..] T)->ConstReversedSlice'T => {values: values}
 
-// Iterates adjacent elements of an immutable slice without allocating pairs. The third
-// visit value is the position of the left element.
+// Iterates adjacent elements of an immutable slice without allocating pairs.
+//
+// The third visit value is the position of the left element.
 #[Swag.Opaque]
 struct(T) Pairs
 {

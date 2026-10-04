@@ -1291,11 +1291,11 @@ internal namespace Win32Priv
             try failWinError(GetLastError())
     }
 
-    // The sentinel this call returns on failure is also a legal position, four gigabytes less one
-    // byte into the file, so the only thing separating the two is the thread's last error. That
-    // error is whatever the thread last left there until something sets it, which is why the
-    // documented sequence clears it first: without that, a successful seek to the sentinel
-    // position reports the failure of whatever ran before it.
+    // Clears the thread's last error before seeking, because the failure sentinel is also a valid position.
+    //
+    // The sentinel is four gigabytes less one byte into the file, so only the thread's
+    // last error distinguishes success from failure. Without clearing that error first,
+    // a successful seek to the sentinel position reports the failure of whatever ran before it.
     #[Discardable]
     func SetFilePointer(hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: PLONG, dwMoveMethod: DWORD)->DWORD fail
     {
@@ -1317,8 +1317,9 @@ internal namespace Win32Priv
             try failWinError(GetLastError())
     }
 
-    // Same sentinel and same clearing as [[Win32.SetFilePointer]]: a file whose low size word is
-    // all ones answers the failure value on success.
+    // Uses the same failure sentinel and last-error clearing as [[Win32.SetFilePointer]].
+    //
+    // A file whose low size word is all ones returns the failure value on success.
     func GetFileSize(hFile: HANDLE, lpFileSizeHigh: LPDWORD)->DWORD fail
     {
         SetLastError(ERROR_SUCCESS)

@@ -323,8 +323,9 @@ private impl Curve
 
 impl Curve
 {
-    // Handle length at which a `Bezier` segment draws exactly the `Hermite` segment of the same
-    // tangents. It is the default of both weights, so a weight is only felt once it is changed.
+    // Handle length at which a `Bezier` segment draws the `Hermite` segment with the same tangents.
+    //
+    // It is the default of both weights, so a weight is only felt once it is changed.
     const NeutralWeight = 1 / 3.0'f32
 
     // Returns the classic curve named by `preset`, owned by the caller and free to edit.

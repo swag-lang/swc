@@ -39,6 +39,7 @@ namespace Swag
     attr AttrMulti()
 
     // Assigns one category to a '#test' function for selection with '--test-tag'.
+    //
     // Categories beginning with `integration.` run only when explicitly selected.
     #[AttrUsage(AttributeUsage.Function)]
     attr TestTag(name: string)
@@ -1075,8 +1076,9 @@ namespace Swag
     }
 
     // The native backend sub category.
-    // Under windows, by default, the application will be compiled to make a 'windowed' application. But you can
-    // change it and force the application to behave like a 'console' one.
+    //
+    // Under windows, by default, the application will be compiled to make a 'windowed' application. But you
+    // can change it and force the application to behave like a 'console' one.
     enum BuildCfgBackendSubKind
     {
         Default
@@ -1136,6 +1138,7 @@ namespace Swag
     }
 
     // How a module reports its warnings.
+    //
     // Each field lists warning identifiers separated with `|`, and accepts `"all"` to name
     // every warning at once. A field that names a warning outranks a field that says `"all"`,
     // whichever field it is, and every field here is outranked by [[Warning]] written on a
@@ -1159,6 +1162,7 @@ namespace Swag
     }
 
     // The current module build configuration.
+    //
     // See [[ICompiler]]
     struct BuildCfg
     {
@@ -1334,10 +1338,10 @@ func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 #[Swag.ReadOnly]
 func memcmp(dst, src: const [*] void?, size: u64)->s32
 
-// Hints that the bytes at `addr` will be read soon, so the processor can start moving
-// their cache line closer. It never faults and changes nothing the program can observe:
-// `addr` may be null, dangling, or one past the end of a buffer, and a target without a
-// prefetch instruction treats the call as a no-op.
+// Hints that the bytes at `addr` will be read soon, so the processor can start moving their cache line closer.
+//
+// It never faults and changes nothing the program can observe: `addr` may be null, dangling, or one past the
+// end of a buffer, and a target without a prefetch instruction treats the call as a no-op.
 func prefetch(addr: const [*] void?)
 
 // Atomic read-modify-write operations. Each one returns the value `addr` held before it.
@@ -1593,9 +1597,9 @@ func atomget(addr: *u64)->u64
     func trunc(value: #simd [4] f32)->#simd [4] f32
     func trunc(value: #simd [2] f64)->#simd [2] f64
 
-    // Broadcast: every lane of the result takes the value of the scalar. The
-    // lane type names the vector, so a 'u8' fills sixteen lanes and an 'f64'
-    // fills two.
+    // Broadcast: every lane of the result takes the value of the scalar.
+    //
+    // The lane type names the vector, so a 'u8' fills sixteen lanes and an 'f64' fills two.
     func vecsplat(value: u8)->#simd [16] u8
     func vecsplat(value: s8)->#simd [16] s8
     func vecsplat(value: u16)->#simd [8] u16
@@ -1607,8 +1611,7 @@ func atomget(addr: *u64)->u64
     func vecsplat(value: f32)->#simd [4] f32
     func vecsplat(value: f64)->#simd [2] f64
 
-    // Saturating addition and subtraction: results clamp to the lane range
-    // instead of wrapping.
+    // Saturating addition and subtraction: results clamp to the lane range instead of wrapping.
     func vecsatadd(value1, value2: #simd [16] u8)->#simd [16] u8
     func vecsatadd(value1, value2: #simd [16] s8)->#simd [16] s8
     func vecsatadd(value1, value2: #simd [8] u16)->#simd [8] u16
@@ -1618,9 +1621,10 @@ func atomget(addr: *u64)->u64
     func vecsatsub(value1, value2: #simd [8] u16)->#simd [8] u16
     func vecsatsub(value1, value2: #simd [8] s16)->#simd [8] s16
 
-    // Saturating narrowing packs: the lanes of 'low' land in the low half of
-    // the result and the lanes of 'high' in the high half, each clamped to
-    // the destination range.
+    // Narrows and clamps the lanes of 'low' and 'high' to the destination range.
+    //
+    // Saturating narrowing packs: the lanes of 'low' land in the low half of the result and the lanes of
+    // 'high' in the high half, each clamped to the destination range.
     func vecpackus(low, high: #simd [8] s16)->#simd [16] u8
     func vecpackus(low, high: #simd [4] s32)->#simd [8] u16
     func vecpackss(low, high: #simd [8] s16)->#simd [16] s8
@@ -1634,8 +1638,7 @@ func atomget(addr: *u64)->u64
     func vecinterleavehi(value1, value2: #simd [4] u32)->#simd [4] u32
     func vecinterleavehi(value1, value2: #simd [2] u64)->#simd [2] u64
 
-    // Widening: the low or high half of the lanes extends to double width,
-    // zero-extended for unsigned lanes and sign-extended for signed ones.
+    // Widening: the low or high half of the lanes extends to double width, zero-extended for unsigned lanes and sign-extended for signed ones.
     func vecwidenlo(value: #simd [16] u8)->#simd [8] u16
     func vecwidenlo(value: #simd [16] s8)->#simd [8] s16
     func vecwidenlo(value: #simd [8] u16)->#simd [4] u32
@@ -1653,23 +1656,23 @@ func atomget(addr: *u64)->u64
     func vecavgr(value1, value2: #simd [16] u8)->#simd [16] u8
     func vecavgr(value1, value2: #simd [8] u16)->#simd [8] u16
 
-    // Pairwise multiply-add: lanes multiply pairwise and adjacent products
-    // add into double-width lanes. The unsigned/signed byte form saturates
-    // its 16-bit sums.
+    // Pairwise multiply-add: lanes multiply pairwise and adjacent products add into double-width lanes.
+    //
+    // The unsigned/signed byte form saturates its 16-bit sums.
     func vecmadd(value1, value2: #simd [8] s16)->#simd [4] s32
     func vecmaddubs(value1: #simd [16] u8, value2: #simd [16] s8)->#simd [8] s16
 
-    // Carry-less multiplication of one 64-bit half of each source into a full
-    // 128-bit product. Bit 0 of the constant 'selector' picks the half of
-    // 'value1' and bit 4 the half of 'value2'. This is what CRC folding is
-    // made of.
+    // Carry-less multiplication of one 64-bit half of each source into a full 128-bit product.
+    //
+    // Bit 0 of the constant 'selector' picks the half of 'value1' and bit 4 the half of 'value2'. This is what
+    // CRC folding is made of.
     func vecclmul(value1, value2: #simd [2] u64, selector: u8)->#simd [2] u64
 
-    // The half of a lane product that '*' drops: lane 'i' answers the bits
-    // above the lane width of the full product of both lane 'i' values, read
-    // as the lane type is signed or not. The two together are the whole
-    // product, low lanes in 'Swag.vecinterleavelo' and high lanes in
-    // 'Swag.vecinterleavehi'.
+    // The high half of each lane product, using the lane type's signedness.
+    //
+    // The half of a lane product that '*' drops: lane 'i' answers the bits above the lane width of the full
+    // product of both lane 'i' values, read as the lane type is signed or not. The two together are the whole
+    // product, low lanes in 'Swag.vecinterleavelo' and high lanes in 'Swag.vecinterleavehi'.
     func vecmulhi(value1, value2: #simd [16] u8)->#simd [16] u8
     func vecmulhi(value1, value2: #simd [16] s8)->#simd [16] s8
     func vecmulhi(value1, value2: #simd [8] u16)->#simd [8] u16
@@ -1679,15 +1682,14 @@ func atomget(addr: *u64)->u64
     func vecmulhi(value1, value2: #simd [2] u64)->#simd [2] u64
     func vecmulhi(value1, value2: #simd [2] s64)->#simd [2] s64
 
-    // Sum of absolute byte differences: each half of the operands reduces
-    // into the low word of the matching 64-bit lane.
+    // Sum of absolute byte differences: each half of the operands reduces into the low word of the matching 64-bit lane.
     func vecsad(value1, value2: #simd [16] u8)->#simd [2] u64
     func vecsad(value1, value2: #simd [16] s8)->#simd [2] u64
 
-    // Horizontal reductions: every lane combines into one scalar of the lane
-    // type. Adjacent lanes combine first and their results after, so the
-    // order is a balanced tree over the lane index. Integer sums wrap, and
-    // the float minimum and maximum follow the element-wise 'Swag.min' and
+    // Horizontal reductions: every lane combines into one scalar of the lane type.
+    //
+    // Adjacent lanes combine first and their results after, so the order is a balanced tree over the lane
+    // index. Integer sums wrap, and the float minimum and maximum follow the element-wise 'Swag.min' and
     // 'Swag.max', which answer their second operand when either side is a NaN.
     func vecreduceadd(value: #simd [16] u8)->u8
     func vecreduceadd(value: #simd [16] s8)->s8
@@ -1744,24 +1746,27 @@ func atomget(addr: *u64)->u64
     func vecreducexor(value: #simd [2] u64)->u64
     func vecreducexor(value: #simd [2] s64)->s64
 
-    // Converts float lanes to signed 32-bit integers by truncating toward
-    // zero. NaN and values outside the destination range become 's32.Min'.
+    // Converts float lanes to signed 32-bit integers by truncating toward zero.
+    //
+    // NaN and values outside the destination range become 's32.Min'.
     func vectruncs32(value: #simd [4] f32)->#simd [4] s32
 
-    // Indexed memory load: result lane i reads base[indices[i]]. Every index
-    // must be at most 's32.Max' and designate a readable element.
+    // Indexed memory load: result lane i reads base[indices[i]].
+    //
+    // Every index must be at most 's32.Max' and designate a readable element.
     func vecgather(base: const [*] s32, indices: #simd [4] u32)->#simd [4] s32
 
-    // Dynamic byte permute: every result byte picks the source byte named by
-    // the low four bits of the matching table byte, or zero when the table
-    // byte's high bit is set.
+    // Permutes bytes using the low four bits of each table byte, or yields zero when its high bit is set.
+    //
+    // Dynamic byte permute: every result byte picks the source byte named by the low four bits of the matching
+    // table byte, or zero when the table byte's high bit is set.
     func vecperm(value: #simd [16] u8, table: #simd [16] u8)->#simd [16] u8
 
-    // Lane permutation. Result lane 'i' takes the lane the matching pattern
-    // lane names, the index reduced modulo the lane count so no pattern is out
-    // of range. A pattern known at compile time selects an immediate form where
-    // the target has one, and one built at run time goes through the dynamic
-    // byte permute.
+    // Lane permutation.
+    //
+    // Result lane 'i' takes the lane the matching pattern lane names, the index reduced modulo the lane count
+    // so no pattern is out of range. A pattern known at compile time selects an immediate form where the
+    // target has one, and one built at run time goes through the dynamic byte permute.
     func vecshuffle(value: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
     func vecshuffle(value: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
     func vecshuffle(value: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16
@@ -1773,8 +1778,7 @@ func atomget(addr: *u64)->u64
     func vecshuffle(value: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
     func vecshuffle(value: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
 
-    // The same over two vectors: an index below the lane count reads 'value1',
-    // and one above it reads 'value2' at the index minus the lane count.
+    // The same over two vectors: an index below the lane count reads 'value1', and one above it reads 'value2' at the index minus the lane count.
     func vecshuffle2(value1, value2: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
     func vecshuffle2(value1, value2: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
     func vecshuffle2(value1, value2: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16
@@ -1786,8 +1790,9 @@ func atomget(addr: *u64)->u64
     func vecshuffle2(value1, value2: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
     func vecshuffle2(value1, value2: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
 
-    // Sixteen bytes of the concatenation of 'low' and 'high', starting at byte
-    // 'count' of it. A byte past the thirty-two is zero.
+    // Sixteen bytes of the concatenation of 'low' and 'high', starting at byte 'count' of it.
+    //
+    // A byte past the thirty-two is zero.
     func vecalign(low, high: #simd [16] u8, count: u8)->#simd [16] u8
     func vecalign(low, high: #simd [16] s8, count: u8)->#simd [16] s8
     func vecalign(low, high: #simd [8] u16, count: u8)->#simd [8] u16
@@ -1799,8 +1804,7 @@ func atomget(addr: *u64)->u64
     func vecalign(low, high: #simd [4] f32, count: u8)->#simd [4] f32
     func vecalign(low, high: #simd [2] f64, count: u8)->#simd [2] f64
 
-    // Per-lane select: lanes of 'ifTrue' where the mask lane is all-ones,
-    // lanes of 'ifFalse' where it is all-zeros.
+    // Per-lane select: lanes of 'ifTrue' where the mask lane is all-ones, lanes of 'ifFalse' where it is all-zeros.
     func vecselect(mask, ifTrue, ifFalse: #simd [16] u8)->#simd [16] u8
     func vecselect(mask: #simd [8] u16, ifTrue, ifFalse: #simd [8] s16)->#simd [8] s16
     func vecselect(mask, ifTrue, ifFalse: #simd [8] u16)->#simd [8] u16
@@ -1812,8 +1816,7 @@ func atomget(addr: *u64)->u64
     func vecselect(mask: #simd [2] u64, ifTrue, ifFalse: #simd [2] s64)->#simd [2] s64
     func vecselect(mask: #simd [16] u8, ifTrue, ifFalse: #simd [16] s8)->#simd [16] s8
 
-    // Lane sign bits gathered into the low bits of an integer: one bit per
-    // lane, lane zero in bit zero.
+    // Lane sign bits gathered into the low bits of an integer: one bit per lane, lane zero in bit zero.
     func vecmask(value: #simd [16] u8)->u32
     func vecmask(value: #simd [8] u16)->u32
     func vecmask(value: #simd [4] u32)->u32

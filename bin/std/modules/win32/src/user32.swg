@@ -1142,10 +1142,11 @@ const DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    = cast(DPI_AWARENESS_CONTEXT) c
 
 const USER_DEFAULT_SCREEN_DPI = 96'u32
 
-// The coordinates packed in lParam are signed 16-bit values: they can be negative on
-// multi-monitor setups or when a maximized window is positioned outside the work area.
-// Sign-extend the low/high word manually so the sign is preserved (a narrowing cast
-// would trip the overflow safety check for values above 0x7FFF).
+// Coordinates packed in `lParam` are signed 16-bit values.
+//
+// They can be negative on multi-monitor setups or when a maximized window is positioned
+// outside the work area. Sign-extend the low/high word manually so the sign is preserved
+// (a narrowing cast would trip the overflow safety check for values above 0x7FFF).
 func GET_X_LPARAM(lp: LPARAM)->s32
 {
     let value = LOWORD(lp)

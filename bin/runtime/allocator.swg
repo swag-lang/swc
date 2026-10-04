@@ -16,20 +16,21 @@
 const AllocatorClassCount   = 45'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32
 
-// Classes 0 to 32 are carved from 64 KiB pages, the rest from 512 KiB pages, so that every class
-// holds at least eight blocks per page.
+// Classes 0 to 32 are carved from 64 KiB pages, the rest from 512 KiB pages, so that every class holds at least eight blocks per page.
 const AllocatorMediumFirstClass = 33'u32
 const AllocatorMaxClassSize     = 65536'u64
 
-// Blocks of class 1 and above are a multiple of 16 bytes and start on a 16-byte boundary, so the
-// page path already satisfies any alignment up to that. Up to a cache line, a stricter alignment
-// moves the request to a class whose size is a multiple of it; anything stricter takes the header
-// path.
+// The alignment the page path satisfies without moving a request to another class.
+//
+// Blocks of class 1 and above are a multiple of 16 bytes and start on a 16-byte boundary, so the page path
+// already satisfies any alignment up to that. Up to a cache line, a stricter alignment moves the request to a
+// class whose size is a multiple of it; anything stricter takes the header path.
 const AllocatorPagePathAlignment = 16'u32
 const AllocatorPageAlignmentMax  = 64'u32
 
-// Bounds of the committed cache of freed header-path blocks. The budget between the two byte
-// bounds follows the bytes held live through the header path.
+// Bounds of the committed cache of freed header-path blocks.
+//
+// The budget between the two byte bounds follows the bytes held live through the header path.
 const AllocatorBlockCacheMinBytes = 16'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxBytes = 256'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxCount = 64'u64
@@ -37,9 +38,11 @@ const AllocatorBlockCacheMaxCount = 64'u64
 // Header-path blocks above this size are rounded to eight sizes per power of two.
 const AllocatorLargeRoundMin = 64'u64 * 1024
 
-// Idle pages and cached large blocks that stay unused this long go back to the system at a
-// periodic purge check reached by an allocator slow path. Nothing runs in the background: a
-// program that stops allocating keeps them until it allocates again, trims, or exits.
+// The idle delay before a periodic purge may return unused pages and cached large blocks to the system.
+//
+// Idle pages and cached large blocks that stay unused this long go back to the system at a periodic purge
+// check reached by an allocator slow path. Nothing runs in the background: a program that stops allocating
+// keeps them until it allocates again, trims, or exits.
 const AllocatorPurgeDelayMs = 500'u64
 private var g_AllocatorPurgeDelayTicks: u64
 
@@ -55,8 +58,9 @@ struct AllocatorTracking
     allocId:    u32
 }
 
-// Carried only by header-path blocks. A page-path block has none of this: its size and owner are
-// recovered from the page table.
+// Carried only by header-path blocks.
+//
+// A page-path block has none of this: its size and owner are recovered from the page table.
 struct AllocatorHeader
 {
     allocAddr: [*] void?
@@ -79,8 +83,10 @@ struct AllocatorHeader
     magic:      u32
 }
 
-// One entry of the cache of freed header-path blocks. 'stamp' orders the entries by age, and
-// 'freedAt' is the monotonic tick of the free, which the idle purge compares with its delay.
+// One entry of the cache of freed header-path blocks.
+//
+// 'stamp' orders the entries by age, and 'freedAt' is the monotonic tick of the free, which the idle purge
+// compares with its delay.
 struct AllocatorCachedBlock
 {
     address:   u64
@@ -95,8 +101,10 @@ struct AllocatorFooter
     magic: u32
 }
 
-// An exact snapshot of what the allocator holds. Producing it walks the segment and heap lists, so
-// the fast paths keep no counter and pay nothing for statistics that nobody is reading.
+// An exact snapshot of what the allocator holds.
+//
+// Producing it walks the segment and heap lists, so the fast paths keep no counter and pay nothing for
+// statistics that nobody is reading.
 struct AllocatorStats
 {
     // Blocks handed to callers and not yet returned, and the bytes their size classes reserve.
@@ -318,9 +326,10 @@ private func setCurrentAllocatorThreadHeap(heap: *AllocatorThreadHeap?)
 
 private func currentThreadId()->u64 => __hostCurrentThreadId()
 
-// Queues a page that a remote free found on its owner's full list. The page is pushed once
-// until a drain takes it; the queue belongs to the allocator, never to a heap, because a heap can
-// retire at any moment while a page's metadata lives as long as its segment.
+// Queues a page that a remote free found on its owner's full list.
+//
+// The page is pushed once until a drain takes it; the queue belongs to the allocator, never to a heap, because
+// a heap can retire at any moment while a page's metadata lives as long as its segment.
 func allocatorQueueRevisit(page: *AllocatorPage)
 {
     if Swag.atomcmpxchg(&page.revisitQueued, 0, 1) != 0 do
@@ -353,9 +362,10 @@ impl Allocator
     const FreeByte       = 0xFB
     const InstalledMagic = 0xA110CA7E
 
-    // Class 0 is 8 bytes, classes 1 to 8 step by 16 up to 128, and every class above that splits a
-    // power of two into four. The widest step is a fifth of the class it lands in, which is the
-    // bound on how much of a page-path block a request can leave unused.
+    // Class 0 is 8 bytes, classes 1 to 8 step by 16 up to 128, and every class above that splits a power of two into four.
+    //
+    // The widest step is a fifth of the class it lands in, which is the bound on how much of a page-path block
+    // a request can leave unused.
     func classSize(index: u32)->u64
     {
         if index == 0 do
@@ -384,10 +394,10 @@ impl Allocator
         return 9 + (bucket - 7) * 4 + step
     }
 
-    // A block starts at its page's block area, which is aligned on the commit granularity, plus a
-    // multiple of its class size. A class whose size is a multiple of 'alignment' therefore aligns
-    // every one of its blocks. Returns the smallest such class from 'index' up, or an invalid class
-    // when none is left below the page-path limit.
+    // A block starts at its page's block area, which is aligned on the commit granularity, plus a multiple of its class size.
+    //
+    // A class whose size is a multiple of 'alignment' therefore aligns every one of its blocks. Returns the
+    // smallest such class from 'index' up, or an invalid class when none is left below the page-path limit.
     func alignedClass(index: u32, alignment: u32)->u32
     {
         var candidate = index
@@ -504,8 +514,10 @@ impl Allocator
         return address
     }
 
-    // Reserves one extra page past the block and leaves it uncommitted. Electric mode places the
-    // aligned payload immediately before it, leaving only the slack required by alignment.
+    // Reserves one extra page past the block and leaves it uncommitted.
+    //
+    // Electric mode places the aligned payload immediately before it, leaving only the slack required by
+    // alignment.
     mtd osAllocGuarded(commitBytes: u64)->[*] u8?
     {
         if commitBytes == 0 or commitBytes > Swag.U64.Max - AllocatorCommitGranularity do
@@ -571,8 +583,7 @@ impl Allocator
         return .installThreadHeap(heap)
     }
 
-    // Gives the calling thread a heap of this allocator, the first time it allocates or after the
-    // slot was handed to another allocator.
+    // Gives the calling thread a heap of this allocator, the first time it allocates or after the slot was handed to another allocator.
     mtd installThreadHeap(heap: *AllocatorThreadHeap?)->*AllocatorThreadHeap?
     {
         // The slot holds another allocator's heap, which happens when a program installs a second
@@ -592,9 +603,10 @@ impl Allocator
         return newHeap
     }
 
-    // Gives every page the heap still owns back: emptied ones to their segment, the rest to the
-    // abandoned list where any thread can adopt them. The page table outlives the heap, so a
-    // remote free racing with this only ever lands on storage that is still mapped.
+    // Gives every page the heap still owns back: emptied ones to their segment, the rest to the abandoned list where any thread can adopt them.
+    //
+    // The page table outlives the heap, so a remote free racing with this only ever lands on storage that is
+    // still mapped.
     mtd retireThreadHeap(heap: *AllocatorThreadHeap)
     {
         if Swag.atomxchg(&heap.retired, 1) != 0 do
@@ -716,8 +728,9 @@ impl Allocator
         page.nextPage = null
     }
 
-    // Adopts an abandoned page of the class, or carves a new one out of a segment. The caller must
-    // not hold the segment mutex.
+    // Adopts an abandoned page of the class, or carves a new one out of a segment.
+    //
+    // The caller must not hold the segment mutex.
     mtd acquirePageForClass(heap: *AllocatorThreadHeap, classIndex: u32)->*AllocatorPage?
     {
         let blockSize = cast(u32) classSize(classIndex)
@@ -786,10 +799,11 @@ impl Allocator
         return page
     }
 
-    // Moves a page the slow path found exhausted to its class's full list. The page is marked
-    // before its remote list is read again; 'pushRemote' publishes a block before reading the
-    // mark, so one of the two always sees the other and no block freed into a page going full is
-    // stranded there. Returns false, the page back on the scanned list, when such a block arrived.
+    // Moves a page the slow path found exhausted to its class's full list.
+    //
+    // The page is marked before its remote list is read again; 'pushRemote' publishes a block before reading
+    // the mark, so one of the two always sees the other and no block freed into a page going full is stranded
+    // there. Returns false, the page back on the scanned list, when such a block arrived.
     mtd parkFullPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)->bool
     {
         .unlinkPage(heap, page)
@@ -810,8 +824,9 @@ impl Allocator
         return true
     }
 
-    // Puts a full page back on the scanned list, behind the pages already there. Clearing the
-    // mark needs no barrier: a remote free that still sees it only queues the page once more.
+    // Puts a full page back on the scanned list, behind the pages already there.
+    //
+    // Clearing the mark needs no barrier: a remote free that still sees it only queues the page once more.
     mtd unparkFullPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
     {
         .unlinkPage(heap, page)
@@ -819,8 +834,9 @@ impl Allocator
         .linkPage(heap, page)
     }
 
-    // Takes back the full pages of this heap that received remote frees. Pages of other heaps
-    // go back on the stack for their owners.
+    // Takes back the full pages of this heap that received remote frees.
+    //
+    // Pages of other heaps go back on the stack for their owners.
     mtd reviveFullPages(heap: *AllocatorThreadHeap)
     {
         if atomicGet(&.revisitPages) == 0 do
@@ -842,10 +858,10 @@ impl Allocator
         }
     }
 
-    // Gives idle pages back once idle memory has existed for the purge delay, and cached large
-    // blocks freed longer ago than that delay.
-    // The first check that sees idle memory arms the deadline; the first one past it purges.
-    // Costs one clock read per check while idle memory exists, and nothing otherwise.
+    // Gives idle pages back once idle memory has existed for the purge delay, and cached large blocks freed longer ago than that delay.
+    //
+    // The first check that sees idle memory arms the deadline; the first one past it purges. Costs one clock
+    // read per check while idle memory exists, and nothing otherwise.
     mtd maybePurge()
     {
         var delay = atomicGet(&g_AllocatorPurgeDelayTicks)
@@ -901,10 +917,11 @@ impl Allocator
         }
     }
 
-    // Runs when the current page has nothing left: takes back full pages that other threads
-    // freed into, then looks through the pages that may still give a block, parking the
-    // exhausted ones on the full list so that a growing live set is not rescanned page after
-    // page, then asks for a new one.
+    // Finds or acquires a page when the current page has no free block.
+    //
+    // Runs when the current page has nothing left: takes back full pages that other threads freed into, then
+    // looks through the pages that may still give a block, parking the exhausted ones on the full list so that
+    // a growing live set is not rescanned page after page, then asks for a new one.
     mtd acquireBlockSlow(heap: *AllocatorThreadHeap, classIndex: u32)->u64
     {
         let cls = &heap.classes[classIndex]
@@ -967,8 +984,10 @@ impl Allocator
         return .acquireBlockSlow(heap, classIndex)
     }
 
-    // Returns an empty page to its segment. The page the fast path is serving from is
-    // kept, so an allocate/free pair on a single block never touches the operating system.
+    // Returns an empty page to its segment.
+    //
+    // The page the fast path is serving from is kept, so an allocate/free pair on a single block never touches
+    // the operating system.
     mtd retirePage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
     {
         let cls = &heap.classes[page.classIndex]
@@ -1056,8 +1075,10 @@ impl Allocator
         header.next = null
     }
 
-    // Holds a freed block instead of unmapping it. A second free is diagnosed through its header;
-    // consistency checks cover the header and footer, not accesses confined to the freed payload.
+    // Holds a freed block instead of unmapping it.
+    //
+    // A second free is diagnosed through its header; consistency checks cover the header and footer, not
+    // accesses confined to the freed payload.
     mtd quarantine(header: *AllocatorHeader)
     {
         header.prev = .lastQuarantine
@@ -1088,10 +1109,12 @@ impl Allocator
         }
     }
 
-    // Rounds a header-path block up to one of eight sizes per power of two, so that blocks freed
-    // and requested with slightly different sizes land on the same size and the cache can serve
-    // them. The rounding wastes at most an eighth of the block, and only in address space and
-    // commitment: the pages past the request are never touched by the allocator.
+    // Rounds a header-path block up to one of eight sizes per power of two.
+    //
+    // Rounds a header-path block up to one of eight sizes per power of two, so that blocks freed and requested
+    // with slightly different sizes land on the same size and the cache can serve them. The rounding wastes at
+    // most an eighth of the block, and only in address space and commitment: the pages past the request are
+    // never touched by the allocator.
     func largeBlockSize(size: u64)->u64
     {
         if size <= AllocatorLargeRoundMin do
@@ -1103,10 +1126,12 @@ impl Allocator
         return (size + step - 1) & ~(step - 1)
     }
 
-    // Serves the cached block that fits 'size' best, accepting up to twice the request: a cached
-    // block is already committed and touched, so handing out a larger one costs no memory, while
-    // a miss costs a reservation, a commit, and a page fault per page. Returns null when nothing
-    // fits, and the reserved and committed sizes of the block it returns.
+    // Serves the cached block that fits 'size' best, accepting up to twice the request.
+    //
+    // Serves the cached block that fits 'size' best, accepting up to twice the request: a cached block is
+    // already committed and touched, so handing out a larger one costs no memory, while a miss costs a
+    // reservation, a commit, and a page fault per page. Returns null when nothing fits, and the reserved and
+    // committed sizes of the block it returns.
     mtd popCachedBlock(size: u64, blockSize: *u64, commitSize: *u64)->[*] u8?
     {
         if .cachedBlockCount == 0 do
@@ -1148,18 +1173,20 @@ impl Allocator
         .cachedBlocks[index] = .cachedBlocks[.cachedBlockCount]
     }
 
-    // The bytes the cache may keep committed: as much as the program holds live through the
-    // header path, so a program that works with large buffers keeps recycling them while a
-    // program that is done with them gives the memory back, plus a floor that absorbs the
-    // allocate/free cycles of a few large buffers.
+    // The bytes the cache may keep committed.
+    //
+    // The bytes the cache may keep committed: as much as the program holds live through the header path, so a
+    // program that works with large buffers keeps recycling them while a program that is done with them gives
+    // the memory back, plus a floor that absorbs the allocate/free cycles of a few large buffers.
     mtd blockCacheBudget()->u64
     {
         let live = atomicGet(&.headerBytes)
         return Swag.min(Swag.max(live, AllocatorBlockCacheMinBytes), AllocatorBlockCacheMaxBytes)
     }
 
-    // Keeps a freed operating-system block committed for reuse. Beyond the budget the
-    // oldest cached blocks go back to the operating system first, so the resident cost
+    // Keeps a freed operating-system block committed for reuse.
+    //
+    // Beyond the budget the oldest cached blocks go back to the operating system first, so the resident cost
     // of the cache stays bounded whatever the churn. The budget counts committed bytes.
     mtd cacheFreedBlock(address: [*] void?, size: u64, committed: u64)
     {
@@ -1329,6 +1356,7 @@ impl Allocator
     }
 
     // Commits enough of the block's reservation for 'size' bytes of payload, when it has room.
+    //
     // On failure the block is left as it was and the caller moves the data.
     mtd growHeaderBlock(header: *AllocatorHeader, size: u64)
     {
@@ -1384,12 +1412,13 @@ impl Allocator
     // Public operations
     // ###################################################################################
 
-    // The common allocation: a default alignment, a size a page class carries, and a block ready
-    // on the calling thread's current page for that class. Returns zero whenever anything else
-    // has to happen; the general path then repeats every check and handles it.
-    // A zero size wraps to the largest value, so one comparison rejects it with the sizes no class
-    // carries. Every class but the 8-byte one is 16-byte aligned, so an alignment up to 16 only
-    // moves the smallest requests one class up.
+    // Allocates a block already available on the calling thread's current page, with a size and alignment the page path can serve.
+    //
+    // The common allocation: a default alignment, a size a page class carries, and a block ready on the
+    // calling thread's current page for that class. Returns zero whenever anything else has to happen; the
+    // general path then repeats every check and handles it. A zero size wraps to the largest value, so one
+    // comparison rejects it with the sizes no class carries. Every class but the 8-byte one is 16-byte
+    // aligned, so an alignment up to 16 only moves the smallest requests one class up.
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd allocateFast(size: u64, alignment: u32)->u64
     {
@@ -1420,11 +1449,12 @@ impl Allocator
         return page.acquireBlock()
     }
 
-    // The common free: a page block, which goes back on the page's own list when the calling
-    // thread owns the page and on its remote list otherwise. Returns false, having changed
-    // nothing, for a header-path block, a null address, or a page without an owner. Under memory
-    // safety, a bogus block address or an apparent double free also returns false. The general
-    // path then handles or diagnoses the rejected request.
+    // Returns a page block to its owner's free list or, when called from another thread, to its remote list.
+    //
+    // The common free: a page block, which goes back on the page's own list when the calling thread owns the
+    // page and on its remote list otherwise. Returns false, having changed nothing, for a header-path block, a
+    // null address, or a page without an owner. Under memory safety, a bogus block address or an apparent
+    // double free also returns false. The general path then handles or diagnoses the rejected request.
     #[Swag.Inline]
     mtd freeFast(address: u64)->bool
     {
@@ -1468,9 +1498,10 @@ impl Allocator
         return true
     }
 
-    // A page-path block needs no header, so a request only leaves that path when it asks for more
-    // than a page can carve, for an alignment beyond a cache line, or while a diagnostic mode is
-    // recording.
+    // Reports whether a request needs the header path.
+    //
+    // A page-path block needs no header, so a request only leaves that path when it asks for more than a page
+    // can carve, for an alignment beyond a cache line, or while a diagnostic mode is recording.
     #[Swag.Inline]
     mtd usesHeaderPath(request: *AllocatorRequest, classIndex: u32)->bool
     {
@@ -1625,8 +1656,10 @@ impl Allocator
         request.address = allocReq.address
     }
 
-    // Rejects an address that no live block of the page starts, which covers a stale pointer, an
-    // interior pointer, and a pointer into a page that has already gone back to its segment.
+    // Rejects an address that does not start a live block of the page.
+    //
+    // Rejects an address that no live block of the page starts, which covers a stale pointer, an interior
+    // pointer, and a pointer into a page that has already gone back to its segment.
     #[Swag.Inline]
     mtd checkPageAddress(page: *AllocatorPage, address: u64, callerLoc: SourceCodeLocation)
     {
@@ -1750,8 +1783,10 @@ impl Allocator
         return result
     }
 
-    // Gives idle memory back: empty pages of the calling heap, except its current page in each
-    // size class, and empty abandoned pages are decommitted. Segments with no page are released.
+    // Decommits idle pages and releases empty segments, keeping the calling heap's current page in each size class.
+    //
+    // Gives idle memory back: empty pages of the calling heap, except its current page in each size class, and
+    // empty abandoned pages are decommitted. Segments with no page are released.
     mtd trim()
     {
         let heap = currentAllocatorThreadHeap()

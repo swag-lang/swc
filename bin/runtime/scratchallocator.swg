@@ -75,8 +75,9 @@ impl ScratchAllocator
         .totalLeak = 0
     }
 
-    // This will call 'release' prior to changing the capacity, so this must
-    // be called at an early stage. The buffer is allocated on first use.
+    // This will call 'release' prior to changing the capacity, so this must be called at an early stage.
+    //
+    // The buffer is allocated on first use.
     mtd setCapacity(newCapacity: u64, allocator: IAllocator)
     {
         .release()

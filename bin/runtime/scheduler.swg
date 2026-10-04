@@ -8,9 +8,11 @@
 // bound means moving that runner storage off the stack first.
 const MaxWorkers = 64'u32
 
-// The number of parked observers a completion can single out. It must be a power of two, because
-// a node picks its first candidate slot by masking its own address. A process with more parked
-// observers than slots keeps the correct but unselective behaviour: completions wake every one.
+// The number of parked observers a completion can single out.
+//
+// It must be a power of two, because a node picks its first candidate slot by masking its own address. A
+// process with more parked observers than slots keeps the correct but unselective behaviour: completions wake
+// every one.
 const MaxObservers = 64'u32
 
 // A unit of work the runtime scheduler can run once.
@@ -82,8 +84,9 @@ private var g_Scheduler:      AtomicValue'u64
 private var g_SchedulerMutex: Mutex
 private var g_SchedulerOwned: bool     // Written before publishing the pointer; read at quiescent shutdown.
 
-// Observe an existing roster without creating a scheduler or starting workers. A concurrent
-// growth can leave this call serial; the next call observes the larger pool. Before startup
+// Observe an existing roster without creating a scheduler or starting workers.
+//
+// A concurrent growth can leave this call serial; the next call observes the larger pool. Before startup
 // completes, a zero count says nothing about the requested roster.
 #[Swag.Inline]
 internal func hasSerialWorkerPool()->bool

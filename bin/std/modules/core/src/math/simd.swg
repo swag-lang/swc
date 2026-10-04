@@ -268,8 +268,9 @@ namespace Simd
         func interleaveHigh(x, y: U32x4)->U32x4 => Swag.vecinterleavehi(x, y)
         func interleaveHigh(x, y: U64x2)->U64x2 => Swag.vecinterleavehi(x, y)
 
-        // Extends the low half of the lanes to double width, zero-extended for unsigned
-        // lanes and sign-extended for signed ones.
+        // Extends the low half of the lanes to double width.
+        //
+        // Unsigned lanes are zero-extended, and signed lanes are sign-extended.
         func widenLow(value: U8x16)->U16x8 => Swag.vecwidenlo(value)
         func widenLow(value: S8x16)->S16x8 => Swag.vecwidenlo(value)
         func widenLow(value: U16x8)->U32x4 => Swag.vecwidenlo(value)
@@ -277,8 +278,9 @@ namespace Simd
         func widenLow(value: U32x4)->U64x2 => Swag.vecwidenlo(value)
         func widenLow(value: S32x4)->S64x2 => Swag.vecwidenlo(value)
 
-        // Extends the high half of the lanes to double width, zero-extended for unsigned
-        // lanes and sign-extended for signed ones.
+        // Extends the high half of the lanes to double width.
+        //
+        // Unsigned lanes are zero-extended, and signed lanes are sign-extended.
         func widenHigh(value: U8x16)->U16x8 => Swag.vecwidenhi(value)
         func widenHigh(value: S8x16)->S16x8 => Swag.vecwidenhi(value)
         func widenHigh(value: U16x8)->U32x4 => Swag.vecwidenhi(value)
@@ -309,8 +311,10 @@ namespace Simd
         func permute(value: F32x4, pattern: U32x4)->F32x4 => Swag.vecshuffle(value, pattern)
         func permute(value: F64x2, pattern: U64x2)->F64x2 => Swag.vecshuffle(value, pattern)
 
-        // Permutes lanes out of two vectors: an index below the lane count reads `x`,
-        // and one above it reads `y` at the index minus the lane count.
+        // Permutes lanes from two vectors.
+        //
+        // An index below the lane count reads `x`; otherwise it reads `y` at the index
+        // minus the lane count.
         func permute2(x, y, pattern: U8x16)->U8x16        => Swag.vecshuffle2(x, y, pattern)
         func permute2(x, y: S8x16, pattern: U8x16)->S8x16 => Swag.vecshuffle2(x, y, pattern)
         func permute2(x, y, pattern: U16x8)->U16x8        => Swag.vecshuffle2(x, y, pattern)

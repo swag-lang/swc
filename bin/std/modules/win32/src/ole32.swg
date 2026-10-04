@@ -109,8 +109,9 @@ struct FORMATETC
     }
 }
 
-// Every case of the medium union is one pointer wide; the two the drag and clipboard paths use
-// are named, and any other case reads through `hGlobal`.
+// Medium union whose cases are each one pointer wide.
+//
+// The two cases used by drag and clipboard paths are named; other cases read through `hGlobal`.
 struct STGMEDIUM
 {
     public
@@ -197,8 +198,10 @@ struct IStream
     public lpVtbl: *IStreamVtbl
 }
 
-// The two `ISequentialStream` methods are spelled inline, because the vtable of a derived
-// interface is the base one followed by its own entries and nothing here needs the base name.
+// Declares the two `ISequentialStream` methods inline in this vtable.
+//
+// A derived interface's vtable is the base one followed by its own entries, and nothing
+// here needs the base name.
 #[Swag.CallingConvention(.C)]
 struct IStreamVtbl
 {

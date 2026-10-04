@@ -2,9 +2,10 @@
 
 using Swag, Core.Errors
 
-// One serializable field of a struct, with everything the serializers would otherwise
-// recompute per instance: the wire key, the wire identity of the type and the compression
-// policy.
+// One serializable struct field with its precomputed wire metadata.
+//
+// Stores the wire key, the wire identity of the type, and the compression policy so
+// serializers do not recompute them per instance.
 public struct PlanField
 {
     public

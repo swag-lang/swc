@@ -64,7 +64,8 @@ const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_
     func RegCloseKey(hKey: HKEY)->LSTATUS
 }
 
-// `RtlGenRandom` has never had an export of that name: `advapi32.dll` publishes it as
-// `SystemFunction036`, which is what `ntsecapi.h` declares it as too.
+// Imports `RtlGenRandom` through the `SystemFunction036` export in `advapi32.dll`.
+//
+// `ntsecapi.h` declares it under that name too; there is no export named `RtlGenRandom`.
 #[Foreign("advapi32", "SystemFunction036", callconv: Swag.CallConv.C)]
 func RtlGenRandom(RandomBuffer: [*] u8, RandomBufferLength: ULONG)->BOOLEAN

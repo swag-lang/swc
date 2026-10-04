@@ -4,9 +4,11 @@
 
 using Swag, Core.Errors
 
-// Version mark written after the root signature. This is the only supported TagBin
-// generation. It deliberately differs from every historical marker, so obsolete data
-// stops at the header instead of being interpreted with another layout.
+// Version mark written after the root signature.
+//
+// This is the only supported TagBin generation. It deliberately differs from every
+// historical marker, so obsolete data stops at the header instead of being interpreted
+// with another layout.
 const TagBinVersion1 = 0xFAFAFAFC
 
 // Header flags of a version 1 stream.

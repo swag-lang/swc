@@ -387,7 +387,8 @@ namespace
     {
         result.registerIndex = ABICall::argumentRegisterIndex(callConv, argLayouts, result.slotIndex);
         result.isRegisterArg = result.registerIndex != UINT32_MAX;
-        result.stackOffset   = ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
+        // Only stack arguments load from an incoming frame slot.
+        result.stackOffset = result.isRegisterArg ? 0 : ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
     }
 }
 

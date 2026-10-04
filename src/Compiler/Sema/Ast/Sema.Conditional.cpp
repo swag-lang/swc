@@ -382,8 +382,21 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
 
     SWC_RESULT(checkNullCoalescingOperand(sema, nodeLeftView));
 
-    const TypeRef resultTypeRef = resolveNullCoalescingResultType(sema, nodeLeftView.typeRef(), nodeRightView.typeRef());
-    SWC_RESULT(Cast::cast(sema, nodeRightView, resultTypeRef, CastKind::Implicit));
+    const TypeRef   resultTypeRef        = resolveNullCoalescingResultType(sema, nodeLeftView.typeRef(), nodeRightView.typeRef());
+    TypeRef         fallbackTypeRef      = resultTypeRef;
+    const TypeRef   concreteLeftTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
+    const TypeInfo& leftType             = sema.typeMgr().get(concreteLeftTypeRef);
+    const TypeRef   concreteRightTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeRightView.typeRef());
+    const TypeInfo& rightType            = sema.typeMgr().get(concreteRightTypeRef);
+    if (leftType.isNonNullable() && (rightType.isNull() || rightType.isNullable()))
+    {
+        // A non-null left makes the fallback unreachable, including after inline
+        // argument substitution. Check its value family without requiring presence.
+        TypeInfo fallbackType = leftType;
+        fallbackType.addFlag(TypeInfoFlagsE::Nullable);
+        fallbackTypeRef = sema.typeMgr().addType(fallbackType);
+    }
+    SWC_RESULT(Cast::cast(sema, nodeRightView, fallbackTypeRef, CastKind::Implicit));
     sema.setType(sema.curNodeRef(), resultTypeRef);
 
     // Constant folding

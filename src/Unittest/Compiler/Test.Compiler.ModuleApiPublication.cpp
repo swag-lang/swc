@@ -233,6 +233,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InlineBodyExportContract)
         std::string_view because;
         std::string_view inlineBody;
         std::string_view artifactKind = "static-library";
+        std::string_view use          = "discard exposed(42)";
     };
     const Case cases[] = {
         {"PrivateHelper", R"(#global public
@@ -268,7 +269,9 @@ impl Hidden
 func exposed()->*Swag.Context => Swag.getContext()
 )",
          {},
-         "=> Swag.getContext()"},
+         "=> Swag.getContext",
+         "static-library",
+         "discard exposed()"},
         {"Assertion", R"(#global public
 #[Swag.Inline]
 func exposed(value: s32)->s32
@@ -284,7 +287,9 @@ func exposed(value: s32)->s32
 func exposed(value: *s32)->s32 => Swag.atomadd(value, 1)
 )",
          {},
-         "=> Swag.atomadd(value, 1)"},
+         "=> Swag.atomadd(value, 1)",
+         "static-library",
+         "var value: s32 = 42\n    discard exposed(&value)"},
         {"PublicHelper", R"(#global public
 func helper(value: s32)->s32 => value + 1
 #[Swag.Inline]
@@ -369,10 +374,28 @@ func exposed(value: s32)->s32 => helper(value)
         std::string             generated;
         FileSystem::IoErrorInfo ioError;
         const fs::path          apiFile = api / (test.name == "WholeFile" ? "provider.swg" : std::string(test.name) + ".swg");
-        SWC_RESULT(FileSystem::readTextFile(apiFile, generated, ioError));
+        if (FileSystem::readTextFile(apiFile, generated, ioError) != Result::Continue)
+        {
+            std::println(stderr, "[inline API {}] cannot read '{}'", test.name, apiFile.string());
+            return Result::Error;
+        }
         if ((generated.find("Swag.Inline") != std::string::npos) != !test.inlineBody.empty() ||
             (!test.inlineBody.empty() && generated.find(test.inlineBody) == std::string::npos))
+        {
+            std::println(stderr, "[inline API {}] {}", test.name, generated);
             return Result::Error;
+        }
+
+        const fs::path consumer = module / "consumer.swg";
+        SWC_RESULT(CompilerTestFile::writeText(consumer, std::format("using InlineApi\n#test\n{{\n    {}\n}}\n", test.use)));
+        const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        result.output.clear();
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+        {
+            std::println(stderr, "[inline API consumer {}] {}", test.name, result.output);
+            return Result::Error;
+        }
     }
 }
 SWC_TEST_END()

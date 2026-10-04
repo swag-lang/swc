@@ -659,11 +659,13 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     std::vector<LoopRange> loops;
     if (hasControlFlow_ && functionHasLoop_)
     {
-        for (uint32_t s = 0; s < instructionCount_ && s < predecessors_.size(); ++s)
+        SWC_ASSERT(predecessors_.size() == instructionCount_);
+        for (uint32_t s = 0; s < instructionCount_; ++s)
         {
             for (const uint32_t p : predecessors_[s])
             {
-                if (p >= s && p < instructionCount_)
+                SWC_ASSERT(p < instructionCount_);
+                if (p >= s)
                     loops.push_back({.head = s, .tail = p});
             }
         }
@@ -1160,6 +1162,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     const auto&    virtualRegs  = denseVirtualRegs_.regs();
     const size_t   virtualCount = virtualRegs.size();
     const uint32_t invalid      = std::numeric_limits<uint32_t>::max();
+    SWC_ASSERT(predecessors_.size() == instructionCount_);
 
     const auto locate = [&](const uint32_t denseIndex, const uint32_t pos) -> const LiveInterval* {
         for (uint32_t n = result.valueNodesBegin[denseIndex]; n < result.valueNodesBegin[denseIndex + 1]; ++n)
@@ -1190,8 +1193,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             applyStackPointerDelta(depth, *inst);
             for (const uint32_t succ : controlFlowGraph_->successors(idx))
             {
-                if (succ >= instructionCount_)
-                    continue;
+                SWC_ASSERT(succ < instructionCount_);
                 if (depthAt[succ] == std::numeric_limits<int64_t>::min())
                 {
                     depthAt[succ] = depth;
@@ -1306,14 +1308,10 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         const MicroInstr* labelInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[s]);
         if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
             continue;
-        if (s >= predecessors_.size())
-            return false;
-
         const std::span<const uint64_t> liveRow = DenseBits::row(liveInVirtualBits_, s, wordCount);
         for (const uint32_t p : predecessors_[s])
         {
-            if (p >= instructionCount_)
-                return false;
+            SWC_ASSERT(p < instructionCount_);
             const MicroInstr* predInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[p]);
             if (!predInst)
                 return false;
@@ -1358,8 +1356,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 {
                     const auto denseIndex = static_cast<uint32_t>(wordIndex * 64ull + std::countr_zero(wordBits));
                     wordBits &= wordBits - 1ull;
-                    if (denseIndex >= virtualCount)
-                        break;
+                    SWC_ASSERT(denseIndex < virtualCount);
 
                     const LiveInterval* atLabel = locate(denseIndex, s * 2);
                     if (!atLabel)
@@ -1624,15 +1621,14 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             if (labelEdgesReady)
                 return;
             labelEdgesReady = true;
-            for (uint32_t s = 0; s < instructionCount_ && s < predecessors_.size(); ++s)
+            for (uint32_t s = 0; s < instructionCount_; ++s)
             {
                 const MicroInstr* labelInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[s]);
                 if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
                     continue;
                 for (const uint32_t p : predecessors_[s])
                 {
-                    if (p >= instructionCount_)
-                        continue;
+                    SWC_ASSERT(p < instructionCount_);
                     const MicroInstr* predInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[p]);
                     if (!predInst)
                         continue;
@@ -2268,14 +2264,16 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     // where the walk splits and stores it on every exit edge rather than once
     // at the definition it spilled from before.
     const auto sourceStaysInCopyLoop = [&](const uint32_t copyIdx, const uint32_t src) {
+        SWC_ASSERT(copyIdx < predecessors_.size());
         uint32_t head   = 0;
         uint32_t tail   = 0;
         bool     inLoop = false;
-        for (uint32_t s = 0; s <= copyIdx && s < predecessors_.size(); ++s)
+        for (uint32_t s = 0; s <= copyIdx; ++s)
         {
             for (const uint32_t p : predecessors_[s])
             {
-                if (p < s || p >= instructionCount_ || p < copyIdx)
+                SWC_ASSERT(p < instructionCount_);
+                if (p < copyIdx)
                     continue;
                 if (!inLoop || p - s < tail - head)
                 {
@@ -2292,7 +2290,8 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         {
             for (const uint32_t succ : controlFlowGraph_->successors(idx))
             {
-                if (succ >= instructionCount_ || (succ >= head && succ <= tail))
+                SWC_ASSERT(succ < instructionCount_);
+                if (succ >= head && succ <= tail)
                     continue;
                 if (DenseBits::contains(DenseBits::row(liveInVirtualBits_, succ, wordCount), src))
                     return false;

@@ -230,20 +230,25 @@ namespace InstructionCombine
 
     MicroInstrRef singleDirectInstructionUse(const MicroSsaState& ssa, uint32_t valueId)
     {
-        if (ssa.transitiveInstructionUseCount(valueId, 2) != 1)
-            return MicroInstrRef::invalid();
         const auto* info = ssa.valueInfo(valueId);
         if (!info)
             return MicroInstrRef::invalid();
-        MicroInstrRef found = MicroInstrRef::invalid();
+        MicroInstrRef found     = MicroInstrRef::invalid();
+        bool          hasPhiUse = false;
         for (const auto& use : info->uses)
         {
             if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+            {
+                hasPhiUse = true;
                 continue;
+            }
             if (found.isValid())
                 return MicroInstrRef::invalid();
             found = use.instRef;
         }
+        // A phi path matters only after finding exactly one direct reader.
+        if (found.isValid() && hasPhiUse && ssa.transitiveInstructionUseCount(valueId, 2) != 1)
+            return MicroInstrRef::invalid();
         return found;
     }
 

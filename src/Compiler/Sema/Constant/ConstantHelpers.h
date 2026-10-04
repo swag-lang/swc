@@ -5,6 +5,7 @@
 SWC_BEGIN_NAMESPACE();
 class Sema;
 class TaskContext;
+class TypeInfo;
 struct SemaNodeView;
 class SymbolFunction;
 struct AstNode;
@@ -26,8 +27,10 @@ namespace ConstantHelpers
     bool        typeHasUnionStorage(const TaskContext& ctx, TypeRef typeRef);
     ConstantRef materializeAggregateConstructionConstant(Sema& sema, TypeRef typeRef, std::span<const ConstantPayloadWrite> writes = {});
     uint32_t    staticPayloadPlacementShardIndex(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> payload, bool hasRequiredShard, uint32_t requiredShard);
-    Result      makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const AstNode& node, const SymbolFunction* function = nullptr);
-    Result      makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const SourceCodeRange& codeRange, const SymbolFunction* function = nullptr);
+    // The caller has checked that payload has typeInfo's layout size.
+    bool   resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_t& outShardIndex, bool& hasRequiredShard, const TypeInfo& typeInfo, std::span<const std::byte> payload);
+    Result makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const AstNode& node, const SymbolFunction* function = nullptr);
+    Result makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const SourceCodeRange& codeRange, const SymbolFunction* function = nullptr);
 }
 
 SWC_END_NAMESPACE();

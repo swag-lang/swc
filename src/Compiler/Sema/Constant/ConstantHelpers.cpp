@@ -164,177 +164,6 @@ namespace
         return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, capturedTarget);
     }
 
-    bool resolveStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, TypeRef typeRef, std::span<const std::byte> payload)
-    {
-        if (typeRef.isInvalid())
-            return false;
-
-        TaskContext&    ctx      = sema.ctx();
-        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-        if (typeInfo.isAlias())
-        {
-            const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            return unwrappedTypeRef.isValid() && resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, unwrappedTypeRef, payload);
-        }
-
-        const uint64_t sizeOf = typeInfo.sizeOf(ctx);
-        if (sizeOf != payload.size())
-            return false;
-
-        if (typeInfo.isTypeValue())
-            return resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, typeInfo.payloadTypeRef(), payload);
-
-        if (typeInfo.isEnum())
-            return resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, typeInfo.payloadSymEnum().underlyingTypeRef(), payload);
-
-        if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
-            return resolveClosureStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, payload);
-
-        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString() || typeInfo.isSimd())
-            return true;
-
-        if (typeInfo.isSlice())
-        {
-            if (payload.size() != sizeof(Runtime::Slice<std::byte>))
-                return false;
-
-            // The empty test comes first: a slice element type never had to be laid out for the
-            // enclosing payload to exist (a slice is two pointers whatever it points to), so its
-            // size may legitimately not be computed yet — and must not be read — when the slice
-            // carries nothing.
-            const auto* runtimeSlice = reinterpret_cast<const Runtime::Slice<std::byte>*>(payload.data());
-            if (runtimeSlice->count == 0)
-                return true;
-
-            const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
-            const TypeInfo& elementType    = ctx.typeMgr().get(elementTypeRef);
-            const uint64_t  elementSize    = elementType.sizeOf(ctx);
-            if (elementSize == 0)
-                return true;
-            if (!runtimeSlice->ptr)
-                return false;
-
-            SWC_ASSERT(runtimeSlice->count <= std::numeric_limits<uint64_t>::max() / elementSize);
-            for (uint64_t idx = 0; idx < runtimeSlice->count; ++idx)
-            {
-                const uint64_t elementOffset = idx * elementSize;
-                const auto     elementBytes  = std::span{reinterpret_cast<const std::byte*>(runtimeSlice->ptr) + elementOffset, static_cast<size_t>(elementSize)};
-                if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, elementTypeRef, elementBytes))
-                    return false;
-            }
-
-            return true;
-        }
-
-        if (typeInfo.isAny())
-        {
-            if (payload.size() != sizeof(Runtime::Any))
-                return false;
-
-            const auto* runtimeAny = reinterpret_cast<const Runtime::Any*>(payload.data());
-            if (!runtimeAny->type)
-                return runtimeAny->value == nullptr;
-
-            return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeAny->type);
-        }
-
-        if (typeInfo.isInterface())
-        {
-            if (payload.size() != sizeof(Runtime::Interface))
-                return false;
-
-            const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(payload.data());
-            return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeInterface->obj) &&
-                   requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeInterface->itable);
-        }
-
-        if (typeInfo.isArray())
-        {
-            const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
-            const TypeInfo& elementType    = ctx.typeMgr().get(elementTypeRef);
-            const uint64_t  elementSize    = elementType.sizeOf(ctx);
-            if (!elementSize)
-                return payload.empty();
-
-            uint64_t totalCount = 1;
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                totalCount *= dim;
-
-            for (uint64_t idx = 0; idx < totalCount; ++idx)
-            {
-                const uint64_t elementOffset = idx * elementSize;
-                const auto     elementBytes  = std::span{payload.data() + elementOffset, static_cast<size_t>(elementSize)};
-                if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, elementTypeRef, elementBytes))
-                    return false;
-            }
-
-            return true;
-        }
-
-        if (typeInfo.isStruct())
-        {
-            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
-            {
-                if (!field)
-                    continue;
-
-                const TypeRef   fieldTypeRef = field->typeRef();
-                const TypeInfo& fieldType    = ctx.typeMgr().get(fieldTypeRef);
-                const uint64_t  fieldSize    = fieldType.sizeOf(ctx);
-                const uint64_t  fieldOffset  = field->offset();
-                if (fieldOffset + fieldSize > payload.size())
-                    return false;
-
-                const auto fieldBytes = std::span{payload.data() + fieldOffset, static_cast<size_t>(fieldSize)};
-                if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, fieldTypeRef, fieldBytes))
-                    return false;
-            }
-
-            return true;
-        }
-
-        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
-        {
-            uint64_t offset = 0;
-            for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
-            {
-                const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
-                uint32_t        align     = fieldType.alignOf(ctx);
-                const uint64_t  fieldSize = fieldType.sizeOf(ctx);
-                if (!align)
-                    align = 1;
-
-                if (!fieldSize)
-                    continue;
-
-                offset = Math::alignUpU64(offset, align);
-                if (offset + fieldSize > payload.size())
-                    return false;
-
-                const auto fieldBytes = std::span{payload.data() + offset, static_cast<size_t>(fieldSize)};
-                if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, fieldTypeRef, fieldBytes))
-                    return false;
-
-                offset += fieldSize;
-            }
-
-            return true;
-        }
-
-        if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isTypeInfo() || typeInfo.isCString() || typeInfo.isFunction())
-        {
-            if (payload.size() != sizeof(uint64_t))
-                return false;
-
-            const uint64_t rawPtr = *reinterpret_cast<const uint64_t*>(payload.data());
-            if (requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, reinterpret_cast<const void*>(rawPtr)))
-                return true;
-
-            return ConstantHelpers::hasSourceFunctionRelocation(sema, payload.data());
-        }
-
-        return false;
-    }
     bool typeHasUnionStorageRec(const TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visited)
     {
         typeRef              = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
@@ -687,6 +516,180 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     return Math::hash(valueHash) & (ConstantManager::SHARD_COUNT - 1);
 }
 
+bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_t& outShardIndex, bool& hasRequiredShard, const TypeInfo& typeInfo, std::span<const std::byte> payload)
+{
+    TaskContext&       ctx     = sema.ctx();
+    const TypeManager& typeMgr = ctx.typeMgr();
+    // The entry validates size; recursive spans use the resolved child type's size.
+    // Aliases, enum wrappers and type values preserve their underlying layout.
+    SWC_ASSERT(typeInfo.sizeOf(ctx) == payload.size());
+    if (typeInfo.isAlias())
+    {
+        const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, typeInfo.typeRef(), TypeExpandE::Alias);
+        return unwrappedTypeRef.isValid() && resolveStaticPayloadRequiredShardIndex(sema, outShardIndex, hasRequiredShard, typeMgr.get(unwrappedTypeRef), payload);
+    }
+
+    if (typeInfo.isTypeValue())
+    {
+        const TypeRef valueTypeRef = typeInfo.payloadTypeRef();
+        return valueTypeRef.isValid() && resolveStaticPayloadRequiredShardIndex(sema, outShardIndex, hasRequiredShard, typeMgr.get(valueTypeRef), payload);
+    }
+
+    if (typeInfo.isEnum())
+    {
+        const TypeRef underlyingTypeRef = typeInfo.payloadSymEnum().underlyingTypeRef();
+        return underlyingTypeRef.isValid() && resolveStaticPayloadRequiredShardIndex(sema, outShardIndex, hasRequiredShard, typeMgr.get(underlyingTypeRef), payload);
+    }
+
+    if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
+        return resolveClosureStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, payload);
+
+    if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString() || typeInfo.isSimd())
+        return true;
+
+    if (typeInfo.isSlice())
+    {
+        if (payload.size() != sizeof(Runtime::Slice<std::byte>))
+            return false;
+
+        // The empty test comes first: a slice element type never had to be laid out for the
+        // enclosing payload to exist (a slice is two pointers whatever it points to), so its
+        // size may legitimately not be computed yet — and must not be read — when the slice
+        // carries nothing.
+        const auto* runtimeSlice = reinterpret_cast<const Runtime::Slice<std::byte>*>(payload.data());
+        if (runtimeSlice->count == 0)
+            return true;
+
+        const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
+        const TypeInfo& elementType    = typeMgr.get(elementTypeRef);
+        const uint64_t  elementSize    = elementType.sizeOf(ctx);
+        if (elementSize == 0)
+            return true;
+        if (!runtimeSlice->ptr)
+            return false;
+
+        SWC_ASSERT(runtimeSlice->count <= std::numeric_limits<uint64_t>::max() / elementSize);
+        for (uint64_t idx = 0; idx < runtimeSlice->count; ++idx)
+        {
+            const uint64_t elementOffset = idx * elementSize;
+            const auto     elementBytes  = std::span{reinterpret_cast<const std::byte*>(runtimeSlice->ptr) + elementOffset, static_cast<size_t>(elementSize)};
+            if (!resolveStaticPayloadRequiredShardIndex(sema, outShardIndex, hasRequiredShard, elementType, elementBytes))
+                return false;
+        }
+
+        return true;
+    }
+
+    if (typeInfo.isAny())
+    {
+        if (payload.size() != sizeof(Runtime::Any))
+            return false;
+
+        const auto* runtimeAny = reinterpret_cast<const Runtime::Any*>(payload.data());
+        if (!runtimeAny->type)
+            return runtimeAny->value == nullptr;
+
+        return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeAny->type);
+    }
+
+    if (typeInfo.isInterface())
+    {
+        if (payload.size() != sizeof(Runtime::Interface))
+            return false;
+
+        const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(payload.data());
+        return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeInterface->obj) &&
+               requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeInterface->itable);
+    }
+
+    if (typeInfo.isArray())
+    {
+        const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
+        const TypeInfo& elementType    = typeMgr.get(elementTypeRef);
+        const uint64_t  elementSize    = elementType.sizeOf(ctx);
+        if (!elementSize)
+            return payload.empty();
+
+        uint64_t totalCount = 1;
+        for (const uint64_t dim : typeInfo.payloadArrayDims())
+            totalCount *= dim;
+
+        for (uint64_t idx = 0; idx < totalCount; ++idx)
+        {
+            const uint64_t elementOffset = idx * elementSize;
+            const auto     elementBytes  = std::span{payload.data() + elementOffset, static_cast<size_t>(elementSize)};
+            if (!resolveStaticPayloadRequiredShardIndex(sema, outShardIndex, hasRequiredShard, elementType, elementBytes))
+                return false;
+        }
+
+        return true;
+    }
+
+    if (typeInfo.isStruct())
+    {
+        for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+        {
+            if (!field)
+                continue;
+
+            const TypeRef   fieldTypeRef = field->typeRef();
+            const TypeInfo& fieldType    = typeMgr.get(fieldTypeRef);
+            const uint64_t  fieldSize    = fieldType.sizeOf(ctx);
+            const uint64_t  fieldOffset  = field->offset();
+            if (fieldOffset + fieldSize > payload.size())
+                return false;
+
+            const auto fieldBytes = std::span{payload.data() + fieldOffset, static_cast<size_t>(fieldSize)};
+            if (!resolveStaticPayloadRequiredShardIndex(sema, outShardIndex, hasRequiredShard, fieldType, fieldBytes))
+                return false;
+        }
+
+        return true;
+    }
+
+    if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+    {
+        uint64_t offset = 0;
+        for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
+        {
+            const TypeInfo& fieldType = typeMgr.get(fieldTypeRef);
+            uint32_t        align     = fieldType.alignOf(ctx);
+            const uint64_t  fieldSize = fieldType.sizeOf(ctx);
+            if (!align)
+                align = 1;
+
+            if (!fieldSize)
+                continue;
+
+            offset = Math::alignUpU64(offset, align);
+            if (offset + fieldSize > payload.size())
+                return false;
+
+            const auto fieldBytes = std::span{payload.data() + offset, static_cast<size_t>(fieldSize)};
+            if (!resolveStaticPayloadRequiredShardIndex(sema, outShardIndex, hasRequiredShard, fieldType, fieldBytes))
+                return false;
+
+            offset += fieldSize;
+        }
+
+        return true;
+    }
+
+    if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isTypeInfo() || typeInfo.isCString() || typeInfo.isFunction())
+    {
+        if (payload.size() != sizeof(uint64_t))
+            return false;
+
+        const uint64_t rawPtr = *reinterpret_cast<const uint64_t*>(payload.data());
+        if (requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, reinterpret_cast<const void*>(rawPtr)))
+            return true;
+
+        return hasSourceFunctionRelocation(sema, payload.data());
+    }
+
+    return false;
+}
+
 ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, std::span<const std::byte> payload)
 {
     if (typeRef.isInvalid())
@@ -705,7 +708,7 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
 
     uint32_t shardIndex       = 0;
     bool     hasRequiredShard = false;
-    if (!resolveStaticPayloadRequiredShardIndex(shardIndex, hasRequiredShard, sema, typeRef, payload))
+    if (!resolveStaticPayloadRequiredShardIndex(sema, shardIndex, hasRequiredShard, typeInfo, payload))
         return ConstantRef::invalid();
 
     const uint32_t placementShardIndex = staticPayloadPlacementShardIndex(ctx, typeRef, payload, hasRequiredShard, shardIndex);

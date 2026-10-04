@@ -15,6 +15,85 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-10-04 07:45 — Recorded further structural savings; rebuild count and quantitative gain remain open.
+- Area: compiler/backend, compilation time
+- Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
+  `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
+  2026-09-16 (Release 0.1.687), one `swc build -w bin/std -m gui -bc release` builds SSA **78,072
+  times** over 9,521,265 instruction slots. **33,923** of those builds follow a pass mutation,
+  attributed as: copy elimination 13,827, instruction combine 9,717, value numbering 4,383,
+  constant folding 3,645, pre-RA peephole 1,990, branch simplification 355, strength reduction 7.
+  The remaining 44,149 are each loop entry's first build and are not avoidable this way.
+- What it is worth: a single-core profile of that build puts `MicroSsaState::build` at **5.65% of
+  the work**. Pass-mutation invalidations are 43.5% of the builds, so removing *every* one of them
+  bounds the gain at **about 2.5% of a gui release build**. The incremental use/def cache already
+  took the cheap part of a rebuild; what is left is dominance, phi placement and the rename walk.
+- The largest single redundancy: `MicroCopyEliminationPass::run` invalidates and rebuilds SSA in
+  the middle of itself, so that `eraseDeadCopies` can ask `isRegUsedAfter`. It did so **10,497**
+  times in that build - 13.4% of every SSA build in the module - after a rewrite that moved reads
+  between registers and changed no definition, no instruction and no edge. The pass knows exactly
+  which uses it redirected, so it can answer "does this copy's destination still have a reader"
+  from that record instead of rebuilding. Worth about 0.8% of the build on its own.
+- Constant folding, the case this entry used to name, is 11% of the invalidations. Its bounded
+  rewrite - an isolated virtual-integer `OpBinaryRegImm` folded into `LoadRegImm`, which keeps the
+  instruction reference, the definition and the CFG and only drops a read - is still the clearest
+  shape for a mutation contract, but it is not where the rebuilds are.
+- Experiment (2026-09-16): two local liveness replacements removed the internal rebuild: a
+  scan of reaching uses, then instruction-use counts adjusted for each redirected operand with
+  backward phi propagation. Both passed 825 C++ tests, including three new loop, dead-phi and
+  physical-source cases. The first also preserved all 16 final Micro functions in the Levenshtein
+  and ChaCha probes and passed the 29 optimizer-native cases. A broader native run found the
+  unchanged baseline failure subsequently fixed by `69f480e61`.
+- Measurement: three alternating, six-worker Release gui rebuild pairs, pinned to six P cores,
+  gave baseline/candidate total process CPU of 232.938/233.938 seconds for the count variant.
+  Median wall time was 18.571/18.046 seconds, with individual runs spanning 16.114-21.722 seconds;
+  that spread does not establish a gain. Both implementations were discarded from the branch.
+- 2026-09-23 (Release 0.1.1046): `MicroSsaState::build` is **7.05% of busy CPU** on a
+  six-worker `bin/std` release rebuild, 300,712 builds for 33,062 functions — nine per
+  function. Inside it: the rename walk 2.4%, phi placement 1.4%, the collection walk 1.6%,
+  dominators 0.4%. The passes that pay for a rebuild are constant folding 2.1%, copy
+  elimination 1.1%, instruction combine 1.0%, value numbering 1.0%, guarded-select diamonds
+  0.9%, branch simplification 0.7%. Constant folding now spends three times as long
+  rebuilding SSA as it spends folding.
+- Taken in 0.1.1049, and it did read above the floor: a rebuild no longer rediscovers the basic
+  blocks, the dominator tree and the frontiers. All three describe the control-flow graph alone,
+  and the graph now carries a build identity taken fresh whenever it is rebuilt, so the SSA state
+  keeps what it derived for as long as that identity holds - which is exactly as long as no pass
+  invalidated the graph. Only the phi lists, which belong to the definitions, are recomputed.
+  Single-core, alternated: gui 0.914 against the same rebuild before the morning's four batches.
+- What is left of this entry is its original subject: the *number* of rebuilds, still about nine
+  per function. Each one still pays for the collection walk, phi placement and the rename walk,
+  which together are the 7% this entry measures. The 2026-09-16 experiment on copy elimination's
+  internal rebuild remains discarded; revisit it only with the rename walk, not around it.
+- The 2026-09-28 prompt-4 continuation removed redundant dominator-buffer clearing, reused
+  visit stamps for frontier construction, and deferred construction of standalone SSA state
+  where the pass receives shared SSA. These reduce per-pass setup and work inside rebuilds;
+  they do not reduce the rebuild count. Focused Release checks and the full 3,483 native and 1,500
+  JIT suites passed. No timing or peak-memory measurement was made in this campaign.
+- The SLP vectorizer now constructs its standalone SSA fallback only when a block has a viable
+  packed plan and asks for SSA. Blocks rejected earlier no longer initialize the fallback state;
+  a supplied shared SSA state is used as before. The Release `slp_vectorize` file passed 17 native
+  tests, followed by 3,483 native and 1,500 JIT tests. Timing was not measured.
+- The SSA value fixed point now retains existing value entries across passes and resets only their
+  validity flags. Every value read checks its flag, and successful inference overwrites its entry
+  before setting that flag. This removes one full value-array fill per constant-folding, copy-
+  elimination or branch-simplification run when scratch storage is reused. The Release optimizer
+  selection passed 241 native tests; timing and peak memory were not measured.
+- The 2026-10-04 prompt-4 campaign removed another repeated prefix walk: when the SSA reuse
+  probe finds changed use/def data, the full rebuild reuses the prefix it already refreshed.
+  Phi-use traversals now mark values when queued, avoiding duplicate worklist entries. Queries
+  that need only a reaching value's identity no longer resolve its defining instruction, and a
+  block's sole predecessor supplies its immediate dominator directly. These preserve the rebuild
+  count and generated-code decisions. The Release compiler passed 3,600 native and 1,508 JIT tests
+  in devmode, plus 274 native optimizer tests in release. Timing and peak memory were not measured;
+  the remaining rebuild-count and quantitative-gain questions are unchanged.
+- Complete when: a replacement preserves emitted code and focused SSA/native behavior and
+  resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
+- Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
+
 ### compiler.optimization.105 — Prove lz77's signed remainder bounds
 
 - Recorded: 2026-09-30 08:42
@@ -748,85 +827,6 @@ block, and the hot path keeps the register.
   version, and it does not exist.
 - Complete when: either a rule promotes a whole-copied local array without costing vectorization,
   or this records that the two cannot be reconciled and the fill-only rule is the end of it.
-
-### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-10-04 07:45 — Recorded further structural savings; rebuild count and quantitative gain remain open.
-- Area: compiler/backend, compilation time
-- Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
-  `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
-  2026-09-16 (Release 0.1.687), one `swc build -w bin/std -m gui -bc release` builds SSA **78,072
-  times** over 9,521,265 instruction slots. **33,923** of those builds follow a pass mutation,
-  attributed as: copy elimination 13,827, instruction combine 9,717, value numbering 4,383,
-  constant folding 3,645, pre-RA peephole 1,990, branch simplification 355, strength reduction 7.
-  The remaining 44,149 are each loop entry's first build and are not avoidable this way.
-- What it is worth: a single-core profile of that build puts `MicroSsaState::build` at **5.65% of
-  the work**. Pass-mutation invalidations are 43.5% of the builds, so removing *every* one of them
-  bounds the gain at **about 2.5% of a gui release build**. The incremental use/def cache already
-  took the cheap part of a rebuild; what is left is dominance, phi placement and the rename walk.
-- The largest single redundancy: `MicroCopyEliminationPass::run` invalidates and rebuilds SSA in
-  the middle of itself, so that `eraseDeadCopies` can ask `isRegUsedAfter`. It did so **10,497**
-  times in that build - 13.4% of every SSA build in the module - after a rewrite that moved reads
-  between registers and changed no definition, no instruction and no edge. The pass knows exactly
-  which uses it redirected, so it can answer "does this copy's destination still have a reader"
-  from that record instead of rebuilding. Worth about 0.8% of the build on its own.
-- Constant folding, the case this entry used to name, is 11% of the invalidations. Its bounded
-  rewrite - an isolated virtual-integer `OpBinaryRegImm` folded into `LoadRegImm`, which keeps the
-  instruction reference, the definition and the CFG and only drops a read - is still the clearest
-  shape for a mutation contract, but it is not where the rebuilds are.
-- Experiment (2026-09-16): two local liveness replacements removed the internal rebuild: a
-  scan of reaching uses, then instruction-use counts adjusted for each redirected operand with
-  backward phi propagation. Both passed 825 C++ tests, including three new loop, dead-phi and
-  physical-source cases. The first also preserved all 16 final Micro functions in the Levenshtein
-  and ChaCha probes and passed the 29 optimizer-native cases. A broader native run found the
-  unchanged baseline failure subsequently fixed by `69f480e61`.
-- Measurement: three alternating, six-worker Release gui rebuild pairs, pinned to six P cores,
-  gave baseline/candidate total process CPU of 232.938/233.938 seconds for the count variant.
-  Median wall time was 18.571/18.046 seconds, with individual runs spanning 16.114-21.722 seconds;
-  that spread does not establish a gain. Both implementations were discarded from the branch.
-- 2026-09-23 (Release 0.1.1046): `MicroSsaState::build` is **7.05% of busy CPU** on a
-  six-worker `bin/std` release rebuild, 300,712 builds for 33,062 functions — nine per
-  function. Inside it: the rename walk 2.4%, phi placement 1.4%, the collection walk 1.6%,
-  dominators 0.4%. The passes that pay for a rebuild are constant folding 2.1%, copy
-  elimination 1.1%, instruction combine 1.0%, value numbering 1.0%, guarded-select diamonds
-  0.9%, branch simplification 0.7%. Constant folding now spends three times as long
-  rebuilding SSA as it spends folding.
-- Taken in 0.1.1049, and it did read above the floor: a rebuild no longer rediscovers the basic
-  blocks, the dominator tree and the frontiers. All three describe the control-flow graph alone,
-  and the graph now carries a build identity taken fresh whenever it is rebuilt, so the SSA state
-  keeps what it derived for as long as that identity holds - which is exactly as long as no pass
-  invalidated the graph. Only the phi lists, which belong to the definitions, are recomputed.
-  Single-core, alternated: gui 0.914 against the same rebuild before the morning's four batches.
-- What is left of this entry is its original subject: the *number* of rebuilds, still about nine
-  per function. Each one still pays for the collection walk, phi placement and the rename walk,
-  which together are the 7% this entry measures. The 2026-09-16 experiment on copy elimination's
-  internal rebuild remains discarded; revisit it only with the rename walk, not around it.
-- The 2026-09-28 prompt-4 continuation removed redundant dominator-buffer clearing, reused
-  visit stamps for frontier construction, and deferred construction of standalone SSA state
-  where the pass receives shared SSA. These reduce per-pass setup and work inside rebuilds;
-  they do not reduce the rebuild count. Focused Release checks and the full 3,483 native and 1,500
-  JIT suites passed. No timing or peak-memory measurement was made in this campaign.
-- The SLP vectorizer now constructs its standalone SSA fallback only when a block has a viable
-  packed plan and asks for SSA. Blocks rejected earlier no longer initialize the fallback state;
-  a supplied shared SSA state is used as before. The Release `slp_vectorize` file passed 17 native
-  tests, followed by 3,483 native and 1,500 JIT tests. Timing was not measured.
-- The SSA value fixed point now retains existing value entries across passes and resets only their
-  validity flags. Every value read checks its flag, and successful inference overwrites its entry
-  before setting that flag. This removes one full value-array fill per constant-folding, copy-
-  elimination or branch-simplification run when scratch storage is reused. The Release optimizer
-  selection passed 241 native tests; timing and peak memory were not measured.
-- The 2026-10-04 prompt-4 campaign removed another repeated prefix walk: when the SSA reuse
-  probe finds changed use/def data, the full rebuild reuses the prefix it already refreshed.
-  Phi-use traversals now mark values when queued, avoiding duplicate worklist entries. Queries
-  that need only a reaching value's identity no longer resolve its defining instruction, and a
-  block's sole predecessor supplies its immediate dominator directly. These preserve the rebuild
-  count and generated-code decisions. The Release compiler passed 3,600 native and 1,508 JIT tests
-  in devmode, plus 274 native optimizer tests in release. Timing and peak memory were not measured;
-  the remaining rebuild-count and quantitative-gain questions are unchanged.
-- Complete when: a replacement preserves emitted code and focused SSA/native behavior and
-  resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
-- Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
 
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 

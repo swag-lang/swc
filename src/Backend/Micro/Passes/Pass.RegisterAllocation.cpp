@@ -2254,7 +2254,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     tempOutVirtual_.resize(virtualWordCount);
     tempOutConcrete_.resize(concreteWordCount);
 
-    const auto updateLiveIn = [&](const uint32_t instructionIndex) {
+    const auto computeLiveIn = [&](const uint32_t instructionIndex) {
         computeCurrentLiveOutBits(instructionIndex);
 
         // Only live-in is published during the fixed point. Consume the
@@ -2273,10 +2273,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             for (const uint32_t bitIndex : useConcreteIndices_[instructionIndex])
                 DenseBits::set(inConcrete, bitIndex);
         }
-
-        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempOutVirtual_);
-        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempOutConcrete_);
-        return changedVirtual || changedConcrete;
     };
 
     // Every edge in an acyclic instruction CFG points forward in listing order.
@@ -2284,7 +2280,11 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     if (!functionHasLoop_)
     {
         for (uint32_t idx = instructionCount_; idx != 0;)
-            updateLiveIn(--idx);
+        {
+            computeLiveIn(--idx);
+            std::ranges::copy(tempOutVirtual_, DenseBits::row(liveInVirtualBits_, idx, virtualWordCount).begin());
+            std::ranges::copy(tempOutConcrete_, DenseBits::row(liveInConcreteBits_, idx, concreteWordCount).begin());
+        }
     }
     else
     {
@@ -2299,7 +2299,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             const uint32_t instructionIndex = worklist_.back();
             worklist_.pop_back();
             inWorklist_[instructionIndex] = 0;
-            if (!updateLiveIn(instructionIndex))
+            computeLiveIn(instructionIndex);
+            const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempOutVirtual_);
+            const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempOutConcrete_);
+            if (!changedVirtual && !changedConcrete)
                 continue;
 
             for (const uint32_t predIdx : predecessors_[instructionIndex])

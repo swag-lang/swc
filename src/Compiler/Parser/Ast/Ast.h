@@ -38,6 +38,8 @@ public:
     bool              hasSourceView() const { return threadSourceViewOverride_ != nullptr || srcView_ != nullptr; }
     SourceView&       srcView() { return *(threadSourceViewOverride_ ? threadSourceViewOverride_ : srcView_); }
     const SourceView& srcView() const { return *(threadSourceViewOverride_ ? threadSourceViewOverride_ : srcView_); }
+    // Clones borrow token locations through the thread override; storage ownership stays here.
+    const SourceFile* sourceFile() const { return srcView_ ? srcView_->file() : nullptr; }
     void              setSourceView(SourceView& srcView) { srcView_ = &srcView; }
     std::mutex&       generatedParseMutex() { return generatedParseMutex_; }
     bool              hasFlag(AstFlags flag) const { return flags_.has(flag); }

@@ -171,28 +171,21 @@ namespace
         sema.setSubstitute(clonedRef, substituteRef);
     }
 
-    std::optional<NodePayload::StoredView> sourceStoredView(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef)
+    std::optional<NodePayload::StoredView> sourceStoredView(Sema& sema, const Ast* sourceAst, AstNodeRef sourceRef)
     {
-        if (sourceRef.isInvalid())
+        if (!sourceAst || sourceRef.isInvalid())
             return std::nullopt;
 
-        // Preserve semantic payloads when cloning analyzed nodes. For foreign ASTs,
-        // payloads live on the owning SourceFile's NodePayload context rather than on
-        // the current sema instance.
-        const Ast* sourceAst = resolveCloneNodeAst(sema, sourceRef, cloneContext);
-        if (!sourceAst)
-            return std::nullopt;
         if (sourceAst == &sema.ast())
             return currentStoredView(sema, sourceRef);
 
-        const AstNode&    sourceNode = sourceAst->node(sourceRef);
-        const SourceView* sourceView = resolveCloneSourceView(sema, *sourceAst, sourceNode);
-        const SourceFile* sourceFile = sourceView ? sourceView->file() : nullptr;
-        if (!sourceFile && sourceNode.srcViewRef().isValid())
-            sourceFile = sema.ownerSourceFile(sourceNode.srcViewRef());
+        // A previously cloned node retains its original token location. Its node
+        // reference and payload belong to the AST holding the clone, not that file.
+        const SourceFile* sourceFile = sourceAst->sourceFile();
         if (!sourceFile)
             return std::nullopt;
 
+        SWC_ASSERT(&sourceFile->ast() == sourceAst);
         return sourceFile->nodePayloadContext().viewStored(sema.ctx(), sourceRef);
     }
 
@@ -1238,21 +1231,7 @@ namespace
             sourceRef = sourceAst->tryFindNodeRef(&node);
         }
 
-        std::optional<NodePayload::StoredView> storedView;
-        if (sourceRef.isValid())
-        {
-            if (sourceAst == &sema.ast())
-                storedView = currentStoredView(sema, sourceRef);
-            else
-            {
-                const SourceView* sourceView = resolveCloneSourceView(sema, *sourceAst, node);
-                const SourceFile* sourceFile = sourceView ? sourceView->file() : nullptr;
-                if (!sourceFile && node.srcViewRef().isValid())
-                    sourceFile = sema.ownerSourceFile(node.srcViewRef());
-                if (sourceFile)
-                    storedView = sourceFile->nodePayloadContext().viewStored(sema.ctx(), sourceRef);
-            }
-        }
+        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, sourceAst, sourceRef);
 
         // A cloned identifier's codeRef can name a token that does not exist in its source view (a
         // synthetic node carries a borrowed/out-of-range token location). Reading such a token is an
@@ -1475,7 +1454,7 @@ namespace
         if (!pinResolvedSymbol)
             return;
 
-        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, cloneContext, sourceCallRef);
+        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, resolveCloneNodeAst(sema, sourceCallRef, cloneContext), sourceCallRef);
         if (!storedView || !storedView->sym || !storedView->sym->safeCast<SymbolFunction>())
             return;
 
@@ -2660,7 +2639,8 @@ AstNodeRef AstCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) 
     // the first re-clone and the operand re-derives without the proof the pin recorded.
     if (nodeTypeRef.isInvalid() && newPtr->nodeTypeRef.isInvalid())
     {
-        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, inlineContext, nodeRef(cloneSourceAst(sema, inlineContext)));
+        const AstNodeRef                             sourceRef  = nodeRef(cloneSourceAst(sema, inlineContext));
+        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, resolveCloneNodeAst(sema, sourceRef, inlineContext), sourceRef);
         if (storedView && storedView->typeRef.isValid())
         {
             sema.setType(newRef, storedView->typeRef);
@@ -2812,7 +2792,7 @@ AstNodeRef AstSuffixLiteral::semaClone(Sema& sema, const CloneContext& cloneCont
     const auto&      inlineContext = cloneContextAsInline(cloneContext);
     const Ast&       sourceAst     = cloneSourceAst(sema, inlineContext);
     const AstNodeRef sourceRef     = nodeRef(sourceAst);
-    const auto       storedView    = sourceStoredView(sema, inlineContext, sourceRef);
+    const auto       storedView    = sourceStoredView(sema, resolveCloneNodeAst(sema, sourceRef, inlineContext), sourceRef);
 
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::SuffixLiteral>(tokRef());
     newPtr->setCodeRef(codeRef());

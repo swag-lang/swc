@@ -7025,17 +7025,17 @@ namespace
             }
 
             const MicroOpBits writeBits = armInstructionWriteBits(*inst, ops);
-            if (writeBits != MicroOpBits::Zero && ops[0].reg == conv.intReturn)
+            if (writeBits != MicroOpBits::Zero)
             {
-                out.valueRef  = cur;
-                out.valueBits = writeBits;
-                continue;
-            }
-
-            const MicroInstrUseDef useDef = inst->collectUseDef(*scan.operands, nullptr);
-            for (const MicroReg def : useDef.defs)
-            {
-                if (!def.isVirtualInt())
+                if (ops[0].reg == conv.intReturn)
+                {
+                    out.valueRef  = cur;
+                    out.valueBits = writeBits;
+                    continue;
+                }
+                // Speculatable arm instructions define only this destination;
+                // the comparisons report no write width and define no register.
+                if (!ops[0].reg.isVirtualInt())
                     return false;
             }
             if (out.refs.size() >= K_MAX_IF_CONVERT_ARM_INSTR)
@@ -7109,15 +7109,14 @@ namespace
         const MicroInstr* flagsInst = scan.storage->ptr(out.flagsRef);
         if (flagsInst->op != MicroInstrOpcode::CmpRegReg && flagsInst->op != MicroInstrOpcode::CmpRegImm)
             return false;
-        const MicroInstrUseDef flagsUseDef = flagsInst->collectUseDef(*scan.operands, nullptr);
+        const MicroInstrOperand* flagsOps = flagsInst->ops(*scan.operands);
+        SWC_ASSERT(flagsOps != nullptr);
+        const MicroReg first  = flagsOps[0].reg;
+        const MicroReg second = flagsInst->op == MicroInstrOpcode::CmpRegReg ? flagsOps[1].reg : first;
         for (const MicroInstrRef ref : out.tail.refs)
         {
-            const MicroInstrUseDef useDef = scan.storage->ptr(ref)->collectUseDef(*scan.operands, nullptr);
-            for (const MicroReg use : flagsUseDef.uses)
-            {
-                if (std::ranges::find(useDef.defs, use) != useDef.defs.end())
-                    return false;
-            }
+            if (definesEitherRegister(*scan.storage->ptr(ref), *scan.operands, nullptr, first, second))
+                return false;
         }
 
         return true;

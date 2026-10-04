@@ -131,9 +131,7 @@ namespace
         flush();
         if (preserve.empty())
             return false;
-        uint32_t nextInt   = 0;
-        uint32_t nextFloat = 0;
-        MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
+        uint32_t nextInt = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
         if (preserve.size() >= MicroReg::K_MAX_INDEX - nextInt)
             return false;
         for (const auto ref : preserve)
@@ -190,9 +188,9 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         const auto* ops = it->ops(*context.operands);
         if (it->op == MicroInstrOpcode::LoadMemReg && ops[2].opBits == MicroOpBits::B64 && ops[1].reg.isVirtualFloat())
         {
-            const auto reaching = ssa->reachingDef(ops[1].reg, it.current);
-            if (reaching.valid())
-                storedValues[ops[0].reg].insert_or_assign(ops[3].valueU64, StoredValue{ops[1].reg, reaching.valueId});
+            const uint32_t valueId = ssa->reachingValueId(ops[1].reg, it.current);
+            if (valueId != MicroSsaState::K_INVALID_VALUE)
+                storedValues[ops[0].reg].insert_or_assign(ops[3].valueU64, StoredValue{ops[1].reg, valueId});
         }
         else if ((it->op == MicroInstrOpcode::LoadRegMem || it->op == MicroInstrOpcode::OpBinaryRegMem) && ops[2].opBits == MicroOpBits::B64)
         {
@@ -268,26 +266,23 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         }
     }
 
-    uint32_t nextInt   = 0;
-    uint32_t nextFloat = 0;
-    MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
-    std::unordered_map<MicroReg, uint32_t> firstWeb;
+    uint32_t                               nextFloat = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+    std::unordered_set<MicroReg>           namedRegs;
     std::unordered_map<uint32_t, MicroReg> names;
     for (uint32_t id = 0; id < values.size(); ++id)
     {
         const auto& value = values[id];
         if (!candidates.contains(value.reg) || excluded.contains(value.reg) || value.isPhi())
             continue;
-        const uint32_t web = webs.root(id);
-        if (names.contains(web))
+        const uint32_t web          = webs.root(id);
+        const auto [name, inserted] = names.try_emplace(web, value.reg);
+        if (!inserted)
             continue;
-        if (firstWeb.try_emplace(value.reg, web).second)
-            names.emplace(web, value.reg);
-        else
+        if (!namedRegs.insert(value.reg).second)
         {
             if (nextFloat >= MicroReg::K_MAX_INDEX)
                 return Result::Continue;
-            names.emplace(web, MicroReg::virtualFloatReg(nextFloat++));
+            name->second = MicroReg::virtualFloatReg(nextFloat++);
         }
     }
 

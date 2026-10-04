@@ -1422,14 +1422,20 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     const ABITypeNormalize::NormalizedType retType = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
-    SmallVector<ABICall::Arg>                     packedArgs;
-    SmallVector<ABITypeNormalize::NormalizedType> normalizedArgTypes;
-    uint32_t                                      indirectArgStorageSize = 0;
-    const bool                                    hasIndirectRetArg      = retType.isIndirect;
-    const uint32_t                                packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
+    struct IndirectArgCopy
+    {
+        uint32_t argIndex;
+        uint32_t storageOffset;
+        uint32_t size;
+    };
+
+    SmallVector<ABICall::Arg>    packedArgs;
+    SmallVector<IndirectArgCopy> indirectArgCopies;
+    uint32_t                     indirectArgStorageSize = 0;
+    const bool                   hasIndirectRetArg      = retType.isIndirect;
+    const uint32_t               packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
 
     packedArgs.resize(args.size() + packedArgBaseOffset);
-    normalizedArgTypes.resize(args.size());
 
     if (hasIndirectRetArg)
     {
@@ -1444,26 +1450,6 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         const JITArgument&                     arg     = args[i];
         const ABITypeNormalize::NormalizedType argType = ABITypeNormalize::normalize(ctx, conv, arg.typeRef, ABITypeNormalize::Usage::Argument);
         SWC_ASSERT(!argType.isVoid);
-        normalizedArgTypes[i] = argType;
-
-        if (argType.isIndirect && argType.needsIndirectCopy)
-        {
-            indirectArgStorageSize         = Math::alignUpU32(indirectArgStorageSize, argType.indirectAlign);
-            const uint64_t nextStorageSize = static_cast<uint64_t>(indirectArgStorageSize) + argType.indirectSize;
-            SWC_ASSERT(nextStorageSize <= std::numeric_limits<uint32_t>::max());
-            indirectArgStorageSize = static_cast<uint32_t>(nextStorageSize);
-        }
-    }
-
-    SmallVector<uint8_t> indirectArgStorage;
-    if (indirectArgStorageSize)
-        indirectArgStorage.resize(indirectArgStorageSize);
-
-    uint32_t indirectArgStorageOffset = 0;
-    for (uint32_t i = 0; i < numArgs; ++i)
-    {
-        const JITArgument&                     arg     = args[i];
-        const ABITypeNormalize::NormalizedType argType = normalizedArgTypes[i];
         SWC_ASSERT(arg.valuePtr != nullptr);
 
         if (!argType.isIndirect)
@@ -1472,19 +1458,35 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
             continue;
         }
 
-        const void* indirectValuePtr = arg.valuePtr;
         if (argType.needsIndirectCopy)
         {
-            indirectArgStorageOffset = Math::alignUpU32(indirectArgStorageOffset, argType.indirectAlign);
-            uint8_t* copyPtr         = indirectArgStorage.data() + indirectArgStorageOffset;
-            std::memcpy(copyPtr, arg.valuePtr, argType.indirectSize);
-            indirectValuePtr = copyPtr;
-            indirectArgStorageOffset += argType.indirectSize;
+            indirectArgStorageSize         = Math::alignUpU32(indirectArgStorageSize, argType.indirectAlign);
+            const uint64_t nextStorageSize = static_cast<uint64_t>(indirectArgStorageSize) + argType.indirectSize;
+            SWC_ASSERT(nextStorageSize <= std::numeric_limits<uint32_t>::max());
+            if (indirectArgCopies.empty())
+                indirectArgCopies.reserve(args.size());
+            indirectArgCopies.push_back({i, indirectArgStorageSize, argType.indirectSize});
+            indirectArgStorageSize = static_cast<uint32_t>(nextStorageSize);
+        }
+        else
+        {
+            packedArgs[i + packedArgBaseOffset].value = reinterpret_cast<uint64_t>(arg.valuePtr);
         }
 
-        packedArgs[i + packedArgBaseOffset].value   = reinterpret_cast<uint64_t>(indirectValuePtr);
         packedArgs[i + packedArgBaseOffset].isFloat = false;
         packedArgs[i + packedArgBaseOffset].numBits = 64;
+    }
+
+    SmallVector<uint8_t> indirectArgStorage;
+    if (indirectArgStorageSize)
+        indirectArgStorage.resize(indirectArgStorageSize);
+
+    // Only copied arguments must wait until the complete storage area has a stable address.
+    for (const IndirectArgCopy& copy : indirectArgCopies)
+    {
+        uint8_t* copyPtr = indirectArgStorage.data() + copy.storageOffset;
+        std::memcpy(copyPtr, args[copy.argIndex].valuePtr, copy.size);
+        packedArgs[copy.argIndex + packedArgBaseOffset].value = reinterpret_cast<uint64_t>(copyPtr);
     }
 
     struct CallFrame

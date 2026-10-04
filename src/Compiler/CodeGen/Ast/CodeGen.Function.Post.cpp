@@ -255,23 +255,16 @@ namespace
         return CodeGenTypeHelpers::scalarStoreBits(scalarType, codeGen.ctx());
     }
 
-    TypeRef unwrapAliasTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (!typeInfo.isAlias())
-            return typeRef;
-        const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-    }
-
     bool isReferenceValueType(CodeGen& codeGen, TypeRef typeRef)
     {
         if (!typeRef.isValid())
             return false;
-        return codeGen.typeMgr().get(unwrapAliasTypeRef(codeGen, typeRef)).isReference();
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias())
+            return typeInfo.isReference();
+        const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        return unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef).isReference() : typeInfo.isReference();
     }
 
     MicroReg materializeReferenceValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef sourceTypeRef)
@@ -1055,7 +1048,7 @@ namespace
             SWC_ASSERT(retBits != MicroOpBits::Zero);
 
             const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef, returnTypeInfo);
-            const TypeRef  exprTypeRef    = codeGen.viewType(exprRef).typeRef();
+            const TypeRef  exprTypeRef    = returnTypeInfo.isReference() ? codeGen.viewType(exprRef).typeRef() : TypeRef::invalid();
             if (!delayReturnMaterialization)
             {
                 if (returnTypeInfo.isReference())

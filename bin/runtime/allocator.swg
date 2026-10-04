@@ -1454,7 +1454,7 @@ impl Allocator
             if page.inFull do
                 .unparkFullPage(heap, page)
             page.releaseBlock(address)
-            if page.used == 0 do
+            if page.used == 0 and heap.classes[page.classIndex].page != page do
                 .retirePage(heap, page)
             return true
         }

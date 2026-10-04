@@ -31,8 +31,7 @@ const S1 = S0 orelse "abc"
 // The result is guaranteed present, so it drops '?'.
 #assert(#typeof(C orelse "d") == string)
 
-// Out-of-line so `p` is not flow-narrowed at the `orelse` site: a proven non-null left
-// side would make the `null` fallback uncastable (and pointless).
+// Keep the nullable parameter at the 'orelse' site to exercise a reachable null fallback.
 func nullCoalescingNullFallback(p: *s32?)->*s32? => p orelse null
 
 func semaTest002()

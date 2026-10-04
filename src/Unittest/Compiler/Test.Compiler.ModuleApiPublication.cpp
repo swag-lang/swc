@@ -248,9 +248,9 @@ func exposed(value: s32)->s32 => helper(value)
 )",
          "symbol 'InlineApi.helper' is not exposed by the module API"},
         {"PrivateConstant", R"(#global public
-private const Hidden = 42
+private const Hidden: [2] s32 = [41, 42]
 #[Swag.Inline]
-func exposed()->s32 => Hidden
+func exposed(index: u64)->s32 => Hidden[index]
 )",
          "symbol 'Hidden' is not exposed by the module API"},
         {"OpaqueMember", R"(#global public

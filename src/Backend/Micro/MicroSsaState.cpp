@@ -420,7 +420,8 @@ const MicroSsaState::PhiInfo* MicroSsaState::phiInfoForValue(const uint32_t valu
     if (!info || !info->isPhi())
         return nullptr;
 
-    return phiInfo(info->phiIndex);
+    SWC_ASSERT(info->phiIndex < phiInfoCount_);
+    return &phiInfos_[info->phiIndex];
 }
 
 void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
@@ -943,9 +944,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 
 uint32_t MicroSsaState::currentValue(const RenameState& state, const uint32_t regIndex)
 {
-    if (regIndex >= state.currentValues.size())
-        return K_INVALID_VALUE;
-
+    SWC_ASSERT(regIndex < state.currentValues.size());
     return state.currentValues[regIndex];
 }
 

@@ -1968,20 +1968,7 @@ namespace
         // The LANGUAGE allocator interface: 'free'/'realloc' invalidate the pointer
         // carried by the request's 'address' field. Cheap name test first, the
         // qualified name only on candidates.
-        bool calleeIsAllocFree = false;
-        {
-            const auto calleeName = fn->name(sema.ctx());
-            if (calleeName == "free" || calleeName == "realloc")
-            {
-                // The qualified name is prefixed by the module: match the language
-                // interface by suffix. Interface IMPLEMENTATIONS ('X.IAllocator.free')
-                // do not match - only the declared interface method reached by
-                // dispatch does, which is exactly the semantic anchor.
-                const Utf8             fullName = fn->getFullScopedName(sema.ctx());
-                const std::string_view view{fullName};
-                calleeIsAllocFree = view.ends_with("Swag.IAllocator.free") || view.ends_with("Swag.IAllocator.realloc");
-            }
-        }
+        const bool calleeIsAllocFree = fn->isAllocatorRelease(sema.ctx());
 
         SmallVector<ResolvedCallArgument> args;
         sema.appendResolvedCallArguments(resolvedRef, args);

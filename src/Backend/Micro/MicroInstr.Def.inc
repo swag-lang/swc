@@ -92,6 +92,19 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+// The pointer stored at [op0.reg + op1.valueU64] is released by the following
+// allocator-interface call. The sanity pass consumes and removes this marker.
+SWC_MICRO_INSTR_DEF(
+    SanityRelease,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
 SWC_MICRO_INSTR_DEF(
     Ret,
     MicroInstrDef{

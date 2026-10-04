@@ -208,6 +208,7 @@ namespace
             case MicroInstrOpcode::SetCondReg:
             case MicroInstrOpcode::ClearReg:
             case MicroInstrOpcode::SanityInvalidate:
+            case MicroInstrOpcode::SanityRelease:
             case MicroInstrOpcode::LoadLabelAddress:
             case MicroInstrOpcode::LoadRegTlsSlot:
                 return 2;

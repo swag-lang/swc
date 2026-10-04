@@ -64,6 +64,36 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
     if (!ops)
         return;
 
+    if (inst.op == MicroInstrOpcode::SanityRelease)
+    {
+        int64_t slot = 0;
+        if (!sanitizer.resolveStackSlot(state, ops[0].reg, ops[1].valueU64, slot))
+            return;
+        const auto value = state.stack.find(slot);
+        if (value != state.stack.end() && value->second.isZero())
+            return;
+        const auto freed = state.freedPtrSlots.find(slot);
+        if (freed != state.freedPtrSlots.end())
+        {
+            sanitizer.report(inst, DiagnosticId::sanity_err_double_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);
+            return;
+        }
+        const auto  reg  = state.aliasPtrRegs.find(slot);
+        const auto* info = reg != state.aliasPtrRegs.end() ? Sanitizer::regInfo(state, reg->second) : nullptr;
+        if (info && info->releasedPointer)
+        {
+            sanitizer.report(inst, DiagnosticId::sanity_err_double_free, info->releasedOrigin, DiagnosticId::sanity_note_pointer_released_here);
+            return;
+        }
+        const auto location = state.aliasPtrLocations.find(slot);
+        if (location != state.aliasPtrLocations.end())
+        {
+            if (const auto* origin = state.findFreedPtrLocation(location->second))
+                sanitizer.report(inst, DiagnosticId::sanity_err_double_free, *origin, DiagnosticId::sanity_note_pointer_released_here);
+        }
+        return;
+    }
+
     // Handing an already-freed pointer to a freeing callee again: double free. The
     // state is the PRE-call one, so the argument registers still carry their slots.
     if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))

@@ -9,9 +9,9 @@ SWC_BEGIN_NAMESPACE();
 // A thin driver: it self-gates on the build configuration safety mask
 // (the `#[Swag.Sanity]` mask, which a module or function can turn off), then runs
 // every `SanitizerCheck` that mask still enables (Backend/Sanitizer). The registered
-// set lives in this pass's `run`, so it is named in one place only. The analysis is
-// read-only; on a finding this pass returns `Result::Error` to abort codegen so the
-// faulty function is never run.
+// set lives in this pass's `run`, so it is named in one place only. On a finding
+// this pass returns `Result::Error` to abort codegen so the faulty function is
+// never run. A successful pass removes the release markers.
 //
 // Runs once, before the pre-RA optimization loop, on the unoptimized virtual-register
 // IR: dead dereferences have not been eliminated, field offsets are not folded into

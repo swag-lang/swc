@@ -239,6 +239,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             encoder.encodeNop();
             break;
         case MicroInstrOpcode::SanityInvalidate:
+        case MicroInstrOpcode::SanityRelease:
             // Sanitizer-only marker: encodes to nothing.
             break;
         case MicroInstrOpcode::Breakpoint:

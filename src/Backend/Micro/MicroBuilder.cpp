@@ -330,6 +330,14 @@ void MicroBuilder::emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes)
     ops[1].valueU64         = sizeInBytes;
 }
 
+void MicroBuilder::emitSanityRelease(MicroReg addrReg, uint64_t offset)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::SanityRelease, 2);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = addrReg;
+    ops[1].valueU64         = offset;
+}
+
 MicroLabelRef MicroBuilder::createLabel()
 {
     const MicroLabelRef labelRef(static_cast<uint32_t>(labels_.size()));

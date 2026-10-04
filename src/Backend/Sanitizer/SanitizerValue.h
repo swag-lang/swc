@@ -21,8 +21,8 @@ struct SanitizerValue
     static constexpr int64_t K_NO_ORIGIN = INT64_MIN;
 
     SanitizerValueKind kind = SanitizerValueKind::Unknown;
-    // Stack facts remember how many bytes were written. Zero means a guard-derived
-    // fact with no known storage width; a wide copy must not promote it to eight bytes.
+    // Stack facts remember how many bytes a write or guard established. Zero means
+    // the width is unknown; a wide copy must not promote it to eight bytes.
     uint8_t  storedBytes = 0;
     uint64_t constant    = 0; // Constant
     int64_t  stackOffset = 0; // StackAddr
@@ -63,6 +63,26 @@ struct SanitizerValue
     bool isStackAddr() const
     {
         return kind == SanitizerValueKind::StackAddr;
+    }
+
+    // A nonzero pointer can have zero low bytes. Only a full-width comparison
+    // consumes a nonzero fact without a concrete value.
+    bool tryZeroTest(bool& isZero, uint8_t bits) const
+    {
+        if (!bits || bits > 64)
+            return false;
+        if (isConstant())
+        {
+            const uint64_t mask = bits == 64 ? UINT64_MAX : (1ULL << bits) - 1;
+            isZero              = (constant & mask) == 0;
+            return true;
+        }
+        if (bits == 64 && isKnownNonZero())
+        {
+            isZero = false;
+            return true;
+        }
+        return false;
     }
 
     bool operator==(const SanitizerValue& o) const

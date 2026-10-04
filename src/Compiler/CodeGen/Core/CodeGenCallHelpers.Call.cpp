@@ -5,6 +5,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/RuntimeAllocator.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
@@ -1693,8 +1694,20 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     }
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
-    const ABICall::PreparedCall preparedCall       = ABICall::prepareArgs(builder, callConvKind, preparedArgs.args, normalizedRet, hiddenRetStorageReg);
-    TypeRef                     nodePayloadTypeRef = calledFunction->returnTypeRef();
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.args, normalizedRet, hiddenRetStorageReg);
+    if (calledFunction->hasInterfaceMethodSlot() && calledFunction->name(codeGen.ctx()) == "free" && CodeGenSafety::hasLifecycleSanity(codeGen) && calledFunction->isAllocatorRelease(codeGen.ctx()))
+    {
+        // Interface dispatch has no direct-call relocation carrying a FREES summary.
+        // Preserve the release of request.address before the opaque call discards
+        // its provenance. This marker emits no machine instruction.
+        SWC_ASSERT(preparedArgs.args.size() == 2);
+        const auto*             inlinePayload   = codeGen.frame().currentInlineContext().payload;
+        const SourceCodeRef     releaseLocation = inlinePayload ? codeGen.node(inlinePayload->callRef).codeRef() : codeGen.curNode().codeRef();
+        const ScopedDebugSource debugSource(builder, releaseLocation);
+        builder.emitSanityRelease(callConv.intArgRegs[1], offsetof(Runtime::AllocatorRequest, address));
+    }
+
+    TypeRef nodePayloadTypeRef = calledFunction->returnTypeRef();
     if (!nodePayloadTypeRef.isValid())
         nodePayloadTypeRef = currentTypeView.typeRef();
     CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), nodePayloadTypeRef);

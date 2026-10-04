@@ -1259,12 +1259,12 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     return 0
 }
 
-private func functionCacheSource(seed: u64, marker: u32)->String
+private func functionCacheSource(seed: u64, marker: u32, optimize: bool = false)->String
 {
     return Format.toString(#raw """
         #global private
 
-        #[Swag.NoInline]
+        #[Swag.NoInline, Swag.Optimize(%)]
         func stable(value: u64)->u64
         {
             var result = value
@@ -1306,7 +1306,7 @@ private func functionCacheSource(seed: u64, marker: u32)->String
         {
             if stable(1) != edited(2) do Swag.print("function-cache-value=%\n")
         }
-        """, seed, marker)
+        """, optimize, seed, marker)
 }
 
 // A source edit rebuilds the module, but an unchanged relocation-free leaf keeps its cached COFF
@@ -1370,6 +1370,51 @@ private func verifyFunctionCache(context: *Context, options: *Options, workspace
     if not Utf8.contains(restoredOutput.toString(), "function-cache-value=1") or restoredArchive.toSlice() != originalArchive.toSlice() or restoredIndex.toSlice() != originalIndex.toSlice()
     {
         Console.println("Rebuilding identical functions did not reproduce the same function cache")
+        return 1
+    }
+
+    // The global configuration and function body stay fixed. Only the function's Optimize
+    // attribute changes, so its cached backend policy must follow false -> true -> false.
+    try File.writeAllText(sourcePath.toString(), functionCacheSource(1, 1, true))
+    let optimizedOutput = try context.captureCompiler(command)
+    Console.print(optimizedOutput.toString())
+    let optimizedIndex = try File.readAllBytes(cacheIndex.toString())
+    if not Utf8.contains(optimizedOutput.toString(), "function-cache-value=1") or optimizedIndex.toSlice() == originalIndex.toSlice()
+    {
+        Console.println("Changing a function's Optimize attribute reused its previous backend identity.")
+        return 1
+    }
+
+    // Rewriting the identical input invalidates the workspace read boundary. Removing only
+    // this probe's function cache makes the next build a cold control for the same policy.
+    try File.delete(cacheArchive.toString())
+    try File.delete(cacheIndex.toString())
+    try File.writeAllText(sourcePath.toString(), functionCacheSource(1, 1, true))
+    let coldOutput = try context.captureCompiler(command)
+    Console.print(coldOutput.toString())
+    let coldIndex = try File.readAllBytes(cacheIndex.toString())
+    if not Utf8.contains(coldOutput.toString(), "function-cache-value=1") or Utf8.contains(coldOutput.toString(), "reused function") or coldIndex.toSlice() != optimizedIndex.toSlice()
+    {
+        Console.println("A cold build disagreed with the function's updated Optimize identity.")
+        return 1
+    }
+
+    try File.writeAllText(sourcePath.toString(), functionCacheSource(1, 1, false))
+    let disabledOutput = try context.captureCompiler(command)
+    Console.print(disabledOutput.toString())
+    let disabledIndex = try File.readAllBytes(cacheIndex.toString())
+    if not Utf8.contains(disabledOutput.toString(), "function-cache-value=1") or disabledIndex.toSlice() != originalIndex.toSlice()
+    {
+        Console.println("Restoring Optimize(false) did not restore the function's original backend identity.")
+        return 1
+    }
+
+    let unchangedOutput = try context.captureCompiler(command)
+    Console.print(unchangedOutput.toString())
+    let unchangedIndex = try File.readAllBytes(cacheIndex.toString())
+    if not artifactReportedUpToDate(unchangedOutput.toString(), "function_cache.exe") or unchangedIndex.toSlice() != disabledIndex.toSlice()
+    {
+        Console.println("An unchanged Optimize policy did not preserve the completed workspace artifact.")
         return 1
     }
 

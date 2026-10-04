@@ -88,7 +88,8 @@ struct NativeObjDescription
 class NativeBackendBuilder
 {
 public:
-    static constexpr uint32_t K_FUNCTION_CACHE_VERSION = 1;
+    // Version 1 omitted per-function Optimize overrides from the code identity.
+    static constexpr uint32_t K_FUNCTION_CACHE_VERSION = 2;
 
     struct NativeTestProgressEvent
     {

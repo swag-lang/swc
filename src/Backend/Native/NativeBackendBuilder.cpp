@@ -124,7 +124,7 @@ namespace
             return {};
 
         ByteArray identity;
-        appendBackendConfig(identity, builder.compiler().buildCfg().backend);
+        appendBackendConfig(identity, microBuilder->backendBuildCfg());
         identity.pushBack(static_cast<std::byte>(function.callConvKind()));
         identity.appendLe32(function.attributes().effectiveSanityMask(builder.compiler().buildCfg().sanityGuards));
         identity.appendLe32(function.debugStackBaseReg().packed);

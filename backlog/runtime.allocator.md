@@ -62,7 +62,23 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-03 19:23 — Measured release without the allocator checks.
+- Updated: 2026-10-04 12:00 — Recorded the remaining throughput gap and repeated thread-startup regression.
+- October 4, retained worktree head `2aec348d6`, release `bench/allocator`, nine rotating rounds
+  against the session's original native executable: pair 25.233 -> 13.010 ns, trees
+  27.547 -> 18.993 ns, churn 47.975 -> 38.603 ns, grow 16.854 -> 10.903 ns; mimalloc
+  remains at 4.857 / 7.246 / 19.484 / 7.004 ns respectively. Remote transfers improve about
+  10% at both two and four producer/consumer pairs. This remains short of parity.
+- Open regression: `spread:8` is about 20% slower than the original executable in both the
+  nine-round campaign (1042.7 vs 864.6 ns) and a quiet fifteen-round repeat (834.4 vs 696.9 ns;
+  mimalloc 751.0 ns). Large-block throughput is essentially unchanged on repetition
+  (1800.6 vs 1788.9 ns), despite an 8.5% difference in the first window.
+- Evidence files on the measurement machine are under `%TEMP%/swc-runtime-allocator-20261004`:
+  `final-retained-results.json`, `final-variable-repeat.json`, and the original `baseline-dm`
+  and retained `final-retained-bench` executables. CPU admission preceded each window;
+  implementations ran in rotating order on the benchmark's performance-core affinity.
+- Next: isolate the `spread:8` regression across retained runtime/code-generation changes
+  and concurrent master integration, with A/A controls and separate thread-startup timing.
+  Do not infer a speedup merely from fewer instructions; several such candidates regressed.
 - October 3, `bench/allocator` (median of five rotating rounds, through `Memory.alloc`): pair
   28.4 -> 26.5 ns, trees 34.4 -> 26.6 ns, churn 53.7 -> 49.2 ns, against 4.3 / 7.3 / 17.9 ns for
   mimalloc and 29.9 / 44.3 / 68.3 ns for the C heap. Native binarytrees paired median 0.87.

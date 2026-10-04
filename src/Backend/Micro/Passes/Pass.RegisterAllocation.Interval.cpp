@@ -705,6 +705,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     }
 
     SmallVector<uint32_t, 32> electionPositions(poolCount);
+    const auto&               forbiddenRegsByVirtual = context_->builder->virtualRegForbiddenPhysRegs();
 
     // A livelock backstop: a legitimate walk processes each node once, plus
     // one requeue per split. Anything far beyond that is the walk arguing
@@ -730,8 +731,9 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         // register a value must stay out of while the arguments are being
         // marshalled, and the like) are off the table in both elections, as
         // they are in the existing scan.
+        const auto forbiddenRegs       = forbiddenRegsByVirtual.find(currentVirtual);
         const auto forbiddenForCurrent = [&](const size_t poolIndex) {
-            return isPhysRegForbiddenForVirtual(currentVirtual, poolRegs[poolIndex]);
+            return forbiddenRegs != forbiddenRegsByVirtual.end() && microRegSpanContains(forbiddenRegs->second.span(), poolRegs[poolIndex]);
         };
 
         // Retire and reclassify.

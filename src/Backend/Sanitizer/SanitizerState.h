@@ -57,6 +57,9 @@ struct SanitizerRegInfo
     // moved into the convention's physical registers, which the call then clobbers, so a
     // release has to name the register the value actually lives in.
     MicroReg originReg;
+    // Only the bytes actually loaded and compared can be narrowed by a guard.
+    uint8_t originSlotBits   = 0;
+    uint8_t zeroTestSlotBits = 0;
 
     // The place this value was loaded FROM when it was not a frame slot. A pointer a heap
     // object owns lives there and nowhere else, so 'object.buffer' released and read again
@@ -86,8 +89,8 @@ struct SanitizerRegInfo
 
     bool operator==(const SanitizerRegInfo& o) const
     {
-        return value == o.value && hasOriginSlot == o.hasOriginSlot && originSlot == o.originSlot &&
-               hasZeroTest == o.hasZeroTest && zeroTestSlot == o.zeroTestSlot && zeroTestTrueIfZero == o.zeroTestTrueIfZero &&
+        return value == o.value && hasOriginSlot == o.hasOriginSlot && originSlot == o.originSlot && originSlotBits == o.originSlotBits &&
+               hasZeroTest == o.hasZeroTest && zeroTestSlot == o.zeroTestSlot && zeroTestSlotBits == o.zeroTestSlotBits && zeroTestTrueIfZero == o.zeroTestTrueIfZero &&
                hasPointerOriginSlot == o.hasPointerOriginSlot && pointerOriginSlot == o.pointerOriginSlot &&
                hasOriginReg == o.hasOriginReg && originReg == o.originReg &&
                releasedPointer == o.releasedPointer &&
@@ -105,10 +108,10 @@ struct SanitizerMovedRange
     SourceCodeRef origin;
 };
 
-// A hash map that owns nothing until it first holds an entry. A state carries four maps almost
+// A hash map that owns nothing until it first holds an entry. A state carries maps almost
 // no function ever fills, and a standard hash map allocates its sentinel and its buckets when it
 // is constructed, copied and moved: every state stored at a chain head, copied into a walk or
-// handed to a successor paid for all four. Once created the map stays, so what it holds and the
+// handed to a successor paid for each map. Once created the map stays, so what it holds and the
 // order it is read in are those of the map it wraps.
 template<typename K, typename V>
 class SanitizerSparseMap
@@ -217,6 +220,17 @@ struct SanitizerState
     // into a proof. Same join as the sets above: intersection.
     SanitizerSparseMap<int64_t, int64_t> aliasPtrSlots;
 
+    // Register-only pointer values copied into allocator request fields. A release
+    // through the request must still name the original virtual register.
+    SanitizerSparseMap<int64_t, MicroReg> aliasPtrRegs;
+    // Object fields copied into a request retain their source until that field is
+    // replaced or its owner is handed to a call that can replace it.
+    SanitizerSparseMap<int64_t, SanitizerLocation> aliasPtrLocations;
+    // A marker immediately precedes interface dispatch. Re-state this release
+    // after that call invalidates the older facts about object fields.
+    std::optional<SanitizerLocation> pendingReleaseLocation;
+    SourceCodeRef                    pendingReleaseOrigin;
+
     // Declared locals whose address has left the engine's sight: handed to a callee,
     // stored, or folded into a value it no longer recognizes as an address. A later call
     // can write through it, so the two sets above keep nothing about such an object past
@@ -241,6 +255,7 @@ struct SanitizerState
     }
 
     MicroReg flagsSubject = MicroReg::invalid();
+    uint8_t  flagsBits    = 0;
 };
 
 SWC_END_NAMESPACE();

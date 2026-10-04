@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.Sanity.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroStorage.h"
 #include "Backend/Sanitizer/Checks/Check.BoundCheck.h"
 #include "Backend/Sanitizer/Checks/Check.DivByZero.h"
 #include "Backend/Sanitizer/Checks/Check.FloatDomain.h"
@@ -50,6 +51,18 @@ Result MicroSanityPass::run(MicroPassContext& context)
     Sanitizer sanitizer(context);
     if (sanitizer.run(enabledChecks.span()))
         return Result::Error;
+
+    // Release markers must not keep argument registers or
+    // request setup alive through optimization and register allocation.
+    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end();)
+    {
+        const auto current = it++;
+        if (current->op == MicroInstrOpcode::SanityRelease)
+        {
+            context.instructions->erase(current.current);
+            context.passChanged = true;
+        }
+    }
     return Result::Continue;
 }
 

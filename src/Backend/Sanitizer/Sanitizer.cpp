@@ -13,6 +13,9 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -39,7 +42,7 @@ namespace
         uint8_t result = 0;
         if (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryRegReg)
             result |= static_cast<uint8_t>(SanitizerCheckInterest::Binary);
-        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction) || inst.op == MicroInstrOpcode::SanityRelease)
             result |= static_cast<uint8_t>(SanitizerCheckInterest::Call);
         if (inst.op == MicroInstrOpcode::Ret)
             result |= static_cast<uint8_t>(SanitizerCheckInterest::Return);
@@ -104,15 +107,17 @@ bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t
 void Sanitizer::computeFunctionProperties()
 {
     definitionCounts_.clear();
-    stackBaseStable_ = true;
+    stackBaseStable_        = true;
+    needsReleaseProvenance_ = false;
 
     const uint32_t n                = cfg_->instructionCount();
     const bool     inspectStackBase = stackBaseReg_.isValid();
     for (uint32_t i = 0; i < n; i++)
     {
-        const MicroInstr&        inst = *context_.instructions->ptr(cfg_->instructionRefs()[i]);
-        const MicroInstrDef&     def  = MicroInstr::info(inst.op);
-        const MicroInstrOperand* ops  = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
+        const MicroInstr& inst = *context_.instructions->ptr(cfg_->instructionRefs()[i]);
+        needsReleaseProvenance_ |= inst.op == MicroInstrOpcode::SanityRelease;
+        const MicroInstrDef&     def = MicroInstr::info(inst.op);
+        const MicroInstrOperand* ops = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
         if (!ops)
             continue;
 
@@ -275,6 +280,23 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     inState_.clear();
     inState_.resize(numStates);
     computeChainLiveness();
+
+    if (const SymbolFunction* function = context_.sanitizerFunction; function && needsReleaseProvenance_)
+    {
+        const auto& parameters = function->parameters();
+        for (size_t i = 0; i < parameters.size(); ++i)
+        {
+            if (!parameters[i])
+                continue;
+            const TypeRef typeRef = ctx().typeMgr().unwrapAliasEnum(ctx(), parameters[i]->typeRef());
+            if (!typeRef.isValid())
+                continue;
+            const TypeInfo& type = ctx().typeMgr().get(typeRef);
+            MicroReg        reg;
+            if (type.isAnyPointer() && !type.isNullable() && callParameterRegister(reg, *function, context_.callConvKind, i))
+                setRegValue(inState_[0], reg, SanitizerValue::makeNonZero());
+        }
+    }
 
     reached_[0]    = 1;
     inWorklist_[0] = 1;
@@ -773,6 +795,24 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
     return true;
 }
 
+bool Sanitizer::locationOwnerPassed(const SanitizerState& state, const SanitizerLocation& location, CallConvKind callConvKind) const
+{
+    const CallConv& callConv = CallConv::get(callConvKind);
+    for (const MicroReg reg : callConv.intArgRegs)
+    {
+        const auto* handed = findReg(state, reg);
+        if (!handed)
+            continue;
+        if (handed->hasAddressLocation && handed->addressLocation == location)
+            return true;
+        if (location.fromSlot && handed->hasOriginSlot && handed->originSlot == location.slot)
+            return true;
+        if (!location.fromSlot && handed->hasOriginReg && handed->originReg.packed == location.basePacked)
+            return true;
+    }
+    return false;
+}
+
 void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, SmallVector<uint32_t, 32>& worklist)
 {
     const uint32_t stateIndex = headStateIndex_[index];
@@ -953,7 +993,37 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         }
     }
 
-    if (into.flagsSubject.isValid() && into.flagsSubject != from.flagsSubject)
+    for (auto it = into.aliasPtrRegs.begin(); it != into.aliasPtrRegs.end();)
+    {
+        const auto fromIt = from.aliasPtrRegs.find(it->first);
+        if (fromIt == from.aliasPtrRegs.end() || it->second != fromIt->second)
+        {
+            it      = into.aliasPtrRegs.erase(it);
+            changed = true;
+        }
+        else
+            ++it;
+    }
+
+    for (auto it = into.aliasPtrLocations.begin(); it != into.aliasPtrLocations.end();)
+    {
+        const auto fromIt = from.aliasPtrLocations.find(it->first);
+        if (fromIt == from.aliasPtrLocations.end() || it->second != fromIt->second)
+        {
+            it      = into.aliasPtrLocations.erase(it);
+            changed = true;
+        }
+        else
+            ++it;
+    }
+    if (into.pendingReleaseLocation && into.pendingReleaseLocation != from.pendingReleaseLocation)
+    {
+        into.pendingReleaseLocation.reset();
+        into.pendingReleaseOrigin = {};
+        changed                   = true;
+    }
+
+    if (into.flagsSubject.isValid() && (into.flagsSubject != from.flagsSubject || into.flagsBits != from.flagsBits))
     {
         into.flagsSubject = MicroReg::invalid();
         changed           = true;
@@ -1020,12 +1090,16 @@ void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t
     // Overwriting either end of a proven copy ends the equality: the copy holds a value
     // the other slot no longer has, and releasing that other slot says nothing about it.
     state.aliasPtrSlots.eraseIf([slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot) || storeOverlapsPointer(entry.second, slot); });
+    state.aliasPtrRegs.eraseIf([slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot); });
+    state.aliasPtrLocations.eraseIf([slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot) || (entry.second.fromSlot && storeOverlapsPointer(entry.second.slot, slot)); });
 }
 
 void Sanitizer::forgetReachableLifecycleFacts(SanitizerState& state) const
 {
     state.freedPtrSlots.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first); });
     state.aliasPtrSlots.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first) || frameObjectReachable(state, entry.second); });
+    state.aliasPtrRegs.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first); });
+    state.aliasPtrLocations.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first); });
 }
 
 bool Sanitizer::writeMayReachFrame(const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
@@ -1044,6 +1118,23 @@ void Sanitizer::recordSlotCopy(SanitizerState& state, const int64_t slot, const 
         return;
 
     const SanitizerRegInfo* source = findReg(state, valueReg);
+    if (needsReleaseProvenance_)
+    {
+        if (source && source->hasOriginReg)
+            state.aliasPtrRegs.insertOrAssign(slot, source->originReg);
+        else if (valueReg.isVirtual() && hasSingleDefinition(valueReg))
+            state.aliasPtrRegs.insertOrAssign(slot, valueReg);
+        if (source && source->releasedPointer)
+            state.freedPtrSlots.insertOrAssign(slot, source->releasedOrigin);
+        if (source && source->hasOriginLocation)
+            state.aliasPtrLocations.insertOrAssign(slot, source->originLocation);
+        else if (source && source->hasOriginSlot)
+        {
+            const auto origin = state.aliasPtrLocations.find(source->originSlot);
+            if (origin != state.aliasPtrLocations.end())
+                state.aliasPtrLocations.insertOrAssign(slot, origin->second);
+        }
+    }
     if (!source || !source->hasOriginSlot || source->originSlot == slot || frameObjectReachable(state, source->originSlot))
         return;
 
@@ -1144,10 +1235,22 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
     // Lifecycle facts - a released pointer, and the slot copies that share it - follow
     // one aliasing discipline: any write that could reassign a slot revalidates it. Calls
     // are handled below, after the freeing call has marked its own arguments.
-    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty() ||
+    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty() || !state.aliasPtrRegs.empty() || !state.aliasPtrLocations.empty() ||
                                    (state.freedPtrLocations && !state.freedPtrLocations->empty());
     if (hasLifecycleFacts && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
     {
+        if (!state.aliasPtrLocations.empty())
+        {
+            SanitizerLocation written;
+            if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && resolveAccessLocation(written, state, ops[def.memBaseOperandIndex].reg, static_cast<int64_t>(ops[def.memOffsetOperandIndex].valueU64)))
+                state.aliasPtrLocations.eraseIf([&](const auto& entry) { return entry.second == written; });
+            else
+            {
+                int64_t stackSlot = 0;
+                if (!resolveAccessStackSlot(stackSlot, state, inst, def, ops))
+                    state.aliasPtrLocations.clear();
+            }
+        }
         // A pointer a heap object owns is named by base and offset, so writing that
         // exact place revalidates it and any other write the analysis cannot pin drops
         // every such fact.
@@ -1172,6 +1275,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             // object it indexes, so every fact about the frame goes.
             state.freedPtrSlots.clear();
             state.aliasPtrSlots.clear();
+            state.aliasPtrRegs.clear();
+            state.aliasPtrLocations.clear();
         }
         else
             forgetReachableLifecycleFacts(state);
@@ -1179,6 +1284,39 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
     switch (inst.op)
     {
+        case MicroInstrOpcode::SanityRelease:
+        {
+            int64_t slot = 0;
+            if (resolveStackSlot(state, ops[0].reg, ops[1].valueU64, slot))
+            {
+                const auto value = state.stack.find(slot);
+                if (value != state.stack.end() && value->second.isZero())
+                    return;
+                SmallVector<int64_t> released;
+                appendAliasClass(released, state, slot);
+                const auto location = state.aliasPtrLocations.find(slot);
+                if (location != state.aliasPtrLocations.end())
+                {
+                    state.pendingReleaseLocation = location->second;
+                    state.pendingReleaseOrigin   = inst.debugSourceInfo.sourceCodeRef;
+                }
+                for (const int64_t alias : released)
+                {
+                    state.freedPtrSlots.insertOrAssign(alias, inst.debugSourceInfo.sourceCodeRef);
+                    const auto reg = state.aliasPtrRegs.find(alias);
+                    if (reg != state.aliasPtrRegs.end())
+                    {
+                        SanitizerRegInfo info;
+                        if (const auto* previous = findReg(state, reg->second))
+                            info = *previous;
+                        info.releasedPointer = true;
+                        info.releasedOrigin  = inst.debugSourceInfo.sourceCodeRef;
+                        setReg(state, reg->second, info);
+                    }
+                }
+            }
+            return;
+        }
         case MicroInstrOpcode::SanityInvalidate:
         {
             int64_t slot = 0;
@@ -1218,6 +1356,20 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 info = *src;
             if (stackBaseReg_.isValid() && ops[1].reg == stackBaseReg_)
                 info.value = SanitizerValue::makeStackAddr(0);
+
+            const uint8_t sourceBits = static_cast<uint8_t>(getNumBits(ops[inst.op == MicroInstrOpcode::LoadRegReg ? 2 : 3].opBits));
+            if (sourceBits < 64)
+            {
+                if (info.value.isConstant())
+                {
+                    info.value.constant &= (1ULL << sourceBits) - 1;
+                    if (inst.op == MicroInstrOpcode::LoadSignedExtRegReg && (info.value.constant & (1ULL << (sourceBits - 1))))
+                        info.value.constant |= ~((1ULL << sourceBits) - 1);
+                }
+                else
+                    info.value = {};
+                info.originSlotBits = std::min(info.originSlotBits, sourceBits);
+            }
 
             // Keep the FIRST virtual register of the copy chain: a value moved into an
             // argument register has to be nameable again after the call clobbers that
@@ -1303,6 +1455,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 // A dynamic index leaves an address the engine can no longer name a slot
                 // for: what it addresses is out of reach from here on.
                 markFrameObjectEscaped(state, baseValue);
+                // The new register can still address a captured object field. Forget
+                // that copy before a later store mistakes the new base for a disjoint one.
+                state.aliasPtrLocations.clear();
                 setRegValue(state, ops[0].reg, baseValue.isKnownNonZero() ? SanitizerValue::makeNonZero() : SanitizerValue{});
             }
             applyPointerOrigin(state, ops[0].reg, carried);
@@ -1325,7 +1480,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             int64_t    slot            = 0;
             if (resolveAccessStackSlot(slot, state, inst, def, ops))
             {
-                const bool wide = !extension && ops[indexed ? 3 : 2].opBits == MicroOpBits::B128;
+                const uint8_t    loadBits = static_cast<uint8_t>(getNumBits(ops[indexed ? (extension ? 4 : 3) : (extension ? 3 : 2)].opBits));
+                const bool       wide     = loadBits == 128;
                 SanitizerRegInfo info;
                 if (wide)
                     info.value = getStackLane(state, slot);
@@ -1333,12 +1489,40 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 {
                     const auto it = state.stack.find(slot);
                     info.value    = it != state.stack.end() ? it->second : SanitizerValue{};
+                    if (info.value.storedBytes && info.value.storedBytes * 8 < loadBits)
+                        info.value = {};
+                    else if (loadBits < 64)
+                    {
+                        if (info.value.isConstant())
+                            info.value.constant &= (1ULL << loadBits) - 1;
+                        else
+                            info.value = {};
+                    }
                     info.value.storedBytes = 0;
                 }
                 info.hasOriginSlot        = true;
                 info.originSlot           = slot;
+                info.originSlotBits       = loadBits;
                 info.hasPointerOriginSlot = true;
                 info.pointerOriginSlot    = slot;
+
+                // A full load of a non-null pointer keeps its declared contract through
+                // an inline binding whose parameter type is nullable. Keep concrete
+                // values (including an unsafe zero) ahead of that type information.
+                if (needsReleaseProvenance_ && loadBits == 64 && info.value.kind == SanitizerValueKind::Unknown)
+                {
+                    const LocalSlotExtent* extent = findLocalSlot(slot);
+                    if (extent && extent->start == slot && extent->sym)
+                    {
+                        const TypeRef typeRef = ctx().typeMgr().unwrapAliasEnum(ctx(), extent->sym->typeRef());
+                        if (typeRef.isValid())
+                        {
+                            const TypeInfo& type = ctx().typeMgr().get(typeRef);
+                            if (type.isAnyPointer() && !type.isNullable())
+                                info.value = SanitizerValue::makeNonZero();
+                        }
+                    }
+                }
 
                 if (info.value.isConstant() && extension)
                 {
@@ -1375,6 +1559,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             {
                 locationInfo.hasOriginLocation = true;
                 locationInfo.originLocation    = location;
+                if (const auto* released = state.findFreedPtrLocation(location))
+                {
+                    locationInfo.releasedPointer = true;
+                    locationInfo.releasedOrigin  = *released;
+                }
             }
 
             setReg(state, ops[0].reg, locationInfo);
@@ -1498,9 +1687,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
         case MicroInstrOpcode::CmpRegImm:
             state.flagsSubject = ops[2].valueU64 == 0 ? ops[0].reg : MicroReg::invalid();
+            state.flagsBits    = static_cast<uint8_t>(getNumBits(ops[1].opBits));
             return;
 
         case MicroInstrOpcode::CmpRegReg:
+            state.flagsBits = static_cast<uint8_t>(getNumBits(ops[2].opBits));
             if (getReg(state, ops[1].reg).isZero())
                 state.flagsSubject = ops[0].reg;
             else if (getReg(state, ops[0].reg).isZero())
@@ -1511,14 +1702,23 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
         case MicroInstrOpcode::SetCondReg:
         {
-            SanitizerRegInfo        info; // value stays Unknown (a 0/1 bool)
-            const SanitizerRegInfo* subject    = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
-            bool                    trueIfZero = false;
-            if (subject && subject->hasOriginSlot && condIsZeroTest(ops[1].cpuCond, trueIfZero))
+            SanitizerRegInfo        info;
+            const SanitizerRegInfo* subject       = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
+            bool                    trueIfZero    = false;
+            bool                    subjectIsZero = false;
+            if (subject && condIsZeroTest(ops[1].cpuCond, trueIfZero) && subject->value.tryZeroTest(subjectIsZero, state.flagsBits))
+            {
+                info.value = SanitizerValue::makeConstant(trueIfZero == subjectIsZero);
+                setReg(state, ops[0].reg, info);
+                return;
+            }
+            GuardSlot guard;
+            if (subject && condIsZeroTest(ops[1].cpuCond, trueIfZero) && resolveGuardSlot(guard, *subject, state.flagsBits))
             {
                 info.hasZeroTest        = true;
-                info.zeroTestSlot       = subject->originSlot;
-                info.zeroTestTrueIfZero = trueIfZero;
+                info.zeroTestSlot       = guard.offset;
+                info.zeroTestSlotBits   = guard.bits;
+                info.zeroTestTrueIfZero = trueIfZero == guard.zeroIfSubjectZero;
             }
             setReg(state, ops[0].reg, info);
             return;
@@ -1530,6 +1730,13 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
     if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
     {
+        const auto pendingRelease = state.pendingReleaseLocation;
+        const auto pendingOrigin  = state.pendingReleaseOrigin;
+        state.pendingReleaseLocation.reset();
+        state.pendingReleaseOrigin    = {};
+        const auto callConvKind       = ops ? ops[def.callConvIndex].callConv : CallConvKind::Swag;
+        const bool keepPendingRelease = pendingRelease && !locationOwnerPassed(state, *pendingRelease, callConvKind);
+        state.aliasPtrLocations.eraseIf([&](const auto& entry) { return locationOwnerPassed(state, entry.second, callConvKind); });
         // A callee with a FREES summary invalidates what its marked arguments point
         // to: remember the slots those pointers were loaded from, BEFORE the clobber
         // wipe erases the argument registers.
@@ -1567,22 +1774,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 if (!argInfo->hasOriginLocation)
                     continue;
 
-                bool            objectHandedOver = false;
-                const CallConv& handedConv       = CallConv::get(ops[def.callConvIndex].callConv);
-                for (const MicroReg handedReg : handedConv.intArgRegs)
-                {
-                    const SanitizerRegInfo* handed = findReg(state, handedReg);
-                    if (!handed)
-                        continue;
-                    if (argInfo->originLocation.fromSlot && handed->hasOriginSlot && handed->originSlot == argInfo->originLocation.slot)
-                        objectHandedOver = true;
-                    else if (!argInfo->originLocation.fromSlot && handed->hasOriginReg && handed->originReg.packed == argInfo->originLocation.basePacked)
-                        objectHandedOver = true;
-                    if (objectHandedOver)
-                        break;
-                }
-
-                if (!objectHandedOver)
+                if (!locationOwnerPassed(state, argInfo->originLocation, callConvKind))
                     newlyFreedLocations.push_back(argInfo->originLocation);
             }
         }
@@ -1628,6 +1820,12 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             state.freedPtrLocations.emplace();
             for (const auto& location : newlyFreedLocations)
                 (*state.freedPtrLocations)[location] = inst.debugSourceInfo.sourceCodeRef;
+        }
+        if (keepPendingRelease)
+        {
+            if (!state.freedPtrLocations)
+                state.freedPtrLocations.emplace();
+            (*state.freedPtrLocations)[*pendingRelease] = pendingOrigin;
         }
 
         // A callee handed both a pointer to release and the storage that holds it can put
@@ -1695,11 +1893,9 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
         // only the feasible edge is explored. Inlining a constant null folds the guard
         // to a constant but leaves the guarded dereference as a not-yet-swept dead
         // block, and walking it would report code that can never execute. The compare
-        // width is not at hand here, so a constant only counts as non-zero when its low
-        // byte is: b8 is the narrowest compare the builder emits.
-        const bool           provenZero    = subjectValue.isZero();
-        const bool           provenNonZero = subjectValue.isConstant() && (subjectValue.constant & 0xFF) != 0;
-        if (provenZero || provenNonZero)
+        // width matters: a non-null pointer can still have a zero low byte.
+        bool provenZero = false;
+        if (subjectValue.tryZeroTest(provenZero, state.flagsBits))
         {
             // successors = [taken (cond true), fallthrough (cond false)].
             const bool condIsTrue = condTrueIfSubjectZero == provenZero;
@@ -1709,13 +1905,12 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
         }
     }
 
-    int64_t slot                  = 0;
-    bool    slotZeroIfSubjectZero = false;
-    if (subject && isZeroTest && resolveGuardSlot(*subject, slot, slotZeroIfSubjectZero))
+    GuardSlot guard;
+    if (subject && isZeroTest && resolveGuardSlot(guard, *subject, state.flagsBits))
     {
         // successors = [taken (cond true), fallthrough (cond false)].
-        queueRefined(state, succs[0], slot, condTrueIfSubjectZero == slotZeroIfSubjectZero, worklist);
-        queueRefined(std::move(state), succs[1], slot, (!condTrueIfSubjectZero) == slotZeroIfSubjectZero, worklist);
+        queueRefined(state, succs[0], guard, condTrueIfSubjectZero == guard.zeroIfSubjectZero, worklist);
+        queueRefined(std::move(state), succs[1], guard, (!condTrueIfSubjectZero) == guard.zeroIfSubjectZero, worklist);
         return;
     }
 
@@ -1738,39 +1933,40 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
     propagate(std::move(state), succs[1], worklist);
 }
 
-bool Sanitizer::resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSlot, bool& outSlotZeroIfSubjectZero)
+bool Sanitizer::resolveGuardSlot(GuardSlot& out, const SanitizerRegInfo& subject, uint8_t bits)
 {
     if (subject.hasZeroTest)
     {
         // subject is a bool == (slot is zero) when zeroTestTrueIfZero.
         // subject == 0 (false) ⇒ slot is zero iff !zeroTestTrueIfZero.
-        outSlot                  = subject.zeroTestSlot;
-        outSlotZeroIfSubjectZero = !subject.zeroTestTrueIfZero;
+        out = {.offset = subject.zeroTestSlot, .bits = subject.zeroTestSlotBits, .zeroIfSubjectZero = !subject.zeroTestTrueIfZero};
         return true;
     }
-    if (subject.hasOriginSlot)
+    if (subject.hasOriginSlot && subject.originSlotBits && bits)
     {
-        outSlot                  = subject.originSlot;
-        outSlotZeroIfSubjectZero = true; // subject IS the value: subject==0 ⇒ slot zero
+        out = {.offset = subject.originSlot, .bits = std::min(bits, subject.originSlotBits), .zeroIfSubjectZero = true};
         return true;
     }
     return false;
 }
 
-void Sanitizer::queueRefined(SanitizerState state, uint32_t index, int64_t slot, bool slotIsZero, SmallVector<uint32_t, 32>& worklist)
+void Sanitizer::queueRefined(SanitizerState state, uint32_t index, const GuardSlot& guard, bool slotIsZero, SmallVector<uint32_t, 32>& worklist)
 {
-    const auto           it      = state.stack.find(slot);
+    const auto           it      = state.stack.find(guard.offset);
     const SanitizerValue current = it != state.stack.end() ? it->second : SanitizerValue{};
 
-    if (slotIsZero && current.isKnownNonZero())
-        return; // infeasible
-    if (!slotIsZero && current.isZero())
+    bool currentIsZero = false;
+    if ((!current.storedBytes || current.storedBytes * 8 >= guard.bits) && current.tryZeroTest(currentIsZero, guard.bits) && slotIsZero != currentIsZero)
         return; // infeasible
 
     // A guard narrows an unknown value, but must retain any value already known,
     // including its storage width: later reloads and wide copies need the same fact.
     if (current.kind == SanitizerValueKind::Unknown)
-        state.stack.insert_or_assign(slot, slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero());
+    {
+        auto refined        = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
+        refined.storedBytes = guard.bits / 8;
+        state.stack.insert_or_assign(guard.offset, refined);
+    }
     state.flagsSubject = MicroReg::invalid();
     propagate(std::move(state), index, worklist);
 }

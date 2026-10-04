@@ -108,6 +108,7 @@ public:
     void     markExternalBorrowObservation() noexcept { observesExternalBorrows_ = true; }
     void     markBorrowEffectsComputed() noexcept { borrowEffectsComputed_ = true; }
     uint64_t storesParamsMask() const noexcept;
+    bool     isAllocatorRelease(const TaskContext& ctx) const;
     // One-level aggregate contents reached through a pointer parameter. These
     // masks do not assert that the pointed-to aggregate slot itself is retained.
     uint64_t returnsIndirectParamsMask() const noexcept;

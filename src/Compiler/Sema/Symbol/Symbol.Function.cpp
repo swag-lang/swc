@@ -936,6 +936,19 @@ uint64_t SymbolFunction::freesParamsMask() const noexcept
     return inferred | (attrs ? attrs->freesParamsMask : 0);
 }
 
+bool SymbolFunction::isAllocatorRelease(const TaskContext& ctx) const
+{
+    const auto methodName = name(ctx);
+    if (methodName != "free" && methodName != "realloc")
+        return false;
+
+    // Only the language interface has this contract; an implementation method
+    // receives its request but must not be mistaken for releasing that request.
+    const Utf8             fullName = getFullScopedName(ctx);
+    const std::string_view view{fullName};
+    return view.ends_with("Swag.IAllocator.free") || view.ends_with("Swag.IAllocator.realloc");
+}
+
 uint64_t SymbolFunction::reallocatesParamsMask() const noexcept
 {
     const AttributeList* attrs = attributesIfAny();

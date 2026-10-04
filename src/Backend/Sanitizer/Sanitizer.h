@@ -169,8 +169,9 @@ private:
     // stored state keeps only the live ones: without this every head held every register
     // the function had defined so far, which made the stored states grow with the
     // square of a function's length.
-    void computeChainLiveness();
-    void pruneDeadRegs(SanitizerState& state, const uint64_t* live) const;
+    void            computeChainLiveness();
+    bool            locationOwnerPassed(const SanitizerState& state, const SanitizerLocation& location, CallConvKind callConvKind) const;
+    void            pruneDeadRegs(SanitizerState& state, const uint64_t* live) const;
     const uint64_t* chainLiveIn(uint32_t stateIndex) const { return liveWords_ ? chainLiveIn_.data() + static_cast<size_t>(stateIndex) * liveWords_ : nullptr; }
     const uint64_t* chainLiveOut(uint32_t stateIndex) const { return liveWords_ ? chainLiveOut_.data() + static_cast<size_t>(stateIndex) * liveWords_ : nullptr; }
 
@@ -180,9 +181,16 @@ private:
     static bool condIsZeroTest(MicroCond cond, bool& outTrueIfZero);
 
     // Conditional branch handling: guard narrowing + feasibility pruning.
+    struct GuardSlot
+    {
+        int64_t offset            = 0;
+        uint8_t bits              = 0;
+        bool    zeroIfSubjectZero = false;
+    };
+
     void        propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, SmallVector<uint32_t, 32>& worklist);
-    static bool resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSlot, bool& outSlotZeroIfSubjectZero);
-    void        queueRefined(SanitizerState state, uint32_t index, int64_t slot, bool slotIsZero, SmallVector<uint32_t, 32>& worklist);
+    static bool resolveGuardSlot(GuardSlot& out, const SanitizerRegInfo& subject, uint8_t bits);
+    void        queueRefined(SanitizerState state, uint32_t index, const GuardSlot& guard, bool slotIsZero, SmallVector<uint32_t, 32>& worklist);
     static void dropZeros(SanitizerState& state);
     static bool isModelledSingleEdge(const MicroInstrDef& def, const MicroControlFlowGraph::EdgeList& succs);
     void        report(const MicroInstr& inst, DiagnosticId id, const ReportArguments& arguments, std::span<const ReportNote> notes);
@@ -204,7 +212,8 @@ private:
     MicroReg                              stackBaseReg_;
     std::unordered_map<uint32_t, uint8_t> definitionCounts_;
     std::vector<LocalSlotExtent>          localSlots_;
-    bool                                  stackBaseStable_ = true;
+    bool                                  needsReleaseProvenance_ = false;
+    bool                                  stackBaseStable_        = true;
     // Call target of the instruction currently going through the transfer function
     // (set by the fixpoint loop): lets the call effect apply the callee's summaries.
     const Symbol*                               transferCallTarget_ = nullptr;

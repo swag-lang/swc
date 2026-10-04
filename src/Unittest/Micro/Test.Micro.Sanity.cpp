@@ -8,13 +8,65 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Sanity.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result runReleaseGuardSanity(TaskContext& ctx, MicroOpBits compareBits, bool copiedBoolean, bool narrowLoad)
+    {
+        SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        function.setReturnTypeRef(ctx.typeMgr().typeVoid());
+        SymbolVariable local(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        local.setTypeRef(ctx.typeMgr().typeValuePtrVoid());
+        local.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+        local.setCodeGenLocalSize(8);
+        local.setOffset(0);
+        function.addLocalVariable(ctx, &local);
+
+        const MicroReg stackBase = MicroReg::virtualIntReg(1);
+        const MicroReg pointer   = MicroReg::virtualIntReg(2);
+        const MicroReg condition = MicroReg::virtualIntReg(3);
+        const MicroReg value     = MicroReg::virtualIntReg(4);
+        const MicroReg unknown   = CallConv::get(CallConvKind::Swag).intArgRegs[0];
+        MicroBuilder   builder(ctx);
+        builder.emitLoadMemReg(stackBase, 0, unknown, MicroOpBits::B64);
+        builder.emitSanityRelease(stackBase, 0);
+        builder.emitLoadRegMem(pointer, stackBase, 0, narrowLoad ? MicroOpBits::B8 : MicroOpBits::B64);
+        builder.emitCmpRegImm(pointer, ApInt(0, 64), compareBits);
+        if (copiedBoolean)
+        {
+            builder.emitSetCondReg(condition, MicroCond::NotEqual);
+            builder.emitCmpRegImm(condition, ApInt(0, 8), MicroOpBits::B8);
+            builder.emitSetCondReg(condition, MicroCond::Equal);
+            builder.emitCmpRegImm(condition, ApInt(0, 8), MicroOpBits::B8);
+        }
+        const MicroLabelRef done = builder.createLabel();
+        builder.emitJumpToLabel(copiedBoolean ? MicroCond::Equal : MicroCond::NotEqual, MicroOpBits::B32, done);
+        builder.emitLoadMemReg(stackBase, 0, unknown, MicroOpBits::B64);
+        builder.placeLabel(done);
+        builder.emitLoadRegMem(pointer, stackBase, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, pointer, 0, MicroOpBits::B32);
+        builder.emitRet();
+
+        MicroSanityPass  pass;
+        MicroPassManager passManager;
+        passManager.addPreRaAnalysisPass(pass);
+        MicroPassContext passContext;
+        passContext.callConvKind             = CallConvKind::Swag;
+        passContext.debugStackBaseVirtualReg = stackBase;
+        passContext.sanitizerFunction        = &function;
+        passContext.sanitizerSafetyMask      = static_cast<uint16_t>(Runtime::SafetyWhat::Lifecycle);
+        const Result result                  = builder.runPasses(passManager, nullptr, passContext);
+        if (result == Result::Continue && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SanityRelease) != 0)
+            return Result::Error;
+        return result;
+    }
+
     enum class ReturnAddressKind
     {
         Stack,
@@ -229,6 +281,24 @@ SWC_TEST_BEGIN(MicroSanity_RejectsStackAddressReturnedAsPointer)
 {
     if (runStackEscapeSanity(ctx, ctx.typeMgr().typeValuePtrU8(), ReturnAddressKind::Stack) != Result::Error)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSanity_PreservesReleasesAcrossNonNullGuards)
+{
+    if (runReleaseGuardSanity(ctx, MicroOpBits::B64, false, false) != Result::Error)
+        return Result::Error;
+    if (runReleaseGuardSanity(ctx, MicroOpBits::B64, true, false) != Result::Error)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSanity_DoesNotAssumePointerBytesAreNonZero)
+{
+    SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B8, false, false));
+    SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B8, true, false));
+    SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B8, false, true));
+    SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B8, true, true));
 }
 SWC_TEST_END()
 

@@ -1,3 +1,5 @@
+import contextlib
+import json
 import os
 import sys
 import tempfile
@@ -9,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import campaign
 import driver
+import history
 import toolchains
 import winproc
 
@@ -17,35 +20,41 @@ class CampaignTests(unittest.TestCase):
     def test_campaign_forwards_the_compiler_worker_cap(self):
         with (
             mock.patch.object(sys, "argv", ["campaign.py", "--quick", "--no-build", "--swc-cores", "6"]),
+            mock.patch.dict(os.environ, {"BENCH_SWC": "unrelated-compiler.exe"}),
+            mock.patch.object(campaign, "build_directory") as build_directory,
             mock.patch.object(campaign, "run") as run,
         ):
             self.assertEqual(campaign.main(), 0)
 
-        run.assert_called_once_with("driver.py", ["--swc-cores", "6", "--quick"])
+        run.assert_called_once_with("driver.py", ["--swc", os.path.join(campaign.ROOT, "bin", "swc.exe"),
+                                                "--swc-cores", "6", "--quick"])
+        build_directory.assert_not_called()
 
     def test_quick_campaign_does_not_rebuild_the_published_report(self):
         with (
             mock.patch.object(sys, "argv", ["campaign.py", "--quick"]),
-            mock.patch.object(campaign, "build"),
+            mock.patch.object(campaign, "build_directory", return_value=contextlib.nullcontext("private-build")),
+            mock.patch.object(campaign, "build", return_value="fresh-swc.exe"),
             mock.patch.object(campaign, "run") as run,
             mock.patch.object(campaign, "warn_if_dirty") as warn_if_dirty,
         ):
             self.assertEqual(campaign.main(), 0)
 
-        self.assertEqual(run.call_args_list, [mock.call("driver.py", ["--quick"])])
+        self.assertEqual(run.call_args_list, [mock.call("driver.py", ["--swc", "fresh-swc.exe", "--quick"])])
         warn_if_dirty.assert_not_called()
 
     def test_build_campaign_forwards_the_phase_and_rebuilds_the_report(self):
         with (
             mock.patch.object(sys, "argv", ["campaign.py", "--build"]),
-            mock.patch.object(campaign, "build"),
+            mock.patch.object(campaign, "build_directory", return_value=contextlib.nullcontext("private-build")),
+            mock.patch.object(campaign, "build", return_value="fresh-swc.exe"),
             mock.patch.object(campaign, "run") as run,
             mock.patch.object(campaign, "warn_if_dirty"),
         ):
             self.assertEqual(campaign.main(), 0)
 
         self.assertEqual(run.call_args_list,
-                         [mock.call("driver.py", ["--build"]),
+                         [mock.call("driver.py", ["--swc", "fresh-swc.exe", "--build"]),
                           mock.call("mkpage.py", [])])
 
     def test_driver_phase_flags_are_exclusive_and_select_their_family(self):
@@ -55,6 +64,42 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(driver.selected_phases(run), (False, True))
         with self.assertRaises(SystemExit):
             driver.parse_args(["--build", "--run"])
+
+
+class CampaignMetadataTests(unittest.TestCase):
+    def test_worker_cap_survives_raw_json_and_rebuilt_history(self):
+        for arguments, expected in (([], 0), (["--swc-cores", "6"], 6)):
+            with self.subTest(cores=expected), tempfile.TemporaryDirectory(prefix="swc bench metadata ") as folder:
+                root = Path(folder)
+                compiler = root / "swc.exe"
+                compiler.write_bytes(b"compiler identity fixture")
+                raw = root / "results" / "campaign.json"
+                raw.parent.mkdir()
+                args = driver.parse_args(arguments)
+                with (
+                    mock.patch.object(history.tc, "worktree", return_value=str(root)),
+                    mock.patch.object(history, "RESULTS", str(raw.parent / "*.json")),
+                    mock.patch.object(history, "HISTORY", str(root / "history.json")),
+                ):
+                    # Exercise the real CLI settings, metadata, JSON archive and history
+                    # rebuild. Only repository/output locations are replaced; no compiler
+                    # or measured process is needed to preserve the measurement contract.
+                    result = {
+                        "meta": history.describe(str(compiler), args.label, driver.campaign_settings(args)),
+                        "calibration": {"start": 1.0, "drift_pct": 0.0},
+                        "tasks": {"fixture": {
+                            "swag-release": {"run": {"ms": 1.0}, "build": {"wall_ms": 1.0}},
+                            "cpp-clang-cl": {"run": {"ms": 2.0}, "build": {"wall_ms": 2.0}},
+                        }},
+                    }
+                    raw.write_text(json.dumps(result), encoding="utf-8")
+                    archived = history.load_results()[0]
+                    self.assertEqual(archived["meta"]["settings"]["swc_cores"], expected)
+                    rebuilt = history.rebuild()
+                    persisted = history.load()
+                    for entry in (rebuilt[0], persisted[0]):
+                        self.assertEqual(entry["meta"]["settings"]["swc_cores"], expected)
+                        self.assertEqual(entry["meta"]["settings"], archived["meta"]["settings"])
 
 
 class SampleBudgetTests(unittest.TestCase):

@@ -7,7 +7,12 @@ swc tools\bench.swgs --label "what changed since last time"
 ```
 
 That rebuilds `swc.exe` in Release, measures it against every other toolchain, appends the
-result to `history.json`, and regenerates `bench.html`. Nothing else is needed.
+result to `history.json`, and regenerates `bench.html`. Each campaign owns a build directory
+under `%LOCALAPPDATA%/swc-bench-builds`, including its compiler, runtime sources and MSBuild
+intermediates. This lets the script's original compiler stay running while the fresh compiler
+is linked and measured. The standard library comes from this checkout's `bin/` through
+`SWAG_PATH`. The private build is removed after measurement, including on build or measurement
+failure. MSBuild and C++ compilation are capped at six workers.
 
 | | |
 |---|---|

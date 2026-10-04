@@ -8,9 +8,13 @@ be lying around.
                       [--build | --run]
 """
 import argparse
+import contextlib
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 
 import toolchains as tc
 
@@ -37,7 +41,15 @@ def warn_if_dirty():
         print("      reproduce it. Commit first when the result is worth keeping.")
 
 
-def build():
+def build_directory():
+    """Keep the compiler and all MSBuild intermediates outside the live checkout."""
+    local = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), "AppData", "Local")
+    parent = Path(local) / "swc-bench-builds"
+    parent.mkdir(parents=True, exist_ok=True)
+    return tempfile.TemporaryDirectory(prefix="campaign-", dir=parent)
+
+
+def build(directory):
     vs = tc.discover()["vs"]
     if not vs:
         raise SystemExit("Visual Studio not found; set BENCH_VS_ROOT")
@@ -47,24 +59,39 @@ def build():
     if not os.path.exists(msbuild):
         raise SystemExit("MSBuild not found under %s" % vs)
 
+    output = Path(directory) / "bin"
+    intermediate = Path(directory) / "obj"
+    output.mkdir(parents=True, exist_ok=True)
+    # Runtime sources always resolve beside the executable; SWAG_PATH selects only std.
+    shutil.copytree(Path(ROOT) / "bin" / "runtime", output / "runtime")
+
     print("building Release x64...")
     sys.stdout.flush()
     r = subprocess.run([msbuild, os.path.join(ROOT, "swc.sln"),
-                        "-p:Configuration=Release", "-p:Platform=x64", "-m", "-v:m"],
+                        "-p:Configuration=Release", "-p:Platform=x64", "-m:6", "-v:m",
+                        "-p:SwcCompileJobs=6",
+                        "-p:SwcOutputDir=" + output.as_posix() + "/",
+                        "-p:OutDir=" + output.as_posix() + "/",
+                        "-p:IntDir=" + intermediate.as_posix() + "/"],
                        cwd=ROOT, capture_output=True, text=True,
                        encoding="utf-8", errors="replace")
     print("\n".join((r.stdout or "").splitlines()[-12:]))
     if r.returncode != 0:
+        if r.stderr:
+            print(r.stderr, file=sys.stderr)
         raise SystemExit("the Release build failed; fix it before measuring")
 
-    swc = os.path.join(ROOT, "bin", "swc.exe")
+    swc = str(output / "swc.exe")
     if not os.path.exists(swc):
         raise SystemExit("build reported success but %s is missing" % swc)
     print("compiler under test: %s (%d bytes)" % (swc, os.path.getsize(swc)))
+    return swc
 
 
 def run(script, extra):
-    r = subprocess.run([PY, os.path.join(tc.BENCH, script)] + extra, cwd=tc.BENCH)
+    env = os.environ.copy()
+    env["SWAG_PATH"] = os.path.join(ROOT, "bin")
+    r = subprocess.run([PY, os.path.join(tc.BENCH, script)] + extra, cwd=tc.BENCH, env=env)
     if r.returncode != 0:
         raise SystemExit("%s failed" % script)
 
@@ -96,25 +123,31 @@ def main():
     total = 1 + int(not args.no_build) + int(not args.quick)
     n = 0
 
-    if not args.no_build:
-        n += 1
-        step(n, total, "Rebuild the compiler under test")
-        build()
+    # The Swag script host waits for this campaign, so linking its bin/swc.exe would
+    # replace an image that is still running. Own a separate build until measurement exits.
+    with contextlib.ExitStack() as resources:
+        swc = os.path.join(ROOT, "bin", "swc.exe")
+        if not args.no_build:
+            n += 1
+            step(n, total, "Rebuild the compiler under test")
+            swc = build(resources.enter_context(build_directory()))
 
-    n += 1
-    step(n, total, "Measure")
-    if not args.quick:
-        warn_if_dirty()
-    extra = ["--label", args.label] if args.label else []
-    if args.swc_cores:
-        extra += ["--swc-cores", str(args.swc_cores)]
-    if args.quick:
-        extra.append("--quick")
-    if args.build:
-        extra.append("--build")
-    elif args.run:
-        extra.append("--run")
-    run("driver.py", extra)
+        n += 1
+        step(n, total, "Measure")
+        if not args.quick:
+            warn_if_dirty()
+        extra = ["--swc", swc]
+        if args.label:
+            extra += ["--label", args.label]
+        if args.swc_cores:
+            extra += ["--swc-cores", str(args.swc_cores)]
+        if args.quick:
+            extra.append("--quick")
+        if args.build:
+            extra.append("--build")
+        elif args.run:
+            extra.append("--run")
+        run("driver.py", extra)
 
     if args.quick:
         print("\nQuick campaign complete. No history or report files were written.")

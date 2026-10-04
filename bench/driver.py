@@ -305,6 +305,22 @@ def selected_phases(args):
     return not args.run, not args.build
 
 
+def campaign_settings(args):
+    """Record the measurement choices alongside raw samples and normalized history."""
+    measure_build, measure_run = selected_phases(args)
+    return {
+        "pin_mask": "0x%x" % winproc.PIN_MASK,
+        "pin_cores": bin(winproc.PIN_MASK).count("1"),
+        "phases": (["build"] if measure_build else []) + (["run"] if measure_run else []),
+        "swc_cores": args.swc_cores,
+        "budget_ms": RUN_BUDGET_MS,
+        "min_reps": RUN_MIN_REPS,
+        "max_reps": RUN_MAX_REPS,
+        "build_budget_ms": BUILD_BUDGET_MS,
+        "warmup_s": args.warmup,
+    }
+
+
 def main():
     global RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS
     global BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS
@@ -674,16 +690,7 @@ def main():
     else:
         print("checksums agree across every runtime on every task")
 
-    results["meta"] = history.describe(swc, args.label, {
-        "pin_mask": "0x%x" % winproc.PIN_MASK,
-        "pin_cores": bin(winproc.PIN_MASK).count("1"),
-        "phases": (["build"] if measure_build else []) + (["run"] if measure_run else []),
-        "budget_ms": RUN_BUDGET_MS,
-        "min_reps": RUN_MIN_REPS,
-        "max_reps": RUN_MAX_REPS,
-        "build_budget_ms": BUILD_BUDGET_MS,
-        "warmup_s": args.warmup,
-    })
+    results["meta"] = history.describe(swc, args.label, campaign_settings(args))
 
     if args.quick:
         # Nothing is written at all: mkpage.py reports the most recent file in

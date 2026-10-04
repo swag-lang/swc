@@ -177,7 +177,7 @@ Result NativeRDataCollector::emitReachableAllocations()
         std::ranges::sort(mappings, {}, &NativeRDataAllocationMapEntry::sourceOffset);
 
     std::vector<DataSegmentRelocation> allocationRelocations;
-    Utf8                               rdataBaseName;
+    const Utf8*                        rdataBaseName = nullptr;
     for (size_t allocationIndex = 0; allocationIndex < reachableAllocations_.size(); ++allocationIndex)
     {
         const PendingRDataAllocation& entry      = reachableAllocations_[allocationIndex];
@@ -200,9 +200,9 @@ Result NativeRDataCollector::emitReachableAllocations()
                 if (!builder_->tryMapRDataSourceOffset(targetOffset, targetShardIndex, relocation.targetOffset))
                     return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, entry.allocation->ownerName);
 
-                if (rdataBaseName.empty())
-                    rdataBaseName = builder_->scopedSymbolNames().rdataBase;
-                record.symbolName = rdataBaseName;
+                if (!rdataBaseName)
+                    rdataBaseName = &builder_->scopedSymbolNames().rdataBase;
+                record.symbolName = *rdataBaseName;
                 record.addend     = targetOffset;
                 builder_->mergedRData.relocations.push_back(std::move(record));
                 continue;

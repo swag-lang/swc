@@ -208,7 +208,7 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
     section.data.name            = ".rdata";
     section.data.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
     section.data.bytes.append(allocationBytes);
-    Utf8 rdataBaseName;
+    const NativeBackendBuilder::ScopedSymbolNames* names = nullptr;
     for (auto it = first; it != relocations.end(); ++it)
     {
         const NativeSectionRelocation& sourceRelocation = *it;
@@ -217,18 +217,18 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
 
         NativeSectionRelocation relocation = sourceRelocation;
         relocation.offset -= allocation.emittedOffset;
-        if (rdataBaseName.empty())
-            rdataBaseName = builder_->scopedSymbolNames().rdataBase;
-        if (relocation.symbolName == rdataBaseName)
+        if (!names)
+            names = &builder_->scopedSymbolNames();
+        if (relocation.symbolName == names->rdataBase)
         {
             const auto* targetAllocation = builder_->tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend));
             if (!targetAllocation)
             {
-                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(builder_->scopedSymbolNames().scopeHash, allocation.shardIndex, allocation.sourceOffset);
+                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(names->scopeHash, allocation.shardIndex, allocation.sourceOffset);
                 return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
             }
 
-            relocation.symbolName = nativeScopedRDataAllocationSymbol(builder_->scopedSymbolNames().scopeHash, targetAllocation->shardIndex, targetAllocation->sourceOffset);
+            relocation.symbolName = nativeScopedRDataAllocationSymbol(names->scopeHash, targetAllocation->shardIndex, targetAllocation->sourceOffset);
             relocation.addend -= targetAllocation->emittedOffset;
         }
 

@@ -728,9 +728,8 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
     CompilerInstance& compiler = builder_->compiler();
     if (!builder_->mergedData.bytes.empty())
     {
-        const std::vector<DataSegmentRelocation> relocations = compiler.globalInitSegment().copyRelocations();
-        Utf8                                     dataBaseName;
-        Utf8                                     rdataBaseName;
+        const std::vector<DataSegmentRelocation>       relocations = compiler.globalInitSegment().copyRelocations();
+        const NativeBackendBuilder::ScopedSymbolNames* names       = nullptr;
         builder_->mergedData.relocations.reserve(builder_->mergedData.relocations.size() + relocations.size());
         for (const auto& relocation : relocations)
         {
@@ -738,22 +737,20 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
             record.offset = relocation.offset;
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
+                if (!names)
+                    names = &builder_->scopedSymbolNames();
                 if (relocation.targetShardIndex == INVALID_REF)
                 {
-                    if (dataBaseName.empty())
-                        dataBaseName = builder_->scopedSymbolNames().dataBase;
-                    record.symbolName = dataBaseName;
+                    record.symbolName = names->dataBase;
                     record.addend     = relocation.targetOffset;
                 }
                 else
                 {
                     uint32_t targetOffset = 0;
                     if (!builder_->tryMapRDataSourceOffset(targetOffset, relocation.targetShardIndex, relocation.targetOffset))
-                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, builder_->scopedSymbolNames().dataBase);
+                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, names->dataBase);
 
-                    if (rdataBaseName.empty())
-                        rdataBaseName = builder_->scopedSymbolNames().rdataBase;
-                    record.symbolName = rdataBaseName;
+                    record.symbolName = names->rdataBase;
                     record.addend     = targetOffset;
                 }
             }

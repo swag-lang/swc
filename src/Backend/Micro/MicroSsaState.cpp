@@ -51,6 +51,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
     const auto                   instructionRefs  = controlFlowGraph.instructionRefs();
     const bool                   reuseBlocks      = blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() &&
                              instructionRefs_.size() == instructionRefs.size();
+    uint32_t updatedUseDefCount = 0;
     // SSA depends on instruction order, control flow and register use/def, not on
     // the operation or immediate that computes a value. An operand-only rewrite
     // can invalidate the analysis without changing any of those inputs.
@@ -59,6 +60,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         bool reuseValues = true;
         for (const MicroInstrRef instRef : instructionRefs_)
         {
+            ++updatedUseDefCount;
             if (!updateUseDef(instrInfos_[instRef.get()], *storage.ptr(instRef), operands, encoder, true))
             {
                 reuseValues = false;
@@ -97,10 +99,15 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         info.defRegIndices.clear();
         info.renamePosition = K_INVALID_VALUE;
 
-        const MicroInstr* inst = storage.ptr(instRef);
-        SWC_ASSERT(inst != nullptr);
-
-        updateUseDef(info, *inst, operands, encoder, false);
+        // The reuse probe already refreshed its prefix, including the first
+        // changed instruction. Rebuild SSA bookkeeping without checking those
+        // operand words a second time.
+        if (instructionIndex >= updatedUseDefCount)
+        {
+            const MicroInstr* inst = storage.ptr(instRef);
+            SWC_ASSERT(inst != nullptr);
+            updateUseDef(info, *inst, operands, encoder, false);
+        }
 
         for (const MicroReg reg : info.useDef.defs)
         {

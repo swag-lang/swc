@@ -13,7 +13,7 @@ namespace SymbolSort
     {
         Utf8 key;
         if (const SourceFile* file = compiler.srcView(symbol.srcViewRef()).file())
-            key += Utf8(file->path());
+            key = Utf8(file->path());
 
         key += "|";
         key += std::format("{:010}", symbol.tokRef().get());

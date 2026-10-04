@@ -555,7 +555,10 @@ namespace
             builder.emitLoadRegMem(peek, frame, 0x34, MicroOpBits::B32);
         if (tileCase == TileCase::EscapeBeforeForeignRead)
             builder.emitLoadRegReg(MicroReg::intReg(1), rows, MicroOpBits::B64);
-        builder.emitLoadVecRegMem(row, relocatedRead ? MicroReg::instructionPointer() : source, 0, MicroOpBits::B128);
+        if (relocatedRead)
+            builder.emitLoadRegMem(row, MicroReg::instructionPointer(), 0, MicroOpBits::B128);
+        else
+            builder.emitLoadVecRegMem(row, source, 0, MicroOpBits::B128);
         if (relocatedRead)
         {
             MicroRelocation relocation;

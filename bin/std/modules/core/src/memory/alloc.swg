@@ -1,4 +1,4 @@
-#global public
+#global export
 #global namespace Memory
 
 using Swag
@@ -85,6 +85,7 @@ func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = nu
 // Releases the `size` bytes at `buffer` through `allocator`.
 //
 // A null `allocator` selects the context allocator. A null `buffer` does nothing.
+#[Swag.Inline]
 func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if not buffer do
@@ -144,6 +145,7 @@ func realloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocato
 //
 // A null `allocator` selects the context allocator, and a zero `alignment` the default one. A zero
 // `size` or an allocation failure raises a panic, so the result is never null.
+#[Swag.Inline]
 func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
 {
     var req: AllocatorRequest

@@ -162,7 +162,7 @@ namespace
             return nullptr;
 
         const TypeInfo& type             = codeGen.typeMgr().get(typeRef);
-        TypeRef         unwrappedTypeRef = type.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        TypeRef         unwrappedTypeRef = type.isAlias() ? type.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias) : typeRef;
         if (!unwrappedTypeRef.isValid())
             unwrappedTypeRef = typeRef;
 

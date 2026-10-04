@@ -469,7 +469,7 @@ namespace
             return ConstantRef::invalid();
 
         const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
-        TypeRef         storageTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        TypeRef         storageTypeRef = typeInfo.isAlias() ? typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias) : typeRef;
         if (storageTypeRef.isInvalid())
             storageTypeRef = typeRef;
         if (cstRef.isValid())

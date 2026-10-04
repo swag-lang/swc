@@ -332,15 +332,17 @@ namespace
         if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), symVar.typeRef()))
             return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), dstReg);
 
-        const TypeInfo& symType        = codeGen.typeMgr().get(symVar.typeRef());
-        TypeRef         storageTypeRef = symVar.typeRef();
-        if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
-            storageTypeRef = unwrappedTypeRef;
-
-        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
-        if (storageType.isStruct())
+        const TypeInfo* storageType = &codeGen.typeMgr().get(symVar.typeRef());
+        if (storageType->isAlias())
         {
-            const auto& symStruct = storageType.payloadSymStruct();
+            const TypeRef unwrappedTypeRef = storageType->unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias);
+            if (unwrappedTypeRef.isValid())
+                storageType = &codeGen.typeMgr().get(unwrappedTypeRef);
+        }
+
+        if (storageType->isStruct())
+        {
+            const auto& symStruct = storageType->payloadSymStruct();
             symStruct.computeImplicitDefaultFlags(codeGen.sema());
             SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), dstReg));
             return Result::Continue;

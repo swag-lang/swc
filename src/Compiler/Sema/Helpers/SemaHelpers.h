@@ -284,11 +284,7 @@ namespace SemaHelpers
         if (!view.typeRef().isValid())
             return Result::Continue;
 
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        if (!normalizedTypeRef.isValid())
-            return Result::Continue;
-
-        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        const TypeInfo& normalizedType = aliasEnumType(sema, view);
         if (!normalizedType.isReference())
             return Result::Continue;
 

@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -104,11 +105,6 @@ namespace
         typeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         SWC_ASSERT(typeRef.isValid());
         return typeRef;
-    }
-
-    const TypeInfo& aliasEnumType(CodeGen& codeGen, const SemaNodeView& view)
-    {
-        return codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, view.typeRef()));
     }
 
     // How many indirections separate the left VALUE from the object its members live in.
@@ -220,7 +216,7 @@ namespace
     bool shouldTreatStructMemberLeftAsValue(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& leftPayload)
     {
         const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
-        if (leftTypeView.type() && aliasEnumType(codeGen, leftTypeView).isReference())
+        if (leftTypeView.type() && SemaHelpers::aliasEnumType(codeGen.sema(), leftTypeView).isReference())
             return false;
 
         return leftPayload.isValue();
@@ -243,8 +239,7 @@ namespace
         const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
         // The receiver override above resolves the concrete struct for FIELD lookup, but the
         // payload still carries the receiver's indirection: a pointer receiver dereferences.
-        const TypeInfo& preOverrideInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, preOverrideTypeRef));
-        const TypeInfo& indirectionInfo = leftTypeInfo.isPointerOrReference() ? leftTypeInfo : preOverrideInfo;
+        const TypeInfo& indirectionInfo = leftTypeInfo.isPointerOrReference() ? leftTypeInfo : codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, preOverrideTypeRef));
 
         // Runtime member accesses inside generic instances must use the field symbol of the active
         // specialization. Reusing the root generic field leaks stale offsets and field types into

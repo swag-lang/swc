@@ -1274,11 +1274,12 @@ namespace
             if (const auto* fieldVar = memberSym->safeCast<SymbolVariable>())
                 SemaAccess::markUnwritableMemberAccess(sema, *fieldVar, targetNodeRef, codeRef.srcViewRef);
         }
-        const bool throughPointerOrRef      = isPointerOrReferenceAliasAware(sema, nodeLeftView);
-        bool       canExtractConstantMember = !throughPointerOrRef;
-        if (throughPointerOrRef && nodeLeftView.cst())
+        const bool           throughPointerOrRef      = isPointerOrReferenceAliasAware(sema, nodeLeftView);
+        const ConstantValue* leftConstant             = nodeLeftView.cst();
+        bool                 canExtractConstantMember = leftConstant && !throughPointerOrRef;
+        if (throughPointerOrRef && leftConstant)
         {
-            const ConstantValue& cst = *nodeLeftView.cst();
+            const ConstantValue& cst = *leftConstant;
             canExtractConstantMember = (cst.isValuePointer() && cst.getValuePointer() != 0) || (cst.isBlockPointer() && cst.getBlockPointer() != 0);
         }
 
@@ -1292,7 +1293,7 @@ namespace
         {
             const SymbolVariable& fieldVar      = symbols[0]->cast<SymbolVariable>();
             const TypeInfo&       fieldType     = fieldVar.typeInfo(sema.ctx());
-            const TypeRef         unwrappedRef  = fieldType.unwrap(sema.ctx(), fieldVar.typeRef(), TypeExpandE::Alias);
+            const TypeRef         unwrappedRef  = fieldType.isAlias() ? fieldType.unwrap(sema.ctx(), fieldVar.typeRef(), TypeExpandE::Alias) : TypeRef::invalid();
             const TypeInfo&       fieldRealType = unwrappedRef.isValid() ? sema.typeMgr().get(unwrappedRef) : fieldType;
             if (fieldRealType.isFunction())
                 canExtractConstantMember = false;
@@ -1303,10 +1304,10 @@ namespace
                 canExtractConstantMember = false;
         }
 
-        if (nodeLeftView.cst() && canExtractConstantMember && finalSymCount == 1 && symbols[0]->isVariable())
+        if (canExtractConstantMember && finalSymCount == 1 && symbols[0]->isVariable())
         {
             const SymbolVariable& symVar = symbols[0]->cast<SymbolVariable>();
-            SWC_RESULT(ConstantExtract::structMember(sema, *nodeLeftView.cst(), symVar, targetNodeRef, node.nodeRightRef));
+            SWC_RESULT(ConstantExtract::structMember(sema, *leftConstant, symVar, targetNodeRef, node.nodeRightRef));
             if (sema.viewConstant(targetNodeRef).cstRef().isValid())
                 return Result::SkipChildren;
         }

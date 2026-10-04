@@ -206,26 +206,14 @@ IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const Sou
     if (tok.id == TokenId::Identifier)
     {
         SWC_ASSERT(tok.byteStart < srcView.identifiers().size());
-        if (tok.byteStart < srcView.identifiers().size())
-        {
-            const uint32_t offset = srcView.identifiers()[tok.byteStart].byteStart;
-            SWC_ASSERT(offset + tok.byteLength <= srcView.stringView().size());
-        }
-    }
-    else
-    {
-        SWC_ASSERT(tok.byteStart + tok.byteLength <= srcView.stringView().size());
+        const SourceIdentifier& identifier = srcView.identifiers()[tok.byteStart];
+        SWC_ASSERT(identifier.byteStart + tok.byteLength <= srcView.stringView().size());
+        const std::string_view name{srcView.stringView().data() + identifier.byteStart, static_cast<size_t>(tok.byteLength)};
+        return addIdentifier(name, identifier.crc);
     }
 
-    const std::string_view name = tok.string(srcView);
-
-    if (tok.id == TokenId::Identifier)
-    {
-        const uint32_t crc = tok.crc(srcView);
-        return addIdentifier(name, crc);
-    }
-
-    return addIdentifier(name);
+    SWC_ASSERT(tok.byteStart + tok.byteLength <= srcView.stringView().size());
+    return addIdentifier(tok.string(srcView));
 }
 
 IdentifierRef IdentifierManager::addIdentifier(std::string_view name)

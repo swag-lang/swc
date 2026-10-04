@@ -11,10 +11,9 @@ namespace CodeGenParameterReg
 {
     struct RegisterParameterPayload
     {
-        const SymbolVariable*                         symVar      = nullptr;
-        CodeGenNodePayload                            payload     = {};
-        CodeGenFunctionHelpers::FunctionParameterInfo paramInfo   = {};
-        bool                                          needsRebind = false;
+        const SymbolVariable*                         symVar    = nullptr;
+        CodeGenNodePayload                            payload   = {};
+        CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = {};
     };
 
     inline MicroReg parameterSourcePhysReg(const CallConv& callConv, const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo)
@@ -66,11 +65,13 @@ namespace CodeGenParameterReg
         symbolPayload.setValueOrAddress(paramInfo.isIndirect);
         codeGen.setVariablePayload(symVar, symbolPayload);
 
+        if (futureSourceRegs.empty())
+            return;
+
         RegisterParameterPayload registerPayload;
-        registerPayload.symVar      = &symVar;
-        registerPayload.payload     = symbolPayload;
-        registerPayload.paramInfo   = paramInfo;
-        registerPayload.needsRebind = !futureSourceRegs.empty();
+        registerPayload.symVar    = &symVar;
+        registerPayload.payload   = symbolPayload;
+        registerPayload.paramInfo = paramInfo;
         registerPayloads.push_back(registerPayload);
     }
 
@@ -78,9 +79,6 @@ namespace CodeGenParameterReg
     {
         for (const auto& registerPayload : registerPayloads)
         {
-            if (!registerPayload.needsRebind)
-                continue;
-
             CodeGenNodePayload reboundPayload = registerPayload.payload;
             reboundPayload.reg                = registerPayload.paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(reboundPayload.reg, registerPayload.payload.reg, registerPayload.paramInfo.opBits);

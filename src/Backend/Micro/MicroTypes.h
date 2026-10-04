@@ -41,7 +41,7 @@ inline MicroOpBits microOpBitsFromBitWidth(uint32_t bitWidth)
         case 32:
         case 64:
         case 128:
-            return microOpBitsFromChunkSize(bitWidth / 8);
+            return static_cast<MicroOpBits>(bitWidth);
         default:
             return MicroOpBits::Zero;
     }

@@ -538,7 +538,6 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
             const PreparedArg& arg      = args[i];
-            const MicroOpBits  argBits  = preparedArgBits(arg);
             const uint32_t     regIndex = nextArgRegisterIndex(conv, argLayouts[i], i, intLane, floatLane);
             const bool         isRegArg = regIndex != K_NO_ARG_REGISTER;
 
@@ -562,7 +561,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 }
             }
 
-            const uint64_t stackOffset = callArgStackOffset(conv, argLayouts, i);
+            const MicroOpBits argBits     = preparedArgBits(arg);
+            const uint64_t    stackOffset = callArgStackOffset(conv, argLayouts, i);
 
             switch (arg.kind)
             {
@@ -800,12 +800,12 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
 
     SWC_ASSERT(!ret.isIndirect);
 
-    const CallConv&   conv    = CallConv::get(callConvKind);
-    const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
-    SWC_ASSERT(retBits != MicroOpBits::Zero);
+    const CallConv& conv = CallConv::get(callConvKind);
 
     if (ret.isFloat)
     {
+        const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+        SWC_ASSERT(retBits != MicroOpBits::Zero);
         if (valueIsLValue)
             builder.emitLoadRegMem(conv.floatReturn, valueReg, 0, retBits);
         else
@@ -842,11 +842,12 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
         return;
     }
 
-    const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
-    SWC_ASSERT(retBits != MicroOpBits::Zero);
-
     if (ret.isFloat)
+    {
+        const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+        SWC_ASSERT(retBits != MicroOpBits::Zero);
         builder.emitLoadRegReg(dstReg, conv.floatReturn, retBits);
+    }
     else
         loadCanonicalIntToReg(builder, dstReg, conv.intReturn, ret.numBits, ret.isSigned);
 }

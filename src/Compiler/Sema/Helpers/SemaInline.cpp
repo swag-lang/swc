@@ -20,6 +20,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
@@ -2700,6 +2701,13 @@ const SemaInlinePayload* SemaInline::expansionPayload(Sema& sema, AstNodeRef nod
 
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 {
+    // Keep the runtime TLS lookup as a call until native lowering can select
+    // the platform's direct slot load, with the function as its slow fallback.
+    const IdentifierRef tlsGetValueId = sema.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue);
+    if (sema.isNativeBuild() && sema.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows &&
+        fn.idRef() == tlsGetValueId && sema.compiler().runtimeFunctionSymbol(tlsGetValueId) == &fn)
+        return false;
+
     // Structural guards that hold in every inline mode.
     if (fn.isClosure() || fn.isEmpty() || fn.isForeign())
         return false;

@@ -25,6 +25,8 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -1669,6 +1671,33 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     preparedArgs.copyIndirectValueAggregates = calleePayload && !calledFunction->isClosure() && !calledFunction->hasInterfaceMethodSlot();
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     SWC_RESULT(buildPreparedABIArguments(preparedArgs, codeGen, codeGen.curNodeRef(), *calledFunction, closureContextReg, args));
+
+    const IdentifierRef tlsGetValueId = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue);
+    if (!callTargetReg.isValid() && codeGen.isNativeBuild() && codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows &&
+        calledFunction == codeGen.compiler().runtimeFunctionSymbol(tlsGetValueId))
+    {
+        // This internal runtime operation needs the value alone; unlike the
+        // public Win32 binding, it has no GetLastError contract to preserve.
+        SWC_ASSERT(preparedArgs.args.size() == 1 && preparedArgs.transientStackSize == 0 && preparedArgs.postCallDrops.empty());
+        const MicroReg      tlsIdReg   = preparedArgs.args[0].srcReg;
+        const MicroReg      resultReg = codeGen.setPayloadValue(codeGen.curNodeRef(), calledFunction->returnTypeRef()).reg;
+        const MicroLabelRef slowPath  = builder.createLabel();
+        const MicroLabelRef done      = builder.createLabel();
+        builder.emitCmpRegImm(tlsIdReg, ApInt(64, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, slowPath);
+        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(tlsIdPlusOneReg, tlsIdReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegTlsSlot(resultReg, tlsIdPlusOneReg);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+        builder.placeLabel(slowPath);
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.args);
+        ABICall::callLocal(builder, callConvKind, calledFunction, preparedCall);
+        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+        builder.placeLabel(done);
+        return Result::Continue;
+    }
+
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs.args);
     MicroReg        hiddenRetStorageReg     = MicroReg::invalid();
     SymbolVariable* directVarInitStorageSym = nullptr;

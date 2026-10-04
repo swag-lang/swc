@@ -30,7 +30,7 @@ const AllocatorCommitGranularity = AllocatorHostCommitGranularity
 
 private const AllocatorSegmentMagic = 0x5347_4D45_4E54_0001'u64
 
-enum AllocatorPageState
+enum AllocatorPageState: u8
 {
     // The page holds no block and its units are decommitted.
     Free
@@ -68,18 +68,20 @@ struct AllocatorPage
     blockSize:  u32
     blockInv:   u32
     blockLimit: u32
-    blockShift: u32
-    classIndex: u32
+    blockShift: u8
+    classIndex: u8
+    unitIndex:  u8
+    state:      AllocatorPageState
 
     ownerHeap: *AllocatorThreadHeap?
     nextPage:  *AllocatorPage?
     prevPage:  *AllocatorPage?
 
+    // The key is immutable until the page is reused. Remote frees read this
+    // copy so the owner's writes to its free list do not invalidate it.
+    remoteKey:  u64
     remoteFree: u64
     remoteLock: u32
-
-    unitIndex: u32
-    state:     AllocatorPageState
 
     // Set while the page sits on its heap's full list, where the slow path no longer scans it.
     // A remote free that finds it set queues the page for its owner to take back.
@@ -90,6 +92,9 @@ struct AllocatorPage
     revisitQueued: u32
     revisitNext:   u64
 }
+
+#assert(AllocatorUnitsPerSegment <= 256 and AllocatorClassCount <= 256)
+#assert(#sizeof(AllocatorPage) == 128)
 
 // The first line is read on every free and changes almost never; the masks, which every thread
 // claiming or releasing a page moves, live on a line of their own so they never invalidate it.
@@ -256,21 +261,22 @@ impl AllocatorPage
 
         let blocks = (limit - start) / cast(u64) blockSize
 
-        .freeList    = 0
-        .remoteFree  = 0
-        .key         = allocatorNextKey(cast(u64) me)
-        .areaStart   = start
-        .areaEnd     = start + blocks * cast(u64) blockSize
-        .carved      = start
-        .ownerHeap   = null
-        .nextPage    = null
-        .prevPage    = null
-        .used        = 0
-        .remoteLock  = 0
-        .classIndex  = classIndex
-        .unitIndex   = unitIndex
-        .state       = .Owned
-        .inFull      = 0
+        .freeList   = 0
+        .remoteFree = 0
+        .key        = allocatorNextKey(cast(u64) me)
+        .remoteKey  = .key
+        .areaStart  = start
+        .areaEnd    = start + blocks * cast(u64) blockSize
+        .carved     = start
+        .ownerHeap  = null
+        .nextPage   = null
+        .prevPage   = null
+        .used       = 0
+        .remoteLock = 0
+        .classIndex = cast(u8) classIndex
+        .unitIndex  = cast(u8) unitIndex
+        .state      = .Owned
+        .inFull     = 0
 
         .setupBlockDivision(blockSize)
     }
@@ -284,7 +290,7 @@ impl AllocatorPage
     {
         let odd = blockSize >> cast(u32) Swag.bitCountTz(blockSize)
         .blockSize  = blockSize
-        .blockShift = cast(u32) Swag.bitCountTz(blockSize)
+        .blockShift = cast(u8) Swag.bitCountTz(blockSize)
         .blockLimit = 0xFFFF_FFFF'u32 / blockSize
 
         var inverse = odd
@@ -386,7 +392,7 @@ impl AllocatorPage
         var head = atomicGet(&.remoteFree)
         while true
         {
-            (cast(*u64) address)[] = .encode(head)
+            (cast(*u64) address)[] = head ^ .remoteKey
             let seen = Swag.atomcmpxchg(&.remoteFree, head, address)
             if seen == head
             {

@@ -170,7 +170,7 @@ namespace
 
     TypeRef resolveUntypedVariadicArgTypeRef(CodeGen& codeGen, const CodeGenNodePayload& argPayload, AstNodeRef argRef)
     {
-        const TypeRef argTypeRef = argPayload.effectiveTypeRef(codeGen.viewType(argRef).typeRef());
+        const TypeRef argTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
         if (argTypeRef.isValid() && !codeGen.ctx().typeMgr().get(argTypeRef).isAnyVariadic())
             return argTypeRef;
 
@@ -1657,7 +1657,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     {
         const ScopedDebugSource debugSource(builder, calleePayload->sourceCodeRef);
         CodeGenNodePayload      callablePayload = *calleePayload;
-        TypeRef                 callableTypeRef = callablePayload.effectiveTypeRef(codeGen.viewType(calleeRef).typeRef());
+        TypeRef                 callableTypeRef = callablePayload.typeRef.isValid() ? callablePayload.typeRef : codeGen.viewType(calleeRef).typeRef();
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, callablePayload, callableTypeRef);
         SWC_ASSERT(callableTypeRef.isValid() && codeGen.typeMgr().get(callableTypeRef).isFunction());
         callTargetReg = materializeCallTargetReg(codeGen, callablePayload, *calledFunction, callConv, closureContextReg);

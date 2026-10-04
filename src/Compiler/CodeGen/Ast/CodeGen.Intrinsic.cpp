@@ -99,7 +99,7 @@ namespace
     MicroReg materializeIntrinsicLifecycleAddress(CodeGen& codeGen, AstNodeRef whatRef)
     {
         const CodeGenNodePayload& whatPayload = codeGen.payload(whatRef);
-        const TypeRef             whatTypeRef = whatPayload.effectiveTypeRef(codeGen.viewType(whatRef).typeRef());
+        const TypeRef             whatTypeRef = whatPayload.typeRef.isValid() ? whatPayload.typeRef : codeGen.viewType(whatRef).typeRef();
         SWC_ASSERT(whatTypeRef.isValid());
         if (whatTypeRef.isInvalid())
             return MicroReg::invalid();

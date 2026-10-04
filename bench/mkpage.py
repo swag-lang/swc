@@ -16,10 +16,8 @@ BENCH = tc.BENCH
 OUTFILE = os.path.join(BENCH, "bench.html")
 TEMPLATE = os.path.join(BENCH, "page_template.html")
 
-# The repository README quotes one campaign in full. It used to be hand-copied, which
-# meant it was stale between the moment a campaign moved and the moment somebody
-# remembered; the block between these markers is now rewritten from the same campaign
-# that produced the page, so the two can never disagree.
+# An optional repository README can quote the report's campaign between these markers.
+# Refresh that block from the same data so it cannot drift from the generated page.
 REPO_README = os.path.join(tc.worktree(), "README.md")
 README_BEGIN = "<!-- bench:begin -->"
 README_END = "<!-- bench:end -->"
@@ -134,7 +132,7 @@ LOOP = [
     ("core_touch", "std/core, un fichier sauv&eacute;", "une seule date de modification a avanc&eacute;"),
     ("hello_build", "hello world &rarr; exe", "small program, source to executable"),
     ("doc_std", "documentation de std", "tout le site de la biblioth&egrave;que standard"),
-    ("format_tree", "formatage du d&eacute;p&ocirc;t", "toutes les sources Swag, sur une copie"),
+    ("format_tree", "repository formatting", "baseline source trees, on a private copy"),
 ]
 
 

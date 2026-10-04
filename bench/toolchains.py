@@ -382,7 +382,9 @@ def make_hello_runs(t, swc, cores=0):
 # repository tools build it.
 COMPILER_WORKLOADS = ["core_rebuild", "core_noop", "core_touch", "doc_std", "format_tree"]
 
-# The trees the format tool walks, relative to the repository root, in its order.
+# The fixed baseline source-tree set for format_tree, relative to the repository root.
+# Maintenance additionally formats dedicated benchmark modules; do not expand this timed
+# corpus silently, because earlier campaigns measured only these roots.
 FORMAT_TREES = [os.path.join("bin", d) for d in
                 ("examples", "apps", "reference", "runtime", "std", "unittests")] + \
                ["tools", os.path.join("bench", "src"), os.path.join("bin", "help", "tools")]
@@ -472,7 +474,7 @@ def make_compiler_workloads(swc, cores=0, admit=None):
         "format_tree": {
             "cmd": [swc, "format", "-d", format_out] + compiler_args,
             "cwd": root, "prepare": mirror,
-            "what": "every Swag source of the repository, formatted"},
+            "what": "the baseline repository source trees, formatted"},
     }
 
 

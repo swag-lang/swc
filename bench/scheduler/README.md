@@ -34,9 +34,9 @@ building. A single before/after pair is not evidence.
 
 What worked is a second worktree at the base commit, the same benchmark source copied into it, and
 alternating `base, candidate, candidate, base` rounds, reading the median of the per-round paired
-ratios. Copy one compiler binary into both worktrees and use that same copy for the whole campaign:
-`bin/swc.dm.exe` in a shared checkout can be rebuilt underneath a measurement, and a compiler that
-no longer matches the `bin/runtime` sources beside it fails in ways that look like the change.
+ratios. Preserve compiler copies outside both worktrees and explicitly configure each copy's
+runtime and standard-library resource paths. Use the same recorded compiler version throughout
+the comparison; shared checkout compilers may be rebuilt during a run.
 
 ## Result of 2026-09-08
 

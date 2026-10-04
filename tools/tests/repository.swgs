@@ -432,9 +432,65 @@ func checkSetupPath() fail
     Swag.assert(partial.pathWrites == 1 and partial.swagWrites == 1 and partial.notifications == 1)
 }
 
+// Dedicated benchmark inputs are maintained; archived measurements and build outputs are not.
+func checkFormatCoverage() fail
+{
+    let temporary = Env.getSpecialDirectory(.Temp)
+    let name      = Format.toString("swag-format-%", Guid64.random())
+    let root      = Path.combine(temporary.toString(), name.toString())
+    try Directory.create(root.toString())
+    defer expect Directory.delete(root.toString(), recurse: true)
+
+    for directory in ["bin", "bin/examples", "bin/apps", "bin/reference", "bin/runtime", "bin/std", "bin/unittests",
+                      "bin/help", "bin/help/tools", "tools", "bench", "bench/src", "bench/current", "bench/current/src",
+                      "bench/current/src/nested", "bench/current/.output", "bench/setup-only", "bench/data",
+                      "bench/results", "bench/results/archived", "bench/results/archived/src"] do
+        try Directory.create(Path.combine(root.toString(), directory).toString())
+
+    const Source = "func fixture(){}\n"
+    const Selected = ["bin/examples/input.swg", "bench/src/input.swg", "bench/current/module.swg",
+                      "bench/current/src/input.swg", "bench/current/src/nested/input.swg", "bench/setup-only/module.swg"]
+    const Excluded = ["bench/current/.output/generated.swg", "bench/data/input.swg",
+                      "bench/results/archived/module.swg", "bench/results/archived/src/input.swg"]
+    for path in Selected do
+        discard try File.writeAllBytes(Path.combine(root.toString(), path).toString(), Source)
+    for path in Excluded do
+        discard try File.writeAllBytes(Path.combine(root.toString(), path).toString(), Source)
+    discard try File.writeAllBytes(Path.combine(root.toString(), ".swc-format").toString(), "end-of-line-style = crlf\n")
+
+    var context: Tool.Context
+    context.root     = root
+    context.binDir   = Path.combine(root.toString(), "bin")
+    context.compiler = try Env.Process.currentExecutablePath()
+    context.childEnv = Env.currentEnvironment()
+    var options: Tool.Options
+    options.extra.add(["--num-cores", "6"])
+    let code = try Tool.runFormat(&context, &options)
+    Swag.assert(code == 0)
+
+    for path in Selected
+    {
+        let content = try File.readAllText(Path.combine(root.toString(), path).toString())
+        Swag.assert(content.toString() != Source, path)
+        Swag.assert(content.contains("\r\n"), path)
+    }
+    for path in Excluded
+    {
+        let content = try File.readAllText(Path.combine(root.toString(), path).toString())
+        Swag.assert(content.toString() == Source, path)
+    }
+}
+
 #main
 {
     let args = Env.arguments()
+    if args.count > 1 and args[1] == "--check-format"
+    {
+        expect checkFormatCoverage()
+        Console.println("formatter input coverage regression checks passed")
+        return
+    }
+
     if args.count > 1 and args[1] == "--check-setup-path"
     {
         expect checkSetupPath()
@@ -597,5 +653,6 @@ func checkSetupPath() fail
     expect checkBacklogAllocationHistory(root.toString())
     expect checkCoreBound()
     expect checkSetupPath()
+    expect checkFormatCoverage()
     Console.println("repository tooling regression checks passed")
 }

@@ -2,8 +2,12 @@
 
 This directory answers one question over time: **is the compiler getting better?**
 
-```
-swc tools\bench.swgs --label "what changed since last time"
+Run these commands from the checkout root. The examples cap compiler workers at six;
+the campaign and standalone drivers use the compiler's default worker count when
+`--swc-cores` is omitted or zero.
+
+```powershell
+bin\swc.exe --num-cores 6 tools\bench.swgs --swc-cores 6 --label "what changed since last time"
 ```
 
 That rebuilds `swc.exe` in Release, measures it against every other toolchain, appends the
@@ -16,21 +20,23 @@ failure. MSBuild and C++ compilation are capped at six workers.
 
 | | |
 |---|---|
-| `swc tools\bench.swgs --quick` | one sample, no warm-up; proves the plumbing works and is **not** recorded |
-| `swc tools\bench.swgs --build` | measure compiler time only; execution is skipped, and only compilation series are added to the history and report |
-| `swc tools\bench.swgs --run` | measure program execution only; AOT programs are built outside the clock, and only execution series are added to the history and report |
-| `swc tools\bench.swgs --report-only` | rebuild the normalized history and page from raw campaigns, measure nothing |
-| `swc tools\bench.swgs --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
-| `py driver.py --tasks chacha --quick` | sweep one task while working on it; a partial sweep is **never** recorded |
-| `py driver.py --tasks chacha --quick --swc-cores 6` | cap every Swag compiler started by the sweep at six workers |
-| `py compile.py --against bin\swc_baseline.exe` | A/B the edit-build loop between two compilers, order alternated; records nothing |
-| `py compile.py --swc-cores 6 --admit` | measure with an explicit worker cap and shared-machine admission before every compiler invocation; records nothing |
+| `bin\swc.exe --num-cores 6 tools\bench.swgs --quick --swc-cores 6` | one sample, no reference warm-up; proves the plumbing works and is **not** recorded |
+| `bin\swc.exe --num-cores 6 tools\bench.swgs --build --swc-cores 6` | measure compiler time only; execution is skipped, and only compilation series are added to the history and report |
+| `bin\swc.exe --num-cores 6 tools\bench.swgs --run --swc-cores 6` | measure program execution only; AOT programs are built outside the clock, and only execution series are added to the history and report |
+| `bin\swc.exe --num-cores 6 tools\bench.swgs --report-only` | rebuild the normalized history and page from raw campaigns, measure nothing |
+| `bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6` | measure the binary already in `bin/`, useful when iterating on the harness |
+| `py -3 bench/driver.py --tasks chacha --quick` | sweep one task while working on it; a partial sweep is **never** recorded |
+| `py -3 bench/driver.py --tasks chacha --quick --swc-cores 6` | cap every Swag compiler started by the sweep at six workers |
+| `py -3 bench/compile.py --against "C:\path\outside-checkout\baseline\swc.exe" --swc-cores 6 --admit` | A/B the edit-build loop between two compilers, order alternated; records nothing |
+| `py -3 bench/compile.py --swc-cores 6 --admit` | measure with an explicit worker cap and shared-machine admission before every compiler invocation; records nothing |
 
 Most of a campaign is spent on the controls, not on swc: the NativeAOT, Swift and Zig
 builds, and CPython and Lua on the longer tasks. Those are measured once or a few times; swc
-gets the samples. A campaign will not start while something else is using the machine, and
-it throws itself away if something starts halfway through — so run it and leave the machine
-alone, rather than run it and work beside it.
+gets the samples. Before a recorded measurement, the driver waits for three consecutive CPU
+samples below 15%, then performs the normal 30-second reference warm-up. Reference and
+build-control checks reject campaigns with detected interference; they cannot prove that no
+other process ran. Use a quiet machine and leave it undisturbed for the sweep. `--quick` skips
+the idle gate and reference warm-up and writes no benchmark history.
 
 ## What is measured
 
@@ -68,9 +74,12 @@ Charts and the detailed raw-time matrices keep milliseconds. The separate `hello
 is excluded from the aggregate.
 The `hello` column is a separate small program with a different import set; it is useful as a
 second data point, but subtracting it from a task does not remove library overhead reliably.
-For a compiler improvement claim, `py compile.py --against <baseline-swc>` compares two compiler
+For a compiler improvement claim, `py -3 bench/compile.py --against <external-baseline-swc>` compares two compiler
 binaries back to back on the same checkout. Both receive identical sources and imports, and the
 order alternates each round. This is a tighter comparison than a cross-language build ratio.
+Keep preserved compiler binaries outside the checkout and configure each one's runtime and
+standard-library resources explicitly. A baseline comparison needs the intended source and
+resource versions as well as the executable.
 
 Twenty-two runtime configurations in total: Swag native and JIT in both configurations, two C++
 compilers, Rust, Zig, D through LDC, Odin, Go, Swift, C# ahead-of-time and jitted, Java HotSpot,
@@ -126,17 +135,23 @@ under test on the repository's own sources — what the tools in `../tools` actu
 
 | workload | command | what it isolates |
 |---|---|---|
-| `core_rebuild` | `swc build --workspace bin/std -m core --rebuild` | a real module from nothing: 300 files, every stage |
+| `core_rebuild` | `swc build --workspace bin/std -m core --rebuild` | the complete core module from source, through every compiler stage |
 | `core_noop` | the same, right after it, nothing changed | the up-to-date check and whatever runs before it |
 | `core_touch` | the same, after one file's write time moved | what one save costs — today, the whole module again |
 | `hello_build` | `swc build -f hello.swg` | a small program, source to linked executable |
-| `doc_std` | `swc doc --workspace bin/std --rebuild` | the standard library's documentation, into `out/doc` |
-| `format_tree` | `swc format -d out/format` | the source trees selected by `tools/format.swgs`, on a private copy with their `.swc-format` configuration |
+| `doc_std` | `swc doc --workspace bin/std --doc-output-dir bench/out/doc --rebuild` | the standard library's documentation, into `bench/out/doc` |
+| `format_tree` | `swc format -d bench/out/format` | the fixed baseline source trees in `toolchains.FORMAT_TREES`, on a private copy with their `.swc-format` configuration |
 
-Each one is prepared outside the clock — outputs removed, a warm build made, a write time
-bumped, the sources mirrored — then timed once, like a build: minimum kept, every sample
-recorded, no pinning and no worker-count override, because a build is meant to use the whole
-machine and the compiler's default scheduling policy is part of the measured product.
+The formatting benchmark keeps its baseline tree selection: the six `bin` workspaces,
+`tools`, `bench/src`, and `bin/help/tools`. The maintenance tool additionally formats
+each dedicated benchmark's `module.swg` and `src`. Those extra modules and historical
+sources under `bench/results` are outside this timed workload.
+
+Each workload is prepared outside the clock: outputs are removed, a warm build is made,
+a source write time is advanced, or sources are mirrored as needed. Every sample is kept
+and the minimum is reported. Compiler processes are not pinned. By default they use the
+compiler's own worker count; `--swc-cores N` supplies an explicit cap, including for
+untimed preparation builds.
 
 Memory has two separate meanings: `peak_bytes` is the peak committed memory of the process
 tree, including compiler helpers; `peak_working_set_bytes` is the timed process's peak resident
@@ -328,10 +343,9 @@ point deserves less trust than its neighbours.
 
 The baseline is fixed, so a task added later has no baseline value and cannot be indexed against
 it. It is indexed instead against the first reproducible campaign that measured it, which reads
-1.00, and the page names that campaign under the task. Aggregates — the geometric index, the
-corrected geometric millisecond, the headline ratios — deliberately ignore such a task until it
-is present in the baseline: including it would step the aggregate on the campaign it first
-appeared in, and that step would read as a compiler movement.
+1.00, and the page names that campaign under the task. History aggregates and history headline
+ratios retain the baseline's fixed task panel. The current report's matrices and headline ratios
+instead cover the tasks measured by both selected latest build and execution campaigns.
 
 The files under `results/` are authoritative. `history.py` rebuilds every compact entry from
 those raw campaigns whenever the report is generated, so normalization changes can be applied
@@ -358,9 +372,9 @@ an asterisk in the report, because its commit alone will not reproduce it.
 
 ## After a campaign
 
-The repository [README](../README.md) quotes one campaign in full, between its `bench:begin`
-and `bench:end` markers. `mkpage.py` rewrites that block from the same campaign as the page;
-never edit it by hand.
+`mkpage.py` also refreshes an optional repository `README.md` when it contains `bench:begin`
+and `bench:end` markers, using the same campaign as the report. That block is generated and
+should not be edited by hand.
 
 `bench.html` carries measurements, not commentary: one matrix per measure with a task per row,
 charts for the aggregates, and one history row per task. A new task adds a row everywhere and
@@ -388,7 +402,10 @@ the selected campaigns appear: adding support never inserts invented values into
 MSVC and clang-cl come from Visual Studio; the others are looked up under the user profile.
 Any of them can be overridden when it lives somewhere unusual: `BENCH_VS_ROOT`, `BENCH_RUSTC`,
 `BENCH_DOTNET`, `BENCH_SWIFTC`, `BENCH_SWIFT_ROOT`, `BENCH_NODE`, `BENCH_LUA`, `BENCH_LUAJIT`,
-`BENCH_PY`, `BENCH_ZIG`, `BENCH_LDC2`, `BENCH_ODIN`, and `BENCH_SWC` for the compiler under test.
+`BENCH_PY`, `BENCH_ZIG`, `BENCH_LDC2`, and `BENCH_ODIN`. The standalone `driver.py`,
+`compile.py`, and `allocator/run.py` also accept `BENCH_SWC`; their explicit `--swc` argument
+takes precedence. A campaign selects its private Release build, or this checkout's `bin/swc.exe`
+with `--no-build`, independently of `BENCH_SWC`.
 The added runtimes accept `BENCH_GO`, `BENCH_JAVAC`, `BENCH_JAVA`, `BENCH_PHP`,
 `BENCH_PHP_OPCACHE` (the OPcache DLL), and `BENCH_RUBY`.
 Zig, LDC and Odin are discovered through their override first, then `PATH`, then the
@@ -404,8 +421,9 @@ Go additionally checks `C:\Program Files\Go`; Java respects `JAVA_HOME` and pref
 runtime beside the selected compiler. Java needs both executables; a missing OPcache DLL
 skips only PHP JIT. No runtime is downloaded by a benchmark campaign.
 These ports have been checked with Go 1.27.1, Temurin 25.0.4.1, PHP 8.4.26 and Ruby 4.0.7.
-A toolchain that cannot be found is
-named and skipped, never guessed at, and the report records which ones were absent.
+Visual Studio's x64 build tools and clang-cl are required for the build environment and reference
+calibration. Other missing toolchains are named and skipped, and the report records which ones
+were absent.
 
 The page follows [design-swag-identity](../.agents/skills/design-swag-identity/SKILL.md): one
 accent, the 45 degree cut on repeated elements, hairline tables, both palettes, no script.

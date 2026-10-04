@@ -173,7 +173,7 @@ class EditLoopTests(unittest.TestCase):
         for command in commands:
             self.assertEqual(command[:4], ["swc.exe", command[1], "--num-cores", "6"])
 
-    def test_format_mirror_preserves_configuration_and_maintenance_inputs(self):
+    def test_format_mirror_preserves_configuration_and_baseline_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "repo"
             output = Path(directory) / "out"
@@ -190,6 +190,9 @@ class EditLoopTests(unittest.TestCase):
                 "bin/unittests/.output/generated.swg": b"generated",
                 "bin/unittests/.cache/generated.swg": b"generated",
                 "bin/unittests/fixture.txt": b"fixture",
+                "bench/current/module.swg": b"#run {}\n",
+                "bench/current/src/input.swg": b"func main() {}\n",
+                "bench/results/archived.swg": b"historical",
             }
             for name, content in (expected | excluded).items():
                 path = root / name

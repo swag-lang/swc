@@ -49,6 +49,11 @@ Build and test logs are archived here; their temporary duplicates were removed i
 
 ## Worker count and deferred comparison
 
+The commands and option names in this section describe the historical revision. For a new
+comparison, use the current [`bench/compile.py`](../../../compile.py), its `--swc-cores` option,
+and preserved compilers with explicitly configured resources outside the checkout. The archived
+scripts below retain their original paths and are not the current workflow.
+
 Benchmark compilation is not capped at six workers by default. `--cores` in
 [`bench/compile.py`](../../../compile.py) and `--swc-cores` in
 [`bench/driver.py`](../../../driver.py) default to zero. The

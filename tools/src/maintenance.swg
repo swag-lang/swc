@@ -16,6 +16,20 @@ public func runFormat(context: *Context, options: *Options)->s32 fail
     for directory in ["tools", "bench/src", "bin/help/tools"] do
         arguments.add(["-d", Path.combine(context.root.toString(), directory).toString()])
 
+    // Dedicated benchmarks own a setup file and a conventional src directory. Select
+    // those inputs explicitly: bench/results contains historical source snapshots.
+    for directory in try Directory.enumerateDirectories(Path.combine(context.root.toString(), "bench").toString())
+    {
+        let setup = Path.combine(directory.fullName.toString(), "module.swg")
+        if not File.exists(setup.toString()) do
+            continue
+
+        arguments.add(["-f", setup.toString()])
+        let source = Path.combine(directory.fullName.toString(), "src")
+        if Directory.exists(source.toString()) do
+            arguments.add(["-d", source.toString()])
+    }
+
     options.appendExtra(&arguments)
     return try context.runCompiler(arguments)
 }

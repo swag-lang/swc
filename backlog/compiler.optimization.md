@@ -816,6 +816,14 @@ block, and the hot path keeps the register.
   before setting that flag. This removes one full value-array fill per constant-folding, copy-
   elimination or branch-simplification run when scratch storage is reused. The Release optimizer
   selection passed 241 native tests; timing and peak memory were not measured.
+- The 2026-10-04 prompt-4 campaign removed another repeated prefix walk: when the SSA reuse
+  probe finds changed use/def data, the full rebuild reuses the prefix it already refreshed.
+  Phi-use traversals now mark values when queued, avoiding duplicate worklist entries. Queries
+  that need only a reaching value's identity no longer resolve its defining instruction, and a
+  block's sole predecessor supplies its immediate dominator directly. These preserve the rebuild
+  count and generated-code decisions. The Release compiler passed 3,600 native and 1,508 JIT tests
+  in devmode, plus 274 native optimizer tests in release. Timing and peak memory were not measured;
+  the remaining rebuild-count and quantitative-gain questions are unchanged.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.

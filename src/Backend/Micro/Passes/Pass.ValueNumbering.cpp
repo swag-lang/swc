@@ -803,8 +803,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
                 break;
 
             // The earlier result must still be what its register holds here.
-            const MicroSsaState::ReachingDef reach = ssaState->reachingDef(cand.defReg, instRef);
-            if (!reach.valid() || reach.valueId != cand.defValueId)
+            const uint32_t reachingId = ssaState->reachingValueId(cand.defReg, instRef);
+            if (reachingId == MicroSsaState::K_INVALID_VALUE || reachingId != cand.defValueId)
                 continue;
 
             // Replacing a flag-defining compute with a copy removes its flags

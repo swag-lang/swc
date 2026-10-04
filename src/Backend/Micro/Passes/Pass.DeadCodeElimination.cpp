@@ -257,11 +257,11 @@ namespace
                 continue;
             for (const MicroReg input : useDef->uses)
             {
-                const auto reaching = ssaState.reachingDef(input, instRef);
-                if (!reaching.valid())
+                const uint32_t valueId = ssaState.reachingValueId(input, instRef);
+                if (valueId == MicroSsaState::K_INVALID_VALUE)
                     continue;
-                const auto& uses   = ssaState.values()[reaching.valueId].uses;
-                uint32_t&   cursor = (*directUseCursors)[reaching.valueId];
+                const auto& uses   = ssaState.values()[valueId].uses;
+                uint32_t&   cursor = (*directUseCursors)[valueId];
                 if (cursor >= uses.size() || uses[cursor].instRef != instRef)
                     continue;
 

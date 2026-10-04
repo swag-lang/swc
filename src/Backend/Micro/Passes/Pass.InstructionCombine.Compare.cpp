@@ -13,9 +13,9 @@ namespace InstructionCombine
     {
         bool sameValueAt(const Context& ctx, MicroReg reg, MicroInstrRef first, MicroInstrRef second)
         {
-            const MicroSsaState::ReachingDef firstDef  = ctx.ssa->reachingDef(reg, first);
-            const MicroSsaState::ReachingDef secondDef = ctx.ssa->reachingDef(reg, second);
-            return firstDef.valid() && secondDef.valid() && firstDef.valueId == secondDef.valueId;
+            const uint32_t firstId  = ctx.ssa->reachingValueId(reg, first);
+            const uint32_t secondId = ctx.ssa->reachingValueId(reg, second);
+            return firstId != MicroSsaState::K_INVALID_VALUE && firstId == secondId;
         }
 
         bool isAllOnesLoad(const MicroSsaState::ReachingDef& def, const MicroOperandStorage& operands, MicroOpBits bits)
@@ -48,9 +48,7 @@ namespace InstructionCombine
             copy[1].reg == cmp[0].reg || copy[1].reg == cmp[1].reg ||
             !valueHasSingleUse(*ctx.ssa, copied, def.instRef))
             return false;
-        const auto sourceAtCopy = ctx.ssa->reachingDef(copy[1].reg, def.instRef);
-        const auto sourceAtCmp  = ctx.ssa->reachingDef(copy[1].reg, cmpRef);
-        if (!sourceAtCopy.valid() || !sourceAtCmp.valid() || sourceAtCopy.valueId != sourceAtCmp.valueId ||
+        if (!sameValueAt(ctx, copy[1].reg, def.instRef, cmpRef) ||
             !ctx.claimAll({cmpRef, def.instRef}))
             return false;
         MicroInstrOperand rewritten[7] = {};
@@ -233,9 +231,7 @@ namespace InstructionCombine
             !lea[3].valueU64 ||
             static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(lea[3].valueU64))) != lea[3].valueU64)
             return false;
-        const auto beforeAddress = ctx.ssa->reachingDef(copy[0].reg, address.instRef);
-        const auto beforeCopy    = ctx.ssa->reachingDef(copy[0].reg, copyRef);
-        if (!beforeAddress.valid() || !beforeCopy.valid() || beforeAddress.valueId != beforeCopy.valueId)
+        if (!sameValueAt(ctx, copy[0].reg, address.instRef, copyRef))
             return false;
         const auto* value = ctx.ssa->valueInfo(address.valueId);
         if (!value || ctx.ssa->transitiveInstructionUseCount(address.valueId, 3) != 2)
@@ -594,12 +590,7 @@ namespace InstructionCombine
 
         // left and right keep their values, and the moved pair's register is
         // not touched in between.
-        const auto sameValue = [&](MicroReg reg, MicroInstrRef earlier) {
-            const MicroSsaState::ReachingDef before = ctx.ssa->reachingDef(reg, earlier);
-            const MicroSsaState::ReachingDef after  = ctx.ssa->reachingDef(reg, ref);
-            return before.valid() && after.valid() && before.valueId == after.valueId;
-        };
-        if (!sameValue(left, copyRef) || !sameValue(right, subRef))
+        if (!sameValueAt(ctx, left, copyRef, ref) || !sameValueAt(ctx, right, subRef, ref))
             return false;
         // Copies of T move along with it; nothing else in between may mention
         // T or those copies.

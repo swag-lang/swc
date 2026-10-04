@@ -6,6 +6,24 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.040 — Select microcode output without a source attribute
+
+- Recorded: 2026-09-11 22:14
+- Updated: 2026-10-04 15:02 — Retain only command-line selection after the attribute stage documentation was corrected.
+- Evidence: moved from the compiler portion of app.prism.004. `CodeGen::startFunction` installs
+  only `symbolFunc.attributes().printMicroPassOptions` before recording the fully scoped name;
+  the command-line parser has no symbol/stage selector. Inspecting a library function therefore
+  requires editing its attributes today.
+- The attribute documentation already names the implemented `pre-<pass>` / `post-<pass>`
+  stages (`bin/runtime/api.swg`). The remaining boundary is command-line selection.
+- Next: define a command-line symbol-pattern and stage selector, including matching and
+  diagnostics, then combine its selected stages with the function's own print options in
+  code generation.
+- Complete when: an unedited library function can emit selected stages, attribute requests retain
+  their behavior, unmatched and ambiguous requests have a stated contract, and help and focused
+  command tests describe the selector. The proposed spelling is `--print-micro=<pattern>:<stage>`.
+- Related: app.prism.004, app.prism.002
+
 ### compiler.core.076 — Folded scalar references lose their module API dependency
 
 - Recorded: 2026-10-04 14:33
@@ -305,23 +323,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   graphs publish no partial data, and identity, interface, and reflection tests pass under
   repeated parallel cold compilation.
 - Related: compiler.core.020, compiler.core.007.
-
-### compiler.core.062 — Unlocated EOF diagnostics can suppress another file's error state
-
-- Recorded: 2026-09-30 11:02
-- Evidence: a one-core C++ probe parsed 64 independent in-memory files, every fourth containing
-  only `func`. The first such file acquired its error flag; the next did not. The same batch with
-  `func 0() {}` has a nonempty source span and exercises per-file parser diagnostics instead.
-  `DiagnosticElement::addSpan` drops a zero-length EOF span, so `DiagnosticBuilder::build` omits
-  the source location. `Diagnostic::report` deduplicates the rendered message across the compiler
-  before setting the task and file error flags. Identical unlocated errors from different files
-  therefore share one deduplication key. These diagnostic paths predate the parser worker change.
-- Next: preserve EOF source provenance and separate publication of each task/file's error state
-  from suppression of repeated display text. Add a reduced two-file EOF regression and keep
-  repeated diagnostics for the same source site suppressed.
-- Complete when: both files retain their error state and attributable diagnostics in ordinary and
-  one-line output, with source expectation checking independent of job order and worker count.
-
 
 ### compiler.core.007 — Workspace front ends and code generation run serially
 
@@ -642,43 +643,6 @@ cache is part of the normal DevMode and Release paths.
 - Complete when: a bounded reproducer identifies the responsible path, or evidence confines the
   failure to an invalid discarded prototype; remove this entry once that question is settled.
 
-### compiler.core.050 — LLVM tools reject the long-name table in a generated static library
-
-- Recorded: 2026-09-16 17:37
-- Found while: comparing small exported Swag functions with clang's machine code.
-- Reproducer: compile a file containing `#global public` and one non-inlined integer function
-  with `swc.exe build -f probe.swg -ak static-library -n scalar_lot9 -bc release --num-cores 6`;
-  inspect the resulting library with the installed Swift 6.3.3 LLVM `llvm-objdump -d`.
-- Evidence: build 698 produced a library that `llvm-objdump` rejects with
-  `truncated or malformed archive (string table at long name offset 0not terminated)`.
-  Extracting each ordinary member by its archive header's size and disassembling the resulting
-  COFF object succeeds. The compiler's own linker accepts its normal library outputs.
-- Next: reduce the archive to one member, inspect its long-name terminators and linker members,
-  and compare with a Microsoft or LLVM-produced COFF archive before choosing a writer fix or
-  documenting a tool-format limitation. The failing tool alone does not establish invalid COFF.
-- Complete when: a reduced compatibility test explains the format difference and generated
-  archives are consumable by the supported external tools, with the expectation recorded.
-
-### compiler.core.040 — Select microcode output without a source attribute
-
-- Recorded: 2026-09-11 22:14
-- Updated: 2026-09-16 17:37 — Recorded the mismatch between documented and implemented stage names.
-- Evidence: moved from the compiler portion of app.prism.004. `CodeGen::startFunction` installs
-  only `symbolFunc.attributes().printMicroPassOptions` before recording the fully scoped name;
-  the command-line parser has no symbol/stage selector. Inspecting a library function therefore
-  requires editing its attributes today.
-- Stage-name mismatch observed during scalar code-generation comparison (Release build 694):
-  `bin/runtime/api.swg` documents `before-passname` / `after-passname`, but
-  `#[Swag.PrintMicro("before-instcombine")]` emits no pass dump, whereas
-  `#[Swag.PrintMicro("pre-instcombine")]` does. The documented names must agree with the
-  implemented `pre-` / `post-` stages, independently of the future command-line selector.
-- Next: correct the attribute's stage-name documentation and define a command-line symbol-pattern
-  and stage selector, including matching and diagnostics, then combine its selected stages with the function's own print options in code generation.
-- Complete when: an unedited library function can emit selected stages, attribute requests retain
-  their behavior, unmatched and ambiguous requests have a stated contract, and help and focused
-  command tests describe the selector. The proposed spelling is `--print-micro=<pattern>:<stage>`.
-- Related: app.prism.004, app.prism.002
-
 ### compiler.core.048 — Offer semantic cleanup edits with explicit preservation checks
 
 - Recorded: 2026-09-16 16:06
@@ -772,32 +736,6 @@ cache is part of the normal DevMode and Release paths.
   paragraph.
 - Complete when: the chosen rule is implemented or documented, with a case showing what
   `Swag.Safety(.Assert, false)` does to the proof.
-
-### compiler.core.044 — Preserve captured errors when a fallible result feeds a struct setter
-
-- Recorded: 2026-09-15 09:20
-- Found while: moving Swag Scope text reads out of GUI events.
-- Evidence: DevMode compiler 0.1.606, program configuration `devmode`, reproduces in both JIT
-  and the native Scope tests. In a method with a `text: Core.String` field, open an existing
-  UTF-8 file with `var stream = try Core.File.openReadLive(fileName)`, then execute
-  `.text = catch stream.readTextChunk(16 * 1024, .Utf8) as readError`. The field contains the
-  correct decoded text, but `readError != null` and `Core.Errors.message(readError)` is empty.
-  The same read into `var chunk = catch ... as readError`, followed by assignment after checking
-  the error, passes JIT and native execution. The text worker uses that staged publication.
-- Generated-code evidence: `#[Swag.PrintMicro]` on the reduced method shows the native
-  `FileStream.readTextChunk` call followed by `String.opCast` and `String.opSet`, but no catch
-  entry or capture-slot initialization around that call. Its failure guard propagates to the
-  containing fallible method instead. The later assertion reads an uninitialized stack slot.
-- Reduction: the reproducer still imports `core`. A standalone value with `opDrop`,
-  `opPostCopy`, an implicit inline `opCast`, an implicit `opSet`, and a fallible producer did
-  not reproduce, including alternating success and failure. There is no retained compiler
-  fix or language-suite regression yet; changing the wrapper owner lookup alone did not fix it.
-- Next: reduce the imported setter/conversion path, trace the contextual cast and inline
-  receiver substitution that bypasses the error-management expression, and preserve the
-  handler around evaluation of its original operand.
-- Complete when: direct field assignment captures actual failures and leaves a null error on
-  success, with a standalone JIT/native regression that fails before the fix; rerun the Scope
-  text-loading tests with that form before removing the entry.
 
 ### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
 

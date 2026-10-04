@@ -41,6 +41,23 @@ mathematics, wrap, forward and reverse streaming, and both failure paths.
 
 ## Entries
 
+### std.gui.markdown.005 — Inline TOC, fragment and footnote links do not navigate the document
+
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-10-04 15:06 — Retain inline anchor resolution after programmatic heading navigation and the Scope outline shipped.
+- Evidence: `Markdown.parseHeadings` returns headings with distinct source byte offsets, and
+  `Markdown.View.revealHeading` navigates to one in a streamed document. Swag Scope uses these
+  APIs for its outline; `documentoutline.test.swg` covers heading parsing and navigation beyond
+  the initial resident window.
+- Remaining: `[TOC]` is still emitted as unlinked text, a `#fragment` link leaves through
+  `sigLinkActivated`, and a footnote reference has no local jump target. Programmatic heading
+  navigation does not give these inline references an identity or resolution rule.
+- Next: assign stable heading and footnote anchors, resolve inline targets against the document,
+  and route TOC and local-link activation through the existing heading/reveal operations.
+- Complete when: TOC entries, in-document fragments and footnote references reach their targets
+  in both `createText` and streamed files, with duplicate headings and unloaded targets covered.
+- Related: app.scope.document.001
+
 ### std.gui.markdown.010 — No opt-in smart punctuation
 
 - Recorded: 2026-08-18 20:20
@@ -112,21 +129,6 @@ directions.
 - Intent: a streamed document resolves references wherever their definitions sit
 - Complete when: a multi-chunk streamed fixture with end-of-file definitions renders every
   reference link and footnote live, including after a reveal
-
-### std.gui.markdown.005 — The document cannot navigate itself
-
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-
-`[TOC]` renders an inert text block: no entry is a link. Heading anchors do not exist, so a
-`#fragment` link leaves through `sigLinkActivated` and dies in `Env.openUrl`. A footnote
-reference paints as a superscript but does not jump to its footnote. A reader of a long streamed
-document has keyboard paging and nothing else. Anchored navigation needs the parser to keep each
-heading's byte offset, which is the same currency `revealFileOffset` already trades in.
-
-- Intent: TOC entries, `#fragment` links and footnote references scroll to their target
-- Complete when: clicking a TOC entry or an in-document anchor reaches its heading in both
-  `createText` and a streamed file
 
 ### std.gui.markdown.007 — No measured conformance stance
 

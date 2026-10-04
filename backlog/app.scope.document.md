@@ -5,6 +5,53 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
+### app.scope.document.010 — HTML has no reader-mode or page-level diagnostics
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-04 15:06 — Account for the shipped HTML heading outline while retaining metadata and diagnostics work.
+- Evidence: a professional local-page viewer needs both faithful layout and a way to understand an
+  unreadable page. There is no extracted reading view, title/language/description summary,
+  standards quirks indicator, or list of layout/parser warnings. A heading outline already ships
+  through `DocumentOutline.bindHtml`; it does not expose those document facts or warnings.
+- Next: surface document metadata and engine diagnostics first, then derive a clearly labelled
+  reader view from semantic blocks without replacing faithful mode.
+- Complete when: title, language, metadata, headings, landmarks, and warnings are inspectable;
+  reader mode preserves links and text order; and switching modes retains the logical location.
+- Related: std.gui.html.017
+
+### app.scope.document.013 — The PDF bookmark panel has no filtering or navigation history
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-04 15:06 — Retain navigation refinements after bookmark loading and the outline panel shipped.
+- Evidence: `PdfViewer` loads `Reader.loadOutline`, fills the shared `DocumentOutline`, and
+  selects page-space positions through `PdfView.showPosition`. `viewer.outline.test.swg` covers
+  the four-bookmark fixture and cropped/rotated destinations.
+- Remaining: the outline has no filtering or back/forward state. Page-link annotations are not
+  exposed by the engine (std.gui.pdf.017), and there is no viewer interaction for those targets.
+- Next: add filtering and a bounded page/position/zoom history to the existing bookmark panel,
+  then route supported page links through the same navigation contract when the engine exposes them.
+- Complete when: bookmark filtering preserves hierarchy, back/forward restores page coordinates
+  and zoom, and supported local links share the same behavior while invalid targets remain visible.
+- Related: std.gui.pdf.017
+
+### app.scope.document.001 — The Markdown outline has no filtering or current-section tracking
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-04 15:06 — Retain filtering, tracking and bounded indexing after the heading outline shipped.
+- Evidence: `DocumentOutline` now presents Markdown headings with their hierarchy depth and
+  distinct source offsets. Opening the panel builds the heading list on a worker; pointer and
+  keyboard selection call `Markdown.View.revealHeading`, including headings outside the resident
+  window. `viewer.outline.test.swg` covers duplicate headings, navigation and localized goldens.
+- Remaining: the panel has no heading filter, current-section tracking, breadcrumb path or
+  navigation history. It reads the complete source for its heading pass rather than maintaining
+  a bounded streaming index.
+- Next: extend the existing outline with a bounded heading index, filtering and a current-heading
+  signal from the document; retain source offsets as identity rather than deriving it from titles.
+- Complete when: filtering and keyboard navigation preserve distinct duplicate headings, the
+  visible section updates the selected heading/breadcrumb, and back/forward restores a reading
+  location without retaining the whole source.
+- Related: std.gui.markdown.005, app.scope.viewers.003
+
 ### app.scope.document.016 — Image-only PDF pages do not explain why text search finds nothing
 
 - Recorded: 2026-08-29 08:36
@@ -138,18 +185,6 @@ integration around those engines.
   the reading column in order.
 - Related: app.scope.binary.010
 
-### app.scope.document.001 — Markdown has no document outline or heading breadcrumbs
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the viewer offers reading width and appearance, while heading hierarchy is only part of
-  the rendered page. `Gui.Markdown.View` navigation work is already std.gui.markdown.005, but Swag Scope has no
-  outline panel, filter, visible-section tracking, or heading history to present it.
-- Next: define the viewer-side outline model and wire it to engine heading anchors as std.gui.markdown.005 lands.
-- Complete when: headings form a filterable hierarchy, activating one reveals it, the current path
-  follows scrolling, duplicate headings remain distinct, and keyboard navigation is complete.
-- Related: std.gui.markdown.005
-
 ### app.scope.document.004 — Markdown reading position and presentation cannot be shared or exported
 
 - Recorded: 2026-08-29 08:36
@@ -187,19 +222,6 @@ integration around those engines.
   to the requesting node.
 - Related: std.gui.html.019
 
-### app.scope.document.010 — HTML has no reader-mode or page-level diagnostics
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: a professional local-page viewer needs both faithful layout and a way to understand an
-  unreadable page. There is no extracted reading view, title/language/description summary, outline,
-  standards quirks indicator, or list of layout/parser warnings.
-- Next: surface document metadata and engine diagnostics first, then derive a clearly labelled
-  reader view from semantic blocks without replacing faithful mode.
-- Complete when: title, language, metadata, headings, landmarks, and warnings are inspectable;
-  reader mode preserves links and text order; and switching modes retains the logical location.
-- Related: std.gui.html.017
-
 ### app.scope.document.012 — PDF page navigation has no thumbnails or page-label lookup
 
 - Recorded: 2026-08-29 08:36
@@ -212,18 +234,6 @@ integration around those engines.
 - Complete when: thumbnails prioritize the visible neighborhood, direct numeric and page-label
   jumps validate input, the current page is selected, and thousand-page documents stay responsive.
 - Related: std.gui.pdf.018
-
-### app.scope.document.013 — PDF bookmarks and destinations have no viewer surface
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the PDF engine does not yet read outlines, named destinations, or link targets (std.gui.pdf.017),
-  and Swag Scope has no panel or history ready to present them once decoded.
-- Next: define a filterable hierarchical bookmark/destination model and viewer navigation contract
-  against the engine API planned by std.gui.pdf.017.
-- Complete when: outline items, internal links, named destinations, and back/forward navigation
-  preserve page plus coordinates and zoom; invalid destinations are visible rather than ignored.
-- Related: std.gui.pdf.017
 
 ### app.scope.document.015 — PDF pages cannot be rotated or viewed with box and geometry overlays
 

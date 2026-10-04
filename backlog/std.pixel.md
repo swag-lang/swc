@@ -31,6 +31,60 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.025 — Extend the explicit OpenGL campaign to the portable rendering scenes
+
+- Recorded: 2026-09-07 11:24
+- Updated: 2026-10-04 15:06 — Separate the shipped tagged integration boundary from the broad parity scenes still missing.
+- Evidence: `tools/integrations.swgs opengl` runs only tests tagged
+  `integration.renderer.opengl`, independently of the headless campaign, and accepts `--all-cfg`.
+  `sampling.ogl.test.swg` compares CPU and GPU texture sampling at four scales;
+  `renderthread.test.swg` checks a worker-owned context and render-target readback. Both create
+  hidden native drawables. The stroke, text and layer scenes in `render.parity.test.swg` still
+  run only against the CPU renderer and its goldens.
+- Historical evidence: the removed broad parity harness produced corrupt or empty stroke images
+  under several drawable arrangements, including a newly created desktop. The two narrower
+  integration tests do not establish that those scene and lifecycle boundaries are covered.
+- Next: extend the existing named campaign with the portable stroke, text and layer scenes and
+  a fully realized window/message-loop fixture. Compare its first render without retries and
+  cover context creation, presentation and teardown on an explicitly usable desktop.
+- Complete when: those scenes and context transitions detect rendering regressions in both
+  program configurations, while ordinary headless tests continue to create no native windows.
+- Related: std.pixel.020
+
+### std.pixel.020 — Measured strokes are not yet what an ordinary stroke does
+
+- Recorded: 2026-09-01 08:39
+- Updated: 2026-10-04 15:06 — Reference the shipped OpenGL campaign while retaining its missing stroke-scene coverage.
+- What exists: `PaintParams.DistanceStrokes` makes a segment one quad carrying the signed distance
+  to its centre line, which both backends turn into coverage the same way — the value travels in
+  the ordinary coverage attribute, told apart from a band's ramp by sitting around
+  `StrokeCoverageBias`, so measured segments and banded joins and caps still draw in one batch.
+  `render.parity.test.swg` pins the software rasterizer with a golden over widths above and below
+  a device pixel, every join and cap style, a curve, a dash and a transform. The explicit
+  `integration.renderer.opengl` campaign already checks sampling and render-worker
+  lifecycle; the broad stroke-scene comparison still needs the coverage in std.pixel.025.
+  `Svg.Drawing.paintImpl` turns it on, so both ways of drawing a document — a viewport painted
+  small and the same drawing rasterized whole — stay the same picture.
+- What it bought (2026-09-01, release, Swag Scope showing a 1724 by 15036 document on a maximized
+  3894x2142 window): 4.53 million vertices a frame down to 1.76, the frame from 112 ms to 74, and
+  the adapter's share of it from 18 ms to half of one. Weight is unchanged to a third of a percent,
+  measured as ink over the drawing. The theme's icons are rasterized through the same path: 39
+  goldens moved, none by more than 0.96 % of its pixels, all of it edge coverage.
+- What is left. A segment is measured; **a join, a cap and a dash cap still emit a quad and a band
+  per edge**, which is most of what a stroke costs once joins are not being skipped — the minified
+  pass skips them, which is why a document gains so much and a widget gains nothing yet. Giving
+  them the same signed distance is the rest of this entry: a join is a wedge whose distance runs
+  from its pivot, a cap a half disc or a square around one, and both are affine per triangle.
+- Then the flag can be weighed as a default for every stroke. What decides it is a look, not a
+  number: a band pair carries a solid core out to the full half width and softens beyond it, while
+  the distance places the contour there and softens across it. On minified content the two are
+  within a third of a percent of the same ink; on a widget's one-pixel rule at its own size they
+  will not be, and that is the comparison to make before flipping it.
+- Complete when: a stroke emits a constant small number of vertices per segment *and* per join, the
+  two backends still agree, and `DistanceStrokes` is either the default or has a written reason not
+  to be.
+- Related: std.pixel.008
+
 ### std.pixel.031 — Nothing reaches the unordered-intersection path
 
 - Recorded: 2026-09-03 20:15
@@ -174,59 +228,6 @@ output, path measurement and effects, and the modern renderer choice tracked by
 - Complete when: an input can be translated, scaled, rotated, cropped, and tiled while bounds and
   sampling remain deterministic on both renderers.
 - Related: std.pixel.012, std.pixel.004, app.capture.004
-
-### std.pixel.025 — GPU parity needs an explicit desktop integration boundary
-
-- Recorded: 2026-09-07 11:24
-- Updated: 2026-09-07 18:27 — removed native-window tests from the headless campaign at the owner's request
-- Evidence: the former CPU/OpenGL parity helper created a real Windows window. Commit
-  `00b430142` showed and pumped it to establish its drawable; `ea526b10e` later moved it off
-  screen instead of removing the desktop dependency. The health reset reproduced corrupt or
-  empty stroke images in JIT and native runs, including on a newly created, never displayed
-  desktop. Matching clear/draw parameters, complete framebuffers, and successful independent
-  OpenGL controls did not establish a renderer root cause.
-- Current boundary: ordinary module tests now retain CPU rendering assertions and goldens,
-  without creating native windows for GPU parity. This is an explicit scope correction, not
-  evidence that the OpenGL renderer was repaired. The removed harness and investigations remain
-  in Git and the campaign reports.
-- Next: design a separately invoked GPU integration campaign with an explicit usable-desktop
-  prerequisite, a fully realized window and message loop, and context lifecycle coverage. It
-  must stay outside headless tests and must compare the first render without retries.
-- Complete when: the explicit integration boundary detects context/rendering regressions in both
-  program configurations without making an ordinary headless campaign create native windows.
-
-### std.pixel.020 — Measured strokes are not yet what an ordinary stroke does
-
-- Recorded: 2026-09-01 08:39
-- Updated: 2026-09-07 18:27 — corrected stroke coverage after removing native-window parity tests
-- What exists: `PaintParams.DistanceStrokes` makes a segment one quad carrying the signed distance
-  to its centre line, which both backends turn into coverage the same way — the value travels in
-  the ordinary coverage attribute, told apart from a band's ramp by sitting around
-  `StrokeCoverageBias`, so measured segments and banded joins and caps still draw in one batch.
-  `render.parity.test.swg` pins the software rasterizer with a golden over widths above and below
-  a device pixel, every join and cap style, a curve, a dash and a transform. GPU parity requires
-  the explicit desktop integration boundary in std.pixel.025.
-  `Svg.Drawing.paintImpl` turns it on, so both ways of drawing a document — a viewport painted
-  small and the same drawing rasterized whole — stay the same picture.
-- What it bought (2026-09-01, release, Swag Scope showing a 1724 by 15036 document on a maximized
-  3894x2142 window): 4.53 million vertices a frame down to 1.76, the frame from 112 ms to 74, and
-  the adapter's share of it from 18 ms to half of one. Weight is unchanged to a third of a percent,
-  measured as ink over the drawing. The theme's icons are rasterized through the same path: 39
-  goldens moved, none by more than 0.96 % of its pixels, all of it edge coverage.
-- What is left. A segment is measured; **a join, a cap and a dash cap still emit a quad and a band
-  per edge**, which is most of what a stroke costs once joins are not being skipped — the minified
-  pass skips them, which is why a document gains so much and a widget gains nothing yet. Giving
-  them the same signed distance is the rest of this entry: a join is a wedge whose distance runs
-  from its pivot, a cap a half disc or a square around one, and both are affine per triangle.
-- Then the flag can be weighed as a default for every stroke. What decides it is a look, not a
-  number: a band pair carries a solid core out to the full half width and softens beyond it, while
-  the distance places the contour there and softens across it. On minified content the two are
-  within a third of a percent of the same ink; on a widget's one-pixel rule at its own size they
-  will not be, and that is the comparison to make before flipping it.
-- Complete when: a stroke emits a constant small number of vertices per segment *and* per join, the
-  two backends still agree, and `DistanceStrokes` is either the default or has a written reason not
-  to be.
-- Related: std.pixel.008
 
 ### std.pixel.022 — Measure whether the clipper should join contours during the sweep
 

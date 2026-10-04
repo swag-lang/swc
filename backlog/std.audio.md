@@ -141,7 +141,7 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 
 - Recorded: 2026-08-05 07:43
 - Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- `DriverNative.createNative` does COM initialization, `XAudio2Create`, mastering-voice creation,
+- `XAudio2DriverNative.createXAudio2` does COM initialization, `XAudio2Create`, mastering-voice creation,
   channel-mask query and `X3DAudioInitialize`. Engine creation was previously measured in the 500
   to 950 millisecond range, which dominates the startup of the example scripts that call it —
   `bin/examples/scripts/flappy.swgs`, `invaders.swgs` and `pacman.swgs`.

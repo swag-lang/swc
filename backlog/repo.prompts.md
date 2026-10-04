@@ -162,6 +162,8 @@ Leave one reproducible baseline from which new work can start without inheriting
     changes nothing.
   - Generated documentation and website assets are current, reviewed, and reproducible; a second
     generation changes nothing.
+  - A complete benchmark campaign passes from a cold Swag build state near the end of the reset,
+    with valid checksums, accepted measurements, and regenerated history and report.
   - Every backlog entry is truthful, current, uniquely identified by its owning file, correctly
     linked, and stored in the right domain. Resolved or invalid entries are gone.
   - Inline TODO, FIXME, HACK, and XXX markers have either been resolved or moved into a properly
@@ -205,7 +207,7 @@ priority. Complete affected reruns, review, cleanup, and commits before the fina
 RUN THE COMPLETE VALIDATION LADDER
 
 Run steps 1 through 7 first, in order, stopping at the first failure as the tooling requires.
-Step 8 remains deferred until the secondary audit and final cleanup are complete. After any fix, rerun the
+Steps 8 and 9 remain deferred until the secondary audit and final cleanup are complete. After any fix, rerun the
 smallest focused reproducer first, then restart the smallest aggregate campaign that contains it.
 Resume the ladder at the earliest step the fix can actually affect; keep earlier independent green
 steps valid. A stale golden, fixture, generated asset, packaging input, or similarly local data
@@ -235,10 +237,12 @@ table so both a full restart and a narrow resume have explicit evidence:
      current-host window, and smoke campaigns in the default target configuration.
   7. `bin\swc.exe tools\vsix.swgs` - refresh and package the VSCode extension with its documented
      Node.js/vsce prerequisites, then inspect the package result.
-  8. LAST: run `bin\swc.exe tools\vault.swgs dm` with the bundled signed WinFsp runtime and the
+  8. Run the complete cold-start benchmark described below, after all non-privileged repairs,
+     affected reruns, formatting, documentation generation, cleanup, and source commits.
+  9. LAST: run `bin\swc.exe tools\vault.swgs dm` with the bundled signed WinFsp runtime and the
      required Windows elevation (UAC); no prior machine-wide WinFsp installation is required.
      This integration is intentionally outside tests.swgs and is part of a genuinely full pass.
-     Start it only after steps 1 through 7, all fixes and affected reruns, the final backlog and
+     Start it only after steps 1 through 8, all fixes and affected reruns, the final backlog and
      documentation reviews, repository cleanup, and commits are complete. Do not trigger its
      elevation prompt or any privileged WinFsp setup earlier or in parallel: the secure desktop
      can block the user's computer, so Swag Vault must be the last remaining work.
@@ -341,9 +345,32 @@ aggregate before returning to the secondary audit:
 When formatting or documentation exposes a compiler or tool defect, fix that defect at the root
 and add its regression test. Never hand-edit generated output to make the diff look right.
 
-CLEAN THE TREE BEFORE THE FINAL SWAG VAULT INTEGRATION
+RUN THE FINAL BENCHMARK FROM A COLD BUILD STATE
 
-After validation steps 1 through 7 and before step 8, classify and remove temporary material created
+The benchmark is required on every health reset. A crash or failed benchmark is a code failure:
+reduce it, repair its cause, add focused coverage, and repeat the complete benchmark after the
+affected validation. A quick smoke or report-only invocation does not satisfy this step.
+
+After the cleanup below and the final source commits, preview and verify the exact generated
+targets, then clear the benchmark's generated build outputs, the Swag workspace artifacts it
+consumes through `clean --workspace`, and the script dependency cache through `clean --cache`.
+Preserve benchmark sources, recorded campaigns, history, and reports. Confirm the selected build
+state is absent before launching; never clear another session's live artifacts.
+
+Use the freshly validated Release compiler without rebuilding it inside the measurement command:
+`bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6 --label "prompt 1 cold baseline"`.
+Wait for machine-load admission and the harness's quiet-machine gate. Run no other build, test,
+generation, or audit workload during the measurements. Cold means no reused Swag build artifacts
+at campaign entry; retain the harness's calibration, warm-up, per-sample preparation, checksum,
+and noise-rejection rules so the result remains comparable with history.
+
+Review the campaign's checksums, errors, acceptance status, history, and generated report. Record
+the measured commit, compiler identity, worker cap, cleared targets, campaign identifier, and
+result in the live table. Commit the accepted benchmark artifacts before the final Vault run.
+
+CLEAN THE TREE BEFORE THE FINAL BENCHMARK AND SWAG VAULT INTEGRATION
+
+After validation steps 1 through 7 and before steps 8 and 9, classify and remove temporary material created
 before or during the campaign. Inspect `git status --short --ignored`, the preview from `git clean -ndX`,
 snapshot actuals, crash files, scratch worktrees/files, and every `.output` directory under test sources.
 Preserve `bin/unittests/.output` and `bin/unittests/workspace/.output`: they are canonical roots
@@ -366,6 +393,7 @@ THE CAMPAIGN MAY END ONLY WHEN
     focused and aggregate checks rerun after changes. Pure prose edits do not invalidate unrelated
     green code campaigns.
   - Formatting and documentation generation are idempotent.
+  - The final cold-start benchmark is accepted and its history and report are current.
   - The backlog and inline-marker audit has no unresolved inconsistency.
   - No concrete defect discovered during the campaign remains open or has merely been relabeled.
   - No unexpected temporary or generated material remains.
@@ -380,7 +408,8 @@ REPORT
 
 Keep a live table with each command, configuration, start/end time, result, failure root cause, fix,
 and successful rerun. At the end, report the final commit(s), every validation command and result,
-backlog entries removed/moved/updated, documentation regenerated, formatting performed, temporary
+backlog entries removed/moved/updated, documentation regenerated, formatting performed, cold-start
+benchmark campaign and acceptance result, temporary
 targets removed, and any external blocker. The final statement "ready for new work" is allowed only
 when every end condition above is true.
 ```

@@ -4,7 +4,10 @@ Backend optimization passes, register allocation, and the performance of the cod
 Frontend and lowering defects are [compiler.core.md](compiler.core.md).
 
 Entries are ordered from the most recently updated down. [README.md](README.md) defines
-the shared backlog conventions.
+the shared backlog conventions. Instruction counts, runtime winners, and timing results describe
+the cited revision or the entry's last measurement; they must be remeasured before guiding a new
+optimization. A campaign called the latest below was the latest at that measurement, not a moving
+claim about the current checkout.
 
 Several entries address register residency, loop-entry shape, spill traffic, aliasing and
 inline argument materialization. Earlier measurements used the whole-hull allocator; optimizing
@@ -14,6 +17,86 @@ the executable Micro instruction stream has no explicit phi instruction. Since b
 that the straight-line path steps over — a safety panic, a cold refill — no longer constrains the split
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
+
+### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
+
+- Recorded: 2026-09-07 10:46
+- Updated: 2026-10-04 15:02 — Account for private-global alias proofs and rebaseline the remaining heap-element gap.
+- Area: compiler/backend, memory optimization
+- Found while: the generated-code campaign, comparing Dijkstra's heap loops with current
+  clang-cl and MSVC output at `8d3f0498b` on 2026-09-07.
+- Evidence: after local identical-target load forwarding, Swag release's sift-up loop has
+  26 instructions / 15 explicit memory operations, against clang-cl's 16 / eight and MSVC's
+  15 / eight. Five Swag accesses reload global pointer cells; ten access heap elements,
+  including the values read again after the comparison branch. These are program-memory
+  accesses, not allocator spill slots. The sift-down loop still has 39 / 20.
+- September 29 static comparison: in the Release `push` sift-up loop, Swag executes 19 Micro
+  instructions and 12 explicit memory operations on a swapping iteration, versus 15 instructions
+  and eight memory operations in the accepted winner's MSVC object. Swag reloads `g_HeapD` and
+  `g_HeapN` after stores through those pointers; MSVC retains both pointer values in registers.
+  Swag's `pop` and its inlined copy now place their address calculation and relocated heap-size
+  load at the back edge, removing one executed unconditional jump per sift-down step. These
+  counts supersede the September 7 loop counts above; they are static code evidence,
+  not a timing claim. The Dijkstra checksum remains `4431000`.
+- A scratch source copy loads `g_HeapD` and `g_HeapN` once into local pointers at `push` entry.
+  Its Release `push` shrinks from 32 to 28 Micro instructions, and the inlined `main` from
+  439 to 435. A swapping sift-up step then executes 15 instructions and eight memory operations,
+  matching MSVC's counts; `CHECK=4431000` remains exact. This is an upper bound for a compiler
+  rule, since caching a raw global pointer would change a program whose pointee aliases the
+  pointer's global cell. `benchAlloc` returns fresh allocator storage for this task, but Micro
+  then had no provenance proof from that return through the global assignment and call to `push`.
+- Current boundary: `MicroRelocation::privateGlobal` now records a global whose address
+  does not escape, and LICM retains its load across pointer stores in an innermost loop.
+  Direct writes, escaped addresses, materialized private-global bases, and calls that may
+  write remain barriers. `native/optimizer/private_global_loads.swg` covers private-pointer
+  loads and those negative cases. This proves global-cell disjointness without needing a
+  fresh-allocation summary from `benchAlloc`; the older counts above predate that rule.
+- Next: rebaseline `push`, `pop`, and their inlined copies with this private-global rule.
+  Remove the pointer-reload part of this lead if the current dump closes it. For any remaining
+  repeated heap-element reads, follow availability across the comparison branch while preserving
+  intervening alias writes, both branch outcomes, calls, zero-trip behavior, and register pressure.
+- Complete when: the remaining repeated pointer/element reads disappear with sound alias and
+  control-flow proofs, or a focused experiment identifies the register-residency constraint.
+
+### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
+
+- Recorded: 2026-09-06 14:53
+- Updated: 2026-10-04 15:02 — Account for the sixteen-trip gate and the narrower indexed-read partial unroller.
+- Area: compiler/backend
+- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
+- Evidence: the 2026-09-07 comparison at `8d3f0498b` reproduces the earlier counts. With
+  `/O2 /EHsc /std:c++20`, clang-cl and Swag release both emit 74 instructions and five explicit
+  memory operations per compression round. MSVC emits 224 instructions and eight memory
+  operations for four rounds, or 56 / two per round; its accesses read only `KTAB` and the
+  message schedule. Counts exclude labels and do not count address-only instructions as memory.
+- Attempted 2026-09-07, reverted: bounded partial unrolling of divisible exact trip counts,
+  retaining the original counter and inserting its add/compare between cloned bodies so that
+  counter readers, forward exits, and incoming CPU flags keep their original behavior. Internal
+  labels and relocations were cloned as in the existing full unroller. Four rounds emitted
+  296 instructions / 25 memory operations (74 / 6.25 per round); two emitted 146 / 12
+  (73 / six per round). Neither approaches MSVC's register residency. The sixteen-word input
+  decode improved from 16 / five per word to 58 / 20 per four words or 30 / ten per two words,
+  but that smaller win does not justify increasing traffic in the compression loop. No timing
+  claim or correctness acceptance was made for either rejected prototype.
+- Observation: duplicating the body alone does not eliminate the carried-state frame accesses
+  described in compiler.optimization.005. The ordinary full-unroll gate now admits up to sixteen
+  trips (`K_MAX_TRIPS`), with a separate table-folding path; raising that gate alone does not
+  solve the compression round's carried state.
+- Current boundary: since `1238a3c2e`, the full unroller gives independent temporaries fresh
+  names in cloned straight-line bodies. Values read before their first write, read outside the
+  body, or constrained by allocation keep their names; bodies with internal labels also keep
+  them. `native/optimizer/unroll_renames_temporaries.swg` covers carried and escaping values.
+  A separate four-way partial unroller now handles small, zero-based indexed-read loops
+  with no stores, calls, internal branches, or relocations. That eligibility does not cover
+  SHA-256's compression round or solve its carried-state residency.
+- Next: rebaseline the compression round, trace which carried-state values acquire extra frame
+  accesses in a partial-unroll prototype, and evaluate coalescing of those values. Reuse the
+  full unroller's temporary-renaming rules instead of treating all cloned names as unchanged.
+  Compare every hot loop across the seven tasks, with counter, exit, relocation, and carried-value
+  regression coverage if a prototype improves the emitted code.
+- Complete when: grouping rounds lowers both instructions and frame traffic per compression round
+  with correctness coverage, or the remaining register-residency prerequisite is isolated.
+- Related: compiler.optimization.005, compiler.optimization.016.
 
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
@@ -344,45 +427,6 @@ block, and the hot path keeps the register.
   function or benchmark program grows.
 - Related: std.video.001, compiler.optimization.037
 
-### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
-
-- Recorded: 2026-09-07 10:46
-- Updated: 2026-09-29 17:22 — Measured the alias-proof upper bound with explicit local pointers.
-- Area: compiler/backend, memory optimization
-- Found while: the generated-code campaign, comparing Dijkstra's heap loops with current
-  clang-cl and MSVC output at `8d3f0498b` on 2026-09-07.
-- Evidence: after local identical-target load forwarding, Swag release's sift-up loop has
-  26 instructions / 15 explicit memory operations, against clang-cl's 16 / eight and MSVC's
-  15 / eight. Five Swag accesses reload global pointer cells; ten access heap elements,
-  including the values read again after the comparison branch. These are program-memory
-  accesses, not allocator spill slots. The sift-down loop still has 39 / 20.
-- Current static comparison: in the Release `push` sift-up loop, Swag executes 19 Micro
-  instructions and 12 explicit memory operations on a swapping iteration, versus 15 instructions
-  and eight memory operations in the accepted winner's MSVC object. Swag reloads `g_HeapD` and
-  `g_HeapN` after stores through those pointers; MSVC retains both pointer values in registers.
-  Swag's `pop` and its inlined copy now place their address calculation and relocated heap-size
-  load at the back edge, removing one executed unconditional jump per sift-down step. These
-  current counts supersede the September 7 loop counts above; they are static code evidence,
-  not a timing claim. The Dijkstra checksum remains `4431000`.
-- A scratch source copy loads `g_HeapD` and `g_HeapN` once into local pointers at `push` entry.
-  Its Release `push` shrinks from 32 to 28 Micro instructions, and the inlined `main` from
-  439 to 435. A swapping sift-up step then executes 15 instructions and eight memory operations,
-  matching MSVC's counts; `CHECK=4431000` remains exact. This is an upper bound for a compiler
-  rule, since caching a raw global pointer would change a program whose pointee aliases the
-  pointer's global cell. `benchAlloc` returns fresh allocator storage for this task, but Micro
-  has no provenance proof from that return through the global assignment and call to `push`.
-- Boundary: the local forwarding cache is flushed by control flow and potentially aliasing
-  stores. Reusing a global pointer across an arbitrary heap write needs a provenance proof;
-  keeping the heap elements already read by a comparison needs control-flow-aware memory
-  availability. An exact relocation identity alone proves neither.
-- Next: establish which heap stores cannot reach the global pointer cells, and propagate a
-  compared element only along paths with no intervening aliasing write. Preserve the global
-  reload when a pointer can address that global, and exercise both branch outcomes, calls,
-  and zero-trip loops. Check `pop` and register pressure across every benchmark task before
-  broadening the alias analysis.
-- Complete when: the remaining repeated pointer/element reads disappear with sound alias and
-  control-flow proofs, or a focused experiment identifies the register-residency constraint.
-
 ### compiler.optimization.102 — Retain one floating zero across unrolled arms
 
 - Recorded: 2026-09-29 15:48
@@ -695,8 +739,7 @@ block, and the hot path keeps the register.
   became unusable when unrelated load stretched a baseline rebuild to 42.8 seconds. With no
   observed gain and a possible guardrail regression, the gate was reverted.
 - Final validation on 2026-09-24: the Release campaign passed 1,500 JIT tests and 3,478 native
-  tests, then stopped in `std/gui` on the pre-existing semantic error described in
-  a semantic error in `std/gui`, since fixed by preserving the source view of generated `is`
+  tests, then stopped on a semantic error in `std/gui`, since fixed by preserving the source view of generated `is`
   casts. The pre-campaign compiler build 1131 reproduced that error on unchanged GUI sources.
   A final five-run four-workload timing attempt was stopped after three runs:
   unrelated machine load moved a core rebuild from 4.8 to 7.3 seconds and a touched-file
@@ -748,7 +791,8 @@ block, and the hot path keeps the register.
   core rebuild medians were 3,151 ms candidate and 2,996 ms baseline under variable load; hello
   medians were 167 and 189 ms, but a seven-pair role-reversed hello series gave 181 and 187 ms
   with slightly higher candidate CPU. No speedup percentage is established. The full Release
-  campaign again reached the pre-existing `std/gui` error in `compiler.core.058`.
+  campaign again reached the `std/gui` error later fixed by preserving generated `is` cast
+  source views.
 - A fourth prompt-4 group skips settled register-allocation sweeps after checking for remaining
   virtual operands, defers implied-branch and jump-chain cycle sets, builds packed-switch jump
   counts only for qualifying chains, delays range-check used-set work until the opcode shape
@@ -831,43 +875,6 @@ block, and the hot path keeps the register.
   version, and it does not exist.
 - Complete when: either a rule promotes a whole-copied local array without costing vectorization,
   or this records that the two cannot be reconciled and the fill-only rule is the end of it.
-
-### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
-
-- Recorded: 2026-09-06 14:53
-- Updated: 2026-09-14 06:25 — Account for temporary renaming already shipped in the full unroller.
-- Area: compiler/backend
-- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
-- Evidence: the 2026-09-07 comparison at `8d3f0498b` reproduces the earlier counts. With
-  `/O2 /EHsc /std:c++20`, clang-cl and Swag release both emit 74 instructions and five explicit
-  memory operations per compression round. MSVC emits 224 instructions and eight memory
-  operations for four rounds, or 56 / two per round; its accesses read only `KTAB` and the
-  message schedule. Counts exclude labels and do not count address-only instructions as memory.
-- Attempted 2026-09-07, reverted: bounded partial unrolling of divisible exact trip counts,
-  retaining the original counter and inserting its add/compare between cloned bodies so that
-  counter readers, forward exits, and incoming CPU flags keep their original behavior. Internal
-  labels and relocations were cloned as in the existing full unroller. Four rounds emitted
-  296 instructions / 25 memory operations (74 / 6.25 per round); two emitted 146 / 12
-  (73 / six per round). Neither approaches MSVC's register residency. The sixteen-word input
-  decode improved from 16 / five per word to 58 / 20 per four words or 30 / ten per two words,
-  but that smaller win does not justify increasing traffic in the compression loop. No timing
-  claim or correctness acceptance was made for either rejected prototype.
-- Observation: duplicating the body alone does not eliminate the carried-state frame accesses
-  described in compiler.optimization.005. The current pass only fully unrolls at most eight
-  trips; merely raising that limit is a different experiment.
-- Current boundary: since `1238a3c2e`, the full unroller gives independent temporaries fresh
-  names in cloned straight-line bodies. Values read before their first write, read outside the
-  body, or constrained by allocation keep their names; bodies with internal labels also keep
-  them. `native/optimizer/unroll_renames_temporaries.swg` covers carried and escaping values.
-  This is neither partial unrolling nor a solution for the compression round's carried state.
-- Next: rebaseline the compression round, trace which carried-state values acquire extra frame
-  accesses in a partial-unroll prototype, and evaluate coalescing of those values. Reuse the
-  full unroller's temporary-renaming rules instead of treating all cloned names as unchanged.
-  Compare every hot loop across the seven tasks, with counter, exit, relocation, and carried-value
-  regression coverage if a prototype improves the emitted code.
-- Complete when: grouping rounds lowers both instructions and frame traffic per compression round
-  with correctness coverage, or the remaining register-residency prerequisite is isolated.
-- Related: compiler.optimization.005, compiler.optimization.016.
 
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 

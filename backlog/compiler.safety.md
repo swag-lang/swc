@@ -43,6 +43,51 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.023 — Opaque results lack pointer-field provenance
+
+- Recorded: 2026-09-08 20:48
+- Updated: 2026-10-04 15:14 — Reconfirm the opaque carrier release gap after copied-field summary support.
+- Area: compiler/sema, `SemaEscape`
+- Evidence: a fresh semantic-only helper on 2026-10-04 still accepts
+  `release(carrier.borrowed)` after a no-inline factory stores `&local` in that field and
+  an independent allocation in `carrier.owned`. The DevMode compiler at `ce515e405` in
+  `release` reports no errors; releases of the independent field and carrier also stay
+  silent. A companion direct `release(&local)` control reports `sanity_err_free_borrowed`,
+  confirming the check is active. Neither invalid free was executed.
+- Current boundary: copied-field lifetime routes and returned payload projections already
+  exist (`25b9598b6`, `e1b81113e`). They do not yet distinguish the borrowed pointee of this
+  opaque heap result when judging a release. Propagating the carrier's enclosing borrow
+  indiscriminately would also reject its independently allocated field.
+- Next: trace this returned-field route through the existing projection and frees-summary
+  machinery, then preserve each field's provenance. Cover both fields through generated
+  module APIs; never execute an invalid free merely to probe its diagnostic.
+- Complete when: borrowed returned fields are diagnosed without rejecting releases of
+  independently allocated fields, and the focused sanity and workspace regressions pass
+  with measured cost.
+
+### compiler.safety.019 — Remeasure sanity cost after live-state pruning
+
+- Recorded: 2026-09-08 07:59
+- Updated: 2026-10-04 15:02 — Replace pre-pruning cost assumptions with a current attribution step.
+- Area: compiler/backend, `Sanitizer`
+- Historical evidence: six-worker Release-compiler profiles on 2026-09-23 attributed about
+  8-10% of a core devmode rebuild's busy CPU to `Sanitizer::run`, principally conditional-branch
+  narrowing and value transfer. The measured fixed point took about 1.19 propagation visits
+  and 0.99 checking visits per instruction. These figures precede the current state layout.
+- Current boundary: `Sanitizer::pruneDeadRegs` keeps only registers live at each stored chain
+  head, and rarely populated state maps allocate on first use. The live-state change is already
+  implemented and tested; compiler.core.005 records its memory reduction and a faster ChaCha
+  devmode compilation. Neither that workload nor the earlier profiles establish the current
+  sanitizer share of a core or full-std build. Subsequent register, stack-lane, and freed-parameter
+  lookups also changed without a separate attribution measurement.
+- Next: profile the current core devmode and full-std release rebuilds, reporting sanitizer CPU,
+  state memory, propagation/check visits, and wall time separately. Use those measurements to
+  choose between branch narrowing, value transfer, and state storage; do not exclude state
+  layout using a profile taken before live-state pruning.
+- Complete when: the current sanity pass's cost is attributed and either accepted or reduced
+  with a repeatable comparison and the safety/sanity behavior preserved.
+- Related: compiler.core.005.
+
 ### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
 
 - Recorded: 2026-09-04 17:05
@@ -75,70 +120,6 @@ is the current scorecard.
   two loops above is recorded next to the 2026-07-08 numbers, and `devmode` compile time is
   measured before and after.
 - Related: [compiler.optimization.md](compiler.optimization.md) owns the pass once it is scoped.
-
-### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
-
-- Recorded: 2026-09-08 07:59
-- Updated: 2026-09-28 16:00 — Removed empty parameter-mask iterations in the sanitizer; performance remains unmeasured.
-- Area: compiler/backend, `Sanitizer`
-- Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
-  populated over far more of a function than before, and the transfer function gained a scan of
-  the convention's argument registers at every call. One cold `std` build with each compiler gave
-  1 min 23 s against 2 min 21 s, but the per-module split of that same pair is incoherent — `core`
-  20.6 s against 4.6 s, `pixel` 7.3 s against 56.6 s — so the run measured machine noise, not the
-  pass. No conclusion may be drawn from it in either direction.
-- The 2026-09-13 changes `ab595100b` and `55a30fbbf` precompute sanity and runtime-safety
-  override masks in `AttributeList`, removing repeated attribute scans. They do not establish the
-  cost of the lifecycle state propagation or its call-argument scan in `Sanitizer`. Their
-  [validation report](../bench/results/compilation/20260913-sema-codegen/README.md) explicitly
-  defers comparative timing; passing the safety and sanity suites is functional evidence only.
-- **Measured, 2026-09-23** (Release 0.1.1056 with a PDB, six workers, a user-mode sampling
-  profiler, three merged runs of `swc build -w bin/std -m core -bc devmode --rebuild` on a quiet
-  machine, 677 busy samples): `MicroSanityPass::run` is **9.9% of the busy CPU** of that rebuild,
-  essentially all of it `Sanitizer::run` at 9.45%, of which `Sanitizer::walkChain` alone is
-  **7.2%**. The same pass over a `release` rebuild of the whole of `bin/std` is 3.5%, and the
-  per-pass timers put it at 7.3% of the micro pipeline's own CPU there, changing nothing on any
-  function. So the pass costs about three times more in the configuration people compile in all
-  day than in the one the earlier note looked at, and the chain walk is where it goes.
-- What that buys the reader: the 2026-09-08 whole-build pair was noise, as that note says; this is
-  the pass's own share, and it is large enough to be worth a design question rather than a
-  micro-optimization. The engine deliberately stores state only at chain heads and recomputes
-  straight-line chains on the fly, because storing per instruction "made big loopy functions take
-  minutes" - `walkChain` is that recomputation, so making it cheaper means changing what is
-  remembered, not tightening a loop.
-- The chain is not re-walked, so the head-only state is not what costs. Counting the engine's own
-  steps over the same rebuild: 5 878 functions, 647 935 instructions, 64 575 chain heads, and
-  **1.19 fixpoint steps and 0.99 check steps per instruction** - about 2.2 visits of each
-  instruction in total, with no function reaching the iteration cap. The analysis converges in
-  essentially one pass; what costs is the transfer function applied at each of those visits, not
-  how many visits there are.
-- What one step does, from four merged profiles of the same rebuild (888 busy samples):
-  `Sanitizer::run` 7.9% of busy CPU, of which `walkChain` is 6.3%, and inside it
-  **`propagateConditionalBranch` 3.2%** and **`applyValueEffects` 2.4%** - the two halves of the
-  transfer function are the whole cost. Everything else is small: constructing the states 0.9%,
-  `computeFunctionProperties` 0.3%, copying a state 0.3%.
-- **Unmeasured structural change, 2026-09-28:** `Sanitizer::run` now default-constructs each
-  chain-head state without first copying an empty state into every slot. Conditional branches
-  reuse the first register lookup and decode the zero-test condition once, preserving the stack
-  base register's special value. These source-level reductions have no measured speed or memory
-  result; the pass's cost remains open.
-- **Unmeasured structural change, 2026-09-28:** a register move now uses the value copied with
-  its register facts instead of looking it up again; the stack-base override remains explicit.
-  Address formation reuses its already fetched base value to resolve a stack slot. Both remove
-  redundant register-table lookups from `applyValueEffects` without changing the facts propagated.
-- **Unmeasured structural change, 2026-09-28:** a wide memory load now reads its stack lane
-  once instead of reading the same slot first for a value it immediately overwrites. The
-  use-after-free check reads an ABI argument's value from the register fact it already found;
-  the stack-base override cannot apply to a physical argument register. No runtime or memory
-  result is inferred from these lookup reductions.
-- **Unmeasured structural change, 2026-09-28:** both freeing-call paths now visit only the set
-  bits of the 64-bit freed-parameter mask. They retain ascending parameter order and skip the
-  empty positions that the previous fixed 64-iteration loops examined at every such call.
-- Next: decide whether 9.9% of a DevMode module rebuild is the intended price of the analysis.
-  If it is not, there are exactly two places to look, and narrowing along branch edges is the
-  larger of them. The walk itself, the state layout and the property scan are not worth touching.
-- Complete when: the sanity pass's share of compile time is recorded before and after, and either
-  found acceptable or reduced.
 
 ### compiler.safety.024 — A mutable cast can write through an any that borrows a literal
 
@@ -241,24 +222,6 @@ is the current scorecard.
   bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
   survives at the interop and bit-punning boundary, which is where the marker belongs and where it
   joins compiler.safety.007. Also compiler.safety.014.
-
-### compiler.safety.023 — Opaque results lack pointer-field provenance
-
-- Recorded: 2026-09-08 20:48
-- Updated: 2026-09-11 16:33 — Narrow the remaining work to pointer fields in opaque results.
-- Area: compiler/sema, `SemaEscape`
-- Evidence: an opaque factory returning a heap carrier whose `target` field holds `&local`
-  leaves `release(carrier.target)` undiagnosed. This was confirmed in a semantic-only helper
-  body with `swc.dm` 0.1.417 in `release`, without executing the invalid free.
-- Cause: the member-access walker deliberately drops a copied pointer field's enclosing
-  borrow, because that field need not alias the container. A factory's return-borrow mask
-  cannot identify the field carrying each parameter.
-- Next: design returned-field provenance before extending pointer-field diagnostics. Cover
-  a carrier with both a borrowed field and an independently allocated field, including through
-  generated module APIs; never execute an invalid free merely to probe its diagnostic.
-- Complete when: borrowed returned fields are diagnosed without rejecting releases of
-  independently allocated fields, and the focused sanity and workspace regressions pass
-  with measured cost.
 
 ### compiler.safety.004 — Diagnostic allocation does not intercept a stale heap read
 

@@ -30,135 +30,47 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
-### language.parallelism.008 — A parallel loop cannot combine per-partition results
-
-- Recorded: 2026-09-08 20:14
-- Updated: 2026-09-12 07:12 — State the floating-point associativity limitation precisely.
-- Evidence: every partition of a `parallel for` receives the same captures. A loop that computes
-  one value -- a sum, a maximum, a count, a first match, an accumulated bounding box -- cannot
-  say that each partition needs its own accumulator and that the accumulators combine at the
-  join. Consumers write one of two workarounds: an atomic on the shared destination, which
-  serializes the loop's hot line and, with `AtomicValue.store` lowered to a locked exchange,
-  pays a full barrier per iteration; or an array indexed by a partition number the language does
-  not expose, which forces the body to know the partitioning it is explicitly told not to depend
-  on.
-- Evidence: the general escape, one accumulator per thread, is also expensive. `tls` lowers a
-  thread-local global to a runtime call per access, measured at 4 ns against 1 ns for a plain
-  global read (runtime.allocator.002), and the per-thread block is released at thread exit
-  without running `opDrop`, so it can only hold a plain value.
-- Next: design the combining form as part of the statement, stating the identity, the
-  per-partition storage and the combining operation together, and combining at the join rather
-  than in the body. Settle whether the operation must be associative and commutative or only
-  associative -- floating-point addition is not associative -- and say what result the program is entitled
-  to when it is not. Decide whether the form is a clause of `parallel for` or a value the
-  statement produces.
-- Complete when: a parallel sum, a parallel maximum and a parallel bounding box are written
-  without an atomic on the hot line and without indexing a partition, and a single-worker run of
-  the same source produces the same value the loop promises.
-- Elsewhere: OpenMP has `reduction(+:x)` and user-declared reducers; Rayon, .NET PLINQ and Java
-  streams reduce through the iterator; Chapel writes `+ reduce`. All of them treat reduction as
-  the second data-parallel primitive after the map, not as a library afterthought.
-- Related: language.parallelism.001, language.parallelism.004, std.core.025
-
-### language.parallelism.002 — No suspension, and no typed task result
+### language.parallelism.005 — Captures do not prove task lifetime or race freedom
 
 - Recorded: 2026-09-07 15:52
-- Updated: 2026-09-12 07:12 — Distinguish occupied workers from queued operations in flight.
-- Evidence: [Swag.Task](../bin/runtime/task.swg) runs an infallible closure and reports only that it
-  finished. A consumer that produces a value writes it into captured storage and reads it after
-  the join, which is what `Viewer.BackgroundLoad` and `Gui.PdfView` do; a consumer that fails
-  stores the error beside the value. Nothing suspends: a task that waits occupies its worker for
-  the whole wait, reducing the capacity available to execute queued operations.
-- Next: settle the suspension gates before implementing. Fix the `async`/`await` grammar, the
-  effect in the callable type, stackless frame ownership, stable frame addresses, and the async
-  boundary for both native and JIT execution. Decide whether cancellability is a separate control
-  effect or an outcome carried by `fail`, and what `try`, a catch-all, `defer #fail` and
-  `defer #nofail` observe. Then give the runtime a typed `Task'T` whose result is owned and
-  consumed once, with failure and cancellation as terminal outcomes beside success.
-- Complete when: a `Task'T` transfers its result or its failure to exactly one observer, an
-  awaiting task releases its worker, and native and JIT lifecycle tests cover every exit after
-  capture: immediate completion, a suspended frame, a cancelled waiter whose child still owns a
-  loan, and destruction exactly once.
-- Elsewhere: [Swift structured concurrency](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md)
-  scopes child-task lifetime; [Go's memory model](https://go.dev/ref/mem) makes synchronization and
-  happens-before part of the language contract. These are references for separate decisions, not a
-  proposal to import one language's complete model.
-- Related: std.core.025, std.core.028, language.parallelism.001.
-
-### language.parallelism.010 — Nothing detects a data race while the program runs
-
-- Recorded: 2026-09-08 20:14
-- Updated: 2026-09-11 22:31 — Name the current guarded configuration accurately.
-- Evidence: .005 states that a capture list is written rather than proved, and names the two cases
-  that still compile: two partitions writing the same element, and a captured pointer whose
-  pointee is mutated elsewhere. Neither is caught at run time either. The `devmode` configuration
-  checks allocation lifetime and bounds, and the sanity pass reasons inside one function's flow,
-  but no configuration records happens-before edges between threads. A race in a partitioned loop
-  therefore surfaces as an occasional wrong pixel or an intermittent crash somewhere unrelated,
-  which is the shape of several intermittent defects already recorded in this repository.
-- Next: choose the instrument before writing it. Only a checker that knows the runtime's own
-  synchronization points -- lock, unlock, atomic operation, submission, completion, join, and
-  partition boundary -- can see the edges this runtime creates, so the shadow state belongs
-  beside the scheduler rather than in a foreign tool. Scope it to one build configuration with a
-  stated slowdown budget, start from the accesses the compiler already instruments for bounds and
-  lifetime, and decide what it does with a foreign call, which is opaque to it for the same reason
-  it is opaque to compiler.safety.007.
-- Complete when: a test writing one element from two partitions fails deterministically in that
-  configuration, naming both accesses and the edge that is missing between them, and a correct
-  partitioned loop reports nothing.
-- Elsewhere: Go ships `-race`, C++ and Rust use ThreadSanitizer, and Rust adds `loom` for
-  exhaustive interleavings of a small structure. A language that claims checked memory access
-  without a dynamic detector claims it only as far as its static analysis reaches.
-- Related: language.parallelism.005, language.parallelism.007, compiler.safety.007,
-  compiler.safety.014
-
-### language.parallelism.009 — Cancellation stops at one group and has no deadline
-
-- Recorded: 2026-09-08 20:14
-- Updated: 2026-09-10 20:06 — Distinguish cancellable blocking waits from async suspension.
-- Evidence: `Swag.TaskGroup.cancel` raises one flag that only the children of that group can read,
-  and only through a captured reference to the group. A child that opens a group of its own gets
-  a fresh flag, so the outer request never reaches the grandchildren. `Swag.Task` carries no
-  cancellation state at all, `parallel for` carries none, and no task, group or loop carries a
-  deadline: a program that wants to stop after a duration polls a clock it wrote itself. The
-  request is also invisible to every wait. `Swag.Condition.waitFor` expires on its own timeout
-  without consulting it, and `Swag.Semaphore.acquire` and `Swag.Barrier.arrive` cannot be woken
-  by it.
-- Next: decide where the state lives before adding to it -- ambient state the runtime propagates
-  into every child, or a value each spawn is handed explicitly. Then propagate it through nested
-  groups, give `parallel for` and `Swag.Task` a way to read it, and make a deadline one more
-  source of the same request rather than a second mechanism. State the boundary at the waiting
-  primitives instead of implying it: today `acquire` has no cancellation input or wake path.
-  A cancellation-aware blocking wait can return early without async suspension; define its
-  wake registration, permit-consumption race, and cleanup independently of .002.
-- Complete when: cancelling an outer group is observed by a grandchild, a deadline produces the
-  same observable request, and a cancelled tree joins with every borrowed resource still valid.
-- Elsewhere: Swift propagates cancellation to every child task and exposes it as task-local
-  state; Kotlin cancels a `Job` together with its children; Java's `StructuredTaskScope` and
-  .NET's linked `CancellationTokenSource` both build the tree explicitly. All four are
-  cooperative, and none of them stops at one level.
-- Related: language.parallelism.001, language.parallelism.002, language.parallelism.003
-
-### language.parallelism.011 — No channel abstraction
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-10 19:32 — Move the runtime channel contract from the Core integration domain.
-- Historical provenance: moved from retired std.core.026.
-- Evidence: no typed channel defines transfer, capacity, close, cancellation, and selection
-  together. A producer and a consumer that need one build it from `Swag.Mutex` and
-  `Swag.Condition` by hand, which is what the Swag Scope video queue does.
-- Next: define the bounded, rendezvous, and one-shot forms in `bin/runtime`, with their endpoint,
-  selection, and rejected-message types. Settle endpoint clone and drop behavior, draining after
-  close, ownership of a moved message rejected before acceptance, and the single commit point of a
-  selection before adding any Core convenience function.
-- Complete when: focused channel and selection tests cover backpressure, closure, cancellation,
-  simultaneous readiness, and withdrawal without a lost message or a duplicate consumption.
-- Related: language.parallelism.002, std.core.025
+- Updated: 2026-10-04 14:59 — Remove the closed caller-parameter capture gap; linked ownership and race freedom remain.
+- Evidence: borrow analysis follows named and initialized captures, including addresses, field
+  references, slices, aggregates and deferred call-result summaries. It rejects the tested local
+  borrows returned in a closure or stored in a task from an outer lexical scope. Local destructor
+  ordering also matters: a task declared before its captured source joins after that source is
+  destroyed. Borrow merges retain the shortest local lifetime across captures, fields and flow
+  alternatives. The unexecuted regression cases are in
+  `bin/unittests/sanity/borrow_escape_drop_order.swg`. This does not
+  establish race freedom: two partitions writing the same element and a captured pointer whose
+  pointee is mutated elsewhere still compile.
+- Linked-storage gap: the group no longer demonstrates it. `Swag.TaskGroup` holds its first
+  children itself, so `reserveChild` can return a pointer into the group, `spawn` feeds a
+  stores-into-group summary, and `groupBeforeCapture` in
+  `bin/unittests/sanity/borrow_escape_drop_order.swg` is rejected with its expected diagnostic.
+  The rule itself did not change: only block pointers carry owned payload, because treating every
+  `*T` as owned would confuse parent and callback back-references with ownership, so a child
+  reached solely through `blocks: *GroupBlock?` is still invisible to the ownership analysis.
+  Find or build another case before extending the rule to linked storage.
+- Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including on early return
+  and failure. An owner can still release a borrowed field in its own destructor before the
+  implicit destruction of its task field; it must join before releasing that storage.
+- Next: follow owned linked storage through accessors, with both an owned child and a non-owned
+  parent pointer as regression cases. Then infer transferable (`Send`) and shared-readable
+  (`Sync`) properties from fields, allocation, copy, move and destruction effects, and require
+  them at captures. `NoCopy` does not imply `Send`, `const` does not imply deep immutability, and
+  an atomic reference count does not synchronize its pointee. Raw pointers, opaque owners, native
+  handles and foreign calls need a stated contract rather than automatic acceptance.
+- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
+  constraint and points at a valid partition or ownership alternative; semantic tests reject
+  hidden aliases, escaped borrows and cross-module global writes without optional analysis.
+  Until then the capture list states intent rather than proving race freedom.
+- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
+  language.parallelism.001.
 
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
-- Updated: 2026-09-10 18:33 — Refresh remaining workload, application and foundational-entry claims.
+- Updated: 2026-10-04 14:59 — Align compiler identity and cache validation with the repository rules.
 - Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
   to a runtime range call, with fallible variants under `try`, `catch` and `expect`.
   `bin/runtime` owns the worker pool, `Swag.Task`,
@@ -284,9 +196,135 @@ of simplicity when every useful helper needs an unchecked contract.
   contention, cancellation latency under stated cooperation assumptions, serial thresholds, and
   throughput against what the code did before.
 - Every implemented syntax change updates the language reference, the editor grammar, the
-  formatter and the relevant diagnostics together. Compiler-source changes increment
-  `SWC_BUILD_NUM`; serialized effect summaries and runtime ABI changes invalidate incompatible
-  cached artifacts.
+  formatter and the relevant diagnostics together. Keep `SWC_BUILD_NUM` stable during ordinary
+  compiler changes; change it only for an explicit release or cache-identity decision. Isolate or
+  clear affected caches when validating changed compiler behavior. Serialized effect summaries
+  and runtime ABI changes must invalidate incompatible cached artifacts.
+
+### language.parallelism.008 — A parallel loop cannot combine per-partition results
+
+- Recorded: 2026-09-08 20:14
+- Updated: 2026-09-12 07:12 — State the floating-point associativity limitation precisely.
+- Evidence: every partition of a `parallel for` receives the same captures. A loop that computes
+  one value -- a sum, a maximum, a count, a first match, an accumulated bounding box -- cannot
+  say that each partition needs its own accumulator and that the accumulators combine at the
+  join. Consumers write one of two workarounds: an atomic on the shared destination, which
+  serializes the loop's hot line and, with `AtomicValue.store` lowered to a locked exchange,
+  pays a full barrier per iteration; or an array indexed by a partition number the language does
+  not expose, which forces the body to know the partitioning it is explicitly told not to depend
+  on.
+- Evidence: the general escape, one accumulator per thread, is also expensive. `tls` lowers a
+  thread-local global to a runtime call per access, measured at 4 ns against 1 ns for a plain
+  global read (runtime.allocator.002), and the per-thread block is released at thread exit
+  without running `opDrop`, so it can only hold a plain value.
+- Next: design the combining form as part of the statement, stating the identity, the
+  per-partition storage and the combining operation together, and combining at the join rather
+  than in the body. Settle whether the operation must be associative and commutative or only
+  associative -- floating-point addition is not associative -- and say what result the program is entitled
+  to when it is not. Decide whether the form is a clause of `parallel for` or a value the
+  statement produces.
+- Complete when: a parallel sum, a parallel maximum and a parallel bounding box are written
+  without an atomic on the hot line and without indexing a partition, and a single-worker run of
+  the same source produces the same value the loop promises.
+- Elsewhere: OpenMP has `reduction(+:x)` and user-declared reducers; Rayon, .NET PLINQ and Java
+  streams reduce through the iterator; Chapel writes `+ reduce`. All of them treat reduction as
+  the second data-parallel primitive after the map, not as a library afterthought.
+- Related: language.parallelism.001, language.parallelism.004, std.core.025
+
+### language.parallelism.002 — No suspension, and no typed task result
+
+- Recorded: 2026-09-07 15:52
+- Updated: 2026-09-12 07:12 — Distinguish occupied workers from queued operations in flight.
+- Evidence: [Swag.Task](../bin/runtime/task.swg) runs an infallible closure and reports only that it
+  finished. A consumer that produces a value writes it into captured storage and reads it after
+  the join, which is what `Viewer.BackgroundLoad` and `Gui.PdfView` do; a consumer that fails
+  stores the error beside the value. Nothing suspends: a task that waits occupies its worker for
+  the whole wait, reducing the capacity available to execute queued operations.
+- Next: settle the suspension gates before implementing. Fix the `async`/`await` grammar, the
+  effect in the callable type, stackless frame ownership, stable frame addresses, and the async
+  boundary for both native and JIT execution. Decide whether cancellability is a separate control
+  effect or an outcome carried by `fail`, and what `try`, a catch-all, `defer #fail` and
+  `defer #nofail` observe. Then give the runtime a typed `Task'T` whose result is owned and
+  consumed once, with failure and cancellation as terminal outcomes beside success.
+- Complete when: a `Task'T` transfers its result or its failure to exactly one observer, an
+  awaiting task releases its worker, and native and JIT lifecycle tests cover every exit after
+  capture: immediate completion, a suspended frame, a cancelled waiter whose child still owns a
+  loan, and destruction exactly once.
+- Elsewhere: [Swift structured concurrency](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md)
+  scopes child-task lifetime; [Go's memory model](https://go.dev/ref/mem) makes synchronization and
+  happens-before part of the language contract. These are references for separate decisions, not a
+  proposal to import one language's complete model.
+- Related: std.core.025, std.core.028, language.parallelism.001.
+
+### language.parallelism.010 — Nothing detects a data race while the program runs
+
+- Recorded: 2026-09-08 20:14
+- Updated: 2026-09-11 22:31 — Name the current guarded configuration accurately.
+- Evidence: .005 states that a capture list is written rather than proved, and names the two cases
+  that still compile: two partitions writing the same element, and a captured pointer whose
+  pointee is mutated elsewhere. Neither is caught at run time either. The `devmode` configuration
+  checks allocation lifetime and bounds, and the sanity pass reasons inside one function's flow,
+  but no configuration records happens-before edges between threads. A race in a partitioned loop
+  therefore surfaces as an occasional wrong pixel or an intermittent crash somewhere unrelated,
+  which is the shape of several intermittent defects already recorded in this repository.
+- Next: choose the instrument before writing it. Only a checker that knows the runtime's own
+  synchronization points -- lock, unlock, atomic operation, submission, completion, join, and
+  partition boundary -- can see the edges this runtime creates, so the shadow state belongs
+  beside the scheduler rather than in a foreign tool. Scope it to one build configuration with a
+  stated slowdown budget, start from the accesses the compiler already instruments for bounds and
+  lifetime, and decide what it does with a foreign call, which is opaque to it for the same reason
+  it is opaque to compiler.safety.007.
+- Complete when: a test writing one element from two partitions fails deterministically in that
+  configuration, naming both accesses and the edge that is missing between them, and a correct
+  partitioned loop reports nothing.
+- Elsewhere: Go ships `-race`, C++ and Rust use ThreadSanitizer, and Rust adds `loom` for
+  exhaustive interleavings of a small structure. A language that claims checked memory access
+  without a dynamic detector claims it only as far as its static analysis reaches.
+- Related: language.parallelism.005, language.parallelism.007, compiler.safety.007,
+  compiler.safety.014
+
+### language.parallelism.009 — Cancellation stops at one group and has no deadline
+
+- Recorded: 2026-09-08 20:14
+- Updated: 2026-09-10 20:06 — Distinguish cancellable blocking waits from async suspension.
+- Evidence: `Swag.TaskGroup.cancel` raises one flag that only the children of that group can read,
+  and only through a captured reference to the group. A child that opens a group of its own gets
+  a fresh flag, so the outer request never reaches the grandchildren. `Swag.Task` carries no
+  cancellation state at all, `parallel for` carries none, and no task, group or loop carries a
+  deadline: a program that wants to stop after a duration polls a clock it wrote itself. The
+  request is also invisible to every wait. `Swag.Condition.waitFor` expires on its own timeout
+  without consulting it, and `Swag.Semaphore.acquire` and `Swag.Barrier.arrive` cannot be woken
+  by it.
+- Next: decide where the state lives before adding to it -- ambient state the runtime propagates
+  into every child, or a value each spawn is handed explicitly. Then propagate it through nested
+  groups, give `parallel for` and `Swag.Task` a way to read it, and make a deadline one more
+  source of the same request rather than a second mechanism. State the boundary at the waiting
+  primitives instead of implying it: today `acquire` has no cancellation input or wake path.
+  A cancellation-aware blocking wait can return early without async suspension; define its
+  wake registration, permit-consumption race, and cleanup independently of .002.
+- Complete when: cancelling an outer group is observed by a grandchild, a deadline produces the
+  same observable request, and a cancelled tree joins with every borrowed resource still valid.
+- Elsewhere: Swift propagates cancellation to every child task and exposes it as task-local
+  state; Kotlin cancels a `Job` together with its children; Java's `StructuredTaskScope` and
+  .NET's linked `CancellationTokenSource` both build the tree explicitly. All four are
+  cooperative, and none of them stops at one level.
+- Related: language.parallelism.001, language.parallelism.002, language.parallelism.003
+
+### language.parallelism.011 — No channel abstraction
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-10 19:32 — Move the runtime channel contract from the Core integration domain.
+- Historical provenance: moved from retired std.core.026.
+- Evidence: no typed channel defines transfer, capacity, close, cancellation, and selection
+  together. A producer and a consumer that need one build it from `Swag.Mutex` and
+  `Swag.Condition` by hand, which is what the Swag Scope video queue does.
+- Next: define the bounded, rendezvous, and one-shot forms in `bin/runtime`, with their endpoint,
+  selection, and rejected-message types. Settle endpoint clone and drop behavior, draining after
+  close, ownership of a moved message rejected before acceptance, and the single commit point of a
+  selection before adding any Core convenience function.
+- Complete when: focused channel and selection tests cover backpressure, closure, cancellation,
+  simultaneous readiness, and withdrawal without a lost message or a duplicate consumption.
+- Related: language.parallelism.002, std.core.025
 
 ### language.parallelism.006 — One locked ready stack, so fine-grained work does not scale
 
@@ -330,52 +368,6 @@ of simplicity when every useful helper needs an unchecked contract.
   give each worker its own deque and steal from the others, which is what makes recursive fork/join
   cheap.
 - Related: language.parallelism.001, language.parallelism.003, language.parallelism.005
-
-### language.parallelism.005 — Captures do not prove task lifetime or race freedom
-
-- Recorded: 2026-09-07 15:52
-- Updated: 2026-09-08 21:10 — the group case that demonstrated the linked-storage gap is now rejected
-- Evidence: borrow analysis follows named and initialized captures, including addresses, field
-  references, slices, aggregates and deferred call-result summaries. It rejects the tested local
-  borrows returned in a closure or stored in a task from an outer lexical scope. Local destructor
-  ordering also matters: a task declared before its captured source joins after that source is
-  destroyed. Borrow merges retain the shortest local lifetime across captures, fields and flow
-  alternatives. The unexecuted regression cases are in
-  `bin/unittests/sanity/borrow_escape_drop_order.swg`. This does not
-  establish race freedom: two partitions writing the same element and a captured pointer whose
-  pointee is mutated elsewhere still compile.
-- Remaining lifetime gap: `store(task: *Swag.Task)` can declare a local and submit a closure
-  borrowing it into the caller's task. This is accepted even for `func|&local|()`, independently
-  of initialized captures. `intoArgumentOutlivesStored` deliberately exempts destinations reached
-  through a caller parameter to allow transient borrowed state. A local source has no caller
-  parameter origin, so the deferred summary cannot move this check to the caller. The unexecuted
-  `storeTaskParameterGap` case in `bin/unittests/sanity/borrow_escape_capture.swg` keeps the gap
-  visible without running a dangling task.
-- Linked-storage gap: the group no longer demonstrates it. `Swag.TaskGroup` holds its first
-  children itself, so `reserveChild` can return a pointer into the group, `spawn` feeds a
-  stores-into-group summary, and `groupBeforeCapture` in
-  `bin/unittests/sanity/borrow_escape_drop_order.swg` is rejected with its expected diagnostic.
-  The rule itself did not change: only block pointers carry owned payload, because treating every
-  `*T` as owned would confuse parent and callback back-references with ownership, so a child
-  reached solely through `blocks: *GroupBlock?` is still invisible to the ownership analysis.
-  Find or build another case before extending the rule to linked storage.
-- Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including on early return
-  and failure. An owner can still release a borrowed field in its own destructor before the
-  implicit destruction of its task field; it must join before releasing that storage.
-- Next: follow owned linked storage through accessors, with both an owned child and a non-owned
-  parent pointer as regression cases. Distinguish a borrow retained past a helper's return from
-  transient borrowed state before removing the caller-parameter exemption. Cover both a retained task closure and a helper that
-  clears temporary state before returning. Then infer transferable (`Send`) and shared-readable
-  (`Sync`) properties from fields, allocation, copy, move and destruction effects, and require
-  them at captures. `NoCopy` does not imply `Send`, `const` does not imply deep immutability, and
-  an atomic reference count does not synchronize its pointee. Raw pointers, opaque owners, native
-  handles and foreign calls need a stated contract rather than automatic acceptance.
-- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
-  constraint and points at a valid partition or ownership alternative; semantic tests reject
-  hidden aliases, escaped borrows and cross-module global writes without optional analysis.
-  Until then the capture list states intent rather than proving race freedom.
-- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
-  language.parallelism.001.
 
 ### language.parallelism.007 — The memory model is a design note, and only sequential consistency exists
 

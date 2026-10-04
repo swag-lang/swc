@@ -26,6 +26,22 @@ complete texture delivery, and format breadth and fidelity.
 
 ## Entries
 
+### std.pixel.image.037 — Automatic codec selection trusts the filename extension
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-10-04 15:06 — Distinguish extension-selected dispatch from the existing explicit decoder-type overload.
+- Evidence: `ImageFormat.matches`, `Image.load`, and the filename overload of `Image.decode`
+  choose a decoder from a suffix, so a renamed file is sent to the wrong codec. The explicit
+  `Image.decode(decoderType, bytes)` overload accepts unnamed input when the caller already knows
+  its decoder; no format-neutral content probe makes that choice.
+  Skia and libvips select buffer/source loaders by inspecting their signatures.
+- Next: add a bounded probe contract to `IImageDecoder`, keep an explicit format hint as an
+  optimization or disambiguator, and make the filename overload forward to content detection.
+- Complete when: file, memory, and data-URI input decode correctly without a trustworthy extension,
+  malformed and ambiguous signatures fail deterministically, and codec registration order does not
+  silently change the selected format.
+- Related: std.pixel.image.038
+
 ### std.pixel.image.008 — Radial gradients lose their focus and elliptical space
 
 - Recorded: 2026-09-01 08:20
@@ -180,20 +196,6 @@ complete texture delivery, and format breadth and fidelity.
 - Complete when: JPEG, PNG, WebP, and TIFF fixtures expose the same normalized property vocabulary,
   unknown metadata still round-trips where supported, and orientation is applied exactly once.
 - Related: std.pixel.001, std.pixel.image.019, std.pixel.image.037
-
-### std.pixel.image.037 — Codec selection trusts the filename extension
-
-- Recorded: 2026-09-01 08:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: `ImageFormat.matches`, `Image.load`, and `Image.decode` choose a decoder from a suffix;
-  a valid buffer without a name cannot be decoded, and a renamed file is sent to the wrong codec.
-  Skia and libvips select buffer/source loaders by inspecting their signatures.
-- Next: add a bounded probe contract to `IImageDecoder`, keep an explicit format hint as an
-  optimization or disambiguator, and make the filename overload forward to content detection.
-- Complete when: file, memory, and data-URI input decode correctly without a trustworthy extension,
-  malformed and ambiguous signatures fail deterministically, and codec registration order does not
-  silently change the selected format.
-- Related: std.pixel.image.038
 
 ### std.pixel.image.038 — Codecs require one complete contiguous input buffer
 

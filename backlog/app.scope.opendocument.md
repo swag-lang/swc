@@ -11,6 +11,22 @@ basic text structure, common text emphasis, bounded package raster images, every
 and every presentation slide or drawing page. It is a readable-content decoder, not yet an ODF
 layout engine or a complete package model.
 
+### app.scope.opendocument.017 — Unify the existing ODF outline with richer navigation and search
+
+- Recorded: 2026-09-03 14:53
+- Updated: 2026-10-04 15:06 — Account for shipped text-heading, sheet and slide outlines; retain semantic navigation integration.
+- Evidence: sheets, slides, and drawing pages have a compact selector and cross-surface search.
+  Matches already retain the sheet/row/column or slide index needed to reveal them.
+  `DocumentOutline` also presents text headings through `bindHtml`, sheet names and slide/page
+  names; `viewer.outline.test.swg` covers navigation in these families. Long presentations still
+  have no thumbnails, and search results do not share richer heading/object identities with the
+  navigator.
+- Next: derive one document navigator from headings, bookmarks, sheets, ranges, slides, pages,
+  notes, and supported objects; use it for outline, thumbnails, search context, and direct jumps.
+- Complete when: every supported semantic destination can be reached by keyboard, pointer, search,
+  or outline with a stable visible location and no forced materialization of unrelated content.
+- Related: app.scope.document.011, app.scope.viewers.001
+
 ### app.scope.opendocument.006 — Text semantics retain sections, fields, references, and editorial content
 
 - Recorded: 2026-09-03 14:53
@@ -40,20 +56,6 @@ layout engine or a complete package model.
   selection order, language metadata, and visible fallback notices where the shared renderer lacks
   a required shaping or layout capability.
 - Related: std.gui.html.019, app.scope.viewers.001
-
-### app.scope.opendocument.017 — Document navigation, outline, thumbnails, and search share one model
-
-- Recorded: 2026-09-03 14:53
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: sheets, slides, and drawing pages have a compact selector and cross-surface search.
-  Matches already retain the sheet/row/column or slide index needed to reveal them. Text documents
-  have no generated outline, long presentations have no thumbnails, and results have no semantic
-  heading/object model shared with such a navigator.
-- Next: derive one document navigator from headings, bookmarks, sheets, ranges, slides, pages,
-  notes, and supported objects; use it for outline, thumbnails, search context, and direct jumps.
-- Complete when: every supported semantic destination can be reached by keyboard, pointer, search,
-  or outline with a stable visible location and no forced materialization of unrelated content.
-- Related: app.scope.document.011, app.scope.viewers.001
 
 ### app.scope.opendocument.020 — Decoder limits, failures, and cancellation are observable under hostile input
 

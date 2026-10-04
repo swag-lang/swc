@@ -51,7 +51,9 @@ The following capabilities are already implemented.
 - **A document caches decoded resources.** Fonts are cached by object. Images are cached by
   object and resource dictionary within `ImageCacheBudget`; stencils depend on the current fill
   color and bypass that cache. Pages still own copies, as described in the cost entries below.
-- **Opening costs the trailer chain, not the file.** `startxref` is followed through `/Prev`
+- **Page indexing follows the trailer chain after snapshotting the file.** `Reader.open` copies
+  the complete source to temporary storage through `File.MappedFile.openSnapshot`, then maps it.
+  `startxref` is followed through `/Prev`
   across classic tables and cross-reference streams, an object is parsed the first time
   something reaches it, and an incremental update resolves to the revision its trailer names.
   The recorded comparison in std.gui.pdf.025 measured 7.8 ms against MuPDF's 16 ms for sixteen
@@ -67,7 +69,7 @@ This engine began as the standalone `std/pdf` module, and the question of whethe
 was justified was examined and then decided the other way: a document viewer's rendering is
 host-driven — the zoom, the monitor scale, and the visible region all belong to the widget showing
 the page — so the engine lives beside its widget, exactly as the HTML and Markdown engines live
-beside `HtmlView` and `MarkdownView`. `PdfView` owns the decoded page and paints its items
+beside `HtmlView` and `Markdown.View`. `PdfView` owns the decoded page and paints its items
 directly through the frame being drawn, the way `HtmlView` paints its layout; a fixed
 rasterization handed to a generic image widget was the wrong architecture, and was what made
 zooming freeze. The offline rasterization (`Page.render` over a CPU renderer) remains as the
@@ -76,9 +78,43 @@ headless boundary: tests, thumbnails, and export.
 One consequence is recorded rather than hidden: the writer (`Pdf.Document.encode`) now lives above
 `pixel`, so [std.pixel.005](std.pixel.md#stdpixel005--no-painter-native-pdf-output) — PDF output from the painter — can no
 longer be satisfied by calling into it from `pixel`. When that entry is taken up, either the
-writer moves below both consumers or `pixel` grows its own, and that choice belongs to std.pixel.005.
+writer moves below both consumers or a shared command visitor reaches it; that boundary decision
+belongs to std.pixel.005 and must not create a second unrelated serializer.
 
 ## Entries
+
+### std.gui.pdf.031 — Document parsing has no adversarial corpus or overall resource budget
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-10-04 15:06 — Account for the full-file snapshot before lazy PDF indexing in the large-file acceptance.
+- Intent: the stored PDF corpus stays below three megabytes per file. Generated tests cover
+  cross-reference repair and incremental updates, and filter tests already reject a truncated
+  run-length stream. There is no document-level adversarial matrix for cyclic page trees,
+  contradictory lengths, declared-size attacks or very large scans. The parser has local depth
+  limits but no overall memory or node budget.
+- Note: two of these now have a test each — a blunted `startxref` falls through to the repair
+  scan, and an incremental update resolves to the revision its trailer names — but they build
+  their fixture at run time rather than carrying one, and neither is a hostile input.
+- Complete when: a malformed corpus covers truncation, cycles, contradictory lengths and
+  declared-size attacks with the expected error for each, a large fixture measures the full-file
+  snapshot separately from lazy trailer/page indexing, and the parser refuses to allocate past
+  a stated budget.
+
+### std.gui.pdf.017 — Link annotation targets are not exposed by the reader
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-10-04 15:06 — Remove shipped bookmark and named-destination work; retain page-link extraction.
+- Evidence: `Reader.loadOutline` already returns owned bookmark titles, hierarchy levels and
+  page-space positions. It resolves direct and named destinations and local `GoTo` actions,
+  including cyclic-name/outline protection; `documentoutline.test.swg` checks cropped and rotated
+  destination coordinates. Swag Scope consumes this outline.
+- Remaining: the page decoder does not read `/Annots`, so a link annotation exposes neither its
+  bounds nor its `/Dest` or `/A` target. Bookmark destinations do not cover links within a page.
+- Next: extract read-only link bounds and resolve local destinations through a shared destination
+  resolver; expose URI targets as data and keep every action unexecuted.
+- Complete when: a link annotation reports its page bounds and local destination, URI or explicit
+  unsupported-target result, with direct/named destination and malformed-action fixtures.
+- Related: std.gui.pdf.003, app.scope.document.013
 
 ### std.gui.pdf.038 — PdfView has no facing-page layout
 
@@ -265,23 +301,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: the corpus decodes within twice MuPDF, measured the same way.
 - Related: std.gui.pdf.026
 
-### std.gui.pdf.031 — Document parsing has no adversarial corpus or overall resource budget
-
-- Recorded: 2026-08-18 14:15
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: the stored PDF corpus stays below three megabytes per file. Generated tests cover
-  cross-reference repair and incremental updates, and filter tests already reject a truncated
-  run-length stream. There is no document-level adversarial matrix for cyclic page trees,
-  contradictory lengths, declared-size attacks or very large scans. The parser has local depth
-  limits but no overall memory or node budget.
-- Note: two of these now have a test each — a blunted `startxref` falls through to the repair
-  scan, and an incremental update resolves to the revision its trailer names — but they build
-  their fixture at run time rather than carrying one, and neither is a hostile input.
-- Complete when: a malformed corpus covers truncation, cycles, contradictory lengths and
-  declared-size attacks with the expected error for each, a large fixture shows that opening
-  costs the trailer chain rather than the file, and the parser refuses to allocate past a stated
-  budget.
-
 ### std.gui.pdf.030 — Corpus rendering has no fixed page goldens
 
 - Recorded: 2026-08-18 14:15
@@ -296,18 +315,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   exercise text, images, strokes and forms compare rendered output rather than model fields, and a
   round trip through the writer is judged on its rendered result.
 - Related: std.gui.pdf.021
-
-### std.gui.pdf.017 — Outline, destinations, and link targets are not read
-
-- Recorded: 2026-08-18 14:15
-- Updated: 2026-09-03 13:14 — git: Search a PDF's text on a worker instead of decoding every page on the GUI thread
-- Intent: the catalog's `/Outlines`, its `/Names` destination tree and the `/Dest` or `/A` of a
-  link annotation are never read, so a document has no navigable structure: no bookmarks pane, and
-  a link that is drawn (once std.gui.pdf.003 lands) still cannot be followed.
-- Complete when: the outline is exposed as a tree of titles and targets, a named or explicit
-  destination resolves to a page index and a page-space position, and a link annotation reports
-  its target — an internal destination, a URI, or neither.
-- Related: std.gui.pdf.003
 
 ### std.gui.pdf.007 — A soft-masked text run takes one coverage for the whole run
 

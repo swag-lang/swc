@@ -8,7 +8,7 @@ disappears from this file because its history lives in git.
 
 The allocator now has two paths, and which one produced a block is recoverable from its address, so
 the two never have to be told apart by a flag. The page path serves requests up to 64 KiB with
-alignment at most 16 bytes: blocks are carved from segment pages, carry **no header at all**,
+alignment at most 64 bytes: blocks are carved from segment pages, carry **no header at all**,
 and are recovered on free by
 masking the address down to its page. The header path serves larger blocks, over-aligned blocks, and
 every allocation made while a diagnostic mode is on.
@@ -62,7 +62,7 @@ alone. Comparative reference points for that investigation:
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-04 12:00 — Recorded the remaining throughput gap and repeated thread-startup regression.
+- Updated: 2026-10-04 15:06 — Distinguish historical call and guard costs from the shipped direct TLS and safety-gated paths.
 - October 4, retained worktree head `2aec348d6`, release `bench/allocator`, nine rotating rounds
   against the session's original native executable: pair 25.233 -> 13.010 ns, trees
   27.547 -> 18.993 ns, churn 47.975 -> 38.603 ns, grow 16.854 -> 10.903 ns; mimalloc
@@ -85,7 +85,7 @@ alone. Comparative reference points for that investigation:
 - `impl alloc` and `impl free` now try an inline path first (alignment up to 16, a page of the
   calling thread, no diagnostic mode, `slowPath` caches the mode test) and leave everything else
   to a non-inlined general path; panics moved out of line; page metadata is two cache lines.
-- What is left per pair is code generation, not allocator work: two `getContext` calls, two
+- Historical October 3 attribution before the direct TLS lowering: two `getContext` calls, two
   interface calls, two `TlsGetValue` calls, and the prologues those calls force (five saved
   registers in each entry point). A C probe prices `TlsGetValue` at 0.85 ns against 0.60 ns for
   a direct `gs:[0x30]` TEB read, so a thread-block intrinsic would save about 1 ns per pair and
@@ -115,11 +115,15 @@ alone. Comparative reference points for that investigation:
   binarytrees slowdown is likely although the fast paths only lost instructions. Re-measure in
   a quiet window; if it reproduces, separate layout (the hot runtime functions all moved by
   16-64 bytes) from the frames before keeping or reverting the rule.
-- Still between this allocator and mimalloc's fast path, beyond code generation: encoded free-list
+- Historical October 3 safety-enabled fast-path costs beyond code generation: encoded free-list
   links, the freed-block canary written on free and checked on allocation, `looksFree` and the
   block-index (multiply/rotate) check on every free, the arena range test in `allocatorPageOf`,
-  and two thread-slot lookups where mimalloc reads one static TLS slot. Each is a stated safety
-  property (runtime.allocator.010); dropping any is a policy decision, not a tuning step.
+  and two thread-slot lookups where mimalloc reads one static TLS slot. The canary, apparent-free
+  test and block-index validation now run only under memory safety
+  (runtime.allocator.010); encoded links remain in both configurations. October 4 also lowered
+  runtime TLS reads directly to Windows slots and inlined the Core allocation/free wrappers
+  (`2f353d606`, `d7bbede9b`). Reinspect current native code before attributing the remaining
+  October 4 throughput gap to the earlier call sequence.
 - Release without the allocator checks (runtime.allocator.010), same compiler, three controlled
   windows: binarytrees B/A 0.984, 0.987 and 0.968 against controls 1.029, 0.999 and 1.001, so
   the checks were about 3% of the task, not the distance to mimalloc. leven, whose timed loop
@@ -325,20 +329,3 @@ medium tier is separated. Benchmark large growth and release independently of si
 - Complete when: a trace-backed decision covers both internal fragmentation and per-thread
   page retention, including very small and aligned allocations.
 - Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.005.
-
-### runtime.allocator.011 — Audit error storage ownership and reclamation
-
-- Recorded: 2026-09-06 21:01
-- Evidence: while diagnosing Swag Vault rename collisions, `Core.Errors.mkString` and
-  runtime `__setErrRaw` both call `ScratchAllocator.alloc(size)`. That overload allocates directly
-  through the backing allocator; it does not advance `used` or link the allocation into
-  `firstLeak`. The error stack rewinds `used`, and `ScratchAllocator.release` only releases its
-  buffer and tracked spills, so these copies appear to escape error-storage reclamation.
-- Related evidence: `Threading.Thread.init` copies the parent's complete context and resets only
-  `tempAllocator`, leaving `errorAllocator` storage shared with the parent. A change to use the
-  scratch buffer must first establish independent error storage for each thread.
-- Next: add allocation-count and concurrent-error reproducers, then define the lifetime of caught
-  error values and strings before routing allocations through the scratch interface. Include
-  foreign-thread exit cleanup and nested catch/rethrow behavior.
-- Complete when: repeated handled errors reclaim their storage and simultaneous threads cannot
-  overwrite one another's errors, with native regression coverage.

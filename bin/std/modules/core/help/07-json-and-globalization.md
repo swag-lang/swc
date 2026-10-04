@@ -26,8 +26,8 @@ try encoder.writeAll(&output, settings[])
 ```
 
 Malformed UTF-8, invalid escapes and numbers, duplicate properties, trailing commas, excessive
-nesting, and data after the root value fail with a [[Core.Errors.SyntaxError]]. The decoder owns
-the returned struct; release it with [[Core.Memory.delete]]. Because JSON has no representation for
+nesting, and data after the root value fail with a [[Core.Errors.SyntaxError]]. The caller owns
+the returned struct and releases it with [[Core.Memory.delete]]. Because JSON has no representation for
 NaN or infinity, the writer emits `null` for non-finite floating-point values.
 
 ## Culture-aware presentation

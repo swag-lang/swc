@@ -41,8 +41,9 @@ Four codecs ship in the box:
   tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap
   header of the container and its setup headers inside the stream, and stores a bidirectional plane
   behind the plane it refers forward to, which is what this container's lack of a decoding order
-  costs. It seeks through the index the container carries rather than
-  through the frames themselves, so a seek costs one frame whatever the length of the file.
+  costs. The container index locates Motion JPEG and uncompressed frames directly.
+  MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies
+  through the requested frame.
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
   Motion JPEG, and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct
   packet offsets while payloads remain in the file. Exact composition timestamps are retained for

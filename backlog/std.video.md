@@ -3,16 +3,15 @@
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
 It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
-and MPEG-4 Part 2 in Matroska. File-backed ISO-BMFF and Matroska also expose streamed
-AAC-LC tracks to std/audio, and Matroska adds AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis,
-and Opus. Encoded payloads stay on disk;
-readers retain compact per-sample indexes plus one picture, the reference frames prediction needs,
-and a bounded audio queue.
+and MPEG-4 Part 2 in AVI or Matroska. File-backed AVI exposes integer PCM tracks; ISO-BMFF
+exposes AAC-LC, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis,
+and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
+reference pictures, and bounded picture and audio buffers.
 
 The remaining work covers codec and container breadth, decoding cost, and the lifecycle of
 bounded sound windows.
 
-The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
+Motion JPEG decoding in AVI uses Pixel's JPEG decoder. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding

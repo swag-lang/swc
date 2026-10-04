@@ -558,8 +558,7 @@ namespace
 
 Result AstIdentifier::semaPostNode(Sema& sema) const
 {
-    // Can be forced to false in case of an identifier inside a #defined
-    // Swag.compiler()NotDefined
+    // An unresolved identifier inside #defined can already be folded to false.
     const SemaNodeView view = sema.curViewConstant();
     // Macro injection pre-resolves caller names before declarations in the injected
     // block exist. A caller constant still needs the local-shadow check below.

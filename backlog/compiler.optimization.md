@@ -84,11 +84,59 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 `Inline`, and `NoInline` contracts explicit. This plan invents no command-line spellings or
 new language syntax.
 
+### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
+
+- Recorded: 2026-10-04 16:08
+- Updated: 2026-10-04 18:18 — Distinguish automatic inline eligibility from the shared static-storage guard.
+- Evidence: ordinary inlining clones and re-analyzes syntax in `SemaInline.cpp`. Automatic selection
+  excludes generic and fallible functions and most aggregate signatures; all ordinary inline modes
+  reject bodies declaring static storage.
+  [CodeGenCallHelpers.Call.cpp](../src/Compiler/CodeGen/Core/CodeGenCallHelpers.Call.cpp) assigns
+  concrete argument registers/stack slots through `ABICall::prepareArgs` before Micro passes.
+- Next: prototype an immutable, typed, serializable scalar body with calls, parameters, returns,
+  memory objects, and symbolic globals above the ABI. Compare a frozen resolved-body representation
+  with a compact new IR on size and lowering cost; select the smallest correct design.
+- Scope: stable symbol/type identities, control flow, explicit effects, source provenance,
+  configuration, and ownership/cleanup/error edges. Private helpers remain compiler-visible without
+  becoming source-public. Cloned function-local globals/TLS still refer to their original storage.
+- Expansion: preserve generic-instance identity, moves/copies/drops, `defer`, fallible returns,
+  nullable facts, receivers, closures, and variadics before admitting each shape. Macros/mixins and
+  compile-time constructs retain their semantic expansion rules; optimize their resolved runtime
+  result without replaying expansion in the consumer.
+- Complete when: body round trips and cross-module cloning preserve behavior and locations, static
+  storage has one identity, unsupported shapes fall back cleanly, and existing Micro lowering
+  consumes bodies without a second semantic analysis of ordinary function syntax.
+- Related: compiler.optimization.106, compiler.optimization.108.
+
+### compiler.optimization.123 — Generate profitable CPU variants across source modules
+
+- Recorded: 2026-10-04 16:08
+- Updated: 2026-10-04 18:18 — Keep optional-feature dispatch with cpu.simd.001 and bound the intermodule variant work.
+- Evidence: a final application may target a known CPU or a baseline with optional extensions.
+  Source-visible dependency kernels can follow the same target policy as their callers instead of
+  being limited to a separately built library's instruction selection.
+- Next: prove consistent fixed-target propagation through imports/caches/specialized callees,
+  then prototype two measured kernel variants behind one baseline-safe dispatcher. Select kernels
+  by cost/profile evidence instead of cloning whole dependencies.
+- Boundary: reuse the optional-feature query and dispatch contract owned by cpu.simd.001; this
+  entry owns variant generation and reuse across source-module boundaries.
+- Scope: account for OS-enabled vector state as well as CPU features; isolate unsupported
+  instructions behind the guard; hoist dispatch outside hot loops when stable. Preserve canonical
+  exported/address-taken identity, unwind, and debug behavior.
+- Policy: bound variant count and code growth, key profiles/caches by feature sets, and omit dispatch
+  for fixed-target builds. This is ahead-of-time multiversioning; deploying the compiler's JIT
+  inside applications would require a separate runtime/deployment decision.
+- Complete when: a third-party kernel has a measured faster variant on supporting hardware, the
+  baseline runs on the declared minimum target, dispatch is correctly gated/amortized, and build
+  cost plus artifact growth justify the chosen variants.
+- Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.120,
+  cpu.simd.001.
+
 ### compiler.optimization.106 — Resolve local implementations and optimization boundaries
 
 - Recorded: 2026-10-04 16:08
 - Updated: 2026-10-04 16:18 — Identify the existing dependency snapshots and the API/native publication handoff.
-- Evidence: `SemaInline::shouldAutoInline` in
+- Evidence: `shouldAutoInline` in
   [SemaInline.cpp](../src/Compiler/Sema/Helpers/SemaInline.cpp) rejects another module namespace.
   [ModuleApiExport.Generate.cpp](../src/Compiler/ModuleApi/ModuleApiExport.Generate.cpp) normally
   publishes ordinary functions as `Foreign` declarations and preserves explicit inline bodies.
@@ -125,28 +173,6 @@ new language syntax.
   eligible bodies; mismatched and opaque imports stay correct; shared exports retain their required
   binding; decision records identify the exact eligibility reason.
 - Related: compiler.optimization.107, compiler.optimization.109.
-
-### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
-
-- Recorded: 2026-10-04 16:08
-- Evidence: ordinary inlining clones and re-analyzes syntax, with exclusions for aggregates,
-  generics, fallible functions, and static storage in `SemaInline.cpp`.
-  [CodeGenCallHelpers.Call.cpp](../src/Compiler/CodeGen/Core/CodeGenCallHelpers.Call.cpp) assigns
-  concrete argument registers/stack slots through `ABICall::prepareArgs` before Micro passes.
-- Next: prototype an immutable, typed, serializable scalar body with calls, parameters, returns,
-  memory objects, and symbolic globals above the ABI. Compare a frozen resolved-body representation
-  with a compact new IR on size and lowering cost; select the smallest correct design.
-- Scope: stable symbol/type identities, control flow, explicit effects, source provenance,
-  configuration, and ownership/cleanup/error edges. Private helpers remain compiler-visible without
-  becoming source-public. Cloned function-local globals/TLS still refer to their original storage.
-- Expansion: preserve generic-instance identity, moves/copies/drops, `defer`, fallible returns,
-  nullable facts, receivers, closures, and variadics before admitting each shape. Macros/mixins and
-  compile-time constructs retain their semantic expansion rules; optimize their resolved runtime
-  result without replaying expansion in the consumer.
-- Complete when: body round trips and cross-module cloning preserve behavior and locations, static
-  storage has one identity, unsupported shapes fall back cleanly, and existing Micro lowering
-  consumes bodies without a second semantic analysis of ordinary function syntax.
-- Related: compiler.optimization.106, compiler.optimization.108.
 
 ### compiler.optimization.108 — Build a bounded global call index and optimization driver
 
@@ -217,9 +243,9 @@ new language syntax.
 ### compiler.optimization.111 — Inline ordinary functions across module boundaries
 
 - Recorded: 2026-10-04 16:08
-- Evidence: the namespace guard in `SemaInline::shouldAutoInline` prevents automatic intermodule
-  inlining. Its signature/body exclusions are correctness boundaries; deleting the guard or marking
-  every export `Inline` does not implement general importing.
+- Evidence: the namespace guard in `shouldAutoInline` in `SemaInline.cpp` prevents automatic
+  intermodule inlining. Its signature/body exclusions are correctness boundaries; deleting the guard
+  or marking every export `Inline` does not implement general importing.
 - Next: inline resolved unannotated scalar/pointer direct callees from any eligible module using
   typed bodies. Fold caller constants and simplify immediately, then expand supported shapes with
   focused regression coverage.
@@ -466,26 +492,6 @@ new language syntax.
   expensive computations reliably remain at runtime.
 - Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.112,
   compiler.optimization.119.
-
-### compiler.optimization.123 — Generate profitable CPU variants across source modules
-
-- Recorded: 2026-10-04 16:08
-- Evidence: a final application may target a known CPU or a baseline with optional extensions.
-  Source-visible dependency kernels can follow the same target policy as their callers instead of
-  being limited to a separately built library's instruction selection.
-- Next: prove consistent fixed-target propagation through imports/caches/specialized callees,
-  then prototype two measured kernel variants behind one baseline-safe dispatcher. Select kernels
-  by cost/profile evidence instead of cloning whole dependencies.
-- Scope: account for OS-enabled vector state as well as CPU features; isolate unsupported
-  instructions behind the guard; hoist dispatch outside hot loops when stable. Preserve canonical
-  exported/address-taken identity, unwind, and debug behavior.
-- Policy: bound variant count and code growth, key profiles/caches by feature sets, and omit dispatch
-  for fixed-target builds. This is ahead-of-time multiversioning; deploying the compiler's JIT
-  inside applications would require a separate runtime/deployment decision.
-- Complete when: a third-party kernel has a measured faster variant on supporting hardware, the
-  baseline runs on the declared minimum target, dispatch is correctly gated/amortized, and build
-  cost plus artifact growth justify the chosen variants.
-- Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.120.
 
 ### compiler.optimization.124 — Evaluate private data representation specialization
 

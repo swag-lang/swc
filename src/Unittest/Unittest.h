@@ -51,7 +51,7 @@ namespace Unittest
 #define SWC_TEST_KIND swc::Unittest::TestKind::Fast
 #endif
 
-// Fast DevMode unit tests run on every compiler launch. By design they must never touch the filesystem:
+// Fast DevMode unit tests run with the unittest command. By design they must never touch the filesystem:
 // no creating/removing directories, no reading/writing files, and no depending on materialized build outputs.
 // Any test that needs filesystem access must opt into SWC_FILESYSTEM_TEST_BEGIN so it only runs with --dev-full.
 #define SWC_TEST_BEGIN(__name)                                                            \

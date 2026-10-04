@@ -2571,12 +2571,8 @@ namespace
                 return false;
         }
 
-        // Inlining a fallible callee requires materializing its error-propagation ABI at the
-        // call site. Routing an inlined `fail` to an enclosing `expect` is not yet wired in
-        // codegen - it crashes even for an explicit #[Inline] fallible callee under `expect` -
-        // so the auto heuristic must not volunteer fallible callees until that lands. (`try` /
-        // `catch` routing of an inlined fail already works; only the `expect` panic path does
-        // not, but the gate stays at the callee granularity for safety.)
+        // Keep fallible callees out of automatic selection. Explicit inline calls
+        // use the call site's fallible wrapper for failure routing.
         if (fn.isFallible())
             return false;
 

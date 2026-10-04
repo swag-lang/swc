@@ -1832,7 +1832,7 @@ namespace
             const TaskState& state = job->ctx().state();
             if (state.kind == TaskStateKind::SemaWaitCompilerDefined)
             {
-                // Swag.compiler()NotDefined
+                // An unresolved #defined lookup evaluates to false.
                 auto* semaJob = job->cast<SemaJob>();
                 semaJob->sema().setConstant(state.nodeRef, semaJob->sema().cstMgr().cstFalse());
                 doneSomething = true;

@@ -100,7 +100,7 @@ for
     if batch.status == .Cancelled do
         break
     for change in batch.changes do
-        Log.write(change.path)
+        Console.println(change.path)
 }
 ```
 

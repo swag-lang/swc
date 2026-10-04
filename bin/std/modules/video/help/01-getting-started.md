@@ -2,9 +2,9 @@
 
 A video is read as a stream and written as a stream. [[Video.Reader]] opens a file by reading its
 metadata and decodes one frame at a time; [[Video.Writer]] encodes one frame at a time into its
-destination. Neither ever holds the encoded stream, so a video of any length costs the memory of
-one active frame plus compact container indexes. [[Video.Clip]] is the other half: the frames a
-program builds in memory before encoding them.
+destination. Encoded media stays in the source. Readers retain container indexes, codec reference
+pictures, and bounded decoding and audio buffers; they do not retain every decoded frame.
+[[Video.Clip]] holds the frames a program builds in memory before encoding them.
 
 ## Playing a stream
 
@@ -15,9 +15,10 @@ for index in reader.frameCount() do
     try reader.decodeFrameInto(&frame, index)
 ```
 
-[[Video.Reader.decodeFrameInto]] reuses the image it is given, so decoding a whole video
-allocates one frame in total. Decoding frames in order never seeks; decoding them out of
-order costs whatever random access costs in that format. [[Video.Reader.frameCount]] returns
+[[Video.Reader.decodeFrameInto]] reuses the caller's output image when its geometry and format
+match. Codec references and parallel decoding keep additional bounded buffers. Reading frames
+in order avoids restarting prediction from a sync point; random access has the cost of the
+selected codec and container. [[Video.Reader.frameCount]] returns
 zero when the format cannot report a count without decoding the stream, and a stream read
 that way ends by failing rather than by returning a frame.
 
@@ -41,10 +42,10 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 
 | Extension | Reads | Writes | Costs |
 | --- | --- | --- | --- |
-| `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Nothing is lost, and nothing is compressed either: one second of 720p costs about forty megabytes. |
-| `.avi` | Motion JPEG, MPEG-4 Part 2, and uncompressed 24- and 32-bit frames; integer PCM audio | Motion JPEG | Each frame is a JPEG image, so the file is one to two orders of magnitude smaller and the picture loses what JPEG loses. |
+| `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Frames are uncompressed; storage scales with resolution, plane layout, and frame rate. RGB-to-YCbCr conversion can change channel values. |
+| `.avi` | Motion JPEG, MPEG-4 Part 2, and uncompressed 24- and 32-bit frames; integer PCM audio | Motion JPEG | The writer stores independent JPEG frames. Motion JPEG seeks directly; MPEG-4 Part 2 reconstructs prediction dependencies from a sync picture. |
 | `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
-| `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening maps the file read-only long enough to index block headers without reading media payloads. Seek and presentation ordering match the ISO-BMFF path. |
+| `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies. |
 
 YUV4MPEG2 computes an offset from the constant size of a frame, AVI reads one from the index the
 container carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens.
@@ -114,9 +115,8 @@ works.
 
 ## What a codec is tested against
 
-Every decoding test reads a file from `src/tests/datas/`, and none of those files is produced
-by this module: a codec that only reads back what it wrote proves nothing about the files people
-have. The corpus holds a camera recording, sequences from the standard research collection, one
-synthetic clip encoded in the tested layouts by ffmpeg, and copies of that clip with a container
-shape injected into them that no single writer produces. `datas/THIRDPARTY.md` states where each one
-came from, what it exercises, and under what terms it is redistributed.
+Decoder conformance uses independent files from `src/tests/datas/`, alongside focused malformed-input
+and encoder/decoder roundtrip tests. The external corpus includes a camera recording, standard
+research sequences, synthetic clips encoded by FFmpeg, and edited container layouts that no single
+writer produces. `datas/THIRDPARTY.md` records their sources, coverage, and redistribution terms.
+Roundtrip tests complement that corpus; they cannot establish interoperability on their own.

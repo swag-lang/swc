@@ -69,6 +69,9 @@ alternative instead of guessing an encoding.
   keeps links explicit, follows the active palette, and applies the supported CSS subset. Head,
   script, style, template, and embedded-document content never executes. Default document text
   size follows the common zoom control.
+- `PDF` displays pages progressively as they enter the viewport, with text selection, shared
+  document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
+  unsupported, and embedded actions are ignored rather than executed.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. Source files
@@ -90,16 +93,19 @@ alternative instead of guessing an encoding.
   across every sheet or slide. Links only open after an explicit activation; linked resources,
   scripts, and macros are never loaded or executed.
 - `Image` maps encoded raster and SVG input read-only, so decoding does not first allocate a
-  second file-sized heap buffer. It uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF,
-  and WebP, plus Pixel's SVG parser. Its centered lower group provides sibling navigation,
-  orientation commands, and GIF playback. The clickable information-band percentage provides zoom
-  presets, fit, and actual size while also reporting temporary orientation.
+  second file-sized heap buffer. It uses Pixel decoders for BMP, DDS, EXR, GIF, ICO, JPEG, KTX2,
+  PNG, PSD, QOI, TGA, TIFF, and WebP, plus Pixel's SVG parser. It plays GIF, APNG, and WebP
+  animations and navigates TIFF pages, icon variants, PSD raster layers, texture subresources,
+  and EXR parts within Pixel's supported subsets. PSD layer effects and masks are not rendered;
+  unsupported compression and image layouts report a decoder error. Its centered lower group
+  provides sibling navigation, orientation commands, and playback. The clickable information-band
+  percentage provides zoom presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
   mute, volume, and matching keyboard controls, plus a playback-speed menu offering a 0.25x-2x playback
   rate whose pitch follows the rate and whose time labels stay in source time.
-  It indexes packets without decoding the file up
-  front and materializes only the selected picture and the few audio buffers queued at the device.
+  It indexes packets without decoding the file up front and keeps bounded picture and audio
+  queues alongside codec reference buffers.
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
   MP4, M4V, and MOV accept Motion JPEG, H.264, or H.265 picture tracks and AAC-LC mono/stereo
   sound. MKV accepts H.264, H.265, or MPEG-4 Part 2 pictures and every AAC-LC, AC-3, independent
@@ -119,11 +125,13 @@ alternative instead of guessing an encoding.
   tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
   view, and provides horizontal zoom through the common information-band control without
   synthesizing or executing file content.
-- `InDesign` validates the duplicated master-page headers of a native `.indd` document, indexes
-  every saved XMP JPEG page preview, and decodes only selected pages into a bounded cache. Its
-  zoomable, pannable document surface and compact page controls keep large preview-bearing
-  documents usable without loading all page pixels. Native layout objects, pages without saved
-  preview pixels, and output-faithful composition remain outside this rendering milestone.
+- `InDesign` opens native `.indd` documents through their saved XMP JPEG page previews and
+  `.idml` packages through positioned pages, styled text, vector frame backgrounds, and embedded
+  or local linked images. Both provide page navigation, fit, and zoom; IDML also participates in
+  shared document search. Native documents validate both master-page headers and decode selected
+  previews into a bounded cache. Native layout objects and pages without saved preview pixels
+  remain unsupported. IDML renders the supported page, text, and graphics subset; it does not
+  reproduce InDesign's full typesetting and composition.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   as a real hierarchical file browser. Selecting an entry prepares a bounded temporary copy,
   verifies its declared size and CRC-32, and hosts that copy through the ordinary viewer registry

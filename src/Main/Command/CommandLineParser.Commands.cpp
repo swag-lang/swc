@@ -143,7 +143,7 @@ void CommandLineParser::registerCommands()
         "Register a compiler tag for #hastag and #gettag; use Name, Name = value, or Name: type = value");
     add(HelpOptionGroup::Compiler, "test run smoke", "--run-arg", nullptr,
         &cmdLine_->runArgs,
-        "Append one argument to every emitted executable launched by test or run; repeat the option to append more");
+        "Append one argument to every emitted executable launched by test, run, or smoke; repeat the option to append more");
     add(HelpOptionGroup::Compiler, "smoke", "--frames", nullptr,
         &cmdLine_->smokeFrames,
         "Stop a smoke run after this many rendered frames");

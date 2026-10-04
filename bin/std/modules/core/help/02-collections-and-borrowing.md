@@ -19,7 +19,7 @@ scores.add("Ada", 10)
 scores.add("Grace", 12)
 
 if let entry = scores.tryFind("Ada") do
-    Console.printLn(entry.value)
+    Console.println(entry.value)
 ```
 
 ## Ordering and ranges
@@ -36,7 +36,7 @@ ranking.add(20, "silver")
 ranking.add(10, "gold")
 
 for entry in ranking.range(10, 30) do
-    Console.printLn(entry.key, ": ", entry.value)
+    Console.println(entry.key, ": ", entry.value)
 
 var work: PriorityQueue'u32
 work.initialize(func(left, right: const *u32)->s32 => left[] <=> right[])

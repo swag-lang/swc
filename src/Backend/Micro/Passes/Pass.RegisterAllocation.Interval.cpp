@@ -1352,8 +1352,10 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                         break;
 
                     const LiveInterval* atLabel = locate(denseIndex, s * 2);
-                    const LiveInterval* atPred  = locate(denseIndex, predEndPos);
-                    if (!atLabel || !atPred || atLabel == atPred)
+                    if (!atLabel)
+                        continue;
+                    const LiveInterval* atPred = locate(denseIndex, predEndPos);
+                    if (!atPred || atLabel == atPred)
                         continue;
                     const MicroReg fromReg = atPred->spilled ? MicroReg::invalid() : atPred->assignedReg;
                     const MicroReg toReg   = atLabel->spilled ? MicroReg::invalid() : atLabel->assignedReg;
@@ -1667,10 +1669,12 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 }
                 for (const LabelEdge& edge : labelEdges)
                 {
+                    const LiveInterval* atLabel = locate(denseIndex, edge.label * 2);
+                    if (!atLabel || atLabel->spilled)
+                        continue;
                     const uint32_t      predEndPos = edge.isJump ? edge.predecessor * 2 : edge.predecessor * 2 + 1;
-                    const LiveInterval* atLabel    = locate(denseIndex, edge.label * 2);
                     const LiveInterval* atPred     = locate(denseIndex, predEndPos);
-                    if (!atLabel || !atPred || atLabel == atPred || atPred->spilled || atLabel->spilled || atPred->assignedReg != atLabel->assignedReg)
+                    if (!atPred || atLabel == atPred || atPred->spilled || atPred->assignedReg != atLabel->assignedReg)
                         continue;
                     const int64_t from = nodeSlot(atPred);
                     const int64_t to   = nodeSlot(atLabel);

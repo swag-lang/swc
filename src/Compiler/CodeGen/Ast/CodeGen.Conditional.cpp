@@ -95,7 +95,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
 
     // Qualification casts can rewrite a direct child to a different resolved reference.
     // Child callbacks still arrive in source order, so track the lowering stage explicitly.
-    if (state == nullptr)
+    // A deferred body reuses its payload after the previous emission cleared the labels.
+    if (state == nullptr || state->doneLabel.isInvalid())
     {
         // Conditional expressions must short-circuit to preserve branch semantics.
         const CodeGenNodePayload& condPayload = codeGen.payload(resolvedChildRef);
@@ -110,6 +111,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         ConditionalExprCodeGenPayload& newState = codeGen.ensureNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef());
         newState.falseLabel                     = builder.createLabel();
         newState.doneLabel                      = builder.createLabel();
+        newState.stage                          = ConditionalExprStage::TrueBranch;
         if (ownsValue)
         {
             newState.reg     = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
@@ -253,8 +255,9 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     const NullCoalescingCodeGenPayload* state         = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
 
     // Qualification casts can also rewrite either coalescing operand. The first direct
-    // callback is the lhs; the presence of lowering state identifies the rhs callback.
-    if (state == nullptr)
+    // callback is the lhs; an active join label identifies the rhs callback. The payload
+    // itself survives when a deferred body is emitted again for another exit.
+    if (state == nullptr || state->doneLabel.isInvalid())
     {
         // Fused '?.' chain: the chain's null exit doubles as this coalescing's false
         // label, and the produced value flows through untested (its own value may

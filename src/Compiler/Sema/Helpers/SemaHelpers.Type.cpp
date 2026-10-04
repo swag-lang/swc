@@ -100,7 +100,7 @@ namespace
     }
 
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, std::span<const ConstantRef> values);
-    TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
+    TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, const TypeInfo& typeInfo, ConstantRef cstRef);
 
     bool isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef)
     {
@@ -229,7 +229,7 @@ namespace
         if (typeInfo.isAggregateArray())
             return SemaHelpers::deduceConcretizedAggregateArrayType(sema, typeRef, cstRef);
         if (typeInfo.isAggregateStruct())
-            return deduceConcretizedAggregateStructType(sema, typeRef, cstRef);
+            return deduceConcretizedAggregateStructType(sema, typeRef, typeInfo, cstRef);
 
         if (cstRef.isValid())
         {
@@ -269,13 +269,12 @@ namespace
         return typeRef;
     }
 
-    TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+    TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, const TypeInfo& typeInfo, ConstantRef cstRef)
     {
-        TypeManager&    typeMgr    = sema.typeMgr();
-        const TypeInfo& typeInfo   = typeMgr.get(typeRef);
-        const auto&     aggregate  = typeInfo.payloadAggregate();
-        const auto&     fieldTypes = aggregate.types;
-        const auto*     values     = static_cast<const std::vector<ConstantRef>*>(nullptr);
+        TypeManager& typeMgr    = sema.typeMgr();
+        const auto&  aggregate  = typeInfo.payloadAggregate();
+        const auto&  fieldTypes = aggregate.types;
+        const auto*  values     = static_cast<const std::vector<ConstantRef>*>(nullptr);
 
         if (cstRef.isValid())
         {
@@ -309,17 +308,16 @@ namespace
         if (!cstRef.isValid() || !targetTypeRef.isValid())
             return false;
 
-        const TypeManager&   typeMgr    = sema.typeMgr();
-        const ConstantValue& cst        = sema.cstMgr().get(cstRef);
-        const TypeInfo&      targetType = typeMgr.get(targetTypeRef);
-        const TypeInfo&      cstType    = typeMgr.get(cst.typeRef());
-
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
         if (targetTypeRef == cst.typeRef())
             return true;
 
+        const TypeManager& typeMgr    = sema.typeMgr();
+        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
         if (targetType.isArray())
             return constantFitsArrayTarget(sema, cstRef, targetType.payloadArrayDims(), targetType.payloadArrayElemTypeRef());
 
+        const TypeInfo& cstType = typeMgr.get(cst.typeRef());
         if (targetType.isIntLike() && cstType.isIntLike())
             return intLikeConstantFitsType(cst, targetType);
 

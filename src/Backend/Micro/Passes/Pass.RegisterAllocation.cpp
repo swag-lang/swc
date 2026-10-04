@@ -161,6 +161,7 @@ namespace
 
     // Widens [lo, hi] for every register set in a liveness row, so that after a
     // full scan each register carries the hull of the range it is live over.
+    // Rows arrive in instruction order, making this position the new upper bound.
     void widenSpansFromLiveRow(std::vector<uint32_t>& lo, std::vector<uint32_t>& hi, const std::span<const uint64_t> row, const uint32_t instructionIndex)
     {
         for (size_t wordIndex = 0; wordIndex < row.size(); ++wordIndex)
@@ -173,7 +174,7 @@ namespace
                 SWC_ASSERT(denseIndex < lo.size() && denseIndex < hi.size());
 
                 lo[denseIndex] = std::min(lo[denseIndex], instructionIndex);
-                hi[denseIndex] = std::max(hi[denseIndex], instructionIndex);
+                hi[denseIndex] = instructionIndex;
             }
         }
     }
@@ -642,7 +643,9 @@ void MicroRegisterAllocationPass::computeVirtualLiveSpans()
     // That costs some packing and buys the property the whole design rests on —
     // one value, one register, everywhere it is live.
     virtualSpanLo_.assign(denseVirtualRegs_.regs().size(), std::numeric_limits<uint32_t>::max());
-    virtualSpanHi_.assign(denseVirtualRegs_.regs().size(), 0);
+    // Every dense register came from a use or definition. The forward sweep overwrites each
+    // upper bound at least once, so a reused buffer needs no initialization before that walk.
+    virtualSpanHi_.resize(denseVirtualRegs_.regs().size());
 
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
@@ -655,13 +658,13 @@ void MicroRegisterAllocationPass::computeVirtualLiveSpans()
         for (const uint32_t denseIndex : defVirtualIndices_[idx])
         {
             virtualSpanLo_[denseIndex] = std::min(virtualSpanLo_[denseIndex], idx);
-            virtualSpanHi_[denseIndex] = std::max(virtualSpanHi_[denseIndex], idx);
+            virtualSpanHi_[denseIndex] = idx;
         }
 
         for (const uint32_t denseIndex : useVirtualIndices_[idx])
         {
             virtualSpanLo_[denseIndex] = std::min(virtualSpanLo_[denseIndex], idx);
-            virtualSpanHi_[denseIndex] = std::max(virtualSpanHi_[denseIndex], idx);
+            virtualSpanHi_[denseIndex] = idx;
         }
     }
 }
@@ -4301,7 +4304,7 @@ void MicroRegisterAllocationPass::clearState()
     liveInConcreteBits_.clear();
     predecessors_ = {};
     virtualSpanLo_.clear();
-    virtualSpanHi_.clear();
+    // computeVirtualLiveSpans overwrites retained upper bounds before allocation reads them.
     concreteClaimPositionsComputed_ = false;
     denseGlobalPhysRegs_.clear();
     pendingBorrowRestores_.clear();

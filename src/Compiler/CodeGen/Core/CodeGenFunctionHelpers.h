@@ -58,32 +58,32 @@ namespace CodeGenFunctionHelpers
     // A value handle - string, slice, interface, any - the ABI passes by reference: the callee
     // reads it through the incoming address and never writes through it, and nothing else is
     // expected to change a handle while the call runs.
-    bool                  isImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
+    bool isImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
     // Marks the register holding such a parameter's address for the optimizer. A handle has no
     // lifecycle and no member to take a mutable receiver on, so it may also be handed on to a
     // callee without losing the mark.
-    void                  markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg);
-    void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
-    CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo = nullptr);
-    uint32_t              checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo);
-    bool                  shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, bool isIndirect, bool isFloat, uint8_t numBits);
-    Result                emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
-    Result                emitMovedFromDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
-    Result                emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, uint32_t count);
-    Result                emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg);
-    Result                emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
-    Result                emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, uint32_t count);
-    Result                emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg);
-    void                  emitStackPointerSubtract(CodeGen& codeGen, const CallConv& callConv, uint64_t sizeInBytes, MicroReg scratchReg);
-    bool                  tryUseDirectVarInitStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym);
-    bool                  tryUseDirectReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym);
-    bool                  tryUseShortBodyReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg);
-    bool                  isFreshAggregateLiteral(CodeGen& codeGen, AstNodeRef nodeRef);
-    bool                  isOwnedCallResult(CodeGen& codeGen, AstNodeRef nodeRef);
-    bool                  needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeRef typeRef);
-    void                  emitPersistCompilerRunValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstStorageReg, MicroReg srcStorageReg, MicroReg localStackBaseReg, uint32_t localStackSize);
-    Result                emitFallibleWrapperPreNode(CodeGen& codeGen, AstNodeRef nodeRef);
-    Result                emitFallibleWrapperPostNode(CodeGen& codeGen, AstNodeRef nodeRef);
+    void               markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg);
+    void               emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
+    CodeGenNodePayload materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo = nullptr);
+    uint32_t           checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo);
+    bool               shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, bool isIndirect, bool isFloat, uint8_t numBits);
+    Result             emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
+    Result             emitMovedFromDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
+    Result             emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, uint32_t count);
+    Result             emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg);
+    Result             emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
+    Result             emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, uint32_t count);
+    Result             emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg);
+    void               emitStackPointerSubtract(CodeGen& codeGen, const CallConv& callConv, uint64_t sizeInBytes, MicroReg scratchReg);
+    bool               tryUseDirectVarInitStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym);
+    bool               tryUseDirectReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym);
+    bool               tryUseShortBodyReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg);
+    bool               isFreshAggregateLiteral(CodeGen& codeGen, AstNodeRef nodeRef);
+    bool               isOwnedCallResult(CodeGen& codeGen, AstNodeRef nodeRef);
+    bool               needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeRef typeRef);
+    void               emitPersistCompilerRunValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstStorageReg, MicroReg srcStorageReg, MicroReg localStackBaseReg, uint32_t localStackSize);
+    Result             emitFallibleWrapperPreNode(CodeGen& codeGen, AstNodeRef nodeRef);
+    Result             emitFallibleWrapperPostNode(CodeGen& codeGen, AstNodeRef nodeRef);
 }
 
 SWC_END_NAMESPACE();

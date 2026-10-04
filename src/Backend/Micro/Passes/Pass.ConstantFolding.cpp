@@ -322,13 +322,13 @@ namespace
         DataSegmentRef segmentRef;
         if (!memoryContext.taskContext->cstMgr().resolveDataSegmentRef(segmentRef, reinterpret_cast<const void*>(address)))
             return false;
-        const DataSegment& segment = memoryContext.taskContext->cstMgr().shardDataSegment(segmentRef.shardIndex);
+        const DataSegment&    segment = memoryContext.taskContext->cstMgr().shardDataSegment(segmentRef.shardIndex);
         DataSegmentAllocation allocation;
         if (!segment.findAllocation(allocation, segmentRef.offset) || segmentRef.offset != allocation.offset ||
             !allocation.size || allocation.size % width)
             return false;
         constexpr uint32_t K_MAX_UNIFORM_TABLE_ENTRIES = 256;
-        const uint32_t count = allocation.size / width;
+        const uint32_t     count                       = allocation.size / width;
         if (count > K_MAX_UNIFORM_TABLE_ENTRIES)
             return false;
         // The table is one complete immutable allocation. Validate its whole byte
@@ -339,14 +339,14 @@ namespace
         const double limit = decodeScalarFloatBits(threshold.value, bits);
         const auto*  data  = reinterpret_cast<const std::byte*>(address);
 
-        bool allAbove = true;
+        bool allAbove    = true;
         bool allNotAbove = true;
         for (uint32_t i = 0; i < count; ++i)
         {
             uint64_t elementBits = 0;
             std::memcpy(&elementBits, data + static_cast<size_t>(i) * width, width);
             const double element = decodeScalarFloatBits(elementBits, bits);
-            const bool above = element > limit;
+            const bool   above   = element > limit;
             allAbove &= above;
             allNotAbove &= !above;
             if (!allAbove && !allNotAbove)
@@ -931,11 +931,11 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    MicroStorage&        storage  = *context.instructions;
-    MicroOperandStorage& operands = *context.operands;
+    MicroStorage&                storage  = *context.instructions;
+    MicroOperandStorage&         operands = *context.operands;
     std::optional<MicroSsaState> localSsaState;
-    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*        ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
+    MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*         ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 
@@ -1009,7 +1009,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
             case MicroInstrOpcode::JumpCond:
             {
                 bool branchAlways = false;
-                changed = tryFoldUniformIndexedFloatBranch(branchContext, instRef, inst, branchAlways);
+                changed           = tryFoldUniformIndexedFloatBranch(branchContext, instRef, inst, branchAlways);
                 if (changed)
                 {
                     if (branchAlways)

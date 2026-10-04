@@ -163,7 +163,7 @@ private:
     std::atomic<JobClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
     std::unordered_map<JobClientId, ClientState> clients_;
     // Enqueue assigns every index while holding mtx_.
-    uint32_t                                    nextIndex_ = 0;
+    uint32_t nextIndex_ = 0;
 
     // Sleeping jobs indexed by the exact dependency they wait on, for targeted wakeups.
     // JIT owners also have a unique completion alias in this map. Its record is not
@@ -235,9 +235,9 @@ private:
         Utf8     longest;
     };
 
-    static constexpr size_t                         NUM_JOB_KINDS = static_cast<size_t>(JobKind::ModuleApiExport) + 1;
-    std::array<KindStats, NUM_JOB_KINDS>            kindStats_{};
-    std::chrono::steady_clock::time_point           lastAccounting_;
+    static constexpr size_t               NUM_JOB_KINDS = static_cast<size_t>(JobKind::ModuleApiExport) + 1;
+    std::array<KindStats, NUM_JOB_KINDS>  kindStats_{};
+    std::chrono::steady_clock::time_point lastAccounting_;
 
     SchedulerStats                        stats_;
     bool                                  statsEnabled_ = false;
@@ -250,8 +250,8 @@ private:
 };
 
 #if SWC_DEV_MODE
-#define SWC_SCHED_PHASE_NAME2(__line) schedPhase##__line
-#define SWC_SCHED_PHASE_NAME(__line)  SWC_SCHED_PHASE_NAME2(__line)
+#define SWC_SCHED_PHASE_NAME2(__line)      schedPhase##__line
+#define SWC_SCHED_PHASE_NAME(__line)       SWC_SCHED_PHASE_NAME2(__line)
 #define SWC_SCHED_PHASE(__manager, __name) const JobManager::StatsPhase SWC_SCHED_PHASE_NAME(__LINE__)((__manager), (__name))
 #else
 #define SWC_SCHED_PHASE(__manager, __name)

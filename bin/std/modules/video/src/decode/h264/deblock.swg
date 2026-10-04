@@ -874,7 +874,7 @@ func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeSt
     let words  = cast #bit(Simd.U64x2) Simd.interleaveLow(cast #bit(Simd.U8x16) packed, cast #bit(Simd.U8x16) Simd.interleaveHigh(packed, packed))
     let low    = words[0]
     let high   = words[1]
-    (cast([*] u16) (pix - 1))[0]              = cast #wrap(u16) low
+    (cast([*] u16) (pix - 1))[0] = cast #wrap(u16) low
     (cast([*] u16) (pix - 1 + stride))[0]     = cast #wrap(u16) (low >> 16)
     (cast([*] u16) (pix - 1 + 2 * stride))[0] = cast #wrap(u16) (low >> 32)
     (cast([*] u16) (pix - 1 + 3 * stride))[0] = cast #wrap(u16) (low >> 48)

@@ -68,11 +68,11 @@ func accumulate(r: *Reals, step: f64)->f64
 #[Swag.Optimize(true)]
 func accumulateAround(r, other: *Reals, step: f64)->f64
 {
-    r.x += step
+    r.x     += step
     other.x *= 2
-    r.x += step * 2
+    r.x     += step * 2
     other.x *= 2
-    r.x += step * 4
+    r.x     += step * 4
     return r.x
 }
 
@@ -93,7 +93,7 @@ func narrowOverWide(p: *Pair, low: u32)->s64
     let overwritten = overwrite(&first, 7)
     Swag.assert(overwritten == 43 and first.a == 22 and first.b == 21)
 
-    first.a = 100
+    first.a  = 100
     second.a = 200
     let apart = overwriteAroundRead(&first, &second, 5)
     Swag.assert(apart == 200 and first.a == 15)
@@ -106,12 +106,12 @@ func narrowOverWide(p: *Pair, low: u32)->s64
     Swag.assert(reloadedTogether == 35 and first.a == 35)
 
     var reals: Reals = {1.0, 10.0}
-    let summed = accumulate(&reals, 0.5)
+    let summed       = accumulate(&reals, 0.5)
     Swag.assert(summed == 13.0 and reals.x == 4.5 and reals.y == 8.5)
 
     var left:  Reals = {1.0, 0.0}
     var right: Reals = {3.0, 0.0}
-    let kept = accumulateAround(&left, &right, 0.5)
+    let kept         = accumulateAround(&left, &right, 0.5)
     Swag.assert(kept == 4.5 and right.x == 12.0)
     left.x = 1.0
     let mixed = accumulateAround(&left, &left, 0.5)

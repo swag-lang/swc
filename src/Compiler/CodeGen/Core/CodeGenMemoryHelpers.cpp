@@ -140,9 +140,9 @@ namespace
         // registers keep the addresses they were given: an optimizer that follows a frame
         // object through its address sees one indexed access into that object, not a
         // pointer that moves.
-        const MicroReg     tmpReg     = chunkSize == 16 ? tmpFloatReg : tmpIntReg;
-        const MicroOpBits  chunkBits  = chunkSize == 16 ? MicroOpBits::B128 : microOpBitsFromChunkSize(chunkSize);
-        const uint64_t     loopBytes  = static_cast<uint64_t>(chunkCount) * chunkSize;
+        const MicroReg    tmpReg    = chunkSize == 16 ? tmpFloatReg : tmpIntReg;
+        const MicroOpBits chunkBits = chunkSize == 16 ? MicroOpBits::B128 : microOpBitsFromChunkSize(chunkSize);
+        const uint64_t    loopBytes = static_cast<uint64_t>(chunkCount) * chunkSize;
         builder.emitLoadRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
         {

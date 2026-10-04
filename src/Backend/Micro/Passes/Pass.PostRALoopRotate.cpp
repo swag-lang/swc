@@ -113,7 +113,7 @@ namespace
         }
         if (!hasShape)
             return false;
-        const auto&          cfg      = context.builder->controlFlowGraph();
+        const auto& cfg = context.builder->controlFlowGraph();
         if (cfg.hasUnsupportedControlFlowForCfgLiveness() || cfg.instructionCount() != order.size())
             return false;
 
@@ -135,7 +135,7 @@ namespace
         };
 
         const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
-        const auto isReadOnlyCall = [&](const MicroInstrRef ref, const MicroInstr& inst) {
+        const auto isReadOnlyCall   = [&](const MicroInstrRef ref, const MicroInstr& inst) {
             return (inst.op == MicroInstrOpcode::CallLocal || inst.op == MicroInstrOpcode::CallExtern) && readOnlyCallRefs.contains(ref.get());
         };
 
@@ -182,10 +182,10 @@ namespace
             if (!directMatchEdges)
                 continue;
 
-            const auto* cellOps = compare->ops(operands);
-            uint32_t    visits  = 0;
+            const auto*                  cellOps = compare->ops(operands);
+            uint32_t                     visits  = 0;
             std::unordered_set<uint64_t> visiting;
-            const auto provesEdge = [&](auto&& self, const uint32_t predecessor, const uint32_t successor, const bool wantZero) -> bool {
+            const auto                   provesEdge = [&](auto&& self, const uint32_t predecessor, const uint32_t successor, const bool wantZero) -> bool {
                 if (++visits > 512 || predecessor >= order.size() || successor >= order.size())
                     return false;
                 const uint64_t edge = (static_cast<uint64_t>(predecessor) << 32) | successor;
@@ -263,9 +263,9 @@ namespace
             const bool        needsLabel  = !tryGetLabelId(fallthrough, *afterBranch, afterBranch->ops(operands));
             if (needsLabel)
                 fallthrough = context.builder->createLabel().get();
-            const uint32_t zeroTarget    = branchOps[0].cpuCond == MicroCond::Equal ? branchTarget : fallthrough;
-            const uint32_t nonzeroTarget = branchOps[0].cpuCond == MicroCond::Equal ? fallthrough : branchTarget;
-            const MicroInstrOperand branchSize = branchOps[1];
+            const uint32_t          zeroTarget    = branchOps[0].cpuCond == MicroCond::Equal ? branchTarget : fallthrough;
+            const uint32_t          nonzeroTarget = branchOps[0].cpuCond == MicroCond::Equal ? fallthrough : branchTarget;
+            const MicroInstrOperand branchSize    = branchOps[1];
 
             // Every incoming jump was proved above. The empty edge that falls
             // out of the probe's last comparison still arrives at emptyLabel.
@@ -274,8 +274,8 @@ namespace
                 MicroInstr* inst = storage.ptr(ref);
                 if (!inst || inst->op != MicroInstrOpcode::JumpCond)
                     continue;
-                MicroInstrOperand* ops = inst->ops(operands);
-                uint32_t target = 0;
+                MicroInstrOperand* ops    = inst->ops(operands);
+                uint32_t           target = 0;
                 if (!tryGetJumpTargetLabelId(target, *inst, ops))
                     continue;
                 if (target == emptyId)
@@ -292,9 +292,9 @@ namespace
             if (zeroTarget != fallthrough)
             {
                 MicroInstrOperand jumpOps[3] = {};
-                jumpOps[0].cpuCond  = MicroCond::Unconditional;
-                jumpOps[1]          = branchSize;
-                jumpOps[2].valueU64 = zeroTarget;
+                jumpOps[0].cpuCond           = MicroCond::Unconditional;
+                jumpOps[1]                   = branchSize;
+                jumpOps[2].valueU64          = zeroTarget;
                 storage.insertDerivedBefore(operands, order[at - 1], MicroInstrOpcode::JumpCond, jumpOps);
             }
             storage.erase(order[at - 1]);
@@ -350,8 +350,8 @@ namespace
             const auto exitIt = labels->find(exitId);
             if (exitIt == labels->end() || exitIt->second <= i + 2)
                 continue;
-            const uint32_t backIndex = exitIt->second - 1;
-            const MicroInstr* back   = storage.ptr(order[backIndex]);
+            const uint32_t    backIndex = exitIt->second - 1;
+            const MicroInstr* back      = storage.ptr(order[backIndex]);
             if (!back || back->op != MicroInstrOpcode::JumpCond || back->numOperands < 3)
                 continue;
             const auto* backOps = back->ops(operands);
@@ -375,17 +375,17 @@ namespace
             if (!safe)
                 continue;
 
-            const MicroInstrRef bodyRef = order[bodyIt->second];
-            const uint64_t prepId = context.builder->createLabel().get();
-            MicroInstrOperand entryOps[3] = {backOps[0], backOps[1], backOps[2]};
-            MicroInstrOperand prepOps[1];
+            const MicroInstrRef bodyRef     = order[bodyIt->second];
+            const uint64_t      prepId      = context.builder->createLabel().get();
+            MicroInstrOperand   entryOps[3] = {backOps[0], backOps[1], backOps[2]};
+            MicroInstrOperand   prepOps[1];
             prepOps[0].valueU64 = prepId;
             storage.insertDerivedBefore(operands, bodyRef, MicroInstrOpcode::JumpCond, entryOps);
             storage.insertDerivedBefore(operands, bodyRef, MicroInstrOpcode::Label, prepOps);
             for (uint32_t connectorIndex = i + 2; connectorIndex < backIndex; ++connectorIndex)
             {
-                const MicroInstrRef oldRef = order[connectorIndex];
-                const MicroInstr*  oldInst = storage.ptr(oldRef);
+                const MicroInstrRef               oldRef  = order[connectorIndex];
+                const MicroInstr*                 oldInst = storage.ptr(oldRef);
                 SmallVector<MicroInstrOperand, 8> copy;
                 for (uint32_t op = 0; op < oldInst->numOperands; ++op)
                     copy.push_back(oldInst->ops(operands)[op]);
@@ -399,7 +399,7 @@ namespace
             }
             MicroInstrOperand* rewrittenOps = storage.ptr(order[i + 1])->ops(operands);
             rewrittenOps[0].cpuCond         = inverted;
-            rewrittenOps[2].valueU64       = prepId;
+            rewrittenOps[2].valueU64        = prepId;
             storage.erase(order[backIndex]);
             context.builder->invalidateControlFlowGraph();
             context.passChanged = true;
@@ -480,7 +480,7 @@ namespace
             if (!MicroPassHelpers::invertLayoutBranchCondition(inverted, secondOps[0].cpuCond))
                 continue;
 
-            const uint32_t stepOrdinal   = findLabel(secondOps[2].valueU64, static_cast<uint32_t>(order.size()));
+            const uint32_t stepOrdinal = findLabel(secondOps[2].valueU64, static_cast<uint32_t>(order.size()));
             if (stepOrdinal <= ordinal + 4 ||
                 stepOrdinal + 3 >= order.size())
                 continue;
@@ -658,7 +658,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         order.push_back(it.current);
         if (it->op != MicroInstrOpcode::JumpCond)
             continue;
-        hasJumpCond = true;
+        hasJumpCond     = true;
         uint32_t target = 0;
         if (!tryGetJumpTargetLabelId(target, *it, it->ops(operands)))
             continue;
@@ -829,9 +829,9 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
             SmallVector<MicroInstrOperand, 8> testCopy;
             for (uint32_t i = 0; i < testInst->numOperands; ++i)
                 testCopy.push_back(testOps[i]);
-            const MicroInstrOpcode testOp = testInst->op;
-            const MicroInstrRef copyRef = storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
-            const auto          relocIt = relocationsByRef.find(order[ordinal].get());
+            const MicroInstrOpcode testOp  = testInst->op;
+            const MicroInstrRef    copyRef = storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
+            const auto             relocIt = relocationsByRef.find(order[ordinal].get());
             if (relocIt != relocationsByRef.end())
             {
                 for (MicroRelocation reloc : relocIt->second)

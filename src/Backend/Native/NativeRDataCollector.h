@@ -46,8 +46,8 @@ private:
     // Map values remain stable across rehashes; work lists borrow them until emission ends.
     std::array<std::unordered_map<uint32_t, ReachableRDataAllocation>, ConstantManager::SHARD_COUNT> allocations_;
     // Every reached allocation, in the order the roots reached it, which is the emission order.
-    std::vector<PendingRDataAllocation>                                                              reachableAllocations_;
-    std::vector<PendingRDataAllocation>                                                              pending_;
+    std::vector<PendingRDataAllocation> reachableAllocations_;
+    std::vector<PendingRDataAllocation> pending_;
 };
 
 SWC_END_NAMESPACE();

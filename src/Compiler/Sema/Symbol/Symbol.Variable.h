@@ -40,29 +40,29 @@ public:
     {
     }
 
-    uint32_t              offset() const { return offset_; }
-    void                  setOffset(uint32_t offset) { offset_ = offset; }
-    uint32_t              parameterIndex() const { return parameterIndex_; }
-    bool                  hasParameterIndex() const { return parameterIndex_ != K_INVALID_PARAMETER_INDEX; }
-    void                  setParameterIndex(uint32_t index) { parameterIndex_ = index; }
-    ConstantRef           cstRef() const { return cstRef_; }
-    void                  setCstRef(ConstantRef ref) { cstRef_ = ref; }
-    ConstantRef           defaultValueRef() const { return defaultValueRef_; }
-    void                  setDefaultValueRef(ConstantRef ref) { defaultValueRef_ = ref; }
-    uint32_t              codeGenLocalSize() const { return codeGenLocalSize_; }
-    void                  setCodeGenLocalSize(uint32_t size) { codeGenLocalSize_ = size; }
-    uint32_t              debugStackSlotOffset() const { return debugStackSlotOffset_; }
-    void                  setDebugStackSlotOffset(uint32_t offset) { debugStackSlotOffset_ = offset; }
-    uint32_t              debugStackSlotSize() const { return debugStackSlotSize_; }
-    void                  setDebugStackSlotSize(uint32_t size) { debugStackSlotSize_ = size; }
-    bool                  isClosureCapture() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCapture); }
-    SymbolVariable*       closureCapturedSource() const noexcept { return closureCapturedSource_; }
-    void                  setClosureCapturedSource(SymbolVariable* source) noexcept;
-    uint32_t              closureCaptureOffset() const noexcept { return closureCaptureOffset_; }
-    void                  setClosureCaptureOffset(uint32_t offset) noexcept { closureCaptureOffset_ = offset; }
-    bool                  closureCaptureByRef() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCaptureByRef); }
-    void                  setClosureCaptureByRef(bool value) noexcept;
-    bool                  hasGlobalStorage() const { return hasExtraFlag(SymbolVariableFlagsE::GlobalStorage); }
+    uint32_t        offset() const { return offset_; }
+    void            setOffset(uint32_t offset) { offset_ = offset; }
+    uint32_t        parameterIndex() const { return parameterIndex_; }
+    bool            hasParameterIndex() const { return parameterIndex_ != K_INVALID_PARAMETER_INDEX; }
+    void            setParameterIndex(uint32_t index) { parameterIndex_ = index; }
+    ConstantRef     cstRef() const { return cstRef_; }
+    void            setCstRef(ConstantRef ref) { cstRef_ = ref; }
+    ConstantRef     defaultValueRef() const { return defaultValueRef_; }
+    void            setDefaultValueRef(ConstantRef ref) { defaultValueRef_ = ref; }
+    uint32_t        codeGenLocalSize() const { return codeGenLocalSize_; }
+    void            setCodeGenLocalSize(uint32_t size) { codeGenLocalSize_ = size; }
+    uint32_t        debugStackSlotOffset() const { return debugStackSlotOffset_; }
+    void            setDebugStackSlotOffset(uint32_t offset) { debugStackSlotOffset_ = offset; }
+    uint32_t        debugStackSlotSize() const { return debugStackSlotSize_; }
+    void            setDebugStackSlotSize(uint32_t size) { debugStackSlotSize_ = size; }
+    bool            isClosureCapture() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCapture); }
+    SymbolVariable* closureCapturedSource() const noexcept { return closureCapturedSource_; }
+    void            setClosureCapturedSource(SymbolVariable* source) noexcept;
+    uint32_t        closureCaptureOffset() const noexcept { return closureCaptureOffset_; }
+    void            setClosureCaptureOffset(uint32_t offset) noexcept { closureCaptureOffset_ = offset; }
+    bool            closureCaptureByRef() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCaptureByRef); }
+    void            setClosureCaptureByRef(bool value) noexcept;
+    bool            hasGlobalStorage() const { return hasExtraFlag(SymbolVariableFlagsE::GlobalStorage); }
     // A use that binds the variable's address: '&x', a reference parameter, a by-address
     // receiver, an intrinsic operand. A global's address then exists outside its direct accesses.
     bool markAddressableIfLocalOrParameter()
@@ -84,7 +84,7 @@ public:
     }
     void markGlobalAddressEscapes() noexcept { std::atomic_ref(globalAddressEscapes_).store(true, std::memory_order_relaxed); }
     // Final once the module's semantic analysis is complete.
-    bool globalAddressEscapes() const noexcept { return std::atomic_ref(const_cast<bool&>(globalAddressEscapes_)).load(std::memory_order_relaxed); }
+    bool                  globalAddressEscapes() const noexcept { return std::atomic_ref(const_cast<bool&>(globalAddressEscapes_)).load(std::memory_order_relaxed); }
     bool                  isDeclaredGlobal() const noexcept { return declaredGlobal_; }
     void                  setDeclaredGlobal(bool value) noexcept { declaredGlobal_ = value; }
     bool                  isDeclaredThreadLocal() const noexcept { return declaredThreadLocal_; }

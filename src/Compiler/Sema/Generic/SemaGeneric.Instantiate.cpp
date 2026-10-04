@@ -546,7 +546,7 @@ namespace SemaGeneric
             if (nodeRef.isInvalid())
                 return Result::Error;
 
-            const GenericInstanceNodeRunKey         key{&sema.ctx(), &instance};
+            const GenericInstanceNodeRunKey key{&sema.ctx(), &instance};
             const GenericNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
             return runCachedSema(sema, genericInstanceNodeRuns(sema.ctx()), key, instance, initRun);
         }

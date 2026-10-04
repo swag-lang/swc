@@ -77,12 +77,12 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
     {
         MicroOpBits counterBits;
         MicroOpBits sumBits;
-        uint64_t start;
-        uint64_t step;
-        uint64_t bound;
-        uint64_t initialSum;
-        uint64_t expectedSum;
-        MicroOp reductionOp = MicroOp::Add;
+        uint64_t    start;
+        uint64_t    step;
+        uint64_t    bound;
+        uint64_t    initialSum;
+        uint64_t    expectedSum;
+        MicroOp     reductionOp = MicroOp::Add;
     };
     constexpr Case cases[] = {
         {MicroOpBits::B64, MicroOpBits::B64, 0, 1, 17, 0, 136},
@@ -101,9 +101,9 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
         constexpr MicroReg counter     = MicroReg::virtualIntReg(1);
         constexpr MicroReg accumulator = MicroReg::virtualIntReg(2);
         MicroBuilder       builder(ctx);
-        const auto         header = builder.createLabel();
-        const uint32_t counterWidth = test.counterBits == MicroOpBits::B32 ? 32 : 64;
-        const uint32_t sumWidth     = test.sumBits == MicroOpBits::B32 ? 32 : 64;
+        const auto         header       = builder.createLabel();
+        const uint32_t     counterWidth = test.counterBits == MicroOpBits::B32 ? 32 : 64;
+        const uint32_t     sumWidth     = test.sumBits == MicroOpBits::B32 ? 32 : 64;
         builder.emitLoadRegImm(accumulator, ApInt(test.initialSum, sumWidth), test.sumBits);
         builder.emitLoadRegImm(counter, ApInt(test.start, counterWidth), test.counterBits);
         builder.placeLabel(header);
@@ -126,8 +126,8 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
             if (inst.op != MicroInstrOpcode::LoadRegImm)
                 continue;
             const auto* ops = inst.ops(builder.operands());
-            foundResult = foundResult || (ops[0].reg == accumulator && ops[2].valueU64 == test.expectedSum);
-            foundExit   = foundExit || (ops[0].reg == counter && ops[2].valueU64 == test.bound);
+            foundResult     = foundResult || (ops[0].reg == accumulator && ops[2].valueU64 == test.expectedSum);
+            foundExit       = foundExit || (ops[0].reg == counter && ops[2].valueU64 == test.bound);
         }
         if (!foundResult || !foundExit)
             return Result::Error;

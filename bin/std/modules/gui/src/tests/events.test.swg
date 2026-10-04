@@ -28,7 +28,7 @@ impl OffsetOwnedEvent
 // Every posting entry point snapshots both inline and allocated command identifiers.
 #test
 {
-    var id: String
+    var id:   String
     var host: Testing.HeadlessHost
     host.setup(240, 120)
     defer host.shutdown()
@@ -79,7 +79,7 @@ impl OffsetOwnedEvent
 #test
 {
     var retained: CommandEvent
-    var host: Testing.HeadlessHost
+    var host:     Testing.HeadlessHost
     host.setup(240, 120)
     defer host.shutdown()
 
@@ -132,8 +132,8 @@ impl OffsetOwnedEvent
     defer host.shutdown()
     host.recordCommands()
 
-    var id = String.from("Event.Borrowed")
-    var evt = CommandEvent{id: id.toString()}
+    var id     = String.from("Event.Borrowed")
+    var evt    = CommandEvent{id: id.toString()}
     var copied = evt
     id[0] = 'X'
     Swag.assert(copied.id == "Xvent.Borrowed")

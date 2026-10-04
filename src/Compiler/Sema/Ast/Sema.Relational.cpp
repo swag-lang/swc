@@ -113,7 +113,7 @@ namespace
         if (!payloadTypeRef.isValid())
             return view;
 
-        SemaNodeView  result           = view;
+        SemaNodeView result            = view;
         result.typeRef()               = payloadTypeRef;
         result.type()                  = &sema.typeMgr().get(payloadTypeRef);
         const ConstantRef scalarCstRef = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);

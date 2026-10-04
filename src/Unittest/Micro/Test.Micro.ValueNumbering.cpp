@@ -694,8 +694,8 @@ SWC_TEST_BEGIN(ValueNumbering_ImmutableParameterReadCrossesStoreOnly)
         builder.emitRet();
 
         SWC_RESULT(runValueNumberingPass(builder));
-        const MicroInstr* inst = builder.instructions().ptr(secondRef);
-        const bool shared = mode == 0 || mode == 5;
+        const MicroInstr* inst   = builder.instructions().ptr(secondRef);
+        const bool        shared = mode == 0 || mode == 5;
         if (!inst || inst->op != (shared ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
             return Result::Error;
         if (shared && inst->ops(builder.operands())[1].reg != first)

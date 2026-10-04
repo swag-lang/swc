@@ -31,9 +31,9 @@ namespace
         const TypeInfo* indexType = &sema.typeMgr().get(outTypeRef);
         if (indexType->isReference())
         {
-            outTypeRef                           = indexType->payloadTypeRef();
-            const TypeInfo* referencedType       = &sema.typeMgr().get(outTypeRef);
-            const TypeRef referencedAliasTypeRef = referencedType->unwrap(sema.ctx(), outTypeRef, TypeExpandE::Alias);
+            outTypeRef                             = indexType->payloadTypeRef();
+            const TypeInfo* referencedType         = &sema.typeMgr().get(outTypeRef);
+            const TypeRef   referencedAliasTypeRef = referencedType->unwrap(sema.ctx(), outTypeRef, TypeExpandE::Alias);
             if (referencedAliasTypeRef.isValid() && referencedAliasTypeRef != outTypeRef)
             {
                 outTypeRef = referencedAliasTypeRef;

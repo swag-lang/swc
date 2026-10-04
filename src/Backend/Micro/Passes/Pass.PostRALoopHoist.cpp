@@ -791,7 +791,7 @@ namespace
                 if (!inBody[k])
                     continue;
                 const MicroInstrUseDef& useDef = liveness.useDefs[k];
-                usable = std::ranges::find(useDef.defs, use.reg) == useDef.defs.end() &&
+                usable                         = std::ranges::find(useDef.defs, use.reg) == useDef.defs.end() &&
                          std::ranges::find(useDef.uses, use.reg) == useDef.uses.end();
             }
             if (!usable)
@@ -876,9 +876,9 @@ namespace
         loops.reserve(loopsByHeader.size());
         for (const auto& loop : loopsByHeader | std::views::values)
         {
-            const uint32_t      header    = loop.header;
-            const auto&         inBody    = loop.inBody;
-            const MicroInstrRef headerRef = instrRefs[header];
+            const uint32_t      header            = loop.header;
+            const auto&         inBody            = loop.inBody;
+            const MicroInstrRef headerRef         = instrRefs[header];
             uint32_t            externalPredCount = 0;
             for (const uint32_t p : cfg.predecessors(header))
             {
@@ -966,10 +966,10 @@ namespace
             // Classify the body once: every frame slot it writes, and whether it
             // does anything the slot analysis cannot account for. Count definitions by
             // instruction in two masks, so reload candidates need no body scan.
-            bool                  bodyOpaque          = false;
-            bool                  hasUnplaceableWrite = false;
-            uint64_t              definedRegs         = 0;
-            uint64_t              multiplyDefinedRegs = 0;
+            bool     bodyOpaque          = false;
+            bool     hasUnplaceableWrite = false;
+            uint64_t definedRegs         = 0;
+            uint64_t multiplyDefinedRegs = 0;
             writes.clear();
             for (uint32_t i = 0; i < n && !bodyOpaque; ++i)
             {
@@ -1287,9 +1287,9 @@ namespace
     // instruction in it may write memory or redefine the address base.
     bool hoistFoldedBitwiseOperand(MicroPassContext& context, const CallConv& conv)
     {
-        MicroStorage&        storage  = *context.instructions;
-        MicroOperandStorage& operands = *context.operands;
-        bool hasFoldedBitwiseOperand = false;
+        MicroStorage&        storage                 = *context.instructions;
+        MicroOperandStorage& operands                = *context.operands;
+        bool                 hasFoldedBitwiseOperand = false;
         for (const MicroInstr& inst : storage.view())
         {
             if (inst.op != MicroInstrOpcode::OpBinaryRegMem)
@@ -1308,11 +1308,11 @@ namespace
         const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
         if (!cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
             return false;
-        const uint32_t n = cfg.instructionCount();
+        const uint32_t n     = cfg.instructionCount();
         const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
         if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return false;
-        const auto dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        const auto dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
         const auto loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
         if (loopsByHeader.empty())
             return false;
@@ -1343,7 +1343,7 @@ namespace
         if (savedRegs.empty())
             return false;
 
-        const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
+        const auto                   readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
         std::unordered_set<uint32_t> relocatedRefs;
         for (const MicroRelocation& relocation : context.builder->codeRelocations())
         {
@@ -1356,8 +1356,8 @@ namespace
             const uint32_t header = loop.header;
             if (!header || loop.inBody[header - 1])
                 continue;
-            uint32_t externalPredCount = 0;
-            bool hasOtherExternalPred = false;
+            uint32_t externalPredCount    = 0;
+            bool     hasOtherExternalPred = false;
             for (const uint32_t pred : cfg.predecessors(header))
             {
                 if (pred < n && !loop.inBody[pred])
@@ -1374,8 +1374,8 @@ namespace
             {
                 if (!loop.inBody[i])
                     continue;
-                const MicroInstr* inst = storage.ptr(refs[i]);
-                const MicroInstrOperand* ops = inst ? inst->ops(operands) : nullptr;
+                const MicroInstr*        inst = storage.ptr(refs[i]);
+                const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
                 if (!ops || inst->op != MicroInstrOpcode::OpBinaryRegMem ||
                     relocatedRefs.contains(refs[i].get()) ||
                     (ops[3].microOp != MicroOp::And && ops[3].microOp != MicroOp::Or && ops[3].microOp != MicroOp::Xor) ||
@@ -1383,9 +1383,9 @@ namespace
                     !ops[1].reg.isInt())
                     continue;
 
-                const MicroReg base = ops[1].reg;
-                const uint64_t offset = ops[4].valueU64;
-                uint32_t entryReadIndex = n;
+                const MicroReg base           = ops[1].reg;
+                const uint64_t offset         = ops[4].valueU64;
+                uint32_t       entryReadIndex = n;
                 for (uint32_t j = header; j > 0 && header - j < 16;)
                 {
                     --j;
@@ -1446,7 +1446,7 @@ namespace
                     for (uint32_t j = entryReadIndex; j < header && unused; ++j)
                     {
                         const auto& useDef = liveness.useDefs[j];
-                        unused = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
+                        unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
                                  std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
                     }
                     for (uint32_t j = 0; j < n && unused; ++j)
@@ -1454,19 +1454,19 @@ namespace
                         if (!loop.inBody[j])
                             continue;
                         const auto& useDef = liveness.useDefs[j];
-                        unused = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
+                        unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
                                  std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
                     }
                     if (!unused)
                         continue;
 
                     SmallVector<MicroInstrRef, 4> foldedRefs;
-                    bool hasRelocatedUse = false;
+                    bool                          hasRelocatedUse = false;
                     for (uint32_t j = 0; j < n; ++j)
                     {
                         if (!loop.inBody[j])
                             continue;
-                        const MicroInstr* other = storage.ptr(refs[j]);
+                        const MicroInstr*        other    = storage.ptr(refs[j]);
                         const MicroInstrOperand* otherOps = other ? other->ops(operands) : nullptr;
                         if (otherOps && other->op == MicroInstrOpcode::OpBinaryRegMem && otherOps[1].reg == base &&
                             otherOps[2].opBits == ops[2].opBits && otherOps[4].valueU64 == offset &&
@@ -1484,19 +1484,19 @@ namespace
                         continue;
 
                     MicroInstrOperand loadOps[4] = {};
-                    loadOps[0].reg = scratch;
-                    loadOps[1].reg = base;
-                    loadOps[2].opBits = ops[2].opBits;
-                    loadOps[3].valueU64 = offset;
+                    loadOps[0].reg               = scratch;
+                    loadOps[1].reg               = base;
+                    loadOps[2].opBits            = ops[2].opBits;
+                    loadOps[3].valueU64          = offset;
                     storage.insertDerivedBefore(operands, refs[entryReadIndex], MicroInstrOpcode::LoadRegMem, loadOps);
                     foldedRefs.push_back(refs[entryReadIndex]);
                     for (const MicroInstrRef foldedRef : foldedRefs)
                     {
-                        MicroInstr* folded = storage.ptr(foldedRef);
+                        MicroInstr*        folded    = storage.ptr(foldedRef);
                         MicroInstrOperand* foldedOps = folded->ops(operands);
-                        foldedOps[1].reg = scratch;
-                        folded->op = MicroInstrOpcode::OpBinaryRegReg;
-                        folded->numOperands = 4;
+                        foldedOps[1].reg             = scratch;
+                        folded->op                   = MicroInstrOpcode::OpBinaryRegReg;
+                        folded->numOperands          = 4;
                     }
                     context.builder->invalidateControlFlowGraph();
                     return true;

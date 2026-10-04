@@ -17,7 +17,7 @@ union UnionInitZero
 
 union UnionInitLatePointer
 {
-    bits: u64
+    bits:         u64
     late pointer: *UnionInitItem
 }
 

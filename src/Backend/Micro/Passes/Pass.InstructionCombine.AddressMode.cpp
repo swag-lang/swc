@@ -580,8 +580,8 @@ namespace InstructionCombine
         // (`index = &[a + b*s + C]`).
         struct IndexPeel
         {
-            MicroReg          source = MicroReg::invalid();
-            MicroInstrOperand address[8] = {};
+            MicroReg          source          = MicroReg::invalid();
+            MicroInstrOperand address[8]      = {};
             uint32_t          addressOperands = 0;
             uint64_t          displacement    = 0;
         };
@@ -744,7 +744,7 @@ namespace InstructionCombine
         // `X = &[I*4]`: the constant of I peels the same way into either.
         if (shift.inst->op == MicroInstrOpcode::LoadAddrAmcRegMem && shift.inst->numOperands <= 8)
         {
-            const MicroInstrOperand* leaOps  = shift.inst->ops(*ctx.operands);
+            const MicroInstrOperand* leaOps = shift.inst->ops(*ctx.operands);
             if (!leaOps || leaOps[0].reg != scaled || leaOps[3].opBits != MicroOpBits::B64 || leaOps[4].opBits != MicroOpBits::B64 || leaOps[6].valueU64)
                 return false;
             const bool     doubled = leaOps[1].reg == leaOps[2].reg && leaOps[5].valueU64 == 1;

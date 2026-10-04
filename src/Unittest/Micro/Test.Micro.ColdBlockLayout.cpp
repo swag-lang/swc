@@ -102,8 +102,8 @@ SWC_TEST_BEGIN(ColdBlockLayout_MovesLabeledReportAndDropsJumpOver)
     constexpr MicroReg  value  = MicroReg::intReg(0);
     SymbolFunction      callee = makeCallee(ctx, true);
     MicroBuilder        builder(ctx);
-    const MicroLabelRef fail   = builder.createLabel();
-    const MicroLabelRef done   = builder.createLabel();
+    const MicroLabelRef fail = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
     builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, fail);
     builder.emitCmpRegImm(value, ApInt(255, 64), MicroOpBits::B64);
@@ -141,7 +141,7 @@ SWC_TEST_BEGIN(ColdBlockLayout_KeepsOwnJumpAndRejectsUnsafeShapes)
     constexpr MicroReg value = MicroReg::intReg(0);
     for (uint32_t mode = 0; mode < 3; ++mode)
     {
-        SymbolFunction      callee  = makeCallee(ctx, true);
+        SymbolFunction      callee = makeCallee(ctx, true);
         MicroBuilder        builder(ctx);
         const MicroLabelRef nonZero = builder.createLabel();
         const MicroLabelRef done    = builder.createLabel();

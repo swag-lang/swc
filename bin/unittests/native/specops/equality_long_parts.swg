@@ -92,7 +92,7 @@ func sameCountingTable(a, b: *CountingTable)->bool => a[] == b[]
     Swag.assert(sameCellTable(&a, &b))
     b.cells[8].name = "z"
     Swag.assert(not sameCellTable(&a, &b))
-    b.cells[8].name = "i"
+    b.cells[8].name  = "i"
     b.cells[0].value = 7
     Swag.assert(not sameCellTable(&a, &b))
 }
@@ -110,7 +110,7 @@ func sameCountingTable(a, b: *CountingTable)->bool => a[] == b[]
     Swag.assert(sameCountingTable(&a, &b))
     Swag.assert(g_CountingEqualCalls == 7)
 
-    b.items[3].value = 99
+    b.items[3].value     = 99
     g_CountingEqualCalls = 0
     Swag.assert(not sameCountingTable(&a, &b))
     Swag.assert(g_CountingEqualCalls == 4)

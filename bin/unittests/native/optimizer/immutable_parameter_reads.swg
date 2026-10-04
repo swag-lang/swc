@@ -9,9 +9,9 @@
 
 struct Body
 {
-    x, y:  f64
+    x, y:   f64
     vx, vy: f64
-    mass:  f64
+    mass:   f64
 }
 
 struct Scale
@@ -59,7 +59,7 @@ func upperInto(dst: [*] u8, text: string)->u64
         var c = text[i]
         if c >= 'a'u8 and c <= 'z'u8
         {
-            c -= 32
+            c     -= 32
             count += 1
         }
 
@@ -78,7 +78,7 @@ func scaleInto(dst: [*] s64, src: const [*] s64, scale: Scale)->s64
     for i in scale.limit
     {
         dst[i] = src[i] * scale.factor + scale.bias
-        total += dst[i] + scale.bias
+        total  += dst[i] + scale.bias
     }
 
     return total
@@ -124,7 +124,7 @@ func sumForwarded(dst: [*] u64, text: string)->u64
     for i in text.count
     {
         dst[i] = byteAt(text, i)
-        total += dst[i] + text.count
+        total  += dst[i] + text.count
     }
 
     return total
@@ -186,7 +186,7 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
     for i in scale.limit
     {
         dst[i] = fieldSum(&scale)
-        total += dst[i] + scale.factor
+        total  += dst[i] + scale.factor
     }
 
     return total
@@ -195,8 +195,8 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
 #test
 {
     var bodies: [3] Body = [
-        {0.0, 0.0, 0.0, 0.0, 4.0},
-        {2.0, 1.0, 0.5, 0.0, 1.0},
+        {0.0,  0.0, 0.0, 0.0,   4.0},
+        {2.0,  1.0, 0.5, 0.0,   1.0},
         {-1.0, 3.0, 0.0, -0.25, 2.0}]
     advance(bodies, 0.5)
     Swag.assert(bodies[0].x == 0.0 and bodies[0].y == 1.75)
@@ -213,7 +213,7 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
 
     let src: [4] s64 = [1, -2, 3, 40]
     var dst: [4] s64
-    let scaled = scaleInto(&dst[0], &src[0], {3, 5, 4})
+    let scaled       = scaleInto(&dst[0], &src[0], {3, 5, 4})
     Swag.assert(scaled == 166)
     Swag.assert(dst[0] == 8 and dst[1] == -1 and dst[2] == 14 and dst[3] == 125)
 

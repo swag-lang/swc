@@ -333,7 +333,7 @@ namespace PostRaPeephole
 
             const MicroInstrDef& info               = MicroInstr::info(scanInst->op);
             const bool           disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
-                                                      writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
+                                            writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
             if (scanInst->op == MicroInstrOpcode::Label ||
                 info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) ||

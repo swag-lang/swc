@@ -225,8 +225,8 @@ struct CommandLine
 
 #if SWC_DEV_MODE
     bool     devSchedStats = false;
-    bool     randomize = false;
-    uint32_t randSeed  = 0;
+    bool     randomize     = false;
+    uint32_t randSeed      = 0;
 #endif
 
     // Days a dependency copy may go unused before 'clean --cache' takes it; zero removes them all.

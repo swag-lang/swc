@@ -38,7 +38,7 @@ func median(samples: [..] u64)->u64
         while slot > 0 and samples[slot - 1] > value
         {
             samples[slot] = samples[slot - 1]
-            slot          -= 1
+            slot -= 1
         }
 
         samples[slot] = value

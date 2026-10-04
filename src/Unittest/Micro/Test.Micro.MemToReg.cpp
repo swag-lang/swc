@@ -528,13 +528,13 @@ namespace
     Result runTileCase(TaskContext& ctx, const TileCase tileCase, uint32_t& outFillStores)
     {
         TileFunction       fn(ctx);
-        const MicroReg     sp      = CallConv::get(CallConvKind::Swag).stackPointer;
-        constexpr MicroReg frame   = MicroReg::virtualIntReg(1);
-        constexpr MicroReg rows    = MicroReg::virtualIntReg(2);
-        constexpr MicroReg source  = MicroReg::virtualIntReg(3);
-        constexpr MicroReg peek    = MicroReg::virtualIntReg(4);
-        constexpr MicroReg zero    = MicroReg::virtualFloatReg(1);
-        constexpr MicroReg row     = MicroReg::virtualFloatReg(2);
+        const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg rows   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg source = MicroReg::virtualIntReg(3);
+        constexpr MicroReg peek   = MicroReg::virtualIntReg(4);
+        constexpr MicroReg zero   = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg row    = MicroReg::virtualFloatReg(2);
         MicroBuilder       builder(ctx);
 
         builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
@@ -682,14 +682,14 @@ namespace
 // is the whole word.
 SWC_TEST_BEGIN(MemToReg_RecordBuiltOnEveryPathStaysInRegister)
 {
-    const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
-    constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
-    constexpr MicroReg cond   = MicroReg::virtualIntReg(2);
-    constexpr MicroReg refIdx = MicroReg::virtualIntReg(3);
-    constexpr MicroReg mvX    = MicroReg::virtualIntReg(4);
-    constexpr MicroReg first  = MicroReg::virtualIntReg(5);
-    constexpr MicroReg second = MicroReg::virtualIntReg(6);
-    MicroBuilder       builder(ctx);
+    const MicroReg      sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg  frame  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  cond   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  refIdx = MicroReg::virtualIntReg(3);
+    constexpr MicroReg  mvX    = MicroReg::virtualIntReg(4);
+    constexpr MicroReg  first  = MicroReg::virtualIntReg(5);
+    constexpr MicroReg  second = MicroReg::virtualIntReg(6);
+    MicroBuilder        builder(ctx);
     const MicroLabelRef intra = builder.createLabel();
 
     builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);

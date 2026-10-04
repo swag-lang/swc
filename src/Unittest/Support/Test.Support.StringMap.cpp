@@ -25,12 +25,12 @@ namespace
 SWC_TEST_BEGIN(StringMap_EmplaceConstructsOnceWhenDisplacingEntry)
 {
     StringMap<CountedValue> map;
-    uint32_t               constructions = 0;
+    uint32_t                constructions = 0;
     map.try_emplace("left", 0, 11u, constructions);
     map.try_emplace("right", 1, 22u, constructions);
 
     // The new key starts in slot zero and displaces the key in slot one.
-    constructions = 0;
+    constructions                = 0;
     const auto [value, inserted] = map.try_emplace("middle", 16, 33u, constructions);
     if (!inserted || constructions != 1 || value->value != 33 || map.size() != 3)
         return Result::Error;
@@ -40,7 +40,7 @@ SWC_TEST_BEGIN(StringMap_EmplaceConstructsOnceWhenDisplacingEntry)
     if (!left || left->value != 11 || !right || right->value != 22)
         return Result::Error;
 
-    constructions = 0;
+    constructions                        = 0;
     const auto [existing, insertedAgain] = map.try_emplace("middle", 16, 44u, constructions);
     if (insertedAgain || constructions != 0 || existing->value != 33)
         return Result::Error;

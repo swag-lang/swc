@@ -105,20 +105,20 @@ namespace
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return false;
 
-        const auto     refs = cfg.instructionRefs();
-        const CallConv& conv = CallConv::get(context.callConvKind);
+        const auto         refs            = cfg.instructionRefs();
+        const CallConv&    conv            = CallConv::get(context.callConvKind);
         constexpr uint32_t K_MAX_BACKTRACK = 256;
         for (uint32_t labelIndex = 1; labelIndex + 1 < refs.size(); ++labelIndex)
         {
-            const MicroInstr* label = storage.ptr(refs[labelIndex]);
-            const MicroInstr* middle = storage.ptr(refs[labelIndex + 1]);
-            const bool        delayed = middle && middle->op == MicroInstrOpcode::OpUnaryReg && labelIndex + 2 < refs.size();
+            const MicroInstr* label    = storage.ptr(refs[labelIndex]);
+            const MicroInstr* middle   = storage.ptr(refs[labelIndex + 1]);
+            const bool        delayed  = middle && middle->op == MicroInstrOpcode::OpUnaryReg && labelIndex + 2 < refs.size();
             const bool        compared = middle && labelIndex + 2 < refs.size() &&
                                   (middle->op == MicroInstrOpcode::CmpRegImm || middle->op == MicroInstrOpcode::CmpRegReg ||
                                    middle->op == MicroInstrOpcode::TestRegImm || middle->op == MicroInstrOpcode::TestRegReg);
             const uint32_t    loadIndex = labelIndex + (delayed || compared ? 2 : 1);
-            const MicroInstr* load  = storage.ptr(refs[loadIndex]);
-            const auto*       at    = load && load->op == MicroInstrOpcode::LoadRegMem ? load->ops(operands) : nullptr;
+            const MicroInstr* load      = storage.ptr(refs[loadIndex]);
+            const auto*       at        = load && load->op == MicroInstrOpcode::LoadRegMem ? load->ops(operands) : nullptr;
             if (!label || label->op != MicroInstrOpcode::Label || !at ||
                 !at[0].reg.isInt() || at[1].reg != conv.stackPointer || at[0].reg == at[1].reg ||
                 at[2].opBits != MicroOpBits::B64 ||
@@ -161,7 +161,7 @@ namespace
             // temporarily; track it rather than rejecting every call frame.
             const auto proveDelayedJump = [&](uint32_t jumpIndex) {
                 std::vector<std::pair<uint32_t, int64_t>> pending = {{jumpIndex, 0}};
-                std::unordered_map<uint32_t, int64_t> seen;
+                std::unordered_map<uint32_t, int64_t>     seen;
                 while (!pending.empty())
                 {
                     const auto [index, delta] = pending.back();
@@ -215,9 +215,7 @@ namespace
                                 ops[3].valueU64 > 0x100000 ||
                                 (ops[2].microOp != MicroOp::Add && ops[2].microOp != MicroOp::Subtract))
                                 return false;
-                            previousDelta += ops[2].microOp == MicroOp::Subtract ?
-                                                 static_cast<int64_t>(ops[3].valueU64) :
-                                                -static_cast<int64_t>(ops[3].valueU64);
+                            previousDelta += ops[2].microOp == MicroOp::Subtract ? static_cast<int64_t>(ops[3].valueU64) : -static_cast<int64_t>(ops[3].valueU64);
                             if (previousDelta < -0x100000 || previousDelta > 0)
                                 return false;
                         }
@@ -285,7 +283,7 @@ namespace
                 // Every backward path must reach a matching frame store (or
                 // reload) before a register change or a memory write. The
                 // bounded walk deliberately rejects complicated joins.
-                std::vector<uint32_t> pending = {jumpIndex};
+                std::vector<uint32_t>        pending = {jumpIndex};
                 std::unordered_set<uint32_t> visited;
                 while (!pending.empty() && valid)
                 {
@@ -805,7 +803,7 @@ namespace
         };
 
         // A bounded walk: a store whose fate is not settled within it stays.
-        constexpr uint32_t    K_MAX_WALK = 4096;
+        constexpr uint32_t         K_MAX_WALK = 4096;
         std::vector<uint32_t>      seen(refs.size(), 0);
         std::vector<uint32_t>      pending;
         std::vector<MicroInstrRef> deadStores;
@@ -890,15 +888,15 @@ namespace
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return false;
 
-        const auto refs = cfg.instructionRefs();
+        const auto                                       refs = cfg.instructionRefs();
         thread_local MicroPassHelpers::MicroPhysLiveness liveness;
-        bool livenessReady = false;
+        bool                                             livenessReady = false;
         for (MicroRelocation& relocation : context.builder->codeRelocations())
         {
             if (relocation.form != MicroRelocation::Form::Relative32 ||
                 (relocation.kind != MicroRelocation::Kind::ConstantAddress &&
-                relocation.kind != MicroRelocation::Kind::GlobalInitAddress &&
-                relocation.kind != MicroRelocation::Kind::GlobalZeroAddress))
+                 relocation.kind != MicroRelocation::Kind::GlobalInitAddress &&
+                 relocation.kind != MicroRelocation::Kind::GlobalZeroAddress))
                 continue;
 
             const uint32_t loadIndex = cfg.indexOf(relocation.instructionRef);

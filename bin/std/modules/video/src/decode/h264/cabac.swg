@@ -39,13 +39,13 @@ struct CabacReader
 // rebuilt one address for every table it touched, on every bin. Behind a single base they are
 // one address and a displacement, which the addressing of a memory operand already carries at no
 // cost, and the two registers this frees are two the loop no longer spills.
-const CabacLpsAt     = 0'u64      // Table 9-44, read as `2 * (range & 0xC0) + state`.
-const CabacStateAt   = 512'u64    // The state after a bin, read as `128 + state`.
-const CabacSigAt     = 768'u64    // Table 9-43 frame coding, significance context per 8x8 scan position.
-const CabacLastAt    = 832'u64    // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
-const CabacLevel1At  = 896'u64    // Context of a level's first bin, per level node.
-const CabacLevelGtAt = 904'u64    // Context of a level's later bins, per level node.
-const CabacNodeAt    = 912'u64    // The level node after a level of one, then after a larger level.
+const CabacLpsAt            = 0'u64       // Table 9-44, read as `2 * (range & 0xC0) + state`.
+const CabacStateAt          = 512'u64     // The state after a bin, read as `128 + state`.
+const CabacSigAt            = 768'u64     // Table 9-43 frame coding, significance context per 8x8 scan position.
+const CabacLastAt           = 832'u64     // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
+const CabacLevel1At         = 896'u64     // Context of a level's first bin, per level node.
+const CabacLevelGtAt        = 904'u64     // Context of a level's later bins, per level node.
+const CabacNodeAt           = 912'u64     // The level node after a level of one, then after a larger level.
 const CabacTables: [928] u8 = #run buildCabacTables()
 
 func buildCabacTables()->[928] u8
@@ -212,8 +212,8 @@ impl Slice
         {
             // The inter macroblock type is a few bins decoded against local arithmetic
             // registers, written back before an intra type takes over the reader.
-            var range = .cabac.range
-            var low   = .cabac.low
+            var range     = .cabac.range
+            var low       = .cabac.low
             var binState: s64
             var intraBase = 0'u32
             if .header.type == SliceTypeP
@@ -371,8 +371,8 @@ impl Slice
     // Decodes one P sub-macroblock type.
     mtd subMbTypePCabac()->u32
     {
-        var range = .cabac.range
-        var low   = .cabac.low
+        var range  = .cabac.range
+        var low    = .cabac.low
         var binState: s64
         var result = 0'u32
         .binDecision(21)
@@ -395,8 +395,8 @@ impl Slice
     // Decodes one B sub-macroblock type.
     mtd subMbTypeBCabac()->u32
     {
-        var range = .cabac.range
-        var low   = .cabac.low
+        var range  = .cabac.range
+        var low    = .cabac.low
         var binState: s64
         let last   = .cabac.contexts.buffer + 39
         var result = 0'u32
@@ -453,7 +453,7 @@ impl Slice
         var range = .cabac.range
         var low   = .cabac.low
         var binState: s64
-        var mode = predicted
+        var mode  = predicted
         .binDecision(68)
         if (binState & 1) == 0
         {
@@ -484,7 +484,7 @@ impl Slice
         var range = .cabac.range
         var low   = .cabac.low
         var binState: s64
-        var mode = 0'u32
+        var mode  = 0'u32
         .binDecision(64 + ctx)
         if (binState & 1) != 0
         {
@@ -525,8 +525,8 @@ impl Slice
         if .neighbors.b.available do
             topCbp = cast(u32) .neighbors.b.info!.cbpLuma
 
-        var range = .cabac.range
-        var low   = .cabac.low
+        var range  = .cabac.range
+        var low    = .cabac.low
         var binState: s64
         let states = .cabac.contexts.buffer + 73
         var cbp    = 0'u32
@@ -541,7 +541,7 @@ impl Slice
         cbp += cast(u32) (binState & 1) << 2
         ctx = (cbp & 0x04 ? 0'u64 : 1) + 2 * (cbp & 0x02 ? 0'u64 : 1)
         .binDecisionAt(states + ctx)
-        cbp += cast(u32) (binState & 1) << 3
+        cbp          += cast(u32) (binState & 1) << 3
         .cabac.range = range
         .cabac.low   = low
         return cbp
@@ -560,7 +560,7 @@ impl Slice
         var range = .cabac.range
         var low   = .cabac.low
         var binState: s64
-        var ctx = 0'u32
+        var ctx   = 0'u32
         if leftCbp > 0 do
             ctx += 1
         if topCbp > 0 do
@@ -619,7 +619,7 @@ impl Slice
         var range = .cabac.range
         var low   = .cabac.low
         var binState: s64
-        var ref = 0'u32
+        var ref   = 0'u32
         while true
         {
             .binDecision(54 + ctx)
@@ -678,10 +678,10 @@ impl Slice
 
         var range = .cabac.range
         var low   = .cabac.low
-        var bin: u32
+        var bin:      u32
         var binState: s64
-        var level: s32
-        var result: retval
+        var level:    s32
+        var result:   retval
         for component in 2'u32
         {
             let sumA    = Math.abs(cast(s32) a[component])
@@ -793,9 +793,9 @@ impl Slice
         let #uniq2 = range << 17
         let #uniq4 = low - #wrap #uniq2
         let #uniq5 = cast(s32) #uniq2 < cast(s32) low
-        low    = #uniq5 ? #uniq4 : low
-        range  = #uniq5 ? #uniq1 : range
-        #uniq0 = #uniq5 ? ~#uniq0 : #uniq0
+        low      = #uniq5 ? #uniq4 : low
+        range    = #uniq5 ? #uniq1 : range
+        #uniq0   = #uniq5 ? ~#uniq0 : #uniq0
         state[0] = CabacTables[CabacStateAt + cast(u64) (128 + #uniq0)]
         binState = #uniq0
 
@@ -909,7 +909,7 @@ impl Slice
 
         var range = .cabac.range
         var low   = .cabac.low
-        var bin: u32
+        var bin:      u32
         var binState: s64
 
         // A block of sixty-four coefficients states nothing of its own, the coded block pattern
@@ -1143,8 +1143,8 @@ impl Slice
 
                 // A neighbor inside this macroblock is its own count, already decoded in the
                 // block order; only the edge blocks ask about the neighboring macroblocks.
-                let nzA    = bx > 0 ? cast(s32) storage.nz[cast(u64) raster - 1] : .blockNz(mb, plane, bx - 1, by)
-                let nzB    = by > 0 ? cast(s32) storage.nz[cast(u64) raster - 4] : .blockNz(mb, plane, bx, by - 1)
+                let nzA = bx > 0 ? cast(s32) storage.nz[cast(u64) raster - 1] : .blockNz(mb, plane, bx - 1, by)
+                let nzB = by > 0 ? cast(s32) storage.nz[cast(u64) raster - 4] : .blockNz(mb, plane, bx, by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
                     count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, scale)

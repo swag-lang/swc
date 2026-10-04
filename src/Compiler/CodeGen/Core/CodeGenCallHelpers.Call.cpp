@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/RuntimeAllocator.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -599,7 +599,7 @@ namespace
             return false;
 
         CodeGenNodePayload storagePayload = CodeGenMemoryHelpers::globalVariableAddressPayload(codeGen, *storageSym);
-        outStorageReg = storagePayload.reg;
+        outStorageReg                     = storagePayload.reg;
         return outStorageReg.isValid();
     }
 
@@ -741,8 +741,8 @@ namespace
 
     void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, const ResolvedCallArgument& resolvedArg)
     {
-        TaskContext&                           ctx            = codeGen.ctx();
-        const TypeInfo&                        normalizedType = ctx.typeMgr().get(normalizedTypeRef);
+        TaskContext&    ctx            = codeGen.ctx();
+        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
         SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect, normalizedArg.isFloat, normalizedArg.numBits));
         const bool passAddressRef = normalizedType.isReference() && resolvedArg.bindsReferenceToValue;
 
@@ -1046,7 +1046,7 @@ namespace
         }
 
         preparedArg.srcReg = argPayload.reg;
-        preparedArg.kind = abiPreparedArgKind(arg.passKind);
+        preparedArg.kind   = abiPreparedArgKind(arg.passKind);
         out.args.push_back(preparedArg);
         return Result::Continue;
     }
@@ -1679,7 +1679,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         // This internal runtime operation needs the value alone; unlike the
         // public Win32 binding, it has no GetLastError contract to preserve.
         SWC_ASSERT(preparedArgs.args.size() == 1 && preparedArgs.transientStackSize == 0 && preparedArgs.postCallDrops.empty());
-        const MicroReg      tlsIdReg   = preparedArgs.args[0].srcReg;
+        const MicroReg      tlsIdReg  = preparedArgs.args[0].srcReg;
         const MicroReg      resultReg = codeGen.setPayloadValue(codeGen.curNodeRef(), calledFunction->returnTypeRef()).reg;
         const MicroLabelRef slowPath  = builder.createLabel();
         const MicroLabelRef done      = builder.createLabel();

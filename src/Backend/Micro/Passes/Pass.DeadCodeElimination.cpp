@@ -284,21 +284,21 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
     SWC_ASSERT(context.builder != nullptr);
 
-    MicroStorage&        storage = *context.instructions;
+    MicroStorage&                storage = *context.instructions;
     std::optional<MicroSsaState> localSsaState;
-    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*        ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
+    MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*         ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
     // Every removable instruction defines a virtual value.
     if (ssaState->values().empty())
         return Result::Continue;
 
-    MicroOperandStorage& operands              = *context.operands;
-    auto&                usedValues            = usedValues_;
-    auto&                worklist              = worklist_;
-    bool                 changed               = false;
-    bool                 directUseCursorsReady = false;
+    MicroOperandStorage&        operands              = *context.operands;
+    auto&                       usedValues            = usedValues_;
+    auto&                       worklist              = worklist_;
+    bool                        changed               = false;
+    bool                        directUseCursorsReady = false;
     thread_local FloatDefCounts floatDefs;
     floatDefs.storage  = &storage;
     floatDefs.ssaState = ssaState;

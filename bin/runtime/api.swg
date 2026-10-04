@@ -61,7 +61,10 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
     attr PrintMicro(stages: string...)
 
-    // Prints the AST of a function, a struct, or a file, at the stages named as for [[PrintMicro]].
+    // Prints the AST of a function, a struct, or a file.
+    //
+    // Without a parameter, prints after semantic analysis. The available stages are
+    // `pre-sema` and `post-sema`.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
     attr PrintAst(stages: string...)
 

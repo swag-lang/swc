@@ -18,7 +18,7 @@ private:
     {
         MicroJump     jump;
         MicroInstrRef instructionRef;
-        MicroLabelRef labelRef = MicroLabelRef::invalid();
+        MicroLabelRef labelRef           = MicroLabelRef::invalid();
         uint32_t      paddedLabelsBefore = 0;
     };
 
@@ -33,11 +33,11 @@ private:
     // functions and never cleared, and a lookup allocates nothing.
     struct LabelInfo
     {
-        uint64_t offset            = 0;
-        uint32_t paddedLabels      = 0;
-        uint32_t offsetStamp       = 0; // layout
-        uint32_t seenStamp         = 0; // function
-        uint32_t loopHeaderStamp   = 0; // function
+        uint64_t offset          = 0;
+        uint32_t paddedLabels    = 0;
+        uint32_t offsetStamp     = 0; // layout
+        uint32_t seenStamp       = 0; // function
+        uint32_t loopHeaderStamp = 0; // function
     };
 
     struct SlotInfo

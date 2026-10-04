@@ -224,17 +224,17 @@ namespace
 
     Result codeGenStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
-        const CodeGenNodePayload& leftPayload  = codeGen.payload(node.nodeLeftRef);
+        const CodeGenNodePayload& leftPayload        = codeGen.payload(node.nodeLeftRef);
         const TypeRef             preOverrideTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(node.nodeLeftRef).typeRef();
-        const SemaNodeView        rightView    = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*             rightSym     = rightView.sym();
+        const SemaNodeView        rightView          = codeGen.viewSymbol(node.nodeRightRef);
+        const Symbol*             rightSym           = rightView.sym();
         if (!rightSym)
             rightSym = recoverMemberAccessRightSymbol(codeGen, node.nodeRightRef);
         SWC_ASSERT(rightSym != nullptr);
         if (!rightSym)
             return Result::Error;
-        const auto&   semaSymVar         = rightSym->cast<SymbolVariable>();
-        TypeRef       leftTypeRef        = CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, preOverrideTypeRef);
+        const auto& semaSymVar  = rightSym->cast<SymbolVariable>();
+        TypeRef     leftTypeRef = CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, preOverrideTypeRef);
         SWC_ASSERT(leftTypeRef.isValid());
         const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
         // The receiver override above resolves the concrete struct for FIELD lookup, but the

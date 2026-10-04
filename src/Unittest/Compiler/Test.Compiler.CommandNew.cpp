@@ -195,7 +195,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_ModuleFilePreservesExplicitInputs)
     SWC_RESULT(CompilerTestFile::writeText(directory.path() / "src" / "excluded.swg", "#assert(false)\n"));
 
     CommandLine parserCmdLine;
-    parserCmdLine.silent    = true;
+    parserCmdLine.silent   = true;
     char        arg0[]     = "swc.dm";
     char        arg1[]     = "sema";
     char        arg2[]     = "--module-file";
@@ -225,11 +225,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_CleanModuleDoesNotRequireSetupFile)
 
     CommandLine parserCmdLine;
     parserCmdLine.silent = true;
-    char        arg0[]  = "swc.dm";
-    char        arg1[]  = "clean";
-    char        arg2[]  = "--module";
-    std::string module = directory.path().string();
-    char*       argv[]  = {arg0, arg1, arg2, module.data()};
+    char        arg0[]   = "swc.dm";
+    char        arg1[]   = "clean";
+    char        arg2[]   = "--module";
+    std::string module   = directory.path().string();
+    char*       argv[]   = {arg0, arg1, arg2, module.data()};
 
     CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
     SWC_RESULT(parser.parse(std::size(argv), argv));

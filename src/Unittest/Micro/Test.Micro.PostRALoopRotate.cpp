@@ -216,7 +216,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_RotatesThroughExitTrampoline)
         const MicroInstr* back = builder.instructions().ptr(backRef);
         if (!back || back->op != MicroInstrOpcode::JumpCond)
             return Result::Error;
-        const auto* ops = back->ops(builder.operands());
+        const auto* ops     = back->ops(builder.operands());
         const bool  rotates = kind == 0;
         if (ops[0].cpuCond != (rotates ? MicroCond::Less : MicroCond::Unconditional) ||
             (ops[2].valueU64 == top.get()) == rotates ||
@@ -303,14 +303,14 @@ SWC_TEST_BEGIN(PostRALoopRotate_ThreadsRepeatedIndexedZeroTestOnlyOnProvenPaths)
             callee.setAttributes(ctx, attributes);
         }
         MicroBuilder builder(ctx);
-        const auto   probe    = builder.createLabel();
-        const auto   empty    = builder.createLabel();
-        const auto   match    = builder.createLabel();
-        const auto   occupied = builder.createLabel();
-        const auto   done     = builder.createLabel();
-        const auto emitUsedTest = [&](const MicroReg cellBase) {
+        const auto   probe        = builder.createLabel();
+        const auto   empty        = builder.createLabel();
+        const auto   match        = builder.createLabel();
+        const auto   occupied     = builder.createLabel();
+        const auto   done         = builder.createLabel();
+        const auto   emitUsedTest = [&](const MicroReg cellBase) {
             builder.emitCmpRegImm(value, ApInt(0, 8), MicroOpBits::B8);
-            const MicroInstrRef old = builder.instructions().lastInstructionRef();
+            const MicroInstrRef old    = builder.instructions().lastInstructionRef();
             MicroInstrOperand   ops[7] = {};
             ops[0].reg                 = cellBase;
             ops[1].reg                 = index;

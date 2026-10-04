@@ -122,9 +122,9 @@ public:
     DiagnosticId                         lastErrorId() const { return lastErrorId_; }
     bool                                 artifactLinked() const { return artifactLinked_; }
 
-    Result run();
-    Result runExistingArtifact();
-    Result prepare();
+    Result                       run();
+    Result                       runExistingArtifact();
+    Result                       prepare();
     std::vector<SymbolFunction*> collectPreparedFunctions() const
     {
         std::vector<SymbolFunction*> result;

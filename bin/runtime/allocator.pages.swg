@@ -331,7 +331,7 @@ impl AllocatorPage
         while scan != 0
         {
             count += 1
-            scan = .nextFree(scan)
+            scan  = .nextFree(scan)
         }
 
         return count
@@ -426,6 +426,7 @@ impl AllocatorPage
             {
                 (cast(*u64) block)[] = 0
             }
+
             return block
         }
 

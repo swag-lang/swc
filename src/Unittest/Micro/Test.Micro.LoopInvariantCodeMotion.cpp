@@ -1055,7 +1055,7 @@ SWC_TEST_BEGIN(LICM_HoistsAddressWithOneReaderInNestedLoop)
     {
         for (uint32_t variant = 0; variant < 4; ++variant)
         {
-            MicroBuilder builder(ctx);
+            MicroBuilder   builder(ctx);
             SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
             const auto     outerLoop = builder.createLabel();
             const auto     innerLoop = builder.createLabel();

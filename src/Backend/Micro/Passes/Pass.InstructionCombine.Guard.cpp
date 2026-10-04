@@ -141,8 +141,8 @@ namespace InstructionCombine
             const uint32_t joinIndex = cfg.indexOf(ref);
             if (joinIndex == MicroControlFlowGraph::K_NO_INDEX || joinIndex == 0)
                 return false;
-            const auto addressTaken = cfg.addressTakenLabelIndices();
-            const auto& incoming    = cfg.predecessors(joinIndex);
+            const auto  addressTaken = cfg.addressTakenLabelIndices();
+            const auto& incoming     = cfg.predecessors(joinIndex);
             if (incoming.size() != 2 || std::ranges::find(addressTaken, joinIndex) != addressTaken.end())
                 return false;
             const uint32_t jumpIndex = incoming[0] == joinIndex - 1 ? incoming[1] : incoming[0];

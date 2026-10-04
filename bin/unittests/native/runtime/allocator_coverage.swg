@@ -855,7 +855,7 @@ func freeAddress(itf: IAllocator, address: u64)
 
         let cxt      = Swag.getContext()
         let previous = cxt.panic
-        cxt.panic          = &recordDoubleFreePanic
+        cxt.panic = &recordDoubleFreePanic
         g_DoubleFreePanics = 0
         freeAddress(itf, cast(u64) first)
         freeAddress(itf, cast(u64) second)
@@ -997,7 +997,7 @@ func writeAt(address: u64, value: u64)
 
         let cxt      = Swag.getContext()
         let previous = cxt.panic
-        cxt.panic         = &recordFreedWritePanic
+        cxt.panic = &recordFreedWritePanic
         g_FreedWritePanics = 0
         let again = allocOne(itf, 48)
         cxt.panic = previous
@@ -1062,7 +1062,7 @@ func writeAt(address: u64, value: u64)
 
     // Age the cached block and the armed deadline rather than wait for them.
     alloc.cachedBlocks[0].freedAt = 0
-    alloc.purgeDeadline           = 1
+    alloc.purgeDeadline = 1
 
     freeOne(itf, allocOne(itf, 2_000_000))
     Swag.assert(alloc.cachedBlockCount == 1)

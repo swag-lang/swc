@@ -28,6 +28,7 @@ impl InterReference
 
     mtd halfH(x, y: s32)->s32 => cast(s32) H264.clampPixel((.horizontalSum(x, y) + 16) >> 5)
     mtd halfV(x, y: s32)->s32 => cast(s32) H264.clampPixel((.verticalSum(x, y) + 16) >> 5)
+
     mtd halfC(x, y: s32)->s32
     {
         let sum = .horizontalSum(x, y - 2) - 5 * .horizontalSum(x, y - 1) + 20 * .horizontalSum(x, y) + 20 * .horizontalSum(x, y + 1) - 5 * .horizontalSum(x, y + 2) + .horizontalSum(x, y + 3)
@@ -144,9 +145,9 @@ impl ChromaReference
     var seed = 0x9E3779B9'u32
     for index in frame.cb.count
     {
-        seed = seed * #wrap 1664525 + #wrap 1013904223
+        seed            = seed * #wrap 1664525 + #wrap 1013904223
         frame.cb[index] = cast(u8) (seed >> 24)
-        seed = seed * #wrap 1664525 + #wrap 1013904223
+        seed            = seed * #wrap 1664525 + #wrap 1013904223
         frame.cr[index] = (index / 5) % 2 == 0 ? (((seed >> 21) & 1) == 0 ? 0 : 255) : cast(u8) (seed >> 24)
     }
 
@@ -204,9 +205,9 @@ impl ChromaReference
     var seed = 0x2545F491'u32
     for index in frame.cb.count
     {
-        seed = seed * #wrap 1664525 + #wrap 1013904223
+        seed            = seed * #wrap 1664525 + #wrap 1013904223
         frame.cb[index] = cast(u8) (seed >> 24)
-        seed = seed * #wrap 1664525 + #wrap 1013904223
+        seed            = seed * #wrap 1664525 + #wrap 1013904223
         frame.cr[index] = cast #wrap(u8) (seed >> 16)
     }
 

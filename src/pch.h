@@ -8,9 +8,9 @@
 #include <bit>
 #include <bitset>
 #include <cassert>
+#include <cctype>
 #include <cerrno>
 #include <charconv>
-#include <cctype>
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>

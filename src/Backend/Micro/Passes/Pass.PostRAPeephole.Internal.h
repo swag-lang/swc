@@ -72,10 +72,10 @@ namespace PostRaPeephole
 
         bool match(Context& ctx, MicroInstrRef afterRef, MicroReg result, MicroReg other, MicroOpBits bits)
         {
-            otherRef = ctx.previousRef(afterRef);
-            const MicroInstr*        otherLoad    = ctx.instruction(otherRef);
-            const MicroInstrOperand* otherLoadOps = otherLoad ? otherLoad->ops(*ctx.operands) : nullptr;
-            resultRef = ctx.previousRef(otherRef);
+            otherRef                               = ctx.previousRef(afterRef);
+            const MicroInstr*        otherLoad     = ctx.instruction(otherRef);
+            const MicroInstrOperand* otherLoadOps  = otherLoad ? otherLoad->ops(*ctx.operands) : nullptr;
+            resultRef                              = ctx.previousRef(otherRef);
             const MicroInstr*        resultLoad    = ctx.instruction(resultRef);
             const MicroInstrOperand* resultLoadOps = resultLoad ? resultLoad->ops(*ctx.operands) : nullptr;
             if (!otherLoad || otherLoad->op != MicroInstrOpcode::LoadAmcRegMem || !otherLoadOps ||

@@ -410,68 +410,68 @@ namespace
         MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
         if (nextInt > MicroReg::K_MAX_INDEX - 3 || nextFloat > MicroReg::K_MAX_INDEX - (twoVectors ? 6u : 4u))
             return false;
-        const MicroReg scalar = MicroReg::virtualIntReg(nextInt++);
-        const MicroReg ptr    = MicroReg::virtualIntReg(nextInt++);
-        const MicroReg lane   = MicroReg::virtualIntReg(nextInt);
-        const MicroReg index  = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg stride = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg packed = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg temp       = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg upperIndex = twoVectors ? MicroReg::virtualFloatReg(nextFloat++) : MicroReg::invalid();
-        const MicroReg upperAccum = twoVectors ? MicroReg::virtualFloatReg(nextFloat) : MicroReg::invalid();
-        const MicroInstrRef headerRef = order[headerOrdinal];
-        const MicroInstrRef bodyRef   = order[headerOrdinal + 1];
-        const MicroInstrRef afterRef  = order[jumpOrdinal + 1];
-        MicroInstrOperand vectorStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
+        const MicroReg      scalar        = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg      ptr           = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg      lane          = MicroReg::virtualIntReg(nextInt);
+        const MicroReg      index         = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg      stride        = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg      packed        = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg      temp          = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg      upperIndex    = twoVectors ? MicroReg::virtualFloatReg(nextFloat++) : MicroReg::invalid();
+        const MicroReg      upperAccum    = twoVectors ? MicroReg::virtualFloatReg(nextFloat) : MicroReg::invalid();
+        const MicroInstrRef headerRef     = order[headerOrdinal];
+        const MicroInstrRef bodyRef       = order[headerOrdinal + 1];
+        const MicroInstrRef afterRef      = order[jumpOrdinal + 1];
+        MicroInstrOperand   vectorStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
         vectorStep[3].setImmediateValue(ApInt(twoVectors ? 8 : 4, 64));
         const auto insert = [&](MicroInstrRef before, MicroInstrOpcode op, std::span<const MicroInstrOperand> args) {
             storage.insertDerivedBefore(operands, before, op, args);
         };
         const auto emitImmediate = [&](MicroInstrRef before, MicroReg dst, uint32_t imm) {
             MicroInstrOperand args[3] = {};
-            args[0].reg = dst;
-            args[1].opBits = MicroOpBits::B32;
+            args[0].reg               = dst;
+            args[1].opBits            = MicroOpBits::B32;
             args[2].setImmediateValue(ApInt(imm, 32));
             insert(before, MicroInstrOpcode::LoadRegImm, args);
         };
         const auto emitBinary = [&](MicroInstrRef before, MicroReg dst, MicroReg src, MicroOp op, MicroOpBits bits) {
             MicroInstrOperand args[4] = {};
-            args[0].reg = dst;
-            args[1].reg = src;
-            args[2].opBits = bits;
-            args[3].microOp = op;
+            args[0].reg               = dst;
+            args[1].reg               = src;
+            args[2].opBits            = bits;
+            args[3].microOp           = op;
             insert(before, MicroInstrOpcode::OpBinaryRegReg, args);
         };
         const auto emitShuffle = [&](MicroInstrRef before, MicroReg dst, MicroReg src, uint8_t control) {
             MicroInstrOperand args[4] = {};
-            args[0].reg = dst;
-            args[1].reg = src;
-            args[2].opBits = MicroOpBits::B128;
-            args[3].valueU64 = control;
+            args[0].reg               = dst;
+            args[1].reg               = src;
+            args[2].opBits            = MicroOpBits::B128;
+            args[3].valueU64          = control;
             insert(before, MicroInstrOpcode::VecShuffleRegRegImm, args);
         };
         const auto emitCopy = [&](MicroInstrRef before, MicroReg dst, MicroReg src, MicroOpBits bits) {
             MicroInstrOperand args[3] = {};
-            args[0].reg = dst;
-            args[1].reg = src;
-            args[2].opBits = bits;
+            args[0].reg               = dst;
+            args[1].reg               = src;
+            args[2].opBits            = bits;
             insert(before, MicroInstrOpcode::LoadRegReg, args);
         };
 
         MicroInstrOperand clear[2] = {};
-        clear[0].reg = index;
-        clear[1].opBits = MicroOpBits::B128;
+        clear[0].reg               = index;
+        clear[1].opBits            = MicroOpBits::B128;
         insert(headerRef, MicroInstrOpcode::ClearReg, clear);
         for (uint32_t laneIndex = 1; laneIndex < 4; ++laneIndex)
         {
             emitImmediate(headerRef, scalar, laneIndex);
             MicroInstrOperand args[6] = {};
-            args[0].reg = index;
-            args[1].reg = index;
-            args[2].reg = scalar;
-            args[3].opBits = MicroOpBits::B128;
-            args[4].microOp = MicroOp::VecInsert32;
-            args[5].valueU64 = laneIndex;
+            args[0].reg               = index;
+            args[1].reg               = index;
+            args[2].reg               = scalar;
+            args[3].opBits            = MicroOpBits::B128;
+            args[4].microOp           = MicroOp::VecInsert32;
+            args[5].valueU64          = laneIndex;
             insert(headerRef, MicroInstrOpcode::OpTernaryRegRegRegImm, args);
         }
         emitImmediate(headerRef, scalar, 4);
@@ -494,17 +494,17 @@ namespace
         }
 
         MicroInstrOperand address[8] = {};
-        address[0].reg = ptr;
-        address[1].reg = base;
-        address[2].reg = counter;
-        address[3].opBits = MicroOpBits::B64;
-        address[4].opBits = MicroOpBits::B64;
-        address[5].valueU64 = 4;
+        address[0].reg               = ptr;
+        address[1].reg               = base;
+        address[2].reg               = counter;
+        address[3].opBits            = MicroOpBits::B64;
+        address[4].opBits            = MicroOpBits::B64;
+        address[5].valueU64          = 4;
         insert(bodyRef, MicroInstrOpcode::LoadAddrAmcRegMem, address);
         MicroInstrOperand vecLoad[4] = {};
-        vecLoad[0].reg = temp;
-        vecLoad[1].reg = ptr;
-        vecLoad[2].opBits = MicroOpBits::B128;
+        vecLoad[0].reg               = temp;
+        vecLoad[1].reg               = ptr;
+        vecLoad[2].opBits            = MicroOpBits::B128;
         insert(bodyRef, MicroInstrOpcode::LoadVecRegMem, vecLoad);
         emitBinary(bodyRef, temp, index, MicroOp::VecAdd32, MicroOpBits::B128);
         emitBinary(bodyRef, packed, temp, MicroOp::VecXor, MicroOpBits::B128);
@@ -907,10 +907,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     !relocsBySlot.contains(bodyRef.get()) &&
                     MicroPassHelpers::areCpuFlagsDeadAfterInCfg(builder, order[jccOrdinal]))
                 {
-                    const MicroReg accumulator = bodyOps[0].reg;
-                    const MicroOpBits sumBits = bodyOps[2].opBits;
-                    uint64_t       initialSum  = 0;
-                    bool           haveSumInit = false;
+                    const MicroReg    accumulator = bodyOps[0].reg;
+                    const MicroOpBits sumBits     = bodyOps[2].opBits;
+                    uint64_t          initialSum  = 0;
+                    bool              haveSumInit = false;
                     for (uint32_t back = 1; back <= 16 && back <= h; ++back)
                     {
                         const MicroInstr* init = storage.ptr(order[h - back]);
@@ -931,7 +931,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                                 haveSumInit = true;
                             else if (init->op == MicroInstrOpcode::LoadRegImm && !initOps[2].hasWideImmediateValue())
                             {
-                                initialSum = initOps[2].valueU64;
+                                initialSum  = initOps[2].valueU64;
                                 haveSumInit = true;
                             }
                         }
@@ -939,13 +939,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     }
                     if (haveSumInit)
                     {
-                        const uint64_t progression = trips * (2 * initValue + (trips - 1) * step) / 2;
-                        const uint64_t updatedSum = bodyOps[3].microOp == MicroOp::Add ?
-                                                        initialSum + progression : initialSum - progression;
-                        const uint64_t finalSum = sumBits == MicroOpBits::B32 ?
-                                                      static_cast<uint32_t>(updatedSum) : updatedSum;
-                        const uint32_t sumWidth = sumBits == MicroOpBits::B32 ? 32 : 64;
-                        const uint32_t counterWidth = counterBits == MicroOpBits::B32 ? 32 : 64;
+                        const uint64_t    progression  = trips * (2 * initValue + (trips - 1) * step) / 2;
+                        const uint64_t    updatedSum   = bodyOps[3].microOp == MicroOp::Add ? initialSum + progression : initialSum - progression;
+                        const uint64_t    finalSum     = sumBits == MicroOpBits::B32 ? static_cast<uint32_t>(updatedSum) : updatedSum;
+                        const uint32_t    sumWidth     = sumBits == MicroOpBits::B32 ? 32 : 64;
+                        const uint32_t    counterWidth = counterBits == MicroOpBits::B32 ? 32 : 64;
                         MicroInstrOperand resultOps[3] = {};
                         resultOps[0].reg               = accumulator;
                         resultOps[1].opBits            = sumBits;
@@ -963,7 +961,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         storage.erase(order[jccOrdinal]);
                         builder.invalidateControlFlowGraph();
                         context.passChanged = true;
-                        unrolledOne = true;
+                        unrolledOne         = true;
                         break;
                     }
                 }

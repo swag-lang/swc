@@ -138,27 +138,27 @@ public:
         ownJob(std::move(job));
         return ptr;
     }
-    TypeManager&                    typeMgr() { return *(typeMgr_.get()); }
-    const TypeManager&              typeMgr() const { return *(typeMgr_.get()); }
-    TypeGen&                        typeGen() { return *(typeGen_.get()); }
-    const TypeGen&                  typeGen() const { return *(typeGen_.get()); }
-    ConstantManager&                cstMgr() { return *(cstMgr_.get()); }
-    const ConstantManager&          cstMgr() const { return *(cstMgr_.get()); }
-    IdentifierManager&              idMgr() { return *(idMgr_.get()); }
-    const IdentifierManager&        idMgr() const { return *(idMgr_.get()); }
-    DataSegment&                    constantSegment() { return constantSegment_; }
-    const DataSegment&              constantSegment() const { return constantSegment_; }
-    DataSegment&                    globalZeroSegment() { return globalZeroSegment_; }
-    const DataSegment&              globalZeroSegment() const { return globalZeroSegment_; }
-    DataSegment&                    globalInitSegment() { return globalInitSegment_; }
-    const DataSegment&              globalInitSegment() const { return globalInitSegment_; }
-    DataSegment&                    compilerSegment() { return compilerSegment_; }
-    const DataSegment&              compilerSegment() const { return compilerSegment_; }
-    std::byte*                      dataSegmentAddress(DataSegmentKind kind, uint32_t offset);
-    const std::byte*                dataSegmentAddress(DataSegmentKind kind, uint32_t offset) const;
-    Runtime::BuildCfg&              buildCfg() { return buildCfg_; }
-    const Runtime::BuildCfg&        buildCfg() const { return buildCfg_; }
-    static Utf8 buildCfgString(const Runtime::String& value)
+    TypeManager&             typeMgr() { return *(typeMgr_.get()); }
+    const TypeManager&       typeMgr() const { return *(typeMgr_.get()); }
+    TypeGen&                 typeGen() { return *(typeGen_.get()); }
+    const TypeGen&           typeGen() const { return *(typeGen_.get()); }
+    ConstantManager&         cstMgr() { return *(cstMgr_.get()); }
+    const ConstantManager&   cstMgr() const { return *(cstMgr_.get()); }
+    IdentifierManager&       idMgr() { return *(idMgr_.get()); }
+    const IdentifierManager& idMgr() const { return *(idMgr_.get()); }
+    DataSegment&             constantSegment() { return constantSegment_; }
+    const DataSegment&       constantSegment() const { return constantSegment_; }
+    DataSegment&             globalZeroSegment() { return globalZeroSegment_; }
+    const DataSegment&       globalZeroSegment() const { return globalZeroSegment_; }
+    DataSegment&             globalInitSegment() { return globalInitSegment_; }
+    const DataSegment&       globalInitSegment() const { return globalInitSegment_; }
+    DataSegment&             compilerSegment() { return compilerSegment_; }
+    const DataSegment&       compilerSegment() const { return compilerSegment_; }
+    std::byte*               dataSegmentAddress(DataSegmentKind kind, uint32_t offset);
+    const std::byte*         dataSegmentAddress(DataSegmentKind kind, uint32_t offset) const;
+    Runtime::BuildCfg&       buildCfg() { return buildCfg_; }
+    const Runtime::BuildCfg& buildCfg() const { return buildCfg_; }
+    static Utf8              buildCfgString(const Runtime::String& value)
     {
         if (!value.ptr || !value.length)
             return {};
@@ -197,10 +197,10 @@ public:
     void                            markImportedNativeExecution() { importedNativeExecuted_.store(true, std::memory_order_release); }
     // Set when the native backend starts, after the module's semantic analysis: whole-module
     // facts such as a global's address escaping are final from then on.
-    void                            markNativeBackendStarted() { nativeBackendStarted_.store(true, std::memory_order_release); }
-    bool                            nativeBackendStarted() const { return nativeBackendStarted_.load(std::memory_order_acquire); }
-    bool                            importedNativeExecuted() const { return importedNativeExecuted_.load(std::memory_order_acquire); }
-    bool                            hasImportedStaticLinkInputs() const { return !moduleStaticLinkReadTimes_.empty(); }
+    void markNativeBackendStarted() { nativeBackendStarted_.store(true, std::memory_order_release); }
+    bool nativeBackendStarted() const { return nativeBackendStarted_.load(std::memory_order_acquire); }
+    bool importedNativeExecuted() const { return importedNativeExecuted_.load(std::memory_order_acquire); }
+    bool hasImportedStaticLinkInputs() const { return !moduleStaticLinkReadTimes_.empty(); }
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -254,13 +254,13 @@ public:
     bool   tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) const;
     // Every symbol transition calls this from every worker. Storing only on a real transition keeps
     // the line shared between readers instead of bouncing it through each writer's cache.
-    void   notifyAlive()
+    void notifyAlive()
     {
         if (!changed_.load(std::memory_order_relaxed))
             changed_.store(true, std::memory_order_release);
     }
-    bool   changed() const { return changed_.load(std::memory_order_acquire); }
-    bool   consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
+    bool changed() const { return changed_.load(std::memory_order_acquire); }
+    bool consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
 
     uint32_t pendingImplRegistrations(IdentifierRef idRef) const;
     void     incPendingImplRegistrations(IdentifierRef idRef);
@@ -597,28 +597,28 @@ private:
     mutable std::mutex                        externalJobsMutex_;
     mutable std::vector<std::unique_ptr<Job>> externalJobs_;
 
-    fs::path                                       modulePathSrc_;
-    fs::path                                       modulePathFile_;
-    fs::path                                       exeFullName_;
-    DataSegment                                    constantSegment_;
-    DataSegment                                    globalZeroSegment_;
-    DataSegment                                    globalInitSegment_;
-    DataSegment                                    compilerSegment_;
-    Runtime::BuildCfg                              buildCfg_{};
-    WarningPolicy                                  warningPolicy_;
-    std::optional<ModuleApiFileEntries>            moduleApiPublicEntries_;
-    bool                                           moduleSetupMode_ = false;
-    std::vector<ModuleSetupImport>                 moduleSetupImports_;
-    std::vector<NativeRuntimeImport>               nativeRuntimeImports_;
-    std::set<fs::path>                             moduleSetupLoadedFiles_;
-    std::map<fs::path, fs::file_time_type>         moduleApiReadTimes_;
-    std::map<fs::path, fs::file_time_type>         moduleNativeReadTimes_;
-    std::map<fs::path, fs::file_time_type>         moduleStaticLinkReadTimes_;
-    std::vector<fs::path>                          moduleApiInputs_;
-    mutable std::mutex                             moduleInputsMutex_;
-    std::set<fs::path>                             compilerInputFiles_;
-    std::vector<fs::path>                          importedDependencyLinkDirs_;
-    std::unordered_set<fs::path>                   importedDependencyLinkDirSet_;
+    fs::path                               modulePathSrc_;
+    fs::path                               modulePathFile_;
+    fs::path                               exeFullName_;
+    DataSegment                            constantSegment_;
+    DataSegment                            globalZeroSegment_;
+    DataSegment                            globalInitSegment_;
+    DataSegment                            compilerSegment_;
+    Runtime::BuildCfg                      buildCfg_{};
+    WarningPolicy                          warningPolicy_;
+    std::optional<ModuleApiFileEntries>    moduleApiPublicEntries_;
+    bool                                   moduleSetupMode_ = false;
+    std::vector<ModuleSetupImport>         moduleSetupImports_;
+    std::vector<NativeRuntimeImport>       nativeRuntimeImports_;
+    std::set<fs::path>                     moduleSetupLoadedFiles_;
+    std::map<fs::path, fs::file_time_type> moduleApiReadTimes_;
+    std::map<fs::path, fs::file_time_type> moduleNativeReadTimes_;
+    std::map<fs::path, fs::file_time_type> moduleStaticLinkReadTimes_;
+    std::vector<fs::path>                  moduleApiInputs_;
+    mutable std::mutex                     moduleInputsMutex_;
+    std::set<fs::path>                     compilerInputFiles_;
+    std::vector<fs::path>                  importedDependencyLinkDirs_;
+    std::unordered_set<fs::path>           importedDependencyLinkDirSet_;
 
     // Where each imported module's shared library lives. It is what the compiler loads to run that
     // module at compile time, and it stays known even when the executable links the module's code
@@ -658,11 +658,11 @@ private:
     std::mutex                                                       deferredJitConstantFunctionsMutex_;
     std::unordered_map<SymbolFunction*, std::vector<DataSegmentRef>> deferredJitConstantFunctions_;
     mutable std::mutex                                               foreignLibsMutex_;
-    alignas(64) std::atomic<bool>                                    changed_{true};
-    std::mutex                                                       globalFunctionBindingsMutex_;
-    std::atomic<uint64_t>                                            globalFunctionBindingsVersion_{1};
-    std::atomic<uint64_t>                                            patchedGlobalFunctionBindingsVersion_{0};
-    std::atomic<uint64_t>                                            nativeGlobalFunctionInitTargetsVersion_{1};
+    alignas(64) std::atomic<bool> changed_{true};
+    std::mutex            globalFunctionBindingsMutex_;
+    std::atomic<uint64_t> globalFunctionBindingsVersion_{1};
+    std::atomic<uint64_t> patchedGlobalFunctionBindingsVersion_{0};
+    std::atomic<uint64_t> nativeGlobalFunctionInitTargetsVersion_{1};
 
     std::vector<PerThreadData>                                                                                   perThreadData_;
     std::atomic<uint32_t>                                                                                        atomicId_ = 0;
@@ -688,7 +688,7 @@ private:
     std::unordered_map<const SymbolFunction*, std::vector<uint32_t>> returnEdgesByCaller_;
     std::atomic<uint32_t>                                            guardedFreeForwardingEdgeCount_{0};
     std::atomic<uint64_t>                                            escapeSummaryEdgesVersion_{0};
-    alignas(64) std::atomic<uint64_t>                                semaCompletedSymbolCount_{0};
+    alignas(64) std::atomic<uint64_t> semaCompletedSymbolCount_{0};
     // The last few input signatures the frees propagation was run for. Its result is a function of
     // the edges, the release masks and the call graph it was given, so the same signature twice is
     // the same fixpoint twice.

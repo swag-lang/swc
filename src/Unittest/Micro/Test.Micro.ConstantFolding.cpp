@@ -654,9 +654,9 @@ SWC_TEST_BEGIN(ConstantFolding_IndexedConstantFloatComparisonIsUniform)
 
     for (const Case test : {Case::AllAbove, Case::NoneAbove, Case::Mixed, Case::MutableBase, Case::Float32AllAbove, Case::NanBelowOrEqual})
     {
-        const bool        float32   = test == Case::Float32AllAbove;
-        const MicroOpBits bits      = float32 ? MicroOpBits::B32 : MicroOpBits::B64;
-        const MicroCond   condition = test == Case::NanBelowOrEqual ? MicroCond::BelowOrEqual : MicroCond::Above;
+        const bool            float32   = test == Case::Float32AllAbove;
+        const MicroOpBits     bits      = float32 ? MicroOpBits::B32 : MicroOpBits::B64;
+        const MicroCond       condition = test == Case::NanBelowOrEqual ? MicroCond::BelowOrEqual : MicroCond::Above;
         std::array<double, 4> values{-0.25, 0.5, 1.0, 2.0};
         if (test == Case::AllAbove)
             values = {0.25, 0.5, 1.0, 2.0};
@@ -668,11 +668,11 @@ SWC_TEST_BEGIN(ConstantFolding_IndexedConstantFloatComparisonIsUniform)
         std::span<const std::byte> bytes = std::as_bytes(std::span{values});
         if (float32)
             bytes = std::as_bytes(std::span{floatValues});
-        std::array            dims{bytes.size()};
-        const TypeRef         arrayType   = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
-        const ConstantRef     constantRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, bytes));
-        const ConstantValue& constant = ctx.cstMgr().get(constantRef);
-        const uint64_t       address  = reinterpret_cast<uint64_t>(constant.getArray().data());
+        std::array           dims{bytes.size()};
+        const TypeRef        arrayType   = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+        const ConstantRef    constantRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, bytes));
+        const ConstantValue& constant    = ctx.cstMgr().get(constantRef);
+        const uint64_t       address     = reinterpret_cast<uint64_t>(constant.getArray().data());
 
         MicroBuilder builder(ctx);
         if (test == Case::MutableBase)
@@ -689,7 +689,7 @@ SWC_TEST_BEGIN(ConstantFolding_IndexedConstantFloatComparisonIsUniform)
         builder.emitRet();
 
         MicroSsaValueScratch scratch;
-        MicroPassContext passContext;
+        MicroPassContext     passContext;
         passContext.taskContext     = &ctx;
         passContext.builder         = &builder;
         passContext.instructions    = &builder.instructions();

@@ -328,8 +328,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(SymbolMap_ConcurrentUsingPublicationPreservesSnapshots)
 {
-    constexpr uint32_t NUM_IMPORTS = 128;
-    SymbolMap          symbols(nullptr, TokenRef::invalid(), SymbolKind::Namespace, IdentifierRef::invalid(), {});
+    constexpr uint32_t                      NUM_IMPORTS = 128;
+    SymbolMap                               symbols(nullptr, TokenRef::invalid(), SymbolKind::Namespace, IdentifierRef::invalid(), {});
     std::vector<std::unique_ptr<SymbolMap>> imports;
     for (uint32_t i = 0; i < NUM_IMPORTS; ++i)
         imports.push_back(std::make_unique<SymbolMap>(nullptr, TokenRef::invalid(), SymbolKind::Namespace, IdentifierRef::invalid(), SymbolFlags{}));

@@ -68,13 +68,13 @@ public:
         if (auto* existing = findNoLock(args))
             return existing;
 
-        const size_t index = genericInstances_.size();
+        const size_t index        = genericInstances_.size();
         const auto [it, inserted] = genericInstanceIndices_.try_emplace(instance, index);
         if (!inserted)
             return genericInstances_[it->second].symbol;
 
         GenericInstanceEntry& entry = genericInstances_.emplace_back();
-        entry.symbol = instance;
+        entry.symbol                = instance;
         entry.args.assign(args.begin(), args.end());
 
         if (genericArgumentIndices_)

@@ -130,8 +130,8 @@ namespace
 
     void loadCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        const TypeInfo& operandType = codeGen.typeMgr().get(operandTypeRef);
-        outReg                      = codeGen.nextVirtualRegisterForType(operandTypeRef, operandType);
+        const TypeInfo& operandType            = codeGen.typeMgr().get(operandTypeRef);
+        outReg                                 = codeGen.nextVirtualRegisterForType(operandTypeRef, operandType);
         const MicroOpBits opBits               = CodeGenTypeHelpers::compareBits(operandType, codeGen.ctx());
         const bool        isAddressBackedValue = operandType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
 
@@ -260,9 +260,9 @@ namespace
         if (!stringCmpSymbol)
             return Result::Error;
 
-        auto&             stringCmpFunction = *stringCmpSymbol;
-        const auto        callInfo          = CodeGenBinaryValueCall::emit(codeGen, stringCmpFunction, leftPayload, rightPayload);
-        MicroBuilder&     builder           = codeGen.builder();
+        auto&         stringCmpFunction = *stringCmpSymbol;
+        const auto    callInfo          = CodeGenBinaryValueCall::emit(codeGen, stringCmpFunction, leftPayload, rightPayload);
+        MicroBuilder& builder           = codeGen.builder();
 
         const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
@@ -850,8 +850,8 @@ namespace
         SWC_ASSERT(rightOperandTypeRef.isValid());
         CodeGenNodePayload leftOperandPayload  = leftPayload;
         CodeGenNodePayload rightOperandPayload = rightPayload;
-        const TypeRef leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
-        const TypeRef rightCompareTypeRef = normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
+        const TypeRef      leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
+        const TypeRef      rightCompareTypeRef = normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
         const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftCompareTypeRef, rightCompareTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
@@ -921,8 +921,8 @@ namespace
         SWC_ASSERT(rightOperandTypeRef.isValid());
         CodeGenNodePayload leftOperandPayload  = leftPayload;
         CodeGenNodePayload rightOperandPayload = rightPayload;
-        const TypeRef leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
-        const TypeRef rightCompareTypeRef = normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
+        const TypeRef      leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
+        const TypeRef      rightCompareTypeRef = normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
         const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftCompareTypeRef, rightCompareTypeRef);
         const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);

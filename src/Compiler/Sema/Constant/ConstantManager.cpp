@@ -320,9 +320,9 @@ namespace
                     return normalized->second;
             }
 
-            const uint32_t                       shardIndex = routingHash & (ConstantManager::SHARD_COUNT - 1);
+            const uint32_t                         shardIndex = routingHash & (ConstantManager::SHARD_COUNT - 1);
             const std::pair<std::string_view, Ref> res        = shard.dataSegment.addString(value.getString());
-            ConstantValue                        strValue   = ConstantValue::makeString(ctx, res.first);
+            ConstantValue                          strValue   = ConstantValue::makeString(ctx, res.first);
             if (preserveType)
                 strValue.setTypeRef(value.typeRef());
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
@@ -405,7 +405,7 @@ namespace
         if (canDeduplicateByValue)
         {
             const uint32_t routingHash = Math::hash(stored.hash());
-            stripe                    = &internStripe(shard, routingHash);
+            stripe                     = &internStripe(shard, routingHash);
             if (dataRef.isInvalid())
             {
                 const ConstantRef found = findInterned(*stripe, stored, routingHash);

@@ -94,12 +94,12 @@ public:
     // `forwardable` is for the value handles - string, slice, interface, any - the function
     // may hand on to a callee as they are: a callee takes them by value too, and cannot write
     // through the address either.
-    void                                                       markImmutableStorageBase(MicroReg virtualReg, bool forwardable = false);
-    const std::unordered_set<MicroReg>&                        immutableStorageBases() const { return immutableStorageBases_; }
-    const std::unordered_set<MicroReg>&                        forwardableStorageBases() const { return forwardableStorageBases_; }
-    uint32_t                                                   nextVirtualIntRegIndexHint() const;
-    const MicroControlFlowGraph&                               controlFlowGraph();
-    void                                                       invalidateControlFlowGraph();
+    void                                markImmutableStorageBase(MicroReg virtualReg, bool forwardable = false);
+    const std::unordered_set<MicroReg>& immutableStorageBases() const { return immutableStorageBases_; }
+    const std::unordered_set<MicroReg>& forwardableStorageBases() const { return forwardableStorageBases_; }
+    uint32_t                            nextVirtualIntRegIndexHint() const;
+    const MicroControlFlowGraph&        controlFlowGraph();
+    void                                invalidateControlFlowGraph();
 
     Result        runPasses(Encoder* encoder, MicroPassContext& context);
     Result        runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);

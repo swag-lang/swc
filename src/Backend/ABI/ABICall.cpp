@@ -53,8 +53,8 @@ namespace
         uint32_t     floatLane = 0;
         for (uint32_t i = 0; i < argLayouts.size(); ++i)
         {
-            const ABICall::ArgLayout& arg = argLayouts[i];
-            const uint32_t regIndex = nextArgRegisterIndex(conv, arg, i, intLane, floatLane);
+            const ABICall::ArgLayout& arg      = argLayouts[i];
+            const uint32_t            regIndex = nextArgRegisterIndex(conv, arg, i, intLane, floatLane);
             if (regIndex == K_NO_ARG_REGISTER)
             {
                 result.hasStackArgs = true;
@@ -517,8 +517,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     if (argMasks.hasStackArgs || argMasks.hasRegisterHomeSlot)
     {
         const uint32_t stackAdjust = computeCallStackAdjust(callConvKind, argLayouts);
-        MicroReg   regBase, regTmp;
-        const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
+        MicroReg       regBase, regTmp;
+        const bool     hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
         SWC_INTERNAL_CHECK(hasScratchRegs);
 
         for (const PreparedArg& arg : args)
@@ -855,8 +855,8 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
     // Fully self-contained call helper for runtime/JIT address calls.
-    const CallConv& conv         = CallConv::get(callConvKind);
-    const auto      argLayouts   = collectArgLayouts(args);
+    const CallConv&    conv        = CallConv::get(callConvKind);
+    const auto         argLayouts  = collectArgLayouts(args);
     const CallArgMasks argMasks    = computeCallArgMasks(conv, argLayouts.span());
     const uint32_t     stackAdjust = computeCallStackAdjust(callConvKind, argLayouts);
 

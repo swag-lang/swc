@@ -6,8 +6,8 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenStoredExprPayload.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
+#include "Compiler/CodeGen/Core/CodeGenStoredExprPayload.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -45,10 +45,10 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (!typeInfo.isAlias() && !typeInfo.isEnum())
             return typeInfo.isFloat();
-        const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
+        const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
         return storageTypeRef == typeRef ? typeInfo.isFloat() : codeGen.typeMgr().get(storageTypeRef).isFloat();
     }
 

@@ -225,7 +225,7 @@ namespace
 
 void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts)
 {
-    std::unordered_set<std::string_view> metaFunctionNames;
+    std::unordered_set<std::string_view>                                 metaFunctionNames;
     std::unordered_map<std::string_view, uint32_t>                       callCounts;
     std::unordered_map<std::string_view, uint32_t>                       hotCallCounts;
     std::unordered_map<std::string_view, uint32_t>                       useCounts;
@@ -248,9 +248,9 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             uint32_t bodyOf = AutoInlineCallGraph::K_NO_FUNCTION;
         };
 
-        AutoInlineCallGraph*       callGraph = nullptr;
-        SmallVector<PendingNode>   pending;
-        SmallVector<AstNodeRef>    children;
+        AutoInlineCallGraph*     callGraph = nullptr;
+        SmallVector<PendingNode> pending;
+        SmallVector<AstNodeRef>  children;
         pending.push_back({.nodeRef = ast->root()});
         while (!pending.empty())
         {
@@ -263,10 +263,10 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
 
             // A declaration starts over: only its own body belongs to it, and nothing under it
             // belongs to the function it is declared in.
-            uint32_t   childrenBodyOf = bodyOf;
-            AstNodeRef ownBodyRef     = AstNodeRef::invalid();
-            uint32_t   ownIndex       = AutoInlineCallGraph::K_NO_FUNCTION;
-            const auto* decl          = node.safeCast<AstFunctionDecl>();
+            uint32_t    childrenBodyOf = bodyOf;
+            AstNodeRef  ownBodyRef     = AstNodeRef::invalid();
+            uint32_t    ownIndex       = AutoInlineCallGraph::K_NO_FUNCTION;
+            const auto* decl           = node.safeCast<AstFunctionDecl>();
             if (decl)
             {
                 functionDecls[astIndex].push_back(nodeRef);

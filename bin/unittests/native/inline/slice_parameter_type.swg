@@ -59,8 +59,8 @@ func constBuffer(values: const [..] s32)->s32
 
 #test
 {
-    var data: [3] s32 = [1, 2, 3]
-    let explicitCount = explicitBuffer(data)
+    var data: [3] s32  = [1, 2, 3]
+    let explicitCount  = explicitBuffer(data)
     let automaticCount = automaticBuffer(data)
     Swag.assert(explicitCount == 3 and automaticCount == 3)
     Swag.assert(data[0] == 3)
@@ -70,7 +70,7 @@ func constBuffer(values: const [..] s32)->s32
     Swag.assert(data[0] == 4)
     Swag.assert(constBuffer(view) == 4)
 
-    Calls = 0
+    Calls   = 0
     Storage = [4, 5, 6]
     let returnedCount = explicitBuffer(nextSlice())
     Swag.assert(returnedCount == 3 and Calls == 1 and Storage[0] == 5)

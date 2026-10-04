@@ -795,11 +795,11 @@ namespace
         if (!context.encoder || conv.stackAlignment != 16 || !conv.framePointer.isValid())
             return false;
 
-        const uint64_t             reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
+        const uint64_t                 reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
         SmallVector<MicroInstrRef, 33> order;
-        const auto view  = context.instructions->view();
-        auto       it    = view.begin();
-        const auto endIt = view.end();
+        const auto                     view  = context.instructions->view();
+        auto                           it    = view.begin();
+        const auto                     endIt = view.end();
         // The body shape below can only start in the first 32 instructions.
         // Avoid collecting the rest of a function when that prefix cannot match.
         for (; it != endIt && order.size() < 33; ++it)
@@ -1034,8 +1034,8 @@ namespace
         if (loops.empty())
             return false;
 
-        const auto                                        refs = cfg.instructionRefs();
-        const auto                                        n    = cfg.instructionCount();
+        const auto                                           refs = cfg.instructionRefs();
+        const auto                                           n    = cfg.instructionCount();
         SmallVector<const MicroPassHelpers::NaturalLoop*, 4> candidates;
         for (const auto& loop : loops | std::views::values)
             candidates.push_back(&loop);
@@ -1384,8 +1384,8 @@ namespace
         if (!context.builder)
             return false;
         std::vector<ReturnTail> tails;
-        MicroInstrRef            firstRet       = MicroInstrRef::invalid();
-        bool                     collectedFirst = false;
+        MicroInstrRef           firstRet       = MicroInstrRef::invalid();
+        bool                    collectedFirst = false;
         for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
         {
             if (it->op != MicroInstrOpcode::Ret)

@@ -585,7 +585,7 @@ namespace InstructionCombine
         const bool        immediate = inst.op == MicroInstrOpcode::OpBinaryRegImm;
         const MicroOpBits bits      = immediate ? ops[1].opBits : ops[2].opBits;
         const MicroOp     op        = immediate ? ops[2].microOp : ops[3].microOp;
-        const bool remainder = op == MicroOp::ModuloUnsigned;
+        const bool        remainder = op == MicroOp::ModuloUnsigned;
         if ((op != MicroOp::DivideUnsigned && !remainder) || !ops[0].reg.isVirtualInt() || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
             return false;
 

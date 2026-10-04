@@ -179,16 +179,16 @@ private:
         size_t operator()(std::string_view value) const noexcept { return std::hash<std::string_view>{}(value); }
     };
 
-    uint32_t                                                                                            currentExtentLocked() const noexcept;
-    std::pair<uint32_t, std::byte*>                                                                     allocateStorageLocked(uint32_t size, uint32_t align, bool zeroInit);
-    std::byte*                                                                                          findPtrLocked(Ref ref, uint32_t size) noexcept;
-    const std::byte*                                                                                    findPtrLocked(Ref ref, uint32_t size) const noexcept;
-    Ref                                                                                                 findLargeBlockRefLocked(const void* ptr) const noexcept;
-    bool                                                                                                findRelocationLocked(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
-    bool                                                                                                hasRelocationsLocked(uint32_t offset, uint32_t size) const;
-    void                                                                                                rebuildRelocationsByOffsetLocked() const;
-    void                                                                                                recordRelocationIndexLocked(uint32_t index);
-    void                                                                                                recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
+    uint32_t                        currentExtentLocked() const noexcept;
+    std::pair<uint32_t, std::byte*> allocateStorageLocked(uint32_t size, uint32_t align, bool zeroInit);
+    std::byte*                      findPtrLocked(Ref ref, uint32_t size) noexcept;
+    const std::byte*                findPtrLocked(Ref ref, uint32_t size) const noexcept;
+    Ref                             findLargeBlockRefLocked(const void* ptr) const noexcept;
+    bool                            findRelocationLocked(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
+    bool                            hasRelocationsLocked(uint32_t offset, uint32_t size) const;
+    void                            rebuildRelocationsByOffsetLocked() const;
+    void                            recordRelocationIndexLocked(uint32_t index);
+    void                            recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
 
     template<typename T>
     void copyRelocationsImpl(T& outRelocations, uint32_t offset, uint32_t size) const;

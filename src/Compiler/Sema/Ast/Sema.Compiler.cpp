@@ -648,7 +648,7 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
     CompilerSwitchSemaPayload& payload    = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
     const ConstantRef          caseCstRef = sema.viewConstant(childRef).cstRef();
-    const auto [it, inserted] = payload.seen.try_emplace(caseCstRef, childRef);
+    const auto [it, inserted]             = payload.seen.try_emplace(caseCstRef, childRef);
     if (inserted)
         return Result::Continue;
 

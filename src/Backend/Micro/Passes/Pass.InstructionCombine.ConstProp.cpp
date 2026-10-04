@@ -1321,11 +1321,11 @@ namespace InstructionCombine
         if (!ops)
             return false;
 
-        bool        isSum       = false;
-        bool        hasConstant = false;
-        auto        bits        = MicroOpBits::Zero;
-        uint64_t    constant    = 0;
-        MicroReg    right       = MicroReg::invalid();
+        bool     isSum       = false;
+        bool     hasConstant = false;
+        auto     bits        = MicroOpBits::Zero;
+        uint64_t constant    = 0;
+        MicroReg right       = MicroReg::invalid();
         switch (inst.op)
         {
             case MicroInstrOpcode::CmpRegImm:

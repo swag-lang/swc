@@ -230,7 +230,7 @@ namespace
                     continue;
 
                 SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
-                offset = alignUpTo(offset, alignment);
+                offset        = alignUpTo(offset, alignment);
                 auto& elem    = outLayout.emplace_back();
                 elem.valueRef = elementRefs[i];
                 elem.typeRef  = elementTypeRef;

@@ -167,7 +167,7 @@ const char* JobManager::setStatsPhase(const char* name)
 
     // Close the interval the previous phase owned: its wall time, and the pool idle time so far.
     accountStarvationLocked();
-    const auto now = std::chrono::steady_clock::now();
+    const auto  now = std::chrono::steady_clock::now();
     PhaseStats& old = phaseStatsLocked(previous);
     old.wallNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - phaseSince_).count());
     if (activeWorkers_ == 0)
@@ -248,7 +248,9 @@ void JobManager::printStats(const TaskContext& ctx) const
     const auto     wallNs    = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - statsStart_).count());
     const uint64_t workers   = std::max<uint64_t>(configuredWorkerCount_, 1);
     const uint64_t capacity  = wallNs * workers;
-    const auto     percentOf = [&](uint64_t ns) { return capacity ? 100.0 * static_cast<double>(ns) / static_cast<double>(capacity) : 0.0; };
+    const auto     percentOf = [&](uint64_t ns) {
+        return capacity ? 100.0 * static_cast<double>(ns) / static_cast<double>(capacity) : 0.0;
+    };
 
     // The pool is idle since its last job when the command reports: count that tail too.
     uint64_t poolIdleNs = stats_.poolIdleNs;
@@ -560,7 +562,7 @@ void JobManager::refreshJitWait(const TaskContext* owner)
         return;
 
     const std::unique_lock lock(mtx_);
-    const auto it = waiters_.find(ownerKey);
+    const auto             it = waiters_.find(ownerKey);
     if (it == waiters_.end())
         return;
 
@@ -922,8 +924,8 @@ void JobManager::handleJobResultLocked(JobRecord* rec, const JobResult res)
 
         case JobResult::Sleep:
         {
-            TaskContext&                            ctx   = rec->job->ctx();
-            const TaskState*                        state = &ctx.state();
+            TaskContext&                             ctx   = rec->job->ctx();
+            const TaskState*                         state = &ctx.state();
             std::optional<JITExecManager::OwnerWait> jitWait;
             if (state->kind == TaskStateKind::SemaWaitMainThreadRunJit)
             {

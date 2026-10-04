@@ -212,7 +212,7 @@ namespace
             else if (it->op == MicroInstrOpcode::LoadMemImm)
             {
                 outHasSecondStore |= hasStore;
-                hasStore          = true;
+                hasStore = true;
             }
             if (!ctx.relocated.empty() && ctx.isRelocated(it.current) && it->op != MicroInstrOpcode::LoadRegPtrReloc)
             {
@@ -239,8 +239,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     // The optimization loop supplies shared SSA. Construct the fallback only
     // when this pass is run standalone.
     std::optional<MicroSsaState> localSsa;
-    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsa.emplace();
-    const MicroSsaState*        ssa        = MicroSsaState::ensureFor(context, ssaScratch);
+    MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsa.emplace();
+    const MicroSsaState*         ssa        = MicroSsaState::ensureFor(context, ssaScratch);
 
     // Retain the rewrite, relocation and loop-set capacities on this worker.
     // Every fact below describes one function and is reset before scanning it.

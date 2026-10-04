@@ -62,8 +62,8 @@ func readSignedNarrowLanes(seed: s8)->s64
 {
     let bytes: #simd [16] s8 = Swag.vecsplat(seed)
     let words: #simd [8] s16 = Swag.vecsplat(cast(s16) seed * 300)
-    let v = bytes - cast(#simd [16] s8) [0's8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    let w = words + cast(#simd [8] s16) [0's16, 1, 2, 3, 4, 5, 6, 7]
+    let v                    = bytes - cast(#simd [16] s8) [0's8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let w                    = words + cast(#simd [8] s16) [0's16, 1, 2, 3, 4, 5, 6, 7]
     return cast(s64) v[0] + cast(s64) v[7] * 1000 + cast(s64) v[15] * 1000000 + cast(s64) w[0] + cast(s64) w[3] + cast(s64) w[7]
 }
 

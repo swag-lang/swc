@@ -104,7 +104,7 @@ namespace
                 return false;
 
             hasReport = hasReport || reportCalls.contains(ref.get());
-            lastRef = ref;
+            lastRef   = ref;
         }
 
         return false;
@@ -149,8 +149,8 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
             MicroCond inverted = MicroCond::Unconditional;
             if (MicroPassHelpers::invertCondition(inverted, ops[0].cpuCond))
             {
-                matched       = matchColdBlock(block, context, reportCalls, storage.findNextInstructionRef(ref), &targetId);
-                block.skipped = true;
+                matched        = matchColdBlock(block, context, reportCalls, storage.findNextInstructionRef(ref), &targetId);
+                block.skipped  = true;
                 block.guardRef = ref;
             }
         }

@@ -108,7 +108,7 @@ func churn(random: *Xorshift, slots: u64, operations: u64, nextSize: func(*Xorsh
         Memory.free(cast([*] void) addresses[i], sizes[i])
         sizes[i] = nextSize(random)
         let block = cast([*] u8) Memory.alloc(sizes[i])
-        block[0]            = 1
+        block[0] = 1
         block[sizes[i] - 1] = 1
         if touchEveryPage
         {
@@ -165,10 +165,10 @@ func run(workload: Workload, seed: u64)->u64
             var block = cast([*] u8) Memory.alloc(size)
             while size < 4 * 1024 * 1024
             {
-                block = cast([*] u8) Memory.realloc(block, size * 2, size)
-                size *= 2
+                block           = cast([*] u8) Memory.realloc(block, size * 2, size)
+                size            *= 2
                 block[size - 1] = 1
-                operations += 1
+                operations      += 1
             }
 
             Memory.free(block, size)
@@ -304,7 +304,8 @@ func parseWorkload(name: string)->Workload fail
                 consume(job.ring!)
                 job.operations = XferCount
             }
-        }, &jobs[i])
+        },
+                         &jobs[i])
         try pool[i].start()
     }
 

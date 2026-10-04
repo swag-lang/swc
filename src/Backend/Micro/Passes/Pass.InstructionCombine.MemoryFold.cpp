@@ -19,7 +19,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_FOLD_WINDOW = 16;
+        constexpr uint32_t K_MAX_FOLD_WINDOW      = 16;
         constexpr uint32_t K_MAX_SLP_STORE_WINDOW = K_MAX_FOLD_WINDOW * 4;
 
         bool hasPotentialWordStoreGroup(Context& ctx, MicroInstrRef loadRef)
@@ -27,7 +27,7 @@ namespace InstructionCombine
             // Address-mode folding may not have exposed a common base and
             // adjacent offsets yet. Four word stores in one straight-line
             // window are enough to defer this fold until SLP has checked them.
-            uint32_t stores = 0;
+            uint32_t   stores    = 0;
             const auto noteStore = [&](const MicroInstr& inst) {
                 if (inst.op != MicroInstrOpcode::LoadMemReg)
                     return;
@@ -49,7 +49,7 @@ namespace InstructionCombine
             }
 
             MicroStorage::Iterator backward{ctx.storage, loadRef};
-            const auto begin = ctx.storage->view().begin();
+            const auto             begin = ctx.storage->view().begin();
             for (uint32_t step = 0; step < K_MAX_SLP_STORE_WINDOW && backward != begin; ++step)
             {
                 --backward;

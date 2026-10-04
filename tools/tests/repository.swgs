@@ -447,7 +447,7 @@ func checkFormatCoverage() fail
                       "bench/results", "bench/results/archived", "bench/results/archived/src"] do
         try Directory.create(Path.combine(root.toString(), directory).toString())
 
-    const Source = "func fixture(){}\n"
+    const Source   = "func fixture(){}\n"
     const Selected = ["bin/examples/input.swg", "bench/src/input.swg", "bench/current/module.swg",
                       "bench/current/src/input.swg", "bench/current/src/nested/input.swg", "bench/setup-only/module.swg"]
     const Excluded = ["bench/current/.output/generated.swg", "bench/data/input.swg",
@@ -474,6 +474,7 @@ func checkFormatCoverage() fail
         Swag.assert(content.toString() != Source, path)
         Swag.assert(content.contains("\r\n"), path)
     }
+
     for path in Excluded
     {
         let content = try File.readAllText(Path.combine(root.toString(), path).toString())

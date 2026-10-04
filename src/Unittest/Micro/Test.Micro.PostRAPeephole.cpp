@@ -240,9 +240,9 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksPrivateSpillStoreToColdBranch)
         SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 64, 72));
         SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 64, 72));
 
-        uint32_t stores = 0;
-        bool     seenCold = false;
-        bool     seenJoin = false;
+        uint32_t stores      = 0;
+        bool     seenCold    = false;
+        bool     seenJoin    = false;
         bool     storeOnCold = false;
         for (const MicroInstr& inst : builder.instructions().view())
         {
@@ -338,10 +338,10 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksLoopBoundReloadPastIncrement)
     for (const uint32_t variant : {0u, 1u, 2u, 3u, 4u, 5u})
     {
         MicroBuilder builder(ctx);
-        const auto   loop = builder.createLabel();
-        const auto   cold = builder.createLabel();
+        const auto   loop     = builder.createLabel();
+        const auto   cold     = builder.createLabel();
         const auto   coldEdge = builder.createLabel();
-        const auto   join = builder.createLabel();
+        const auto   join     = builder.createLabel();
         if (variant != 1)
             builder.emitLoadMemReg(conv.stackPointer, 64, bound, MicroOpBits::B64);
         builder.placeLabel(loop);
@@ -371,10 +371,10 @@ SWC_TEST_BEGIN(PostRAPeephole_SinksLoopBoundReloadPastIncrement)
 
         X64Encoder encoder(ctx);
         SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 64, variant == 5 ? 68 : 72));
-        uint32_t reloads = 0;
-        bool seenColdEdge = false;
-        bool seenJoin = false;
-        bool reloadOnCold = false;
+        uint32_t reloads      = 0;
+        bool     seenColdEdge = false;
+        bool     seenJoin     = false;
+        bool     reloadOnCold = false;
         for (const MicroInstr& inst : builder.instructions().view())
         {
             const MicroInstrOperand* ops = inst.ops(builder.operands());
@@ -1108,7 +1108,8 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsDoubledAddressIntoAdd)
                       ops[2].reg == source && ops[5].valueU64 == 2;
         }
         const bool     foldable = variant == 0 || variant == 4;
-        const uint32_t adds     = foldable ? 0u : variant == 5 ? 2u : 1u;
+        const uint32_t adds     = foldable ? 0u : variant == 5 ? 2u
+                                                               : 1u;
         if (folded != foldable || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != adds)
             return Result::Error;
     }
@@ -1144,11 +1145,11 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsIndexedAddressIntoNextLoad)
 
         X64Encoder encoder(ctx);
         SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
-        const bool      expectFold = variant == 0 || variant == 3;
-        const auto      indexedOp  = variant == 3 ? MicroInstrOpcode::LoadAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem;
-        const MicroReg  result     = variant == 0 ? address : other;
-        const uint64_t  offset     = variant == 3 ? 12 : 7;
-        bool            folded     = false;
+        const bool     expectFold = variant == 0 || variant == 3;
+        const auto     indexedOp  = variant == 3 ? MicroInstrOpcode::LoadAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        const MicroReg result     = variant == 0 ? address : other;
+        const uint64_t offset     = variant == 3 ? 12 : 7;
+        bool           folded     = false;
         for (const MicroInstr& inst : builder.instructions().view())
         {
             if (inst.op != indexedOp)
@@ -1200,7 +1201,8 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsPointerAddIntoNextLoad)
                       ops[5].valueU64 == 1 && ops[6].valueU64 == 5;
         }
         const bool     foldable = variant == 0 || variant == 4;
-        const uint32_t adds     = foldable ? 0u : variant == 5 ? 2u : 1u;
+        const uint32_t adds     = foldable ? 0u : variant == 5 ? 2u
+                                                               : 1u;
         if (folded != foldable || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != adds)
             return Result::Error;
     }
@@ -4627,8 +4629,8 @@ SWC_TEST_BEGIN(PostRAPeephole_SinkRipLoadIntoOneBranchArm)
             return Result::Error;
         if (variant == 0)
         {
-            const MicroInstrRef previous = builder.instructions().findPreviousInstructionRef(relocated);
-            const MicroInstr* previousInst = builder.instructions().ptr(previous);
+            const MicroInstrRef previous     = builder.instructions().findPreviousInstructionRef(relocated);
+            const MicroInstr*   previousInst = builder.instructions().ptr(previous);
             if (!previousInst || previousInst->op != MicroInstrOpcode::Label)
                 return Result::Error;
         }

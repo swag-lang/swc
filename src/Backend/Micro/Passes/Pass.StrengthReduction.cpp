@@ -973,12 +973,12 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    MicroStorage&        storage  = *context.instructions;
-    MicroOperandStorage& operands = *context.operands;
+    MicroStorage&                storage  = *context.instructions;
+    MicroOperandStorage&         operands = *context.operands;
     std::optional<MicroSsaState> localSsaState;
-    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState* ssaState               = nullptr;
-    uint32_t             nextVirtualIntRegIndex = 0; // computed lazily on the first expansion
+    MicroSsaState&               ssaScratch             = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*         ssaState               = nullptr;
+    uint32_t                     nextVirtualIntRegIndex = 0; // computed lazily on the first expansion
 
     if (useUnsignedDivisionWhereProven(context, storage, operands, ssaScratch))
         context.passChanged = true;

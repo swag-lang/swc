@@ -459,6 +459,7 @@ impl Slice
                 let y         = mb.mbY * 16 + job.y
                 let dst       = frame.pixPlane(plane, x, y)
                 let dstStride = frame.planeStride(plane)
+
                 // The two predictions of a pair, and a weighted one, go through scratch planes
                 // declared where they are used: a local array is cleared where it is declared,
                 // and a plain single prediction writes straight into the picture.

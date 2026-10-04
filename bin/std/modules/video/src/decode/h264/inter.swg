@@ -226,16 +226,16 @@ private func halfVerticalRows(dst: [*] u8, dstStride: u64, src: const [*] u8, sr
             if averaged do
                 half = Simd.average(half, Simd.load(other))
             Simd.store(out, half)
-            l0 = l1
-            l1 = l2
-            l2 = l3
-            l3 = l4
-            l4 = l5
-            h0 = h1
-            h1 = h2
-            h2 = h3
-            h3 = h4
-            h4 = h5
+            l0    = l1
+            l1    = l2
+            l2    = l3
+            l3    = l4
+            l4    = l5
+            h0    = h1
+            h1    = h2
+            h2    = h3
+            h3    = h4
+            h4    = h5
             line  += srcStride
             out   += dstStride
             other += anchorStride
@@ -261,11 +261,11 @@ private func halfVerticalRows(dst: [*] u8, dstStride: u64, src: const [*] u8, sr
             Simd.storeLow8(out, half)
         else do
             Simd.storeLow4(out, half)
-        r0 = r1
-        r1 = r2
-        r2 = r3
-        r3 = r4
-        r4 = r5
+        r0    = r1
+        r1    = r2
+        r2    = r3
+        r3    = r4
+        r4    = r5
         line  += srcStride
         out   += dstStride
         other += anchorStride
@@ -394,13 +394,13 @@ private func halfCenterStrip(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
             Simd.storeLow4(out, packed)
         else do
             Simd.storeLow8(out, packed)
-        s0 = s1
-        s1 = s2
-        s2 = s3
-        s3 = s4
-        s4 = s5
+        s0   = s1
+        s1   = s2
+        s2   = s3
+        s3   = s4
+        s4   = s5
         line += srcStride
-        out += dstStride
+        out  += dstStride
     }
 }
 
@@ -650,10 +650,10 @@ func mcChromaPair(dstB, dstR: [*] u8, dstStride: u64, reference: *Frame, x, y, f
         {
             (cast([*] u64) outB)[0] = (cast(const [*] u64) inB)[0]
             (cast([*] u64) outR)[0] = (cast(const [*] u64) inR)[0]
-            inB += srcStride
-            inR += srcStride
-            outB += dstStride
-            outR += dstStride
+            inB                     += srcStride
+            inR                     += srcStride
+            outB                    += dstStride
+            outR                    += dstStride
         }
 
         return
@@ -722,7 +722,7 @@ private func interpolateChroma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
                 let lower = Simd.load(line)
                 storeChromaBlend(out, width, chromaPairs(upper, lower, weights))
                 upper = lower
-                out += dstStride
+                out   += dstStride
             }
 
             return
@@ -758,7 +758,7 @@ private func interpolateChroma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
             let lower = Simd.interleaveLow(Simd.load(line), Simd.load(line + 1))
             storeChromaBlend(out, width, Simd.mulAddPairs(upper, topWeights) + Simd.mulAddPairs(lower, bottomWeights))
             upper = lower
-            out += dstStride
+            out   += dstStride
         }
 
         return

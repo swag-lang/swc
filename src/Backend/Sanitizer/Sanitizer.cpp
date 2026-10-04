@@ -375,8 +375,8 @@ void Sanitizer::computeChainLiveness()
         uint32_t    index = head;
         for (;;)
         {
-            const MicroInstr&      inst   = *context_.instructions->ptr(cfg.instructionRefs()[index]);
-            const MicroInstrDef&   def    = MicroInstr::info(inst.op);
+            const MicroInstr&    inst = *context_.instructions->ptr(cfg.instructionRefs()[index]);
+            const MicroInstrDef& def  = MicroInstr::info(inst.op);
             inst.collectUseDef(useDef, *context_.operands, context_.encoder);
             for (const MicroReg reg : useDef.uses)
             {
@@ -1750,7 +1750,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             for (uint64_t remaining = freesMask; remaining; remaining &= remaining - 1)
             {
                 const size_t i = std::countr_zero(remaining);
-                MicroReg argReg;
+                MicroReg     argReg;
                 if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, i))
                     continue;
                 const SanitizerRegInfo* argInfo = findReg(state, argReg);
@@ -1879,14 +1879,15 @@ bool Sanitizer::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
 // and fall back to dropping provable zeros when it cannot be modelled.
 void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, SmallVector<uint32_t, 32>& worklist)
 {
-    const bool              hasSubject    = state.flagsSubject.isValid();
-    const SanitizerRegInfo* subject       = hasSubject ? findReg(state, state.flagsSubject) : nullptr;
-    const SanitizerValue    subjectValue  = stackBaseReg_.isValid() && state.flagsSubject == stackBaseReg_
+    const bool              hasSubject   = state.flagsSubject.isValid();
+    const SanitizerRegInfo* subject      = hasSubject ? findReg(state, state.flagsSubject) : nullptr;
+    const SanitizerValue    subjectValue = stackBaseReg_.isValid() && state.flagsSubject == stackBaseReg_
                                                ? SanitizerValue::makeStackAddr(0)
-                                               : subject ? subject->value : SanitizerValue{};
+                                           : subject ? subject->value
+                                                     : SanitizerValue{};
 
-    bool condTrueIfSubjectZero = false;
-    const bool isZeroTest = hasSubject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero);
+    bool       condTrueIfSubjectZero = false;
+    const bool isZeroTest            = hasSubject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero);
     if (isZeroTest)
     {
         // A zero-test whose subject value the state already proves decides the branch:

@@ -634,8 +634,8 @@ namespace
         const TypeRef   laneTypeRef = indexedType.payloadSimdLaneTypeRef();
         const TypeInfo& laneType    = codeGen.typeMgr().get(laneTypeRef);
         const uint32_t  laneBits    = laneType.isFloat() ? laneType.payloadFloatBits() : laneType.payloadIntBits();
-        MicroBuilder& builder = codeGen.builder();
-        MicroReg      srcReg  = indexedPayload.reg;
+        MicroBuilder&   builder     = codeGen.builder();
+        MicroReg        srcReg      = indexedPayload.reg;
         if (laneBits == 8 || laneBits == 16)
         {
             if (lane != 0)

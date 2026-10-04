@@ -43,12 +43,12 @@ namespace
     UnaryOperandInfo collectUnaryOperandInfo(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
         UnaryOperandInfo info;
-        info.childPayload            = &codeGen.payload(nodeExprRef);
-        info.operandTypeRef          = info.childPayload->typeRef.isValid() ? info.childPayload->typeRef : codeGen.viewType(nodeExprRef).typeRef();
-        info.storageTypeRef          = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), info.operandTypeRef);
-        info.resultTypeRef           = codeGen.curViewType().typeRef();
-        info.storageTypeInfo         = &codeGen.typeMgr().get(info.storageTypeRef);
-        info.opBits                  = CodeGenTypeHelpers::compareBits(*info.storageTypeInfo, codeGen.ctx());
+        info.childPayload    = &codeGen.payload(nodeExprRef);
+        info.operandTypeRef  = info.childPayload->typeRef.isValid() ? info.childPayload->typeRef : codeGen.viewType(nodeExprRef).typeRef();
+        info.storageTypeRef  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), info.operandTypeRef);
+        info.resultTypeRef   = codeGen.curViewType().typeRef();
+        info.storageTypeInfo = &codeGen.typeMgr().get(info.storageTypeRef);
+        info.opBits          = CodeGenTypeHelpers::compareBits(*info.storageTypeInfo, codeGen.ctx());
         SWC_ASSERT(info.opBits != MicroOpBits::Zero);
         return info;
     }

@@ -188,6 +188,7 @@ impl Slice
         let chroma  = cast(u64) (mbY * 2 * (mbWidth * 2) + mbX * 2)
         let row     = cast(u64) mbWidth
         .neighbors.blockBase = block
+
         // An unavailable neighbor's indexes wrap below zero and are never read.
         fillNeighbor(&.neighbors.a, mbX > 0, mbInfo, sliceId, index - #wrap 1, block - #wrap 4, chroma - #wrap 2)
         fillNeighbor(&.neighbors.b, mbY > 0, mbInfo, sliceId, index - #wrap row, block - #wrap row * 16, chroma - #wrap row * 4)
@@ -315,7 +316,7 @@ impl Slice
     {
         var result: retval
         let dec = .dec!
-        var index: u64
+        var index:  u64
         if rx >= 0 and ry >= 0
         {
             if (mb.motionMask[list] & (1'u32 << cast(u32) (ry * 4 + rx))) == 0 do
@@ -911,6 +912,7 @@ impl Slice
                     try .reconstructMb(mb)
                     .releaseScratchResidual(mb)
                 }
+
                 dec.decodedMbs += 1
                 .advanceMb()
             }
@@ -1882,12 +1884,12 @@ impl Slice
         else
         {
             // Two chroma blocks of a row are adjacent in both grids: one 16-bit word each.
-            let cw        = cast(u64) (dec.sps.mbWidth * 2)
-            let index     = cast(u64) (mb.mbY * 2) * cw + cast(u64) (mb.mbX * 2)
-            let countsCb  = cast([*] u16) &mb.nzCb[0]
-            let countsCr  = cast([*] u16) &mb.nzCr[0]
-            let targetCb  = dec.nonZeroCb.storage()
-            let targetCr  = dec.nonZeroCr.storage()
+            let cw       = cast(u64) (dec.sps.mbWidth * 2)
+            let index    = cast(u64) (mb.mbY * 2) * cw + cast(u64) (mb.mbX * 2)
+            let countsCb = cast([*] u16) &mb.nzCb[0]
+            let countsCr = cast([*] u16) &mb.nzCr[0]
+            let targetCb = dec.nonZeroCb.storage()
+            let targetCr = dec.nonZeroCr.storage()
             (cast([*] u16) (targetCb + index))[0]      = countsCb[0]
             (cast([*] u16) (targetCb + index + cw))[0] = countsCb[1]
             (cast([*] u16) (targetCr + index))[0]      = countsCr[0]
@@ -1940,7 +1942,7 @@ impl Slice
         let intra = mb.class != MbClassInter
         if intra or mb.jobCount == 1
         {
-            let job = &mb.firstJob
+            let job       = &mb.firstJob
             var ref:   s8 = -1
             var mvX:   s16
             var mvY:   s16
@@ -2042,10 +2044,11 @@ impl Slice
         let id0   = ref >= 0 ? .refs[0, cast(u64) ref].identity : NoReferenceIdentity
         let id1   = ref1 >= 0 ? .refs[1, cast(u64) ref1].identity : NoReferenceIdentity
         let mbIdx = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
+
         // Two packed halves rather than a vector assembled lane by lane through memory.
         let lanes = cast([*] u64) dec.skipMotion.storage() + mbIdx * 2
-        lanes[0]  = packedMotion([job.mv[0, 0], job.mv[0, 1]], 0, id0)
-        lanes[1]  = packedMotion([job.mv[1, 0], job.mv[1, 1]], 0, id1)
+        lanes[0] = packedMotion([job.mv[0, 0], job.mv[0, 1]], 0, id0)
+        lanes[1] = packedMotion([job.mv[1, 0], job.mv[1, 1]], 0, id1)
 
         // Only a reference picture is read as a co-located one.
         if not dec.isRefPicture do

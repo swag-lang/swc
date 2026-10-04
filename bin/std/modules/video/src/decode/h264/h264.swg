@@ -110,13 +110,13 @@ struct Decoder
     codedLuma: Array'u8     // Any coefficient coded in the block, for deblocking.
 
     // Per-4x4-block motion state of the current picture, one array per reference list.
-    motionL0:    Array'BlockMotion
-    motionL1:    Array'BlockMotion
+    motionL0: Array'BlockMotion
+    motionL1: Array'BlockMotion
 
     // The motion of each P-skip macroblock, which never publishes its grid, as the lanes the
     // deblocking filter compares: written once by the bookkeeping instead of rebuilt from the
     // macroblock job for every edge that reads it.
-    skipMotion: Array'Simd.S16x8
+    skipMotion:  Array'Simd.S16x8
     mvdL0:       Array's16     // Motion vector differences, for the CABAC contexts.
     mvdL1:       Array's16
     directFlags: Array'u8     // Whether the block was coded in a direct mode.

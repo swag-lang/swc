@@ -47,8 +47,9 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 | `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
 | `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies. |
 
-YUV4MPEG2 computes an offset from the constant size of a frame, AVI reads one from the index the
-container carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens.
+YUV4MPEG2 computes frame offsets when its markers have a constant size; otherwise it walks the
+stream. AVI reads offsets from the container index, and ISO-BMFF expands its chunk and sample
+tables once when the stream opens.
 H.264 and H.265 in ISO-BMFF or Matroska seek to the nearest preceding sync picture and decode
 prediction dependencies forward, so a distant random seek costs the group of pictures it enters
 rather than one frame.

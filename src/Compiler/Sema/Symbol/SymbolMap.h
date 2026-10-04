@@ -92,13 +92,13 @@ private:
     static void     tablePlace(HeadTable& table, uint32_t slot, uint64_t key, Symbol* head) noexcept;
     static void     tableReserve(TaskContext& ctx, std::atomic<HeadTable*>& published, uint32_t minSize);
     template<typename F>
-    static void     forEachHead(const HeadTable* table, const F& fn);
+    static void forEachHead(const HeadTable* table, const F& fn);
     template<typename F>
-    void            forEachPublishedHead(const F& fn) const;
-    static void     notifyInserted(TaskContext& ctx, IdentifierRef idRef);
-    Symbol*         tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, uint32_t hash, Symbol* symbol, bool acceptHomonyms);
-    void            upgradeToSharded(TaskContext& ctx);
-    Symbol*         insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms);
+    void        forEachPublishedHead(const F& fn) const;
+    static void notifyInserted(TaskContext& ctx, IdentifierRef idRef);
+    Symbol*     tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, uint32_t hash, Symbol* symbol, bool acceptHomonyms);
+    void        upgradeToSharded(TaskContext& ctx);
+    Symbol*     insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms);
 };
 
 template<SymbolKind K, typename E = void>

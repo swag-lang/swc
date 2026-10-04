@@ -38,14 +38,14 @@ func hashAt(d: [*] u8, p: s64)->u64
         while j < wordLen[w] and pos < n
         {
             data[pos] = letters[wordStart[w] + j]
-            pos += 1
-            j   += 1
+            pos       += 1
+            j         += 1
         }
 
         if pos < n
         {
             data[pos] = ' '
-            pos += 1
+            pos       += 1
         }
     }
 
@@ -89,7 +89,7 @@ func hashAt(d: [*] u8, p: s64)->u64
         }
 
         prev[i % WINDOW] = head[h]
-        head[h]          = i
+        head[h] = i
 
         if best >= MIN_MATCH
         {
@@ -97,7 +97,7 @@ func hashAt(d: [*] u8, p: s64)->u64
             comp[csize + 1] = cast(u8) (best - MIN_MATCH)
             comp[csize + 2] = cast(u8) ((dist - 1) % 256)
             comp[csize + 3] = cast(u8) ((dist - 1) / 256)
-            csize += 4
+            csize           += 4
             for p in i + 1 until i + best
             {
                 if p + MIN_MATCH <= n
@@ -114,8 +114,8 @@ func hashAt(d: [*] u8, p: s64)->u64
         {
             comp[csize]     = 0
             comp[csize + 1] = data[i]
-            csize += 2
-            i     += 1
+            csize           += 2
+            i               += 1
         }
     }
 
@@ -123,8 +123,8 @@ func hashAt(d: [*] u8, p: s64)->u64
     {
         comp[csize]     = 0
         comp[csize + 1] = data[i]
-        csize += 2
-        i     += 1
+        csize           += 2
+        i               += 1
     }
 
     // ---- decompress and verify ----
@@ -136,8 +136,8 @@ func hashAt(d: [*] u8, p: s64)->u64
         if comp[c] == 0
         {
             out[o] = comp[c + 1]
-            o += 1
-            c += 2
+            o      += 1
+            c      += 2
         }
         else
         {
@@ -146,7 +146,7 @@ func hashAt(d: [*] u8, p: s64)->u64
             for len
             {
                 out[o] = out[o - back]
-                o += 1
+                o      += 1
             }
 
             c += 4

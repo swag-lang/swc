@@ -57,6 +57,7 @@ func assertDc8x8QuadCase(seed: u64)
         if (seed + index) % 7 == 0 do
             dcs[index] *= 4
     }
+
     dcs[seed % 4] = 0
 
     H264.addDc4x4Scalar(expected.buffer + 4, Stride, dcs[0])

@@ -32,7 +32,6 @@ namespace
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
-
     uint32_t lastPosition(const MicroBuilder& builder, const MicroInstrOpcode opcode)
     {
         uint32_t position = 0;

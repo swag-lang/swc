@@ -78,7 +78,7 @@ interpolate for the next block.
 {
     const Width = 64
     var pixels: [4 * Width] u8
-    var sum     = 0'u32
+    var sum = 0'u32
     for row in 0 until 4
     {
         // Ask for the next row while this one is summed. The last hint points one past

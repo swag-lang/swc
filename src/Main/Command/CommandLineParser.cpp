@@ -233,7 +233,7 @@ namespace
             buildCfg.backend.debugInfo         = false;
             // Inlining follows release: a small callee left as a call keeps every guard its
             // constant arguments would have folded away, which costs far more than the call.
-            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::Auto;
+            buildCfg.backend.inlineMode = Runtime::BuildCfgBackendInlineMode::Auto;
         }
         else if (cfgName == "release")
         {

@@ -10,7 +10,7 @@ namespace CodeGenIntegerConversion
 {
     inline void convertOperand(CodeGen& codeGen, MicroReg& outReg, const TypeInfo& srcType, MicroOpBits srcBits, MicroOpBits dstBits)
     {
-        const MicroReg dstReg = codeGen.nextVirtualIntRegister();
+        const MicroReg dstReg  = codeGen.nextVirtualIntRegister();
         MicroBuilder&  builder = codeGen.builder();
         if (srcBits == dstBits || getNumBits(srcBits) > getNumBits(dstBits))
         {

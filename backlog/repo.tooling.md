@@ -5,6 +5,30 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.007 — Separate formatter input preparation from formatter cost
+
+- Recorded: 2026-09-06 15:21
+- Updated: 2026-10-04 20:29 — distinguish the fixed formatter benchmark corpus from current maintenance coverage.
+- Evidence: on 2026-09-06, the format benchmark's private source copy omitted `.swc-format`
+  files and three maintenance input groups. It rewrote 580 files where the real `bin/` dry run
+  rewrote none. The mirror was corrected to preserve configuration and match the maintenance
+  inputs used by that measurement. Its benchmark corpus now remains fixed; current maintenance
+  also selects dedicated benchmark module and src inputs, outside historical result snapshots.
+  Fresh copies still spend most sampled worker time opening files: 351 of 401 `FormatJob`
+  samples include `SourceFile::loadContent`, mostly `NtCreateFile`. Original sources instead
+  spend 166 of 220 samples in `Formatter::prepare`; only 19 include indentation.
+- Rejected experiment: sharing the indentation pass's two line-column computations and reusing
+  their vector was predicted to save 2–5% of whole-format CPU. Eleven order-alternated pairs
+  on all maintenance roots, Release build 381 versus the candidate, six workers, gave median
+  paired candidate/baseline ratios of 1.009 wall, 1.012 CPU and 0.990 peak committed memory.
+  Median wall times were 1,255 and 1,306 ms. All 3,458 mirrored files, including configuration,
+  had identical output hashes. The optimization was removed because it showed no speed gain.
+  Shared-host activity varied during the measurement; these are not clean campaign records.
+- Next: measure fresh-copy and original-source formatting separately, attribute the opening
+  delay externally, and profile the formatter's dominant passes before choosing another change.
+- Complete when: the campaign distinguishes input-opening cost from formatting CPU and a retained
+  optimization has an order-alternated speed gain with identical output and measured memory.
+
 ### repo.tooling.002 — A differential harness must line pictures up by time, not by rank
 
 - Recorded: 2026-08-25 16:27
@@ -147,24 +171,3 @@ being compiled by it.
 - Complete when: GUI, Pixel, and OGL regressions can be assessed with repeatable paired module
   timings and memory peaks, and a sample disturbed after admission is identified in the record.
 - Related: compiler.optimization.029.
-
-### repo.tooling.007 — Separate formatter input preparation from formatter cost
-
-- Recorded: 2026-09-06 15:21
-- Evidence: on 2026-09-06, the format benchmark's private source copy omitted `.swc-format`
-  files and three maintenance input groups. It rewrote 580 files where the real `bin/` dry run
-  rewrote none. The mirror now preserves configuration and follows `tools/format.swgs`.
-  Fresh copies still spend most sampled worker time opening files: 351 of 401 `FormatJob`
-  samples include `SourceFile::loadContent`, mostly `NtCreateFile`. Original sources instead
-  spend 166 of 220 samples in `Formatter::prepare`; only 19 include indentation.
-- Rejected experiment: sharing the indentation pass's two line-column computations and reusing
-  their vector was predicted to save 2–5% of whole-format CPU. Eleven order-alternated pairs
-  on all maintenance roots, Release build 381 versus the candidate, six workers, gave median
-  paired candidate/baseline ratios of 1.009 wall, 1.012 CPU and 0.990 peak committed memory.
-  Median wall times were 1,255 and 1,306 ms. All 3,458 mirrored files, including configuration,
-  had identical output hashes. The optimization was removed because it showed no speed gain.
-  Shared-host activity varied during the measurement; these are not clean campaign records.
-- Next: measure fresh-copy and original-source formatting separately, attribute the opening
-  delay externally, and profile the formatter's dominant passes before choosing another change.
-- Complete when: the campaign distinguishes input-opening cost from formatting CPU and a retained
-  optimization has an order-alternated speed gain with identical output and measured memory.

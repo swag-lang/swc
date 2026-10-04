@@ -72,10 +72,10 @@ Result MicroPreRaPeepholePass::run(MicroPassContext& context)
     ctx.actions.clear();
     ctx.relocated.clear();
     ctx.relocationsReady = false;
-    ctx.builder  = context.builder;
-    ctx.encoder  = context.encoder;
-    ctx.storage  = context.instructions;
-    ctx.operands = context.operands;
+    ctx.builder          = context.builder;
+    ctx.encoder          = context.encoder;
+    ctx.storage          = context.instructions;
+    ctx.operands         = context.operands;
     runPerInstructionPatterns(ctx);
 
     if (ctx.actions.empty())

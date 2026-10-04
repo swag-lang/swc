@@ -2255,7 +2255,9 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         uint32_t copyDepth;
         bool     rejected;
     };
-    const auto depthAt = [&](const uint32_t idx) { return idx < loopDepth_.size() ? loopDepth_[idx] : 0u; };
+    const auto depthAt = [&](const uint32_t idx) {
+        return idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
+    };
 
     // Inside a loop, the source of a joined copy must die in the loop: outside
     // it, the joined value then lives exactly where the destination did, and

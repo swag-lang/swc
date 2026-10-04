@@ -611,7 +611,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 found == addrRegOffset.end() && available.contains(ops[1].reg))
             {
                 const uint64_t offset = addrRegOffset.at(ops[1].reg).offset;
-                found = addrRegOffset.emplace(ops[0].reg, AddrRegInfo{offset, it.current}).first;
+                found                 = addrRegOffset.emplace(ops[0].reg, AddrRegInfo{offset, it.current}).first;
                 addressCopies.insert(it.current.get());
             }
             if (found != addrRegOffset.end() && !found->second.ambiguous && found->second.defRef == it.current)
@@ -746,10 +746,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     thread_local std::unordered_map<uint64_t, SlotInfo> slots;
     slots.clear();
     SmallVector<std::pair<uint64_t, uint64_t>> wrappingRanges;
-    bool bail               = false;
-    bool hasFieldSplitWrite = false;
-    bool hasNarrowFieldRead = false;
-    bool hasVectorWrite     = false;
+    bool                                       bail               = false;
+    bool                                       hasFieldSplitWrite = false;
+    bool                                       hasNarrowFieldRead = false;
+    bool                                       hasVectorWrite     = false;
     // Slots addressed directly by the stack pointer include outgoing arguments;
     // a callee can read those behind this analysis, so they cannot be promoted.
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
@@ -1029,8 +1029,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     if (bail)
         return Result::Continue;
 
-    bool erasedDeadStores = false;
-    const auto finish     = [&] {
+    bool       erasedDeadStores = false;
+    const auto finish           = [&] {
         if (context.ssaState)
             context.ssaState->invalidate();
         context.builder->invalidateControlFlowGraph();
@@ -1383,9 +1383,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     MicroInstrOperand storeOps[4] = {};
                     // The collected offset is relative to the frame, even
                     // when the original fill used a derived address register.
-                    storeOps[0].reg               = frameBase;
-                    storeOps[1].opBits            = bits;
-                    storeOps[2].valueU64          = offset + i * elementBytes;
+                    storeOps[0].reg      = frameBase;
+                    storeOps[1].opBits   = bits;
+                    storeOps[2].valueU64 = offset + i * elementBytes;
                     storeOps[3].setImmediateValue(ApInt(uint64_t{0}, getNumBits(bits)));
                     storage.insertSyntheticBefore(operands, fillRef, MicroInstrOpcode::LoadMemImm, storeOps);
                 }
@@ -1774,9 +1774,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             ensureOrdinals();
             const InstructionPosition writePosition = (*positions)[write->ref.get()];
 
-            LaneSplit      split;
-            split.offset   = offset;
-            split.writeRef = write->ref;
+            LaneSplit split;
+            split.offset        = offset;
+            split.writeRef      = write->ref;
             bool beyondLaneZero = false;
             for (const auto& [other, otherSlot] : slots)
             {
@@ -1948,9 +1948,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     std::optional<std::unordered_map<uint32_t, RecordState>> recordStateAt;
     if (!records.empty())
     {
-        const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
-        const uint32_t               n   = cfg.instructionCount();
-        const auto                   refs = cfg.instructionRefs();
+        const MicroControlFlowGraph& cfg   = context.builder->controlFlowGraph();
+        const uint32_t               n     = cfg.instructionCount();
+        const auto                   refs  = cfg.instructionRefs();
         const uint32_t               entry = MicroPassHelpers::findSingleCfgEntry(cfg);
 
         // Every record uses this graph. Reject an unsupported graph before
@@ -1963,7 +1963,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         SmallVector<RecordWord> kept;
         for (RecordWord& record : records)
         {
-            const uint8_t all = static_cast<uint8_t>((1u << record.bytes) - 1);
+            const uint8_t                                   all = static_cast<uint8_t>((1u << record.bytes) - 1);
             std::unordered_map<uint32_t, const SlotAccess*> accessAt;
             for (const SlotAccess& acc : record.accesses)
                 accessAt[acc.ref.get()] = &acc;

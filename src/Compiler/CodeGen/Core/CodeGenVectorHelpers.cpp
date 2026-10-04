@@ -605,13 +605,13 @@ MicroReg CodeGenVectorHelpers::emitRotateImm(CodeGen& codeGen, MicroReg valueReg
 
     if (leftCount % 8 == 0)
     {
-        const uint32_t laneBytes  = laneBits / 8;
-        const uint32_t shiftBytes = leftCount / 8;
+        const uint32_t          laneBytes  = laneBits / 8;
+        const uint32_t          shiftBytes = leftCount / 8;
         std::array<uint8_t, 16> indices{};
         for (uint32_t index = 0; index < 16; ++index)
         {
             const uint32_t lane = index / laneBytes;
-            indices[index]     = static_cast<uint8_t>(lane * laneBytes + (index % laneBytes + laneBytes - shiftBytes) % laneBytes);
+            indices[index]      = static_cast<uint8_t>(lane * laneBytes + (index % laneBytes + laneBytes - shiftBytes) % laneBytes);
         }
         return emitVecBinary(codeGen, valueReg, byteTableConstant(codeGen, indices), MicroOp::VecPermB);
     }

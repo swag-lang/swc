@@ -11,8 +11,8 @@ class SymbolVariable;
 
 struct CodeGenLoweringPayload
 {
-    TypeRef         runtimeArrayFillTypeRef            = TypeRef::invalid();
-    SymbolVariable* runtimeStorageSym                  = nullptr;
+    TypeRef         runtimeArrayFillTypeRef = TypeRef::invalid();
+    SymbolVariable* runtimeStorageSym       = nullptr;
     // The storage this node registered itself. A cast that folds to a constant detaches it,
     // and sema may run the node again after a pause: the next request reattaches this one
     // instead of reserving another frame slot on every rerun.

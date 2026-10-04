@@ -272,11 +272,11 @@ Result MicroCopyEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    MicroStorage&        storage  = *context.instructions;
-    MicroOperandStorage& operands = *context.operands;
+    MicroStorage&                storage  = *context.instructions;
+    MicroOperandStorage&         operands = *context.operands;
     std::optional<MicroSsaState> localSsaState;
-    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*        ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
+    MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*         ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 

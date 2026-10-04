@@ -352,7 +352,7 @@ namespace
     bool caseBodyEndsWithFallthrough(CodeGen& codeGen, const AstSwitchCaseStmt& node)
     {
         const AstSwitchCaseBody& caseBody = codeGen.node(node.nodeBodyRef).cast<AstSwitchCaseBody>();
-        const size_t            count    = codeGen.ast().spanSize(caseBody.spanChildrenRef);
+        const size_t             count    = codeGen.ast().spanSize(caseBody.spanChildrenRef);
         if (!count)
             return false;
 
@@ -1249,11 +1249,11 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
             SWC_ASSERT(itNextCase != switchState.caseStates.end());
 
             SwitchCaseCodeGenPayload& caseState = itCase->second;
-            caseState.hasNextCase   = true;
-            caseState.nextCaseRef   = nextCaseRef;
-            caseState.nextTestLabel = itNextCase->second.testLabel;
-            caseState.nextBodyLabel = itNextCase->second.bodyLabel;
-            itCase                 = itNextCase;
+            caseState.hasNextCase               = true;
+            caseState.nextCaseRef               = nextCaseRef;
+            caseState.nextTestLabel             = itNextCase->second.testLabel;
+            caseState.nextBodyLabel             = itNextCase->second.bodyLabel;
+            itCase                              = itNextCase;
         }
     }
 

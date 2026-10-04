@@ -39,9 +39,9 @@ namespace InstructionCombine
     // struct stays assignable and matches project conventions.
     struct Context : MicroPeephole::RewriteQueue<Action>
     {
-        MicroPassContext* passContext = nullptr;
-        const MicroSsaState*    ssa         = nullptr;
-        MicroBuilder*           builder     = nullptr;
+        MicroPassContext*    passContext = nullptr;
+        const MicroSsaState* ssa         = nullptr;
+        MicroBuilder*        builder     = nullptr;
         // Instructions that carry a relocation. Rewriting or erasing one
         // drops the relocation binding - the patch then lands wherever
         // codeOffset zero points - so claimAll refuses them unless a rule
@@ -87,10 +87,10 @@ namespace InstructionCombine
         {
             SWC_ASSERT(newOps.size() <= Action::K_MAX_OPS);
             Action& action = actions.emplace_back();
-            action.ref    = ref;
-            action.newOp  = op;
-            action.numOps = static_cast<uint8_t>(newOps.size());
-            action.insert = true;
+            action.ref     = ref;
+            action.newOp   = op;
+            action.numOps  = static_cast<uint8_t>(newOps.size());
+            action.insert  = true;
             for (size_t idx = 0; idx < newOps.size(); ++idx)
                 action.ops[idx] = newOps[idx];
         }

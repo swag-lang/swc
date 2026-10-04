@@ -402,8 +402,8 @@ namespace
             }
         }
 
-        auto&                                relocations   = context.builder->codeRelocations();
-        const size_t                         relocationEnd = relocations.size();
+        auto&                                             relocations   = context.builder->codeRelocations();
+        const size_t                                      relocationEnd = relocations.size();
         thread_local std::unordered_map<uint32_t, size_t> firstRelocation;
         thread_local std::vector<size_t>                  nextRelocation;
         firstRelocation.clear();
@@ -528,11 +528,11 @@ namespace
             dereferenceBasesInLoop.clear();
             thread_local std::unordered_set<uint64_t> directStoreTargets;
             directStoreTargets.clear();
-            bool                         loopHasCall         = false;
-            bool                         loopHasReadOnlyCall = false;
-            bool                         loopHasPointerStore = false;
-            bool                         loopHasFrameStore   = false;
-            bool                         loopHasNestedLoop   = false;
+            bool loopHasCall         = false;
+            bool loopHasReadOnlyCall = false;
+            bool loopHasPointerStore = false;
+            bool loopHasFrameStore   = false;
+            bool loopHasNestedLoop   = false;
             for (uint32_t i = 0; i < n; ++i)
             {
                 if (!inBody[i])
@@ -758,9 +758,9 @@ namespace
             // values from an earlier loop or function.
             for (const uint32_t i : bodyIndices)
             {
-                slotDefReg[i]      = MicroReg::invalid();
-                slotIsFullDef[i]   = 0;
-                slotIsCompute[i]   = 0;
+                slotDefReg[i]    = MicroReg::invalid();
+                slotIsFullDef[i] = 0;
+                slotIsCompute[i] = 0;
                 if (i == header)
                     continue;
                 const MicroInstr*       inst   = storage.ptr(instrRefs[i]);
@@ -817,7 +817,7 @@ namespace
                 return dc != definitions.end() && dc->second.count == it->second.defSlots.size();
             };
 
-            std::unordered_set<uint32_t> hoistSet;
+            std::unordered_set<uint32_t>              hoistSet;
             thread_local std::unordered_set<MicroReg> banned;
             banned.clear();
 
@@ -1056,7 +1056,7 @@ namespace
             // not. A violating register is banned and the whole pipeline reruns
             // without it, cascading until stable.
             thread_local std::unordered_map<MicroReg, uint32_t> inLoopUse;
-            std::unordered_set<MicroReg> nestedLoopUses;
+            std::unordered_set<MicroReg>                        nestedLoopUses;
             inLoopUse.clear();
             bool countedLoopUses = false;
             for (;;)
@@ -1200,7 +1200,7 @@ namespace
                         if (hoistSet.contains(s))
                             continue;
                         const MicroInstrUseDef* ud = &useDefs[s];
-                        violated = std::ranges::find(ud->uses, reg) != ud->uses.end();
+                        violated                   = std::ranges::find(ud->uses, reg) != ud->uses.end();
                     }
 
                     // An exit taken mid-web leaves the register holding an

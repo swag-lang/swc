@@ -20,9 +20,9 @@ namespace CodeGenBinaryValueCall
 
     inline CallInfo emit(CodeGen& codeGen, SymbolFunction& function, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
     {
-        const CallConvKind callConvKind = function.callConvKind();
-        const CallConv&    callConv     = CallConv::get(callConvKind);
-        const auto&       params       = function.parameters();
+        const CallConvKind                callConvKind = function.callConvKind();
+        const CallConv&                   callConv     = CallConv::get(callConvKind);
+        const auto&                       params       = function.parameters();
         SmallVector<ABICall::PreparedArg> preparedArgs;
         preparedArgs.reserve(2);
 

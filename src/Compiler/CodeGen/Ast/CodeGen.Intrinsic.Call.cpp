@@ -8,8 +8,8 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenIntegerConversion.h"
+#include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
@@ -119,19 +119,19 @@ namespace
         if (!typeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (!typeInfo.isAlias() && !typeInfo.isEnum())
             return typeRef;
-        const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
+        const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
         return storageTypeRef.isValid() ? storageTypeRef : typeRef;
     }
 
     void loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        const TypeRef operandStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
-        const TypeInfo&   operandType       = codeGen.typeMgr().get(operandStorageTypeRef);
-        outReg                              = codeGen.nextVirtualRegisterForType(operandStorageTypeRef, operandType);
-        const MicroOpBits opBits            = CodeGenTypeHelpers::numericBits(operandType);
+        const TypeRef   operandStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
+        const TypeInfo& operandType           = codeGen.typeMgr().get(operandStorageTypeRef);
+        outReg                                = codeGen.nextVirtualRegisterForType(operandStorageTypeRef, operandType);
+        const MicroOpBits opBits              = CodeGenTypeHelpers::numericBits(operandType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroBuilder& builder = codeGen.builder();
@@ -1674,8 +1674,8 @@ namespace
         TypeRef                   contextTypeRef = intrinsicOperandTypeRef(codeGen, contextRef, contextPayload);
         SWC_ASSERT(contextTypeRef.isValid());
 
-        const TypeInfo& contextType = codeGen.typeMgr().get(contextTypeRef);
-        const TypeRef   rawTypeRef  = contextType.unwrap(codeGen.ctx(), contextTypeRef, TypeExpandE::Alias);
+        const TypeInfo& contextType   = codeGen.typeMgr().get(contextTypeRef);
+        const TypeRef   rawTypeRef    = contextType.unwrap(codeGen.ctx(), contextTypeRef, TypeExpandE::Alias);
         const bool      resolvedAlias = rawTypeRef.isValid() && rawTypeRef != contextTypeRef;
         if (resolvedAlias)
             contextTypeRef = rawTypeRef;
@@ -2016,9 +2016,9 @@ namespace
         }
 
         const CodeGenNodePayload& firstPayload = codeGen.payload(children[0]);
-        TypeRef firstTypeRef = firstPayload.typeRef.isValid() ? firstPayload.typeRef : codeGen.viewType(children[0]).typeRef();
-        firstTypeRef                    = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), firstTypeRef);
-        const TypeInfo& firstType       = codeGen.typeMgr().get(firstTypeRef);
+        TypeRef                   firstTypeRef = firstPayload.typeRef.isValid() ? firstPayload.typeRef : codeGen.viewType(children[0]).typeRef();
+        firstTypeRef                           = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), firstTypeRef);
+        const TypeInfo& firstType              = codeGen.typeMgr().get(firstTypeRef);
         if (!firstType.isSimd())
             return Result::Continue;
 

@@ -856,7 +856,7 @@ namespace
     Result validateFallthroughHasNextCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
         const auto& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
-        const auto nodeIndex = sema.ast().findNodeIndex(switchStmt.spanChildrenRef, caseRef);
+        const auto  nodeIndex  = sema.ast().findNodeIndex(switchStmt.spanChildrenRef, caseRef);
         if (!nodeIndex)
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
         if (sema.ast().nthNode(switchStmt.spanChildrenRef, *nodeIndex + 1).isInvalid())

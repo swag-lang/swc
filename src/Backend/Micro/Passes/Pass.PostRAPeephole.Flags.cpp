@@ -1902,8 +1902,7 @@ namespace PostRaPeephole
     // load reads base and index at the same point the address did, so the
     // only condition is that no later instruction reads `address`: the load
     // overwrites it, or liveness proves it dead.
-    static bool foldAddressIntoNextLoad(Context& ctx, const MicroInstrRef addressRef, const MicroReg address, const MicroReg base, const MicroReg index,
-                                        const uint64_t scale, const uint64_t disp)
+    static bool foldAddressIntoNextLoad(Context& ctx, const MicroInstrRef addressRef, const MicroReg address, const MicroReg base, const MicroReg index, const uint64_t scale, const uint64_t disp)
     {
         if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
             return false;
@@ -2039,8 +2038,8 @@ namespace PostRaPeephole
             return false;
         const MicroReg address = add[0].reg;
 
-        MicroInstrRef     leaRef = ctx.previousRef(addRef);
-        const MicroInstr* lea    = ctx.instruction(leaRef);
+        MicroInstrRef     leaRef  = ctx.previousRef(addRef);
+        const MicroInstr* lea     = ctx.instruction(leaRef);
         MicroInstrRef     between = MicroInstrRef::invalid();
         if (lea && lea->op != MicroInstrOpcode::LoadAddrRegMem)
         {

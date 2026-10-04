@@ -82,14 +82,14 @@ SWC_TEST_BEGIN(PostRALoopHoist_FoldedBitwiseOperandNeedsStableSavedRegister)
             callee.setAttributes(ctx, attributes);
         }
         MicroBuilder builder(ctx);
-        const auto top  = builder.createLabel();
-        const auto done = builder.createLabel();
+        const auto   top  = builder.createLabel();
+        const auto   done = builder.createLabel();
         if (mode != 6)
             builder.emitPush(scratch);
         builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
-        const MicroOp bitwise = mode == 1 ? MicroOp::Or : MicroOp::And;
-        const MicroOpBits bits = mode == 8 ? MicroOpBits::B32 : MicroOpBits::B64;
-        MicroInstrRef entryReadRef;
+        const MicroOp     bitwise = mode == 1 ? MicroOp::Or : MicroOp::And;
+        const MicroOpBits bits    = mode == 8 ? MicroOpBits::B32 : MicroOpBits::B64;
+        MicroInstrRef     entryReadRef;
         if (mode != 4)
         {
             builder.emitOpBinaryRegMem(value, base, 0x20, bitwise, bits);
@@ -104,7 +104,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_FoldedBitwiseOperandNeedsStableSavedRegister)
             builder.emitCallLocal(&callee, CallConvKind::Swag);
         builder.emitOpBinaryRegMem(value, base, 0x20, bitwise, bits);
         const MicroInstrRef foldedRef = builder.instructions().lastInstructionRef();
-        MicroInstrRef secondFoldedRef;
+        MicroInstrRef       secondFoldedRef;
         if (mode == 1)
         {
             builder.emitOpBinaryRegMem(value, base, 0x20, MicroOp::Xor, MicroOpBits::B64);
@@ -122,8 +122,8 @@ SWC_TEST_BEGIN(PostRALoopHoist_FoldedBitwiseOperandNeedsStableSavedRegister)
         builder.emitRet();
 
         SWC_RESULT(runPostRaLoopHoistPass(builder));
-        const MicroInstr* folded = builder.instructions().ptr(foldedRef);
-        const bool expected = mode == 0 || mode == 1 || mode == 8;
+        const MicroInstr* folded   = builder.instructions().ptr(foldedRef);
+        const bool        expected = mode == 0 || mode == 1 || mode == 8;
         if (!folded || (folded->op == MicroInstrOpcode::OpBinaryRegReg) != expected ||
             (folded->op == MicroInstrOpcode::OpBinaryRegMem) == expected)
             return Result::Error;

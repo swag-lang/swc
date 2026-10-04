@@ -306,9 +306,9 @@ namespace
 
     struct LoopPlacement
     {
-        const NaturalLoop* loop = nullptr;
+        const NaturalLoop* loop      = nullptr;
         MicroInstrRef      headerRef = MicroInstrRef::invalid();
-        uint32_t           exitTo = K_INVALID;
+        uint32_t           exitTo    = K_INVALID;
     };
 
     bool findLoopPlacement(LoopPlacement& out, MicroStorage& storage, const MicroControlFlowGraph& cfg, const NaturalLoop& loop, std::span<const MicroInstrRef> instrRefs)
@@ -377,12 +377,12 @@ namespace
     // Attempts the promotion on one loop. Returns true when the IR changed.
     bool promoteLoop(const MicroPassContext& context, FunctionModel& fn, const MicroControlFlowGraph& cfg, const LoopPlacement& placement, std::span<const MicroInstrRef> instrRefs)
     {
-        MicroStorage&        storage  = *fn.storage;
-        MicroOperandStorage& operands = *fn.operands;
-        const uint32_t       n        = cfg.instructionCount();
-        const NaturalLoop&   loop     = *placement.loop;
+        MicroStorage&        storage   = *fn.storage;
+        MicroOperandStorage& operands  = *fn.operands;
+        const uint32_t       n         = cfg.instructionCount();
+        const NaturalLoop&   loop      = *placement.loop;
         const MicroInstrRef  headerRef = placement.headerRef;
-        const uint32_t       exitTo   = placement.exitTo;
+        const uint32_t       exitTo    = placement.exitTo;
 
         // ---- Scan every body instruction's memory behavior; a call, a
         //      stack-pointer adjustment, or an unexplainable access

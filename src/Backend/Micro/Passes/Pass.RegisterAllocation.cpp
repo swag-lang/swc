@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -1280,7 +1280,7 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
         if (!taken.isValid())
             continue;
 
-        auto&         regState = states_[candidate.denseIndex];
+        auto&          regState = states_[candidate.denseIndex];
         PendingInsert& preload  = pending.emplace_back();
         if (regState.rematerializable)
         {
@@ -3004,7 +3004,7 @@ bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest& requ
         return false;
 
     const uint32_t sourceDense = denseVirtualIndex(request.transferSource);
-    auto& sourceState = states_[sourceDense];
+    auto&          sourceState = states_[sourceDense];
     if (!sourceState.mapped)
         return false;
 
@@ -3017,7 +3017,7 @@ bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest& requ
         return false;
 
     const uint32_t dstDense = denseVirtualIndex(request.virtKey);
-    auto& dstState = states_[dstDense];
+    auto&          dstState = states_[dstDense];
     if (dstState.mapped && dstState.phys != sourcePhys)
     {
         const MicroReg dstPhys = dstState.phys;
@@ -3394,7 +3394,7 @@ void MicroRegisterAllocationPass::saveRestorePinnedAcrossCall(const uint32_t ins
         if (instructionIndex < virtualSpanLo_[denseIndex] || instructionIndex > virtualSpanHi_[denseIndex])
             continue;
 
-        auto&         regState = states_[denseIndex];
+        auto&          regState = states_[denseIndex];
         PendingInsert& save     = pending.emplace_back();
         queueSpillStore(save, regState.phys, regState, stackDepth);
         pendingBorrowRestores_.push_back({.physReg = regState.phys, .slotOffset = regState.spillOffset, .slotBits = regState.spillBits, .atIndex = instructionIndex + 1});
@@ -3754,7 +3754,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // falls back to the full flush.
     boundarySnapshots_.clear();
     fallThroughStateValid_ = true;
-    keepAcrossBoundaries_ = hasControlFlow_ &&
+    keepAcrossBoundaries_  = hasControlFlow_ &&
                             controlFlowGraph_ != nullptr &&
                             !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
                             controlFlowGraph_->supportsDeadCodeLiveness();
@@ -4223,7 +4223,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (keepAcrossBoundaries_ && controlFlowGraph_)
             {
                 const auto& successors = controlFlowGraph_->successors(idx);
-                fallsThrough = std::ranges::find(successors, idx + 1) != successors.end();
+                fallsThrough           = std::ranges::find(successors, idx + 1) != successors.end();
             }
 
             if (!fallsThrough)
@@ -4383,7 +4383,7 @@ namespace
             MicroInstr* inst = storage.ptr(refs[index]);
             if (!inst)
                 return false;
-            const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+            const MicroInstrUseDef useDef    = inst->collectUseDef(operands, context.encoder);
             const bool             defsBase  = std::ranges::find(useDef.defs, base) != useDef.defs.end();
             const bool             defsStack = std::ranges::find(useDef.defs, stack) != useDef.defs.end();
             if (defsBase)

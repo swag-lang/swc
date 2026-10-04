@@ -88,7 +88,9 @@ SWC_TEST_BEGIN(InductionVariable_CarriesAddressesWithUnencodableScales)
         constexpr MicroReg count     = MicroReg::virtualIntReg(3);
         constexpr MicroReg address   = MicroReg::virtualIntReg(4);
         constexpr MicroReg step      = MicroReg::virtualIntReg(5);
-        const uint64_t     scale     = variant == 1 ? 8 : variant == 3 ? 24 : variant == 4 ? 16 : 56;
+        const uint64_t     scale     = variant == 1 ? 8 : variant == 3 ? 24
+                                                      : variant == 4   ? 16
+                                                                       : 56;
         const MicroReg     sp        = CallConv::get(CallConvKind::Swag).stackPointer;
         MicroBuilder       builder(ctx);
         const auto         header = builder.createLabel();

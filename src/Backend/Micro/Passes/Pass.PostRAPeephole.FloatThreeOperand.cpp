@@ -524,8 +524,8 @@ namespace PostRaPeephole
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return;
         const bool allowFusion = ctx.encoder && ctx.encoder->supportsFusedFloatMultiplyAdd() && ctx.builder->backendBuildCfg().fpMathFma;
-        const auto refs      = cfg.instructionRefs();
-        bool       candidate = false;
+        const auto refs        = cfg.instructionRefs();
+        bool       candidate   = false;
         for (const auto ref : refs)
         {
             const auto* inst = ctx.storage->ptr(ref);
@@ -559,15 +559,15 @@ namespace PostRaPeephole
             auto demand = analysis.outputDemand(block);
             for (uint32_t i = block.end; i > block.begin;)
             {
-                const auto  ref   = refs[--i];
-                const auto* inst  = ctx.storage->ptr(ref);
-                const auto* ops   = inst->ops(*ctx.operands);
+                const auto  ref  = refs[--i];
+                const auto* inst = ctx.storage->ptr(ref);
+                const auto* ops  = inst->ops(*ctx.operands);
                 if (allowFusion && i > block.begin && tryFuseScalarFloatProduct(ctx, demand, refs[i - 1], ref))
                 {
                     --i;
                     continue;
                 }
-                bool        widen = false;
+                bool widen = false;
                 if (inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
                     ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
                     (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))

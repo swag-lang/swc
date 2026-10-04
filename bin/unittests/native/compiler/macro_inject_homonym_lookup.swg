@@ -100,7 +100,7 @@ func injectPlain(stmt: #code)
 #test
 {
     let shadowLet = 101
-    var result = 0
+    var result    = 0
     injectPlain()
     {
         let before = shadowLet

@@ -243,7 +243,7 @@ namespace InstructionCombine
         // written once the walk is over, with one width for all of them.
         bool collectStores(const Context& ctx, const MicroInstrRef loadRef, const MicroReg base, const uint64_t slotOffset, SmallVector<Lane, 16>& outLanes, uint32_t& outLaneBytes, SmallVector<MicroInstrRef, 16>& outStoreRefs, MicroReg& outWhole)
         {
-            outWhole = MicroReg::invalid();
+            outWhole              = MicroReg::invalid();
             bool     covered[16]  = {};
             uint32_t coveredBytes = 0;
             outLaneBytes          = 0;

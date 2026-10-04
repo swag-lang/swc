@@ -65,8 +65,8 @@ namespace MicroPeephole
         void emitErase(MicroInstrRef ref)
         {
             ACTION& action = actions.emplace_back();
-            action.ref   = ref;
-            action.erase = true;
+            action.ref     = ref;
+            action.erase   = true;
         }
 
         void emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock = false)

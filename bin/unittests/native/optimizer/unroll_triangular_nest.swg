@@ -59,7 +59,7 @@ func pairSum(values: [*] s64)->s64
         for j in i + 1 until 16
         {
             values[i] += values[j] & 3
-            total += values[i] * (j - i)
+            total     += values[i] * (j - i)
         }
     }
 

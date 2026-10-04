@@ -14,7 +14,7 @@ func follow(links: const [*] s64, start: s64)->s64
     var steps = 0's64
     while cand >= 0 and steps < 16
     {
-        cand = links[cand % 8]
+        cand  = links[cand % 8]
         steps += 1
     }
 

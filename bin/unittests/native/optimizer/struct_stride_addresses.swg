@@ -76,7 +76,7 @@ func sumEveryOther(items: const [..] Pair24)->u64
     while i < items.count
     {
         acc += items[i].value * 7 + items[i].tag + i
-        i += 2
+        i   += 2
     }
     return acc
 }
@@ -89,7 +89,7 @@ func sumEveryOtherRef(items: const [..] Pair24)->u64
     while i < items.count
     {
         acc += items[i].value * 7 + items[i].tag + i
-        i += 2
+        i   += 2
     }
     return acc
 }
@@ -98,10 +98,10 @@ func sumEveryOtherRef(items: const [..] Pair24)->u64
 func sumDownwards(items: const [..] Pair24)->u64
 {
     var acc: u64
-    var i    = items.count
+    var i = items.count
     while i > 0
     {
-        i -= 1
+        i   -= 1
         acc = acc * 31 + items[i].key
     }
     return acc
@@ -111,10 +111,10 @@ func sumDownwards(items: const [..] Pair24)->u64
 func sumDownwardsRef(items: const [..] Pair24)->u64
 {
     var acc: u64
-    var i    = items.count
+    var i = items.count
     while i > 0
     {
-        i -= 1
+        i   -= 1
         acc = acc * 31 + items[i].key
     }
     return acc

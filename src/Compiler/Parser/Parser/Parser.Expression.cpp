@@ -216,7 +216,7 @@ AstModifierFlags Parser::parseModifiers()
 {
     // Where each accepted modifier was written, read only to point at the earlier one when a
     // modifier is repeated. Most operators carry none, so this must cost nothing to set up.
-    AstModifierFlags                                       result = AstModifierFlagsE::Zero;
+    AstModifierFlags                                      result = AstModifierFlagsE::Zero;
     SmallVector<std::pair<AstModifierFlags, TokenRef>, 4> done;
 
     while (true)
@@ -596,8 +596,8 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
 
     while (true)
     {
-        const TokenId opId = id();
-        const int precedence = getLogicalPrecedence(opId);
+        const TokenId opId       = id();
+        const int     precedence = getLogicalPrecedence(opId);
         if (precedence < minPrecedence)
         {
             if (precedence == -2)
@@ -1057,8 +1057,8 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
 
     while (true)
     {
-        const TokenId opId = id();
-        const int precedence = getRelationalPrecedence(opId);
+        const TokenId opId       = id();
+        const int     precedence = getRelationalPrecedence(opId);
         if (precedence < minPrecedence)
             break;
 

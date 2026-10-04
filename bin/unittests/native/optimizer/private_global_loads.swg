@@ -8,7 +8,7 @@ var g_TableStorage: [64] u64
 var g_PrivateTable: [*] u64?
 var g_PrivateCount: u64
 
-var g_TakenCount: u64
+var g_TakenCount:   u64
 var g_TakenAddress: *u64?
 
 var g_DirectCount: u64
@@ -43,7 +43,7 @@ func countThroughEscapedAddress(slots: [*] u64, target: *u64)->u64
     {
         target[] = cast(u64) i + 100
         slots[i] = g_TakenCount
-        seen += g_TakenCount
+        seen     += g_TakenCount
     }
     return seen
 }
@@ -55,9 +55,9 @@ func countDirectWrites(slots: [*] u64)->u64
     var seen = 0'u64
     for i in 8
     {
-        slots[i] = g_DirectCount
+        slots[i]      = g_DirectCount
         g_DirectCount += 2
-        seen += g_DirectCount
+        seen          += g_DirectCount
     }
     return seen
 }

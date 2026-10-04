@@ -79,7 +79,7 @@ public:
     SymbolMap*       symMap() { return symMap_; }
     const SymbolMap* symMap() const { return symMap_; }
 
-    void                           addUsingSymMap(SymbolMap* symMap) { usingSymMaps_.push_back(symMap); }
+    void        addUsingSymMap(SymbolMap* symMap) { usingSymMaps_.push_back(symMap); }
     static void addUsingSymMapIfMissing(SemaScope& scope, SymbolMap* usingSymMap)
     {
         SWC_ASSERT(usingSymMap != nullptr);

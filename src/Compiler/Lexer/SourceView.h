@@ -64,27 +64,27 @@ public:
     void                                 setLineOffset(const uint32_t offset) { lineOffset_ = offset; }
     const Token&                         token(TokenRef tok) const { return tokens_[tok.get()]; }
     // Identifier tokens store a table index in byteStart; other tokens store a source offset.
-    uint32_t                             tokenByteStart(const Token& tok) const { return tok.id == TokenId::Identifier ? identifiers_[tok.byteStart].byteStart : tok.byteStart; }
-    uint32_t                             tokenByteEnd(const Token& tok) const { return tokenByteStart(tok) + tok.byteLength; }
-    uint32_t                             numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
-    const std::vector<uint32_t>&         triviaStart() const { return triviaStart_; }
-    std::vector<uint32_t>&               triviaStart() { return triviaStart_; }
-    bool                                 hasParseFlag(SourceViewFlagsE flag) const { return parseFlags_.has(flag); }
-    void                                 addParseFlag(SourceViewFlagsE flag) { parseFlags_.add(flag); }
-    void                                 clearParseFlags() { parseFlags_.clear(); }
-    bool                                 mustSkip() const { return parseFlags_.has(SourceViewFlagsE::MustSkip); }
-    void                                 setMustSkip() { parseFlags_.add(SourceViewFlagsE::MustSkip); }
-    bool                                 isLexOnly() const { return parseFlags_.has(SourceViewFlagsE::LexOnly); }
-    void                                 setLexOnly() { parseFlags_.add(SourceViewFlagsE::LexOnly); }
-    bool                                 isSyntaxOnly() const { return parseFlags_.has(SourceViewFlagsE::SyntaxOnly); }
-    void                                 setSyntaxOnly() { parseFlags_.add(SourceViewFlagsE::SyntaxOnly); }
-    bool                                 isSemaOnly() const { return parseFlags_.has(SourceViewFlagsE::SemaOnly); }
-    void                                 setSemaOnly() { parseFlags_.add(SourceViewFlagsE::SemaOnly); }
-    bool                                 runsParser() const { return parseFlags_.hasNot(SourceViewFlagsE::LexOnly); }
-    bool                                 runsSema() const { return runsParser() && parseFlags_.hasNot(SourceViewFlagsE::SyntaxOnly); }
-    bool                                 runsJit() const { return runsSema() && parseFlags_.hasNot(SourceViewFlagsE::SemaOnly); }
-    bool                                 runsNativeArtifact() const { return runsJit(); }
-    bool                                 isRuntimeFile() const { return file_ && file_->isRuntime(); }
+    uint32_t                     tokenByteStart(const Token& tok) const { return tok.id == TokenId::Identifier ? identifiers_[tok.byteStart].byteStart : tok.byteStart; }
+    uint32_t                     tokenByteEnd(const Token& tok) const { return tokenByteStart(tok) + tok.byteLength; }
+    uint32_t                     numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
+    const std::vector<uint32_t>& triviaStart() const { return triviaStart_; }
+    std::vector<uint32_t>&       triviaStart() { return triviaStart_; }
+    bool                         hasParseFlag(SourceViewFlagsE flag) const { return parseFlags_.has(flag); }
+    void                         addParseFlag(SourceViewFlagsE flag) { parseFlags_.add(flag); }
+    void                         clearParseFlags() { parseFlags_.clear(); }
+    bool                         mustSkip() const { return parseFlags_.has(SourceViewFlagsE::MustSkip); }
+    void                         setMustSkip() { parseFlags_.add(SourceViewFlagsE::MustSkip); }
+    bool                         isLexOnly() const { return parseFlags_.has(SourceViewFlagsE::LexOnly); }
+    void                         setLexOnly() { parseFlags_.add(SourceViewFlagsE::LexOnly); }
+    bool                         isSyntaxOnly() const { return parseFlags_.has(SourceViewFlagsE::SyntaxOnly); }
+    void                         setSyntaxOnly() { parseFlags_.add(SourceViewFlagsE::SyntaxOnly); }
+    bool                         isSemaOnly() const { return parseFlags_.has(SourceViewFlagsE::SemaOnly); }
+    void                         setSemaOnly() { parseFlags_.add(SourceViewFlagsE::SemaOnly); }
+    bool                         runsParser() const { return parseFlags_.hasNot(SourceViewFlagsE::LexOnly); }
+    bool                         runsSema() const { return runsParser() && parseFlags_.hasNot(SourceViewFlagsE::SyntaxOnly); }
+    bool                         runsJit() const { return runsSema() && parseFlags_.hasNot(SourceViewFlagsE::SemaOnly); }
+    bool                         runsNativeArtifact() const { return runsJit(); }
+    bool                         isRuntimeFile() const { return file_ && file_->isRuntime(); }
 
     SourceCodeRange               tokenCodeRange(const TaskContext& ctx, TokenRef tokRef) const;
     void                          codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runtime::SourceCodeLocation& location, SourceCodeRange& outCodeRange) const;

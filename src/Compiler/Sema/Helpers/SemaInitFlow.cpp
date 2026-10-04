@@ -1969,10 +1969,10 @@ namespace
             case AstNodeId::SingleVarDecl:
             case AstNodeId::MultiVarDecl:
             {
-                const AstNode& declNode    = sema.node(ref);
-                const auto*    varBase     = declNode.is(AstNodeId::SingleVarDecl)
-                                                 ? static_cast<const AstVarDeclBase*>(&declNode.cast<AstSingleVarDecl>())
-                                                 : static_cast<const AstVarDeclBase*>(&declNode.cast<AstMultiVarDecl>());
+                const AstNode& declNode = sema.node(ref);
+                const auto*    varBase  = declNode.is(AstNodeId::SingleVarDecl)
+                                              ? static_cast<const AstVarDeclBase*>(&declNode.cast<AstSingleVarDecl>())
+                                              : static_cast<const AstVarDeclBase*>(&declNode.cast<AstMultiVarDecl>());
                 // Only declarations without an initializer can lose their default
                 // construction and therefore need final lifecycle facts here.
                 if (varBase->nodeInitRef.isValid())
@@ -1985,8 +1985,8 @@ namespace
                 {
                     if (!sym || !sym->isVariable())
                         continue;
-                    const auto& symVar = sym->cast<SymbolVariable>();
-                    TypeRef typeRef = symVar.typeRef();
+                    const auto& symVar  = sym->cast<SymbolVariable>();
+                    TypeRef     typeRef = symVar.typeRef();
                     for (uint32_t guard = 0; guard < 8 && typeRef.isValid(); guard++)
                     {
                         const TypeInfo& type = sema.typeMgr().get(typeRef);

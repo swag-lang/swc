@@ -155,7 +155,7 @@ namespace
         }
 
         CodeGenNodePayload exprPayload = codeGen.payload(exprRef);
-        TypeRef exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
+        TypeRef            exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
         const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
         MicroBuilder&   builder  = codeGen.builder();

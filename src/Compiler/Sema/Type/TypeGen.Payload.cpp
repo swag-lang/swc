@@ -1191,13 +1191,13 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 {
     const TaskContext& ctx     = sema.ctx();
     TypeManager&       typeMgr = sema.typeMgr();
-    const TypeInfo&     keyType = typeMgr.get(key);
+    const TypeInfo&    keyType = typeMgr.get(key);
 
     const auto& metadataEntry = requireCacheEntry(cache, entry.rtTypeRef);
     const auto* metadata      = storage.ptr<Runtime::TypeInfoStruct>(metadataEntry.offset);
     SWC_ASSERT(metadata->dynamicSlots.count == 1);
     SWC_ASSERT(metadata->dynamicSlots.ptr[0].offset == offsetof(Runtime::TypeInfo, dynamicIdentity));
-    auto*   payload           = storage.ptr<Runtime::TypeInfo>(entry.offset);
+    auto*   payload            = storage.ptr<Runtime::TypeInfo>(entry.offset);
     TypeRef unqualifiedTypeRef = key;
     if (keyType.isConst() || keyType.isNullable())
     {

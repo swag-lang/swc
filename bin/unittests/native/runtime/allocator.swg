@@ -80,7 +80,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         let r = exchangeNext(state)
         switch r % 100
         {
-        case 0 until 80: return 9 + (r >> 8) % 256
+        case 0 until 80:  return 9 + (r >> 8) % 256
         case 80 until 97: return 256 + (r >> 8) % 20000
         }
 

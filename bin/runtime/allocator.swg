@@ -66,12 +66,12 @@ struct AllocatorHeader
     allocSize:  u64
     commitSize: u64
     userSize:   u64
-    blockSize: u64
-    prev:      *AllocatorHeader?
-    next:      *AllocatorHeader?
-    tracking:  *AllocatorTracking?
-    alignment: u32
-    isTracked: bool
+    blockSize:  u64
+    prev:       *AllocatorHeader?
+    next:       *AllocatorHeader?
+    tracking:   *AllocatorTracking?
+    alignment:  u32
+    isTracked:  bool
 
     // An electric block ends near a reserved guard page, with less than one alignment unit of
     // trailing slack. It carries no footer; an access reaching the guard faults immediately.
@@ -142,7 +142,7 @@ struct AllocatorThreadHeap
 
     // Counts slow-path page refills, to read the clock for the idle purge only now and then.
     purgeCountdown: u32
-    classes:   [AllocatorClassCount] AllocatorThreadClass
+    classes:        [AllocatorClassCount] AllocatorThreadClass
 }
 
 // Fiber-local storage gives both real per-thread isolation and a destructor that runs on a thread
@@ -174,7 +174,6 @@ struct Allocator
     firstSegment:   *AllocatorSegment?
     firstHeap:      *AllocatorThreadHeap?
     firstAbandoned: *AllocatorPage?
-
 
     // Every live header belongs to one list so bulk release can discover it. Only tracked blocks
     // enter firstAlloc and supply detailed leak reports; ordinary headers enter firstUntracked.
@@ -1144,8 +1143,8 @@ impl Allocator
     // Removes entry 'index' by moving the last entry into its place. The caller holds the mutex.
     mtd removeCachedBlock(index: u64)
     {
-        .cachedBlockBytes -= .cachedBlocks[index].committed
-        .cachedBlockCount -= 1
+        .cachedBlockBytes    -= .cachedBlocks[index].committed
+        .cachedBlockCount    -= 1
         .cachedBlocks[index] = .cachedBlocks[.cachedBlockCount]
     }
 

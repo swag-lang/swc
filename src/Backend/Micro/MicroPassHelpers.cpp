@@ -949,7 +949,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         {
             const uint32_t i = worklist.back();
             worklist.pop_back();
-            inWorklist[i] = 0;
+            inWorklist[i]        = 0;
             const uint64_t newIn = computeLiveIn(i);
             if (newIn == out.liveIn[i])
                 continue;
@@ -1189,7 +1189,7 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     // reachable node, leaving unreachable entries invalid without another fill.
     auto& subtreeBegin = rpoPosition;
     auto& subtreeEnd   = idom;
-    auto& pending = rpo;
+    auto& pending      = rpo;
     pending.clear();
     pending.push_back(entry);
     uint32_t position   = 0;
@@ -1306,8 +1306,8 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
         const MicroInstrDef& info      = MicroInstr::info(inst.op);
         uint8_t              baseIndex = 0;
         const bool           readsBase = !info.flags.has(MicroInstrFlagsE::WritesMemory) &&
-                                         !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
-                                         dereferenceBaseOperandIndex(baseIndex, inst.op, info);
+                               !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
+                               dereferenceBaseOperandIndex(baseIndex, inst.op, info);
         for (const MicroInstrRegOperandRef& regOp : regOps)
         {
             const MicroReg reg = *regOp.reg;

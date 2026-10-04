@@ -14,7 +14,7 @@ public:
     static constexpr auto K = JobKind::CodeGen;
 
     CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root);
-    JobResult   exec() override;
+    JobResult exec() override;
 #if SWC_DEV_MODE
     Utf8 statsLabel() const override;
 #endif

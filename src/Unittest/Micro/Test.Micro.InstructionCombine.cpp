@@ -101,32 +101,32 @@ SWC_TEST_BEGIN(InstCombine_ConstantIndex_FoldsIndexedMemoryOperations)
             MicroBuilder builder(ctx);
             if (variant != 1)
                 builder.emitLoadRegImm(index, ApInt(3, 64), MicroOpBits::B64);
-            MicroInstrOperand ops[8] = {};
-            const bool  regResult = test.indexed == MicroInstrOpcode::OpBinaryRegAmcMem;
-            ops[0].reg       = regResult ? value : base;
-            ops[1].reg       = regResult ? base : index;
-            ops[2].reg       = regResult ? index : value;
-            ops[3].opBits    = variant == 2 ? MicroOpBits::B32 : MicroOpBits::B64;
-            ops[4].opBits    = MicroOpBits::B32;
-            ops[5].valueU64  = 4;
-            ops[6].valueU64  = 8;
+            MicroInstrOperand ops[8]    = {};
+            const bool        regResult = test.indexed == MicroInstrOpcode::OpBinaryRegAmcMem;
+            ops[0].reg                  = regResult ? value : base;
+            ops[1].reg                  = regResult ? base : index;
+            ops[2].reg                  = regResult ? index : value;
+            ops[3].opBits               = variant == 2 ? MicroOpBits::B32 : MicroOpBits::B64;
+            ops[4].opBits               = MicroOpBits::B32;
+            ops[5].valueU64             = 4;
+            ops[6].valueU64             = 8;
             if (test.operandCount == 8)
                 ops[7].microOp = MicroOp::Xor;
             if (regResult)
             {
-                ops[3].opBits   = MicroOpBits::B32;
-                ops[4].opBits   = variant == 2 ? MicroOpBits::B32 : MicroOpBits::B64;
+                ops[3].opBits = MicroOpBits::B32;
+                ops[4].opBits = variant == 2 ? MicroOpBits::B32 : MicroOpBits::B64;
             }
             if (test.indexed == MicroInstrOpcode::OpBinaryAmcMemImm)
             {
-                ops[2].opBits = MicroOpBits::B32;
+                ops[2].opBits   = MicroOpBits::B32;
                 ops[4].valueU64 = 4;
                 ops[5].valueU64 = 8;
                 ops[6].setImmediateValue(ApInt(7, 32));
             }
             if (test.indexed == MicroInstrOpcode::OpUnaryAmcMem)
             {
-                ops[2].reg = MicroReg::invalid();
+                ops[2].reg     = MicroReg::invalid();
                 ops[7].microOp = MicroOp::Add;
             }
             if (test.indexed == MicroInstrOpcode::CmpAmcReg)
@@ -533,13 +533,13 @@ SWC_TEST_BEGIN(InstCombine_ReloadIntoSameRegister_IsErased)
 {
     for (const uint32_t mode : {0u, 1u, 2u, 3u})
     {
-        constexpr MicroReg base     = MicroReg::virtualIntReg(1);
-        constexpr MicroReg other    = MicroReg::virtualIntReg(2);
-        constexpr MicroReg word     = MicroReg::virtualIntReg(3);
-        constexpr MicroReg real     = MicroReg::virtualFloatReg(1);
-        const bool         isFloat  = mode == 0 || mode == 3;
-        const MicroReg     value    = isFloat ? real : word;
-        const MicroOpBits  bits     = isFloat ? MicroOpBits::B64 : MicroOpBits::B32;
+        constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+        constexpr MicroReg other   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg word    = MicroReg::virtualIntReg(3);
+        constexpr MicroReg real    = MicroReg::virtualFloatReg(1);
+        const bool         isFloat = mode == 0 || mode == 3;
+        const MicroReg     value   = isFloat ? real : word;
+        const MicroOpBits  bits    = isFloat ? MicroOpBits::B64 : MicroOpBits::B32;
         MicroBuilder       builder(ctx);
         builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
         builder.emitLoadRegReg(other, MicroReg::intReg(3), MicroOpBits::B64);
@@ -571,10 +571,10 @@ SWC_TEST_END()
 // store that covers it, and a load of it takes the last value stored there.
 SWC_TEST_BEGIN(InstCombine_StoresBelowTheBaseKeepSignedRanges)
 {
-    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
-    constexpr MicroReg first  = MicroReg::virtualIntReg(2);
-    constexpr MicroReg second = MicroReg::virtualIntReg(3);
-    constexpr MicroReg value  = MicroReg::virtualIntReg(4);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg first   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg second  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(4);
     const uint64_t     below8  = static_cast<uint64_t>(-8);
     const uint64_t     below12 = static_cast<uint64_t>(-12);
 

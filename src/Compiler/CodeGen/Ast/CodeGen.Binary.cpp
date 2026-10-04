@@ -221,9 +221,9 @@ namespace
         TypeRef leftSemanticTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
         if (!leftSemanticTypeRef.isValid())
             leftSemanticTypeRef = leftView.typeRef().isValid() ? leftView.typeRef() : ctx.leftOperandTypeRef;
-        ctx.operationTypeRef = leftSemanticTypeRef;
-        const TypeInfo& resultType = typeMgr.get(ctx.resultTypeRef);
-        const TypeInfo& opType     = typeMgr.get(ctx.operationTypeRef);
+        ctx.operationTypeRef         = leftSemanticTypeRef;
+        const TypeInfo& resultType   = typeMgr.get(ctx.resultTypeRef);
+        const TypeInfo& opType       = typeMgr.get(ctx.operationTypeRef);
         const bool      resultIsBool = resultType.isBool();
         if (!resultIsBool && resultType.isScalarNumeric() && opType.isScalarNumeric())
         {
@@ -276,7 +276,7 @@ namespace
     TypeRef resolveArithmeticOperandPhysicalTypeRef(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef sourceTypeRef)
     {
         const TypeRef originalSourceTypeRef = sourceTypeRef;
-        sourceTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
+        sourceTypeRef                       = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
         if (!operandPayload.isValue() || !operandPayload.typeRef.isValid() || operandPayload.typeRef == originalSourceTypeRef)
             return sourceTypeRef;
 

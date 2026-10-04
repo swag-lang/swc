@@ -316,7 +316,7 @@ namespace
     {
         std::unordered_map<uint32_t, uint32_t>        counts;
         const std::unordered_map<uint32_t, uint32_t>* borrowed = nullptr;
-        bool                                         built    = false;
+        bool                                          built    = false;
 
         void invalidate()
         {
@@ -385,8 +385,8 @@ namespace
                     break;
                 }
 
-                const MicroInstrOperand* ops = inst->ops(operands);
-                uint32_t labelId = 0;
+                const MicroInstrOperand* ops     = inst->ops(operands);
+                uint32_t                 labelId = 0;
                 if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, ops))
                     ++scan.labelReferences[labelId];
 
@@ -2728,7 +2728,7 @@ namespace
             return index < count ? storage.ptr(layout.order[index]) : nullptr;
         };
 
-        bool                                                 changed = false;
+        bool                                                  changed = false;
         std::optional<std::unordered_map<uint32_t, uint32_t>> insideCounts;
         for (size_t start = 1; start < count; ++start)
         {
@@ -4097,7 +4097,7 @@ namespace
         };
 
         SmallVector<Candidate> candidates;
-        const bool hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
+        const bool             hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
         if (!hasCurrentBranchScan)
         {
             for (const MicroInstr& inst : storage.view())
@@ -4245,7 +4245,7 @@ namespace
         // D is a byte the skipped part made for B alone: nothing else may read
         // it, or running that part on the other path would be observable.
         std::optional<std::unordered_map<uint32_t, uint32_t>> localMentions;
-        const auto* mentions = &scanCache.scan.mentions;
+        const auto*                                           mentions = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
         {
             auto& counts = localMentions.emplace();
@@ -4405,8 +4405,8 @@ namespace
             return false;
 
         std::optional<std::unordered_map<uint32_t, uint32_t>> localMentions;
-        const bool hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
-        const auto* mentions = &scanCache.scan.mentions;
+        const bool                                            hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
+        const auto*                                           mentions             = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
         {
             auto& counts = localMentions.emplace();
@@ -4738,7 +4738,7 @@ namespace
     bool eraseUnreferencedLabels(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, RelocationRefCache& relocationCache)
     {
         std::unordered_set<uint64_t> referencedLabels;
-        SmallVector<MicroInstrRef>    labelRefs;
+        SmallVector<MicroInstrRef>   labelRefs;
 
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
@@ -7463,7 +7463,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         if (hasSetCondition)
         {
             std::optional<MicroSsaState> localSsaState;
-            MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+            MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
             if (lateChanged && context.ssaState)
                 context.ssaState->invalidate();
             if (lateChanged)
@@ -7499,8 +7499,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // The pre-RA loop provides shared SSA. Construct a fallback only when this
     // pass runs standalone, instead of initializing its many buffers every run.
     std::optional<MicroSsaState> localSsaState;
-    MicroSsaState&              ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*        ssaState   = hasConditionalJump ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
+    MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*         ssaState   = hasConditionalJump ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;

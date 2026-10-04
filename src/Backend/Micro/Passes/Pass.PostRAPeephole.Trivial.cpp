@@ -76,7 +76,7 @@ namespace PostRaPeephole
         bool            changed = false;
 
         std::optional<std::unordered_set<uint32_t>> readOnlyCallRefs;
-        const auto isReadOnlyCall = [&](const MicroInstrRef ref) {
+        const auto                                  isReadOnlyCall = [&](const MicroInstrRef ref) {
             if (!readOnlyCallRefs)
                 readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*ctx.builder);
             return readOnlyCallRefs->contains(ref.get());
@@ -126,7 +126,7 @@ namespace PostRaPeephole
                     continue;
 
                 std::optional<bool> sourceObjectSlot;
-                const auto disjointSpillStore = [&](const MicroInstr& step) {
+                const auto          disjointSpillStore = [&](const MicroInstr& step) {
                     if (ctx.passContext->spillAreaLo >= ctx.passContext->spillAreaHi)
                         return false;
                     if (step.op != MicroInstrOpcode::LoadMemReg && step.op != MicroInstrOpcode::LoadMemImm)
@@ -163,7 +163,7 @@ namespace PostRaPeephole
                             continue;
                         }
                         visited[predecessor - sourceIndex] = 1;
-                        const MicroInstr* step = ctx.instruction(refs[predecessor]);
+                        const MicroInstr* step             = ctx.instruction(refs[predecessor]);
                         if (!step)
                         {
                             valid = false;

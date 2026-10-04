@@ -69,9 +69,9 @@ struct HeadlessHost
         dragData: DragData
     }
 
-    autoSawModal:        bool
-    autoSawButton:       bool
-    autoButtonIds:       Array'String
+    autoSawModal:       bool
+    autoSawButton:      bool
+    autoButtonIds:      Array'String
     lastCommandStorage: String
 }
 

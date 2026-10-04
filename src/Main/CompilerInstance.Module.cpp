@@ -194,7 +194,6 @@ namespace
         return (dependencyRoot / fs::path(std::string(moduleName))).lexically_normal();
     }
 
-
     // Answers where the standard library workspace lives.
     //
     // A standard library sitting beside the compiler wins, and `SWAG_PATH` answers only for a

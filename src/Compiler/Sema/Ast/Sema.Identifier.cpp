@@ -5,8 +5,8 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Generic/SemaGeneric.ArgNodes.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -357,7 +357,7 @@ namespace
         if (!call.hasFlag(AstCallExprFlagsE::AttributeContext))
             return false;
 
-        const SemaNodeView   calleeView  = sema.viewNodeSymbolList(call.nodeExprRef);
+        const SemaNodeView  calleeView  = sema.viewNodeSymbolList(call.nodeExprRef);
         const IdentifierRef operatorsId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Operators);
         for (const Symbol* symbol : calleeView.symbols())
         {
@@ -602,7 +602,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             macroInjectStoredSymbol = storedSymbol;
     }
 
-    const AstNodeRef parentRef = sema.visit().parentNodeRef();
+    const AstNodeRef   parentRef  = sema.visit().parentNodeRef();
     const SemaNodeView symbolView = sema.curViewSymbol();
     if (!symbolView.sym() &&
         !symbolView.hasSymbolList() &&

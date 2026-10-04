@@ -9,12 +9,12 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaAstLookup.h"
-#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaCallArgument.h"
+#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaReexpandExpr.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1858,7 +1858,7 @@ namespace
         // home pins the non-null parameter type while the caller's fact is still live.
         const bool narrowedPointer = mat.narrowDependent && paramType.isValuePointer() && !paramType.isNullable() && !bindsPointeeByAddress;
         mat.forNarrowFact          = mat.narrowDependent && (!mat.bindsByAddress || narrowedPointer);
-        mat.forContextLambda = isInlineContextualLambdaArg(sema, binding.exprRef);
+        mat.forContextLambda       = isInlineContextualLambdaArg(sema, binding.exprRef);
 
         // A reference bound to a stable lvalue survives an index or foreach use as it
         // stands; every other such use needs a home.
@@ -2781,9 +2781,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     bool narrowedReceiver = false;
     if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
     {
-        narrowedReceiver      = ufcsArg.isValid() && inlineBindingCarriesFlowProvenNonNull(sema, ufcsArg);
-        bool carriesFlowProof = narrowedReceiver && !hasPointerReceiverParam(sema, fn);
-        const auto& params = fn.parameters();
+        narrowedReceiver             = ufcsArg.isValid() && inlineBindingCarriesFlowProvenNonNull(sema, ufcsArg);
+        bool        carriesFlowProof = narrowedReceiver && !hasPointerReceiverParam(sema, fn);
+        const auto& params           = fn.parameters();
         for (size_t i = 0; !carriesFlowProof && i < resolvedArgs.size(); ++i)
         {
             const AstNodeRef argRef = resolvedArgs[i].argRef;

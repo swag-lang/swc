@@ -156,7 +156,7 @@ void SymbolMap::addUsingSymMap(TaskContext& ctx, SymbolMap* symMap)
 {
     SWC_ASSERT(symMap != nullptr);
     const std::unique_lock lk(mutex_);
-    const UsingSymMap* head = usingSymMaps_.load(std::memory_order_relaxed);
+    const UsingSymMap*     head = usingSymMaps_.load(std::memory_order_relaxed);
     for (const UsingSymMap* existing = head; existing; existing = existing->previous)
     {
         if (existing->symbol == symMap)
@@ -388,7 +388,9 @@ const Symbol* SymbolMap::findFirstSymbol(IdentifierRef idRef, bool includeIgnore
 template<typename F>
 void SymbolMap::forEachPublishedHead(const F& fn) const
 {
-    const auto append = [&](uint64_t, Symbol* head) { fn(head); };
+    const auto append = [&](uint64_t, Symbol* head) {
+        fn(head);
+    };
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
         for (uint32_t i = 0; i < SHARD_COUNT; ++i)

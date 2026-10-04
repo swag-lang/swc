@@ -10,8 +10,8 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Helpers/SemaFileError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
+#include "Compiler/Sema/Helpers/SemaFileError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInitFlow.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
@@ -535,7 +535,7 @@ Result AstCompilerMessageFunc::semaPreNode(Sema& sema)
     if (sema.enteringState())
     {
         const AstNodeRef curNodeRef = sema.curNodeRef();
-        Symbol* declared = sema.viewSymbol(curNodeRef).sym();
+        Symbol*          declared   = sema.viewSymbol(curNodeRef).sym();
         if (!declared)
             declared = &registerCompilerBodyFunction(sema, sema.curNode(), "message");
 
@@ -650,7 +650,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     if (sema.enteringState())
     {
         const AstNodeRef curNodeRef = sema.curNodeRef();
-        Symbol* declared = sema.viewSymbol(curNodeRef).sym();
+        Symbol*          declared   = sema.viewSymbol(curNodeRef).sym();
         if (!declared)
         {
             const Result declResult = sema.curNode().cast<AstCompilerFunc>().semaPreDecl(sema);

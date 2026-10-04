@@ -273,12 +273,12 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     for expected in ["Menu.Short", "Menu.Command.With.An.Allocated.Identifier"]
     {
-        var id = String.from(expected)
+        var id    = String.from(expected)
         let popup = MenuCtrl.createPopup(&host.root)
         popup.addItem("Open", id.toString())
         host.clickPopupMenuItemWhenShown(expected)
 
-        let before = host.commandCount
+        let before   = host.commandCount
         let selected = popup.doModal({40, 40}, autoDestroy: true)
         Swag.assert(selected == expected)
         Swag.assert(host.autoHandled and host.autoFailure.isEmpty())

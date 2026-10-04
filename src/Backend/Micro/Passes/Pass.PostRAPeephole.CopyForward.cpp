@@ -3422,8 +3422,8 @@ namespace PostRaPeephole
             const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm || next->op == MicroInstrOpcode::TestRegImm;
             const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
             const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
-            const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg;
-            const bool three  = next->op == MicroInstrOpcode::OpBinaryRegRegReg;
+            const bool binary         = next->op == MicroInstrOpcode::OpBinaryRegReg;
+            const bool three          = next->op == MicroInstrOpcode::OpBinaryRegRegReg;
             // A store or a memory update reads its value operand; the base stays.
             const bool memory    = next->op == MicroInstrOpcode::LoadMemReg || next->op == MicroInstrOpcode::OpBinaryMemReg;
             const bool candidate = floatCopy ? compareRegs || next->op == MicroInstrOpcode::LoadRegReg || binary || three || memory
@@ -3447,7 +3447,7 @@ namespace PostRaPeephole
                     const uint32_t firstOperand = compareRegs || compareImm ? 0 : 1;
                     const uint32_t lastOperand  = indexedAddress || three ? 2 : compareImm ? 0
                                                                                            : 1;
-                    const auto modes = info.resolvedRegModes(ops);
+                    const auto     modes        = info.resolvedRegModes(ops);
                     for (uint32_t i = firstOperand; i <= lastOperand; ++i)
                     {
                         // Exchanges also write their value operand. Forwarding a
@@ -3823,8 +3823,8 @@ namespace PostRaPeephole
             if (cfg.hasUnsupportedControlFlowForCfgLiveness())
                 return false;
 
-            const uint32_t              count = cfg.instructionCount();
-            const auto                  refs  = cfg.instructionRefs();
+            const uint32_t count = cfg.instructionCount();
+            const auto     refs  = cfg.instructionRefs();
             // Both CFG paths write every live instruction slot before a query.
             // Dead slots are never queried, so retain the old buffer without
             // zeroing it once more for each function.

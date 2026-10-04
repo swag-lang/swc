@@ -144,7 +144,7 @@ namespace
                 return JobResult::Done;
             }
 
-            slept_ = true;
+            slept_               = true;
             ctx().state().kind   = publication_.kind;
             ctx().state().symbol = symbol_;
             aboutToSleep.store(true, std::memory_order_release);
@@ -548,10 +548,10 @@ SWC_TEST_BEGIN(JobManager_ParallelTargetedWakePreservesOtherSleepers)
     JobManager jobMgr;
     jobMgr.setup(cmdLine);
 
-    const Global                                     global;
-    const TaskContext                                jobCtx(global, cmdLine);
-    const auto                                       client = jobMgr.newClientId();
-    Symbol targets[2] = {
+    const Global      global;
+    const TaskContext jobCtx(global, cmdLine);
+    const auto        client     = jobMgr.newClientId();
+    Symbol            targets[2] = {
         Symbol(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {}),
         Symbol(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {}),
     };
@@ -599,7 +599,7 @@ SWC_TEST_BEGIN(JobManager_ClientAndDependencyWakeIndexesStayConsistent)
     const TaskContext                 jobCtx(global, cmdLine);
     const std::array<JobClientId, 3>  clients = {0, jobMgr.newClientId(), jobMgr.newClientId()};
     std::vector<std::unique_ptr<Job>> jobs[3];
-    Symbol target(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {});
+    Symbol                            target(nullptr, TokenRef::invalid(), SymbolKind::Constant, IdentifierRef::invalid(), {});
     for (uint32_t i = 0; i < 16; ++i)
     {
         for (uint32_t client = 0; client < clients.size(); ++client)
@@ -741,8 +741,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(JobManager_ConcurrentSymbolPublicationDoesNotLoseWaiters)
 {
-    constexpr uint32_t                                NUM_JOBS = 512;
-    auto&                                             manager  = ctx.global().jobMgr();
+    constexpr uint32_t                                 NUM_JOBS = 512;
+    auto&                                              manager  = ctx.global().jobMgr();
     std::vector<std::unique_ptr<Symbol>>               symbols;
     std::vector<std::unique_ptr<SymbolPublicationJob>> jobs;
     for (uint32_t index = 0; index < NUM_JOBS; ++index)

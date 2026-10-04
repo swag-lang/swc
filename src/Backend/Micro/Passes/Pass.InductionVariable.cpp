@@ -233,7 +233,7 @@ namespace
         if (loopsByHeader.empty())
             return false;
 
-        const auto instrRefs = cfg.instructionRefs();
+        const auto   instrRefs = cfg.instructionRefs();
         const size_t loopCount = loopsByHeader.size();
         // Candidate discovery precedes every mutation, and a changed loop
         // ends the round. Physical neighbors therefore keep their CFG indices.
@@ -326,7 +326,7 @@ namespace
             // step lands right behind it and writes them too).
             thread_local std::vector<Induction> inductions;
             inductions.clear();
-            auto                   inductionIndexOf = [&](const MicroReg reg) -> uint32_t {
+            auto inductionIndexOf = [&](const MicroReg reg) -> uint32_t {
                 for (uint32_t k = 0; k < inductions.size(); ++k)
                     if (inductions[k].reg == reg)
                         return k;

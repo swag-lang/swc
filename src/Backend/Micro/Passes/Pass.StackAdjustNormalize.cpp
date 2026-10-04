@@ -52,7 +52,7 @@ namespace
     };
 
     using InstructionDepth = MicroStackAdjustNormalizePass::InstructionDepth;
-    using AnalyzeResult     = MicroStackAdjustNormalizePass::AnalyzeResult;
+    using AnalyzeResult    = MicroStackAdjustNormalizePass::AnalyzeResult;
 
     bool tryParseStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, StackAdjustInfo& outInfo)
     {

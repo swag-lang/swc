@@ -717,14 +717,14 @@ namespace
         info.symbol                   = &symbol;
         info.machineCode              = &symbol.loweredCode();
         info.sortKey                  = SymbolSort::locationKey(builder.compiler(), symbol);
-        const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && ((symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport()) || isExportedOpaqueLifecycleFunction(builder, symbol));
+        info.compilerFn               = isCompilerFunction(symbol);
+        const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && ((symbol.isPublic() && !info.compilerFn && symbol.supportsPublicApiForeignExport()) || isExportedOpaqueLifecycleFunction(builder, symbol));
         if (exportPublicSymbol)
             info.symbolName = symbol.computePublicApiSymbolName(builder.ctx());
         else
             info.symbolName = buildLocalFunctionSymbolName(builder, info, ordinal);
-        info.debugName  = symbol.getFullScopedName(builder.ctx());
-        info.exported   = exportPublicSymbol;
-        info.compilerFn = isCompilerFunction(symbol);
+        info.debugName = symbol.getFullScopedName(builder.ctx());
+        info.exported  = exportPublicSymbol;
         return info;
     }
 
@@ -743,10 +743,10 @@ namespace
             if (info.cacheHit)
                 info.machineCode = nullptr;
             builder.functionInfos.push_back(std::move(info));
+            // The complete capacity was reserved above, so these addresses stay
+            // stable while the remaining function records are constructed.
+            builder.functionBySymbol.emplace(symbol, &builder.functionInfos.back());
         }
-
-        for (const auto& info : builder.functionInfos)
-            builder.functionBySymbol.emplace(info.symbol, &info);
         return Result::Continue;
     }
 

@@ -102,12 +102,13 @@ namespace
         return static_cast<uint8_t>(ops[maskOperandIndex].valueU32);
     }
 
-    void addMaskedCallArgRegs(MicroInstrUseDef& useDef, const MicroRegSpan regs, const uint8_t mask, size_t defaultCount)
+    void addMaskedCallArgRegs(MicroInstrUseDef& useDef, const CallConv& callConv, const uint8_t mask)
     {
+        const MicroRegSpan regs = callConv.intArgRegs;
         SWC_ASSERT(std::ranges::all_of(regs, &MicroReg::isInt));
         if (mask == K_CALL_ARG_MASK_ALL)
         {
-            const size_t count = std::min(regs.size(), defaultCount);
+            const size_t count = std::min<size_t>(regs.size(), callConv.numArgRegisterSlots());
             useDef.uses.append(regs.data(), count);
             return;
         }
@@ -154,10 +155,9 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
 
         // Call instructions consume ABI argument registers implicitly. Keep them live so
         // register allocation and later rewrites cannot reuse them before the call.
-        const CallConv& callConv        = CallConv::get(useDef.callConv);
-        const size_t    defaultArgCount = callConv.numArgRegisterSlots();
+        const CallConv& callConv = CallConv::get(useDef.callConv);
         // Every call stores its integer and float masks immediately after the convention.
-        addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, opcodeInfo.callConvIndex + 1), defaultArgCount);
+        addMaskedCallArgRegs(useDef, callConv, resolveCallArgMask(*this, ops, opcodeInfo.callConvIndex + 1));
         const CallFloatArgs floatArgs = callFloatArgs(operands);
         SWC_ASSERT(std::ranges::all_of(callConv.floatArgRegs, &MicroReg::isFloat));
         for (uint32_t index = 0; index < std::min<size_t>(callConv.floatArgRegs.size(), 8); ++index)

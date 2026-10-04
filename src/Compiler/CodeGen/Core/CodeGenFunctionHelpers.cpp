@@ -403,14 +403,19 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
 
     setParameterTypeInfo(result, normalizedParam, parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
 
+    // Register lanes and incoming stack offsets depend only on this prefix.
+    // Register home offsets would need the full layout, but are not used here.
+    const auto& params = symbolFunc.parameters();
+    SWC_ASSERT(parameterIndex < params.size());
     SmallVector<ABICall::ArgLayout> argLayouts;
-    argLayouts.reserve(symbolFunc.parameters().size() + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
+    argLayouts.reserve(result.slotIndex + 1);
     if (hasIndirectReturnArg)
         argLayouts.push_back({});
     if (hasClosureContextArg)
         argLayouts.push_back({});
-    for (const SymbolVariable* param : symbolFunc.parameters())
+    for (uint32_t i = 0; i <= parameterIndex; ++i)
     {
+        const SymbolVariable* param = params[i];
         SWC_ASSERT(param != nullptr);
         const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
         argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});

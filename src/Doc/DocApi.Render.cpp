@@ -278,7 +278,9 @@ namespace
 
         Utf8     sourcePath = pathIt->second;
         uint32_t sourceLine = overload.sourceLine;
-        if (overload.file->hasFlag(FileFlagsE::CustomSrc))
+        // CustomSrc also marks ordinary command-line files. Only generated #ast
+        // and compileString dumps combine it with SkipFmt at their creation sites.
+        if (overload.file->hasFlag(FileFlagsE::CustomSrc) && overload.file->mustSkipFormat())
         {
             // Generated dumps are local diagnostic artifacts, never repository sources.
             // Keep a source link only when the recorded origin reaches a physical file.
@@ -287,7 +289,7 @@ namespace
                 return {};
             const SourceFile* sourceFile = origin.codeRange.srcView ? origin.codeRange.srcView->file() : nullptr;
             std::error_code   ec;
-            if (!sourceFile || sourceFile->hasFlag(FileFlagsE::CustomSrc) || !fs::is_regular_file(sourceFile->path(), ec))
+            if (!sourceFile || (sourceFile->hasFlag(FileFlagsE::CustomSrc) && sourceFile->mustSkipFormat()) || !fs::is_regular_file(sourceFile->path(), ec))
                 return {};
             sourcePath = buildSourcePath(compiler, *sourceFile, runtime);
             sourceLine = origin.codeRange.line;

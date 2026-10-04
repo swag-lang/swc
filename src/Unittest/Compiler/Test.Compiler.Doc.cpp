@@ -441,8 +441,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocGeneratedSourceLinksUsePhysicalOrigins)
         }
         if (file->path() == unlocatedPath || file->path() == locatedPath)
         {
-            // Model the two provenance states produced by compileString and #ast.
-            compiler.file(file->ref()).addFlag(FileFlagsE::CustomSrc);
+            // Model the flags and provenance states produced by compileString and
+            // #ast; the ordinary direct source is CustomSrc without SkipFmt.
+            compiler.file(file->ref()).addFlag(FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
             if (file->path() == locatedPath)
                 locatedView = &compiler.srcView(file->ast().srcView().ref());
         }

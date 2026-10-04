@@ -38,3 +38,5 @@ func ctxDynamicSetDropCounter(counter: *u32)
 {
     g_DropCounter = counter
 }
+
+func ctxDynamicReadContext()->*Swag.Context => Swag.getContext()

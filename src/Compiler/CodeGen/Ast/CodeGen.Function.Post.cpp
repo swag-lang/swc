@@ -1442,6 +1442,12 @@ Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
         builder.emitCmpRegImm(tlsIdPlusOneReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
 
+        // Windows keeps only the first 64 slots in the TEB's inline array.
+        // A host with more TLS users can give the runtime an expansion slot.
+        const MicroLabelRef slowPath = builder.createLabel();
+        builder.emitCmpRegImm(tlsIdPlusOneReg, ApInt(64, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Above, MicroOpBits::B32, slowPath);
+
         // The slot itself. A thread the runtime has never seen holds nothing
         // there, and has raised nothing either.
         const MicroReg contextReg = codeGen.nextVirtualIntRegister();
@@ -1452,8 +1458,7 @@ Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
         builder.emitCmpMemImm(contextReg, offsetof(Runtime::Context, hasError), ApInt(0, 32), MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
         SWC_RESULT(emitFallibleJump(codeGen));
-        builder.placeLabel(continueLabel);
-        return Result::Continue;
+        builder.placeLabel(slowPath);
     }
 
     const SymbolFunction* runtimeHasErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::HasErr);

@@ -170,8 +170,7 @@ namespace
             {
                 const size_t denseIndex = wordIndex * 64ull + std::countr_zero(wordBits);
                 wordBits &= wordBits - 1ull;
-                if (denseIndex >= lo.size())
-                    break;
+                SWC_ASSERT(denseIndex < lo.size() && denseIndex < hi.size());
 
                 lo[denseIndex] = std::min(lo[denseIndex], instructionIndex);
                 hi[denseIndex] = std::max(hi[denseIndex], instructionIndex);
@@ -705,8 +704,7 @@ void MicroRegisterAllocationPass::computeConcreteClaimPositions()
             {
                 const size_t denseIndex = wordIndex * 64ull + std::countr_zero(wordBits);
                 wordBits &= wordBits - 1ull;
-                if (denseIndex >= concreteClaimPositionsByDenseIndex_.size())
-                    break;
+                SWC_ASSERT(denseIndex < concreteClaimPositionsByDenseIndex_.size());
 
                 appendUniquePosition(concreteClaimPositionsByDenseIndex_[denseIndex], idx);
             }
@@ -762,8 +760,7 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
             {
                 const size_t denseIndex = wordIndex * 64ull + std::countr_zero(wordBits);
                 wordBits &= wordBits - 1ull;
-                if (denseIndex >= outBenefit.size())
-                    break;
+                SWC_ASSERT(denseIndex < outBenefit.size());
 
                 outBenefit[denseIndex] += weight;
             }
@@ -2234,6 +2231,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     mappedVirtualIndices_.reserve(virtualRegs.size());
     currentConcreteLiveOut_.clear();
 
+    // Only indices returned by the matching dense register table are ever set. Starting from
+    // zero and combining rows by copy, union and clearing keeps every padding bit zero too.
     liveInVirtualBits_.assign(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
     liveInConcreteBits_.assign(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);
 
@@ -2344,8 +2343,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             {
                 const uint32_t bitInWord = std::countr_zero(wordBits);
                 const size_t   bitIndex  = wordIndex * 64ull + bitInWord;
-                if (bitIndex >= virtualRegs.size())
-                    break;
+                SWC_ASSERT(bitIndex < virtualRegs.size());
                 vregsLiveAcrossCall_[bitIndex] = 1;
                 if (hotCall)
                 {
@@ -2422,7 +2420,6 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
 
 void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t stamp)
 {
-    const auto& virtualRegs = denseVirtualRegs_.regs();
     for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)
     {
         uint64_t wordBits = tempOutVirtual_[wordIndex];
@@ -2430,8 +2427,7 @@ void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t stamp
         {
             const uint32_t bitInWord = std::countr_zero(wordBits);
             const size_t   bitIndex  = wordIndex * 64ull + bitInWord;
-            if (bitIndex >= virtualRegs.size())
-                break;
+            SWC_ASSERT(bitIndex < liveStampByDenseIndex_.size());
             liveStampByDenseIndex_[bitIndex] = stamp;
             wordBits &= (wordBits - 1ull);
         }
@@ -2449,8 +2445,7 @@ void MicroRegisterAllocationPass::rebuildCurrentConcreteLiveOutRegs()
         {
             const uint32_t bitInWord = std::countr_zero(wordBits);
             const size_t   bitIndex  = wordIndex * 64ull + bitInWord;
-            if (bitIndex >= concreteRegs.size())
-                break;
+            SWC_ASSERT(bitIndex < concreteRegs.size());
             currentConcreteLiveOut_.push_back(concreteRegs[bitIndex]);
             wordBits &= (wordBits - 1ull);
         }

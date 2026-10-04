@@ -94,9 +94,7 @@ namespace InstructionCombine
 
         // The copy that replaces the materialization reads `src` earlier than
         // the operation did, so `src` must already hold the same value there.
-        const auto srcAtBin = ctx.ssa->reachingDef(src, binRef);
-        const auto srcAtImm = ctx.ssa->reachingDef(src, dstReach.instRef);
-        if (!srcAtBin.valid() || !srcAtImm.valid() || srcAtBin.valueId != srcAtImm.valueId)
+        if (!ctx.ssa->sameValueAt(src, binRef, dstReach.instRef))
             return false;
 
         if (!ctx.claimAll({binRef, dstReach.instRef}))

@@ -169,9 +169,7 @@ namespace InstructionCombine
                     const MicroInstrOperand* copyOps = copyReaching.inst->ops(*ctx.operands);
                     if (copyOps && copyOps[0].reg == dst && copyOps[1].reg.isVirtualInt() && copyOps[2].opBits == MicroOpBits::B64)
                     {
-                        const auto srcAtCopy    = ctx.ssa->reachingDef(copyOps[1].reg, copyReaching.instRef);
-                        const auto srcAtRewrite = ctx.ssa->reachingDef(copyOps[1].reg, ref);
-                        if (srcAtCopy.valid() && srcAtRewrite.valid() && srcAtCopy.valueId == srcAtRewrite.valueId)
+                        if (ctx.ssa->sameValueAt(copyOps[1].reg, copyReaching.instRef, ref))
                         {
                             copyRef    = copyReaching.instRef;
                             copySource = copyOps[1].reg;

@@ -449,9 +449,7 @@ namespace InstructionCombine
         if (!loadOps || loadOps[0].reg != value || loadOps[1].reg != base || loadOps[2].opBits != storeOps[2].opBits ||
             loadOps[3].valueU64 != storeOps[3].valueU64)
             return false;
-        const MicroSsaState::ReachingDef baseAtLoad  = ctx.ssa->reachingDef(base, def.instRef);
-        const MicroSsaState::ReachingDef baseAtStore = ctx.ssa->reachingDef(base, storeRef);
-        if (!baseAtLoad.valid() || !baseAtStore.valid() || baseAtLoad.valueId != baseAtStore.valueId)
+        if (!ctx.ssa->sameValueAt(base, def.instRef, storeRef))
             return false;
 
         constexpr uint32_t K_MAX_WINDOW = 32;

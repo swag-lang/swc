@@ -518,14 +518,9 @@ namespace InstructionCombine
             else if (leftOps[2].hasWideImmediateValue() || rightOps[2].hasWideImmediateValue() || leftOps[2].valueU64 != rightOps[2].valueU64)
                 return false;
 
-            const auto sameValue = [&](MicroReg reg) {
-                const MicroSsaState::ReachingDef atLeft  = ctx.ssa->reachingDef(reg, leftRef);
-                const MicroSsaState::ReachingDef atRight = ctx.ssa->reachingDef(reg, rightRef);
-                return atLeft.valid() && atRight.valid() && atLeft.valueId == atRight.valueId;
-            };
-            if (!leftOps[0].reg.isVirtualInt() || !sameValue(leftOps[0].reg))
+            if (!leftOps[0].reg.isVirtualInt() || !ctx.ssa->sameValueAt(leftOps[0].reg, leftRef, rightRef))
                 return false;
-            return left->op != MicroInstrOpcode::CmpRegReg || (leftOps[1].reg.isVirtualInt() && sameValue(leftOps[1].reg));
+            return left->op != MicroInstrOpcode::CmpRegReg || (leftOps[1].reg.isVirtualInt() && ctx.ssa->sameValueAt(leftOps[1].reg, leftRef, rightRef));
         }
 
         // Whether `reg`, where `atRef` reads it, is `cond ? value : 0` at

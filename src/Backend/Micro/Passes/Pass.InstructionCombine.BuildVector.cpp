@@ -125,9 +125,7 @@ namespace InstructionCombine
             const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
             if (!ops || ops[1].reg != base)
                 return false;
-            const uint32_t baseAtDef  = ctx.ssa->reachingValueId(base, def.instRef);
-            const uint32_t baseAtLoad = ctx.ssa->reachingValueId(base, loadRef);
-            if (baseAtDef == MicroSsaState::K_INVALID_VALUE || baseAtDef != baseAtLoad)
+            if (!ctx.ssa->sameValueAt(base, def.instRef, loadRef))
                 return false;
             outOffset = ops[3].valueU64;
             return true;
@@ -319,9 +317,7 @@ namespace InstructionCombine
                 // where the load stood.
                 if (bytes == 16 && offset == slotOffset && storeReg && outLaneBytes != 0 && ops[1].reg.isVirtualFloat())
                 {
-                    const uint32_t atStore = ctx.ssa->reachingValueId(ops[1].reg, ref);
-                    const uint32_t atLoad  = ctx.ssa->reachingValueId(ops[1].reg, loadRef);
-                    if (atStore == MicroSsaState::K_INVALID_VALUE || atStore != atLoad)
+                    if (!ctx.ssa->sameValueAt(ops[1].reg, ref, loadRef))
                         return false;
                     for (uint32_t laneIndex = 0; laneIndex < outLanes.size(); ++laneIndex)
                     {
@@ -884,9 +880,7 @@ namespace InstructionCombine
                     piece.reg   = ops[1].reg;
                     if (!piece.reg.isVirtualInt())
                         return false;
-                    const uint32_t atStore = ctx.ssa->reachingValueId(piece.reg, ref);
-                    const uint32_t atLoad  = ctx.ssa->reachingValueId(piece.reg, loadRef);
-                    if (atStore == MicroSsaState::K_INVALID_VALUE || atStore != atLoad)
+                    if (!ctx.ssa->sameValueAt(piece.reg, ref, loadRef))
                         return false;
                     outPieces.push_back(piece);
                 }

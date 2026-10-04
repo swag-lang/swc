@@ -266,12 +266,7 @@ namespace InstructionCombine
         if (!fits && (scale < 16 || scale > (uint64_t{1} << 30) || !std::has_single_bit(scale)))
             return false;
 
-        const auto baseAtAddress  = ctx.ssa->reachingDef(base, lea.instRef);
-        const auto baseAtAccess   = ctx.ssa->reachingDef(base, ref);
-        const auto indexAtAddress = ctx.ssa->reachingDef(index, lea.instRef);
-        const auto indexAtAccess  = ctx.ssa->reachingDef(index, ref);
-        if (!baseAtAddress.valid() || !baseAtAccess.valid() || baseAtAddress.valueId != baseAtAccess.valueId || !indexAtAddress.valid() ||
-            !indexAtAccess.valid() || indexAtAddress.valueId != indexAtAccess.valueId)
+        if (!ctx.ssa->sameValueAt(base, lea.instRef, ref) || !ctx.ssa->sameValueAt(index, lea.instRef, ref))
             return false;
         if (keepAccessScalar(ctx, ref, base))
             return false;
@@ -355,14 +350,9 @@ namespace InstructionCombine
         if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
             return false;
 
-        const MicroReg base           = addressOps[1].reg;
-        const MicroReg index          = addressOps[2].reg;
-        const auto     baseAtAddress  = ctx.ssa->reachingDef(base, reaching.instRef);
-        const auto     baseAtLoad     = ctx.ssa->reachingDef(base, loadRef);
-        const auto     indexAtAddress = ctx.ssa->reachingDef(index, reaching.instRef);
-        const auto     indexAtLoad    = ctx.ssa->reachingDef(index, loadRef);
-        if (!baseAtAddress.valid() || !baseAtLoad.valid() || baseAtAddress.valueId != baseAtLoad.valueId ||
-            !indexAtAddress.valid() || !indexAtLoad.valid() || indexAtAddress.valueId != indexAtLoad.valueId)
+        const MicroReg base  = addressOps[1].reg;
+        const MicroReg index = addressOps[2].reg;
+        if (!ctx.ssa->sameValueAt(base, reaching.instRef, loadRef) || !ctx.ssa->sameValueAt(index, reaching.instRef, loadRef))
             return false;
         if (keepAccessScalar(ctx, loadRef, base))
             return false;

@@ -1379,19 +1379,21 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             bool plainOk = isJump || fallThroughPred;
             if (!fallThroughPred)
             {
+                const bool     checkFallThrough = isConditional && p + 1 < instructionCount_;
+                const uint32_t claimEnd         = checkFallThrough ? p + 1 : p;
                 for (const EdgeMove& move : edgeMoves)
                 {
                     const MicroReg toReg = move.to->spilled ? MicroReg::invalid() : move.to->assignedReg;
                     if (!toReg.isValid())
                         continue;
-                    for (const MicroReg use : instructionUseDefs_[p].uses)
-                        plainOk = plainOk && use != toReg; // an indirect jump's own read
-                    if (concreteClaimsOverlap(toReg, p, p))
-                        plainOk = false;
-                    if (isConditional && p + 1 < instructionCount_)
+                    // One range query covers the adjacent branch and fall-through positions.
+                    if (containsKey(instructionUseDefs_[p].uses, toReg) || concreteClaimsOverlap(toReg, p, claimEnd))
                     {
-                        if (concreteClaimsOverlap(toReg, p + 1, p + 1))
-                            plainOk = false;
+                        plainOk = false;
+                        break;
+                    }
+                    if (checkFallThrough)
+                    {
                         // The write runs on the fall-through side too: any
                         // OTHER value holding that register there, or this
                         // value expecting it from a different source, kills
@@ -1412,11 +1414,16 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                             if (!node)
                                 continue; // dead on the fall-through side: the register is free
                             if (!node->spilled && node->assignedReg == toReg)
+                            {
                                 plainOk = false;
+                                break;
+                            }
                             const LiveInterval* atBranch = locate(other, predEndPos);
                             if (atBranch && !atBranch->spilled && atBranch->assignedReg == toReg)
                                 plainOk = false;
                         }
+                        if (!plainOk)
+                            break;
                         const LiveInterval* ownFall = locate(move.denseIndex, p * 2 + 2);
                         if (ownFall && !ownFall->spilled && ownFall->assignedReg == toReg && ownFall != move.from &&
                             (move.from->spilled || ownFall->assignedReg != move.from->assignedReg))

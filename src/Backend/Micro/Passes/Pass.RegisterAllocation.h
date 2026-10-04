@@ -238,12 +238,12 @@ private:
     uint32_t          denseVirtualIndex(MicroReg key) const;
     VRegState&        stateForVirtual(MicroReg key);
     const VRegState&  stateForVirtual(MicroReg key) const;
-    bool              isLiveOut(MicroReg key, uint32_t stamp) const;
+    bool              isLiveOut(uint32_t denseIndex, uint32_t stamp) const;
     void              markLiveAcrossCall(MicroReg key);
     void              computeGuardedCallPositions();
     bool              intervalHasHotCall(uint32_t lo, uint32_t hi) const;
     bool              isGuardedCall(uint32_t instructionIndex) const;
-    bool              requiresCallSpill(MicroReg key) const;
+    bool              requiresCallSpill(uint32_t denseIndex) const;
     static uint32_t   allocRequestPriority(const AllocRequest& request);
     static bool       compareAllocRequests(const AllocRequest& lhs, const AllocRequest& rhs);
     static bool       containsKey(MicroRegSpan keys, MicroReg key);
@@ -251,7 +251,7 @@ private:
     bool              isPersistentPhysReg(MicroReg reg) const;
     bool              isPoolRegister(MicroReg reg) const;
     bool              isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
-    bool              isLiveInAt(MicroReg key, uint32_t instructionIndex) const;
+    bool              isLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const;
     bool              isConcreteLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const;
     bool              hasFutureConcreteTouchConflict(MicroReg virtKey, uint32_t denseIndex, uint32_t instructionIndex) const;
     bool              canUsePhysical(MicroReg virtKey, uint32_t instructionIndex, MicroReg physReg, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive) const;
@@ -319,7 +319,7 @@ private:
     bool              tryTakePreferredPhysical(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys);
     bool              tryTakeFreePhysical(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys);
     void              unmapVirtReg(VRegState& regState);
-    void              mapVirtReg(MicroReg virtKey, MicroReg physReg);
+    void              mapVirtReg(uint32_t denseIndex, MicroReg physReg);
     bool              tryTransferCopySource(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending, bool allowLiveSourceSpill, bool allowConcreteLive, MicroReg& outPhys);
     bool              selectEvictionCandidateWithFallback(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool preferPersistentPool, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;
     MicroReg          allocatePhysical(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);

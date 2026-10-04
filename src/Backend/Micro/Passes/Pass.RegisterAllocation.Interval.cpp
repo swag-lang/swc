@@ -70,11 +70,15 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
         const MicroInstrOperand* ops = inst->ops(*operands_);
         if (!ops || !ops[0].reg.isVirtual())
             continue;
-        LiveInterval& dst = out[denseVirtualIndex(ops[0].reg)];
+        // A plain copy has one definition and one use. Liveness already
+        // resolved their dense indices before interval construction.
+        SWC_ASSERT(defVirtualIndices_[idx].size() == 1);
+        LiveInterval& dst = out[defVirtualIndices_[idx].front()];
         if (ops[1].reg.isVirtual())
         {
+            SWC_ASSERT(useVirtualIndices_[idx].size() == 1);
             if (dst.hintDense == std::numeric_limits<uint32_t>::max())
-                dst.hintDense = denseVirtualIndex(ops[1].reg);
+                dst.hintDense = useVirtualIndices_[idx].front();
         }
         else if ((ops[1].reg.isInt() || ops[1].reg.isFloat()) && !dst.hintPhys.isValid())
         {
@@ -376,15 +380,13 @@ namespace
 
         uint32_t bestIdx   = hiIdx;
         uint32_t bestDepth = depth[hiIdx];
-        for (uint32_t idx = hiIdx; idx > loIdx; --idx)
+        for (uint32_t idx = hiIdx; idx > loIdx && bestDepth != 0; --idx)
         {
             if (depth[idx - 1] < bestDepth)
             {
                 bestIdx   = idx - 1;
                 bestDepth = depth[idx - 1];
             }
-            if (bestDepth == 0)
-                break;
         }
         return bestIdx * 2;
     }
@@ -2324,15 +2326,18 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         if (!sourceLeavesCopyBlock(idx, src))
             continue;
 
-        const bool confined = sourceStaysInCopyLoop(idx, src);
-        const auto known    = std::ranges::find_if(candidates, [&](const Candidate& c) { return (c.dst == dst && c.src == src) || (c.dst == src && c.src == dst); });
+        // Depth counts the same back-edge ranges searched by the confinement
+        // check. At depth zero no enclosing loop can constrain this copy.
+        const uint32_t copyDepth = depthAt(idx);
+        const bool     confined  = !copyDepth || sourceStaysInCopyLoop(idx, src);
+        const auto     known     = std::ranges::find_if(candidates, [&](const Candidate& c) { return (c.dst == dst && c.src == src) || (c.dst == src && c.src == dst); });
         if (known != candidates.end())
         {
-            known->copyDepth = std::max(known->copyDepth, depthAt(idx));
+            known->copyDepth = std::max(known->copyDepth, copyDepth);
             known->rejected |= !confined;
             continue;
         }
-        candidates.push_back({.dst = dst, .src = src, .copyDepth = depthAt(idx), .rejected = !confined});
+        candidates.push_back({.dst = dst, .src = src, .copyDepth = copyDepth, .rejected = !confined});
     }
 
     if (candidates.empty())

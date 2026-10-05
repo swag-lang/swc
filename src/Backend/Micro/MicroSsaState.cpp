@@ -1085,11 +1085,26 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
 
     const uint32_t visitStamp = useVisitStamp_++;
     useVisitStack_.clear();
+    // The root's direct uses were counted above and cannot reach the cap.
+    // Seed its phi successors in the same order without recounting those uses.
+    useVisitStamps_[valueId] = visitStamp;
+    for (const UseSite& use : uses)
+    {
+        if (use.kind == UseSite::Kind::Instruction)
+            continue;
+        SWC_ASSERT(use.kind == UseSite::Kind::Phi);
+        SWC_ASSERT(use.phiIndex < phiInfoCount_);
+        const uint32_t nextValueId = phiInfos_[use.phiIndex].resultValueId;
+        if (nextValueId != K_INVALID_VALUE)
+        {
+            SWC_ASSERT(nextValueId < valueInfoCount_);
+            useVisitStack_.push_back(nextValueId);
+        }
+    }
+
     // Mark on removal to preserve depth-first priority for repeated edges.
     // Marking pending values can delay an early exit behind another subtree.
-    useVisitStack_.push_back(valueId);
-
-    uint32_t count = 0;
+    uint32_t count = directUses;
     while (!useVisitStack_.empty())
     {
         const uint32_t currentValueId = useVisitStack_.back();
@@ -1146,7 +1161,20 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
 
     const uint32_t visitStamp = useVisitStamp_++;
     useVisitStack_.clear();
-    useVisitStack_.push_back(valueId);
+    // The root has only phi uses: the direct-use search above ruled out every
+    // instruction use. Its successors start the same depth-first traversal.
+    useVisitStamps_[valueId] = visitStamp;
+    for (const UseSite& use : uses)
+    {
+        SWC_ASSERT(use.kind == UseSite::Kind::Phi);
+        SWC_ASSERT(use.phiIndex < phiInfoCount_);
+        const uint32_t nextValueId = phiInfos_[use.phiIndex].resultValueId;
+        if (nextValueId != K_INVALID_VALUE)
+        {
+            SWC_ASSERT(nextValueId < valueInfoCount_);
+            useVisitStack_.push_back(nextValueId);
+        }
+    }
 
     while (!useVisitStack_.empty())
     {

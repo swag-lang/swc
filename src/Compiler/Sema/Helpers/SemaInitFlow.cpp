@@ -627,17 +627,15 @@ namespace
         {
             if (fieldIndex < 0 || !var.fieldStruct)
                 return false;
-            const auto fields = var.fieldStruct->fields();
+            const auto& fields = var.fieldStruct->fields();
             if (static_cast<size_t>(fieldIndex) >= fields.size() || !fields[fieldIndex])
                 return false;
             const TypeRef fieldTypeRef = fields[fieldIndex]->typeRef();
             if (!fieldTypeRef.isValid())
                 return false;
-            TypeRef       finalTypeRef = fieldTypeRef;
-            const TypeRef unwrapped    = sema_->typeMgr().unwrapAliasEnum(sema_->ctx(), fieldTypeRef);
-            if (unwrapped.isValid())
-                finalTypeRef = unwrapped;
-            const TypeInfo& type = sema_->typeMgr().get(finalTypeRef);
+            const TypeInfo& declaredType = sema_->typeMgr().get(fieldTypeRef);
+            const TypeRef   unwrapped    = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema_->ctx(), fieldTypeRef) : TypeRef::invalid();
+            const TypeInfo& type         = unwrapped.isValid() ? sema_->typeMgr().get(unwrapped) : declaredType;
             return type.isPointerOrReference();
         }
 
@@ -648,20 +646,22 @@ namespace
             const TypeInfo& type = sema_->typeMgr().get(typeRef);
             if (type.isNullable())
                 return true;
-            const TypeRef unwrapped = sema_->typeMgr().unwrapAliasEnum(sema_->ctx(), typeRef);
+            if (!type.isAlias() && !type.isEnum())
+                return false;
+            const TypeRef unwrapped = type.unwrapAliasEnum(sema_->ctx(), typeRef);
             return unwrapped.isValid() && sema_->typeMgr().get(unwrapped).isNullable();
         }
 
         bool isNonNullPointerLikeTypeRef(TypeRef typeRef) const
         {
-            if (!typeRef.isValid() || isNullableTypeRef(typeRef))
+            if (!typeRef.isValid())
                 return false;
-            TypeRef       finalTypeRef = typeRef;
-            const TypeRef unwrapped    = sema_->typeMgr().unwrapAliasEnum(sema_->ctx(), typeRef);
-            if (unwrapped.isValid())
-                finalTypeRef = unwrapped;
-            const TypeInfo& type = sema_->typeMgr().get(finalTypeRef);
-            return type.isPointerLike() || type.isReference();
+            const TypeInfo& declaredType = sema_->typeMgr().get(typeRef);
+            if (declaredType.isNullable())
+                return false;
+            const TypeRef   unwrapped = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema_->ctx(), typeRef) : TypeRef::invalid();
+            const TypeInfo& type      = unwrapped.isValid() ? sema_->typeMgr().get(unwrapped) : declaredType;
+            return !type.isNullable() && (type.isPointerLike() || type.isReference());
         }
 
         // Records whether a function-level return can produce a null value. The

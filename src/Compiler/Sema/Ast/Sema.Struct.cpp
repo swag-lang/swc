@@ -38,10 +38,11 @@ namespace
             return Result::Continue;
         for (const SymbolVariable* field : sym.fields())
         {
-            if (!SymbolStruct::typeHasDynamicStorage(sema.ctx(), field->typeRef()))
+            const TypeInfo& fieldType = sema.typeMgr().get(field->typeRef());
+            if (!SymbolStruct::typeHasDynamicStorage(sema.ctx(), fieldType))
                 continue;
             const uint64_t start = field->offset();
-            const uint64_t end   = start + field->typeInfo(sema.ctx()).sizeOf(sema.ctx());
+            const uint64_t end   = start + fieldType.sizeOf(sema.ctx());
             for (const SymbolVariable* other : sym.fields())
             {
                 if (other == field)

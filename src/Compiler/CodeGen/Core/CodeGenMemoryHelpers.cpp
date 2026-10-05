@@ -43,7 +43,7 @@ namespace
         }
         for (const SymbolVariable* field : symStruct.fields())
         {
-            if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), field->typeRef()))
+            if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), codeGen.typeMgr().get(field->typeRef())))
                 continue;
             const MicroReg fieldReg = codeGen.offsetAddressReg(dstReg, field->offset());
             // A by-value 'using' subobject keeps the enclosing identity. Ordinary
@@ -868,7 +868,7 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
 
 Result CodeGenMemoryHelpers::emitDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg)
 {
-    if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), typeRef))
+    if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), codeGen.typeMgr().get(typeRef)))
         return Result::Continue;
     return emitDynamicIdentityRec(codeGen, typeRef, dstReg, true);
 }
@@ -879,7 +879,7 @@ void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, T
     const TypeInfo& type = codeGen.typeMgr().get(typeRef);
     const uint64_t  size = type.sizeOf(codeGen.ctx());
     SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
-    if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), typeRef))
+    if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
     {
         emitMemCopy(codeGen, dstReg, srcReg, static_cast<uint32_t>(size));
         return;
@@ -922,8 +922,9 @@ void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, T
         ranges.push_back({symStruct.dynamicSlotOffsets().front(), sizeof(void*), TypeRef::invalid()});
     for (const SymbolVariable* field : symStruct.fields())
     {
-        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), field->typeRef()))
-            ranges.push_back({field->offset(), static_cast<uint32_t>(field->typeInfo(codeGen.ctx()).sizeOf(codeGen.ctx())), field->typeRef()});
+        const TypeInfo& fieldType = codeGen.typeMgr().get(field->typeRef());
+        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), fieldType))
+            ranges.push_back({field->offset(), static_cast<uint32_t>(fieldType.sizeOf(codeGen.ctx())), field->typeRef()});
     }
     std::ranges::sort(ranges, {}, &DynamicRange::offset);
     uint32_t copiedEnd = 0;

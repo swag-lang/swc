@@ -324,7 +324,7 @@ namespace
         return ReflectionLifecycleOp::IsPod;
     }
 
-    bool lifecycleFoldResult(const TaskContext& ctx, TypeRef typeRef, const TypeGen::LifecycleFlags& flags, const ReflectionLifecycleOp op)
+    bool lifecycleFoldResult(const TaskContext& ctx, const TypeInfo& type, const TypeGen::LifecycleFlags& flags, const ReflectionLifecycleOp op)
     {
         switch (op)
         {
@@ -337,9 +337,9 @@ namespace
             case ReflectionLifecycleOp::CanCopy:
                 return flags.canCopy;
             case ReflectionLifecycleOp::HasDynamicStorage:
-                return SymbolStruct::typeHasDynamicStorage(ctx, typeRef);
+                return SymbolStruct::typeHasDynamicStorage(ctx, type);
             case ReflectionLifecycleOp::IsPod:
-                return !flags.hasDrop && !flags.hasPostMove && !flags.hasPostCopy && !SymbolStruct::typeHasDynamicStorage(ctx, typeRef);
+                return !flags.hasDrop && !flags.hasPostMove && !flags.hasPostCopy && !SymbolStruct::typeHasDynamicStorage(ctx, type);
             default:
                 SWC_UNREACHABLE();
         }
@@ -457,7 +457,7 @@ Result ConstantIntrinsic::tryConstantFoldCallBeforeParameterCasts(Sema& sema, co
     SWC_RESULT(sema.waitSemaCompleted(&type, args[0]));
 
     const TypeGen::LifecycleFlags flags = TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), typeRef);
-    setBoolCallConstant(sema, lifecycleFoldResult(sema.ctx(), typeRef, flags, op));
+    setBoolCallConstant(sema, lifecycleFoldResult(sema.ctx(), type, flags, op));
     return Result::Continue;
 }
 

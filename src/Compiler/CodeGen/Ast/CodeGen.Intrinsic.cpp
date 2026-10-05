@@ -250,15 +250,15 @@ namespace
         if (count == 1)
             return emitIntrinsicInitStore(codeGen, fillTypeRef, srcPayload, dstAddressReg);
 
-        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), fillTypeRef))
+        const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
+        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), fillType))
         {
             const MicroReg countReg = codeGen.nextVirtualIntRegister();
             codeGen.builder().emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
             return emitIntrinsicInitRepeatRuntime(codeGen, fillTypeRef, srcPayload, dstAddressReg, countReg);
         }
 
-        const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
-        const uint64_t  sizeOf   = fillType.sizeOf(codeGen.ctx());
+        const uint64_t sizeOf = fillType.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
 
         const auto storeBits = CodeGenTypeHelpers::scalarStoreBits(fillType, codeGen.ctx());

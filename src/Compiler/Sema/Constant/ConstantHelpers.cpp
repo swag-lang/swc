@@ -389,7 +389,7 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
         if (write.valueRef.isValid() && construction.writeValue(write.typeRef, write.valueRef, write.offset) != Result::Continue)
             return ConstantRef::invalid();
     }
-    if (SymbolStruct::initializeDynamicIdentityBytes(sema, construction.bytes, typeRef) != Result::Continue)
+    if (SymbolStruct::initializeDynamicIdentityBytes(sema, construction.bytes, type) != Result::Continue)
         return ConstantRef::invalid();
     if (construction.collectDynamicRelocations(type, 0) != Result::Continue)
         return ConstantRef::invalid();

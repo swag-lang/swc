@@ -1028,7 +1028,7 @@ namespace
 Result ConstantLower::lowerToBytes(Sema& sema, std::span<std::byte> dstBytes, ConstantRef cstRef, const TypeInfo& dstType)
 {
     SWC_RESULT(lowerConstantToBytes(sema, dstBytes, dstType, cstRef));
-    return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstType.typeRef());
+    return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstType);
 }
 
 Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
@@ -1039,7 +1039,7 @@ Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, std::span<std::byte
 Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
     SWC_RESULT(lowerAggregateStructToBytesInternal(sema, dstBytes, dstType, nullptr, values));
-    return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstType.payloadSymStruct().typeRef());
+    return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, sema.typeMgr().get(dstType.payloadSymStruct().typeRef()));
 }
 
 Result ConstantLower::materializeStaticPayload(Sema& sema, uint32_t& outOffset, DataSegment& segment, const TypeInfo& typeInfo, const std::span<const std::byte> srcBytes)

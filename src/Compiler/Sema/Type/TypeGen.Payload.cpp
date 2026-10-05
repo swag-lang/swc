@@ -334,7 +334,7 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Tuple);
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, typeRef))
             addFlag(rtType, Runtime::TypeInfoFlags::RequiresExplicitInit);
-        if (SymbolStruct::typeHasDynamicStorage(ctx, typeRef))
+        if (SymbolStruct::typeHasDynamicStorage(ctx, type))
             addFlag(rtType, Runtime::TypeInfoFlags::HasDynamicStorage);
         if (type.isTypeInfo())
             addFlag(rtType, Runtime::TypeInfoFlags::PointerTypeInfo);

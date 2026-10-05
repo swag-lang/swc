@@ -856,9 +856,9 @@ const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) co
     return nullptr;
 }
 
-const TypeInfo* SymbolStruct::dynamicStorageLeafType(const TaskContext& ctx, TypeRef typeRef)
+const TypeInfo* SymbolStruct::dynamicStorageLeafType(const TaskContext& ctx, const TypeInfo& rootType)
 {
-    const TypeInfo* type = &ctx.typeMgr().get(typeRef);
+    const TypeInfo* type = &rootType;
     while (true)
     {
         if (type->isAlias() || type->isEnum())
@@ -875,7 +875,7 @@ const TypeInfo* SymbolStruct::dynamicStorageLeafType(const TaskContext& ctx, Typ
 
 Result SymbolStruct::prepareDynamicMetadata(Sema& sema, TypeRef typeRef)
 {
-    const TypeInfo* type = dynamicStorageLeafType(sema.ctx(), typeRef);
+    const TypeInfo* type = dynamicStorageLeafType(sema.ctx(), sema.typeMgr().get(typeRef));
     if (!type)
         return Result::Continue;
 
@@ -890,18 +890,19 @@ Result SymbolStruct::prepareDynamicMetadata(Sema& sema, TypeRef typeRef)
     return Result::Continue;
 }
 
-Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::byte> bytes, TypeRef typeRef)
+Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::byte> bytes, const TypeInfo& originalType)
 {
-    if (!typeHasDynamicStorage(sema.ctx(), typeRef))
+    if (!typeHasDynamicStorage(sema.ctx(), originalType))
         return Result::Continue;
-    typeRef              = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
+    const TypeInfo& type             = unwrappedTypeRef.isValid() ? sema.typeMgr().get(unwrappedTypeRef) : originalType;
+    const TypeRef   typeRef          = type.typeRef();
     if (type.isArray())
     {
-        const TypeRef  elementTypeRef = type.payloadArrayElemTypeRef();
-        const uint64_t elementSize    = sema.typeMgr().get(elementTypeRef).sizeOf(sema.ctx());
+        const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());
+        const uint64_t  elementSize = elementType.sizeOf(sema.ctx());
         for (size_t offset = 0; elementSize && offset < bytes.size(); offset += elementSize)
-            SWC_RESULT(initializeDynamicIdentityBytes(sema, bytes.subspan(offset, elementSize), elementTypeRef));
+            SWC_RESULT(initializeDynamicIdentityBytes(sema, bytes.subspan(offset, elementSize), elementType));
         return Result::Continue;
     }
     if (!type.isStruct() || !type.payloadSymStruct().hasDynamicStorage())
@@ -910,8 +911,9 @@ Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::b
     const SymbolStruct& symStruct = type.payloadSymStruct();
     for (const SymbolVariable* field : symStruct.fields())
     {
-        const uint64_t fieldSize = field->typeInfo(sema.ctx()).sizeOf(sema.ctx());
-        SWC_RESULT(initializeDynamicIdentityBytes(sema, bytes.subspan(field->offset(), fieldSize), field->typeRef()));
+        const TypeInfo& fieldType = field->typeInfo(sema.ctx());
+        const uint64_t  fieldSize = fieldType.sizeOf(sema.ctx());
+        SWC_RESULT(initializeDynamicIdentityBytes(sema, bytes.subspan(field->offset(), fieldSize), fieldType));
     }
     if (symStruct.isDynamic())
     {
@@ -971,7 +973,7 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
             std::vector     buffer(structSize, std::byte{0});
             const std::span bytes{buffer.data(), buffer.size()};
             SWC_INTERNAL_CHECK(lowerTypeImplicitDefaultBytesRec(sema, bytes, typeRef) == Result::Continue);
-            SWC_INTERNAL_CHECK(initializeDynamicIdentityBytes(sema, bytes, typeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(initializeDynamicIdentityBytes(sema, bytes, ctx.typeMgr().get(typeRef)) == Result::Continue);
             defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span{bytes.data(), bytes.size()});
         }
         SWC_ASSERT(defaultStructCst_.isValid());
@@ -1080,7 +1082,7 @@ bool SymbolStruct::fieldRequiresExplicitInitialization(Sema& sema, const SymbolV
 Result SymbolStruct::lowerTypeImplicitDefaultBytes(Sema& sema, const std::span<std::byte> dstBytes, const TypeRef typeRef)
 {
     SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes, typeRef));
-    return initializeDynamicIdentityBytes(sema, dstBytes, typeRef);
+    return initializeDynamicIdentityBytes(sema, dstBytes, sema.typeMgr().get(typeRef));
 }
 
 Result SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const
@@ -1388,7 +1390,7 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     {
         for (const SymbolVariable* field : fields_)
         {
-            if (typeHasDynamicStorage(ctx, field->typeRef()))
+            if (typeHasDynamicStorage(ctx, ctx.typeMgr().get(field->typeRef())))
             {
                 addExtraFlag(SymbolStructFlagsE::DynamicStorage);
                 break;

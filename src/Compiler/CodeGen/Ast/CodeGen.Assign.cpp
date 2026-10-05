@@ -225,7 +225,7 @@ namespace
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
 
         // An eight-byte dynamic value contains only its identity slot.
-        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), encodeCtx.target.opTypeRef))
+        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), codeGen.typeMgr().get(encodeCtx.target.opTypeRef)))
         {
             SWC_ASSERT(codeGen.typeMgr().get(encodeCtx.target.opTypeRef).sizeOf(codeGen.ctx()) == sizeof(void*));
             return Result::Continue;

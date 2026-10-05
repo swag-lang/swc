@@ -39,7 +39,7 @@ namespace
     {
         typeRef              = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef);
         const TypeInfo& type = codeGen.typeMgr().get(typeRef);
-        if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), typeRef))
+        if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
             return CodeGenSafety::emitLifecyclePoison(codeGen, addressReg, type.sizeOf(codeGen.ctx()));
 
         // Identity belongs to the storage, including when a moved-from base is later assigned

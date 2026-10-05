@@ -243,10 +243,8 @@ namespace
 
     MicroOpBits scalarStoreBitsForType(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        if (!typeInfo.isAlias() && !typeInfo.isEnum())
-            return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
-        const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx());
-        const TypeInfo& scalarType     = storageTypeRef.isValid() ? codeGen.typeMgr().get(storageTypeRef) : typeInfo;
+        const TypeInfo* storageType = typeInfo.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& scalarType  = storageType ? *storageType : typeInfo;
         return CodeGenTypeHelpers::scalarStoreBits(scalarType, codeGen.ctx());
     }
 
@@ -394,12 +392,12 @@ namespace
         if (!exprTypeRef.isValid())
             return raiseInternalCodeGenError(codeGen, "missing the 'notnull' operand type", ownerRef);
 
-        const TypeInfo& originalType         = *exprView.type();
-        const TypeRef   unwrappedExprTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-        if (unwrappedExprTypeRef.isValid())
-            exprTypeRef = unwrappedExprTypeRef;
+        const TypeInfo& originalType      = *exprView.type();
+        const TypeInfo* unwrappedExprType = originalType.unwrapAliasEnumType(codeGen.ctx());
+        if (unwrappedExprType)
+            exprTypeRef = unwrappedExprType->typeRef();
 
-        const TypeInfo&           exprType     = unwrappedExprTypeRef.isValid() ? codeGen.typeMgr().get(exprTypeRef) : originalType;
+        const TypeInfo&           exprType     = unwrappedExprType ? *unwrappedExprType : originalType;
         const MicroOpBits         presenceBits = CodeGenTypeHelpers::compareBits(exprType, codeGen.ctx());
         const CodeGenNodePayload& exprPayload  = codeGen.payload(resolvedExprRef);
         const MicroReg            presenceReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, exprPayload, exprTypeRef, exprType, presenceBits);
@@ -441,12 +439,12 @@ namespace
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
             return Result::Continue;
 
-        TaskContext&    ctx              = codeGen.ctx();
-        const TypeInfo& originalType     = codeGen.typeMgr().get(typeRef);
-        const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(ctx) : TypeRef::invalid();
-        const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-        const TypeInfo& typeInfo         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(storageTypeRef) : originalType;
-        const uint64_t  sizeOf           = typeInfo.sizeOf(codeGen.ctx());
+        TaskContext&    ctx            = codeGen.ctx();
+        const TypeInfo& originalType   = codeGen.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType  = originalType.unwrapAliasEnumType(ctx);
+        const TypeInfo& typeInfo       = unwrappedType ? *unwrappedType : originalType;
+        const TypeRef   storageTypeRef = typeInfo.typeRef();
+        const uint64_t  sizeOf         = typeInfo.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOf && sizeOf <= std::numeric_limits<uint32_t>::max());
         if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
             return raiseInternalCodeGenError(codeGen, "zero constant storage size is outside the supported range");

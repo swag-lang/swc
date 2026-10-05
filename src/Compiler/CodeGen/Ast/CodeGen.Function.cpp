@@ -330,7 +330,7 @@ namespace
             const uint32_t paramIndex = registerParamIndices[i];
             const auto*    symVar     = params[paramIndex];
             SWC_ASSERT(symVar != nullptr);
-            const auto paramInfo = paramInfos[paramIndex];
+            const auto& paramInfo = paramInfos[paramIndex];
 
             SmallVector<MicroReg> futureSourceRegs;
             CodeGenParameterReg::collectFutureSourceRegs(futureSourceRegs, callConv, paramInfos, registerParamIndices.span(), i, paramInfo.isFloat);
@@ -367,7 +367,7 @@ namespace
         {
             const SymbolVariable* symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
-            const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
+            const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo = paramInfos[i];
             if (paramInfo.isRegisterArg)
                 continue;
 

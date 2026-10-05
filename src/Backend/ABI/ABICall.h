@@ -19,6 +19,26 @@ namespace ABICall
         bool    needsHome = false;
     };
 
+    struct ArgRegisterState
+    {
+        uint32_t intLane   = 0;
+        uint32_t floatLane = 0;
+
+        uint32_t nextIndependent(const CallConv& conv, bool isFloat)
+        {
+            const uint32_t laneIndex = isFloat ? floatLane++ : intLane++;
+            const size_t   laneCount = isFloat ? conv.floatArgRegs.size() : conv.intArgRegs.size();
+            return laneIndex < laneCount ? laneIndex : UINT32_MAX;
+        }
+
+        uint32_t next(const CallConv& conv, uint32_t argIndex, bool isFloat)
+        {
+            if (conv.independentArgBanks)
+                return nextIndependent(conv, isFloat);
+            return conv.canPassArgInRegister(argIndex, isFloat) ? argIndex : UINT32_MAX;
+        }
+    };
+
     uint32_t argumentRegisterIndex(const CallConv& conv, std::span<const ArgLayout> argLayouts, uint32_t argIndex);
     uint32_t argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKind callConvKind, TypeRef returnTypeRef, uint32_t parameterIndex);
     uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex);

@@ -677,9 +677,9 @@ namespace
         return Result::Continue;
     }
 
-    size_t nextPositionalStructField(const std::vector<SymbolVariable*>& fields, const std::vector<ConstantRef>& valuesByField, size_t start)
+    size_t nextPositionalStructField(const std::vector<SymbolVariable*>& fields, size_t start)
     {
-        while (start < fields.size() && (!fields[start] || valuesByField[start].isValid()))
+        while (start < fields.size() && !fields[start])
             ++start;
         return start;
     }
@@ -721,7 +721,9 @@ namespace
             else
             {
                 SWC_INTERNAL_CHECK(!seenNamed);
-                fieldIdx = nextPositionalStructField(dstFields, outValues, nextPos);
+                // Positional entries advance in order before any named entry, so
+                // every field at or after nextPos is still unassigned.
+                fieldIdx = nextPositionalStructField(dstFields, nextPos);
                 SWC_INTERNAL_CHECK(fieldIdx < dstFields.size());
                 nextPos = fieldIdx + 1;
             }
@@ -767,8 +769,7 @@ namespace
 
     Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, ConstantRef cstRef)
     {
-        const ConstantValue& cst        = sema.cstMgr().get(cstRef);
-        const TypeRef        dstTypeRef = dstType.typeRef();
+        const TypeRef dstTypeRef = dstType.typeRef();
         if (dstType.isAlias())
         {
             const TypeRef unwrappedTypeRef = dstType.unwrap(sema.ctx(), dstTypeRef, TypeExpandE::Alias);
@@ -776,6 +777,7 @@ namespace
             return lowerConstantToBytes(sema, dstBytes, sema.typeMgr().get(unwrappedTypeRef), cstRef);
         }
 
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
         if (dstType.isEnum())
         {
             const TypeRef underlyingTypeRef = dstType.payloadSymEnum().underlyingTypeRef();

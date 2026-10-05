@@ -532,8 +532,8 @@ namespace
         if (exprRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const TypeRef typeRef = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type).typeRef();
-        if (typeRef.isInvalid() || !codeGen.typeMgr().get(typeRef).isMoveReference())
+        const SemaNodeView view = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
+        if (!view.type() || !view.type()->isMoveReference())
             return AstNodeRef::invalid();
         return exprRef;
     }

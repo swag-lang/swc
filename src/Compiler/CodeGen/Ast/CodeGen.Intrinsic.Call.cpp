@@ -1798,7 +1798,7 @@ namespace
         ABICall::callLocal(builder, tlsGetPtrCallConvKind, tlsGetPtrFunction, preparedTlsGetPtrCall);
 
         const CallConv&                        tlsGetPtrCallConv = CallConv::get(tlsGetPtrCallConvKind);
-        const ABITypeNormalize::NormalizedType tlsGetPtrRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsGetPtrCallConv, codeGen.typeMgr().get(codeGen.curViewType().typeRef()), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType tlsGetPtrRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsGetPtrCallConv, *codeGen.curViewType().type(), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!tlsGetPtrRet.isVoid);
         SWC_ASSERT(!tlsGetPtrRet.isIndirect);
 

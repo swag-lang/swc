@@ -100,9 +100,9 @@ namespace
         if (auto* dep = recoverFunctionExprSymbolFromDependencies(codeGen, nodeRef))
             return *dep;
 
-        const TypeRef typeRef = codeGen.viewType(nodeRef).typeRef();
-        SWC_ASSERT(typeRef.isValid());
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const SemaNodeView view = codeGen.viewType(nodeRef);
+        SWC_ASSERT(view.type());
+        const TypeInfo& typeInfo = *view.type();
         SWC_ASSERT(typeInfo.isFunction());
         return typeInfo.payloadSymFunction();
     }

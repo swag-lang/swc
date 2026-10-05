@@ -939,10 +939,11 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
     if (existingPayload && existingPayload->reg.isValid())
         return Result::Continue;
 
-    const TypeRef targetTypeRef = codeGen.curViewType().typeRef();
+    const SemaNodeView targetView    = codeGen.curViewType();
+    const TypeRef      targetTypeRef = targetView.typeRef();
     if (targetTypeRef.isValid())
     {
-        const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
+        const TypeInfo& targetType = *targetView.type();
         const uint64_t  sizeOfType = targetType.sizeOf(codeGen.ctx());
         if (sizeOfType > sizeof(uint64_t))
         {

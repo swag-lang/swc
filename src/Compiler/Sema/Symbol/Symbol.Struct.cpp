@@ -417,12 +417,11 @@ namespace
         return ImplicitDefaultKind::AllZero;
     }
 
-    Result lowerTypeImplicitDefaultBytesRec(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef)
+    Result lowerTypeImplicitDefaultBytesRec(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& declaredType)
     {
         // Non-null types reached here are 'late' fields (fields requiring explicit
         // initialization were skipped by the caller): their default is the null
         // 'unset' state. The destination buffer is not always pre-zeroed.
-        const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
         if (declaredType.isNonNullable())
         {
             if (!dstBytes.empty())
@@ -460,7 +459,7 @@ namespace
                 }
                 else if (fieldSize)
                 {
-                    SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, fieldBytes, fieldTypeRef));
+                    SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, fieldBytes, fieldType));
                 }
             }
 
@@ -480,7 +479,7 @@ namespace
                 totalCount *= dim;
 
             for (uint64_t idx = 0; idx < totalCount; ++idx)
-                SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes.subspan(idx * elemSize, elemSize), elemTypeRef));
+                SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes.subspan(idx * elemSize, elemSize), elemType));
             return Result::Continue;
         }
 
@@ -851,11 +850,8 @@ const TypeInfo* SymbolStruct::dynamicStorageLeafType(const TaskContext& ctx, con
     const TypeInfo* type = &rootType;
     while (true)
     {
-        if (type->isAlias() || type->isEnum())
-        {
-            const TypeRef storageTypeRef = type->unwrapAliasEnum(ctx, type->typeRef());
-            type                         = &ctx.typeMgr().get(storageTypeRef);
-        }
+        if (const TypeInfo* storageType = type->unwrapAliasEnumType(ctx))
+            type = storageType;
         if (!type->isArray())
             break;
         type = &ctx.typeMgr().get(type->payloadArrayElemTypeRef());
@@ -884,9 +880,9 @@ Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::b
 {
     if (!typeHasDynamicStorage(sema.ctx(), originalType))
         return Result::Continue;
-    const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
-    const TypeInfo& type             = unwrappedTypeRef.isValid() ? sema.typeMgr().get(unwrappedTypeRef) : originalType;
-    const TypeRef   typeRef          = type.typeRef();
+    const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
+    const TypeRef   typeRef       = type.typeRef();
     if (type.isArray())
     {
         const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());
@@ -949,7 +945,8 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
         }
 
         SWC_ASSERT(structSize);
-        if (ConstantHelpers::typeHasUnionStorage(ctx, ctx.typeMgr().get(typeRef)))
+        const TypeInfo& defaultType = ctx.typeMgr().get(typeRef);
+        if (ConstantHelpers::typeHasUnionStorage(ctx, defaultType))
         {
             defaultStructCst_ = ConstantHelpers::materializeAggregateConstructionConstant(sema, typeRef);
             if (defaultStructCst_.isInvalid())
@@ -962,8 +959,8 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
         {
             std::vector     buffer(structSize, std::byte{0});
             const std::span bytes{buffer.data(), buffer.size()};
-            SWC_INTERNAL_CHECK(lowerTypeImplicitDefaultBytesRec(sema, bytes, typeRef) == Result::Continue);
-            SWC_INTERNAL_CHECK(initializeDynamicIdentityBytes(sema, bytes, ctx.typeMgr().get(typeRef)) == Result::Continue);
+            SWC_INTERNAL_CHECK(lowerTypeImplicitDefaultBytesRec(sema, bytes, defaultType) == Result::Continue);
+            SWC_INTERNAL_CHECK(initializeDynamicIdentityBytes(sema, bytes, defaultType) == Result::Continue);
             defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span{bytes.data(), bytes.size()});
         }
         SWC_ASSERT(defaultStructCst_.isValid());
@@ -1072,8 +1069,9 @@ bool SymbolStruct::fieldRequiresExplicitInitialization(Sema& sema, const SymbolV
 
 Result SymbolStruct::lowerTypeImplicitDefaultBytes(Sema& sema, const std::span<std::byte> dstBytes, const TypeRef typeRef)
 {
-    SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes, typeRef));
-    return initializeDynamicIdentityBytes(sema, dstBytes, sema.typeMgr().get(typeRef));
+    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes, type));
+    return initializeDynamicIdentityBytes(sema, dstBytes, type);
 }
 
 Result SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const
@@ -1348,8 +1346,9 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         const SymbolVariable& field = *fields_[i];
         if (!field.isUsingField())
             continue;
-        const TypeRef   fieldTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, field.typeRef());
-        const TypeInfo& fieldType    = ctx.typeMgr().get(fieldTypeRef);
+        const TypeInfo& declaredType  = ctx.typeMgr().get(field.typeRef());
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
+        const TypeInfo& fieldType     = unwrappedType ? *unwrappedType : declaredType;
         if (!fieldType.isStruct())
             continue;
         for (const uint32_t slotOffset : fieldType.payloadSymStruct().dynamicSlotOffsets())

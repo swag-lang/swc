@@ -175,11 +175,10 @@ namespace
         codeGen.builder().emitLoadMemReg(codeGen.localStackBaseReg(), codeGen.currentFunctionIndirectReturnStackOffset(), callConv.intArgRegs[0], MicroOpBits::B64);
     }
 
-    void buildLocalStackLayout(CodeGen& codeGen)
+    void buildLocalStackLayout(CodeGen& codeGen, const CallConv& callConv, bool hasIndirectReturnArg)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
         const std::vector<SymbolVariable*>& params       = codeGen.function().parameters();
-        const CallConv&                     callConv     = CallConv::get(codeGen.function().callConvKind());
         uint64_t                            frameSize    = 0;
         codeGen.clearCurrentFunctionIndirectReturnStackOffset();
         for (SymbolVariable* symVar : localSymbols)
@@ -188,7 +187,7 @@ namespace
             const TypeRef typeRef = symVar->typeRef();
             SWC_ASSERT(typeRef.isValid());
 
-            if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
+            if (symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) && hasIndirectReturnArg)
             {
                 symVar->setOffset(0);
                 symVar->setCodeGenLocalSize(0);
@@ -233,7 +232,7 @@ namespace
 
         appendDebugParameterSlots(codeGen, frameSize);
         configureGvtdScratchLayout(codeGen, frameSize);
-        if (CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(codeGen, codeGen.function()))
+        if (hasIndirectReturnArg)
         {
             constexpr uint32_t hiddenReturnStorageSize      = sizeof(uint64_t);
             constexpr uint32_t hiddenReturnStorageAlignment = alignof(uint64_t);
@@ -300,7 +299,7 @@ namespace
         }
     }
 
-    void collectFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    void collectFunctionParameterInfos(CodeGen& codeGen, SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, const SymbolFunction& symbolFunc, bool hasIndirectReturnArg)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
         outParamInfos.clear();
@@ -309,11 +308,7 @@ namespace
 
         outParamInfos.resize(params.size());
 
-        const CallConv&                        callConv             = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet        = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symbolFunc.returnTypeRef()), ABITypeNormalize::Usage::Return);
-        const bool                             hasIndirectReturnArg = normalizedRet.isIndirect;
-        const bool                             hasClosureContextArg = symbolFunc.isClosure();
-        CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc, hasIndirectReturnArg, hasClosureContextArg);
+        CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc, hasIndirectReturnArg, symbolFunc.isClosure());
     }
 
     void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
@@ -466,8 +461,8 @@ namespace
         clearFallibleFunctionPayload(codeGen, declRef);
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-        collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
-        buildLocalStackLayout(codeGen);
+        collectFunctionParameterInfos(codeGen, paramInfos, symbolFunc, normalizedRet.isIndirect);
+        buildLocalStackLayout(codeGen, callConv, normalizedRet.isIndirect);
         {
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);

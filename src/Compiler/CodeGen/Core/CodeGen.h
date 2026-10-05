@@ -28,6 +28,11 @@ struct ResolvedCallArgument;
 struct Token;
 struct SemaInlinePayload;
 
+namespace CodeGenFunctionHelpers
+{
+    struct FunctionParameterInfo;
+}
+
 struct CodeGenGvtdEntry
 {
     const SymbolVariable* variable = nullptr;
@@ -441,9 +446,9 @@ public:
     void                      pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
     Result                    popDeferScope();
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
-    void                      registerImplicitDrop(const SymbolVariable& symVar);
+    void                      registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo = nullptr);
     void                      initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);
-    void                      registerImplicitParameterDrops();
+    void                      registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos);
     bool                      hasDeferredStatements() const { return hasDeferredStatements_; }
     Result                    emitDeferredActionsForReturn();
     Result                    emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef);

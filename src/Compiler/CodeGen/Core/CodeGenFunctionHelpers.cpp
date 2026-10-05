@@ -467,29 +467,34 @@ void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::s
     fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc, functionUsesIndirectReturnStorage(codeGen, symbolFunc), symbolFunc.isClosure());
 }
 
-bool CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+bool CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo)
 {
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         return false;
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))
         return false;
+    if (paramInfo)
+        return paramInfo->isIndirect;
 
     const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symVar.typeRef()), ABITypeNormalize::Usage::Argument);
     return normalizedParam.isIndirect;
 }
 
-bool CodeGenFunctionHelpers::isBorrowedIndirectParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+bool CodeGenFunctionHelpers::isBorrowedIndirectParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo)
 {
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         return false;
+
+    if (paramInfo)
+        return paramInfo->isIndirect && !paramInfo->needsIndirectCopy;
 
     const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symVar.typeRef()), ABITypeNormalize::Usage::Argument);
     return normalizedParam.isIndirect && !normalizedParam.needsIndirectCopy;
 }
 
-bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo)
 {
     // An aggregate small enough for the ABI to pass in a register still needs a memory home in
     // the callee: the body reads it through its address. The prologue gives such a parameter a
@@ -507,6 +512,8 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(unwrappedTypeRef) : paramType;
     if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregate())
         return false;
+    if (paramInfo)
+        return !paramInfo->isIndirect;
 
     const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, storageType, ABITypeNormalize::Usage::Argument);

@@ -1405,7 +1405,7 @@ void CodeGen::registerDefer(const AstNodeRef deferStmtRef, const AstNodeRef body
     action.modifierFlags = modifierFlags;
 }
 
-void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
+void CodeGen::registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo)
 {
     if (!hasDeferredStatements_)
         return;
@@ -1413,14 +1413,14 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
         return;
     if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
     {
-        if (CodeGenFunctionHelpers::isBorrowedIndirectParameter(*this, function(), symVar))
+        if (CodeGenFunctionHelpers::isBorrowedIndirectParameter(*this, function(), symVar, paramInfo))
             return;
         // A by-value aggregate parameter is a transport image of the caller's value: ownership
         // stays with the caller, exactly as for a borrowed indirect parameter.
-        if (CodeGenFunctionHelpers::isByValueAggregateParameter(*this, function(), symVar))
+        if (CodeGenFunctionHelpers::isByValueAggregateParameter(*this, function(), symVar, paramInfo))
             return;
         if (!symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
-            !CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(*this, function(), symVar))
+            !CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(*this, function(), symVar, paramInfo))
             return;
     }
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
@@ -1442,12 +1442,15 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
     action.modifierFlags    = AstModifierFlagsE::Zero;
 }
 
-void CodeGen::registerImplicitParameterDrops()
+void CodeGen::registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
 {
-    for (const SymbolVariable* symVar : function().parameters())
+    const auto& params = function().parameters();
+    SWC_ASSERT(paramInfos.size() == params.size());
+    for (size_t i = 0; i < params.size(); ++i)
     {
+        const SymbolVariable* symVar = params[i];
         if (symVar)
-            registerImplicitDrop(*symVar);
+            registerImplicitDrop(*symVar, &paramInfos[i]);
     }
 }
 

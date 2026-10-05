@@ -353,12 +353,12 @@ namespace
     // so the incoming argument would never be read and the spill would copy the still
     // uninitialized slot onto itself. Register parameters avoid this because
     // 'materializeRegisterParameters' loads them before any of that.
-    bool stackParameterNeedsEagerLoad(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+    bool stackParameterNeedsEagerLoad(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo)
     {
         if (!symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) || !codeGen.localStackBaseReg().isValid())
             return false;
         return symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) ||
-               CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, symbolFunc, symVar);
+               CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, symbolFunc, symVar, &paramInfo);
     }
 
     void materializeStackParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
@@ -374,7 +374,7 @@ namespace
             if (paramInfo.isRegisterArg)
                 continue;
 
-            if (stackParameterNeedsEagerLoad(codeGen, symbolFunc, *symVar))
+            if (stackParameterNeedsEagerLoad(codeGen, symbolFunc, *symVar, paramInfo))
             {
                 CodeGenNodePayload symbolPayload;
                 symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
@@ -518,7 +518,7 @@ namespace
         codeGen.setBodyEntryRef(codeGen.builder().instructions().lastInstructionRef());
 
         codeGen.pushDeferScope(declRef);
-        codeGen.registerImplicitParameterDrops();
+        codeGen.registerImplicitParameterDrops(paramInfos);
 
         return Result::Continue;
     }

@@ -32,7 +32,8 @@ namespace CodeGenParameterReg
     {
         SWC_ASSERT(paramInfos.size() == params.size());
         outIndices.clear();
-        outIndices.reserve(params.size());
+        // Register parameters fit the inline buffer for the supported conventions.
+        // Reserving for every parameter would also allocate for the stack-only tail.
         for (size_t i = 0; i < params.size(); ++i)
         {
             SWC_ASSERT(params[i] != nullptr);

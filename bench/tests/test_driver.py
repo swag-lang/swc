@@ -1,8 +1,11 @@
 import contextlib
+import ctypes
 import json
 import os
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -286,6 +289,64 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(result["stdout"].splitlines(), ["ready"])
         self.assertIsNotNone(result["first_stdout_ms"])
         self.assertLess(result["first_stdout_ms"], result["wall_ms"] - 100)
+
+
+class ProcessLifetimeTests(unittest.TestCase):
+    def test_driver_death_during_process_creation_reaps_the_suspended_child(self):
+        # Stop the driver immediately after CreateProcessW succeeds, before it can
+        # execute a separate AssignProcessToJobObject or resume the child.
+        script = """
+import ctypes
+import pathlib
+import sys
+import time
+import winproc
+
+create_process = winproc.k32.CreateProcessW
+def pause_after_creation(*args):
+    ok = create_process(*args)
+    if ok:
+        info = ctypes.cast(args[-1], ctypes.POINTER(winproc.PROCESS_INFORMATION)).contents
+        marker = pathlib.Path(sys.argv[1])
+        pending = marker.with_suffix('.pending')
+        pending.write_text(str(info.dwProcessId), encoding='ascii')
+        pending.replace(marker)
+        time.sleep(30)
+    return ok
+
+winproc.k32.CreateProcessW = pause_after_creation
+winproc.run([sys.executable, '-c', 'pass'])
+"""
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.OpenProcess.argtypes = [ctypes.wintypes.DWORD, ctypes.wintypes.BOOL, ctypes.wintypes.DWORD]
+        k32.OpenProcess.restype = ctypes.wintypes.HANDLE
+        k32.WaitForSingleObject.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.DWORD]
+        k32.TerminateProcess.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.UINT]
+        k32.CloseHandle.argtypes = [ctypes.wintypes.HANDLE]
+        with tempfile.TemporaryDirectory(prefix="swc bench process lifetime ") as folder:
+            marker = Path(folder, "child.pid")
+            child = None
+            driver_process = subprocess.Popen([sys.executable, "-B", "-c", script, str(marker)],
+                                              cwd=Path(winproc.__file__).parent,
+                                              stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            try:
+                deadline = time.monotonic() + 10
+                while not marker.exists() and driver_process.poll() is None and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                self.assertTrue(marker.exists(), "the driver did not create its suspended child")
+                child = k32.OpenProcess(0x00100001, False, int(marker.read_text(encoding="ascii")))
+                self.assertTrue(child, ctypes.WinError(ctypes.get_last_error()))
+                driver_process.kill()
+                driver_process.wait(timeout=5)
+                self.assertEqual(k32.WaitForSingleObject(child, 2000), 0,
+                                 "the driver left its suspended child alive")
+            finally:
+                if driver_process.poll() is None:
+                    driver_process.kill()
+                if child:
+                    k32.TerminateProcess(child, 1)
+                    k32.CloseHandle(child)
+                driver_process.communicate(timeout=5)
 
 
 class PinTests(unittest.TestCase):

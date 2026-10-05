@@ -24,6 +24,8 @@ INFINITE = 0xFFFFFFFF
 CREATE_SUSPENDED = 0x00000004
 CREATE_UNICODE_ENVIRONMENT = 0x00000400
 CREATE_NO_WINDOW = 0x08000000
+EXTENDED_STARTUPINFO_PRESENT = 0x00080000
+PROC_THREAD_ATTRIBUTE_JOB_LIST = 0x0002000D
 STARTF_USESTDHANDLES = 0x00000100
 GENERIC_WRITE = 0x40000000
 FILE_SHARE_READ = 0x00000001
@@ -59,6 +61,10 @@ class PROCESS_INFORMATION(ctypes.Structure):
     _fields_ = [("hProcess", w.HANDLE), ("hThread", w.HANDLE), ("dwProcessId", w.DWORD), ("dwThreadId", w.DWORD)]
 
 
+class STARTUPINFOEXW(ctypes.Structure):
+    _fields_ = [("StartupInfo", STARTUPINFOW), ("lpAttributeList", w.LPVOID)]
+
+
 class IO_COUNTERS(ctypes.Structure):
     _fields_ = [("ReadOperationCount", ctypes.c_ulonglong), ("WriteOperationCount", ctypes.c_ulonglong),
                 ("OtherOperationCount", ctypes.c_ulonglong), ("ReadTransferCount", ctypes.c_ulonglong),
@@ -92,6 +98,61 @@ class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
 
 k32.K32GetProcessMemoryInfo.argtypes = [w.HANDLE, ctypes.POINTER(PROCESS_MEMORY_COUNTERS), w.DWORD]
 k32.K32GetProcessMemoryInfo.restype = w.BOOL
+k32.CreateJobObjectW.argtypes = [w.LPVOID, w.LPCWSTR]
+k32.CreateJobObjectW.restype = w.HANDLE
+k32.CloseHandle.argtypes = [w.HANDLE]
+k32.SetInformationJobObject.argtypes = [w.HANDLE, ctypes.c_int, w.LPVOID, w.DWORD]
+k32.InitializeProcThreadAttributeList.argtypes = [w.LPVOID, w.DWORD, w.DWORD, ctypes.POINTER(ctypes.c_size_t)]
+k32.UpdateProcThreadAttribute.argtypes = [w.LPVOID, w.DWORD, ctypes.c_size_t, w.LPVOID,
+                                        ctypes.c_size_t, w.LPVOID, w.LPVOID]
+k32.DeleteProcThreadAttributeList.argtypes = [w.LPVOID]
+k32.DeleteProcThreadAttributeList.restype = None
+
+
+def _create_job_process(cmdline, envblock, cwd, startup, start_tick):
+    job = k32.CreateJobObjectW(None, None)
+    if not job:
+        raise ctypes.WinError(ctypes.get_last_error())
+    attributes = None
+    try:
+        limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not k32.SetInformationJobObject(job, JobObjectExtendedLimitInformation,
+                                          ctypes.byref(limits), ctypes.sizeof(limits)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        size = ctypes.c_size_t()
+        k32.InitializeProcThreadAttributeList(None, 1, 0, ctypes.byref(size))
+        storage = ctypes.create_string_buffer(size.value)
+        if not k32.InitializeProcThreadAttributeList(storage, 1, 0, ctypes.byref(size)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        attributes = storage
+        jobs = (w.HANDLE * 1)(job)
+        if not k32.UpdateProcThreadAttribute(attributes, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST,
+                                            jobs, ctypes.sizeof(jobs), None, None):
+            raise ctypes.WinError(ctypes.get_last_error())
+        si = STARTUPINFOEXW(startup, ctypes.cast(attributes, w.LPVOID))
+        si.StartupInfo.cb = ctypes.sizeof(si)
+        pi = PROCESS_INFORMATION()
+        # Assign the job during creation: if the driver dies before CreateProcessW
+        # returns, its suspended child is already covered by kill-on-close.
+        flags = CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT
+        for attempt in range(RETRIES):
+            k32.QueryPerformanceCounter(ctypes.byref(start_tick))
+            if k32.CreateProcessW(None, ctypes.create_unicode_buffer(cmdline), None, None, True,
+                                  flags, envblock, cwd, ctypes.byref(si), ctypes.byref(pi)):
+                return job, pi
+            err = ctypes.get_last_error()
+            # A new executable can briefly be held by the linker or an antivirus.
+            # Restart the clock on retry so waiting cannot inflate a measurement.
+            if err not in (ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION) or attempt == RETRIES - 1:
+                raise ctypes.WinError(err)
+            time.sleep(RETRY_DELAY)
+    except BaseException:
+        k32.CloseHandle(job)
+        raise
+    finally:
+        if attributes is not None:
+            k32.DeleteProcThreadAttributeList(attributes)
 
 
 def _ft(f):
@@ -230,23 +291,6 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None, capture_first_stdout=
     si.hStdOutput = h_out
     si.hStdError = h_err
 
-    pi = PROCESS_INFORMATION()
-    h_job = k32.CreateJobObjectW(None, None)
-    if not h_job:
-        raise ctypes.WinError(ctypes.get_last_error())
-
-    # Kill the whole tree when the last handle to the job goes away. The normal path
-    # already terminates the job after the wait, so this only matters when the driver
-    # itself dies — interrupted at the keyboard, or killed by whatever launched it.
-    # Without it, a campaign stopped in the middle of a NativeAOT publish leaves the
-    # compiler running, and it is still burning the machine when the next campaign
-    # starts: a reference workload that takes 45 ms measured 873 ms that way. The one
-    # rule this file already had, applied to its own death.
-    limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
-    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-    k32.SetInformationJobObject(h_job, JobObjectExtendedLimitInformation,
-                                ctypes.byref(limits), ctypes.sizeof(limits))
-
     cmdline = subprocess.list2cmdline(cmd)
     envblock = _env_block(env if env is not None else dict(os.environ))
 
@@ -254,35 +298,18 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None, capture_first_stdout=
     t0 = ctypes.c_longlong()
     t1 = ctypes.c_longlong()
     k32.QueryPerformanceFrequency(ctypes.byref(freq))
-    k32.QueryPerformanceCounter(ctypes.byref(t0))
-
-    # An executable written moments ago can still be held by the linker's last handle
-    # or by an antivirus scanning it, and CreateProcessW then fails with a sharing
-    # violation. That is a race, not a benchmark result, so retry it briefly. The
-    # clock is restarted after each failed attempt, so a retry never inflates a timing.
-    ok = 0
-    for attempt in range(RETRIES):
-        k32.QueryPerformanceCounter(ctypes.byref(t0))
-        ok = k32.CreateProcessW(None, ctypes.create_unicode_buffer(cmdline), None, None, True,
-                                CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW,
-                                envblock, cwd, ctypes.byref(si), ctypes.byref(pi))
-        if ok:
-            break
-        err = ctypes.get_last_error()
-        if err not in (ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION) or attempt == RETRIES - 1:
-            k32.CloseHandle(h_out)
-            k32.CloseHandle(h_err)
-            if h_out_read:
-                k32.CloseHandle(h_out_read)
-                k32.CloseHandle(h_err_read)
-            k32.CloseHandle(h_job)
-            if path_out:
-                os.unlink(path_out)
-                os.unlink(path_err)
-            raise ctypes.WinError(err)
-        time.sleep(RETRY_DELAY)
-
-    k32.AssignProcessToJobObject(h_job, pi.hProcess)
+    try:
+        h_job, pi = _create_job_process(cmdline, envblock, cwd, si, t0)
+    except BaseException:
+        k32.CloseHandle(h_out)
+        k32.CloseHandle(h_err)
+        if h_out_read:
+            k32.CloseHandle(h_out_read)
+            k32.CloseHandle(h_err_read)
+        if path_out:
+            os.unlink(path_out)
+            os.unlink(path_err)
+        raise
     # The process is still suspended, so the affinity is in place before its first
     # instruction: it can never start on one core and be measured on another.
     mask = PIN_MASK if pin is True else (pin or 0)

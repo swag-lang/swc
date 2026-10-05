@@ -3877,20 +3877,23 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         // A fixed-register write must never land on a register a global owns at
         // this point: the global is not in the mapping, so nothing else would
         // notice the clobber.
-        for (const uint32_t concreteDense : defConcreteIndices_[idx])
+        if constexpr (SWC_HAS_ASSERT)
         {
-            const MicroReg concreteReg = denseConcreteRegs_.regs()[concreteDense];
-            const uint32_t globalDense = denseGlobalPhysRegs_.find(concreteReg);
-            if (globalDense == MicroDenseRegIndex::K_INVALID_INDEX || globalDense >= globalRangesByPhysDense_.size())
-                continue;
-            for (const GlobalRange& range : globalRangesByPhysDense_[globalDense])
+            for (const uint32_t concreteDense : defConcreteIndices_[idx])
             {
-                // A call's implicit clobber of a call-saved pinned register is
-                // the one expected overlap: the value sits parked in its slot
-                // for exactly the call's duration.
-                if (isCall && isPinnedCallSavedOwner(range.ownerDense))
+                const MicroReg concreteReg = denseConcreteRegs_.regs()[concreteDense];
+                const uint32_t globalDense = denseGlobalPhysRegs_.find(concreteReg);
+                if (globalDense == MicroDenseRegIndex::K_INVALID_INDEX || globalDense >= globalRangesByPhysDense_.size())
                     continue;
-                SWC_ASSERT(idx < range.lo || idx > range.hi);
+                for (const GlobalRange& range : globalRangesByPhysDense_[globalDense])
+                {
+                    // A call's implicit clobber of a call-saved pinned register is
+                    // the one expected overlap: the value sits parked in its slot
+                    // for exactly the call's duration.
+                    if (isCall && isPinnedCallSavedOwner(range.ownerDense))
+                        continue;
+                    SWC_ASSERT(idx < range.lo || idx > range.hi);
+                }
             }
         }
 

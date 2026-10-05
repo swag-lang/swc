@@ -858,12 +858,17 @@ const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) co
 
 const TypeInfo* SymbolStruct::dynamicStorageLeafType(const TaskContext& ctx, TypeRef typeRef)
 {
-    typeRef              = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, typeRef);
     const TypeInfo* type = &ctx.typeMgr().get(typeRef);
-    while (type->isArray())
+    while (true)
     {
-        typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, type->payloadArrayElemTypeRef());
-        type    = &ctx.typeMgr().get(typeRef);
+        if (type->isAlias() || type->isEnum())
+        {
+            const TypeRef storageTypeRef = type->unwrapAliasEnum(ctx, type->typeRef());
+            type                         = &ctx.typeMgr().get(storageTypeRef);
+        }
+        if (!type->isArray())
+            break;
+        type = &ctx.typeMgr().get(type->payloadArrayElemTypeRef());
     }
     return type->isStruct() && type->payloadSymStruct().hasDynamicStorage() ? type : nullptr;
 }

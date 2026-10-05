@@ -136,18 +136,8 @@ namespace
         const AstNodeRef valueNodeRef = arrayElemValueNodeRef(*args.sema, location.nodeRef);
         if (valueNodeRef.isInvalid())
             return Result::Continue;
-        if (args.castRequest->probing)
+        if (args.castRequest->probing || srcElemType == dstElemType)
             return Result::Continue;
-
-        SymbolFunction*     setFn       = nullptr;
-        TypeRef             setParamRef = TypeRef::invalid();
-        const SourceCodeRef codeRef     = location.codeRef.isValid() ? location.codeRef : args.castRequest->errorCodeRef;
-        SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, elemCtx.kind, setFn, setParamRef, valueNodeRef));
-        // A constant literal can require runtime defaults after its element type is known.
-        // Materialize that conversion so nested literals also receive concrete storage.
-        const bool needsRuntimeCast = valueRef.isValid() && elemCtx.constantFoldingResult().isInvalid();
-        if (!setFn && !elemCtx.selectedStructOpCast && !needsRuntimeCast && !args.sema->node(valueNodeRef).is(AstNodeId::AutoCastExpr))
-            return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
 
         SemaNodeView valueView(*args.sema, valueNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         return Cast::castIfNeeded(*args.sema, valueView, dstElemType, elemCtx.kind, elemCtx.flags);

@@ -707,8 +707,8 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         if ((srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource)) && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
-        const auto& srcElemTypes                = srcType.payloadAggregate().types;
-        bool        anyElemBuiltThroughOperator = false;
+        const auto& srcElemTypes             = srcType.payloadAggregate().types;
+        bool        anyElemNeedsRuntimeValue = false;
         for (size_t i = 0; i < srcElemTypes.size(); ++i)
         {
             const TypeRef srcElemTypeRef = srcElemTypes[i];
@@ -720,37 +720,24 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
                 return res;
             }
 
-            if (castRequest.probing)
+            if (castRequest.probing || srcElemTypeRef == dstElemTypeRef)
                 continue;
 
-            // An element that only converts through a struct set or cast operator has no
-            // constant form, even when its source is a literal: rewrite its node so the
-            // value is built at run time, as 'checkElemCast' does for the array
-            // destination.
+            // Slice elements need the same conversions as array and struct initializers.
             const AstNodeRef elemNodeRef = aggregateElemValueNodeRef(sema, castRequest.errorNodeRef, i);
             if (elemNodeRef.isInvalid())
                 continue;
 
-            SymbolFunction* setFn       = nullptr;
-            TypeRef         setParamRef = TypeRef::invalid();
-            SWC_RESULT(resolveStructSetCastCandidate(sema, sema.node(elemNodeRef).codeRef(), srcElemTypeRef, dstElemTypeRef, castRequest.kind, setFn, setParamRef, elemNodeRef));
-            if (!setFn && !elemRequest.selectedStructOpCast)
-            {
-                // A runtime aggregate literal must use the concrete slice element storage so
-                // fields omitted from the literal receive their implicit or declared defaults.
-                SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, elemNodeRef, srcElemTypeRef, dstElemTypeRef, true));
-                continue;
-            }
-
+            SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, elemNodeRef, srcElemTypeRef, dstElemTypeRef, true));
             SemaNodeView elemView(sema, elemNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
             SWC_RESULT(castIfNeeded(sema, elemView, dstElemTypeRef, castRequest.kind, castRequest.flags));
-            anyElemBuiltThroughOperator = true;
+            anyElemNeedsRuntimeValue |= !elemView.hasConstant();
         }
 
-        // Operator-built elements make the aggregate a runtime value: drop its folded
+        // Runtime element conversions make the aggregate a runtime value: drop its folded
         // constant so code generation walks the rewritten element nodes instead of
         // materializing the stale payload.
-        if (anyElemBuiltThroughOperator)
+        if (anyElemNeedsRuntimeValue)
         {
             sema.clearConstant(castRequest.errorNodeRef);
             castRequest.setConstantFoldingSrc(ConstantRef::invalid());

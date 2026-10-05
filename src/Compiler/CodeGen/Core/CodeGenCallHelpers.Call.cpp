@@ -506,11 +506,11 @@ namespace
         if (argPayload.hasMaterializedPointerLikeValue())
             return Result::Continue;
 
-        const TypeRef   pointeeTypeRef   = normalizedType.payloadTypeRef();
-        const TypeInfo& pointeeType      = ctx.typeMgr().get(pointeeTypeRef);
-        const TypeRef   unwrappedTypeRef = pointeeType.isAlias() || pointeeType.isEnum() ? pointeeType.unwrapAliasEnum(ctx) : TypeRef::invalid();
-        const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : pointeeTypeRef;
-        const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(storageTypeRef) : pointeeType;
+        const TypeRef   pointeeTypeRef = normalizedType.payloadTypeRef();
+        const TypeInfo& pointeeType    = ctx.typeMgr().get(pointeeTypeRef);
+        const TypeInfo* unwrappedType  = pointeeType.unwrapAliasEnumType(ctx);
+        const TypeInfo& storageType    = unwrappedType ? *unwrappedType : pointeeType;
+        const TypeRef   storageTypeRef = storageType.typeRef();
         if (!storageType.isStruct())
             return Result::Continue;
 
@@ -667,11 +667,10 @@ namespace
 
     TypeRef borrowedAggregateStorageTypeRef(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        const TypeRef   unwrappedTypeRef    = typeInfo.isAlias() || typeInfo.isEnum() ? typeInfo.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-        const TypeRef   storageTypeRef      = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeInfo.typeRef();
-        const TypeInfo& storageType         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(storageTypeRef) : typeInfo;
+        const TypeInfo* unwrappedType       = typeInfo.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& storageType         = unwrappedType ? *unwrappedType : typeInfo;
         const bool      isBorrowedAggregate = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
-        return isBorrowedAggregate ? storageTypeRef : TypeRef::invalid();
+        return isBorrowedAggregate ? storageType.typeRef() : TypeRef::invalid();
     }
 
     void materializePreparedBorrowedAggregateArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
@@ -869,9 +868,9 @@ namespace
 
         TaskContext&    ctx               = codeGen.ctx();
         const TypeRef   normalizedTypeRef = normalizedType.typeRef();
-        const TypeRef   unwrappedTypeRef  = normalizedType.isAlias() || normalizedType.isEnum() ? normalizedType.unwrapAliasEnum(ctx) : TypeRef::invalid();
-        const TypeRef   storageTypeRef    = unwrappedTypeRef.isValid() ? unwrappedTypeRef : normalizedTypeRef;
-        const TypeInfo& storageType       = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(storageTypeRef) : normalizedType;
+        const TypeInfo* unwrappedType     = normalizedType.unwrapAliasEnumType(ctx);
+        const TypeInfo& storageType       = unwrappedType ? *unwrappedType : normalizedType;
+        const TypeRef   storageTypeRef    = storageType.typeRef();
         if (!storageType.isStruct() && !storageType.isArray())
             return Result::Continue;
 
@@ -1022,8 +1021,8 @@ namespace
                 normalizedArg.needsIndirectCopy = false;
             else if (out.copyIndirectValueAggregates && normalizedArg.isIndirect)
             {
-                const TypeRef   expandedTypeRef = normalizedType.isAlias() || normalizedType.isEnum() ? normalizedType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-                const TypeInfo& expandedType    = expandedTypeRef.isValid() ? codeGen.typeMgr().get(expandedTypeRef) : normalizedType;
+                const TypeInfo* unwrappedType = normalizedType.unwrapAliasEnumType(codeGen.ctx());
+                const TypeInfo& expandedType  = unwrappedType ? *unwrappedType : normalizedType;
                 if (expandedType.isStruct() || expandedType.isAggregateStruct())
                     normalizedArg.needsIndirectCopy = true;
             }
@@ -1310,10 +1309,10 @@ namespace
             dereferenceConstUntypedVariadicArgument(codeGen, argPayload, argTypeRef, resolvedArg.argRef);
             argTypeRef = concretizeUntypedVariadicRuntimeTypeRef(codeGen, argTypeRef);
             SWC_ASSERT(argTypeRef.isValid());
-            const TypeInfo& argType            = ctx.typeMgr().get(argTypeRef);
-            const TypeRef   resolvedArgTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, argTypeRef);
-            const TypeInfo& resolvedArgType    = ctx.typeMgr().get(resolvedArgTypeRef.isValid() ? resolvedArgTypeRef : argTypeRef);
-            const uint64_t  rawArgSize         = argType.sizeOf(ctx);
+            const TypeInfo& argType         = ctx.typeMgr().get(argTypeRef);
+            const TypeInfo* unwrappedType   = argType.unwrapAliasEnumType(ctx);
+            const TypeInfo& resolvedArgType = unwrappedType ? *unwrappedType : argType;
+            const uint64_t  rawArgSize      = argType.sizeOf(ctx);
             SWC_ASSERT(rawArgSize > 0 && rawArgSize <= std::numeric_limits<uint32_t>::max());
 
             UntypedVariadicArgInfo& info = variadicInfos.emplace_back();

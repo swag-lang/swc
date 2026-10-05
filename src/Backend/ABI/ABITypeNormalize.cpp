@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/ABI/ABITypeNormalize.h"
-#include "Compiler/Sema/Type/TypeManager.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Assert.h"
 
@@ -27,15 +27,8 @@ namespace
 ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, const CallConv& conv, const TypeInfo& type, Usage usage)
 {
     // Convert semantic types into one ABI transfer model: register value or indirect pointer.
-    const TypeInfo* normalizedType = &type;
-    if (normalizedType->isAlias() || normalizedType->isEnum())
-    {
-        const TypeRef expanded = normalizedType->unwrapAliasEnum(ctx, type.typeRef());
-        SWC_ASSERT(expanded.isValid());
-        normalizedType = &ctx.typeMgr().get(expanded);
-    }
-
-    const TypeInfo& ty = *normalizedType;
+    const TypeInfo* normalizedType = type.unwrapAliasEnumType(ctx);
+    const TypeInfo& ty             = normalizedType ? *normalizedType : type;
     if (ty.isVoid())
         return makeNormalizedType(true, false, false, 0);
 

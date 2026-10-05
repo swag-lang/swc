@@ -503,9 +503,9 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     if (!typeRef.isValid())
         return false;
 
-    const TypeInfo& paramType        = ctx.typeMgr().get(typeRef);
-    const TypeRef   unwrappedTypeRef = paramType.isAlias() || paramType.isEnum() ? paramType.unwrapAliasEnum(ctx) : TypeRef::invalid();
-    const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(unwrappedTypeRef) : paramType;
+    const TypeInfo& paramType     = ctx.typeMgr().get(typeRef);
+    const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(ctx);
+    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
     if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregate())
         return false;
     if (paramInfo)
@@ -534,9 +534,9 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     // and code relies on seeing what happens to that storage during the call: a thread body
     // takes its 'Thread' by value and polls the stop flag another thread sets. An array
     // parameter is a view the callee itself writes through.
-    const TypeInfo& paramType        = ctx.typeMgr().get(typeRef);
-    const TypeRef   unwrappedTypeRef = paramType.isAlias() || paramType.isEnum() ? paramType.unwrapAliasEnum(ctx) : TypeRef::invalid();
-    const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(unwrappedTypeRef) : paramType;
+    const TypeInfo& paramType     = ctx.typeMgr().get(typeRef);
+    const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(ctx);
+    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
     return storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny();
 }
 

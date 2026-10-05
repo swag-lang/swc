@@ -10,6 +10,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -218,18 +219,15 @@ namespace
             if (storedResultTypeRef.isValid())
                 ctx.resultTypeRef = storedResultTypeRef;
         }
-        TypeRef leftSemanticTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
-        if (!leftSemanticTypeRef.isValid())
-            leftSemanticTypeRef = leftView.typeRef().isValid() ? leftView.typeRef() : ctx.leftOperandTypeRef;
-        ctx.operationTypeRef         = leftSemanticTypeRef;
-        const TypeInfo& resultType   = typeMgr.get(ctx.resultTypeRef);
-        const TypeInfo& opType       = typeMgr.get(ctx.operationTypeRef);
-        const bool      resultIsBool = resultType.isBool();
-        if (!resultIsBool && resultType.isScalarNumeric() && opType.isScalarNumeric())
+        const TypeInfo& leftSemanticType = SemaHelpers::aliasEnumType(codeGen.sema(), leftView);
+        ctx.operationTypeRef             = leftSemanticType.typeRef();
+        const TypeInfo& resultType       = typeMgr.get(ctx.resultTypeRef);
+        const bool      resultIsBool     = resultType.isBool();
+        if (!resultIsBool && resultType.isScalarNumeric() && leftSemanticType.isScalarNumeric())
         {
             const MicroOpBits resultBits = CodeGenTypeHelpers::numericOrBoolBits(resultType);
-            const MicroOpBits opBits     = CodeGenTypeHelpers::numericOrBoolBits(opType);
-            if (resultType.isFloat() != opType.isFloat() || resultBits != opBits)
+            const MicroOpBits opBits     = CodeGenTypeHelpers::numericOrBoolBits(leftSemanticType);
+            if (resultType.isFloat() != leftSemanticType.isFloat() || resultBits != opBits)
                 ctx.operationTypeRef = ctx.resultTypeRef;
         }
         if (ctx.resultTypeRef.isValid() && resultIsBool && typeMgr.get(ctx.leftOperandTypeRef).isNumericIntLike())
@@ -241,12 +239,7 @@ namespace
         SWC_ASSERT(ctx.resultTypeRef.isValid());
         SWC_ASSERT(ctx.operationTypeRef.isValid());
 
-        TypeRef rightSemanticTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), rightView.typeRef());
-        if (!rightSemanticTypeRef.isValid())
-            rightSemanticTypeRef = rightView.typeRef().isValid() ? rightView.typeRef() : ctx.rightOperandTypeRef;
-
-        const TypeInfo& leftSemanticType  = typeMgr.get(leftSemanticTypeRef);
-        const TypeInfo& rightSemanticType = typeMgr.get(rightSemanticTypeRef);
+        const TypeInfo& rightSemanticType = SemaHelpers::aliasEnumType(codeGen.sema(), rightView);
         ctx.encodingKind                  = resolveBinaryEncodingKind(tokId, leftSemanticType, rightSemanticType);
         if (ctx.encodingKind == BinaryEncodingKind::IntLike && typeMgr.get(ctx.operationTypeRef).isFloat())
         {
@@ -260,12 +253,12 @@ namespace
         // both offset and difference lowering.
         if (ctx.encodingKind == BinaryEncodingKind::PointerOffset)
         {
-            const TypeRef pointerTypeRef = leftSemanticType.isAnyPointer() ? leftSemanticTypeRef : rightSemanticTypeRef;
-            ctx.pointerStride            = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), pointerTypeRef);
+            const TypeInfo& pointerType = leftSemanticType.isAnyPointer() ? leftSemanticType : rightSemanticType;
+            ctx.pointerStride           = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), pointerType);
         }
         else if (ctx.encodingKind == BinaryEncodingKind::PointerDiff)
         {
-            ctx.pointerStride = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), leftSemanticTypeRef);
+            ctx.pointerStride = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), leftSemanticType);
         }
 
         return ctx;

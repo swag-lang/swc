@@ -220,15 +220,14 @@ namespace
     // would only look at the data pointer, so two slices holding the same bytes over different
     // storage would answer 'false', and two slices of different lengths over the same storage
     // would answer 'true'.
-    Result emitSliceCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, TypeRef sliceTypeRef)
+    Result emitSliceCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const TypeInfo& sliceType)
     {
         const SymbolFunction* sliceCmpSymbol = preparedRuntimeCompareFunction(codeGen, IdentifierManager::PredefinedName::RuntimeSliceCmp);
         SWC_ASSERT(sliceCmpSymbol != nullptr);
         if (!sliceCmpSymbol)
             return Result::Error;
 
-        const TypeInfo& sliceType   = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sliceTypeRef));
-        const uint64_t  elementSize = codeGen.typeMgr().get(sliceType.payloadTypeRef()).sizeOf(codeGen.ctx());
+        const uint64_t elementSize = codeGen.typeMgr().get(sliceType.payloadTypeRef()).sizeOf(codeGen.ctx());
 
         MicroBuilder&  builder       = codeGen.builder();
         const MicroReg leftDataReg   = codeGen.nextVirtualIntRegister();
@@ -853,23 +852,23 @@ namespace
         const TypeRef      leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
         const TypeRef      rightCompareTypeRef = normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
-        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftCompareTypeRef, rightCompareTypeRef);
+        const TypeRef   compareTypeRef = resolveCompareTypeRef(codeGen, leftCompareTypeRef, rightCompareTypeRef);
+        const TypeInfo& compareType    = codeGen.typeMgr().get(compareTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
-            CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef) &&
+            compareType.isString() &&
             hasPreparedRuntimeContentCompare(codeGen))
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
 
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
-            CodeGenTypeHelpers::isSliceCompareType(codeGen.ctx(), compareTypeRef) &&
+            compareType.isSlice() &&
             hasPreparedRuntimeContentCompare(codeGen))
-            return emitSliceCompareBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, compareTypeRef);
+            return emitSliceCompareBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, compareType);
 
-        const TypeInfo& compareType                   = codeGen.typeMgr().get(compareTypeRef);
-        const bool      leftIsRuntimeTypeInfoPointer  = codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), leftOperandTypeRef);
-        const bool      rightIsRuntimeTypeInfoPointer = codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), rightOperandTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && compareType.isAnyTypeInfo(codeGen.ctx()))
             return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, compareTypeRef);
-        if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && leftIsRuntimeTypeInfoPointer && rightIsRuntimeTypeInfoPointer)
+        if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
+            codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), leftOperandTypeRef) &&
+            codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), rightOperandTypeRef))
             return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
 
         // An aggregate (struct/array) wider than a machine register must be compared over its full

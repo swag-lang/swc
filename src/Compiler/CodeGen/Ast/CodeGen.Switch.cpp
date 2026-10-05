@@ -1304,7 +1304,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
             return initializeDynamicStructSwitchState(codeGen, *switchState, compareTypeRef, compareType, exprPayload);
 
         const MicroOpBits compareBits      = switchCompareOpBits(compareType, codeGen.ctx());
-        const bool        useStringCompare = CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef);
+        const bool        useStringCompare = compareType.isString();
         MicroBuilder&     builder          = codeGen.builder();
 
         const MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef, compareType);

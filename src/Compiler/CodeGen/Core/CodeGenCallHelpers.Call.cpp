@@ -448,9 +448,7 @@ namespace
         if (argPayload.isAddress())
             return;
 
-        const SemaNodeView argView = codeGen.viewType(argRef);
-        SWC_ASSERT(argView.type());
-        const TypeRef sourceTypeRef = argPayload.effectiveTypeRef(argView.typeRef());
+        const TypeRef sourceTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
         SWC_ASSERT(sourceTypeRef.isValid());
         const TypeInfo& sourceType = ctx.typeMgr().get(sourceTypeRef);
         if ((sourceType.isPointerOrReference() && !resolvedArg.bindsReferenceToValue) || argPayload.hasMaterializedPointerLikeValue())
@@ -461,7 +459,7 @@ namespace
         if (normalizedSource.isIndirect)
             return;
 
-        const uint64_t rawSize = ctx.typeMgr().get(sourceTypeRef).sizeOf(ctx);
+        const uint64_t rawSize = sourceType.sizeOf(ctx);
         SWC_ASSERT(rawSize == 1 || rawSize == 2 || rawSize == 4 || rawSize == 8);
 
         const CodeGenNodePayload* storedPayload = codeGen.safePayload(argRef);
@@ -509,9 +507,10 @@ namespace
             return Result::Continue;
 
         const TypeRef   pointeeTypeRef   = normalizedType.payloadTypeRef();
-        const TypeRef   unwrappedTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, pointeeTypeRef);
+        const TypeInfo& pointeeType      = ctx.typeMgr().get(pointeeTypeRef);
+        const TypeRef   unwrappedTypeRef = pointeeType.isAlias() || pointeeType.isEnum() ? pointeeType.unwrapAliasEnum(ctx) : TypeRef::invalid();
         const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : pointeeTypeRef;
-        const TypeInfo& storageType      = ctx.typeMgr().get(storageTypeRef);
+        const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(storageTypeRef) : pointeeType;
         if (!storageType.isStruct())
             return Result::Continue;
 
@@ -672,9 +671,9 @@ namespace
             return TypeRef::invalid();
 
         const TypeInfo& typeInfo            = codeGen.typeMgr().get(typeRef);
-        const TypeRef   unwrappedTypeRef    = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   unwrappedTypeRef    = typeInfo.isAlias() || typeInfo.isEnum() ? typeInfo.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
         const TypeRef   storageTypeRef      = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-        const TypeInfo& storageType         = codeGen.typeMgr().get(storageTypeRef);
+        const TypeInfo& storageType         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(storageTypeRef) : typeInfo;
         const bool      isBorrowedAggregate = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
         return isBorrowedAggregate ? storageTypeRef : TypeRef::invalid();
     }

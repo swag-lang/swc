@@ -466,11 +466,9 @@ namespace
 
                 SymbolFunction* specialized = nullptr;
                 CastFailure     whereFailure;
-                const Result    specResult = SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized, &whereFailure);
-                if (specResult == Result::Pause)
-                    return Result::Pause;
-                if (specResult != Result::Continue)
-                    continue;
+                // A rejected constraint is a candidate mismatch; an error while creating
+                // the specialization is a failed dependency and must reach the caller.
+                SWC_RESULT(SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized, &whereFailure));
                 if (whereFailure.diagId != DiagnosticId::None)
                 {
                     if (whereFailure.diagId == DiagnosticId::sema_err_function_where_failed)

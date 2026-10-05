@@ -40,7 +40,6 @@ impl OperatorBodyError
 {
     let left  = OperatorBodyError{}
     let right = OperatorBodyError{}
-    // The body error explains why the selected candidate failed; resolution then reports that
-    // no binary operator remains at the call site.
-    let result = left + right     // swc-expected-error {{sema_err_binary_operand_type}}
+    // Keep the body error without inventing an operand mismatch at this call.
+    let result = left + right
 }

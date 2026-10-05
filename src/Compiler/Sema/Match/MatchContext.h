@@ -79,7 +79,10 @@ public:
     bool          empty() const { return symbols_.empty(); }
     size_t        count() const { return symbols_.size(); }
     const Symbol* first() const { return symbols_.front(); }
-    bool          blockedByIgnored() const { return symbols_.empty() && hasIgnoredBestPriority_; }
+
+    // A failed declaration also poisons an incomplete overload set at its own priority.
+    // Matching only the survivors can turn the original error into a false argument mismatch.
+    bool blockedByIgnored() const { return hasIgnoredBestPriority_ && (!hasBestPriority_ || Priority::compare(ignoredBestPriority_, bestPriority_) <= 0); }
 
     SmallVector<const SymbolMap*> symMaps;
     SmallVector<Priority>         symMapPriorities;

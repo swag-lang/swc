@@ -29,5 +29,6 @@ impl CyclePicture
 #test
 {
     var picture: CyclePicture
-    picture.crop(CycleSize{4, 3})     // swc-expected-error {{sema_err_cannot_cast}}
+    // The rejected overload cannot turn this call into an argument-type error.
+    picture.crop(CycleSize{4, 3})
 }

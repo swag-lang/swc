@@ -78,20 +78,20 @@ namespace
         return offset <= localStackSize && size <= localStackSize - offset;
     }
 
-    Result persistCompilerRunValueRec(TaskContext& ctx, DataSegment& segment, TypeRef typeRef, std::span<std::byte> dstBytes, std::span<const std::byte> srcBytes, const std::byte* localStackBase, uint64_t localStackSize)
+    Result persistCompilerRunValueRec(TaskContext& ctx, DataSegment& segment, const TypeInfo& typeInfo, std::span<std::byte> dstBytes, std::span<const std::byte> srcBytes, const std::byte* localStackBase, uint64_t localStackSize)
     {
+        const TypeRef typeRef = typeInfo.typeRef();
         SWC_ASSERT(typeRef.isValid());
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
 
-        const TypeManager& typeMgr  = ctx.typeMgr();
-        const TypeInfo&    typeInfo = typeMgr.get(typeRef);
+        const TypeManager& typeMgr = ctx.typeMgr();
         if (typeInfo.isAlias())
         {
             const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
             SWC_ASSERT(rawTypeRef.isValid());
             if (rawTypeRef.isInvalid())
                 return Result::Error;
-            return persistCompilerRunValueRec(ctx, segment, rawTypeRef, dstBytes, srcBytes, localStackBase, localStackSize);
+            return persistCompilerRunValueRec(ctx, segment, typeMgr.get(rawTypeRef), dstBytes, srcBytes, localStackBase, localStackSize);
         }
 
         if (typeInfo.isEnum())
@@ -100,7 +100,7 @@ namespace
             SWC_ASSERT(rawTypeRef.isValid());
             if (rawTypeRef.isInvalid())
                 return Result::Error;
-            return persistCompilerRunValueRec(ctx, segment, rawTypeRef, dstBytes, srcBytes, localStackBase, localStackSize);
+            return persistCompilerRunValueRec(ctx, segment, typeMgr.get(rawTypeRef), dstBytes, srcBytes, localStackBase, localStackSize);
         }
 
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);
@@ -135,11 +135,11 @@ namespace
             const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
             const TypeInfo& elementType    = typeMgr.get(elementTypeRef);
             const uint64_t  elementSize    = elementType.sizeOf(ctx);
-            const bool      scanElements   = SemaHelpers::needsPersistentCompilerRunReturn(ctx, elementTypeRef);
             if (!srcSlice->ptr || !srcSlice->count || !elementSize)
                 return Result::Continue;
 
-            const uint64_t byteCount = srcSlice->count * elementSize;
+            const bool     scanElements = SemaHelpers::needsPersistentCompilerRunReturn(ctx, elementTypeRef);
+            const uint64_t byteCount    = srcSlice->count * elementSize;
             SWC_ASSERT(byteCount <= std::numeric_limits<uint32_t>::max());
             const bool mustClone = stackContainsRange(localStackBase, localStackSize, srcSlice->ptr, byteCount) || scanElements;
             if (!mustClone)
@@ -156,7 +156,7 @@ namespace
                 for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
                 {
                     const uint64_t elementOffset = idx * elementSize;
-                    SWC_RESULT(persistCompilerRunValueRec(ctx, segment, elementTypeRef, std::span{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
+                    SWC_RESULT(persistCompilerRunValueRec(ctx, segment, elementType, std::span{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
                 }
             }
 
@@ -184,7 +184,7 @@ namespace
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                SWC_RESULT(persistCompilerRunValueRec(ctx, segment, elementTypeRef, std::span{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(ctx, segment, elementType, std::span{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -205,7 +205,7 @@ namespace
                 if (fieldOffset + fieldSize > dstBytes.size())
                     return Result::Error;
 
-                SWC_RESULT(persistCompilerRunValueRec(ctx, segment, fieldTypeRef, std::span{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, std::span{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(ctx, segment, fieldType, std::span{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, std::span{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -237,7 +237,7 @@ namespace
             return;
 
         DataSegment& segment = compiler->compilerSegment();
-        const Result result  = persistCompilerRunValueRec(ctx, segment, typeRef, std::span{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, std::span{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
+        const Result result  = persistCompilerRunValueRec(ctx, segment, typeInfo, std::span{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, std::span{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
         SWC_ASSERT(result == Result::Continue);
     }
 

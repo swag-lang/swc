@@ -194,12 +194,11 @@ namespace
 
     // Lowering first builds raw runtime payloads in compiler-owned storage. Static materialization
     // then copies that payload into a segment and rewrites embedded pointers as relocations.
-    Result lowerConstantToPayloadBuffer(const char*& outData, Sema& sema, ConstantRef cstRef, const TypeRef valueTypeRef)
+    Result lowerConstantToPayloadBuffer(const char*& outData, Sema& sema, ConstantRef cstRef, const TypeInfo& valueType)
     {
         outData = nullptr;
 
-        const TypeInfo& valueType = sema.typeMgr().get(valueTypeRef);
-        const uint64_t  valueSize = valueType.sizeOf(sema.ctx());
+        const uint64_t valueSize = valueType.sizeOf(sema.ctx());
         if (!valueSize)
             return Result::Continue;
 
@@ -525,7 +524,8 @@ namespace
         SWC_INTERNAL_CHECK(typeInfoCst.isValuePointer());
         anyValue.type = pointerFromRawAddress<const Runtime::TypeInfo>(typeInfoCst.getValuePointer());
 
-        if (sema.typeMgr().get(boxedValueTypeRef).isTypeInfo())
+        const TypeInfo& boxedValueType = sema.typeMgr().get(boxedValueTypeRef);
+        if (boxedValueType.isTypeInfo())
         {
             SWC_INTERNAL_CHECK(valueCst.isValuePointer());
             const uint64_t         ptrValue    = valueCst.getValuePointer();
@@ -535,8 +535,9 @@ namespace
             return Result::Continue;
         }
 
-        const uint64_t boxedValueSize = sema.typeMgr().get(boxedValueTypeRef).sizeOf(sema.ctx());
-        if (!boxedValueSize)
+        const char* loweredValueData = nullptr;
+        SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, valueCstRef, boxedValueType));
+        if (!loweredValueData)
         {
             constexpr uint8_t      zeroByte    = 0;
             const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&zeroByte), sizeof(zeroByte)});
@@ -545,8 +546,6 @@ namespace
             return Result::Continue;
         }
 
-        const char* loweredValueData = nullptr;
-        SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, valueCstRef, boxedValueTypeRef));
         anyValue.value = const_cast<char*>(loweredValueData);
         writeValue(dstBytes, anyValue);
         return Result::Continue;
@@ -593,7 +592,7 @@ namespace
             if (pointeeTypeRef.isValid())
             {
                 const char* loweredValueData = nullptr;
-                SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, cstRef, pointeeTypeRef));
+                SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, cstRef, sema.typeMgr().get(pointeeTypeRef)));
                 ptr = rawAddress(loweredValueData);
             }
         }
@@ -657,15 +656,12 @@ namespace
         for (const TypeRef elemTypeRef : dstType.payloadAggregate().types)
         {
             const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
-            uint32_t        align    = elemType.alignOf(ctx);
             const uint64_t  elemSize = elemType.sizeOf(ctx);
-            if (!align)
-                align = 1;
-
             if (!elemSize)
                 continue;
 
-            offset = Math::alignUpU64(offset, align);
+            const uint32_t align = std::max(elemType.alignOf(ctx), uint32_t{1});
+            offset               = Math::alignUpU64(offset, align);
             assertByteRange(offset, elemSize, dstBytes.size());
 
             if (index < values.size())
@@ -934,15 +930,12 @@ namespace
         for (const TypeRef elemTypeRef : typeInfo.payloadAggregate().types)
         {
             const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
-            uint32_t        align    = elemType.alignOf(ctx);
             const uint64_t  elemSize = elemType.sizeOf(ctx);
-            if (!align)
-                align = 1;
-
             if (!elemSize)
                 continue;
 
-            offset = Math::alignUpU64(offset, align);
+            const uint32_t align = std::max(elemType.alignOf(ctx), uint32_t{1});
+            offset               = Math::alignUpU64(offset, align);
             assertByteRange(offset, elemSize, payload.dstBytes.size());
             SWC_RESULT(materializeStaticSubPayload(sema, segment, elemTypeRef, elemType, payload, offset, elemSize));
             offset += elemSize;

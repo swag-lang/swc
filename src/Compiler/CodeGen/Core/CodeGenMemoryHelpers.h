@@ -21,7 +21,7 @@ namespace CodeGenMemoryHelpers
     MicroReg materializeScalarPayloadForStore(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef srcTypeRef, TypeRef targetTypeRef);
     void     storePayloadToAddress(CodeGen& codeGen, MicroReg dstReg, const CodeGenNodePayload& srcPayload, uint32_t copySize);
     Result   emitDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg);
-    void     emitCopyPreservingDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, MicroReg srcReg);
+    void     emitCopyPreservingDynamicIdentity(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, MicroReg srcReg);
     void     emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid());
     void     emitMemFill(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t elementSizeInBytes, uint32_t elementCount);
     void     emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t elementSizeInBytes, uint32_t elementCount);

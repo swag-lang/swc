@@ -11,9 +11,9 @@ namespace CodeGenArrayTraversal
     template<typename EmitElement>
     inline Result emit(CodeGen& codeGen, MicroReg addressReg, const TypeInfo& type, EmitElement emitElement)
     {
-        const TypeRef  elementTypeRef = type.payloadArrayElemTypeRef();
-        const uint64_t elementSize    = codeGen.typeMgr().get(elementTypeRef).sizeOf(codeGen.ctx());
-        const uint64_t count          = type.sizeOf(codeGen.ctx()) / elementSize;
+        const TypeInfo& elementType = codeGen.typeMgr().get(type.payloadArrayElemTypeRef());
+        const uint64_t  elementSize = elementType.sizeOf(codeGen.ctx());
+        const uint64_t  count       = type.sizeOf(codeGen.ctx()) / elementSize;
         if (!count)
             return Result::Continue;
 
@@ -24,7 +24,7 @@ namespace CodeGenArrayTraversal
         builder.emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
         const MicroLabelRef loop = builder.createLabel();
         builder.placeLabel(loop);
-        SWC_RESULT(emitElement(elementTypeRef, elementReg));
+        SWC_RESULT(emitElement(elementType, elementReg));
         builder.emitOpBinaryRegImm(elementReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);

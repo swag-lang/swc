@@ -17,22 +17,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result emitDynamicIdentityRec(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, bool initializeUsingSlots)
+    Result emitDynamicIdentityRec(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, bool initializeUsingSlots)
     {
         // The caller has established dynamic storage; array elements retain that property.
-        typeRef                 = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef);
-        const TypeInfo& type    = codeGen.typeMgr().get(typeRef);
-        MicroBuilder&   builder = codeGen.builder();
+        const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
+        const TypeInfo& type             = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : originalType;
+        MicroBuilder&   builder          = codeGen.builder();
         if (type.isArray())
-            return CodeGenArrayTraversal::emit(codeGen, dstReg, type, [&](TypeRef elementTypeRef, MicroReg elementReg) {
-                return emitDynamicIdentityRec(codeGen, elementTypeRef, elementReg, true);
+            return CodeGenArrayTraversal::emit(codeGen, dstReg, type, [&](const TypeInfo& elementType, MicroReg elementReg) {
+                return emitDynamicIdentityRec(codeGen, elementType, elementReg, true);
             });
 
         const SymbolStruct& symStruct = type.payloadSymStruct();
         if (initializeUsingSlots && symStruct.isDynamic())
         {
             MicroReg typeReg = MicroReg::invalid();
-            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(typeReg, codeGen, typeRef));
+            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(typeReg, codeGen, type.typeRef()));
             const MicroReg descriptorReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(descriptorReg, typeReg, offsetof(Runtime::TypeInfoStruct, dynamicSlots.ptr), MicroOpBits::B64);
             for (const uint32_t offset : symStruct.dynamicSlotOffsets())
@@ -43,12 +43,13 @@ namespace
         }
         for (const SymbolVariable* field : symStruct.fields())
         {
-            if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), codeGen.typeMgr().get(field->typeRef())))
+            const TypeInfo& fieldType = codeGen.typeMgr().get(field->typeRef());
+            if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), fieldType))
                 continue;
             const MicroReg fieldReg = codeGen.offsetAddressReg(dstReg, field->offset());
             // A by-value 'using' subobject keeps the enclosing identity. Ordinary
             // members and array elements start independent complete objects.
-            SWC_RESULT(emitDynamicIdentityRec(codeGen, field->typeRef(), fieldReg, !field->isUsingField()));
+            SWC_RESULT(emitDynamicIdentityRec(codeGen, fieldType, fieldReg, !field->isUsingField()));
         }
         return Result::Continue;
     }
@@ -868,16 +869,17 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
 
 Result CodeGenMemoryHelpers::emitDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg)
 {
-    if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), codeGen.typeMgr().get(typeRef)))
+    const TypeInfo& type = codeGen.typeMgr().get(typeRef);
+    if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
         return Result::Continue;
-    return emitDynamicIdentityRec(codeGen, typeRef, dstReg, true);
+    return emitDynamicIdentityRec(codeGen, type, dstReg, true);
 }
 
-void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, MicroReg srcReg)
+void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, MicroReg srcReg)
 {
-    typeRef              = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef);
-    const TypeInfo& type = codeGen.typeMgr().get(typeRef);
-    const uint64_t  size = type.sizeOf(codeGen.ctx());
+    const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
+    const TypeInfo& type             = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : originalType;
+    const uint64_t  size             = type.sizeOf(codeGen.ctx());
     SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
     if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
     {
@@ -887,9 +889,9 @@ void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, T
 
     if (type.isArray())
     {
-        const TypeRef  elementTypeRef = type.payloadArrayElemTypeRef();
-        const uint64_t elementSize    = codeGen.typeMgr().get(elementTypeRef).sizeOf(codeGen.ctx());
-        const uint64_t count          = size / elementSize;
+        const TypeInfo& elementType = codeGen.typeMgr().get(type.payloadArrayElemTypeRef());
+        const uint64_t  elementSize = elementType.sizeOf(codeGen.ctx());
+        const uint64_t  count       = size / elementSize;
         if (!count)
             return;
         MicroBuilder&  builder       = codeGen.builder();
@@ -901,7 +903,7 @@ void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, T
         builder.emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
         const MicroLabelRef loop = builder.createLabel();
         builder.placeLabel(loop);
-        emitCopyPreservingDynamicIdentity(codeGen, elementTypeRef, dstElementReg, srcElementReg);
+        emitCopyPreservingDynamicIdentity(codeGen, elementType, dstElementReg, srcElementReg);
         builder.emitOpBinaryRegImm(dstElementReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(srcElementReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
@@ -934,7 +936,7 @@ void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, T
         if (range.offset > copiedEnd)
             emitMemCopy(codeGen, codeGen.offsetAddressReg(dstReg, copiedEnd), codeGen.offsetAddressReg(srcReg, copiedEnd), range.offset - copiedEnd);
         if (range.typeRef.isValid())
-            emitCopyPreservingDynamicIdentity(codeGen, range.typeRef, codeGen.offsetAddressReg(dstReg, range.offset), codeGen.offsetAddressReg(srcReg, range.offset));
+            emitCopyPreservingDynamicIdentity(codeGen, codeGen.typeMgr().get(range.typeRef), codeGen.offsetAddressReg(dstReg, range.offset), codeGen.offsetAddressReg(srcReg, range.offset));
         copiedEnd = range.offset + range.size;
     }
     if (size > copiedEnd)

@@ -35,22 +35,22 @@ namespace
     // when 'SafetyWhat::Lifecycle' is active. Mirrors the allocator's AllocByte/FreeByte.
     constexpr uint64_t K_LIFECYCLE_POISON_BYTE = 0xDD;
 
-    Result emitTypedLifecyclePoison(CodeGen& codeGen, MicroReg addressReg, TypeRef typeRef)
+    Result emitTypedLifecyclePoison(CodeGen& codeGen, MicroReg addressReg, const TypeInfo& originalType)
     {
-        typeRef              = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef);
-        const TypeInfo& type = codeGen.typeMgr().get(typeRef);
+        const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
+        const TypeInfo& type             = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : originalType;
         if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
             return CodeGenSafety::emitLifecyclePoison(codeGen, addressReg, type.sizeOf(codeGen.ctx()));
 
         // Identity belongs to the storage, including when a moved-from base is later assigned
         // a new value. Poison user fields without corrupting the enclosing object's identity.
         if (type.isArray())
-            return CodeGenArrayTraversal::emit(codeGen, addressReg, type, [&](TypeRef elementTypeRef, MicroReg elementReg) {
-                return emitTypedLifecyclePoison(codeGen, elementReg, elementTypeRef);
+            return CodeGenArrayTraversal::emit(codeGen, addressReg, type, [&](const TypeInfo& elementType, MicroReg elementReg) {
+                return emitTypedLifecyclePoison(codeGen, elementReg, elementType);
             });
 
         for (const SymbolVariable* field : type.payloadSymStruct().fields())
-            SWC_RESULT(emitTypedLifecyclePoison(codeGen, codeGen.offsetAddressReg(addressReg, field->offset()), field->typeRef()));
+            SWC_RESULT(emitTypedLifecyclePoison(codeGen, codeGen.offsetAddressReg(addressReg, field->offset()), codeGen.typeMgr().get(field->typeRef())));
         return Result::Continue;
     }
 
@@ -312,11 +312,12 @@ Result CodeGenSafety::emitLifecyclePoisonLoop(CodeGen& codeGen, const MicroReg a
 
 Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg addrReg, const TypeRef typeRef, const AstNodeRef sourceRef)
 {
-    const uint64_t sizeInBytes = codeGen.typeMgr().get(typeRef).sizeOf(codeGen.ctx());
+    const TypeInfo& type        = codeGen.typeMgr().get(typeRef);
+    const uint64_t  sizeInBytes = type.sizeOf(codeGen.ctx());
 
     // The 0xDD poison is a RUNTIME mitigation: it belongs to Swag.Safety(.Lifecycle).
     if (hasLifecycleRuntimeSafety(codeGen))
-        SWC_RESULT(emitTypedLifecyclePoison(codeGen, addrReg, typeRef));
+        SWC_RESULT(emitTypedLifecyclePoison(codeGen, addrReg, type));
 
     // The moved-from marker feeds the STATIC sanitizer: it belongs to Swag.Sanity(.Lifecycle).
     if (!hasLifecycleSanity(codeGen))

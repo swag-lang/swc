@@ -202,7 +202,7 @@ namespace
         {
             CodeGenNodePayload rightPayload = *encodeCtx.rightPayload;
             stabilizeAssignAddressPayload(codeGen, rightPayload);
-            CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(codeGen, encodeCtx.target.opTypeRef, targetPayload.reg, rightPayload.reg);
+            CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(codeGen, codeGen.typeMgr().get(encodeCtx.target.opTypeRef), targetPayload.reg, rightPayload.reg);
             return Result::Continue;
         }
 

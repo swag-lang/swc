@@ -397,7 +397,7 @@ namespace
             const MicroInstr* inst = storage.ptr(order[o]);
             if (!inst)
                 return false;
-            const auto uses = inst->collectUseDef(operands, context.encoder).uses;
+            const auto& uses = inst->collectUseDef(operands, context.encoder).uses;
             if (std::ranges::find(uses, loaded) != uses.end() || std::ranges::find(uses, value) != uses.end())
                 return false;
         }

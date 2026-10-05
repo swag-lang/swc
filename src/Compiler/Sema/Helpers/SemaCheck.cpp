@@ -77,18 +77,6 @@ namespace
         return sema.isConstAssignBindingStored(nodeRef);
     }
 
-    bool shouldReadReferenceForBoolExpr(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (!normalizedTypeRef.isValid())
-            return false;
-
-        return sema.typeMgr().get(normalizedTypeRef).isReference();
-    }
-
     AstNodeRef resolveNodeRefForCheck(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -673,11 +661,14 @@ Result SemaCheck::prepareBoolExprValue(Sema& sema, SemaNodeView& view)
     SWC_RESULT(isValueOrTypeInfo(sema, view));
     SWC_RESULT(normalizeTypeInfoValueIfNeeded(sema, view));
 
-    if (!shouldReadReferenceForBoolExpr(sema, view.typeRef()))
+    if (!view.typeRef().isValid())
         return Result::Continue;
 
-    const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-    const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
+    const TypeInfo& normalizedType = SemaHelpers::aliasEnumType(sema, view);
+    if (!normalizedType.isReference())
+        return Result::Continue;
+
+    const TypeRef valueTypeRef = normalizedType.payloadTypeRef();
     SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
     view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     return Result::Continue;
@@ -906,19 +897,15 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
 
     // Assigning to a reference writes through it: a const reference (or a reference
     // to const) is never assignable.
-    if (leftView.type())
+    if (leftView.type() && leftView.typeRef().isValid())
     {
-        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), leftView.typeRef());
-        if (unwrappedTypeRef.isValid())
+        const TypeInfo& unwrappedType = SemaHelpers::aliasEnumType(sema, leftView);
+        if (unwrappedType.isReference() &&
+            (unwrappedType.isConst() || sema.typeMgr().get(unwrappedType.payloadTypeRef()).isConst()))
         {
-            const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
-            if (unwrappedType.isReference() &&
-                (unwrappedType.isConst() || sema.typeMgr().get(unwrappedType.payloadTypeRef()).isConst()))
-            {
-                const auto diag = reportReadOnlyAssignment(sema, leftExprRef);
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
+            const auto diag = reportReadOnlyAssignment(sema, leftExprRef);
+            diag.report(sema.ctx());
+            return Result::Error;
         }
     }
 

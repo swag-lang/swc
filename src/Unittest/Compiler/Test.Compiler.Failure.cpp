@@ -2,6 +2,10 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -146,6 +150,69 @@ namespace
 SWC_TEST_BEGIN(Compiler_SilentJobFailureAfterMainDeclarationFailsTheDriver)
 {
     return runFailureDriverTest(ctx, false);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_DependentFailureWhileSourceDiagnosticIsBeingBuilt)
+{
+    RestoreCommandMetrics restoreMetrics;
+    const fs::path        sourcePath = Unittest::makeTestSourcePath("Compiler", "PendingSourceDiagnostic");
+    CommandLine           command;
+    command.command  = CommandKind::Sema;
+    command.name     = "compiler_pending_source_diagnostic";
+    command.silent   = true;
+    command.numCores = 6;
+    command.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(command);
+
+    CompilerInstance compiler(ctx.global(), command);
+    Unittest::registerTestSource(compiler, sourcePath, "#global private\n#main {}\n");
+    if (compiler.run() != ExitCode::Success || !compiler.mainFunc())
+        return Result::Error;
+
+    SourceFile* sourceFile = nullptr;
+    for (SourceFile* file : compiler.files())
+    {
+        if (file->path() == sourcePath)
+            sourceFile = file;
+    }
+    if (!sourceFile)
+        return Result::Error;
+
+    TaskContext compilerCtx(compiler);
+    compilerCtx.setMuteOutput(true);
+    Sema       sema(compilerCtx, sourceFile->nodePayloadContext(), false);
+    const auto functionView = sema.viewStored(compiler.mainFunc()->nodeRef(sourceFile->ast()));
+    if (!functionView.hasSymbol())
+        return Result::Error;
+    auto* function = functionView.sym()->safeCast<SymbolFunction>();
+    if (!function)
+        return Result::Error;
+    sema.frame().setCurrentFunction(function);
+
+    // A speculative failure must neither poison the function nor publish an error.
+    compilerCtx.setSilentDiagnostic(true);
+    SemaError::report(sema, DiagnosticId::sema_err_late_not_field, function->codeRef());
+    if (function->isIgnored() || compiler.hasErrorDiagnostic())
+        return Result::Error;
+    compilerCtx.setSilentDiagnostic(false);
+
+    const auto diagnostic = SemaError::report(sema, DiagnosticId::sema_err_late_not_field, function->codeRef());
+    if (!function->isIgnored())
+        return Result::Error;
+
+    // Hold the diagnostic before rendering it while another worker observes the failed
+    // function. That dependent error must not invent a second, internal diagnostic.
+    TaskContext              dependentCtx(compiler);
+    DiagnosticFreeFailureJob failure(dependentCtx, false);
+    JobManager&              jobs = ctx.global().jobMgr();
+    jobs.enqueue(failure, JobPriority::Normal, compiler.jobClientId());
+    jobs.waitAll(compiler.jobClientId());
+    if (!failure.returnedFailure() || !failure.failedWithCleanContext() || Stats::getNumErrors() != 0)
+        return Result::Error;
+
+    diagnostic.report(compilerCtx);
+    return compiler.hasErrorDiagnostic() && Stats::getNumErrors() == 1 ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

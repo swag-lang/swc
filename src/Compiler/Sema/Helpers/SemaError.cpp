@@ -53,7 +53,12 @@ namespace
             return;
 
         if (auto* currentFn = sema.currentFunction())
+        {
+            // Dependent jobs can fail as soon as the function is ignored, before this
+            // diagnostic has finished building. Publish its existence before waking them.
+            sema.compiler().recordErrorDiagnostic();
             currentFn->setIgnored(sema.ctx());
+        }
     }
 
     bool hasSeenGenericContext(std::span<const Symbol*> seen, const Symbol* symbol)

@@ -39,6 +39,24 @@ namespace ABICall
         }
     };
 
+    struct ArgStackState
+    {
+        uint64_t stackBytes = 0;
+
+        // Visit stack arguments in declaration order; register homes are separate.
+        uint64_t next(const CallConv& conv, uint8_t numBits)
+        {
+            const uint32_t stackSlotSize = conv.stackSlotSize();
+            const uint32_t argBytes      = std::max(stackSlotSize, static_cast<uint32_t>(numBits) / 8);
+            if (conv.independentArgBanks && argBytes > stackSlotSize)
+                stackBytes = (stackBytes + argBytes - 1) & ~static_cast<uint64_t>(argBytes - 1);
+
+            const uint64_t offset = conv.independentArgBanks ? stackBytes : conv.stackShadowSpace + stackBytes;
+            stackBytes += argBytes;
+            return offset;
+        }
+    };
+
     uint32_t argumentRegisterIndex(const CallConv& conv, std::span<const ArgLayout> argLayouts, uint32_t argIndex);
     uint32_t argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKind callConvKind, TypeRef returnTypeRef, uint32_t parameterIndex);
     uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex);

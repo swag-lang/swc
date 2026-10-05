@@ -436,14 +436,12 @@ void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::s
     const auto& params = symbolFunc.parameters();
     SWC_ASSERT(outParamInfos.size() == params.size());
 
-    const CallConv&                 callConv       = CallConv::get(symbolFunc.callConvKind());
-    const uint32_t                  hiddenArgCount = (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
-    SmallVector<ABICall::ArgLayout> argLayouts;
-    argLayouts.reserve(params.size() + hiddenArgCount);
-    if (hasIndirectReturnArg)
-        argLayouts.push_back({});
-    if (hasClosureContextArg)
-        argLayouts.push_back({});
+    const CallConv& callConv       = CallConv::get(symbolFunc.callConvKind());
+    const uint32_t  hiddenArgCount = (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
+
+    // Hidden return and closure pointers precede the declared parameters in the integer bank.
+    ABICall::ArgRegisterState registerState{.intLane = hiddenArgCount};
+    ABICall::ArgStackState    stackState;
 
     for (size_t i = 0; i < params.size(); ++i)
     {
@@ -452,14 +450,12 @@ void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::s
         SWC_ASSERT(param->parameterIndex() == i);
         const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex = param->parameterIndex() + hiddenArgCount;
-        setParameterTypeInfo(outParamInfos[i], type, slotIndex);
-        argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
+        FunctionParameterInfo&                 paramInfo = outParamInfos[i];
+        setParameterTypeInfo(paramInfo, type, slotIndex);
+        paramInfo.registerIndex = registerState.next(callConv, slotIndex, type.isFloat);
+        paramInfo.isRegisterArg = paramInfo.registerIndex != UINT32_MAX;
+        paramInfo.stackOffset   = paramInfo.isRegisterArg ? 0 : 2 * sizeof(void*) + stackState.next(callConv, static_cast<uint8_t>(type.numBits ? type.numBits : 64));
     }
-
-    // Hidden return and closure pointers precede the declared parameters in the integer bank.
-    ABICall::ArgRegisterState registerState{.intLane = hiddenArgCount};
-    for (FunctionParameterInfo& paramInfo : outParamInfos)
-        setParameterLocationInfo(paramInfo, callConv, argLayouts, registerState.next(callConv, paramInfo.slotIndex, paramInfo.isFloat));
 }
 
 void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::span<FunctionParameterInfo> outParamInfos, const SymbolFunction& symbolFunc)

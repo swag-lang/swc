@@ -143,17 +143,21 @@ namespace
 
     void loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        const TypeRef operandStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
-        loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, codeGen.typeMgr().get(operandStorageTypeRef));
+        const TypeInfo& declaredType  = codeGen.typeMgr().get(operandTypeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& operandType   = unwrappedType ? *unwrappedType : declaredType;
+        loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, operandType);
     }
 
     void convertIntrinsicNumericOperand(CodeGen& codeGen, MicroReg& outReg, const TypeInfo& srcType, MicroOpBits srcBits, TypeRef dstTypeRef)
     {
-        const TypeRef dstStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, dstTypeRef);
+        const TypeInfo& declaredDstType   = codeGen.typeMgr().get(dstTypeRef);
+        const TypeInfo* unwrappedDstType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& dstType           = unwrappedDstType ? *unwrappedDstType : declaredDstType;
+        const TypeRef   dstStorageTypeRef = dstType.typeRef();
         if (srcType.typeRef() == dstStorageTypeRef)
             return;
 
-        const TypeInfo&   dstType = codeGen.typeMgr().get(dstStorageTypeRef);
         const MicroOpBits dstBits = CodeGenTypeHelpers::numericBits(dstType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
@@ -191,9 +195,10 @@ namespace
 
     void materializeIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef)
     {
-        const TypeRef     storageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
-        const TypeInfo&   operandType    = codeGen.typeMgr().get(storageTypeRef);
-        const MicroOpBits operandBits    = loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, operandType);
+        const TypeInfo&   declaredType  = codeGen.typeMgr().get(operandTypeRef);
+        const TypeInfo*   unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&   operandType   = unwrappedType ? *unwrappedType : declaredType;
+        const MicroOpBits operandBits   = loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, operandType);
         if (operandTypeRef != resultTypeRef)
             convertIntrinsicNumericOperand(codeGen, outReg, operandType, operandBits, resultTypeRef);
     }

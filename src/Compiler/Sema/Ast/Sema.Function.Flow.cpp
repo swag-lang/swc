@@ -405,22 +405,16 @@ namespace
         if (!childView.typeRef().isValid())
             return TypeRef::invalid();
 
-        TypeRef nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), childView.typeRef());
-        if (nullableTypeRef.isInvalid())
-            nullableTypeRef = childView.typeRef();
-
         // On a binding to a nullable slot, the flag is stripped INSIDE the move reference.
         // Dropping the move reference instead would change what the
         // payload points at, and the qualifiers of the binding must survive onto whatever
         // is reached through it.
-        const TypeInfo& outerType = sema.typeMgr().get(nullableTypeRef);
+        const TypeInfo& outerType = SemaHelpers::aliasEnumType(sema, childView);
         if (outerType.isReference())
         {
-            TypeRef pointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), outerType.payloadTypeRef());
-            if (pointeeTypeRef.isInvalid())
-                pointeeTypeRef = outerType.payloadTypeRef();
-
-            const TypeInfo& pointeeType = sema.typeMgr().get(pointeeTypeRef);
+            const TypeInfo& declaredPointeeType  = sema.typeMgr().get(outerType.payloadTypeRef());
+            const TypeInfo* unwrappedPointeeType = declaredPointeeType.unwrapAliasEnumType(sema.ctx());
+            const TypeInfo& pointeeType          = unwrappedPointeeType ? *unwrappedPointeeType : declaredPointeeType;
             if (!pointeeType.isNullable())
                 return TypeRef::invalid();
 

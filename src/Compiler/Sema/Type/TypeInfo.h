@@ -316,6 +316,14 @@ public:
     TypeRef payloadTypeRef() const noexcept;
     TypeRef dereferenceTypeRef(const TaskContext& ctx) const;
 
+    // Null means alias/enum expansion kept this type; callers retain their original metadata.
+    // Keep the ordinary-type gate inline, and carry the metadata through the wrapped path.
+    const TypeInfo* unwrapAliasEnumType(const TaskContext& ctx) const noexcept
+    {
+        SWC_ASSERT(typeRef_.isValid());
+        return isAlias() || isEnum() ? resolveAliasEnumType(ctx) : nullptr;
+    }
+
     static TypeInfo makeBool();
     static TypeInfo makeChar();
     static TypeInfo makeString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
@@ -359,6 +367,7 @@ public:
 
 private:
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    const TypeInfo* resolveAliasEnumType(const TaskContext& ctx) const noexcept;
 
     TypeInfoKind  kind_    = TypeInfoKind::Invalid;
     TypeInfoFlags flags_   = TypeInfoFlagsE::Zero;

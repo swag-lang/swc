@@ -417,7 +417,29 @@ bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const TaskCont
 
 TypeRef TypeInfo::unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef) const noexcept
 {
-    return unwrap(ctx, defaultTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    const TypeInfo* type = unwrapAliasEnumType(ctx);
+    return type ? type->typeRef() : defaultTypeRef;
+}
+
+const TypeInfo* TypeInfo::resolveAliasEnumType(const TaskContext& ctx) const noexcept
+{
+    TypeRef         result = typeRef_;
+    const TypeInfo* type   = this;
+    while (true)
+    {
+        TypeRef sub = TypeRef::invalid();
+        if (type->isAlias())
+            sub = type->payloadAlias_.sym->underlyingTypeRef();
+        else if (type->isEnum())
+            sub = type->payloadEnum_.sym->underlyingTypeRef();
+
+        if (sub.isInvalid())
+            break;
+        result = sub;
+        type   = &ctx.typeMgr().get(sub);
+    }
+
+    return result == typeRef_ ? nullptr : type;
 }
 
 uint32_t TypeInfo::hash() const

@@ -82,19 +82,13 @@ namespace
         return sema.waitSemaCompleted(enumType, nodeRef);
     }
 
-    const TypeInfo* switchExprUnderlyingType(Sema& sema, const TypeInfo& originalType)
-    {
-        const TypeRef typeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
-        return typeRef.isValid() ? &sema.typeMgr().get(typeRef) : nullptr;
-    }
-
     bool isPointerSwitchType(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
             return false;
 
         const TypeInfo& originalType   = sema.typeMgr().get(typeRef);
-        const TypeInfo* underlyingType = switchExprUnderlyingType(sema, originalType);
+        const TypeInfo* underlyingType = originalType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& ultimateType   = underlyingType ? *underlyingType : originalType;
         return ultimateType.isAnyPointer() && !ultimateType.isAnyTypeInfo(sema.ctx());
     }
@@ -104,7 +98,7 @@ namespace
         SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, exprTypeRef, sema.curNodeRef()));
 
         const TypeInfo& originalType   = sema.typeMgr().get(exprTypeRef);
-        const TypeInfo* underlyingType = switchExprUnderlyingType(sema, originalType);
+        const TypeInfo* underlyingType = originalType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& finalType      = underlyingType ? *underlyingType : originalType;
         if (finalType.isString())
             SWC_RESULT(SemaHelpers::requireRuntimeStringCmpDependency(sema, codeRef));
@@ -421,7 +415,7 @@ TypeRef SemaSwitch::caseCastTypeRef(Sema& sema, TypeRef switchTypeRef)
 
 Result SemaSwitch::normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView)
 {
-    const TypeInfo* underlyingType   = switchExprUnderlyingType(sema, *exprView.type());
+    const TypeInfo* underlyingType   = exprView.type()->unwrapAliasEnumType(sema.ctx());
     const TypeInfo& initialFinalType = underlyingType ? *underlyingType : *exprView.type();
     if (!initialFinalType.isTypeValue())
         return Result::Continue;
@@ -436,7 +430,7 @@ Result SemaSwitch::validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef expr
     SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, exprTypeRef, exprRef));
 
     const TypeInfo& originalType   = sema.typeMgr().get(exprTypeRef);
-    const TypeInfo* underlyingType = switchExprUnderlyingType(sema, originalType);
+    const TypeInfo* underlyingType = originalType.unwrapAliasEnumType(sema.ctx());
     const TypeInfo& finalType      = underlyingType ? *underlyingType : originalType;
     if (finalType.isValuePointer())
     {
@@ -684,10 +678,10 @@ namespace
         if (!sourceTypeRef.isValid())
             return Result::Continue;
 
-        const TypeInfo* sourceUnderlyingType = switchExprUnderlyingType(sema, *sourceView.type());
+        const TypeInfo* sourceUnderlyingType = sourceView.type()->unwrapAliasEnumType(sema.ctx());
         const TypeInfo& sourceType           = sourceUnderlyingType ? *sourceUnderlyingType : *sourceView.type();
         const TypeInfo& switchOriginalType   = sema.typeMgr().get(switchTypeRef);
-        const TypeInfo* switchUnderlyingType = switchExprUnderlyingType(sema, switchOriginalType);
+        const TypeInfo* switchUnderlyingType = switchOriginalType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& switchType           = switchUnderlyingType ? *switchUnderlyingType : switchOriginalType;
 
         if (sourceType.isNull())

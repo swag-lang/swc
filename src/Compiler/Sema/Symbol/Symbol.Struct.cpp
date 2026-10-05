@@ -241,13 +241,6 @@ namespace
         return result;
     }
 
-    TypeRef implicitDefaultStorageTypeRef(Sema& sema, const TypeRef typeRef)
-    {
-        const TypeInfo& rawType        = sema.typeMgr().get(typeRef);
-        const TypeRef   storageTypeRef = rawType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        return storageTypeRef.isValid() ? storageTypeRef : typeRef;
-    }
-
     bool implicitDefaultKindRequiresInit(const ImplicitDefaultKind kind)
     {
         return kind == ImplicitDefaultKind::RequiresInit || kind == ImplicitDefaultKind::MixedRequiringInit;
@@ -302,15 +295,16 @@ namespace
         if (cstRef.isInvalid())
             return ImplicitDefaultKind::Mixed;
 
-        const ConstantValue& cst = sema.cstMgr().get(cstRef);
-        typeRef                  = implicitDefaultStorageTypeRef(sema, typeRef);
+        const ConstantValue& cst          = sema.cstMgr().get(cstRef);
+        const TypeInfo&      declaredType = sema.typeMgr().get(typeRef);
+        const TypeInfo*      storageType  = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo&      type         = storageType ? *storageType : declaredType;
 
         if (cst.isEnumValue())
         {
-            const TypeInfo& type = sema.typeMgr().get(typeRef);
             if (!type.isIntLike())
                 return ImplicitDefaultKind::Mixed;
-            return classifyConstantImplicitDefault(sema, typeRef, cst.getEnumValue());
+            return classifyConstantImplicitDefault(sema, type.typeRef(), cst.getEnumValue());
         }
 
         if (cst.isStruct())
@@ -319,7 +313,6 @@ namespace
         if (cst.isArray())
             return std::ranges::all_of(cst.getArray(), [](const std::byte value) { return value == std::byte{}; }) ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (!type.sizeOf(sema.ctx()))
             return ImplicitDefaultKind::AllZero;
 
@@ -395,9 +388,8 @@ namespace
         if (declaredType.isNonNullable())
             return ImplicitDefaultKind::RequiresInit;
 
-        typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
-
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type        = storageType ? *storageType : declaredType;
         if (type.isNonNullable())
             return ImplicitDefaultKind::RequiresInit;
 
@@ -438,9 +430,8 @@ namespace
             return Result::Continue;
         }
 
-        typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
-
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type        = storageType ? *storageType : declaredType;
         if (type.isNonNullable())
         {
             if (!dstBytes.empty())
@@ -1036,8 +1027,9 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
 
 bool SymbolStruct::typeHasRuntimeImplicitDefault(Sema& sema, TypeRef typeRef)
 {
-    typeRef              = implicitDefaultStorageTypeRef(sema, typeRef);
-    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
+    const TypeInfo* storageType  = declaredType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& type         = storageType ? *storageType : declaredType;
     if (type.isArray())
     {
         if (std::ranges::any_of(type.payloadArrayDims(), [](uint64_t count) { return count == 0; }))

@@ -19,8 +19,7 @@ namespace
 
     void materializeLogicalOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits operandBits = CodeGenTypeHelpers::compareBits(operandType, codeGen.ctx());
+        const TypeInfo& operandType = codeGen.typeMgr().get(operandTypeRef);
 
         if (operandType.isBool() && operandPayload.isValue())
         {
@@ -28,7 +27,8 @@ namespace
             return;
         }
 
-        outReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, operandType, operandBits);
+        const MicroOpBits operandBits = CodeGenTypeHelpers::compareBits(operandType, codeGen.ctx());
+        outReg                        = CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, operandType, operandBits);
 
         if (operandType.isBool())
             return;
@@ -68,9 +68,7 @@ namespace
 
 Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const Token&     tok              = codeGen.token(codeRef());
     const AstNodeRef resolvedLeftRef  = codeGen.resolvedNodeRef(nodeLeftRef);
-    const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(nodeRightRef);
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
     const auto*      logicalState     = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(codeGen.curNodeRef());
 
@@ -103,6 +101,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         // Short-circuit by keeping the lhs boolean as the provisional result and only evaluating rhs when
         // the operator still needs it.
         builder.emitCmpRegImm(state.reg, ApInt(0, 64), MicroOpBits::B8);
+        const Token& tok = codeGen.token(codeRef());
         if (tok.id == TokenId::KwdAnd)
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.doneLabel);
         else if (tok.id == TokenId::KwdOr)
@@ -113,6 +112,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         return Result::Continue;
     }
 
+    const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(nodeRightRef);
     if (resolvedRightRef.isValid() && resolvedChildRef == resolvedRightRef)
     {
         const bool finalized = emitLogicalRightOperandAndDone(codeGen, codeGen.curNodeRef(), nodeRightRef);

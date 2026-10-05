@@ -61,6 +61,12 @@ library source. For example, Swag's `Swag.print` is built in, Rust uses `std`, C
 Windows headers, and D and Odin import runtime packages. The shared C++ header even includes
 `<cmath>` for tasks that do not use it. A ratio across languages is therefore a
 ratio of these particular build recipes, not an isolated ratio of compiler front-end speed.
+Dependency preparation also differs: Swag's Win32 API is published outside the timer, while
+Go's `-a` and fresh `GOCACHE` rebuild dependencies inside it, and Zig clears both compiler caches.
+C++ consumes the installed CRT binaries while parsing its headers. These are different dependency
+states, so the current table does not describe a common warm-dependency edit-build loop either.
+Java and C# IL builds produce bytecode, whereas the native rows include machine-code generation
+and linking. Keep those output contracts in mind when reading the combined ranking.
 The report's compilation speedup takes the fastest non-Swag build time for each task, divides
 it by Swag release build time, then takes the geometric mean of those ratios. Every task has
 equal weight, regardless of its duration. A value of 2x means Swag builds twice as fast on
@@ -74,6 +80,14 @@ Charts and the detailed raw-time matrices keep milliseconds. The separate `hello
 is excluded from the aggregate.
 The `hello` column is a separate small program with a different import set; it is useful as a
 second data point, but subtracting it from a task does not remove library overhead reliably.
+It measures both Swag configurations and both C++ compilers. Older campaigns omitted Swag
+devmode and clang-cl for `hello`; their empty cells mean no measurement was taken, not a build
+failure. The `C` badge denotes C++, with MSVC and clang-cl distinguished by color and tooltip.
+The C++ hello includes only `<cstdio>` and links the installed CRT; it does not parse the shared
+task header. Swag collects `bin/runtime/*.swg` even for hello. On such a small input, compiler
+startup, runtime processing and linking account for much of the work.
+Rankings use the minimum recorded time and do not establish a meaningful lead when the gap is
+smaller than the sample variation.
 For a compiler improvement claim, `py -3 bench/compile.py --against <external-baseline-swc>` compares two compiler
 binaries back to back on the same checkout. Both receive identical sources and imports, and the
 order alternates each round. This is a tighter comparison than a cross-language build ratio.

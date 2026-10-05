@@ -311,25 +311,35 @@ def make_runtimes(t, swc, cores=0):
 def make_hello_builds(t, env, swc, cores=0):
     cl = resolve(env, "cl")
     hello = os.path.join(SRC, "hello")
+
+    def swag(cfg):
+        def make():
+            wd = os.path.join(OUT, "hello_swag_" + cfg)
+            return {"cmd": [swc, "build", *swc_worker_args(cores), "--build-cfg", cfg,
+                            "-n", "hello_swag", "-od", wd, "-wd", wd,
+                            "-f", os.path.join(hello, "hello.swg")],
+                    "exe": os.path.join(wd, "hello_swag.exe"), "clean": [wd], "cwd": BENCH}
+        return make
+
+    def cpp(compiler, name):
+        def make():
+            wd = os.path.join(OUT, "hello_" + name)
+            exe = os.path.join(wd, "hello_cpp.exe")
+            return {"cmd": [compiler, "/nologo", "/O2", "/EHsc", "/std:c++20",
+                            "/Fo:" + wd + os.sep, os.path.join(hello, "hello.cpp"), "/Fe:" + exe],
+                    "exe": exe, "clean": [wd], "mkdir": [wd], "cwd": BENCH}
+        return make
+
     return {
         **{language: (lambda language=language, extension=extension: systems_recipe(
             t, language, os.path.join(hello, "hello." + extension), "hello_" + language))
            for language, extension in [("zig", "zig"), ("d-ldc", "d"), ("odin", "odin"), ("go", "go")]},
         "java-hotspot": lambda: systems_recipe(
             t, "java-hotspot", os.path.join(hello, "java", "Bench.java"), "hello_java-hotspot"),
-        "swag-release": lambda: {
-            "cmd": [swc, "build", *swc_worker_args(cores), "--build-cfg", "release", "-n", "hello_swag",
-                    "-od", os.path.join(OUT, "hellowd"), "-wd", os.path.join(OUT, "hellowd"),
-                    "-f", os.path.join(hello, "hello.swg")],
-            "exe": os.path.join(OUT, "hellowd", "hello_swag.exe"),
-            "clean": [os.path.join(OUT, "hellowd")], "cwd": BENCH},
-        "cpp-msvc": lambda: {
-            "cmd": [cl, "/nologo", "/O2", "/EHsc", "/std:c++20",
-                    "/Fo:" + os.path.join(OUT, "hobj") + os.sep,
-                    os.path.join(hello, "hello.cpp"), "/Fe:" + os.path.join(OUT, "hello_cpp.exe")],
-            "exe": os.path.join(OUT, "hello_cpp.exe"),
-            "clean": [os.path.join(OUT, "hobj"), os.path.join(OUT, "hello_cpp.exe")],
-            "mkdir": [os.path.join(OUT, "hobj")], "cwd": BENCH},
+        "swag-release": swag("release"),
+        "swag-fast-debug": swag("devmode"),
+        "cpp-clang-cl": cpp(t["clang_cl"], "clang"),
+        "cpp-msvc": cpp(cl, "msvc"),
         "rust": lambda: {
             "cmd": [t["rustc"], "--edition", "2021", "-C", "opt-level=3", "-C", "codegen-units=1",
                     "-C", "panic=abort", os.path.join(hello, "hello.rs"),

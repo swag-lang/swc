@@ -15,6 +15,37 @@ import toolchains as tc
 
 
 class HarnessTests(unittest.TestCase):
+    def test_hello_covers_every_build_configuration(self):
+        with patch.object(tc, "resolve", return_value="cl.exe"):
+            tools = {"clang_cl": "clang-cl.exe"}
+            builds = tc.make_recipes(tools, {}, "swc.exe")
+            hello = tc.make_hello_builds(tools, {}, "swc.exe")
+        self.assertEqual(set(hello), set(builds))
+
+    def test_hello_swag_and_cpp_modes_have_independent_clean_builds(self):
+        with patch.object(tc, "resolve", return_value="cl.exe"):
+            builds = tc.make_hello_builds({"clang_cl": "clang-cl.exe"}, {}, "swc.exe", 6)
+        outputs = set()
+        for name, compiler, cfg in (("swag-release", "swc.exe", "release"),
+                                    ("swag-fast-debug", "swc.exe", "devmode"),
+                                    ("cpp-clang-cl", "clang-cl.exe", None),
+                                    ("cpp-msvc", "cl.exe", None)):
+            with self.subTest(runtime=name):
+                recipe = builds[name]()
+                command = recipe["cmd"]
+                self.assertEqual(command[0], compiler)
+                self.assertNotIn(recipe["exe"], outputs)
+                outputs.add(recipe["exe"])
+                self.assertTrue(any(os.path.commonpath([recipe["exe"], path]) == path
+                                    for path in recipe["clean"]))
+                if cfg:
+                    self.assertEqual(command[command.index("--build-cfg") + 1], cfg)
+                    self.assertEqual(command[command.index("--num-cores") + 1], "6")
+                    self.assertIn(os.path.join(tc.SRC, "hello", "hello.swg"), command)
+                else:
+                    self.assertIn("/O2", command)
+                    self.assertIn(os.path.join(tc.SRC, "hello", "hello.cpp"), command)
+
     def test_swag_benchmarks_import_official_native_bindings(self):
         dependencies = ["kernel32.swg"]
         with (patch.object(tc, "resolve", return_value="cl.exe"),

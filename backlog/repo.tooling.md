@@ -5,6 +5,33 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.010 — Separate cross-language build scenarios from compiler throughput
+
+- Recorded: 2026-10-05 21:40
+- Evidence: `bench/toolchains.py` forces Go dependency rebuilds with `-a` and a fresh `GOCACHE`,
+  and clears both Zig caches. `bench/driver.py` publishes Swag's Win32 dependency outside the
+  timer; C++ links the installed CRT but reparses headers, including unused `<cmath>` through
+  `src/cpp/common.h`. Swag collects its runtime sources even for hello. The report combines
+  native executable builds with Java and C# bytecode generation. These are valid recipe timings,
+  but neither equal compiler workloads nor one shared dependency-cache scenario.
+- Evidence: campaign `20261005-165941` puts MSVC hello at 146.9858 ms and Swag release at
+  149.8327 ms; their samples span 147.0–168.2 ms and 149.8–179.9 ms. A strict ordering of these
+  minima does not establish a reproducible 2.8 ms advantage. The two previously missing hello
+  recipes are now covered separately; that repair does not resolve the methodology above.
+- Next: define versioned scenarios for application rebuilds with prepared dependencies,
+  dependency rebuilds, and a real source edit. Keep bytecode and native outputs distinct.
+  Add a separate generated-code workload at several sizes, with equivalent operations and
+  minimal imports, and time semantic checking, object generation, and linking where supported.
+  Record cache policy, flags, worker counts, repetitions and dispersion with every scenario;
+  retain old campaigns under their original protocol rather than reinterpreting them.
+- References: [compiler-benchmark](https://github.com/nordlow/compiler-benchmark) separates
+  synthetic checking, compilation and linking;
+  [rustc-perf](https://github.com/rust-lang/rustc-perf/blob/main/collector/README.md) separates
+  profiles and full/incremental scenarios for the same compiler family.
+- Complete when: the report identifies each timing's artifact and dependency state, never mixes
+  incompatible scenarios in one speedup, and compiler-throughput claims use controlled size
+  scaling rather than small application build minima.
+
 ### repo.tooling.007 — Separate formatter input preparation from formatter cost
 
 - Recorded: 2026-09-06 15:21

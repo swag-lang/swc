@@ -47,11 +47,13 @@ namespace
 
     TypeRef normalizeScalarReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
     {
-        const TypeRef normalizedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), ioTypeRef);
-        if (!normalizedTypeRef.isValid())
-            return normalizedTypeRef;
+        if (!ioTypeRef.isValid())
+            return TypeRef::invalid();
 
-        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
+        const TypeInfo& declaredType      = codeGen.typeMgr().get(ioTypeRef);
+        const TypeInfo* unwrappedType     = declaredType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& normalizedType    = unwrappedType ? *unwrappedType : declaredType;
+        const TypeRef   normalizedTypeRef = normalizedType.typeRef();
         if (!normalizedType.isReference())
         {
             ioTypeRef = normalizedTypeRef;
@@ -191,8 +193,9 @@ namespace
 
     void loadTypeInfoComparePtr(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef operandTypeRef, TypeRef compareTypeRef)
     {
-        const TypeRef   resolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), operandTypeRef);
-        const TypeInfo& operandType     = codeGen.typeMgr().get(resolvedTypeRef);
+        const TypeInfo& declaredType  = codeGen.typeMgr().get(operandTypeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& operandType   = unwrappedType ? *unwrappedType : declaredType;
         if (operandType.isAny())
         {
             outReg                          = codeGen.nextVirtualIntRegister();
@@ -494,11 +497,12 @@ namespace
     // between and after members is not one of them: two values whose every member is equal must
     // compare equal, and the bytes between the members are not members. A union is the exception
     // — its members share one storage, so all of it is compared.
-    void appendCompareParts(CodeGen& codeGen, SmallVector<ComparePart>& out, TypeRef typeRef, uint64_t base)
+    void appendCompareParts(CodeGen& codeGen, SmallVector<ComparePart>& out, const TypeInfo& declaredType, uint64_t base)
     {
-        TaskContext&    ctx  = codeGen.ctx();
-        const TypeInfo& type = ctx.typeMgr().get(ctx.typeMgr().unwrapAliasEnum(ctx, typeRef));
-        const uint64_t  size = type.sizeOf(ctx);
+        TaskContext&    ctx           = codeGen.ctx();
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const uint64_t  size          = type.sizeOf(ctx);
 
         if (type.isString())
         {
@@ -530,7 +534,7 @@ namespace
             for (const SymbolVariable* field : ownerStruct.fields())
             {
                 if (field)
-                    appendCompareParts(codeGen, out, field->typeRef(), base + field->offset());
+                    appendCompareParts(codeGen, out, ctx.typeMgr().get(field->typeRef()), base + field->offset());
             }
 
             return;
@@ -538,13 +542,13 @@ namespace
 
         if (type.isArray())
         {
-            const TypeRef  elemTypeRef = type.payloadArrayElemTypeRef();
-            const uint64_t elemSize    = ctx.typeMgr().get(elemTypeRef).sizeOf(ctx);
+            const TypeInfo& elemType = ctx.typeMgr().get(type.payloadArrayElemTypeRef());
+            const uint64_t  elemSize = elemType.sizeOf(ctx);
             if (!elemSize)
                 return;
 
             SmallVector<ComparePart> elemParts;
-            appendCompareParts(codeGen, elemParts, elemTypeRef, 0);
+            appendCompareParts(codeGen, elemParts, elemType, 0);
 
             // An element that occupies all of its own storage leaves the whole array contiguous,
             // which is one compare instead of one per element.
@@ -881,7 +885,7 @@ namespace
             (compareType.isStruct() || compareType.isArray() || compareType.isAggregate() || compareType.isInterface()))
         {
             SmallVector<ComparePart> parts;
-            appendCompareParts(codeGen, parts, compareTypeRef, 0);
+            appendCompareParts(codeGen, parts, compareType, 0);
             const bool isWiderThanRegister = compareType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
             if (isWiderThanRegister || hasOwnAnswerPart(parts.span()))
             {

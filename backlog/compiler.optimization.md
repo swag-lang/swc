@@ -84,6 +84,61 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 `Inline`, and `NoInline` contracts explicit. This plan invents no command-line spellings or
 new language syntax.
 
+### compiler.optimization.125 — Preserve performance across dirty AVX upper-state boundaries
+
+- Recorded: 2026-10-05 17:55
+- Evidence: on Core Ultra 9 185H, the same non-inlined 5,000-step `nbody` function takes
+  52–57 ms after an ABI-compliant helper dirties YMM15's upper half, versus 0.38–0.47 ms
+  after `vzeroupper`. Both states return checksum `169020000371`. XMM15's lower half is
+  preserved, and the scalar generated code mixes legacy SSE and VEX encodings.
+  [Probe, raw samples and scope](../bench/results/generated-code/20261005-runtime-layout/README.md)
+  are retained. This is not yet an explanation of the published Oct 5 JIT regression.
+- Next: audit host/JIT entry, foreign returns and callbacks. Compare consistently VEX-encoded
+  scalar operations with cleanup at boundaries where upper state is volatile and no wider
+  value is live. Respect target CPU features and avoid changing floating-point semantics.
+  Establish which state reaches the unmodified benchmark before selecting a fix.
+- Complete when: dirty and clean caller states have equivalent numeric results and stable
+  performance through native, JIT and callback boundaries, with runtime, size and compiler
+  costs measured on representative consumers.
+- Related: compiler.optimization.121, cpu.simd.001.
+
+### compiler.optimization.121 — Optimize final code and data layout with retained structure
+
+- Recorded: 2026-10-04 16:08
+- Updated: 2026-10-05 17:55 — retain the reproduced layout regression and the unaccepted alignment candidate.
+- Evidence: local cold-block placement and loop alignment exist; the integrated linker owns final
+  symbols/relocations. It can retain function/block boundaries and profile edges instead of
+  reconstructing them from an executable.
+- Regression evidence: the Oct 5 allocator investigation reproduces a 7.14% DevMode
+  `fannkuch` loss against the rebuilt old revision, with unchanged normalized hot instructions.
+  The main moves from RVA `0xaee0` to `0xafd0`. Candidate `5d3338007` stabilizes alignment
+  modulo 32 and passes functional tests, but remains off master: the final quiet 32-round
+  subset improves DevMode `fannkuch` by 5.10% while slowing DevMode `binarytrees` by 4.50%
+  (unchanged-binary control +0.07%). Blanket alignment does not meet the performance gate.
+  A contiguous-order experiment was removed. The candidate grows executable size by 1.28%
+  and text by 3.32% in median. See the [evidence and identities](../bench/results/generated-code/20261005-runtime-layout/README.md).
+- Next: investigate selective alignment and repeat independent quiet blocks across native
+  execution, compiler time/memory, and binary size with unchanged-binary controls. Then retain
+  layout metadata through object/cache boundaries and reorder functions by weighted
+  call locality with deterministic static fallback. Measure instruction-cache behavior and binary
+  size before expanding to block splitting or data placement.
+- Expansion: global hot/cold separation, constants near consumers, final-size/profile-aware
+  alignment, and eligible branch relaxation/re-encoding once distances are known. Respect
+  displacement limits and identity constraints; allow bounded feedback when final sizes change
+  earlier profitability estimates.
+- Output: update relocations, debug ranges/inline provenance, unwind/exception records, runtime
+  symbol tables, and cached offsets together. Keep target-specific restrictions behind backend
+  interfaces; deterministic placement needs stable global-data identities too.
+- Elsewhere: [BOLT](https://github.com/llvm/llvm-project/blob/main/bolt/README.md) demonstrates
+  profile-guided post-link layout. Its ELF implementation is a design reference, not a drop-in
+  replacement for Swag's PE backend.
+- Complete when: large modular consumers have reproducible valid images and measured locality gains,
+  stack-walking/debug fixtures pass, unprofiled builds retain useful placement, and runtime, size,
+  startup, and build costs are evaluated separately.
+- Related: compiler.optimization.118, compiler.optimization.119, compiler.optimization.120,
+  compiler.core.074.
+
+
 ### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
 
 - Recorded: 2026-10-04 16:08
@@ -446,31 +501,6 @@ new language syntax.
   dependencies compile correctly.
 - Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.113,
   compiler.optimization.117.
-
-### compiler.optimization.121 — Optimize final code and data layout with retained structure
-
-- Recorded: 2026-10-04 16:08
-- Evidence: local cold-block placement and loop alignment exist; the integrated linker owns final
-  symbols/relocations. It can retain function/block boundaries and profile edges instead of
-  reconstructing them from an executable.
-- Next: retain layout metadata through object/cache boundaries and reorder functions by weighted
-  call locality with deterministic static fallback. Measure instruction-cache behavior and binary
-  size before expanding to block splitting or data placement.
-- Expansion: global hot/cold separation, constants near consumers, final-size/profile-aware
-  alignment, and eligible branch relaxation/re-encoding once distances are known. Respect
-  displacement limits and identity constraints; allow bounded feedback when final sizes change
-  earlier profitability estimates.
-- Output: update relocations, debug ranges/inline provenance, unwind/exception records, runtime
-  symbol tables, and cached offsets together. Keep target-specific restrictions behind backend
-  interfaces; deterministic placement needs stable global-data identities too.
-- Elsewhere: [BOLT](https://github.com/llvm/llvm-project/blob/main/bolt/README.md) demonstrates
-  profile-guided post-link layout. Its ELF implementation is a design reference, not a drop-in
-  replacement for Swag's PE backend.
-- Complete when: large modular consumers have reproducible valid images and measured locality gains,
-  stack-walking/debug fixtures pass, unprofiled builds retain useful placement, and runtime, size,
-  startup, and build costs are evaluated separately.
-- Related: compiler.optimization.118, compiler.optimization.119, compiler.optimization.120,
-  compiler.core.074.
 
 ### compiler.optimization.122 — Partially evaluate dependency code and freeze eligible data
 

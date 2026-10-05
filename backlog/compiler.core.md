@@ -6,6 +6,23 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.077 — Preserve attributes when top-level compiler runs are deferred
+
+- Recorded: 2026-10-05 17:55
+- Evidence: `#[Swag.PrintMicro]` immediately before a benchmark's top-level `#run` produces
+  no microcode listing, while the same attribute prints ordinary functions and script `#main`.
+  This reproduces with both `84f461783` and the Oct 5 compiler. A file-global attribute also
+  prints the numeric functions without exposing the `#run` wrapper in the inspected input.
+- Lead: `Sema::deferTopLevelItem` saves only the node and kind; the later visit starts at that
+  node, and `AstCompilerFunc::semaPreNode` registers attributes from its then-current frame.
+  Confirm lost attribute context rather than assuming every attribute has the same symptom.
+- Next: reduce the example and exercise local print, optimization and safety attributes around
+  deferred runs. Preserve the necessary context without widening every ordinary function's
+  hot storage or repeating attribute evaluation and its compile-time effects.
+- Complete when: deferred runs observe their original attribute scope and selected microcode
+  output can inspect the actual run body, with declaration ordering and pause/resume preserved.
+- Related: compiler.core.040.
+
 ### compiler.core.040 — Select microcode output without a source attribute
 
 - Recorded: 2026-09-11 22:14

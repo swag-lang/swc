@@ -1,0 +1,393 @@
+{
+  "date": "2026-10-05",
+  "host": "Windows-10-10.0.26200-SP0",
+  "baseline_source": "84f461783",
+  "current_source": "93af17966",
+  "candidate_source": "5d3338007",
+  "source_equivalence": "The measured candidate compiler uses literal 32-byte function/COFF alignment; the final candidate shares that boundary through constants and adds a C++ regression. Object ordering and loop alignment are unchanged.",
+  "baseline_limit": "The previous published campaign reports a dirty source tree and its private compiler was removed. The baseline is rebuilt from its recorded revision; the current campaign native binaries were separately retained and compared.",
+  "compilers": {
+    "baseline-devmode": {
+      "sha256": "9a4a72f758c1c9bc3f088de3f4a5e881526c60a1b261a0cc3fcf4fa7979c750d",
+      "bytes": 15158272
+    },
+    "baseline-release": {
+      "sha256": "34f3534d23ad3f43439c7aaca4498d220d55150410664c3cbf6eaa465a5a7459",
+      "bytes": 7645184
+    },
+    "current-devmode": {
+      "sha256": "581354c852c3af953caaa94e0716982da38808b0e71b22415c3f423830bfef01",
+      "bytes": 15166464
+    },
+    "current-release": {
+      "sha256": "7731aac227ff46d5b2ed5842a6b32019bf1c6e07fcc6c8f401bb22ca654a7f4c",
+      "bytes": 7644672
+    },
+    "measured-candidate-devmode": {
+      "sha256": "29c9801243d2573d2ee82ed0c79f4adb9802d72b6db9e10a2f3a19653f28a818",
+      "bytes": 15166464
+    },
+    "final-candidate-devmode": {
+      "sha256": "dca95bd57ea73c2af88f8d8ff9292e51bceb5a44ea6a8e5dee411cb30e82047f",
+      "bytes": 15172608
+    },
+    "final-candidate-release": {
+      "sha256": "6abd516bb6c08d6e61c8771f3d1927f07ebc55f2971949b06845d9f86f82164b",
+      "bytes": 7644672
+    }
+  },
+  "programs": {
+    "before": {
+      "binarytrees_swag_fast_debug/binarytrees_swag_fast_debug.exe": {
+        "sha256": "fdd5b2e90ab38c0341896fc26b78f3da7e465369dbe335f1bdb48eab98437186",
+        "bytes": 173056
+      },
+      "binarytrees_swag_release/binarytrees_swag_release.exe": {
+        "sha256": "a45dfb5f35c0e2dfb9b9ab6bbc8b3e8bc41637980a1d0bc3a5095702cad65e88",
+        "bytes": 108032
+      },
+      "chacha_swag_fast_debug/chacha_swag_fast_debug.exe": {
+        "sha256": "7e79dd13bab52c36c406b79f0c68aee74c8e2076fa6a286b3c2e1fffa6542a29",
+        "bytes": 175104
+      },
+      "chacha_swag_release/chacha_swag_release.exe": {
+        "sha256": "1d95410014d720adc6ae56145e076aec7f79a8cf2c665819adb466ad2f36809d",
+        "bytes": 109568
+      },
+      "csvagg_swag_fast_debug/csvagg_swag_fast_debug.exe": {
+        "sha256": "f8bfe4e54b29d5c9bbcaaa4e117787318cb706dc62c995ec076c457677474294",
+        "bytes": 193536
+      },
+      "csvagg_swag_release/csvagg_swag_release.exe": {
+        "sha256": "c4f05dfca4cce295b8333234ae1eaf0d370b47ab0d85935cf29755d8c8df2877",
+        "bytes": 112128
+      },
+      "dijkstra_swag_fast_debug/dijkstra_swag_fast_debug.exe": {
+        "sha256": "d5a90920acca9ca93363ee59c1eda980e46d0b93df078772271c283ff8f8632f",
+        "bytes": 189440
+      },
+      "dijkstra_swag_release/dijkstra_swag_release.exe": {
+        "sha256": "7dc1f40cab12b92b6faad5212e64189fac10a199620d91aab7b8fd6416a7b79d",
+        "bytes": 109568
+      },
+      "fannkuch_swag_fast_debug/fannkuch_swag_fast_debug.exe": {
+        "sha256": "ee8c2183b18695b2af7715d326ca5cb8591aebdf430071fceba4d773523e4e06",
+        "bytes": 174080
+      },
+      "fannkuch_swag_release/fannkuch_swag_release.exe": {
+        "sha256": "0ffa339d0ffb74c56e0840cb757b92edf7ee22e5ed8872678366e97e916658f4",
+        "bytes": 108032
+      },
+      "leven_swag_fast_debug/leven_swag_fast_debug.exe": {
+        "sha256": "39c2ef5de28c0f1ac60ed4798e7baa513534cc9ffef14e956977cb144d149ac0",
+        "bytes": 180736
+      },
+      "leven_swag_release/leven_swag_release.exe": {
+        "sha256": "3c9d03d7131593fe02cd2fa1ef8502086f57470e89ecc21a04ae4d15ff38fb83",
+        "bytes": 109056
+      },
+      "lz77_swag_fast_debug/lz77_swag_fast_debug.exe": {
+        "sha256": "563250b4b0882f8889354c42dee784bb5d941653a425ed8708079d30d07d9226",
+        "bytes": 183296
+      },
+      "lz77_swag_release/lz77_swag_release.exe": {
+        "sha256": "5f9965dc095c3988dc9bd0e23051b839d6778c5427046df0e7148f559f17eef3",
+        "bytes": 109568
+      },
+      "nbody_swag_fast_debug/nbody_swag_fast_debug.exe": {
+        "sha256": "b4a8fec8212be6bac7da7f98a92702d51d15baf1e987cc8534459f41376d3af4",
+        "bytes": 176128
+      },
+      "nbody_swag_release/nbody_swag_release.exe": {
+        "sha256": "b790a088d520c9c6c2194a65da2cc1871cf6e3873e060919972a1b7f1de54441",
+        "bytes": 114688
+      },
+      "raytrace_swag_fast_debug/raytrace_swag_fast_debug.exe": {
+        "sha256": "cf35209f1a074b9d6063c74453fbedbef6218be03552a8e415c96d035ccf8373",
+        "bytes": 176128
+      },
+      "raytrace_swag_release/raytrace_swag_release.exe": {
+        "sha256": "cf5c11396d6c1e23378b6fef58bfded740221186c0a2d15c027de975f3d03402",
+        "bytes": 110080
+      },
+      "sha256_swag_fast_debug/sha256_swag_fast_debug.exe": {
+        "sha256": "6dd62ee378f0e3162e11b8e503fa95ae879f14bf820f0a2975504c852b0ed283",
+        "bytes": 178688
+      },
+      "sha256_swag_release/sha256_swag_release.exe": {
+        "sha256": "c53f2016179cf5c7912ac3979e129ee89a57ece92bfeb4708a24f083ff386118",
+        "bytes": 109568
+      },
+      "sort_swag_fast_debug/sort_swag_fast_debug.exe": {
+        "sha256": "cc9867c1f6a707f301709fdbd904598b787229ca929ceb660963247d49cb9a55",
+        "bytes": 174592
+      },
+      "sort_swag_release/sort_swag_release.exe": {
+        "sha256": "e50641d5d4ffeb9d5755a7fc3ceb8b81888f8cedd9eee88b3a32e188078703df",
+        "bytes": 108544
+      },
+      "wordfreq_swag_fast_debug/wordfreq_swag_fast_debug.exe": {
+        "sha256": "9b027ff179a29c995dfb2619e16e205b28e42ea74e8eb1b0432420d00daeeaac",
+        "bytes": 192000
+      },
+      "wordfreq_swag_release/wordfreq_swag_release.exe": {
+        "sha256": "94f9dbb4c52af20a4e837b966d94e97561a859fa9519fd0b7e2940e74c730d95",
+        "bytes": 110080
+      }
+    },
+    "after": {
+      "binarytrees_swag_fast_debug/binarytrees_swag_fast_debug.exe": {
+        "sha256": "7c953bfcb230ca21c39c2161fd7e6a2b1106eb3e19e9cda43e4dfe6e2986016d",
+        "bytes": 172544
+      },
+      "binarytrees_swag_release/binarytrees_swag_release.exe": {
+        "sha256": "92e1a6d6c0bccbdf8dd6a52eedc30e284ebe83917a03090197e9e10862a5b19f",
+        "bytes": 108032
+      },
+      "chacha_swag_fast_debug/chacha_swag_fast_debug.exe": {
+        "sha256": "83b198a0d09a3106c1410a0e4a72aa55c8f628f357d508783abe37912b5b412e",
+        "bytes": 174592
+      },
+      "chacha_swag_release/chacha_swag_release.exe": {
+        "sha256": "692dddfedeadc261c9caeb1589c66a872fdd7bd813c2a06a4cb925b06e775b22",
+        "bytes": 109568
+      },
+      "csvagg_swag_fast_debug/csvagg_swag_fast_debug.exe": {
+        "sha256": "f30ea43eb44e19dbf83bfa6f533b9912641441ca1bffe5ce9901e9364d127dbb",
+        "bytes": 192512
+      },
+      "csvagg_swag_release/csvagg_swag_release.exe": {
+        "sha256": "d118e888fe8e618551a731b6f49db011e85f40072b23a354aea4754a39e16bb8",
+        "bytes": 112640
+      },
+      "dijkstra_swag_fast_debug/dijkstra_swag_fast_debug.exe": {
+        "sha256": "47773ea69b766ec88de91e75aa7a29b4ada2d45f41cb84f393c4909d7ffb470a",
+        "bytes": 188416
+      },
+      "dijkstra_swag_release/dijkstra_swag_release.exe": {
+        "sha256": "62f13f0d2cbc383d4ea45791170202bb70bd6d56f64833ed460ad43f8131ea71",
+        "bytes": 110080
+      },
+      "fannkuch_swag_fast_debug/fannkuch_swag_fast_debug.exe": {
+        "sha256": "050ec8655e33a17b37f9051d38489b77c7931af2e46620794d3ba1a0adc46506",
+        "bytes": 173568
+      },
+      "fannkuch_swag_release/fannkuch_swag_release.exe": {
+        "sha256": "a97c8aec8b68ca0587d541d2b001da479a95b24cdba656bc3e8b09b4e1680c91",
+        "bytes": 108032
+      },
+      "leven_swag_fast_debug/leven_swag_fast_debug.exe": {
+        "sha256": "18796c4458efa1f574ccd1fba3de001496cf77e6c21aca6595ae9153d2ab232f",
+        "bytes": 180224
+      },
+      "leven_swag_release/leven_swag_release.exe": {
+        "sha256": "71c906d0079bcd4c265a9e740a3c3950fdbf8ee753cefc2eaea7c5686a7fb733",
+        "bytes": 109056
+      },
+      "lz77_swag_fast_debug/lz77_swag_fast_debug.exe": {
+        "sha256": "630fe8aac8f102d4cb89a78f8753681f5547ed69ce43f27766a665588c667d2b",
+        "bytes": 182784
+      },
+      "lz77_swag_release/lz77_swag_release.exe": {
+        "sha256": "0bcd79774cd0f667720f61e5524c2c391769ff2f03fa4214db5a5c2b401d7f5a",
+        "bytes": 110080
+      },
+      "nbody_swag_fast_debug/nbody_swag_fast_debug.exe": {
+        "sha256": "3e2a6c172df9ddc4eb4b446aa975930977537e11f5f8c555c148343b3c9deaba",
+        "bytes": 175616
+      },
+      "nbody_swag_release/nbody_swag_release.exe": {
+        "sha256": "c1118f3ab93c9036ea1877048092894a82256cdde7a989701491ca45e7cd1558",
+        "bytes": 114688
+      },
+      "raytrace_swag_fast_debug/raytrace_swag_fast_debug.exe": {
+        "sha256": "11fa4675f0de93e86078e2ec470698419d182bf3cf04e06d3dcb31ab68ee854f",
+        "bytes": 175616
+      },
+      "raytrace_swag_release/raytrace_swag_release.exe": {
+        "sha256": "4930941ebb7bfa9c66251f672d1e0c664afddf2e8fc3cc8d24dc2e04b45a1008",
+        "bytes": 110080
+      },
+      "sha256_swag_fast_debug/sha256_swag_fast_debug.exe": {
+        "sha256": "38c7d46b77c8269183ea0c5cdd4b997171aceb2fdffb739f9818b0e863dc5fb5",
+        "bytes": 178176
+      },
+      "sha256_swag_release/sha256_swag_release.exe": {
+        "sha256": "4098bd2118b9e03b99288183c59b4e21e78380610b1e5a265c2d7bb9f1511af7",
+        "bytes": 110080
+      },
+      "sort_swag_fast_debug/sort_swag_fast_debug.exe": {
+        "sha256": "29606959da89afa410ed52f380769da8d28d1aa1a00bb6e57b1c946d75dcf234",
+        "bytes": 174592
+      },
+      "sort_swag_release/sort_swag_release.exe": {
+        "sha256": "b6f78adbeb0654a43d81fc43de0f76ac88a33d7d787fb76bc40fa06dfa1e8cc8",
+        "bytes": 108032
+      },
+      "wordfreq_swag_fast_debug/wordfreq_swag_fast_debug.exe": {
+        "sha256": "cf946aa8a371abd6d994b80b35ad8166268ded0e15496c324facd51fafb9c07a",
+        "bytes": 190976
+      },
+      "wordfreq_swag_release/wordfreq_swag_release.exe": {
+        "sha256": "790aec9d4ac1330e283f772657f1b813b2586bc8f6645175f9624796ee5b183b",
+        "bytes": 110592
+      }
+    },
+    "aligned32-roundrobin": {
+      "binarytrees_swag_fast_debug/binarytrees_swag_fast_debug.exe": {
+        "sha256": "4105c420d3d2915418c136c82e920cec92e00d330de8ebd5294fea8af3a748d3",
+        "bytes": 174592
+      },
+      "binarytrees_swag_release/binarytrees_swag_release.exe": {
+        "sha256": "c06f17e79fc34e1935ecec3373a2563d4b893585028746e7ef94d13466720319",
+        "bytes": 110080
+      },
+      "chacha_swag_fast_debug/chacha_swag_fast_debug.exe": {
+        "sha256": "f5cd96efccada48cc642367c38e4661b052c8e394629eb5929265681c12c825e",
+        "bytes": 176640
+      },
+      "chacha_swag_release/chacha_swag_release.exe": {
+        "sha256": "51fc17653432e23e414fafa18fc8d1e15f0c1551e9374aaae072dab5b80f7dbb",
+        "bytes": 111616
+      },
+      "csvagg_swag_fast_debug/csvagg_swag_fast_debug.exe": {
+        "sha256": "320b839f1b07233318cd404ab788956b498d467d6072843189d9ecf8bdd451f2",
+        "bytes": 194560
+      },
+      "csvagg_swag_release/csvagg_swag_release.exe": {
+        "sha256": "582210397d2420ec17b1127497e31be428e60e9d83c4cb4088af04c27bb007e5",
+        "bytes": 114176
+      },
+      "dijkstra_swag_fast_debug/dijkstra_swag_fast_debug.exe": {
+        "sha256": "b0b921fbb07aea8ced0d06c95b52a0dc52d5c95b3eab284b46879dc78c83199e",
+        "bytes": 190464
+      },
+      "dijkstra_swag_release/dijkstra_swag_release.exe": {
+        "sha256": "8a33d5a24190ca6e2eb9bb9398a4a94152c45aadd6b9d38e05405387d3e5f91c",
+        "bytes": 112128
+      },
+      "fannkuch_swag_fast_debug/fannkuch_swag_fast_debug.exe": {
+        "sha256": "1c68fb8435bea9b8e177a8de28cccc9295b995fa415c145f615bdccad8a4822e",
+        "bytes": 175616
+      },
+      "fannkuch_swag_release/fannkuch_swag_release.exe": {
+        "sha256": "c5989058ea17e4de2dba49415bf3d655e497e6294020489a1ebd4213c4843ea0",
+        "bytes": 109568
+      },
+      "leven_swag_fast_debug/leven_swag_fast_debug.exe": {
+        "sha256": "ff3960d4dfeb3a4d964555265e66ab2d5484e5234d129423a8907897149dbb9a",
+        "bytes": 182272
+      },
+      "leven_swag_release/leven_swag_release.exe": {
+        "sha256": "68489af9adb5b87be5339e3c0de6a1488567677e120d06e30a36dd3b5f9a9492",
+        "bytes": 111104
+      },
+      "lz77_swag_fast_debug/lz77_swag_fast_debug.exe": {
+        "sha256": "0aaccb55a334ecd5de75acb1406fbb1ee92b641adf78acb047f84f4d4eedc332",
+        "bytes": 184832
+      },
+      "lz77_swag_release/lz77_swag_release.exe": {
+        "sha256": "9768bd396982b2feb4cafa14d06e3fe4efec1ab9f6a36c19fb4ec5b54fdc32f5",
+        "bytes": 111616
+      },
+      "nbody_swag_fast_debug/nbody_swag_fast_debug.exe": {
+        "sha256": "4352e092ca39a98ea23e11c7831ab838f73947d0f438cb343524c9469def652a",
+        "bytes": 177664
+      },
+      "nbody_swag_release/nbody_swag_release.exe": {
+        "sha256": "f693f1d10301c66059f268d986c62c425a0ec96a7724e94df56d2f9d3db7d7e2",
+        "bytes": 116736
+      },
+      "raytrace_swag_fast_debug/raytrace_swag_fast_debug.exe": {
+        "sha256": "802d5325cf2252868f57198bac00e6591b2c763e5d02c6d56955abf3eb5a8b3e",
+        "bytes": 177664
+      },
+      "raytrace_swag_release/raytrace_swag_release.exe": {
+        "sha256": "67f53be6aa4c474d528aa134f3ee0caf405fca348c1351f68a6f382862df543c",
+        "bytes": 112128
+      },
+      "sha256_swag_fast_debug/sha256_swag_fast_debug.exe": {
+        "sha256": "629c7422a59998ab52542404d7f266716c8d16584cf57de6b4cd2b5372dd7676",
+        "bytes": 180224
+      },
+      "sha256_swag_release/sha256_swag_release.exe": {
+        "sha256": "b6c1fd2aa7875e157e24f2a44e6a7fc0196915535a84e091751b01afd41a62c7",
+        "bytes": 111616
+      },
+      "sort_swag_fast_debug/sort_swag_fast_debug.exe": {
+        "sha256": "c0daa09b6ed76a4d0bfed3623de8843501dbc81e1f25f1c0c58621225817359e",
+        "bytes": 176640
+      },
+      "sort_swag_release/sort_swag_release.exe": {
+        "sha256": "9bc4c00046e06eb1709bad11bda64922e25e0ac190453f2f4b2cb8cc46c06e28",
+        "bytes": 110080
+      },
+      "wordfreq_swag_fast_debug/wordfreq_swag_fast_debug.exe": {
+        "sha256": "afd7f8d3c65221f6be9009d77ec4c390f58635a2c406a60d87e9fe7ae5b982f0",
+        "bytes": 193024
+      },
+      "wordfreq_swag_release/wordfreq_swag_release.exe": {
+        "sha256": "739f9f6a904d49587743ffc6174c4358f1bdb5bb2edfbea6d159db19b799b522",
+        "bytes": 112640
+      }
+    }
+  },
+  "sources": {
+    "bench/src/swagnat/binarytrees.swg": {
+      "sha256": "f91ca10917d26a3f203f378a763d3a17af460796c1b6ebeeccc60799c533b06f",
+      "bytes": 1378
+    },
+    "bench/src/swagnat/bytemap.swg": {
+      "sha256": "e550a0b785602c4e7cbcdc39eb83d60ef4df1c8b2afbaabb146bd179b4171a3b",
+      "bytes": 1758
+    },
+    "bench/src/swagnat/chacha.swg": {
+      "sha256": "3fce9d8bbec4f283a7566663fdc6d0757c739af96d0e80463545b986f6b2576f",
+      "bytes": 2514
+    },
+    "bench/src/swagnat/common.swg": {
+      "sha256": "39499335c799b852c63dee77cb8302a17f358605a151e6590f88df0ed691f36c",
+      "bytes": 1690
+    },
+    "bench/src/swagnat/csvagg.swg": {
+      "sha256": "086f081d5dad8ea45d7cbe59de93134c105f3de3084368902a08f4f5c13a9154",
+      "bytes": 5501
+    },
+    "bench/src/swagnat/dijkstra.swg": {
+      "sha256": "8f762de03b036566a4aff954ae2d55562bc162e711e081740f99d965bcd5b35c",
+      "bytes": 3257
+    },
+    "bench/src/swagnat/fannkuch.swg": {
+      "sha256": "0f20fa256b8b4c679e78af6831fd866d03c43eb97995f613dc8c8bed17dab8ef",
+      "bytes": 1957
+    },
+    "bench/src/swagnat/leven.swg": {
+      "sha256": "721d46147fa7c71cae49bb94a9dd8931dcffc6cef46afc818e4cd50fd10c2f0a",
+      "bytes": 3865
+    },
+    "bench/src/swagnat/lz77.swg": {
+      "sha256": "89fc513fe9026475794f29d58ced4bda85a91b1af86a8527f484746bc9ab6983",
+      "bytes": 4592
+    },
+    "bench/src/swagnat/nbody.swg": {
+      "sha256": "cd92b00143c0a7193f59ccacd3b3b538d9193b561dcfa309a4e6aced1bb1d591",
+      "bytes": 3336
+    },
+    "bench/src/swagnat/raytrace.swg": {
+      "sha256": "1fb3aa87ab5e099d6700fb9c46a206fed7b3760442b7ceb7e0128fd82cf4f9b0",
+      "bytes": 3785
+    },
+    "bench/src/swagnat/sha256.swg": {
+      "sha256": "3ee1b66636be504d3e4e220c0ce97e238ccbb5881bdc62bd9e6ac994297a6e26",
+      "bytes": 3578
+    },
+    "bench/src/swagnat/sort.swg": {
+      "sha256": "42436536e2cdfda8143e653082cc8943904f8cac976fb3f853e8ee9a2cbf237a",
+      "bytes": 2039
+    },
+    "bench/src/swagnat/wordfreq.swg": {
+      "sha256": "c41ef1d4cc9f5fa2a5b43a5af4d439fc0607f9afe8eae7b4eb3d5a7232626eb8",
+      "bytes": 4027
+    }
+  }
+}

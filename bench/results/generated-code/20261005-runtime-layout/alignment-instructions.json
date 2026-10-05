@@ -1,0 +1,1426 @@
+{
+  "release/wordfreq": [
+    {
+      "name": "Wordfreq_swag_release.mapInit",
+      "size_before": 117,
+      "size_after": 117,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.mapProbe",
+      "size_before": 263,
+      "size_after": 263,
+      "address_before": 5368722896,
+      "address_after": 5368723232,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.mapClaim",
+      "size_before": 37,
+      "size_after": 37,
+      "address_before": 5368732736,
+      "address_after": 5368733408,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368738080,
+      "address_after": 5368739104,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368745136,
+      "address_after": 5368746528,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.rnd",
+      "size_before": 67,
+      "size_after": 67,
+      "address_before": 5368751520,
+      "address_after": 5368753248,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368713376,
+      "address_after": 5368713376,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.less",
+      "size_before": 139,
+      "size_after": 139,
+      "address_before": 5368723168,
+      "address_after": 5368723520,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.qsort",
+      "size_before": 590,
+      "size_after": 590,
+      "address_before": 5368732784,
+      "address_after": 5368733472,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_release.__main_0",
+      "size_before": 1897,
+      "size_after": 1897,
+      "address_before": 5368738304,
+      "address_after": 5368739328,
+      "same_instructions": true
+    }
+  ],
+  "release/csvagg": [
+    {
+      "name": "Csvagg_swag_release.mapInit",
+      "size_before": 117,
+      "size_after": 117,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.mapProbe",
+      "size_before": 263,
+      "size_after": 263,
+      "address_before": 5368722896,
+      "address_after": 5368723232,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.mapClaim",
+      "size_before": 37,
+      "size_after": 37,
+      "address_before": 5368732800,
+      "address_after": 5368733472,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368737616,
+      "address_after": 5368738624,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368746976,
+      "address_after": 5368748352,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.rnd",
+      "size_before": 67,
+      "size_after": 67,
+      "address_before": 5368753360,
+      "address_after": 5368755072,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368713376,
+      "address_after": 5368713376,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.writeUInt",
+      "size_before": 196,
+      "size_after": 196,
+      "address_before": 5368723168,
+      "address_after": 5368723520,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.writeUInt2",
+      "size_before": 55,
+      "size_after": 55,
+      "address_before": 5368732848,
+      "address_after": 5368733536,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_release.__main_0",
+      "size_before": 4204,
+      "size_after": 4204,
+      "address_before": 5368737840,
+      "address_after": 5368738848,
+      "same_instructions": true
+    }
+  ],
+  "release/sha256": [
+    {
+      "name": "Sha256_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_release.benchFree",
+      "size_before": 175,
+      "size_after": 175,
+      "address_before": 5368720048,
+      "address_after": 5368720416,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368726528,
+      "address_after": 5368727232,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_release.rnd",
+      "size_before": 67,
+      "size_after": 67,
+      "address_before": 5368733072,
+      "address_after": 5368734080,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368742480,
+      "address_after": 5368743840,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_release.rotr",
+      "size_before": 22,
+      "size_after": 22,
+      "address_before": 5368752096,
+      "address_after": 5368753760,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_release.__main_0",
+      "size_before": 1643,
+      "size_after": 1643,
+      "address_before": 5368713472,
+      "address_after": 5368713472,
+      "same_instructions": true
+    }
+  ],
+  "release/dijkstra": [
+    {
+      "name": "Dijkstra_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_release.benchFree",
+      "size_before": 175,
+      "size_after": 175,
+      "address_before": 5368718384,
+      "address_after": 5368718720,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368725456,
+      "address_after": 5368726176,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_release.rnd",
+      "size_before": 67,
+      "size_after": 67,
+      "address_before": 5368731840,
+      "address_after": 5368732896,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368738384,
+      "address_after": 5368739744,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_release.push",
+      "size_before": 117,
+      "size_after": 117,
+      "address_before": 5368747904,
+      "address_after": 5368749600,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_release.pop",
+      "size_before": 201,
+      "size_after": 201,
+      "address_before": 5368713472,
+      "address_after": 5368713472,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_release.__main_0",
+      "size_before": 1953,
+      "size_after": 1953,
+      "address_before": 5368718560,
+      "address_after": 5368718912,
+      "same_instructions": true
+    }
+  ],
+  "release/raytrace": [
+    {
+      "name": "Raytrace_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Raytrace_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368719792,
+      "address_after": 5368720096,
+      "same_instructions": true
+    },
+    {
+      "name": "Raytrace_swag_release.intersect",
+      "size_before": 924,
+      "size_after": 924,
+      "address_before": 5368729312,
+      "address_after": 5368729952,
+      "same_instructions": true
+    },
+    {
+      "name": "Raytrace_swag_release.trace",
+      "size_before": 848,
+      "size_after": 848,
+      "address_before": 5368739664,
+      "address_after": 5368740608,
+      "same_instructions": true
+    },
+    {
+      "name": "Raytrace_swag_release.__main_0",
+      "size_before": 692,
+      "size_after": 692,
+      "address_before": 5368745216,
+      "address_after": 5368746496,
+      "same_instructions": true
+    }
+  ],
+  "release/leven": [
+    {
+      "name": "Leven_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Leven_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368719936,
+      "address_after": 5368720224,
+      "same_instructions": true
+    },
+    {
+      "name": "Leven_swag_release.rnd",
+      "size_before": 67,
+      "size_after": 67,
+      "address_before": 5368729344,
+      "address_after": 5368729984,
+      "same_instructions": true
+    },
+    {
+      "name": "Leven_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368738848,
+      "address_after": 5368739808,
+      "same_instructions": true
+    },
+    {
+      "name": "Leven_swag_release.__main_0",
+      "size_before": 2063,
+      "size_after": 2063,
+      "address_before": 5368743744,
+      "address_after": 5368745024,
+      "same_instructions": true
+    }
+  ],
+  "release/chacha": [
+    {
+      "name": "Chacha_swag_release.add32",
+      "size_before": 4,
+      "size_after": 4,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_release.quarterRound",
+      "size_before": 159,
+      "size_after": 159,
+      "address_before": 5368718384,
+      "address_after": 5368718752,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_release.__main_0",
+      "size_before": 2121,
+      "size_after": 2121,
+      "address_before": 5368724848,
+      "address_after": 5368725536,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368733440,
+      "address_after": 5368734432,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368742992,
+      "address_after": 5368744320,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_release.rnd",
+      "size_before": 67,
+      "size_after": 67,
+      "address_before": 5368752496,
+      "address_after": 5368754144,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368713264,
+      "address_after": 5368713280,
+      "same_instructions": true
+    }
+  ],
+  "release/nbody": [
+    {
+      "name": "Nbody_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368719632,
+      "address_after": 5368719968,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_release.offsetMomentum",
+      "size_before": 137,
+      "size_after": 137,
+      "address_before": 5368726288,
+      "address_after": 5368726912,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_release.advance",
+      "size_before": 2331,
+      "size_after": 2331,
+      "address_before": 5368735760,
+      "address_after": 5368736736,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_release.energy",
+      "size_before": 1151,
+      "size_after": 1151,
+      "address_before": 5368747520,
+      "address_after": 5368748800,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_release.__main_0",
+      "size_before": 3993,
+      "size_after": 3993,
+      "address_before": 5368753376,
+      "address_after": 5368754976,
+      "same_instructions": true
+    }
+  ],
+  "release/fannkuch": [
+    {
+      "name": "Fannkuch_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Fannkuch_swag_release.benchFree",
+      "size_before": 175,
+      "size_after": 175,
+      "address_before": 5368719936,
+      "address_after": 5368720224,
+      "same_instructions": true
+    },
+    {
+      "name": "Fannkuch_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368729440,
+      "address_after": 5368730080,
+      "same_instructions": true
+    },
+    {
+      "name": "Fannkuch_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368738944,
+      "address_after": 5368739904,
+      "same_instructions": true
+    },
+    {
+      "name": "Fannkuch_swag_release.__main_0",
+      "size_before": 737,
+      "size_after": 737,
+      "address_before": 5368743840,
+      "address_after": 5368745120,
+      "same_instructions": true
+    }
+  ],
+  "release/binarytrees": [
+    {
+      "name": "Binarytrees_swag_release.bottomUp",
+      "size_before": 68,
+      "size_after": 68,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_release.check",
+      "size_before": 66,
+      "size_after": 66,
+      "address_before": 5368718112,
+      "address_after": 5368718464,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_release.release",
+      "size_before": 66,
+      "size_after": 66,
+      "address_before": 5368723312,
+      "address_after": 5368724032,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_release.__main_0",
+      "size_before": 427,
+      "size_after": 427,
+      "address_before": 5368729696,
+      "address_after": 5368730752,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368736592,
+      "address_after": 5368737952,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_release.benchFree",
+      "size_before": 175,
+      "size_after": 175,
+      "address_before": 5368746144,
+      "address_after": 5368747840,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368713328,
+      "address_after": 5368713344,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368718192,
+      "address_after": 5368718560,
+      "same_instructions": true
+    }
+  ],
+  "release/lz77": [
+    {
+      "name": "Lz77_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_release.benchFree",
+      "size_before": 175,
+      "size_after": 175,
+      "address_before": 5368720592,
+      "address_after": 5368720960,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368727072,
+      "address_after": 5368727776,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_release.rnd",
+      "size_before": 67,
+      "size_after": 67,
+      "address_before": 5368733616,
+      "address_after": 5368734624,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368743024,
+      "address_after": 5368744384,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_release.hashAt",
+      "size_before": 46,
+      "size_after": 46,
+      "address_before": 5368752640,
+      "address_after": 5368754304,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_release.__main_0",
+      "size_before": 2177,
+      "size_after": 2177,
+      "address_before": 5368713472,
+      "address_after": 5368713472,
+      "same_instructions": true
+    }
+  ],
+  "release/sort": [
+    {
+      "name": "Sort_swag_release.benchAlloc",
+      "size_before": 209,
+      "size_after": 209,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_release.benchFree",
+      "size_before": 175,
+      "size_after": 175,
+      "address_before": 5368718528,
+      "address_after": 5368718848,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_release.now",
+      "size_before": 71,
+      "size_after": 71,
+      "address_before": 5368724224,
+      "address_after": 5368724928,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_release.rnd",
+      "size_before": 67,
+      "size_after": 67,
+      "address_before": 5368730608,
+      "address_after": 5368731648,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_release.report",
+      "size_before": 189,
+      "size_after": 189,
+      "address_before": 5368737152,
+      "address_after": 5368738496,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_release.swap",
+      "size_before": 17,
+      "size_after": 17,
+      "address_before": 5368746672,
+      "address_after": 5368748352,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_release.qsort",
+      "size_before": 348,
+      "size_after": 348,
+      "address_before": 5368713472,
+      "address_after": 5368713472,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_release.__main_0",
+      "size_before": 586,
+      "size_after": 586,
+      "address_before": 5368718704,
+      "address_after": 5368719040,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/wordfreq": [
+    {
+      "name": "Wordfreq_swag_fast_debug.mapInit",
+      "size_before": 506,
+      "size_after": 506,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.mapProbe",
+      "size_before": 611,
+      "size_after": 611,
+      "address_before": 5368722128,
+      "address_after": 5368722528,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.mapClaim",
+      "size_before": 422,
+      "size_after": 422,
+      "address_before": 5368734704,
+      "address_after": 5368735456,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368748752,
+      "address_after": 5368749824,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368774960,
+      "address_after": 5368776352,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.rnd",
+      "size_before": 83,
+      "size_after": 83,
+      "address_before": 5368787824,
+      "address_after": 5368789568,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368713760,
+      "address_after": 5368713760,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.less",
+      "size_before": 784,
+      "size_after": 784,
+      "address_before": 5368722752,
+      "address_after": 5368723168,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.qsort",
+      "size_before": 2618,
+      "size_after": 2618,
+      "address_before": 5368735136,
+      "address_after": 5368735904,
+      "same_instructions": true
+    },
+    {
+      "name": "Wordfreq_swag_fast_debug.__main_0",
+      "size_before": 5920,
+      "size_after": 5920,
+      "address_before": 5368749072,
+      "address_after": 5368750144,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/csvagg": [
+    {
+      "name": "Csvagg_swag_fast_debug.mapInit",
+      "size_before": 506,
+      "size_after": 506,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.mapProbe",
+      "size_before": 611,
+      "size_after": 611,
+      "address_before": 5368722128,
+      "address_after": 5368722528,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.mapClaim",
+      "size_before": 422,
+      "size_after": 422,
+      "address_before": 5368734608,
+      "address_after": 5368735360,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368746512,
+      "address_after": 5368747584,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368776080,
+      "address_after": 5368777472,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.rnd",
+      "size_before": 83,
+      "size_after": 83,
+      "address_before": 5368788944,
+      "address_after": 5368790688,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368713760,
+      "address_after": 5368713760,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.writeUInt",
+      "size_before": 675,
+      "size_after": 675,
+      "address_before": 5368722752,
+      "address_after": 5368723168,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.writeUInt2",
+      "size_before": 467,
+      "size_after": 467,
+      "address_before": 5368735040,
+      "address_after": 5368735808,
+      "same_instructions": true
+    },
+    {
+      "name": "Csvagg_swag_fast_debug.__main_0",
+      "size_before": 9267,
+      "size_after": 9267,
+      "address_before": 5368746832,
+      "address_after": 5368747904,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/sha256": [
+    {
+      "name": "Sha256_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_fast_debug.benchFree",
+      "size_before": 224,
+      "size_after": 224,
+      "address_before": 5368737408,
+      "address_after": 5368737728,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368750400,
+      "address_after": 5368751072,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_fast_debug.rnd",
+      "size_before": 83,
+      "size_after": 83,
+      "address_before": 5368760208,
+      "address_after": 5368761216,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368768464,
+      "address_after": 5368769856,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_fast_debug.rotr",
+      "size_before": 197,
+      "size_after": 197,
+      "address_before": 5368779840,
+      "address_after": 5368781568,
+      "same_instructions": true
+    },
+    {
+      "name": "Sha256_swag_fast_debug.__main_0",
+      "size_before": 3868,
+      "size_after": 3868,
+      "address_before": 5368713568,
+      "address_after": 5368713568,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/dijkstra": [
+    {
+      "name": "Dijkstra_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_fast_debug.benchFree",
+      "size_before": 224,
+      "size_after": 224,
+      "address_before": 5368726192,
+      "address_after": 5368726496,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368753808,
+      "address_after": 5368754432,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_fast_debug.rnd",
+      "size_before": 83,
+      "size_after": 83,
+      "address_before": 5368766672,
+      "address_after": 5368767648,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368776480,
+      "address_after": 5368777792,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_fast_debug.push",
+      "size_before": 1131,
+      "size_after": 1131,
+      "address_before": 5368784848,
+      "address_after": 5368786560,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_fast_debug.pop",
+      "size_before": 1629,
+      "size_after": 1629,
+      "address_before": 5368713568,
+      "address_after": 5368713568,
+      "same_instructions": true
+    },
+    {
+      "name": "Dijkstra_swag_fast_debug.__main_0",
+      "size_before": 7414,
+      "size_after": 7414,
+      "address_before": 5368726416,
+      "address_after": 5368726720,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/raytrace": [
+    {
+      "name": "Raytrace_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Raytrace_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368723056,
+      "address_after": 5368723392,
+      "same_instructions": true
+    },
+    {
+      "name": "Raytrace_swag_fast_debug.intersect",
+      "size_before": 1517,
+      "size_after": 1517,
+      "address_before": 5368731424,
+      "address_after": 5368732160,
+      "same_instructions": true
+    },
+    {
+      "name": "Raytrace_swag_fast_debug.trace",
+      "size_before": 1390,
+      "size_after": 1390,
+      "address_before": 5368744112,
+      "address_after": 5368745184,
+      "same_instructions": true
+    },
+    {
+      "name": "Raytrace_swag_fast_debug.__main_0",
+      "size_before": 1162,
+      "size_after": 1162,
+      "address_before": 5368756496,
+      "address_after": 5368757888,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/leven": [
+    {
+      "name": "Leven_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Leven_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368723280,
+      "address_after": 5368723616,
+      "same_instructions": true
+    },
+    {
+      "name": "Leven_swag_fast_debug.rnd",
+      "size_before": 83,
+      "size_after": 83,
+      "address_before": 5368731536,
+      "address_after": 5368732256,
+      "same_instructions": true
+    },
+    {
+      "name": "Leven_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368742800,
+      "address_after": 5368743840,
+      "same_instructions": true
+    },
+    {
+      "name": "Leven_swag_fast_debug.__main_0",
+      "size_before": 5572,
+      "size_after": 5572,
+      "address_before": 5368754000,
+      "address_after": 5368755360,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/chacha": [
+    {
+      "name": "Chacha_swag_fast_debug.add32",
+      "size_before": 4,
+      "size_after": 4,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_fast_debug.quarterRound",
+      "size_before": 492,
+      "size_after": 492,
+      "address_before": 5368733440,
+      "address_after": 5368733792,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_fast_debug.__main_0",
+      "size_before": 2168,
+      "size_after": 2168,
+      "address_before": 5368746704,
+      "address_after": 5368747424,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368758592,
+      "address_after": 5368759648,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368767072,
+      "address_after": 5368768512,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_fast_debug.rnd",
+      "size_before": 83,
+      "size_after": 83,
+      "address_before": 5368778336,
+      "address_after": 5368780096,
+      "same_instructions": true
+    },
+    {
+      "name": "Chacha_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368713264,
+      "address_after": 5368713280,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/nbody": [
+    {
+      "name": "Nbody_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368726112,
+      "address_after": 5368726464,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_fast_debug.offsetMomentum",
+      "size_before": 387,
+      "size_after": 387,
+      "address_before": 5368736032,
+      "address_after": 5368736736,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_fast_debug.advance",
+      "size_before": 1034,
+      "size_after": 1034,
+      "address_before": 5368744592,
+      "address_after": 5368745696,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_fast_debug.energy",
+      "size_before": 647,
+      "size_after": 647,
+      "address_before": 5368756800,
+      "address_after": 5368758240,
+      "same_instructions": true
+    },
+    {
+      "name": "Nbody_swag_fast_debug.__main_0",
+      "size_before": 2035,
+      "size_after": 2035,
+      "address_before": 5368768448,
+      "address_after": 5368770208,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/fannkuch": [
+    {
+      "name": "Fannkuch_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Fannkuch_swag_fast_debug.benchFree",
+      "size_before": 224,
+      "size_after": 224,
+      "address_before": 5368723280,
+      "address_after": 5368723616,
+      "same_instructions": true
+    },
+    {
+      "name": "Fannkuch_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368731664,
+      "address_after": 5368732384,
+      "same_instructions": true
+    },
+    {
+      "name": "Fannkuch_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368742928,
+      "address_after": 5368743968,
+      "same_instructions": true
+    },
+    {
+      "name": "Fannkuch_swag_fast_debug.__main_0",
+      "size_before": 1628,
+      "size_after": 1628,
+      "address_before": 5368754128,
+      "address_after": 5368755488,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/binarytrees": [
+    {
+      "name": "Binarytrees_swag_fast_debug.bottomUp",
+      "size_before": 164,
+      "size_after": 164,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_fast_debug.check",
+      "size_before": 121,
+      "size_after": 121,
+      "address_before": 5368724512,
+      "address_after": 5368724832,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_fast_debug.release",
+      "size_before": 69,
+      "size_after": 69,
+      "address_before": 5368744816,
+      "address_after": 5368745472,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_fast_debug.__main_0",
+      "size_before": 723,
+      "size_after": 723,
+      "address_before": 5368757664,
+      "address_after": 5368758688,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368768112,
+      "address_after": 5368769472,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_fast_debug.benchFree",
+      "size_before": 224,
+      "size_after": 224,
+      "address_before": 5368776592,
+      "address_after": 5368778336,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368713424,
+      "address_after": 5368713440,
+      "same_instructions": true
+    },
+    {
+      "name": "Binarytrees_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368724640,
+      "address_after": 5368724960,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/lz77": [
+    {
+      "name": "Lz77_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_fast_debug.benchFree",
+      "size_before": 224,
+      "size_after": 224,
+      "address_before": 5368740080,
+      "address_after": 5368740416,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368753072,
+      "address_after": 5368753760,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_fast_debug.rnd",
+      "size_before": 83,
+      "size_after": 83,
+      "address_before": 5368762880,
+      "address_after": 5368763904,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368771136,
+      "address_after": 5368772544,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_fast_debug.hashAt",
+      "size_before": 663,
+      "size_after": 663,
+      "address_before": 5368782512,
+      "address_after": 5368784256,
+      "same_instructions": true
+    },
+    {
+      "name": "Lz77_swag_fast_debug.__main_0",
+      "size_before": 6531,
+      "size_after": 6531,
+      "address_before": 5368713568,
+      "address_after": 5368713568,
+      "same_instructions": true
+    }
+  ],
+  "fast_debug/sort": [
+    {
+      "name": "Sort_swag_fast_debug.benchAlloc",
+      "size_before": 310,
+      "size_after": 310,
+      "address_before": 5368713248,
+      "address_after": 5368713248,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_fast_debug.benchFree",
+      "size_before": 224,
+      "size_after": 224,
+      "address_before": 5368725856,
+      "address_after": 5368726176,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_fast_debug.now",
+      "size_before": 81,
+      "size_after": 81,
+      "address_before": 5368746912,
+      "address_after": 5368747552,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_fast_debug.rnd",
+      "size_before": 83,
+      "size_after": 83,
+      "address_before": 5368759776,
+      "address_after": 5368760768,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_fast_debug.report",
+      "size_before": 203,
+      "size_after": 203,
+      "address_before": 5368769584,
+      "address_after": 5368770912,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_fast_debug.swap",
+      "size_before": 17,
+      "size_after": 17,
+      "address_before": 5368777952,
+      "address_after": 5368779680,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_fast_debug.qsort",
+      "size_before": 1295,
+      "size_after": 1295,
+      "address_before": 5368713568,
+      "address_after": 5368713568,
+      "same_instructions": true
+    },
+    {
+      "name": "Sort_swag_fast_debug.__main_0",
+      "size_before": 850,
+      "size_after": 850,
+      "address_before": 5368726080,
+      "address_after": 5368726400,
+      "same_instructions": true
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "sequence": "avx-probe-0.log",
+    "state": "dirty",
+    "check": "169020000371",
+    "ms": 55.05840003
+  },
+  {
+    "sequence": "avx-probe-0.log",
+    "state": "clean",
+    "check": "169020000371",
+    "ms": 0.37699996
+  },
+  {
+    "sequence": "avx-probe-0.log",
+    "state": "clean",
+    "check": "169020000371",
+    "ms": 0.38119999
+  },
+  {
+    "sequence": "avx-probe-0.log",
+    "state": "dirty",
+    "check": "169020000371",
+    "ms": 52.29709996
+  },
+  {
+    "sequence": "avx-probe-0.log",
+    "state": "dirty",
+    "check": "169020000371",
+    "ms": 53.3863001
+  },
+  {
+    "sequence": "avx-probe-0.log",
+    "state": "clean",
+    "check": "169020000371",
+    "ms": 0.40640007
+  },
+  {
+    "sequence": "avx-probe-2.log",
+    "state": "dirty",
+    "check": "169020000371",
+    "ms": 54.92880009
+  },
+  {
+    "sequence": "avx-probe-2.log",
+    "state": "clean",
+    "check": "169020000371",
+    "ms": 0.4733
+  },
+  {
+    "sequence": "avx-probe-2.log",
+    "state": "clean",
+    "check": "169020000371",
+    "ms": 0.46339992
+  },
+  {
+    "sequence": "avx-probe-2.log",
+    "state": "dirty",
+    "check": "169020000371",
+    "ms": 56.6145
+  },
+  {
+    "sequence": "avx-probe-2.log",
+    "state": "dirty",
+    "check": "169020000371",
+    "ms": 54.59850002
+  },
+  {
+    "sequence": "avx-probe-2.log",
+    "state": "clean",
+    "check": "169020000371",
+    "ms": 0.43180003
+  }
+]

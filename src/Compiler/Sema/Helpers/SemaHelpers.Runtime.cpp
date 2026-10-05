@@ -38,15 +38,11 @@ namespace
         if (!paramType.isReference())
             return TypeRef::invalid();
 
-        TypeRef         storageTypeRef          = paramType.payloadTypeRef();
-        const TypeInfo& storageType             = sema.typeMgr().get(storageTypeRef);
-        const TypeRef   unwrappedStorageTypeRef = storageType.unwrap(sema.ctx(), storageTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (unwrappedStorageTypeRef.isValid())
-            storageTypeRef = unwrappedStorageTypeRef;
-
-        const TypeInfo& resolvedStorageType = sema.typeMgr().get(storageTypeRef);
+        const TypeInfo& storageType             = sema.typeMgr().get(paramType.payloadTypeRef());
+        const TypeRef   unwrappedStorageTypeRef = storageType.isAlias() || storageType.isEnum() ? storageType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
+        const TypeInfo& resolvedStorageType     = unwrappedStorageTypeRef.isValid() ? sema.typeMgr().get(unwrappedStorageTypeRef) : storageType;
         if (resolvedStorageType.isStruct() || resolvedStorageType.isArray() || resolvedStorageType.isAggregate() || (resolvedStorageType.isFunction() && resolvedStorageType.isLambdaClosure()))
-            return storageTypeRef;
+            return resolvedStorageType.typeRef();
 
         return TypeRef::invalid();
     }
@@ -105,8 +101,9 @@ TypeRef SemaHelpers::smallByValueArrayRuntimeStorageTypeRef(Sema& sema, AstNodeR
     if (sema.isLValue(exprRef))
         return TypeRef::invalid();
 
-    const TypeRef   storageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), exprTypeRef);
-    const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+    const TypeInfo& exprType         = sema.typeMgr().get(exprTypeRef);
+    const TypeRef   unwrappedTypeRef = exprType.isAlias() || exprType.isEnum() ? exprType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
+    const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? sema.typeMgr().get(unwrappedTypeRef) : exprType;
     if (!storageType.isArray())
         return TypeRef::invalid();
 
@@ -114,7 +111,7 @@ TypeRef SemaHelpers::smallByValueArrayRuntimeStorageTypeRef(Sema& sema, AstNodeR
     if (storageSize != 1 && storageSize != 2 && storageSize != 4 && storageSize != 8)
         return TypeRef::invalid();
 
-    return storageTypeRef;
+    return storageType.typeRef();
 }
 
 TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef)
@@ -122,13 +119,10 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     if (sema.isGlobalScope() || !paramTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TypeInfo& paramType      = sema.typeMgr().get(paramTypeRef);
-    TypeRef         storageTypeRef = paramType.unwrap(sema.ctx(), paramTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    if (storageTypeRef.isInvalid())
-        storageTypeRef = paramTypeRef;
-
-    const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-    const bool      isAggregate = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
+    const TypeInfo& paramType        = sema.typeMgr().get(paramTypeRef);
+    const TypeRef   unwrappedTypeRef = paramType.isAlias() || paramType.isEnum() ? paramType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
+    const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? sema.typeMgr().get(unwrappedTypeRef) : paramType;
+    const bool      isAggregate      = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
     if (!isAggregate)
         return TypeRef::invalid();
 
@@ -141,7 +135,7 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     if (normalizedType.isIndirect && normalizedType.needsIndirectCopy)
         return TypeRef::invalid();
 
-    return storageTypeRef;
+    return storageType.typeRef();
 }
 
 Result SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef, AstNodeRef argRef)

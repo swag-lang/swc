@@ -156,10 +156,9 @@ const SymbolVariable* CodeGenStructHelpers::tryResolveSameGenericFamilyFieldSymb
     return runtimeStruct.findFieldByName(fieldSym.idRef());
 }
 
-size_t CodeGenStructHelpers::structLikeFieldIndex(CodeGen& codeGen, TypeRef typeRef, const SourceCodeRef& fieldNameRef)
+size_t CodeGenStructHelpers::structLikeFieldIndex(CodeGen& codeGen, const TypeInfo& typeInfo, const SourceCodeRef& fieldNameRef)
 {
-    const TypeInfo&     typeInfo = codeGen.typeMgr().get(typeRef);
-    const IdentifierRef idRef    = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), fieldNameRef);
+    const IdentifierRef idRef = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), fieldNameRef);
 
     size_t     fieldIndex = 0;
     const bool found      = typeInfo.isStruct()
@@ -169,9 +168,8 @@ size_t CodeGenStructHelpers::structLikeFieldIndex(CodeGen& codeGen, TypeRef type
     return fieldIndex;
 }
 
-size_t CodeGenStructHelpers::structLikeFieldCount(CodeGen& codeGen, TypeRef typeRef)
+size_t CodeGenStructHelpers::structLikeFieldCount(const TypeInfo& typeInfo)
 {
-    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (typeInfo.isStruct())
         return typeInfo.payloadSymStruct().fields().size();
 
@@ -179,9 +177,8 @@ size_t CodeGenStructHelpers::structLikeFieldCount(CodeGen& codeGen, TypeRef type
     return typeInfo.payloadAggregate().types.size();
 }
 
-CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFieldLayout(CodeGen& codeGen, StructLikeFieldLayoutCursor& cursor, TypeRef typeRef, size_t fieldIndex)
+CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFieldLayout(CodeGen& codeGen, StructLikeFieldLayoutCursor& cursor, const TypeInfo& typeInfo, size_t fieldIndex)
 {
-    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (typeInfo.isStruct())
     {
         const auto& fields = typeInfo.payloadSymStruct().fields();

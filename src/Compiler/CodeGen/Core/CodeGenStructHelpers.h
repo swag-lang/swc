@@ -6,6 +6,7 @@ SWC_BEGIN_NAMESPACE();
 class CodeGen;
 class SymbolStruct;
 class SymbolVariable;
+class TypeInfo;
 struct SourceCodeRef;
 
 namespace CodeGenStructHelpers
@@ -30,9 +31,9 @@ namespace CodeGenStructHelpers
     const SymbolVariable* tryResolveConcreteStructMemberSymbol(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym);
     const SymbolVariable* tryResolveConcreteReceiverFieldSymbol(CodeGen& codeGen, const SymbolVariable& fieldSym);
     const SymbolVariable* tryResolveSameGenericFamilyFieldSymbol(const SymbolStruct& runtimeStruct, const SymbolVariable& fieldSym);
-    size_t                structLikeFieldIndex(CodeGen& codeGen, TypeRef typeRef, const SourceCodeRef& fieldNameRef);
-    size_t                structLikeFieldCount(CodeGen& codeGen, TypeRef typeRef);
-    StructLikeFieldLayout structLikeFieldLayout(CodeGen& codeGen, StructLikeFieldLayoutCursor& cursor, TypeRef typeRef, size_t fieldIndex);
+    size_t                structLikeFieldIndex(CodeGen& codeGen, const TypeInfo& typeInfo, const SourceCodeRef& fieldNameRef);
+    size_t                structLikeFieldCount(const TypeInfo& typeInfo);
+    StructLikeFieldLayout structLikeFieldLayout(CodeGen& codeGen, StructLikeFieldLayoutCursor& cursor, const TypeInfo& typeInfo, size_t fieldIndex);
 }
 
 SWC_END_NAMESPACE();

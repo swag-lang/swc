@@ -615,10 +615,9 @@ namespace
         return Result::Continue;
     }
 
-    MicroReg materializeDestructuringSourceCopy(CodeGen& codeGen, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef)
+    MicroReg materializeDestructuringSourceCopy(CodeGen& codeGen, const CodeGenNodePayload& rightPayload, const TypeInfo& rightType)
     {
-        const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);
-        const uint64_t  copySize  = rightType.sizeOf(codeGen.ctx());
+        const uint64_t copySize = rightType.sizeOf(codeGen.ctx());
         SWC_ASSERT(copySize > 0);
         SWC_ASSERT(copySize <= std::numeric_limits<uint32_t>::max());
 
@@ -691,7 +690,7 @@ namespace
 
         MicroReg sourceReg = MicroReg::invalid();
         if (!aggregateCst)
-            sourceReg = materializeDestructuringSourceCopy(codeGen, rightPayload, rightTypeRef);
+            sourceReg = materializeDestructuringSourceCopy(codeGen, rightPayload, rightType);
 
         // That private copy now holds every byte of the right side. When the right side was a
         // call-result temporary, its whole-value cleanup stands down and this list becomes the
@@ -701,7 +700,7 @@ namespace
         const bool                   movesTemporary = sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage);
         const CodeGen::LifecycleKind postKind       = movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
 
-        const size_t      fieldCount = CodeGenStructHelpers::structLikeFieldCount(codeGen, rightTypeRef);
+        const size_t      fieldCount = CodeGenStructHelpers::structLikeFieldCount(rightType);
         SmallVector<bool> boundFields;
         boundFields.resize(fieldCount, false);
 
@@ -715,9 +714,9 @@ namespace
                 continue;
 
             const size_t fieldIndex  = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
-                                           ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightTypeRef, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
+                                           ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightType, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
                                            : i;
-            const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, rightTypeRef, fieldIndex);
+            const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, rightType, fieldIndex);
 
             SWC_ASSERT(fieldIndex < boundFields.size());
             boundFields[fieldIndex] = true;
@@ -748,7 +747,7 @@ namespace
             if (boundFields[fieldIndex])
                 continue;
 
-            const auto fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, rightTypeRef, fieldIndex);
+            const auto fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, rightType, fieldIndex);
             if (!codeGen.hasLifecycle(fieldLayout.typeRef, CodeGen::LifecycleKind::Drop))
                 continue;
 

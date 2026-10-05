@@ -459,7 +459,7 @@ namespace
         return codeGen.payload(initRef).isAddress();
     }
 
-    void materializeAggregateSourceAddress(CodeGen& codeGen, AstNodeRef storageNodeRef, TypeRef sourceTypeRef, const CodeGenNodePayload& sourcePayload, MicroReg& outAddressReg)
+    void materializeAggregateSourceAddress(CodeGen& codeGen, MicroReg& outAddressReg, AstNodeRef storageNodeRef, const TypeInfo& sourceType, const CodeGenNodePayload& sourcePayload)
     {
         outAddressReg = MicroReg::invalid();
         if (sourcePayload.isAddress())
@@ -468,7 +468,7 @@ namespace
             return;
         }
 
-        const uint64_t sourceSize = codeGen.typeMgr().get(sourceTypeRef).sizeOf(codeGen.ctx());
+        const uint64_t sourceSize = sourceType.sizeOf(codeGen.ctx());
         SWC_ASSERT(sourceSize && sourceSize < std::numeric_limits<uint32_t>::max());
 
         const CodeGenNodePayload* storagePayload = codeGen.safePayload(storageNodeRef);
@@ -927,9 +927,9 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView initView      = codeGen.viewType(nodeInitRef);
-    const SemaNodeView initConstView = codeGen.viewTypeConstant(nodeInitRef);
+    const SemaNodeView initView = codeGen.viewTypeConstant(nodeInitRef);
     SWC_ASSERT(initView.type() && (initView.type()->isStruct() || initView.type()->isAggregateStruct()));
+    const TypeInfo& initType = *initView.type();
 
     const SymbolVariable* initStorageSym     = codeGen.runtimeStorageSymbol(nodeInitRef);
     const bool            movesInitTemporary = initStorageSym && codeGen.hasTemporaryDrop(*initStorageSym);
@@ -969,7 +969,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     // Aggregate struct literals can be purely compile-time values or runtime
     // temporaries materialized in scratch storage. Handle the constant case
     // directly, and otherwise destructure from the runtime aggregate layout.
-    if (initView.type()->isAggregateStruct() && initConstView.hasConstant())
+    if (initType.isAggregateStruct() && initView.hasConstant())
     {
         MicroBuilder& builder = codeGen.builder();
         for (Symbol* sym : symbols)
@@ -1048,7 +1048,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
     const CodeGenNodePayload& initPayload = codeGen.payload(nodeInitRef);
     MicroReg                  baseAddress = MicroReg::invalid();
-    materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
+    materializeAggregateSourceAddress(codeGen, baseAddress, codeGen.curNodeRef(), initType, initPayload);
 
     CodeGenStructHelpers::StructLikeFieldLayoutCursor layoutCursor;
     size_t                                            symbolIndex = 0;
@@ -1059,9 +1059,9 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
         SWC_ASSERT(symbolIndex < symbols.size());
         const size_t          fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring)
-                                                ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initView.typeRef(), SourceCodeRef{srcViewRef(), fieldNames[i]})
+                                                ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initType, SourceCodeRef{srcViewRef(), fieldNames[i]})
                                                 : i;
-        const auto            fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, initView.typeRef(), fieldIndex);
+        const auto            fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, initType, fieldIndex);
         const SymbolVariable& symVar      = symbols[symbolIndex++]->cast<SymbolVariable>();
 
         CodeGenNodePayload fieldPayload;

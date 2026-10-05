@@ -126,12 +126,10 @@ namespace
         return storageTypeRef.isValid() ? storageTypeRef : typeRef;
     }
 
-    void loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
+    MicroOpBits loadIntrinsicNumericOperand(CodeGen& codeGen, MicroReg& outReg, const CodeGenNodePayload& operandPayload, const TypeInfo& operandType)
     {
-        const TypeRef   operandStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
-        const TypeInfo& operandType           = codeGen.typeMgr().get(operandStorageTypeRef);
-        outReg                                = codeGen.nextVirtualRegisterForType(operandStorageTypeRef, operandType);
-        const MicroOpBits opBits              = CodeGenTypeHelpers::numericBits(operandType);
+        outReg                   = codeGen.nextVirtualRegisterForType(operandType.typeRef(), operandType);
+        const MicroOpBits opBits = CodeGenTypeHelpers::numericBits(operandType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroBuilder& builder = codeGen.builder();
@@ -139,21 +137,22 @@ namespace
             builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
         else
             builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
+        return opBits;
     }
 
-    void convertIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    void loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        if (srcTypeRef == dstTypeRef)
-            return;
+        const TypeRef operandStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
+        loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, codeGen.typeMgr().get(operandStorageTypeRef));
+    }
 
-        const TypeRef srcStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, srcTypeRef);
+    void convertIntrinsicNumericOperand(CodeGen& codeGen, MicroReg& outReg, const TypeInfo& srcType, MicroOpBits srcBits, TypeRef dstTypeRef)
+    {
         const TypeRef dstStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, dstTypeRef);
-        if (srcStorageTypeRef == dstStorageTypeRef)
+        if (srcType.typeRef() == dstStorageTypeRef)
             return;
 
-        const TypeInfo&   srcType = codeGen.typeMgr().get(srcStorageTypeRef);
         const TypeInfo&   dstType = codeGen.typeMgr().get(dstStorageTypeRef);
-        const MicroOpBits srcBits = CodeGenTypeHelpers::numericBits(srcType);
         const MicroOpBits dstBits = CodeGenTypeHelpers::numericBits(dstType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
@@ -191,8 +190,11 @@ namespace
 
     void materializeIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef)
     {
-        loadIntrinsicNumericOperand(outReg, codeGen, operandPayload, operandTypeRef);
-        convertIntrinsicNumericOperand(outReg, codeGen, operandTypeRef, resultTypeRef);
+        const TypeRef     storageTypeRef = intrinsicNumericStorageTypeRef(codeGen, operandTypeRef);
+        const TypeInfo&   operandType    = codeGen.typeMgr().get(storageTypeRef);
+        const MicroOpBits operandBits    = loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, operandType);
+        if (operandTypeRef != resultTypeRef)
+            convertIntrinsicNumericOperand(codeGen, outReg, operandType, operandBits, resultTypeRef);
     }
 
     bool tryGetIntrinsicMemSizeConst(CodeGen& codeGen, AstNodeRef sizeRef, uint32_t& outSizeInBytes)
@@ -1385,7 +1387,7 @@ namespace
         SWC_ASSERT(resultBits != MicroOpBits::Zero);
 
         materializeIntrinsicNumericOperand(materializedValue, codeGen, valuePayload, valueTypeRef, resultTypeRef);
-        loadIntrinsicNumericOperand(materializedCount, codeGen, countPayload, countStorageTypeRef);
+        loadIntrinsicNumericOperand(codeGen, materializedCount, countPayload, countType);
 
         resultPayload.reg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegReg(resultPayload.reg, materializedValue, resultBits);

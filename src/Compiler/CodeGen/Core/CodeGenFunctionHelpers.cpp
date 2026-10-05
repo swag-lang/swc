@@ -840,10 +840,11 @@ namespace
 
     Result emitArrayDefaultValue(CodeGen& codeGen, const TypeInfo& arrayType, MicroReg dstAddressReg);
 
-    Result emitImplicitDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
+    Result emitImplicitDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg)
     {
-        typeRef                  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(codeGen.ctx(), declaredType.typeRef()) : TypeRef::invalid();
+        const TypeInfo& typeInfo       = storageTypeRef.isValid() ? codeGen.typeMgr().get(storageTypeRef) : declaredType;
+        const TypeRef   typeRef        = typeInfo.typeRef();
         if (typeInfo.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
         if (typeInfo.isArray())
@@ -870,8 +871,8 @@ namespace
             return Result::Continue;
 
         SWC_ASSERT(elemCount <= std::numeric_limits<uint32_t>::max());
-        const TypeRef   storageElemTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), elemTypeRef);
-        const TypeInfo& storageElemType    = codeGen.typeMgr().get(storageElemTypeRef);
+        const TypeRef   storageElemTypeRef = elemType.isAlias() || elemType.isEnum() ? elemType.unwrapAliasEnum(codeGen.ctx(), elemTypeRef) : elemTypeRef;
+        const TypeInfo& storageElemType    = storageElemTypeRef == elemTypeRef ? elemType : codeGen.typeMgr().get(storageElemTypeRef);
         if (storageElemType.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageElemTypeRef, dstAddressReg, static_cast<uint32_t>(elemCount));
         if (!storageElemType.isArray())
@@ -896,11 +897,8 @@ namespace
         return Result::Continue;
     }
 
-    Result emitStructFieldDefaultValue(CodeGen& codeGen, const SymbolVariable& field, MicroReg dstAddressReg)
+    Result emitStructFieldDefaultValue(CodeGen& codeGen, const SymbolVariable& field, const TypeInfo& fieldType, uint32_t fieldSize, MicroReg dstAddressReg)
     {
-        const TypeRef   fieldTypeRef = field.typeRef();
-        const TypeInfo& fieldType    = codeGen.typeMgr().get(fieldTypeRef);
-        const uint32_t  fieldSize    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, fieldType);
         if (!fieldSize)
             return Result::Continue;
 
@@ -919,7 +917,7 @@ namespace
         if (defaultValueRef.isValid())
             SWC_RESULT(emitDefaultConstantToAddress(codeGen, fieldType, defaultValueRef, fieldAddressReg));
         else
-            SWC_RESULT(emitImplicitDefaultValue(codeGen, fieldTypeRef, fieldAddressReg));
+            SWC_RESULT(emitImplicitDefaultValue(codeGen, fieldType, fieldAddressReg));
 
         return Result::Continue;
     }
@@ -929,7 +927,11 @@ namespace
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
         {
             if (field)
-                SWC_RESULT(emitStructFieldDefaultValue(codeGen, *field, dstAddressReg));
+            {
+                const TypeInfo& fieldType = codeGen.typeMgr().get(field->typeRef());
+                const uint32_t  fieldSize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, fieldType);
+                SWC_RESULT(emitStructFieldDefaultValue(codeGen, *field, fieldType, fieldSize, dstAddressReg));
+            }
         }
 
         return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeInfo.payloadSymStruct().typeRef(), dstAddressReg);
@@ -984,7 +986,7 @@ namespace
                 CodeGenMemoryHelpers::emitMemZero(codeGen, paddingAddressReg, fieldOffset - initializedEnd);
             }
 
-            SWC_RESULT(emitStructFieldDefaultValue(codeGen, *field, dstAddressReg));
+            SWC_RESULT(emitStructFieldDefaultValue(codeGen, *field, fieldType, fieldSize, dstAddressReg));
             initializedEnd = fieldOffset + fieldSize;
         }
 
@@ -1037,7 +1039,7 @@ namespace
 
 Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, const TypeRef typeRef, const MicroReg dstAddressReg)
 {
-    return emitImplicitDefaultValue(codeGen, typeRef, dstAddressReg);
+    return emitImplicitDefaultValue(codeGen, codeGen.typeMgr().get(typeRef), dstAddressReg);
 }
 
 Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
@@ -1045,7 +1047,7 @@ Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeR
     typeRef              = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
     const TypeInfo& type = codeGen.typeMgr().get(typeRef);
     if (!type.isStruct() || !type.payloadSymStruct().isDynamic())
-        return emitTypeDefaultValue(codeGen, typeRef, dstAddressReg);
+        return emitImplicitDefaultValue(codeGen, type, dstAddressReg);
 
     // Moving out resets user fields, but does not turn an embedded base into a standalone
     // object. Ordinary members and array elements already have their declared root identity.
@@ -1057,7 +1059,7 @@ Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeR
         codeGen.builder().emitLoadRegMem(identity, dstAddressReg, offset, MicroOpBits::B64);
         identities.push_back(identity);
     }
-    SWC_RESULT(emitTypeDefaultValue(codeGen, typeRef, dstAddressReg));
+    SWC_RESULT(emitImplicitDefaultValue(codeGen, type, dstAddressReg));
     for (size_t i = 0; i < slots.size(); ++i)
         codeGen.builder().emitLoadMemReg(dstAddressReg, slots[i], identities[i], MicroOpBits::B64);
     return Result::Continue;
@@ -1204,7 +1206,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
     if (typeInfo.isStruct())
         return emitStructDefaultValue(codeGen, typeRef, dstAddressReg, count);
     if (count == 1)
-        return emitTypeDefaultValue(codeGen, typeRef, dstAddressReg);
+        return emitImplicitDefaultValue(codeGen, typeInfo, dstAddressReg);
 
     const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
     if (!typeInfo.isArray() && !typeInfo.isEnum())
@@ -1227,7 +1229,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
         const uint64_t offset = static_cast<uint64_t>(sizeOf) * i;
         SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
         const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
-        SWC_RESULT(emitTypeDefaultValue(codeGen, typeRef, elemAddressReg));
+        SWC_RESULT(emitImplicitDefaultValue(codeGen, typeInfo, elemAddressReg));
     }
 
     return Result::Continue;
@@ -1253,7 +1255,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
 
     builder.placeLabel(loopLabel);
-    SWC_RESULT(emitTypeDefaultValue(codeGen, typeRef, cursorReg));
+    SWC_RESULT(emitImplicitDefaultValue(codeGen, typeInfo, cursorReg));
     builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);

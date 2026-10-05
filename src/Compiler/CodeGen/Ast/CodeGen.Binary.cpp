@@ -295,16 +295,14 @@ namespace
         return sourceTypeRef;
     }
 
-    void convertArithmeticOperand(MicroReg& outReg, CodeGen& codeGen, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    void convertArithmeticOperand(CodeGen& codeGen, MicroReg& outReg, const TypeInfo& srcType, MicroOpBits srcBits, TypeRef dstTypeRef)
     {
-        if (srcTypeRef == dstTypeRef)
+        if (srcType.typeRef() == dstTypeRef)
             return;
 
-        srcTypeRef                = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), srcTypeRef);
+        SWC_ASSERT(!srcType.isAlias() && !srcType.isEnum());
         dstTypeRef                = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
-        const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
         const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
-        const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
         const MicroOpBits dstBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
@@ -371,7 +369,7 @@ namespace
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
 
         loadOperandToRegister(outReg, codeGen, operandPayload, srcTypeRef, srcBits);
-        convertArithmeticOperand(outReg, codeGen, srcTypeRef, dstTypeRef);
+        convertArithmeticOperand(codeGen, outReg, srcType, srcBits, dstTypeRef);
     }
 
     MicroReg materializePointerValue(CodeGen& codeGen, const CodeGenNodePayload& operandPayload)
@@ -447,7 +445,7 @@ namespace
             }
         }
 
-        convertArithmeticOperand(nodePayload.reg, codeGen, encodeCtx.operationTypeRef, encodeCtx.resultTypeRef);
+        convertArithmeticOperand(codeGen, nodePayload.reg, operationType, opBits, encodeCtx.resultTypeRef);
         return Result::Continue;
     }
 

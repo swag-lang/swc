@@ -286,16 +286,23 @@ namespace
         const AstNodeRef valueNodeRef = aggregateFieldValueNodeRef(*args.sema, fieldNodeRef);
         if (valueNodeRef.isInvalid())
             return Result::Continue;
-        if (args.castRequest->probing)
+        if (args.castRequest->probing || srcElemType == dstElemType)
             return Result::Continue;
 
-        SymbolFunction*     setFn       = nullptr;
-        TypeRef             setParamRef = TypeRef::invalid();
-        const SourceCodeRef codeRef     = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
-        SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, elemCtx.kind, setFn, setParamRef, valueNodeRef));
-        if (!setFn && !elemCtx.selectedStructOpCast && !args.sema->node(valueNodeRef).is(AstNodeId::AutoCastExpr))
-            return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
+        // A scalar-to-single-field-struct cast shares its source node with the outer
+        // conversion. Only actual literal fields have independent nodes to rewrite.
+        if (!args.srcType->isAggregateStruct())
+        {
+            SymbolFunction*     setFn       = nullptr;
+            TypeRef             setParamRef = TypeRef::invalid();
+            const SourceCodeRef codeRef     = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
+            SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, elemCtx.kind, setFn, setParamRef, valueNodeRef));
+            if (!setFn && !elemCtx.selectedStructOpCast && !args.sema->node(valueNodeRef).is(AstNodeId::AutoCastExpr))
+                return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
+        }
 
+        // Validation alone does not construct representation-changing values such as interfaces.
+        // Materialize each field conversion through the same path as an ordinary initializer.
         SemaNodeView valueView(*args.sema, valueNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         SWC_RESULT(Cast::castIfNeeded(*args.sema, valueView, dstElemType, elemCtx.kind, elemCtx.flags));
         refreshNamedArgumentPayload(*args.sema, fieldNodeRef);

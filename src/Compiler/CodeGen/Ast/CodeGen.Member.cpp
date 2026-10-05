@@ -41,8 +41,7 @@ namespace
 
     bool resolveUsingMemberPathRec(CodeGen& codeGen, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<StructUsingPathStep>& outSteps, std::unordered_set<const SymbolStruct*>& visited)
     {
-        if (&currentStruct == &targetStruct)
-            return true;
+        SWC_ASSERT(&currentStruct != &targetStruct);
         if (!visited.insert(&currentStruct).second)
             return false;
 
@@ -59,7 +58,7 @@ namespace
 
             // Follow nested `using` fields until we reach the struct that actually owns the member.
             outSteps.push_back({.field = field, .isPointer = usingFieldIsPointer});
-            if (resolveUsingMemberPathRec(codeGen, *usingTargetStruct, targetStruct, outSteps, visited))
+            if (usingTargetStruct == &targetStruct || resolveUsingMemberPathRec(codeGen, *usingTargetStruct, targetStruct, outSteps, visited))
                 return true;
             outSteps.pop_back();
         }
@@ -79,6 +78,8 @@ namespace
         const SymbolStruct* baseStruct = CodeGenStructHelpers::resolveRuntimeStructType(codeGen, leftTypeRef);
         if (!baseStruct)
             return false;
+        if (baseStruct == ownerStruct)
+            return true;
 
         std::unordered_set<const SymbolStruct*> visited;
         return resolveUsingMemberPathRec(codeGen, *baseStruct, *ownerStruct, outSteps, visited);

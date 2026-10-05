@@ -638,8 +638,7 @@ namespace
 
     bool resolveUsingFieldPathRec(const TaskContext& ctx, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps, std::unordered_set<const SymbolStruct*>& visited)
     {
-        if (&currentStruct == &targetStruct)
-            return true;
+        SWC_ASSERT(&currentStruct != &targetStruct);
         if (!visited.insert(&currentStruct).second)
             return false;
 
@@ -654,7 +653,7 @@ namespace
                 continue;
 
             outSteps.push_back({.field = field, .isPointer = usingFieldIsPointer});
-            if (resolveUsingFieldPathRec(ctx, *usingTargetStruct, targetStruct, outSteps, visited))
+            if (usingTargetStruct == &targetStruct || resolveUsingFieldPathRec(ctx, *usingTargetStruct, targetStruct, outSteps, visited))
                 return true;
             outSteps.pop_back();
         }
@@ -1183,6 +1182,8 @@ uint32_t SymbolStruct::alignment() const
 bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const
 {
     outSteps.clear();
+    if (this == &targetStruct)
+        return true;
     std::unordered_set<const SymbolStruct*> visited;
     return resolveUsingFieldPathRec(ctx, *this, targetStruct, outSteps, visited);
 }

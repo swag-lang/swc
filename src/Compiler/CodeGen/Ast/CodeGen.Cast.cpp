@@ -280,8 +280,7 @@ namespace
 
         const TypeInfo& sourceType = typeMgr.get(resolvedSourceTypeRef);
         const TypeInfo& dstType    = typeMgr.get(resolvedDstTypeRef);
-        if (!sourceType.isReference() || !dstType.isAnyPointer())
-            return false;
+        SWC_ASSERT(sourceType.isReference() && dstType.isAnyPointer());
 
         const TypeRef sourcePointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
         const TypeRef dstPointeeTypeRef    = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
@@ -373,8 +372,7 @@ namespace
 
         const TypeInfo& sourceType = typeMgr.get(resolvedSourceRef);
         const TypeInfo& dstType    = typeMgr.get(resolvedDstTypeRef);
-        if (!(sourceType.isReference() || sourceType.isMoveReference()))
-            return Result::Continue;
+        SWC_ASSERT(sourceType.isReference() || sourceType.isMoveReference());
 
         const TypeRef pointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
         if (!pointeeTypeRef.isValid())
@@ -1554,15 +1552,18 @@ namespace
             return Result::Continue;
         }
 
-        bool handledReferenceScalarNumericCast = false;
-        SWC_RESULT(tryEmitReferenceScalarNumericCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef, handledReferenceScalarNumericCast));
-        if (handledReferenceScalarNumericCast)
-            return Result::Continue;
+        if (resolvedSrcType.isReference() || resolvedSrcType.isMoveReference())
+        {
+            bool handledReferenceScalarNumericCast = false;
+            SWC_RESULT(tryEmitReferenceScalarNumericCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef, handledReferenceScalarNumericCast));
+            if (handledReferenceScalarNumericCast)
+                return Result::Continue;
+        }
 
         if (tryEmitIndirectValueCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef))
             return Result::Continue;
 
-        if (tryEmitReferenceToPointerCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
+        if (resolvedSrcType.isReference() && resolvedDstType.isAnyPointer() && tryEmitReferenceToPointerCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
             return Result::Continue;
 
         if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))

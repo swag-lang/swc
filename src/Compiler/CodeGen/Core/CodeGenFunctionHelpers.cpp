@@ -751,13 +751,13 @@ namespace
         return false;
     }
 
-    Result materializeStaticDefaultPayload(CodeGen& codeGen, ConstantRef& outPayloadRef, std::span<const std::byte>& outPayloadBytes, TypeRef typeRef, std::span<const std::byte> payloadBytes)
+    Result materializeStaticDefaultPayload(CodeGen& codeGen, ConstantRef& outPayloadRef, std::span<const std::byte>& outPayloadBytes, const TypeInfo& typeInfo, std::span<const std::byte> payloadBytes)
     {
         outPayloadRef   = ConstantRef::invalid();
         outPayloadBytes = {};
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        const uint64_t  size     = typeInfo.sizeOf(codeGen.ctx());
+        const TypeRef  typeRef = typeInfo.typeRef();
+        const uint64_t size    = typeInfo.sizeOf(codeGen.ctx());
         SWC_ASSERT(size == payloadBytes.size());
         SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
         if (!size || size != payloadBytes.size() || size > std::numeric_limits<uint32_t>::max())
@@ -780,11 +780,11 @@ namespace
         return Result::Continue;
     }
 
-    Result emitDefaultConstantToAddress(CodeGen& codeGen, TypeRef typeRef, ConstantRef valueRef, MicroReg dstAddressReg)
+    Result emitDefaultConstantToAddress(CodeGen& codeGen, const TypeInfo& typeInfo, ConstantRef valueRef, MicroReg dstAddressReg)
     {
-        const TypeInfo&      typeInfo = codeGen.typeMgr().get(typeRef);
-        const uint32_t       size     = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
-        const ConstantValue& value    = codeGen.cstMgr().get(valueRef);
+        const TypeRef        typeRef = typeInfo.typeRef();
+        const uint32_t       size    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        const ConstantValue& value   = codeGen.cstMgr().get(valueRef);
         if ((value.isStruct() || value.isArray()) && value.isPayloadBorrowed() && value.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(codeGen.ctx(), typeRef))
         {
             // Construction already identified the live relocations. A raw byte round trip
@@ -823,7 +823,7 @@ namespace
 
         ConstantRef                payloadRef;
         std::span<const std::byte> materializedPayload;
-        SWC_RESULT(materializeStaticDefaultPayload(codeGen, payloadRef, materializedPayload, typeRef, std::span{payloadBytes.data(), payloadBytes.size()}));
+        SWC_RESULT(materializeStaticDefaultPayload(codeGen, payloadRef, materializedPayload, typeInfo, std::span{payloadBytes.data(), payloadBytes.size()}));
         SWC_ASSERT(payloadRef.isValid());
         if (payloadRef.isInvalid())
             return Result::Continue;
@@ -834,7 +834,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitArrayDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
+    Result emitArrayDefaultValue(CodeGen& codeGen, const TypeInfo& arrayType, MicroReg dstAddressReg);
 
     Result emitImplicitDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
     {
@@ -843,7 +843,7 @@ namespace
         if (typeInfo.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
         if (typeInfo.isArray())
-            return emitArrayDefaultValue(codeGen, typeRef, dstAddressReg);
+            return emitArrayDefaultValue(codeGen, typeInfo, dstAddressReg);
         if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), typeRef))
             return Result::Continue;
 
@@ -852,9 +852,8 @@ namespace
         return Result::Continue;
     }
 
-    Result emitArrayDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
+    Result emitArrayDefaultValue(CodeGen& codeGen, const TypeInfo& arrayType, MicroReg dstAddressReg)
     {
-        const TypeInfo& arrayType = codeGen.typeMgr().get(typeRef);
         SWC_ASSERT(arrayType.isArray());
 
         const TypeRef   elemTypeRef = arrayType.payloadArrayElemTypeRef();
@@ -887,7 +886,7 @@ namespace
             const uint64_t offset = i * elemSize;
             SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
             const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
-            SWC_RESULT(emitArrayDefaultValue(codeGen, storageElemTypeRef, elemAddressReg));
+            SWC_RESULT(emitArrayDefaultValue(codeGen, storageElemType, elemAddressReg));
         }
 
         return Result::Continue;
@@ -914,7 +913,7 @@ namespace
 
         const ConstantRef defaultValueRef = field.defaultValueRef();
         if (defaultValueRef.isValid())
-            SWC_RESULT(emitDefaultConstantToAddress(codeGen, fieldTypeRef, defaultValueRef, fieldAddressReg));
+            SWC_RESULT(emitDefaultConstantToAddress(codeGen, fieldType, defaultValueRef, fieldAddressReg));
         else
             SWC_RESULT(emitImplicitDefaultValue(codeGen, fieldTypeRef, fieldAddressReg));
 
@@ -996,24 +995,23 @@ namespace
         return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeInfo.payloadSymStruct().typeRef(), dstAddressReg);
     }
 
-    Result lowerStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, SmallVector<std::byte>& outStorage, std::span<const std::byte>& outPayloadBytes)
+    Result lowerStructDefaultPayload(CodeGen& codeGen, SmallVector<std::byte>& outStorage, std::span<const std::byte>& outPayloadBytes, const TypeInfo& typeInfo)
     {
         outStorage.clear();
         outPayloadBytes = {};
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isStruct());
         const uint32_t size = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
         outStorage.resize(size);
-        SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(codeGen.sema(), std::span{outStorage.data(), outStorage.size()}, typeRef));
+        SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(codeGen.sema(), std::span{outStorage.data(), outStorage.size()}, typeInfo.typeRef()));
 
         outPayloadBytes = std::span{outStorage.data(), outStorage.size()};
         return Result::Continue;
     }
 
-    Result materializeStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, std::span<const std::byte>& outPayloadBytes)
+    Result materializeStructDefaultPayload(CodeGen& codeGen, ConstantRef& outSafeDefaultValueRef, std::span<const std::byte>& outPayloadBytes, const TypeInfo& typeInfo)
     {
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const TypeRef typeRef = typeInfo.typeRef();
         SWC_ASSERT(typeInfo.isStruct());
         ConstantRef defaultValueRef = ConstantRef::invalid();
         SWC_RESULT(typeInfo.payloadSymStruct().resolveImplicitDefaultValueRef(codeGen.sema(), typeRef, defaultValueRef));
@@ -1090,7 +1088,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
 
     SmallVector<std::byte>     payloadStorage;
     std::span<const std::byte> payloadBytes;
-    SWC_RESULT(lowerStructDefaultPayload(codeGen, typeRef, payloadStorage, payloadBytes));
+    SWC_RESULT(lowerStructDefaultPayload(codeGen, payloadStorage, payloadBytes, typeInfo));
 
     SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
     if (CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, payloadBytes, canEmitDefaultPayloadBytesInline(codeGen, typeRef)))
@@ -1099,7 +1097,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         return emitStructComposedDefaultValue(codeGen, typeInfo, dstAddressReg);
 
     ConstantRef safeDefaultValueRef = ConstantRef::invalid();
-    SWC_RESULT(materializeStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes));
+    SWC_RESULT(materializeStructDefaultPayload(codeGen, safeDefaultValueRef, payloadBytes, typeInfo));
     // Construction can discover a partial write over a relocated pointer only while
     // resolving the default. Complete that write against the runtime address instead.
     if (safeDefaultValueRef.isInvalid() && symStruct.hasRuntimeImplicitDefault())
@@ -1137,7 +1135,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     ConstantRef                safeDefaultValueRef = ConstantRef::invalid();
     std::span<const std::byte> payloadBytes;
     if (!symStruct.requiresExplicitInitialization() && !symStruct.hasRuntimeImplicitDefault())
-        SWC_RESULT(materializeStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes));
+        SWC_RESULT(materializeStructDefaultPayload(codeGen, safeDefaultValueRef, payloadBytes, typeInfo));
     if (symStruct.requiresExplicitInitialization() || symStruct.hasRuntimeImplicitDefault())
     {
         for (uint32_t i = 0; i < count; ++i)

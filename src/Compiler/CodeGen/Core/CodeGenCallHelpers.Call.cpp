@@ -1203,11 +1203,13 @@ namespace
         const uint32_t elemAlign     = std::max<uint32_t>(variadicType.alignOf(ctx), 1);
         const uint64_t variadicCount = args.size();
 
+        uint64_t elemStride       = 0;
         uint64_t totalStorageSize = 0;
-        for (uint64_t i = 0; i < variadicCount; ++i)
+        if (variadicCount)
         {
-            totalStorageSize = Math::alignUpU64(totalStorageSize, elemAlign);
-            totalStorageSize += elemSize;
+            elemStride = Math::alignUpU64(elemSize, elemAlign);
+            // Padding separates elements; the slice receives its own alignment below.
+            totalStorageSize = (variadicCount - 1) * elemStride + elemSize;
         }
         constexpr uint64_t sliceAlign     = alignof(Runtime::Slice<std::byte>);
         const uint64_t     sliceOffset    = Math::alignUpU64(totalStorageSize, sliceAlign);
@@ -1231,9 +1233,8 @@ namespace
             if (argRef.isInvalid())
                 continue;
 
-            const CodeGenNodePayload& argPayload = codeGen.payload(argRef);
-            offset                               = Math::alignUpU64(offset, elemAlign);
-            MicroReg dstAddressReg               = frameBaseReg;
+            const CodeGenNodePayload& argPayload    = codeGen.payload(argRef);
+            MicroReg                  dstAddressReg = frameBaseReg;
             if (offset)
             {
                 dstAddressReg = codeGen.nextVirtualIntRegister();
@@ -1241,7 +1242,7 @@ namespace
                 builder.emitOpBinaryRegImm(dstAddressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
             }
             storeTypedVariadicElement(codeGen, dstAddressReg, argPayload, elemSize);
-            offset += elemSize;
+            offset += elemStride;
         }
 
         MicroReg sliceAddrReg = frameBaseReg;

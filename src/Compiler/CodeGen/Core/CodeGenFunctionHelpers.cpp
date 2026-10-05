@@ -407,19 +407,21 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     // Register home offsets would need the full layout, but are not used here.
     const auto& params = symbolFunc.parameters();
     SWC_ASSERT(parameterIndex < params.size());
+    SWC_ASSERT(params[parameterIndex] == &symVar);
     SmallVector<ABICall::ArgLayout> argLayouts;
     argLayouts.reserve(result.slotIndex + 1);
     if (hasIndirectReturnArg)
         argLayouts.push_back({});
     if (hasClosureContextArg)
         argLayouts.push_back({});
-    for (uint32_t i = 0; i <= parameterIndex; ++i)
+    for (uint32_t i = 0; i < parameterIndex; ++i)
     {
         const SymbolVariable* param = params[i];
         SWC_ASSERT(param != nullptr);
         const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
     }
+    argLayouts.push_back({.numBits = static_cast<uint8_t>(normalizedParam.numBits ? normalizedParam.numBits : 64), .isFloat = normalizedParam.isFloat});
     setParameterLocationInfo(result, callConv, argLayouts, ABICall::argumentRegisterIndex(callConv, argLayouts, result.slotIndex));
     return result;
 }
@@ -500,8 +502,9 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     if (!typeRef.isValid())
         return false;
 
-    const TypeRef   storageTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, typeRef);
-    const TypeInfo& storageType    = ctx.typeMgr().get(storageTypeRef);
+    const TypeInfo& paramType        = ctx.typeMgr().get(typeRef);
+    const TypeRef   unwrappedTypeRef = paramType.isAlias() || paramType.isEnum() ? paramType.unwrapAliasEnum(ctx) : TypeRef::invalid();
+    const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(unwrappedTypeRef) : paramType;
     if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregate())
         return false;
 
@@ -528,7 +531,9 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     // and code relies on seeing what happens to that storage during the call: a thread body
     // takes its 'Thread' by value and polls the stop flag another thread sets. An array
     // parameter is a view the callee itself writes through.
-    const TypeInfo& storageType = ctx.typeMgr().get(ctx.typeMgr().unwrapAliasEnum(ctx, typeRef));
+    const TypeInfo& paramType        = ctx.typeMgr().get(typeRef);
+    const TypeRef   unwrappedTypeRef = paramType.isAlias() || paramType.isEnum() ? paramType.unwrapAliasEnum(ctx) : TypeRef::invalid();
+    const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(unwrappedTypeRef) : paramType;
     return storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny();
 }
 

@@ -312,6 +312,7 @@ namespace
         const TypeManager& typeMgr              = codeGen.typeMgr();
         const TypeRef      sourceTypeToCheckRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeInfo&    sourceType           = typeMgr.get(sourceTypeToCheckRef.isValid() ? sourceTypeToCheckRef : sourceTypeRef);
+        const TypeInfo*    readTypeInfo;
         if (sourceType.isAnyPointer())
         {
             if (readPayload.isAddress())
@@ -322,19 +323,20 @@ namespace
             }
 
             readTypeRef         = sourceType.payloadTypeRef();
+            readTypeInfo        = &typeMgr.get(readTypeRef);
             readPayload.typeRef = readTypeRef;
             readPayload.setIsAddress();
         }
         else
         {
-            CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
+            readTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
         }
         SWC_ASSERT(readTypeRef.isValid());
-        SWC_ASSERT(!codeGen.typeMgr().get(readTypeRef).isReference());
+        SWC_ASSERT(readTypeInfo && !readTypeInfo->isReference());
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeRef     resolvedReadTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), readTypeRef);
-        const TypeInfo&   readType            = codeGen.typeMgr().get(resolvedReadTypeRef.isValid() ? resolvedReadTypeRef : readTypeRef);
+        const TypeRef     resolvedReadTypeRef = readTypeInfo->isAlias() || readTypeInfo->isEnum() ? readTypeInfo->unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
+        const TypeInfo&   readType            = resolvedReadTypeRef.isValid() ? typeMgr.get(resolvedReadTypeRef) : *readTypeInfo;
         const MicroOpBits directBits          = CodeGenTypeHelpers::scalarStoreBits(readType, codeGen.ctx());
         MicroBuilder&     builder             = codeGen.builder();
         if (directBits != MicroOpBits::Zero)
@@ -389,14 +391,15 @@ namespace
         if (!((srcIntLikeType && dstIntLikeType) || (srcIntLikeType && dstFloatType) || (srcFloatType && dstFloatType) || (srcFloatType && dstIntLikeType)))
             return Result::Continue;
 
-        CodeGenNodePayload readPayload = sourcePayloadForCast(codeGen, srcNodeRef);
-        TypeRef            readTypeRef = sourceTypeRef;
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
+        CodeGenNodePayload readPayload  = sourcePayloadForCast(codeGen, srcNodeRef);
+        TypeRef            readTypeRef  = sourceTypeRef;
+        const TypeInfo*    readTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
         SWC_ASSERT(readTypeRef.isValid());
+        SWC_ASSERT(readTypeInfo);
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeRef     resolvedReadTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), readTypeRef);
-        const TypeInfo&   readType            = typeMgr.get(resolvedReadTypeRef.isValid() ? resolvedReadTypeRef : readTypeRef);
+        const TypeRef     resolvedReadTypeRef = readTypeInfo->isAlias() || readTypeInfo->isEnum() ? readTypeInfo->unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
+        const TypeInfo&   readType            = resolvedReadTypeRef.isValid() ? typeMgr.get(resolvedReadTypeRef) : *readTypeInfo;
         const MicroOpBits srcOpBits           = CodeGenTypeHelpers::numericOrBoolBits(readType);
         const MicroOpBits dstOpBits           = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
@@ -405,7 +408,7 @@ namespace
             return Result::Continue;
 
         MicroBuilder& builder = codeGen.builder();
-        MicroReg      srcReg  = codeGen.nextVirtualRegisterForType(readTypeRef);
+        MicroReg      srcReg  = codeGen.nextVirtualRegisterForType(readTypeRef, *readTypeInfo);
         builder.emitLoadRegMem(srcReg, readPayload.reg, 0, srcOpBits);
 
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);

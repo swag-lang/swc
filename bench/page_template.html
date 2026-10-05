@@ -79,7 +79,7 @@ body {
     -webkit-text-size-adjust: 100%;
 }
 
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+.wrap { max-width: 1600px; margin: 0 auto; padding: 0 28px; }
 
 p { margin: 0 0 12px; max-width: 72ch; }
 a { color: inherit; }
@@ -325,6 +325,7 @@ thead th {
     text-align: right;
     vertical-align: bottom;
     line-height: 1.25;
+    white-space: nowrap;
 }
 
 thead th:first-child { text-align: left; }
@@ -348,8 +349,8 @@ table.matrix .gap { border-left: 1px solid var(--line); }
 /* Rankings: one line per task, every runtime in order, swag marked where it lands. */
 table.ranked td { text-align: left; }
 table.ranked td:nth-child(2) { text-align: right; color: var(--fg); font-weight: 700; }
-table.ranked td:last-child { white-space: normal; width: 100%; }
-table.ranked ol { display: flex; flex-wrap: wrap; gap: 3px; margin: 0; padding: 0; list-style: none; }
+table.ranked td:last-child { width: 100%; }
+table.ranked ol { display: flex; flex-wrap: nowrap; gap: 3px; margin: 0; padding: 0; list-style: none; }
 table.ranked li {
     display: inline-flex;
     align-items: center;

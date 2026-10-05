@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -241,21 +242,25 @@ namespace SemaHelpers
         return sema.typeMgr().get(typeRef);
     }
 
-    inline const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
+    inline const SymbolEnum* enumSymbolFromType(Sema& sema, const TypeInfo& type)
     {
-        if (!typeRef.isValid())
-            return nullptr;
-
-        const TypeInfo* enumType = &sema.typeMgr().get(typeRef);
-        if (enumType->isAlias())
+        const TypeInfo* enumType = &type;
+        while (enumType->isAlias())
         {
-            const TypeRef enumTypeRef = enumType->unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-            enumType                  = &sema.typeMgr().get(enumTypeRef);
+            const TypeRef enumTypeRef = enumType->payloadSymAlias().underlyingTypeRef();
+            if (enumTypeRef.isInvalid())
+                return nullptr;
+            enumType = &sema.typeMgr().get(enumTypeRef);
         }
         if (enumType->isEnum())
             return &enumType->payloadSymEnum();
 
         return nullptr;
+    }
+
+    inline const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        return typeRef.isValid() ? enumSymbolFromType(sema, sema.typeMgr().get(typeRef)) : nullptr;
     }
 
     // Aliases and enum wrappers both stripped, down to the carried payload.

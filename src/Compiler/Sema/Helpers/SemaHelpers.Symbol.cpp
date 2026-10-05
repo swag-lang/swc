@@ -1501,7 +1501,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     }
 
     // Enum
-    if (const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, nodeLeftView.typeRef()))
+    if (const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromType(sema, *nodeLeftView.type()))
         return memberEnum(sema, memberRef, node, *enumSym, idRef, tokNameRef, allowOverloadSet);
 
     // Use-site nullability: reaching a member through a value whose type is still

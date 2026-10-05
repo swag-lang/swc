@@ -917,22 +917,20 @@ namespace
         if (argRef.isValid())
         {
             const AstNodeRef                  resolvedArgRef = codeGen.resolvedNodeRef(argRef);
-            SemaNodeView                      argView        = codeGen.viewType(argRef);
-            SemaNodeView                      argConstView   = codeGen.viewTypeConstant(argRef);
+            SemaNodeView                      argView        = codeGen.viewTypeConstant(argRef);
             std::optional<CodeGenNodePayload> fallbackPayload;
             const CodeGenNodePayload*         payload = codeGen.safePayload(argRef);
 
             if (resolvedArgRef != argRef &&
                 (!payload || !payload->reg.isValid()) &&
-                !argConstView.cstRef().isValid())
+                !argView.cstRef().isValid())
             {
-                argView      = codeGen.sema().viewStored(argRef, SemaNodeViewPartE::Type);
-                argConstView = codeGen.sema().viewStored(argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                argView = codeGen.sema().viewStored(argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             }
 
             normalizedTypeRef               = resolveNormalizedArgTypeRef(codeGen, param, argView);
-            const TypeRef constantTypeRef   = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argConstView.cstRef());
-            const bool    isNullConstantArg = argConstView.cst() && argConstView.cst()->isNull();
+            const TypeRef constantTypeRef   = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argView.cstRef());
+            const bool    isNullConstantArg = argView.cst() && argView.cst()->isNull();
 
             if ((!payload || !payload->reg.isValid()) && resolvedArgRef == argRef)
             {
@@ -962,14 +960,14 @@ namespace
 
                 if (requiresTypedConstMaterialization)
                 {
-                    if (argConstView.cstRef().isValid())
-                        SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, argPayload, constantTypeRef, argConstView.cstRef()));
+                    if (argView.cstRef().isValid())
+                        SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, argPayload, constantTypeRef, argView.cstRef()));
                 }
             }
             else
             {
-                SWC_ASSERT(argConstView.cstRef().isValid());
-                SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, argPayload, constantTypeRef, argConstView.cstRef()));
+                SWC_ASSERT(argView.cstRef().isValid());
+                SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, argPayload, constantTypeRef, argView.cstRef()));
             }
         }
         else

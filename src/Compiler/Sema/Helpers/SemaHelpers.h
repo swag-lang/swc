@@ -273,12 +273,9 @@ namespace SemaHelpers
 
     inline const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
     {
-        const TypeInfo& typeInfo = *view.type();
-        if (!typeInfo.isAlias() && !typeInfo.isEnum())
-            return typeInfo;
-        const TypeRef typeRef = typeInfo.unwrapAliasEnum(sema.ctx(), view.typeRef());
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo      = *view.type();
+        const TypeInfo* unwrappedType = typeInfo.unwrapAliasEnumType(sema.ctx());
+        return unwrappedType ? *unwrappedType : typeInfo;
     }
 
     // An operand of reference type takes part in an expression through the value it designates,

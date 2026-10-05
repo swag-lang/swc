@@ -38,9 +38,9 @@ namespace
         if (!paramType.isReference())
             return TypeRef::invalid();
 
-        const TypeInfo& storageType             = sema.typeMgr().get(paramType.payloadTypeRef());
-        const TypeRef   unwrappedStorageTypeRef = storageType.isAlias() || storageType.isEnum() ? storageType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
-        const TypeInfo& resolvedStorageType     = unwrappedStorageTypeRef.isValid() ? sema.typeMgr().get(unwrappedStorageTypeRef) : storageType;
+        const TypeInfo& storageType          = sema.typeMgr().get(paramType.payloadTypeRef());
+        const TypeInfo* unwrappedStorageType = storageType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& resolvedStorageType  = unwrappedStorageType ? *unwrappedStorageType : storageType;
         if (resolvedStorageType.isStruct() || resolvedStorageType.isArray() || resolvedStorageType.isAggregate() || (resolvedStorageType.isFunction() && resolvedStorageType.isLambdaClosure()))
             return resolvedStorageType.typeRef();
 
@@ -101,9 +101,9 @@ TypeRef SemaHelpers::smallByValueArrayRuntimeStorageTypeRef(Sema& sema, AstNodeR
     if (sema.isLValue(exprRef))
         return TypeRef::invalid();
 
-    const TypeInfo& exprType         = sema.typeMgr().get(exprTypeRef);
-    const TypeRef   unwrappedTypeRef = exprType.isAlias() || exprType.isEnum() ? exprType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
-    const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? sema.typeMgr().get(unwrappedTypeRef) : exprType;
+    const TypeInfo& exprType      = sema.typeMgr().get(exprTypeRef);
+    const TypeInfo* unwrappedType = exprType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : exprType;
     if (!storageType.isArray())
         return TypeRef::invalid();
 
@@ -119,10 +119,10 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     if (sema.isGlobalScope() || !paramTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TypeInfo& paramType        = sema.typeMgr().get(paramTypeRef);
-    const TypeRef   unwrappedTypeRef = paramType.isAlias() || paramType.isEnum() ? paramType.unwrapAliasEnum(sema.ctx()) : TypeRef::invalid();
-    const TypeInfo& storageType      = unwrappedTypeRef.isValid() ? sema.typeMgr().get(unwrappedTypeRef) : paramType;
-    const bool      isAggregate      = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
+    const TypeInfo& paramType     = sema.typeMgr().get(paramTypeRef);
+    const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
+    const bool      isAggregate   = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
     if (!isAggregate)
         return TypeRef::invalid();
 

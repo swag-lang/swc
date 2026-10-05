@@ -78,26 +78,6 @@ namespace
     using CodeGenInterfaceHelpers::prepareInterfaceMethodTable;
     using CodeGenInterfaceHelpers::resolveInterfaceCastInfo;
 
-    bool anyCastAsValueBits(CodeGen& codeGen, TypeRef typeRef, MicroOpBits& outBits)
-    {
-        if (!typeRef.isValid())
-        {
-            outBits = MicroOpBits::Zero;
-            return false;
-        }
-
-        const TypeRef storageTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
-        if (!storageTypeRef.isValid())
-        {
-            outBits = MicroOpBits::Zero;
-            return false;
-        }
-
-        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
-        outBits                     = CodeGenTypeHelpers::scalarStoreBits(storageType, codeGen.ctx());
-        return outBits != MicroOpBits::Zero;
-    }
-
     MicroReg materializePointerLikeInterfaceObjectReg(CodeGen& codeGen, const CodeGenNodePayload& srcPayload)
     {
         if (!srcPayload.isAddress())
@@ -531,13 +511,13 @@ namespace
         return Result::Continue;
     }
 
-    MicroReg narrowF64ToFloatBits(CodeGen& codeGen, MicroReg f64Reg, MicroOpBits dstBits, TypeRef dstTypeRef)
+    MicroReg narrowF64ToFloatBits(CodeGen& codeGen, MicroReg f64Reg, MicroOpBits dstBits, const TypeInfo& dstType)
     {
         if (dstBits == MicroOpBits::B64)
             return f64Reg;
 
         MicroBuilder&  builder = codeGen.builder();
-        const MicroReg dstReg  = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        const MicroReg dstReg  = codeGen.nextVirtualRegisterForType(dstType.typeRef(), dstType);
         builder.emitClearReg(dstReg, dstBits);
         builder.emitOpBinaryRegReg(dstReg, f64Reg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
         return dstReg;
@@ -574,7 +554,7 @@ namespace
             builder.emitOpBinaryRegRegReg(upperReg, partsReg, partsReg, MicroOp::VecUnpackHi64, MicroOpBits::B128);
             const MicroReg dstF64Reg = codeGen.nextVirtualFloatRegister();
             builder.emitOpBinaryRegRegReg(dstF64Reg, partsReg, upperReg, MicroOp::FloatAdd, MicroOpBits::B64);
-            return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
+            return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstType);
         }
 
         MicroReg    convertReg  = srcReg;
@@ -593,7 +573,7 @@ namespace
             const MicroReg dstF64Reg = codeGen.nextVirtualFloatRegister();
             builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
             builder.emitConvertIntToFloat(dstF64Reg, convertReg, MicroOpBits::B64, MicroOpBits::B64);
-            return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
+            return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstType);
         }
 
         const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
@@ -1142,11 +1122,11 @@ namespace
             }
         }
 
-        auto valueBits = MicroOpBits::Zero;
-        if (anyCastAsValueBits(codeGen, dstTypeRef, valueBits))
+        const MicroOpBits valueBits = CodeGenTypeHelpers::scalarStoreBits(dstType, codeGen.ctx());
+        if (valueBits != MicroOpBits::Zero)
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
 
             if (asValueAddrReg.isValid() || asPointerAddrReg.isValid() || asMutablePtrReg.isValid())
             {
@@ -1310,8 +1290,8 @@ namespace
             return Result::Continue;
         }
 
-        auto valueBits = MicroOpBits::Zero;
-        if (anyCastAsValueBits(codeGen, dstTypeRef, valueBits))
+        const MicroOpBits valueBits = CodeGenTypeHelpers::scalarStoreBits(dstType, codeGen.ctx());
+        if (valueBits != MicroOpBits::Zero)
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
@@ -1620,8 +1600,8 @@ namespace
             MicroReg valuePtrReg = srcPayload.reg;
             if (!srcPayload.isAddress())
             {
-                auto srcValueBits = MicroOpBits::Zero;
-                if (!anyCastAsValueBits(codeGen, sourceTypeRef, srcValueBits))
+                const MicroOpBits srcValueBits = CodeGenTypeHelpers::scalarStoreBits(resolvedSrcType, codeGen.ctx());
+                if (srcValueBits == MicroOpBits::Zero)
                 {
                     const uint64_t sourceSize = srcType.sizeOf(codeGen.ctx());
                     if (sourceSize == 1 || sourceSize == 2 || sourceSize == 4 || sourceSize == 8)

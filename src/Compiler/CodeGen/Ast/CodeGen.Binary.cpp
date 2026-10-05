@@ -408,7 +408,6 @@ namespace
         const MicroOp     op            = intBinaryMicroOp(tokId, !operationType.isIntLikeUnsigned());
         const MicroOpBits opBits        = CodeGenTypeHelpers::numericBits(operationType);
         const bool        isSigned      = operationType.isIntLike() && !operationType.isIntLikeUnsigned();
-        const bool        hasSafety     = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
@@ -443,7 +442,7 @@ namespace
             else
             {
                 codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
-                if (hasSafety)
+                if (CodeGenSafety::hasOverflowRuntimeSafety(codeGen))
                     SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, tokId, isSigned));
             }
         }

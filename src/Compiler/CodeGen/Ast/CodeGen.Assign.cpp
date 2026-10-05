@@ -95,15 +95,6 @@ namespace
         return AssignEncodingKind::IntLikeCompound;
     }
 
-    bool isScalarAssignmentType(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx()) != MicroOpBits::Zero;
-    }
-
     using CodeGenTypeHelpers::floatBinaryMicroOp;
     using CodeGenTypeHelpers::intBinaryMicroOp;
 
@@ -171,10 +162,9 @@ namespace
             encodeCtx.rightTypeRef = encodeCtx.target.typeRef;
 
         const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
-        if (isScalarAssignmentType(codeGen, encodeCtx.target.opTypeRef))
+        encodeCtx.opBits           = CodeGenTypeHelpers::scalarStoreBits(targetType, codeGen.ctx());
+        if (encodeCtx.opBits != MicroOpBits::Zero)
         {
-            encodeCtx.opBits = CodeGenTypeHelpers::scalarStoreBits(targetType, codeGen.ctx());
-            SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
             encodeCtx.encodingKind = resolveAssignEncodingKind(targetType, assignOp);
             return encodeCtx;
         }
@@ -265,7 +255,6 @@ namespace
         const bool         isSigned      = targetType.isIntLike() && !targetType.isIntLikeUnsigned();
         const TokenId      binaryOp      = Token::assignToBinary(assignOp);
         const MicroOp      op            = intBinaryMicroOp(binaryOp, isSigned);
-        const bool         hasSafety     = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
         MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
@@ -300,7 +289,7 @@ namespace
             else
             {
                 builder.emitOpBinaryRegReg(leftReg, rightReg, op, encodeCtx.opBits);
-                if (hasSafety)
+                if (CodeGenSafety::hasOverflowRuntimeSafety(codeGen))
                     SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, binaryOp, isSigned));
             }
         }

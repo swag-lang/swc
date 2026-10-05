@@ -6,6 +6,29 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.077 — Compile-time method reflection failed once in the full semantic suite
+
+- Recorded: 2026-10-05 13:57
+- Evidence: Release build 1173 at `c10e6ddcf`, with six workers and `--rebuild`, failed
+  `bin/unittests/sema/reflection/typeinfo_struct_methods.swg:361` because
+  `COMPILE_TIME_METHOD_REFLECTION_OK` was false. The combined check validates metadata and
+  method values and calls reflected ordinary, generic and
+  interface methods. The command was `bin/swc.exe --num-cores 6 tools/unittests.swgs sema
+  --num-cores 6 --rebuild`. This followed merging compiler-message cycle handling and runtime
+  fixes with prompt-4 batches 45–49.
+- Isolation: the same file passed alone, and a full repeat passed 282 positive and 313
+  expected-error files. A Release rebuild of `da0ccb5b0`, excluding those five speed batches,
+  passed four full repetitions. Five full positive-suite copies with assertions identifying
+  each reflection check also passed after restoring `c10e6ddcf`. These results establish
+  intermittence, not attribution to a change or proof that the failure predates the batches.
+- Next: on recurrence, identify which method/count/type/value/call check returns false before
+  changing scheduling. Inspect optional reflected-method relocation readiness and publication
+  alongside parallel type generation; no null method value has yet been observed directly.
+  Preserve six-worker execution and keep the existing assertion intact.
+- Complete when: a reproducible case identifies the failing contract, a root-cause fix passes
+  that case with Release and DevMode compilers, and parallel reflection and semantic-cycle
+  coverage both remain green. Do not close this solely because repetitions pass.
+
 ### compiler.core.040 — Select microcode output without a source attribute
 
 - Recorded: 2026-09-11 22:14

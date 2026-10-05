@@ -2,25 +2,15 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
 
 void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& view)
 {
-    TypeRef enumTypeRef = view.typeRef();
-    if (!enumTypeRef.isValid())
-        return;
-
-    if (!sema.typeMgr().get(enumTypeRef).isEnum())
-    {
-        enumTypeRef = sema.typeMgr().get(enumTypeRef).unwrap(sema.ctx(), enumTypeRef, TypeExpandE::Alias);
-        if (!enumTypeRef.isValid() || !sema.typeMgr().get(enumTypeRef).isEnum())
-            return;
-    }
-
-    const TypeInfo& enumType = sema.typeMgr().get(enumTypeRef);
-    if (!enumType.isEnum())
+    const SymbolEnum* symEnum = SemaHelpers::enumSymbolFromTypeRef(sema, view.typeRef());
+    if (!symEnum)
         return;
 
     if (view.cstRef().isValid())
@@ -30,8 +20,7 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& view)
         return;
     }
 
-    const SymbolEnum& symEnum = enumType.payloadSymEnum();
-    createCast(sema, symEnum.underlyingTypeRef(), view.nodeRef());
+    createCast(sema, symEnum->underlyingTypeRef(), view.nodeRef());
     view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 }
 

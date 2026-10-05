@@ -17,7 +17,6 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -393,12 +392,10 @@ namespace
         }
         else
         {
-            const SemaNodeView exprView    = CodeGenExprView::storedOrType(codeGen, exprRef);
             CodeGenNodePayload exprPayload = CodeGenStoredExprPayload::resolve<CodeGenStoredExprPayload::CallerReturnStorageE::Exclude>(codeGen, exprRef);
-            TypeRef            exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+            TypeRef            exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : CodeGenExprView::storedOrType(codeGen, exprRef).typeRef();
             CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
-            const TypeRef   unwrappedExprTypeRef = SemaHelpers::unwrapAliasRefType(codeGen.ctx(), exprTypeRef);
-            const TypeInfo& exprType             = codeGen.typeMgr().get(unwrappedExprTypeRef);
+            const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
 
             if (exprType.isArray())
             {

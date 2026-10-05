@@ -444,9 +444,8 @@ namespace
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), countPayload->calledFn);
 
         MicroBuilder&      builder       = codeGen.builder();
-        const SemaNodeView exprView      = CodeGenExprView::storedOrType(codeGen, exprRef);
         CodeGenNodePayload exprPayload   = CodeGenStoredExprPayload::resolve<CodeGenStoredExprPayload::CallerReturnStorageE::Include>(codeGen, exprRef);
-        TypeRef            exprTypeRef   = exprPayload.effectiveTypeRef(exprView.typeRef());
+        TypeRef            exprTypeRef   = exprPayload.typeRef.isValid() ? exprPayload.typeRef : CodeGenExprView::storedOrType(codeGen, exprRef).typeRef();
         const TypeRef      resultTypeRef = codeGen.curViewType().typeRef();
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
         SWC_ASSERT(exprTypeRef.isValid());

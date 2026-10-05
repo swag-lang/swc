@@ -324,10 +324,10 @@ namespace
 
     Result codeGenAggregateStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
-        const CodeGenNodePayload& leftPayload  = codeGen.payload(node.nodeLeftRef);
-        const SemaNodeView        leftTypeView = codeGen.viewType(node.nodeLeftRef);
-        SWC_ASSERT(leftTypeView.type() != nullptr);
-        const TypeRef aggregateTypeRef = resolveAggregateMemberOwnerTypeRef(codeGen, leftPayload.effectiveTypeRef(leftTypeView.typeRef()));
+        const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
+        const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(node.nodeLeftRef).typeRef();
+        SWC_ASSERT(leftTypeRef.isValid());
+        const TypeRef aggregateTypeRef = resolveAggregateMemberOwnerTypeRef(codeGen, leftTypeRef);
         SWC_ASSERT(aggregateTypeRef.isValid());
 
         AggregateMemberInfo memberInfo;
@@ -337,7 +337,7 @@ namespace
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberInfo.memberTypeRef);
         MicroBuilder&             builder = codeGen.builder();
         const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
-        const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftPayload.effectiveTypeRef(leftTypeView.typeRef()), leftPayload);
+        const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftTypeRef, leftPayload);
         builder.emitLoadAddressRegMem(payload.reg, baseReg, memberInfo.offset, MicroOpBits::B64);
         return Result::Continue;
     }

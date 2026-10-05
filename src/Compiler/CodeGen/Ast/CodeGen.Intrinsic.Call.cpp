@@ -29,6 +29,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Fold.h"
 #include "Support/Report/Assert.h"
@@ -1783,6 +1784,25 @@ namespace
         MicroReg      tlsIdReg;
         SWC_RESULT(materializeNativeRuntimeContextTlsId(tlsIdReg, codeGen, *tlsAllocFunction));
 
+        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(tlsIdPlusOneReg, tlsIdReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+
+        const MicroReg      contextReg  = codeGen.nextVirtualIntRegister();
+        const MicroLabelRef haveContext = builder.createLabel();
+        if (codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows)
+        {
+            // Windows keeps the first 64 dynamic TLS slots in the TEB. Expansion
+            // slots and threads without a context still use the runtime helper.
+            const MicroLabelRef slowPath = builder.createLabel();
+            builder.emitCmpRegImm(tlsIdReg, ApInt(64, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, slowPath);
+            builder.emitLoadRegTlsSlot(contextReg, tlsIdPlusOneReg);
+            builder.emitCmpRegImm(contextReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, haveContext);
+            builder.placeLabel(slowPath);
+        }
+
         // The runtime creates a missing context itself, zeroed, so every call site passes the
         // slot alone.
         ABICall::PreparedArg directU64Arg;
@@ -1802,12 +1822,10 @@ namespace
         SWC_ASSERT(!tlsGetPtrRet.isVoid);
         SWC_ASSERT(!tlsGetPtrRet.isIndirect);
 
+        ABICall::materializeReturnToReg(builder, contextReg, tlsGetPtrCallConvKind, tlsGetPtrRet);
+        builder.placeLabel(haveContext);
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        ABICall::materializeReturnToReg(builder, resultPayload.reg, tlsGetPtrCallConvKind, tlsGetPtrRet);
-
-        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(tlsIdPlusOneReg, tlsIdReg, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegReg(resultPayload.reg, contextReg, MicroOpBits::B64);
         builder.emitLoadMemReg(resultPayload.reg, offsetof(Runtime::Context, runtimeTlsIdPlusOne), tlsIdPlusOneReg, MicroOpBits::B64);
         return Result::Continue;
     }

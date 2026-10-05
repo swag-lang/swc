@@ -351,7 +351,8 @@ impl AllocatorPage
     mtd liveCount()->u32
     {
         let remote = .remoteCount()
-        return .used > remote ? .used - remote : 0
+        let used   = atomicGet(&.used)
+        return used > remote ? used - remote : 0
     }
 
     mtd capacityBytes()->u64 => .areaEnd - .areaStart

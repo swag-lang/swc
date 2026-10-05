@@ -1747,7 +1747,10 @@ impl Allocator
     // Statistics and teardown
     // ###################################################################################
 
-    // Walks the pages this allocator holds. Exact when the caller is the only thread allocating.
+    // Returns the allocator's current memory usage.
+    //
+    // Counts are exact when no other thread modifies the allocator. Concurrent activity can make
+    // different counters reflect different instants.
     mtd stats()->AllocatorStats
     {
         var result: retval
@@ -1765,12 +1768,15 @@ impl Allocator
                 if page.state == AllocatorPageState.Free do
                     continue
 
-                let live = page.liveCount()
+                // Page retirement can reset the carved extent while statistics are read.
+                // Bound one live sample by one carved sample before subtracting them.
+                let carved = (atomicGet(&page.carved) - page.areaStart) / page.blockSize
+                let live   = Swag.min(cast(u64) page.liveCount(), carved)
                 result.countPage  += 1
                 result.countAlloc += live
-                result.sizeAlloc  += cast(u64) live * page.blockSize
-                result.countFree  += (page.carved - page.areaStart) / page.blockSize - live
-                result.sizeCached += page.capacityBytes() - cast(u64) live * page.blockSize
+                result.sizeAlloc  += live * page.blockSize
+                result.countFree  += carved - live
+                result.sizeCached += page.capacityBytes() - live * page.blockSize
             }
 
             segment = segment.nextSegment

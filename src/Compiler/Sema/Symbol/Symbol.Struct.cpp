@@ -253,47 +253,48 @@ namespace
         return kind == ImplicitDefaultKind::RequiresInit || kind == ImplicitDefaultKind::MixedRequiringInit;
     }
 
-    ImplicitDefaultKind combineImplicitDefaultKinds(const std::span<const ImplicitDefaultKind> childKinds)
+    struct ImplicitDefaultSummary
     {
-        if (childKinds.empty())
-            return ImplicitDefaultKind::AllZero;
+        bool                allZero      = true;
+        bool                requiresInit = false;
+        ImplicitDefaultKind lastKind     = ImplicitDefaultKind::AllZero;
 
-        bool allZero      = true;
-        bool requiresInit = false;
-        for (const ImplicitDefaultKind childKind : childKinds)
+        void add(ImplicitDefaultKind childKind)
         {
             allZero &= childKind == ImplicitDefaultKind::AllZero;
             requiresInit |= implicitDefaultKindRequiresInit(childKind);
+            lastKind = childKind;
         }
 
-        if (allZero)
-            return ImplicitDefaultKind::AllZero;
-        if (requiresInit)
-            return childKinds.size() == 1 && childKinds.front() == ImplicitDefaultKind::RequiresInit ? ImplicitDefaultKind::RequiresInit : ImplicitDefaultKind::MixedRequiringInit;
-        return ImplicitDefaultKind::Mixed;
-    }
+        ImplicitDefaultKind result(size_t childCount) const
+        {
+            if (allZero)
+                return ImplicitDefaultKind::AllZero;
+            if (requiresInit)
+                return childCount == 1 && lastKind == ImplicitDefaultKind::RequiresInit ? ImplicitDefaultKind::RequiresInit : ImplicitDefaultKind::MixedRequiringInit;
+            return ImplicitDefaultKind::Mixed;
+        }
+    };
 
     ImplicitDefaultKind classifyConstantChildrenImplicitDefault(Sema& sema, const std::span<const ConstantRef> childValues, const std::span<const TypeRef> childTypes)
     {
         if (childValues.size() != childTypes.size())
             return ImplicitDefaultKind::Mixed;
 
-        SmallVector<ImplicitDefaultKind> childKinds;
-        childKinds.reserve(childValues.size());
+        ImplicitDefaultSummary summary;
         for (size_t i = 0; i < childValues.size(); ++i)
-            childKinds.push_back(classifyConstantImplicitDefault(sema, childTypes[i], childValues[i]));
+            summary.add(classifyConstantImplicitDefault(sema, childTypes[i], childValues[i]));
 
-        return combineImplicitDefaultKinds(childKinds);
+        return summary.result(childValues.size());
     }
 
     ImplicitDefaultKind classifyRepeatedConstantImplicitDefault(Sema& sema, const std::span<const ConstantRef> childValues, const TypeRef childTypeRef)
     {
-        SmallVector<ImplicitDefaultKind> childKinds;
-        childKinds.reserve(childValues.size());
+        ImplicitDefaultSummary summary;
         for (const ConstantRef childValueRef : childValues)
-            childKinds.push_back(classifyConstantImplicitDefault(sema, childTypeRef, childValueRef));
+            summary.add(classifyConstantImplicitDefault(sema, childTypeRef, childValueRef));
 
-        return combineImplicitDefaultKinds(childKinds);
+        return summary.result(childValues.size());
     }
 
     ImplicitDefaultKind classifyConstantImplicitDefault(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
@@ -378,12 +379,11 @@ namespace
 
     ImplicitDefaultKind classifyAggregateTypeImplicitDefault(Sema& sema, const std::span<const TypeRef> childTypes)
     {
-        SmallVector<ImplicitDefaultKind> childKinds;
-        childKinds.reserve(childTypes.size());
+        ImplicitDefaultSummary summary;
         for (const TypeRef childTypeRef : childTypes)
-            childKinds.push_back(classifyTypeImplicitDefault(sema, childTypeRef));
+            summary.add(classifyTypeImplicitDefault(sema, childTypeRef));
 
-        return combineImplicitDefaultKinds(childKinds);
+        return summary.result(childTypes.size());
     }
 
     ImplicitDefaultKind classifyTypeImplicitDefault(Sema& sema, TypeRef typeRef)

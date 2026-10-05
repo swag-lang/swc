@@ -40,7 +40,6 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef exprRef = codeGen.resolvedNodeRef(nodeExprRef);
-    const AstNodeRef bodyRef = codeGen.resolvedNodeRef(nodeBodyRef);
     MicroBuilder&    builder = codeGen.builder();
 
     if (childRef == exprRef)
@@ -49,6 +48,7 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
         return Result::Continue;
     }
 
+    const AstNodeRef bodyRef = codeGen.resolvedNodeRef(nodeBodyRef);
     if (childRef == bodyRef)
     {
         CodeGenFrame frame = codeGen.frame();
@@ -123,7 +123,6 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef exprRef = codeGen.resolvedNodeRef(nodeExprRef);
-    const AstNodeRef bodyRef = codeGen.resolvedNodeRef(nodeBodyRef);
 
     if (childRef == exprRef)
     {
@@ -133,6 +132,7 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
         return Result::Continue;
     }
 
+    const AstNodeRef bodyRef = codeGen.resolvedNodeRef(nodeBodyRef);
     if (childRef == bodyRef)
     {
         SWC_RESULT(codeGen.popDeferScope());

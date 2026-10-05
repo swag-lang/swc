@@ -1637,11 +1637,13 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const
 }
 Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction* selectedFunction)
 {
-    MicroBuilder&      builder         = codeGen.builder();
-    const SemaNodeView currentTypeView = codeGen.curViewType();
-    SymbolFunction*    calledFunction  = nullptr;
+    MicroBuilder&   builder        = codeGen.builder();
+    SymbolFunction* calledFunction = nullptr;
     SWC_RESULT(resolveSelectedCallFunction(codeGen, calleeRef, selectedFunction, calledFunction));
     SWC_ASSERT(calledFunction != nullptr);
+    TypeRef nodePayloadTypeRef = calledFunction->returnTypeRef();
+    if (!nodePayloadTypeRef.isValid())
+        nodePayloadTypeRef = codeGen.curViewType().typeRef();
     const CallConvKind callConvKind = calledFunction->callConvKind();
     const CallConv&    callConv     = CallConv::get(callConvKind);
     // ABI return lowering must follow the callee signature. The expression type can be a
@@ -1670,9 +1672,8 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     SWC_RESULT(buildPreparedABIArguments(preparedArgs, codeGen, codeGen.curNodeRef(), *calledFunction, closureContextReg, args));
 
-    const IdentifierRef tlsGetValueId = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue);
     if (!callTargetReg.isValid() && codeGen.isNativeBuild() && codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows &&
-        calledFunction == codeGen.compiler().runtimeFunctionSymbol(tlsGetValueId))
+        calledFunction == codeGen.compiler().runtimeFunctionSymbol(codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue)))
     {
         // This internal runtime operation needs the value alone; unlike the
         // public Win32 binding, it has no GetLastError contract to preserve.
@@ -1734,9 +1735,6 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         builder.emitSanityRelease(callConv.intArgRegs[1], offsetof(Runtime::AllocatorRequest, address));
     }
 
-    TypeRef nodePayloadTypeRef = calledFunction->returnTypeRef();
-    if (!nodePayloadTypeRef.isValid())
-        nodePayloadTypeRef = currentTypeView.typeRef();
     CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), nodePayloadTypeRef);
     if (!normalizedRet.isVoid)
         nodePayload.reg = normalizedRet.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();

@@ -781,12 +781,13 @@ namespace
                 // def and starts a fresh value.
                 const bool selfUse = std::ranges::find(useDef->uses, destReg) != useDef->uses.end();
 
-                const bool eligible = isEligibleOpcode(inst->op) || isEligiblePairedComputeOpcode(inst->op);
+                const bool fullDefEligible = isEligibleOpcode(inst->op);
+                const bool eligible        = fullDefEligible || isEligiblePairedComputeOpcode(inst->op);
                 if (!eligible)
                     web.chainOk = false;
                 else if (selfUse)
                     slotIsCompute[i] = 1;
-                else if (isEligibleOpcode(inst->op))
+                else if (fullDefEligible)
                     slotIsFullDef[i] = 1;
                 else
                     web.chainOk = false; // a paired-compute opcode with no self-read defines from a carried value
@@ -802,14 +803,14 @@ namespace
 
             constexpr size_t K_MAX_WEB_DEFS = 32;
 
-            const auto webEligible = [&](const MicroReg reg) {
+            const auto eligibleWeb = [&](const MicroReg reg) -> const RegWeb* {
                 const auto it = websByReg.find(reg);
                 if (it == websByReg.end() || !it->second.chainOk)
-                    return false;
+                    return nullptr;
                 if (it->second.defSlots.size() > K_MAX_WEB_DEFS)
-                    return false;
+                    return nullptr;
                 const auto dc = definitions.find(reg);
-                return dc != definitions.end() && dc->second.count == it->second.defSlots.size();
+                return dc != definitions.end() && dc->second.count == it->second.defSlots.size() ? &it->second : nullptr;
             };
 
             std::unordered_set<uint32_t>              hoistSet;
@@ -819,11 +820,8 @@ namespace
             // The value a use reads at slot i is hoisted when every earlier def
             // of its register is: emission in listing order then reproduces it
             // in the preheader.
-            const auto acceptedPrefix = [&](const MicroReg reg, const uint32_t slot) {
-                const auto it = websByReg.find(reg);
-                if (it == websByReg.end())
-                    return false;
-                for (const uint32_t defSlot : it->second.defSlots)
+            const auto acceptedPrefix = [&](const RegWeb& web, const uint32_t slot) {
+                for (const uint32_t defSlot : web.defSlots)
                 {
                     if (defSlot >= slot)
                         break;
@@ -854,7 +852,10 @@ namespace
                             continue;
 
                         const MicroReg destReg = slotDefReg[i];
-                        if (!destReg.isValid() || banned.contains(destReg) || !webEligible(destReg))
+                        if (!destReg.isValid() || banned.contains(destReg))
+                            continue;
+                        const RegWeb* destWeb = eligibleWeb(destReg);
+                        if (!destWeb)
                             continue;
                         if (!slotIsFullDef[i] && !slotIsCompute[i])
                             continue;
@@ -863,12 +864,13 @@ namespace
                         // clone of a relocated load or address materialization
                         // takes the relocation over when it is emitted; any
                         // other relocated instruction stays where it is.
-                        if (firstRelocation.contains(ref.get()) && !isRelocatableHoist(inst->op))
+                        const auto relocationIt = firstRelocation.find(ref.get());
+                        if (relocationIt != firstRelocation.end() && !isRelocatableHoist(inst->op))
                             continue;
 
                         if (slotIsCompute[i])
                         {
-                            if (!acceptedPrefix(destReg, i))
+                            if (!acceptedPrefix(*destWeb, i))
                                 continue;
                         }
                         // Both a full definition such as an integer clear and
@@ -885,8 +887,7 @@ namespace
                         // register's final value path-dependent, which one
                         // preheader execution cannot reproduce. Every member
                         // must dominate every back-edge tail.
-                        const auto webIt = websByReg.find(destReg);
-                        if (webIt != websByReg.end() && webIt->second.defSlots.size() > 1)
+                        if (destWeb->defSlots.size() > 1)
                         {
                             bool dominatesTails = true;
                             for (const uint32_t t : loop->tails)
@@ -910,7 +911,8 @@ namespace
                                 continue; // the web's own previous value
                             if (!defsInLoop.contains(use))
                                 continue;
-                            if (banned.contains(use) || !webEligible(use) || !acceptedPrefix(use, i))
+                            const RegWeb* useWeb = banned.contains(use) ? nullptr : eligibleWeb(use);
+                            if (!useWeb || !acceptedPrefix(*useWeb, i))
                             {
                                 allInvariant = false;
                                 break;
@@ -926,7 +928,6 @@ namespace
                             const MicroInstrOperand* loadOps = inst->ops(operands);
                             if (!loadOps)
                                 continue;
-                            const auto relocationIt       = firstRelocation.find(ref.get());
                             const bool constantPoolVector = inst->op == MicroInstrOpcode::LoadRegMem &&
                                                             loadOps[1].reg.isInstructionPointer() &&
                                                             loadOps[2].opBits == MicroOpBits::B128 &&

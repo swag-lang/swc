@@ -234,7 +234,7 @@ namespace
             if (sourceRef.isInvalid())
             {
                 std::vector<std::byte> lowered(size, std::byte{0});
-                SWC_RESULT(ConstantLower::lowerToBytes(sema, lowered, valueRef, typeRef));
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, lowered, valueRef, type));
                 // Raw union bytes do not identify which writes established their pointers.
                 // Construction sites publish that inventory instead of guessing here.
                 if (ConstantHelpers::typeHasUnionStorage(sema.ctx(), type))
@@ -462,7 +462,7 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
 
     SmallVector<std::byte> storage(sizeOf);
     const std::span        storageSpan{storage.data(), storage.size()};
-    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
+    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageType) == Result::Continue);
 
     // Preserve alignment and register embedded pointer relocations. Interning raw
     // bytes would leave compiler-process addresses in the native executable.

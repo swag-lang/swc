@@ -401,7 +401,7 @@ namespace
         }
 
         std::vector valueBytes(sizeOf, std::byte{0});
-        SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, castRequest.constantFoldingSrc(), srcTypeRef));
+        SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, castRequest.constantFoldingSrc(), srcType));
 
         uint64_t       rawValue = 0;
         const uint64_t offset   = srcType.isInterface() ? offsetof(Runtime::Interface, itable) : 0;
@@ -1544,7 +1544,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             if (valueSize)
             {
                 std::vector valueBytes(valueSize, std::byte{0});
-                SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, castRequest.constantFoldingSrc(), srcTypeRef));
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, castRequest.constantFoldingSrc(), srcType));
                 const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
                 ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
             }

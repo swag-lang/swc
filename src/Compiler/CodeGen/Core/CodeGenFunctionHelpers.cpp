@@ -812,7 +812,7 @@ namespace
         }
         SmallVector<std::byte> payloadBytes;
         payloadBytes.resize(size);
-        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{payloadBytes.data(), payloadBytes.size()}, valueRef, typeRef));
+        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{payloadBytes.data(), payloadBytes.size()}, valueRef, typeInfo));
         const bool canEmitInline = canEmitDefaultPayloadBytesInline(codeGen, typeRef);
         if (CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, std::span{payloadBytes.data(), payloadBytes.size()}, canEmitInline))
             return Result::Continue;

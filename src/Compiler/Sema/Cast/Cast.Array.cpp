@@ -278,7 +278,8 @@ namespace
             const uint64_t                                     arraySize = args.dstType->sizeOf(ctx);
             ByteArray                                          buffer(arraySize);
             const std::span<std::byte>                         bytes           = buffer.span();
-            const uint64_t                                     subArraySize    = typeMgr.get(dstSubArrayType).sizeOf(ctx);
+            const TypeInfo&                                    subArrayType    = typeMgr.get(dstSubArrayType);
+            const uint64_t                                     subArraySize    = subArrayType.sizeOf(ctx);
             const bool                                         hasUnionStorage = ConstantHelpers::typeHasUnionStorage(ctx, *args.dstType);
             SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
             SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
@@ -294,7 +295,7 @@ namespace
                     return Result::Continue;
                 }
                 const std::span dstChunk{bytes.data() + (i * subArraySize), subArraySize};
-                SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
+                SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, subArrayType));
                 if (hasUnionStorage)
                     writes.push_back({.offset = i * subArraySize, .typeRef = dstSubArrayType, .valueRef = castedRef});
             }
@@ -468,7 +469,7 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
                 return Result::Continue;
             }
             const std::span dstChunk{bytes.data() + (i * laneBytes), laneBytes};
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, castedRef, laneTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, castedRef, typeMgr.get(laneTypeRef)));
         }
 
         castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, bytes);

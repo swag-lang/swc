@@ -127,7 +127,7 @@ namespace
         if (valueSize)
         {
             std::vector valueBytes(valueSize, std::byte{0});
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, srcCstRef, srcTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, srcCstRef, srcType));
             const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
             ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
         }
@@ -1082,7 +1082,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             else
             {
                 std::vector valueBytes(boxedValueSize, std::byte{0});
-                SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, boxedAnyTypeRef));
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, boxedAnyType));
                 SWC_RESULT(ConstantLower::materializeStaticPayload(sema, valueOffset, segment, boxedAnyType, std::span{valueBytes.data(), valueBytes.size()}));
             }
 

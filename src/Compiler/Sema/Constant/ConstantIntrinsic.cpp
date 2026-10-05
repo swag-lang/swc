@@ -112,16 +112,16 @@ namespace
         if (!resultType.isSimd())
             return Result::Continue;
 
-        const TypeRef  laneTypeRef = resultType.payloadSimdLaneTypeRef();
-        const uint32_t laneCount   = resultType.payloadSimdLaneCount();
-        const size_t   laneBytes   = 16 / laneCount;
+        const TypeInfo& laneType  = sema.typeMgr().get(resultType.payloadSimdLaneTypeRef());
+        const uint32_t  laneCount = resultType.payloadSimdLaneCount();
+        const size_t    laneBytes = 16 / laneCount;
 
         ByteArray                  buffer(16);
         const std::span<std::byte> bytes = buffer.span();
         for (uint32_t i = 0; i < laneCount; ++i)
         {
             const std::span dstChunk{bytes.data() + (i * laneBytes), laneBytes};
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, argView.cstRef(), laneTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, argView.cstRef(), laneType));
         }
 
         const ConstantRef cstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, resultTypeRef, bytes);

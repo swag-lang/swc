@@ -465,7 +465,7 @@ namespace
                 const std::span<std::byte> fieldBytes = dstBytes.subspan(fieldOffset, fieldSize);
                 if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
                 {
-                    SWC_RESULT(ConstantLower::lowerToBytes(sema, fieldBytes, valueRef, fieldTypeRef));
+                    SWC_RESULT(ConstantLower::lowerToBytes(sema, fieldBytes, valueRef, fieldType));
                 }
                 else if (fieldSize)
                 {

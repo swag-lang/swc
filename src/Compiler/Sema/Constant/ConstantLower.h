@@ -10,7 +10,7 @@ class TypeInfo;
 
 namespace ConstantLower
 {
-    Result lowerToBytes(Sema& sema, std::span<std::byte> dstBytes, ConstantRef cstRef, TypeRef dstTypeRef);
+    Result lowerToBytes(Sema& sema, std::span<std::byte> dstBytes, ConstantRef cstRef, const TypeInfo& dstType);
     Result lowerAggregateArrayToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values);
     Result lowerAggregateStructToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values);
     Result materializeStaticPayload(Sema& sema, uint32_t& outOffset, DataSegment& segment, const TypeInfo& typeInfo, std::span<const std::byte> srcBytes);

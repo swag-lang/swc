@@ -1504,7 +1504,7 @@ namespace
 
             const SemaNodeView srcConstView = codeGen.viewTypeConstant(srcNodeRef);
             const ConstantRef  nullCstRef   = srcConstView.cstRef().isValid() ? srcConstView.cstRef() : codeGen.cstMgr().cstNull();
-            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, nullCstRef, dstTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, nullCstRef, dstType));
 
             const ConstantRef         typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, std::span{typedNullBytes.data(), typedNullBytes.size()});
             const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);

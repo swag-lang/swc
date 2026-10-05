@@ -1025,10 +1025,10 @@ namespace
     }
 }
 
-Result ConstantLower::lowerToBytes(Sema& sema, std::span<std::byte> dstBytes, ConstantRef cstRef, TypeRef dstTypeRef)
+Result ConstantLower::lowerToBytes(Sema& sema, std::span<std::byte> dstBytes, ConstantRef cstRef, const TypeInfo& dstType)
 {
-    SWC_RESULT(lowerConstantToBytes(sema, dstBytes, sema.typeMgr().get(dstTypeRef), cstRef));
-    return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstTypeRef);
+    SWC_RESULT(lowerConstantToBytes(sema, dstBytes, dstType, cstRef));
+    return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstType.typeRef());
 }
 
 Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)

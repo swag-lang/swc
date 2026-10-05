@@ -1220,7 +1220,7 @@ namespace
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeTypeRef) == Result::Continue);
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeType) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 reserveJitFoldStorage(argStorage, argStorageSize);
@@ -1245,7 +1245,7 @@ namespace
 
             auto& argStorage = outArgStorage.emplace_back();
             reserveJitFoldStorage(argStorage, argStorageSize);
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueTypeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueType) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;
@@ -1297,8 +1297,9 @@ namespace
                 if (!pointeeTypeRef.isValid())
                     return Result::Continue;
 
-                const uint64_t pointeeByteSize = sema.typeMgr().get(receiverTypeRef).sizeOf(ctx);
-                const uint64_t argStorageSize  = argValueType.sizeOf(ctx);
+                const TypeInfo& receiverType    = sema.typeMgr().get(receiverTypeRef);
+                const uint64_t  pointeeByteSize = receiverType.sizeOf(ctx);
+                const uint64_t  argStorageSize  = argValueType.sizeOf(ctx);
                 if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
                     return Result::Continue;
                 if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
@@ -1309,7 +1310,7 @@ namespace
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
                 if (receiverInitCstRef.isValid())
-                    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, receiverInitCstRef, receiverTypeRef) == Result::Continue);
+                    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, receiverInitCstRef, receiverType) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 reserveJitFoldStorage(argStorage, argStorageSize);
@@ -1352,8 +1353,9 @@ namespace
                 if (!pointeeTypeRef.isValid())
                     return Result::Continue;
 
-                const uint64_t pointeeByteSize = sema.typeMgr().get(pointeeTypeRef).sizeOf(ctx);
-                const uint64_t argStorageSize  = argValueType.sizeOf(ctx);
+                const TypeInfo& pointeeType     = sema.typeMgr().get(pointeeTypeRef);
+                const uint64_t  pointeeByteSize = pointeeType.sizeOf(ctx);
+                const uint64_t  argStorageSize  = argValueType.sizeOf(ctx);
                 if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
                     return Result::Continue;
                 if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
@@ -1363,7 +1365,7 @@ namespace
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeTypeRef) == Result::Continue);
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeType) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 reserveJitFoldStorage(argStorage, argStorageSize);
@@ -1385,7 +1387,7 @@ namespace
 
             auto& argStorage = outArgStorage.emplace_back();
             reserveJitFoldStorage(argStorage, argStorageSize);
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueTypeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueType) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;

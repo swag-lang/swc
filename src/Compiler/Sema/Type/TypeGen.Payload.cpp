@@ -80,7 +80,7 @@ namespace
             return;
 
         std::vector valueBytes(valueSize, std::byte{0});
-        ConstantLower::lowerToBytes(sema, valueBytes, arg.cstRef, valueTypeRef);
+        ConstantLower::lowerToBytes(sema, valueBytes, arg.cstRef, valueType);
 
         uint32_t     valueOffset    = INVALID_REF;
         const Result materializeRes = ConstantLower::materializeStaticPayload(sema, valueOffset, storage, valueType, valueBytes);
@@ -527,7 +527,7 @@ namespace
             return;
 
         std::vector valueBytes(valueSize, std::byte{0});
-        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, boxedValueTypeRef) == Result::Continue);
+        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, boxedValueType) == Result::Continue);
 
         uint32_t valueOffset = INVALID_REF;
         SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(sema, valueOffset, storage, boxedValueType, std::span{valueBytes.data(), valueBytes.size()}) == Result::Continue);
@@ -646,7 +646,7 @@ namespace
             const ConstantValue& enumCst     = ctx.cstMgr().get(symValue->cstRef());
             const ConstantRef    rawValueRef = enumCst.isEnumValue() ? enumCst.getEnumValue() : symValue->cstRef();
             std::vector          valueBytes(valueSize, std::byte{0});
-            ConstantLower::lowerToBytes(sema, valueBytes, rawValueRef, rawTypeRef);
+            ConstantLower::lowerToBytes(sema, valueBytes, rawValueRef, rawType);
 
             uint32_t     valueOffset    = INVALID_REF;
             const Result materializeRes = ConstantLower::materializeStaticPayload(sema, valueOffset, storage, rawType, valueBytes);

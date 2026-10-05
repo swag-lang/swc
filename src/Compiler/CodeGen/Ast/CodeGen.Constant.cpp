@@ -189,7 +189,7 @@ namespace
         SmallVector<std::byte> storageBytes;
         storageBytes.resize(storageSize);
         if (storageSize)
-            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, storageType));
 
         emitPayloadBytesToAddress(codeGen, storageReg, std::span{storageBytes.data(), storageBytes.size()});
         payload.reg     = storageReg;
@@ -487,7 +487,7 @@ namespace
         SmallVector<std::byte> storageBytes;
         storageBytes.resize(storageSize);
         if (storageSize)
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, storageType) == Result::Continue);
 
         return CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span{storageBytes.data(), storageBytes.size()});
     }
@@ -571,7 +571,7 @@ namespace
                         SWC_ASSERT(sizeOfType <= std::numeric_limits<uint32_t>::max());
                         SmallVector<std::byte> typedNullBytes;
                         typedNullBytes.resize(sizeOfType);
-                        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef));
+                        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetType));
 
                         const ConstantRef    typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span{typedNullBytes.data(), typedNullBytes.size()});
                         const ConstantValue& typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
@@ -952,7 +952,7 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
             // ABI-direct address-backed values still need a typed zero storage, not a raw null pointer.
             SmallVector<std::byte> typedNullBytes;
             typedNullBytes.resize(sizeOfType);
-            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, codeGen.cstMgr().cstNull(), targetTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, codeGen.cstMgr().cstNull(), targetType));
 
             const ConstantRef         typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span{typedNullBytes.data(), typedNullBytes.size()});
             const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);

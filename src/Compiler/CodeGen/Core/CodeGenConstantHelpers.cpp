@@ -82,7 +82,7 @@ ConstantRef CodeGenConstantHelpers::ensureStaticPayloadConstant(CodeGen& codeGen
     SmallVector<std::byte> storageBytes;
     storageBytes.resize(sizeOf);
     if (sizeOf)
-        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, typeRef) == Result::Continue);
+        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, typeInfo) == Result::Continue);
 
     return materializeStaticPayloadConstant(codeGen, typeRef, std::span{storageBytes.data(), storageBytes.size()});
 }

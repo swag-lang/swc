@@ -114,7 +114,7 @@ namespace
 
                         SmallVector<std::byte> rawBytes;
                         rawBytes.resize(rawSize);
-                        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, cstRef, targetTypeRef) == Result::Continue);
+                        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, cstRef, targetType) == Result::Continue);
 
                         ConstantRef typedNullCstRef = ConstantRef::invalid();
                         if (targetType.isStruct() || targetType.isArray() || targetType.isAny() || targetType.isInterface() || targetType.isString() || targetType.isSlice())
@@ -212,7 +212,7 @@ namespace
 
             SmallVector<std::byte> rawBytes;
             rawBytes.resize(rawSize);
-            if (ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
+            if (ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageType) != Result::Continue)
                 return false;
 
             const ConstantRef materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span{rawBytes.data(), rawBytes.size()});
@@ -260,7 +260,7 @@ namespace
 
         SmallVector<std::byte> rawBytes;
         rawBytes.resize(rawSize);
-        if (ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
+        if (ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageType) != Result::Continue)
             return false;
 
         ConstantRef materializedCstRef = ConstantRef::invalid();

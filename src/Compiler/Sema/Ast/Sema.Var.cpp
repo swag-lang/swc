@@ -181,7 +181,7 @@ namespace
                 hasMaterializedUnionInitializer = true;
             }
             else
-                SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytes.span(), symVar.cstRef(), storageTypeRef));
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytes.span(), symVar.cstRef(), storageTypeInfo));
 
             if (!isCompilerGlobal && (!loweredBytes.allZero() || !initializerRelocations.empty()))
                 storageKind = DataSegmentKind::GlobalInit;

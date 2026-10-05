@@ -515,6 +515,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(stackAdjust, 64), MicroOp::Subtract, MicroOpBits::B64);
 
         ABICall::ArgRegisterState registerState;
+        ABICall::ArgStackState    stackState;
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
             const PreparedArg& arg      = args[i];
@@ -542,7 +543,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             }
 
             const MicroOpBits argBits     = preparedArgBits(arg);
-            const uint64_t    stackOffset = callArgStackOffset(conv, argLayouts, i);
+            const uint64_t    stackOffset = isRegArg ? callArgStackOffset(conv, argLayouts, i) : stackState.next(conv, argLayouts[i].numBits);
 
             switch (arg.kind)
             {

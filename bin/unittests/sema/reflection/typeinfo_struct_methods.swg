@@ -291,6 +291,25 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
 
 func compileTimeMethodReflectionWorks()->bool
 {
+    // Optional method addresses may be absent while their bodies are still being analyzed.
+    // Direct calls establish readiness before comparing the reflected signatures and calls.
+    var simple     = SimpleMethodProbe{value: 41}
+    let directPing = simple.ping()
+    Swag.assert(directPing == 42)
+
+    var generic    = GenericMethodProbe's32{value: 1}
+    let values     = [17, 1]
+    let directCopy = generic.copyFrom(values)
+    Swag.assert(directCopy == 17 and generic.value == 17)
+
+    var exported     = ExportedMethodProbe{value: 10}
+    let directScale  = ExportedMethodProbe.scaleValue(10, 3)
+    let directAdd    = exported.add(5)
+    let directScaled = exported.scaled(2)
+    let scorer: IExportedMethodScore = &exported
+    let directScore  = scorer.score(7)
+    Swag.assert(directScale == 30 and directAdd == 15 and directScaled == 30 and directScore == 22)
+
     var result = true
     result = hasExpectedMethodReflection(#typeof(HiddenMethodProbe), 0, "") and result
     result = hasExpectedMethodReflection(#typeof(SimpleMethodProbe), 1, "ping") and result

@@ -389,15 +389,17 @@ namespace
         if (!resolvedExprRef.isValid())
             return raiseInternalCodeGenError(codeGen, "cannot resolve the 'notnull' operand", ownerRef);
 
-        TypeRef exprTypeRef = codeGen.viewType(resolvedExprRef).typeRef();
+        const SemaNodeView exprView    = codeGen.viewType(resolvedExprRef);
+        TypeRef            exprTypeRef = exprView.typeRef();
         if (!exprTypeRef.isValid())
             return raiseInternalCodeGenError(codeGen, "missing the 'notnull' operand type", ownerRef);
 
-        const TypeRef unwrappedExprTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), exprTypeRef);
+        const TypeInfo& originalType         = *exprView.type();
+        const TypeRef   unwrappedExprTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
         if (unwrappedExprTypeRef.isValid())
             exprTypeRef = unwrappedExprTypeRef;
 
-        const TypeInfo&           exprType     = codeGen.typeMgr().get(exprTypeRef);
+        const TypeInfo&           exprType     = unwrappedExprTypeRef.isValid() ? codeGen.typeMgr().get(exprTypeRef) : originalType;
         const MicroOpBits         presenceBits = CodeGenTypeHelpers::compareBits(exprType, codeGen.ctx());
         const CodeGenNodePayload& exprPayload  = codeGen.payload(resolvedExprRef);
         const MicroReg            presenceReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, exprPayload, exprTypeRef, exprType, presenceBits);

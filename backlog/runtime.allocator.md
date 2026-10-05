@@ -1,139 +1,144 @@
 # Runtime Allocator Backlog
 
-This backlog tracks the work still required for the Swag runtime
-allocator to demonstrate performance and memory behavior comparable to the vendored
-[mimalloc](../src/Support/Memory/mimalloc/readme.md). Evidence, investigations, and intended
-outcomes stay together here. [README.md](README.md) has the whole layout. Completed work
-disappears from this file because its history lives in git.
+This backlog tracks the performance, memory, and safety contracts still required for the Swag
+runtime allocator to demonstrate behavior comparable to the vendored
+[mimalloc](../src/Support/Memory/mimalloc/readme.md). The C++ compiler already uses mimalloc
+through `src/Support/Memory/Allocator.cpp`. [README.md](README.md) defines the backlog format;
+completed implementation history lives in Git.
 
-The allocator now has two paths, and which one produced a block is recoverable from its address, so
-the two never have to be told apart by a flag. The page path serves requests up to 64 KiB with
-alignment at most 64 bytes: blocks are carved from segment pages, carry **no header at all**,
-and are recovered on free by
-masking the address down to its page. The header path serves larger blocks, over-aligned blocks, and
-every allocation made while a diagnostic mode is on.
+The page path serves requests up to 64 KiB with alignment at most 64 bytes. Blocks carry no
+header and recover their page from their address. Larger or over-aligned requests and diagnostic
+modes use the header path. There are 45 size classes from 8 bytes through 64 KiB, using 64 KiB
+or 512 KiB pages inside 4 MiB segments. Each thread heap has a current page per class, and local
+allocation/free lists avoid locks and atomics.
 
-The static review recorded on 2026-09-11 finds a modern small-allocation design, but no
-current evidence of parity with leading general-purpose allocators in performance consistency or
-hardening. This is the application runtime allocator; the C++ compiler already uses mimalloc
-through `src/Support/Memory/Allocator.cpp`. The subsequent health reset reproduced and fixed four allocation-contract defects;
-`native/runtime/allocator_contract.swg` covers those boundaries, and the 109 allocator cases
-pass in JIT and native execution under both program configurations. No new performance benchmark
-was run. Remaining code-derived leads require focused reproduction before implementation.
-
-There are 45 size classes from 8 bytes through 64 KiB. Classes use 64 KiB or 512 KiB pages inside
-4 MiB segments. Each thread heap has a current page per class, and cached local allocation/free
-manipulate blocks without locks or atomics. These are useful locality and metadata properties;
-preserve them while resolving the open contracts below.
-
-Historical measurements against the previous design on the same machine, alternating both binaries
-(before `bench/allocator` existed; every campaign now records the allocator — runtime.allocator.001):
-
-| workload | before | after |
-| --- | --- | --- |
-| allocate+free one 32-byte block | 4 297 ops/ms | 13 053 ops/ms |
-| allocate+free one 256-byte block | 3 785 ops/ms | 12 629 ops/ms |
-| 40 000 live 32-byte blocks, allocate | 4 896 us | 1 383 us |
-| 40 000 live 200-byte blocks, allocate | 8 991 us | 1 448 us |
-| random sizes and lifetimes, 2 M operations | 6 140 ops/ms | 18 317 ops/ms |
-| four threads, 400 000 operations | 102 381 us | 14 666 us |
-| producer/consumer remote free, 200 000 blocks | 122 110 us | 43 578 us |
-| working set per live 32-byte block | 144 bytes | 7 bytes |
-| peak working set over the whole probe | 24 088 KB | 6 384 KB |
-| address-space reservations over the whole probe | 442 | 1 |
-
-The remaining work below is what turns that into a measured allocator contract. The 77 ns pair
-and 10-20 ns mimalloc comparison in runtime.allocator.002 are historical, not evidence that the
-current allocator is four to eight times slower. The working-set figure below the requested
-payload size is not a physical cost per resident live object; the shared benchmark must touch
-payloads and separate working set, committed bytes, and reserved address space.
-
-Correctness and explicit safety contracts come before tuning. Use runtime.allocator.001 to decide
-whether to retain or replace the allocator from application results, rather than from architecture
-alone. Comparative reference points for that investigation:
-
-| Allocator | Relevant comparison |
-| --- | --- |
-| [mimalloc](https://github.com/microsoft/mimalloc) | The closest design and first Windows comparator: page-local free-list sharding and separate remote publication, described as a CAS operation. Compare secure mode separately from its ordinary build. |
-| [jemalloc](https://jemalloc.net/jemalloc.3.html) | Similar four-per-doubling size classes, with thread caches, configurable decay/purge and richer introspection. Compare retention and fragmentation as well as throughput. |
-| [TCMalloc](https://google.github.io/tcmalloc/design.html) | Per-CPU caches, batched transfers and a hugepage-aware backend are useful architectural reference points. Its [per-CPU restartable sequences](https://google.github.io/tcmalloc/rseq.html) use Linux facilities, so this is not a direct Windows backend comparison. |
-| [Scudo](https://llvm.org/docs/ScudoHardenedAllocator.html) and [hardened_malloc](https://github.com/GrapheneOS/hardened_malloc) | Hardening reference points for state/integrity checks, metadata isolation, randomization and quarantine. Features differ by allocator and configuration; do not imply all protections are enabled by default or provide complete memory safety. |
+Preserve allocation, failure, ownership, and diagnostic behavior while tuning. Measurements must
+touch payloads and distinguish working set, committed bytes, and reserved address space. Use
+runtime.allocator.001's comparable workloads and parity gate before deciding whether to retain or
+replace the allocator; a similar architecture alone does not establish comparable behavior.
 
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
-- Updated: 2026-10-04 15:06 — Distinguish historical call and guard costs from the shipped direct TLS and safety-gated paths.
-- October 4, retained worktree head `2aec348d6`, release `bench/allocator`, nine rotating rounds
-  against the session's original native executable: pair 25.233 -> 13.010 ns, trees
-  27.547 -> 18.993 ns, churn 47.975 -> 38.603 ns, grow 16.854 -> 10.903 ns; mimalloc
-  remains at 4.857 / 7.246 / 19.484 / 7.004 ns respectively. Remote transfers improve about
-  10% at both two and four producer/consumer pairs. This remains short of parity.
-- Open regression: `spread:8` is about 20% slower than the original executable in both the
-  nine-round campaign (1042.7 vs 864.6 ns) and a quiet fifteen-round repeat (834.4 vs 696.9 ns;
-  mimalloc 751.0 ns). Large-block throughput is essentially unchanged on repetition
-  (1800.6 vs 1788.9 ns), despite an 8.5% difference in the first window.
-- Evidence files on the measurement machine are under `%TEMP%/swc-runtime-allocator-20261004`:
-  `final-retained-results.json`, `final-variable-repeat.json`, and the original `baseline-dm`
-  and retained `final-retained-bench` executables. CPU admission preceded each window;
-  implementations ran in rotating order on the benchmark's performance-core affinity.
-- Next: isolate the `spread:8` regression across retained runtime/code-generation changes
-  and concurrent master integration, with A/A controls and separate thread-startup timing.
-  Do not infer a speedup merely from fewer instructions; several such candidates regressed.
-- October 3, `bench/allocator` (median of five rotating rounds, through `Memory.alloc`): pair
-  28.4 -> 26.5 ns, trees 34.4 -> 26.6 ns, churn 53.7 -> 49.2 ns, against 4.3 / 7.3 / 17.9 ns for
-  mimalloc and 29.9 / 44.3 / 68.3 ns for the C heap. Native binarytrees paired median 0.87.
-- `impl alloc` and `impl free` now try an inline path first (alignment up to 16, a page of the
-  calling thread, no diagnostic mode, `slowPath` caches the mode test) and leave everything else
-  to a non-inlined general path; panics moved out of line; page metadata is two cache lines.
-- Historical October 3 attribution before the direct TLS lowering: two `getContext` calls, two
-  interface calls, two `TlsGetValue` calls, and the prologues those calls force (five saved
-  registers in each entry point). A C probe prices `TlsGetValue` at 0.85 ns against 0.60 ns for
-  a direct `gs:[0x30]` TEB read, so a thread-block intrinsic would save about 1 ns per pair and
-  is not worth new language surface; a leaf entry point without any call is what would pay.
-- Campaign `20261002-201919` runs binarytrees in 16.0 ms under the swc JIT and 22.3 ms native,
-  while the JIT is about 14% slower than native over the other tasks. Under the JIT the context
-  allocator is the compiler's own mimalloc (`runtimeAllocatorAlloc`/`Free` in
-  `src/Main/CompilerInstance.cpp`, reached through a native interface adapter; alignment 16 goes
-  to `mi_malloc_aligned`), so that gap compares mimalloc with this allocator, not two code
-  generators.
-- Native pair as emitted by master `1898124b1` (binarytrees, release): `benchAlloc` calls
-  `__tlsGetPtr` (one `TlsGetValue` through the import thunk, then a store of the slot into the
-  context), then the interface `alloc` (a second `TlsGetValue` for the thread heap); `free` is
-  the same. Four `TlsGetValue`, two `__tlsGetPtr` frames and two indirect calls per pair. The
-  interface `alloc` saved six registers and a frame pointer, `free` six and a frame pointer,
-  `__tlsGetPtr` two and a frame pointer, and every C call was bracketed by `sub/add rsp, 0x28`:
-  stack-adjust normalization gave up whenever a call ran above the deepest scope. On
-  `perf/prompt2-alloc-20261003` (`051f0f056`) a call whose own `sub` reserves only shadow space
-  and alignment pad moves to the frame depth: `alloc` saves three registers, `free` four,
-  `__tlsGetPtr` one, none keeps a frame pointer; in the whole binary frame-pointer setups go
-  20 -> 1 and calls preceded by `sub rsp` 146 -> 4; the bench functions themselves are
-  unchanged. Four A/B windows taken under heavy foreign load (A/A interquartile ranges of 5-20%,
-  every task 1.2-3x its usual time) gave binarytrees B/A medians 1.038, 1.038, 1.088 and 1.057
-  (60 rounds, p25 1.020, control 1.000), with the candidate's minimum slower each time and every
-  other task inside its control. `bench/allocator` under the same load contradicted itself
-  (pair +8% then +7%, trees +8% then -5%). Not integrated: benefit not established and a
-  binarytrees slowdown is likely although the fast paths only lost instructions. Re-measure in
-  a quiet window; if it reproduces, separate layout (the hot runtime functions all moved by
-  16-64 bytes) from the frames before keeping or reverting the rule.
-- Historical October 3 safety-enabled fast-path costs beyond code generation: encoded free-list
-  links, the freed-block canary written on free and checked on allocation, `looksFree` and the
-  block-index (multiply/rotate) check on every free, the arena range test in `allocatorPageOf`,
-  and two thread-slot lookups where mimalloc reads one static TLS slot. The canary, apparent-free
-  test and block-index validation now run only under memory safety
-  (runtime.allocator.010); encoded links remain in both configurations. October 4 also lowered
-  runtime TLS reads directly to Windows slots and inlined the Core allocation/free wrappers
-  (`2f353d606`, `d7bbede9b`). Reinspect current native code before attributing the remaining
-  October 4 throughput gap to the earlier call sequence.
-- Release without the allocator checks (runtime.allocator.010), same compiler, three controlled
-  windows: binarytrees B/A 0.984, 0.987 and 0.968 against controls 1.029, 0.999 and 1.001, so
-  the checks were about 3% of the task, not the distance to mimalloc. leven, whose timed loop
-  never allocates, read 1.072, 1.056 and 1.053: its main function kept its size but moved from
-  48 to 16 modulo 64 because the runtime before it shrank, a placement effect.
-- Next: once the backend can keep a call-free fast path a leaf (no callee-saved spills on the
-  common path), re-measure pair/trees; otherwise look at `Memory.alloc`'s request setup.
+- Updated: 2026-10-05 11:56 — Re-measure the integrated allocator and narrow the remaining dispatch and thread-lifecycle costs.
+- Current evidence: October 5, `ce481db14`, release `bench/allocator`, eleven rotating rounds
+  per workload, pinned to the benchmark's performance cores. The session-start executable is
+  measured twice as an A/A control. CPU was at most 15% at admission and after each accepted
+  window, with the normal memory-headroom checks; these checks do not eliminate scheduling,
+  frequency, or code-placement variation. Values are medians in ns/op:
+
+| Workload | Before | Integrated | A/A control | mimalloc |
+| --- | ---: | ---: | ---: | ---: |
+| pair | 16.7 | 11.4 | 16.0 | 5.8 |
+| trees | 23.6 | 18.4 | 25.4 | 10.0 |
+| churn | 42.4 | 38.4 | 42.7 | 21.1 |
+| medium | 50.2 | 43.9 | 49.2 | 51.4 |
+| large | 2337.8 | 2328.9 | 2319.9 | 1957.3 |
+| realloc | 11288.6 | 11598.4 | 11746.1 | 10745.7 |
+| spread | 2533.3 | 2725.0 | 2950.0 | 2776.7 |
+| grow | 11.3 | 9.8 | 11.4 | 7.0 |
+| spread:8 | 671.9 | 702.1 | 843.8 | 731.5 |
+| churn:4 | 17.8 | 16.3 | 17.8 | 9.0 |
+| medium:4 | 30.5 | 28.2 | 28.3 | 18.5 |
+| large:4 | 1308.5 | 1298.2 | 1284.6 | 812.6 |
+| xfer:2 | 84.0 | 82.2 | 86.3 | 81.2 |
+| xfer:4 | 76.9 | 74.3 | 73.0 | 68.5 |
+
+- The scalar Core allocation path and direct initialized-context TLS read reduce the frequent
+  small-allocation costs, but pair, trees, churn, and concurrent large blocks remain materially
+  slower than mimalloc. The final/mimalloc geometric mean is 1.315 across these fourteen
+  workloads, short of the 1.10 gate. Separate nine-round scalar-path and fifteen-round context-path windows
+  reproduce the small-allocation gains; the final comparison also includes master integration.
+  Large blocks and realloc do not establish a repeatable speedup. `spread` and `spread:8` have
+  substantial A/A variation; do not attribute their final difference to the allocator alone.
+  `large:4` peaks at about 118 MiB working set versus 237 MiB for mimalloc; that tradeoff does
+  not establish idle retention, which remains to be measured.
+- Reinspect the emitted fast path before changing policy. `Memory.free` still initializes an
+  `AllocatorRequest` and dispatches through `IAllocator.free`; the native pair loop contains six
+  16-byte zero stores followed by field/default writes before that call. Both allocation and
+  free read the context, and allocator page lookup uses its own TLS slot. The common allocation
+  path is already inline and reads ordinary Windows TLS slots directly.
+- A direct scalar free must preserve the compiler's lifetime proof. The interface call emits
+  `SanityRelease` for `request.address`; merely calling `freeFast` would lose that release
+  boundary and can suppress use-after-free/double-free diagnostics. Establish the release
+  summary/contract before replacing dispatch, and cover both allocator implementations and
+  cross-module calls. Related compiler work: compiler.optimization.113 and compiler.optimization.114.
+- Rejected leads: releasing the segment mutex around OS commit, releasing the large-block cache
+  mutex around OS free, and outlining Core's allocation fallback did not give a repeatable net
+  benefit. The last candidate reduced `Allocator.run` from 4,881 to 3,896 bytes, but a
+  twenty-one-round repeat with an independently rebuilt baseline removed its apparent benefit.
+- Evidence on the measurement machine: `%TEMP%/swc-runtime-allocator-20261005/`, especially
+  `final-all.json`, `scalar-selected-all.json`, `context-repeat.json`, `outlined-repeat.json`,
+  `final-run-asm.txt`, and `thread-cost/results.json`. `heap-fixed-bench/swag/allocator.exe` is
+  both baseline and control; `final-current/swag/allocator.exe` is the integrated executable;
+  `scalar-alloc-fixed/allocbench_mimalloc.exe` is the unchanged comparator.
+- Application check: two thirty-one-round native `binarytrees` windows with the compiler before
+  and after direct context TLS lowering gave 15.26 -> 14.30 ms (A/A 15.02), then
+  16.03 -> 16.30 ms (A/A 18.78). The second window is too variable to establish an application
+  speedup. Keep that limit separate from the repeated allocator gains; raw results are in
+  `context-application/results.json` and `results-repeat.json` under the same evidence directory.
+- Next: separate thread lifecycle from allocation work in the short spread workload
+  (runtime.allocator.001), then reduce free-request/dispatch cost with preserved lifetime
+  semantics. Retain only improvements that exceed A/A variation on repeated allocator and
+  application measurements; preserve custom allocators, diagnostic modes, and failure behavior.
 - Complete when: generated-code attribution and comparable application/allocator measurements
-  establish the remaining policy, preserving lifetime and error behavior.
-- Related: runtime.allocator.001.
+  establish the remaining policy under runtime.allocator.001's throughput and retention gate.
+
+### runtime.allocator.001 — Complete comparable allocator workload and retention measurements
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-10-05 11:56 — Separate spread workload execution from thread lifecycle and remove completed benchmark scope.
+- `bench/allocator/src/allocbench.swg` and `allocbench.c` provide fourteen single-thread and
+  concurrent workloads, including live-set growth without frees. The harness records medians,
+  peak working set, and peak commit in fresh pinned processes and rotates implementation order.
+  The remaining scope is operation-level p50/p99 latency, OS-call counts, retained memory after
+  idle and `trim()`, aligned 32/64-byte requests, and representative application traces.
+- Timing boundary: both programs start the clock before thread creation. Swag uses suspended
+  creation, resume, inherited context setup, and per-thread wait/handle close; C starts threads
+  immediately and stops after a combined wait without closing their handles inside the interval.
+  `spread` performs only 120 allocations per worker. Its end-to-end result is therefore a cold
+  allocator plus thread-lifecycle measurement, not steady-state allocation throughput.
+- October 5 probe: thirty-one rotating rounds at one/eight threads, including the same Swag
+  executable twice. Each worker also times its workload body; the empty variant immediately
+  returns the same nominal operation count. Medians in microseconds:
+
+| Threads | Probe | Wall time | Maximum worker body |
+| ---: | --- | ---: | ---: |
+| 1 | swag_full | 260.0 | 80.0 |
+| 1 | swag_control | 281.0 | 85.0 |
+| 1 | swag_empty | 182.0 | 0.0 |
+| 1 | mimalloc_full | 278.5 | 156.0 |
+| 1 | mimalloc_empty | 135.3 | 0.3 |
+| 8 | swag_full | 946.0 | 271.0 |
+| 8 | swag_control | 834.0 | 260.0 |
+| 8 | swag_empty | 649.0 | 4.0 |
+| 8 | mimalloc_full | 907.3 | 481.7 |
+| 8 | mimalloc_empty | 463.2 | 0.4 |
+
+- A second scratch probe repeats the same spread body 10,000 times per worker, amortizing
+  startup over 1.2 million allocation/free pairs. Fifteen rotating rounds, medians in ns/pair:
+
+| Repeated workload | Swag | A/A control | mimalloc |
+| --- | ---: | ---: | ---: |
+| spread | 19.3 | 19.1 | 25.4 |
+| spread:8 | 26.0 | 21.1 | 9.1 |
+
+- This repeated variant changes page/cache reuse and has no synchronized worker start, so it
+  complements the original cold workload rather than replacing its result. Raw accepted samples
+  and matching C/Swag sources are in `warm-spread/` under the evidence directory.
+- The empty variant changes the executed allocator work and generated layout; its result is a
+  lifecycle control, not an exact subtractable allocator cost. Worker intervals overlap, and
+  timing their maximum does not measure a synchronized steady-state phase. Sources, build logs,
+  samples, and the probe script live under `%TEMP%/swc-runtime-allocator-20261005/thread-cost/`
+  and `probe_thread_cost.py` in the parent directory.
+- Next: preserve the existing end-to-end metric and add separately reported worker timing plus
+  a synchronized, repeated allocation phase that amortizes thread startup. Match lifecycle and
+  cleanup boundaries in the Swag and C harnesses before using a short workload to select an
+  allocator change. Then add latency percentiles and the missing retention/alignment workloads.
+- Parity gate: geometric-mean throughput within 10% of mimalloc, no representative workload
+  more than 25% slower, and no unbounded retained-memory case.
+- Complete when: repeated comparable results cover the listed workloads and parity gate, with
+  application time, latency tails, retention, build settings, and measurement limits recorded.
 
 ### runtime.allocator.010 — Decide what the security properties are, and write them down
 
@@ -248,28 +253,6 @@ alone. Comparative reference points for that investigation:
 - Complete when: the selected synchronization policy has contention and p99 evidence plus
   concurrent retirement/adoption regression coverage.
 - Related: runtime.allocator.001, runtime.allocator.003.
-
-### runtime.allocator.001 — Add a reproducible allocator benchmark suite
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-03 08:24 — `bench/allocator` exists and every campaign records it against mimalloc and the C heap.
-- `bench/allocator/src/allocbench.swg` and `allocbench.c` run thirteen identical workloads (pair,
-  trees, mixed churn, 4-64 KiB and 64 KiB-1 MiB live sets, realloc growth, a spread of live sizes,
-  multi-thread churns, producer/consumer remote frees). The campaign's execution phase builds the
-  C program over the vendored mimalloc and over the C heap, runs each workload in fresh pinned
-  processes in rotating order, and records medians, peak working set and peak commit;
-  `history.py` keeps the geometric means of Swag's ratios, and `bench.html` draws them.
-  `bench/allocator/run.py` does the same without recording, with `--against` for an earlier build.
-- Still missing from the original scope: p50/p99 latency per operation, OS-call counts and
-  retained memory after idle and after `trim()`, aligned (32/64-byte) workloads, live-set growth
-  without frees, and application traces. The parity gate below is not met yet.
-- Define the parity gate before tuning: a geometric-mean throughput within 10% of mimalloc, no
-  representative workload more than 25% slower, and no unbounded retained-memory case.
-- Next: add latency percentiles and the missing workloads to `allocbench`, keeping the same
-  output contract so the history stays continuous.
-- Complete when: repeated comparable results cover the listed workloads and the existing parity
-  gate, with application time, latency tails, retention, build settings and measurement limits
-  recorded.
 
 ### runtime.allocator.017 — Medium pages commit all eight units for their first block
 

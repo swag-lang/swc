@@ -545,13 +545,10 @@ namespace
                     continue;
                 for (const MicroReg def : useDef->defs)
                     defsInLoop.insert(def);
-                uint8_t baseOperandIndex = 0;
-                if (MicroPassHelpers::dereferenceBaseOperandIndex(baseOperandIndex, inst->op, MicroInstr::info(inst->op)))
-                {
-                    const MicroInstrOperand* instOps = inst->ops(operands);
-                    if (instOps)
-                        dereferenceBasesInLoop.insert(instOps[baseOperandIndex].reg);
-                }
+                uint8_t                  baseOperandIndex = 0;
+                const MicroInstrOperand* memoryOps        = MicroPassHelpers::dereferenceBaseOperandIndex(baseOperandIndex, inst->op, MicroInstr::info(inst->op)) ? inst->ops(operands) : nullptr;
+                if (memoryOps)
+                    dereferenceBasesInLoop.insert(memoryOps[baseOperandIndex].reg);
                 if (useDef->isCall || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 {
                     if (callDoesNotWrite(instrRefs[i], inst->op))
@@ -569,10 +566,9 @@ namespace
                         directStoreTargets.insert(relocationKey(relocations[index]));
                 }
                 // So does one writing through a register that holds a private global's address.
-                if (uint8_t writeBaseIndex = 0; MicroPassHelpers::dereferenceBaseOperandIndex(writeBaseIndex, inst->op, MicroInstr::info(inst->op)))
+                if (memoryOps)
                 {
-                    const MicroInstrOperand* writeOps = inst->ops(operands);
-                    if (const auto privateBase = writeOps ? privateGlobalBases.find(writeOps[writeBaseIndex].reg) : privateGlobalBases.end(); privateBase != privateGlobalBases.end())
+                    if (const auto privateBase = privateGlobalBases.find(memoryOps[baseOperandIndex].reg); privateBase != privateGlobalBases.end())
                         directStoreTargets.insert(privateBase->second);
                 }
                 if (isStackOnlyWrite(inst->op))
@@ -689,7 +685,7 @@ namespace
 
                 const MicroReg induction = baseVaries ? innerBase : innerIndex;
                 const MicroReg fixed     = baseVaries ? innerIndex : innerBase;
-                if (!fixed.isVirtualInt() || defsInLoop.contains(fixed))
+                if (!fixed.isVirtualInt())
                     continue;
 
                 // A constant offset belongs in the displacement, which costs no

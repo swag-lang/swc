@@ -24,8 +24,8 @@ namespace
 {
     TypeRef resolveDerefResultTypeRef(CodeGen& codeGen, const TypeInfo& operandType)
     {
-        const TypeRef   unwrappedTypeRef = operandType.isAlias() || operandType.isEnum() ? operandType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-        const TypeInfo& pointerType      = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : operandType;
+        const TypeInfo* unwrappedType = operandType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& pointerType   = unwrappedType ? *unwrappedType : operandType;
         return pointerType.dereferenceTypeRef(codeGen.ctx());
     }
 
@@ -46,14 +46,10 @@ namespace
         info.childPayload    = &codeGen.payload(nodeExprRef);
         info.storageTypeRef  = info.childPayload->typeRef.isValid() ? info.childPayload->typeRef : codeGen.viewType(nodeExprRef).typeRef();
         info.storageTypeInfo = &codeGen.typeMgr().get(info.storageTypeRef);
-        if (info.storageTypeInfo->isAlias() || info.storageTypeInfo->isEnum())
+        if (const TypeInfo* storageType = info.storageTypeInfo->unwrapAliasEnumType(codeGen.ctx()))
         {
-            const TypeRef unwrappedTypeRef = info.storageTypeInfo->unwrapAliasEnum(codeGen.ctx());
-            if (unwrappedTypeRef.isValid())
-            {
-                info.storageTypeRef  = unwrappedTypeRef;
-                info.storageTypeInfo = &codeGen.typeMgr().get(unwrappedTypeRef);
-            }
+            info.storageTypeRef  = storageType->typeRef();
+            info.storageTypeInfo = storageType;
         }
         info.resultTypeRef = codeGen.curViewType().typeRef();
         info.opBits        = CodeGenTypeHelpers::compareBits(*info.storageTypeInfo, codeGen.ctx());

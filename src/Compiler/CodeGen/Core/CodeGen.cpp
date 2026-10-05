@@ -1896,8 +1896,8 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& ty
     const TypeInfo* registerType = &typeInfo;
     if (registerType->isAlias())
     {
-        const TypeRef resolvedTypeRef = registerType->unwrapAliasEnum(ctx(), typeRef);
-        registerType                  = &typeMgr().get(resolvedTypeRef);
+        const TypeInfo* resolvedType = registerType->unwrapAliasEnumType(ctx());
+        registerType                 = resolvedType ? resolvedType : &typeMgr().get(typeRef);
     }
 
     if (registerType->isFloat() || registerType->isSimd())

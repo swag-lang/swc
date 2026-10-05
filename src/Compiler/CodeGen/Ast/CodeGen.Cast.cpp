@@ -335,10 +335,10 @@ namespace
         SWC_ASSERT(readTypeInfo && !readTypeInfo->isReference());
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeRef     resolvedReadTypeRef = readTypeInfo->isAlias() || readTypeInfo->isEnum() ? readTypeInfo->unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-        const TypeInfo&   readType            = resolvedReadTypeRef.isValid() ? typeMgr.get(resolvedReadTypeRef) : *readTypeInfo;
-        const MicroOpBits directBits          = CodeGenTypeHelpers::scalarStoreBits(readType, codeGen.ctx());
-        MicroBuilder&     builder             = codeGen.builder();
+        const TypeInfo*   resolvedReadType = readTypeInfo->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&   readType         = resolvedReadType ? *resolvedReadType : *readTypeInfo;
+        const MicroOpBits directBits       = CodeGenTypeHelpers::scalarStoreBits(readType, codeGen.ctx());
+        MicroBuilder&     builder          = codeGen.builder();
         if (directBits != MicroOpBits::Zero)
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -398,10 +398,10 @@ namespace
         SWC_ASSERT(readTypeInfo);
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeRef     resolvedReadTypeRef = readTypeInfo->isAlias() || readTypeInfo->isEnum() ? readTypeInfo->unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-        const TypeInfo&   readType            = resolvedReadTypeRef.isValid() ? typeMgr.get(resolvedReadTypeRef) : *readTypeInfo;
-        const MicroOpBits srcOpBits           = CodeGenTypeHelpers::numericOrBoolBits(readType);
-        const MicroOpBits dstOpBits           = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+        const TypeInfo*   resolvedReadType = readTypeInfo->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&   readType         = resolvedReadType ? *resolvedReadType : *readTypeInfo;
+        const MicroOpBits srcOpBits        = CodeGenTypeHelpers::numericOrBoolBits(readType);
+        const MicroOpBits dstOpBits        = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
         SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
         if (srcOpBits == MicroOpBits::Zero || dstOpBits == MicroOpBits::Zero)

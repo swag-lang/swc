@@ -76,9 +76,9 @@ namespace CodeGenTypeHelpers
     {
         if (typeInfo.isAlias())
         {
-            const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(ctx);
-            SWC_ASSERT(storageTypeRef.isValid());
-            return scalarStoreBits(ctx.typeMgr().get(storageTypeRef), ctx);
+            const TypeInfo* storageType = typeInfo.unwrapAliasEnumType(ctx);
+            SWC_ASSERT(storageType);
+            return scalarStoreBits(*storageType, ctx);
         }
 
         const MicroOpBits bits = numericOrBoolBits(typeInfo);

@@ -480,9 +480,12 @@ namespace ModuleApi
         // Build + write each whole-file export in parallel (each targets a distinct file).
         std::vector wholeExportResults(wholeExports.size(), Result::Continue);
         jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(wholeExports.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
-            const WholeFileExport& we      = wholeExports[i];
-            const Utf8             content = buildExportedModuleApiContent(workerCtx, *we.file, moduleNamespace.view(), we.hasModuleNamespace);
-            wholeExportResults[i]          = writeModuleApiFile(workerCtx, we.dstPath, content.view());
+            const WholeFileExport& we = wholeExports[i];
+            wholeExportResults[i]     = ModuleApiExport::validateWholeFileFunctionBodies(workerCtx, *we.file);
+            if (wholeExportResults[i] != Result::Continue)
+                return;
+            const Utf8 content    = buildExportedModuleApiContent(workerCtx, *we.file, moduleNamespace.view(), we.hasModuleNamespace);
+            wholeExportResults[i] = writeModuleApiFile(workerCtx, we.dstPath, content.view());
         });
         for (const Result r : wholeExportResults)
             if (r != Result::Continue)

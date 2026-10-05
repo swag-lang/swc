@@ -264,6 +264,20 @@ impl Hidden
 }
 )",
          "is not exposed by the module API"},
+        {"ImplicitReceiver", R"(#global public
+struct Value { value = 42 }
+impl Value
+{
+    #[Swag.Inline]
+    mtd read()->s32 => me.value
+    #[Swag.Inline]
+    mtd exposed()->s32 => .read()
+}
+)",
+         {},
+         "=> .read()",
+         "static-library",
+         "var value: Value\n    discard value.exposed()"},
         {"Intrinsic", R"(#global public
 #[Swag.Inline]
 func exposed()->*Swag.Context => Swag.getContext()
@@ -396,6 +410,56 @@ func exposed(value: s32)->s32 => helper(value)
             std::println(stderr, "[inline API consumer {}] {}", test.name, result.output);
             return Result::Error;
         }
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WholeFileBodyExportContract)
+{
+    ApiPublicationTestDirectory directory("WholeFileBodies");
+    const fs::path              api = directory.path() / "api";
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "src" / "provider.swg", "#global export\nfunc exposed(value: s32)->s32 => helper(value)\n"));
+    const fs::path helper = directory.path() / "src" / "helper.swg";
+    SWC_RESULT(CompilerTestFile::writeText(helper, "internal func helper(value: s32)->s32 => value + 1\n"));
+
+    const std::vector<Utf8> args = {"sema", "--module", Utf8(directory.path().string()), "--module-namespace", "WholeApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 15000;
+    result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode == 0 ||
+        result.output.find("cannot export the body of function 'WholeApi.exposed'") == std::string::npos ||
+        result.output.find("symbol 'WholeApi.helper' is not exposed by the module API") == std::string::npos ||
+        result.output.find("referenced symbol 'WholeApi.helper' is declared here") == std::string::npos ||
+        result.output.find("helper.swg:1:") == std::string::npos ||
+        result.output.find("use '#global public' to publish declarations") == std::string::npos)
+    {
+        std::println(stderr, "[whole-file API rejection] {}", result.output);
+        return Result::Error;
+    }
+
+    // An internal dependency can stay internal when its source travels with the API.
+    SWC_RESULT(CompilerTestFile::writeText(helper, "#global export\ninternal func helper(value: s32)->s32 => value + 1\n"));
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), args, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[whole-file API dependency] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, "#main { Swag.assert(WholeApi.exposed(41) == 42) }\n"));
+    const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8((api / "provider.swg").string()), "--import-api-file", Utf8((api / "helper.swg").string())};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[whole-file API consumer] {}", result.output);
+        return Result::Error;
     }
 }
 SWC_TEST_END()

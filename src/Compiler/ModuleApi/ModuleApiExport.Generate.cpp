@@ -58,20 +58,22 @@ namespace
         }
     }
 
-    bool isGeneratedInlineBodySymbolAvailable(TaskContext& ctx, const SymbolFunction& function, const Symbol& symbol)
+    bool isExportedBodySymbolAvailable(TaskContext& ctx, const SymbolFunction& function, const Symbol& symbol)
     {
         // Namespace paths are reconstructed around the generated declarations, independently
         // of the access recorded on the namespace symbol itself.
         if (symbol.isNamespace())
             return true;
-        if (!isCurrentModuleSymbol(ctx.compiler(), symbol) || isWholeFileExportedSymbol(ctx.compiler(), symbol))
-            return true;
 
+        // Parameters also occur in inlined bodies. Their implicit 'me' has no source
+        // declaration, but is reconstructed with the function that owns it.
         if (const auto* variable = symbol.safeCast<SymbolVariable>())
         {
-            if (variable->isFunctionLocalVariable(function) || function.containsLocalVariable(*variable))
+            if (variable->hasExtraFlag(SymbolVariableFlagsE::Parameter) || variable->isFunctionLocalVariable(function) || function.containsLocalVariable(*variable))
                 return true;
         }
+        if (!isCurrentModuleSymbol(ctx.compiler(), symbol) || isWholeFileExportedSymbol(ctx.compiler(), symbol))
+            return true;
 
         // A field, a member constant and an enum value travel with the type that declares them,
         // and the body is re-emitted in that same generated file, so it reads them exactly as it
@@ -98,48 +100,47 @@ namespace
         return symbol.isPublic();
     }
 
-    Result reportInlineBodyExportError(TaskContext& ctx, const SymbolFunction& function, const SourceCodeRange& range, std::string_view because, const Symbol* referencedSymbol = nullptr)
+    Result reportFunctionBodyExportError(TaskContext& ctx, const SymbolFunction& function, const SourceCodeRange& range, std::string_view because, DiagnosticId diagnosticId, const Symbol* referencedSymbol = nullptr)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_inline_body_not_exportable, ctx.compiler().srcView(function.srcViewRef()).fileRef());
+        Diagnostic diag = Diagnostic::get(diagnosticId, ctx.compiler().srcView(function.srcViewRef()).fileRef());
         diag.addArgument(Diagnostic::ARG_SYM, function.getFullScopedName(ctx));
         diag.addArgument(Diagnostic::ARG_BECAUSE, because);
         diag.last().addSpan(range, "", DiagnosticSeverity::Error);
         if (referencedSymbol)
-            diag.last().addSpan(referencedSymbol->codeRange(ctx), "referenced symbol is declared here", DiagnosticSeverity::Note);
+        {
+            diag.addNote(DiagnosticId::cmd_note_api_dependency_declared_here);
+            diag.last().addArgument(Diagnostic::ARG_TARGET, referencedSymbol->getFullScopedName(ctx));
+            diag.last().addSpan(referencedSymbol->codeRange(ctx));
+        }
         diag.report(ctx);
         return Result::Error;
     }
 
-    Result validateGeneratedInlineBody(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const SymbolFunction& function)
+    Result validateExportedFunctionBody(TaskContext& ctx, const SourceFile& file, const SymbolFunction& function, DiagnosticId diagnosticId)
     {
         const auto* functionDecl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
-        if (!root.file || !functionDecl || functionDecl->nodeBodyRef.isInvalid())
-            return reportInlineBodyExportError(ctx, function, function.codeRange(ctx), "the function has no body");
+        if (!functionDecl || functionDecl->nodeBodyRef.isInvalid())
+            return reportFunctionBodyExportError(ctx, function, function.codeRange(ctx), "the function has no body", diagnosticId);
 
         Result     result = Result::Continue;
-        const Ast& ast    = root.file->ast();
+        const Ast& ast    = file.ast();
         Ast::visit(ast, functionDecl->nodeBodyRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
-            const NodePayload::StoredView view        = root.file->nodePayloadContext().viewStored(ctx, nodeRef);
-            const Symbol*                 unavailable = nullptr;
-            if (view.hasSymbolList)
+            const NodePayload::ResolvedSymbols resolved    = file.nodePayloadContext().resolveSymbols(nodeRef);
+            const Symbol*                      unavailable = nullptr;
+            for (const Symbol* symbol : resolved.symbols)
             {
-                for (const Symbol* symbol : view.symList)
+                if (symbol && !isExportedBodySymbolAvailable(ctx, function, *symbol))
                 {
-                    if (symbol && !isGeneratedInlineBodySymbolAvailable(ctx, function, *symbol))
-                    {
-                        unavailable = symbol;
-                        break;
-                    }
+                    unavailable = symbol;
+                    break;
                 }
             }
-            else if (view.hasSymbol && view.sym && !isGeneratedInlineBodySymbolAvailable(ctx, function, *view.sym))
-                unavailable = view.sym;
 
             if (unavailable)
             {
                 const AstNode& focus   = node.is(AstNodeId::CallExpr) ? ast.node(node.cast<AstCallExpr>().nodeExprRef) : node;
                 const Utf8     because = std::format("symbol '{}' is not exposed by the module API", unavailable->getFullScopedName(ctx));
-                result                 = reportInlineBodyExportError(ctx, function, focus.codeRange(ctx), because.view(), unavailable);
+                result                 = reportFunctionBodyExportError(ctx, function, focus.codeRange(ctx), because.view(), diagnosticId, unavailable);
                 return Ast::VisitResult::Stop;
             }
 
@@ -1110,6 +1111,26 @@ namespace
 
 namespace ModuleApiExport
 {
+    Result validateWholeFileFunctionBodies(TaskContext& ctx, const SourceFile& file)
+    {
+        Result result = Result::Continue;
+        Ast::visit(file.ast(), file.ast().root(), [&](const AstNodeRef nodeRef, const AstNode& node) {
+            const auto* declaration = node.safeCast<AstFunctionDecl>();
+            if (!declaration || declaration->nodeBodyRef.isInvalid())
+                return Ast::VisitResult::Continue;
+
+            // This check needs only bound symbols, never inferred types or constant values.
+            const NodePayload::ResolvedSymbols resolved = file.nodePayloadContext().resolveSymbols(nodeRef);
+            const auto*                        function = !resolved.symbols.empty() && resolved.symbols.front() ? resolved.symbols.front()->safeCast<SymbolFunction>() : nullptr;
+            if (!function)
+                return Ast::VisitResult::Continue;
+
+            result = validateExportedFunctionBody(ctx, file, *function, DiagnosticId::cmd_err_api_whole_file_body_not_exportable);
+            return result == Result::Continue ? Ast::VisitResult::Continue : Ast::VisitResult::Stop;
+        });
+        return result;
+    }
+
     bool tryBuildImplPrefix(TaskContext& ctx, const SourceFile& file, const AstNodeRef implRef, const std::string_view eol, Utf8& outPrefix)
     {
         outPrefix.clear();
@@ -1170,7 +1191,7 @@ namespace ModuleApiExport
 
             if (symbolFunction->supportsPublicApiForeignExport() && symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Inline))
             {
-                SWC_RESULT(validateGeneratedInlineBody(ctx, root, *symbolFunction));
+                SWC_RESULT(validateExportedFunctionBody(ctx, *root.file, *symbolFunction, DiagnosticId::cmd_err_api_inline_body_not_exportable));
                 return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
             }
 

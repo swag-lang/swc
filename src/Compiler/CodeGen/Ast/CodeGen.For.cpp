@@ -148,10 +148,11 @@ namespace
             return Result::Continue;
         }
 
-        CodeGenNodePayload exprPayload = codeGen.payload(exprRef);
-        TypeRef            exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
-        const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
+        CodeGenNodePayload exprPayload  = codeGen.payload(exprRef);
+        TypeRef            exprTypeRef  = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
+        const TypeInfo*    exprTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        SWC_ASSERT(exprTypeInfo);
+        const TypeInfo& exprType = *exprTypeInfo;
         MicroBuilder&   builder  = codeGen.builder();
 
         if (exprType.isInt())

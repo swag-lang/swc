@@ -22,10 +22,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef resolveDerefResultTypeRef(CodeGen& codeGen, TypeRef operandTypeRef)
+    TypeRef resolveDerefResultTypeRef(CodeGen& codeGen, const TypeInfo& operandType)
     {
-        operandTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), operandTypeRef);
-        return codeGen.typeMgr().get(operandTypeRef).dereferenceTypeRef(codeGen.ctx());
+        const TypeRef   unwrappedTypeRef = operandType.isAlias() || operandType.isEnum() ? operandType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
+        const TypeInfo& pointerType      = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : operandType;
+        return pointerType.dereferenceTypeRef(codeGen.ctx());
     }
 
     using CodeGenMemoryHelpers::loadOperandToRegister;
@@ -156,9 +157,10 @@ namespace
         // the operand ends up a pointer, so this leaves exactly one indirection to emit.
         CodeGenNodePayload childPayload   = codeGen.payload(nodeExprRef);
         TypeRef            operandTypeRef = childView.typeRef();
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, childPayload, operandTypeRef);
+        const TypeInfo*    operandType    = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, childPayload, operandTypeRef);
+        SWC_ASSERT(operandType);
 
-        const TypeRef             resultTypeRef = resolveDerefResultTypeRef(codeGen, operandTypeRef);
+        const TypeRef             resultTypeRef = resolveDerefResultTypeRef(codeGen, *operandType);
         const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
         if (childPayload.isAddress())
             builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);

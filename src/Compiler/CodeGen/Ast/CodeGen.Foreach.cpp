@@ -392,10 +392,11 @@ namespace
         }
         else
         {
-            CodeGenNodePayload exprPayload = CodeGenStoredExprPayload::resolve<CodeGenStoredExprPayload::CallerReturnStorageE::Exclude>(codeGen, exprRef);
-            TypeRef            exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : CodeGenExprView::storedOrType(codeGen, exprRef).typeRef();
-            CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
-            const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
+            CodeGenNodePayload exprPayload  = CodeGenStoredExprPayload::resolve<CodeGenStoredExprPayload::CallerReturnStorageE::Exclude>(codeGen, exprRef);
+            TypeRef            exprTypeRef  = exprPayload.typeRef.isValid() ? exprPayload.typeRef : CodeGenExprView::storedOrType(codeGen, exprRef).typeRef();
+            const TypeInfo*    exprTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+            SWC_ASSERT(exprTypeInfo);
+            const TypeInfo& exprType = *exprTypeInfo;
 
             if (exprType.isArray())
             {

@@ -447,9 +447,9 @@ namespace
         CodeGenNodePayload exprPayload   = CodeGenStoredExprPayload::resolve<CodeGenStoredExprPayload::CallerReturnStorageE::Include>(codeGen, exprRef);
         TypeRef            exprTypeRef   = exprPayload.typeRef.isValid() ? exprPayload.typeRef : CodeGenExprView::storedOrType(codeGen, exprRef).typeRef();
         const TypeRef      resultTypeRef = codeGen.curViewType().typeRef();
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
-        SWC_ASSERT(exprTypeRef.isValid());
-        const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
+        const TypeInfo*    exprTypeInfo  = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        SWC_ASSERT(exprTypeInfo);
+        const TypeInfo& exprType = *exprTypeInfo;
 
         if (exprType.isInt())
         {

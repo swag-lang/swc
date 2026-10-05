@@ -456,15 +456,15 @@ namespace
         const auto* slicePayload = codeGen.sema().semaPayload<SliceIndexSemaPayload>(codeGen.curNodeRef());
         SWC_ASSERT(slicePayload != nullptr);
 
-        CodeGenNodePayload indexedPayload = codeGen.payload(node.nodeExprRef);
-        TypeRef            indexedTypeRef = indexedPayload.typeRef.isValid() ? indexedPayload.typeRef : codeGen.viewType(node.nodeExprRef).typeRef();
-        indexedTypeRef                    = resolveIndexedExprTypeRef(codeGen, node.nodeExprRef, indexedTypeRef);
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
-        const SemaNodeView resultView = codeGen.curViewType();
-        SWC_ASSERT(indexedTypeRef.isValid());
+        CodeGenNodePayload indexedPayload  = codeGen.payload(node.nodeExprRef);
+        TypeRef            indexedTypeRef  = indexedPayload.typeRef.isValid() ? indexedPayload.typeRef : codeGen.viewType(node.nodeExprRef).typeRef();
+        indexedTypeRef                     = resolveIndexedExprTypeRef(codeGen, node.nodeExprRef, indexedTypeRef);
+        const TypeInfo*    indexedTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
+        const SemaNodeView resultView      = codeGen.curViewType();
+        SWC_ASSERT(indexedTypeInfo);
         SWC_ASSERT(resultView.type());
 
-        const TypeInfo& indexedType = codeGen.typeMgr().get(indexedTypeRef);
+        const TypeInfo& indexedType = *indexedTypeInfo;
         const TypeInfo& resultType  = *resultView.type();
         MicroBuilder&   builder     = codeGen.builder();
 
@@ -717,11 +717,11 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     CodeGenNodePayload indexedPayload = codeGen.payload(nodeExprRef);
     TypeRef            indexedTypeRef = indexedPayload.typeRef.isValid() ? indexedPayload.typeRef : codeGen.viewType(nodeExprRef).typeRef();
     indexedTypeRef                    = resolveIndexedExprTypeRef(codeGen, nodeExprRef, indexedTypeRef);
-    CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
-    SWC_ASSERT(indexedTypeRef.isValid());
+    const TypeInfo* indexedTypeInfo   = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
+    SWC_ASSERT(indexedTypeInfo);
     SWC_ASSERT(codeGen.curViewType().type());
 
-    const TypeInfo& indexedType = codeGen.typeMgr().get(indexedTypeRef);
+    const TypeInfo& indexedType = *indexedTypeInfo;
     if (indexedType.isAggregateArray())
     {
         CodeGenNodePayload indexedResultPayload;

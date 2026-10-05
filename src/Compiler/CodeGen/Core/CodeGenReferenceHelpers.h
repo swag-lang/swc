@@ -6,7 +6,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace CodeGenReferenceHelpers
 {
-    inline void unwrapAliasRefPayload(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
+    // Return the final type already read while unwrapping the payload.
+    inline const TypeInfo* unwrapAliasRefPayload(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
     {
         while (ioTypeRef.isValid())
         {
@@ -19,7 +20,7 @@ namespace CodeGenReferenceHelpers
             }
 
             if (!typeInfo.isReference())
-                break;
+                return &typeInfo;
 
             ioTypeRef         = typeInfo.payloadTypeRef();
             ioPayload.typeRef = ioTypeRef;
@@ -34,6 +35,7 @@ namespace CodeGenReferenceHelpers
             codeGen.builder().emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
             ioPayload.setIsAddress();
         }
+        return nullptr;
     }
 }
 

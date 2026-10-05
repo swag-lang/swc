@@ -1086,14 +1086,14 @@ namespace
         if (dataPayload && dataPayload->calledFn != nullptr)
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), dataPayload->calledFn);
 
-        const AstNodeRef          exprRef     = codeGen.ast().oneNode(node.spanChildrenRef);
-        CodeGenNodePayload        exprPayload = codeGen.payload(exprRef);
-        TypeRef                   exprTypeRef = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
-        const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        MicroBuilder&             builder     = codeGen.builder();
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
-        SWC_ASSERT(exprTypeRef.isValid());
-        const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
+        const AstNodeRef          exprRef      = codeGen.ast().oneNode(node.spanChildrenRef);
+        CodeGenNodePayload        exprPayload  = codeGen.payload(exprRef);
+        TypeRef                   exprTypeRef  = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
+        const CodeGenNodePayload& payload      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        MicroBuilder&             builder      = codeGen.builder();
+        const TypeInfo*           exprTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        SWC_ASSERT(exprTypeInfo);
+        const TypeInfo& exprType = *exprTypeInfo;
 
         if (exprType.isInterface())
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
@@ -1130,9 +1130,9 @@ namespace
         CodeGenNodePayload& result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&       builder     = codeGen.builder();
         result.reg                      = codeGen.nextVirtualIntRegister();
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
-        SWC_ASSERT(exprTypeRef.isValid());
-        const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
+        const TypeInfo* exprTypeInfo    = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        SWC_ASSERT(exprTypeInfo);
+        const TypeInfo& exprType = *exprTypeInfo;
 
         if (exprType.isInterface())
         {

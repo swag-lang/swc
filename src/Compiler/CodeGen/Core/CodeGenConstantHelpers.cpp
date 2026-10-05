@@ -118,7 +118,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (!ConstantHelpers::resolveStaticPayloadRequiredShardIndex(codeGen.sema(), shardIndex, hasRequiredShard, typeInfo, payload))
         return ConstantRef::invalid();
 
-    const uint32_t placementShardIndex = ConstantHelpers::staticPayloadPlacementShardIndex(ctx, typeRef, payload, hasRequiredShard, shardIndex);
+    const uint32_t placementShardIndex = ConstantHelpers::staticPayloadPlacementShardIndex(ctx, typeInfo, payload, hasRequiredShard, shardIndex);
     DataSegment&   segment             = codeGen.cstMgr().shardDataSegment(placementShardIndex);
     uint32_t       offset              = INVALID_REF;
     if (ConstantLower::materializeStaticPayload(codeGen.sema(), offset, segment, typeInfo, payload) != Result::Continue)

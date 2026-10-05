@@ -175,11 +175,12 @@ namespace
         codeGen.builder().emitLoadMemReg(codeGen.localStackBaseReg(), codeGen.currentFunctionIndirectReturnStackOffset(), callConv.intArgRegs[0], MicroOpBits::B64);
     }
 
-    void buildLocalStackLayout(CodeGen& codeGen, const CallConv& callConv, bool hasIndirectReturnArg)
+    void buildLocalStackLayout(CodeGen& codeGen, const CallConv& callConv, bool hasIndirectReturnArg, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
         const std::vector<SymbolVariable*>& params       = codeGen.function().parameters();
-        uint64_t                            frameSize    = 0;
+        SWC_ASSERT(paramInfos.size() == params.size());
+        uint64_t frameSize = 0;
         codeGen.clearCurrentFunctionIndirectReturnStackOffset();
         for (SymbolVariable* symVar : localSymbols)
         {
@@ -209,13 +210,14 @@ namespace
             assignLocalStackSlot(*symVar, frameSize, size, alignment);
         }
 
-        for (SymbolVariable* symVar : params)
+        for (size_t i = 0; i < params.size(); ++i)
         {
+            SymbolVariable* symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
-                !CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, codeGen.function(), *symVar))
+                !CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, codeGen.function(), *symVar, &paramInfos[i]))
                 continue;
-            if (CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(codeGen, codeGen.function(), *symVar))
+            if (CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(codeGen, codeGen.function(), *symVar, &paramInfos[i]))
                 continue;
 
             const TypeRef typeRef = symVar->typeRef();
@@ -384,20 +386,22 @@ namespace
         }
     }
 
-    void spillAddressableParametersToLocalSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    void spillAddressableParametersToLocalSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         if (!codeGen.localStackBaseReg().isValid())
             return;
 
         MicroBuilder&                       builder = codeGen.builder();
         const std::vector<SymbolVariable*>& params  = symbolFunc.parameters();
-        for (const SymbolVariable* symVar : params)
+        SWC_ASSERT(paramInfos.size() == params.size());
+        for (size_t i = 0; i < params.size(); ++i)
         {
+            const SymbolVariable* symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
                 continue;
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
-                !CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, symbolFunc, *symVar))
+                !CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, symbolFunc, *symVar, &paramInfos[i]))
                 continue;
 
             const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(*symVar);
@@ -462,7 +466,7 @@ namespace
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
         collectFunctionParameterInfos(codeGen, paramInfos, symbolFunc, normalizedRet.isIndirect);
-        buildLocalStackLayout(codeGen, callConv, normalizedRet.isIndirect);
+        buildLocalStackLayout(codeGen, callConv, normalizedRet.isIndirect, paramInfos);
         {
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
@@ -504,7 +508,7 @@ namespace
             const ScopedDebugNoStep noStep(builder, true);
             materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
             materializeStackParameters(codeGen, symbolFunc, paramInfos);
-            spillAddressableParametersToLocalSlots(codeGen, symbolFunc);
+            spillAddressableParametersToLocalSlots(codeGen, symbolFunc, paramInfos);
             spillParametersToDebugSlots(codeGen, symbolFunc);
         }
 

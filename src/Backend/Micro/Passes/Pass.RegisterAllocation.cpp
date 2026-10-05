@@ -4415,7 +4415,8 @@ namespace
             size_t explicitUses = 0;
             for (const MicroInstrRegOperandRef& reg : regs)
             {
-                if (!reg.reg || *reg.reg != base)
+                SWC_ASSERT(reg.reg);
+                if (*reg.reg != base)
                     continue;
                 if (reg.def)
                     return false;

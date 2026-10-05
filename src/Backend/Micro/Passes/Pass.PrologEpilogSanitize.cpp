@@ -1151,7 +1151,8 @@ namespace
                 inst->collectRegOperands(*context.operands, regOperands, context.encoder);
                 for (const MicroInstrRegOperandRef& operand : regOperands)
                 {
-                    if (!operand.reg || *operand.reg != conv.stackPointer)
+                    SWC_ASSERT(operand.reg);
+                    if (*operand.reg != conv.stackPointer)
                         continue;
                     const MicroInstrDef& def    = MicroInstr::info(inst->op);
                     const bool           direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&

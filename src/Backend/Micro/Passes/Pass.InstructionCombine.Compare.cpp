@@ -477,7 +477,8 @@ namespace InstructionCombine
             bool found = false;
             for (const MicroInstrRegOperandRef& regOperand : regOperands)
             {
-                if (!regOperand.reg || *regOperand.reg != result)
+                SWC_ASSERT(regOperand.reg);
+                if (*regOperand.reg != result)
                     continue;
                 if (!regOperand.use || regOperand.def)
                     return false;

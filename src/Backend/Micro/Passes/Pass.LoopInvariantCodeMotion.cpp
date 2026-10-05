@@ -277,8 +277,7 @@ namespace
             inst->collectRegOperands(operands, regRefs, encoder);
             for (const auto& rref : regRefs)
             {
-                if (!rref.reg)
-                    continue;
+                SWC_ASSERT(rref.reg);
                 const MicroReg reg = *rref.reg;
                 if (reg == stackPointer || !fp.frameDerived.contains(reg))
                     continue;

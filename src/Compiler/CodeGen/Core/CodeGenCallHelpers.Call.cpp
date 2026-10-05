@@ -665,30 +665,27 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef borrowedAggregateStorageTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    TypeRef borrowedAggregateStorageTypeRef(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& typeInfo            = codeGen.typeMgr().get(typeRef);
         const TypeRef   unwrappedTypeRef    = typeInfo.isAlias() || typeInfo.isEnum() ? typeInfo.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-        const TypeRef   storageTypeRef      = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+        const TypeRef   storageTypeRef      = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeInfo.typeRef();
         const TypeInfo& storageType         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(storageTypeRef) : typeInfo;
         const bool      isBorrowedAggregate = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
         return isBorrowedAggregate ? storageTypeRef : TypeRef::invalid();
     }
 
-    void materializePreparedBorrowedAggregateArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
+    void materializePreparedBorrowedAggregateArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
     {
         if (!normalizedArg.isIndirect || normalizedArg.needsIndirectCopy)
             return;
         if (argRef.isInvalid() || !argPayload.isValue())
             return;
 
-        const TypeRef storageTypeRef = borrowedAggregateStorageTypeRef(codeGen, normalizedTypeRef);
+        const TypeRef storageTypeRef = borrowedAggregateStorageTypeRef(codeGen, normalizedType);
         if (storageTypeRef.isInvalid())
             return;
-        const CodeGenNodePayload sourcePayload = argPayload;
+        const TypeRef            normalizedTypeRef = normalizedType.typeRef();
+        const CodeGenNodePayload sourcePayload     = argPayload;
 
         if (!tryResolvePreparedIndirectArgAddress(codeGen, argPayload, normalizedTypeRef, argRef))
         {
@@ -713,7 +710,6 @@ namespace
         if (!argPayload.isAddress() || argPayload.hasMaterializedPointerLikeValue())
             return;
 
-        TaskContext&  ctx               = codeGen.ctx();
         const TypeRef normalizedTypeRef = normalizedType.typeRef();
         if (!normalizedType.isAnyPointer() && !normalizedType.isCString())
             return;
@@ -722,11 +718,11 @@ namespace
         if (sourceRef.isInvalid())
             return;
 
-        const TypeRef sourceTypeRef = codeGen.sema().viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
-        if (!sourceTypeRef.isValid())
+        const SemaNodeView sourceView = codeGen.sema().viewStored(sourceRef, SemaNodeViewPartE::Type);
+        if (!sourceView.typeRef().isValid())
             return;
 
-        const TypeInfo& sourceType = ctx.typeMgr().get(sourceTypeRef);
+        const TypeInfo& sourceType = *sourceView.type();
         if (!sourceType.isArray() && !sourceType.isAggregateArray())
             return;
 
@@ -864,17 +860,18 @@ namespace
     // when it has a drop lifecycle, poisoned under lifecycle safety otherwise), and pass
     // the temporary's address as the borrowed argument. The temporary belongs to the
     // caller - the callee only borrows it - so it is dropped right after the call.
-    Result materializePreparedMovedValueArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
+    Result materializePreparedMovedValueArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
     {
-        if (argRef.isInvalid() || normalizedTypeRef.isInvalid() || !resolvedArg.movesValueToParam)
+        if (argRef.isInvalid() || !resolvedArg.movesValueToParam)
             return Result::Continue;
         if (argPayload.hasMaterializedPointerLikeValue())
             return Result::Continue;
 
-        TaskContext&    ctx              = codeGen.ctx();
-        const TypeRef   unwrappedTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, normalizedTypeRef);
-        const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : normalizedTypeRef;
-        const TypeInfo& storageType      = ctx.typeMgr().get(storageTypeRef);
+        TaskContext&    ctx               = codeGen.ctx();
+        const TypeRef   normalizedTypeRef = normalizedType.typeRef();
+        const TypeRef   unwrappedTypeRef  = normalizedType.isAlias() || normalizedType.isEnum() ? normalizedType.unwrapAliasEnum(ctx) : TypeRef::invalid();
+        const TypeRef   storageTypeRef    = unwrappedTypeRef.isValid() ? unwrappedTypeRef : normalizedTypeRef;
+        const TypeInfo& storageType       = unwrappedTypeRef.isValid() ? ctx.typeMgr().get(storageTypeRef) : normalizedType;
         if (!storageType.isStruct() && !storageType.isArray())
             return Result::Continue;
 
@@ -1017,7 +1014,7 @@ namespace
             }
 
             SWC_RESULT(materializePreparedCopyToMoveArg(codeGen, argPayload, normalizedType, arg, argRef, out.postCallDrops));
-            SWC_RESULT(materializePreparedMovedValueArg(codeGen, argPayload, normalizedTypeRef, arg, argRef, out.postCallDrops));
+            SWC_RESULT(materializePreparedMovedValueArg(codeGen, argPayload, normalizedType, arg, argRef, out.postCallDrops));
             materializePreparedReferenceArg(codeGen, argPayload, normalizedType, arg, argRef);
             materializePreparedPointerDecayArg(codeGen, argPayload, normalizedType, argRef);
             ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedType, ABITypeNormalize::Usage::Argument);
@@ -1025,13 +1022,13 @@ namespace
                 normalizedArg.needsIndirectCopy = false;
             else if (out.copyIndirectValueAggregates && normalizedArg.isIndirect)
             {
-                const TypeRef   expandedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), normalizedTypeRef);
-                const TypeInfo& expandedType    = codeGen.typeMgr().get(expandedTypeRef);
+                const TypeRef   expandedTypeRef = normalizedType.isAlias() || normalizedType.isEnum() ? normalizedType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
+                const TypeInfo& expandedType    = expandedTypeRef.isValid() ? codeGen.typeMgr().get(expandedTypeRef) : normalizedType;
                 if (expandedType.isStruct() || expandedType.isAggregateStruct())
                     normalizedArg.needsIndirectCopy = true;
             }
             SWC_RESULT(materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize));
-            materializePreparedBorrowedAggregateArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize);
+            materializePreparedBorrowedAggregateArg(codeGen, argPayload, callConv, normalizedType, normalizedArg, argRef, out.transientStackSize);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedType, normalizedArg);
             fillPreparedDirectArgType(preparedArg, codeGen, argPayload, normalizedType, normalizedArg, arg);
         }

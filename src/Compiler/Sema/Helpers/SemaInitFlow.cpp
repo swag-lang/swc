@@ -25,6 +25,17 @@ namespace
     constexpr uint32_t K_MAX_ERRORS       = 8;
     constexpr uint64_t K_ALL_BITS         = ~0ull;
 
+    bool nullableTypeRefForCheck(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isNullable())
+            return true;
+        const TypeInfo* unwrappedType = type.unwrapAliasEnumType(sema.ctx());
+        return unwrappedType && unwrappedType->isNullable();
+    }
+
     bool isFullInitializationSetter(const SymbolFunction* calledFn)
     {
         if (!calledFn)
@@ -119,7 +130,7 @@ namespace
             sema_(&sema),
             sym_(&sym)
         {
-            returnContract_ = checkReturnContract && isNullableTypeRef(sym.returnTypeRef());
+            returnContract_ = checkReturnContract && nullableTypeRefForCheck(sema, sym.returnTypeRef());
         }
 
         Result run(AstNodeRef bodyRef)
@@ -633,23 +644,10 @@ namespace
             const TypeRef fieldTypeRef = fields[fieldIndex]->typeRef();
             if (!fieldTypeRef.isValid())
                 return false;
-            const TypeInfo& declaredType = sema_->typeMgr().get(fieldTypeRef);
-            const TypeRef   unwrapped    = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema_->ctx(), fieldTypeRef) : TypeRef::invalid();
-            const TypeInfo& type         = unwrapped.isValid() ? sema_->typeMgr().get(unwrapped) : declaredType;
+            const TypeInfo& declaredType  = sema_->typeMgr().get(fieldTypeRef);
+            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema_->ctx());
+            const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
             return type.isPointerOrReference();
-        }
-
-        bool isNullableTypeRef(TypeRef typeRef) const
-        {
-            if (!typeRef.isValid())
-                return false;
-            const TypeInfo& type = sema_->typeMgr().get(typeRef);
-            if (type.isNullable())
-                return true;
-            if (!type.isAlias() && !type.isEnum())
-                return false;
-            const TypeRef unwrapped = type.unwrapAliasEnum(sema_->ctx(), typeRef);
-            return unwrapped.isValid() && sema_->typeMgr().get(unwrapped).isNullable();
         }
 
         bool isNonNullPointerLikeTypeRef(TypeRef typeRef) const
@@ -659,8 +657,8 @@ namespace
             const TypeInfo& declaredType = sema_->typeMgr().get(typeRef);
             if (declaredType.isNullable())
                 return false;
-            const TypeRef   unwrapped = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema_->ctx(), typeRef) : TypeRef::invalid();
-            const TypeInfo& type      = unwrapped.isValid() ? sema_->typeMgr().get(unwrapped) : declaredType;
+            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema_->ctx());
+            const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
             return !type.isNullable() && (type.isPointerLike() || type.isReference());
         }
 
@@ -952,7 +950,7 @@ namespace
                     symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
                     symVar.hasGlobalStorage())
                     continue;
-                if (!isNullableTypeRef(symVar.typeRef()))
+                if (!nullableTypeRefForCheck(*sema_, symVar.typeRef()))
                     continue;
                 if (nullableLocals_.size() >= 64)
                     return;
@@ -2020,19 +2018,6 @@ namespace
                 SWC_RESULT(waitTrackedTypes(sema, childRef, depth + 1));
         }
         return Result::Continue;
-    }
-}
-
-namespace
-{
-    bool nullableTypeRefForCheck(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-        if (sema.typeMgr().get(typeRef).isNullable())
-            return true;
-        const TypeRef unwrapped = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        return unwrapped.isValid() && sema.typeMgr().get(unwrapped).isNullable();
     }
 }
 

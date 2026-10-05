@@ -177,12 +177,9 @@ namespace
 
     MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits)
     {
-        const CodeGenNodePayload& rawIndexPayload = codeGen.payload(indexRef);
-        const SemaNodeView        indexView       = codeGen.viewType(indexRef);
-        SWC_ASSERT(indexView.type());
-
-        CodeGenNodePayload indexPayload = rawIndexPayload;
-        TypeRef            indexTypeRef = indexPayload.effectiveTypeRef(indexView.typeRef());
+        CodeGenNodePayload indexPayload = codeGen.payload(indexRef);
+        TypeRef            indexTypeRef = indexPayload.typeRef.isValid() ? indexPayload.typeRef : codeGen.viewType(indexRef).typeRef();
+        SWC_ASSERT(indexTypeRef.isValid());
         normalizeIndexReferenceOperand(codeGen, indexPayload, indexTypeRef);
 
         const TypeInfo& indexType = codeGen.typeMgr().get(indexTypeRef);
@@ -460,12 +457,11 @@ namespace
         SWC_ASSERT(slicePayload != nullptr);
 
         CodeGenNodePayload indexedPayload = codeGen.payload(node.nodeExprRef);
-        const SemaNodeView indexedView    = codeGen.viewType(node.nodeExprRef);
-        TypeRef            indexedTypeRef = indexedPayload.effectiveTypeRef(indexedView.typeRef());
+        TypeRef            indexedTypeRef = indexedPayload.typeRef.isValid() ? indexedPayload.typeRef : codeGen.viewType(node.nodeExprRef).typeRef();
         indexedTypeRef                    = resolveIndexedExprTypeRef(codeGen, node.nodeExprRef, indexedTypeRef);
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
         const SemaNodeView resultView = codeGen.curViewType();
-        SWC_ASSERT(indexedView.type());
+        SWC_ASSERT(indexedTypeRef.isValid());
         SWC_ASSERT(resultView.type());
 
         const TypeInfo& indexedType = codeGen.typeMgr().get(indexedTypeRef);
@@ -719,14 +715,11 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
         return emitIndexSpecOpCall(codeGen, *calledFn);
 
     CodeGenNodePayload indexedPayload = codeGen.payload(nodeExprRef);
-    const SemaNodeView indexedView    = codeGen.viewType(nodeExprRef);
-    TypeRef            indexedTypeRef = indexedPayload.effectiveTypeRef(indexedView.typeRef());
+    TypeRef            indexedTypeRef = indexedPayload.typeRef.isValid() ? indexedPayload.typeRef : codeGen.viewType(nodeExprRef).typeRef();
     indexedTypeRef                    = resolveIndexedExprTypeRef(codeGen, nodeExprRef, indexedTypeRef);
     CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
-    const SemaNodeView resultView = codeGen.curViewType();
-
-    SWC_ASSERT(indexedView.type());
-    SWC_ASSERT(resultView.type());
+    SWC_ASSERT(indexedTypeRef.isValid());
+    SWC_ASSERT(codeGen.curViewType().type());
 
     const TypeInfo& indexedType = codeGen.typeMgr().get(indexedTypeRef);
     if (indexedType.isAggregateArray())

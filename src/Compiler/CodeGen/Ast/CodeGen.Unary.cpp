@@ -117,7 +117,7 @@ namespace
 
         const MicroReg operandReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, *info.childPayload, info.storageTypeRef, *info.storageTypeInfo, info.opBits);
 
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
         CodeGenCompareHelpers::emitCompareRegZero(codeGen, operandReg, *info.storageTypeInfo, info.opBits);
         CodeGenCompareHelpers::emitConditionBool(codeGen, resultPayload.reg, *info.storageTypeInfo, CodeGenCompareHelpers::falseyCondition(*info.storageTypeInfo));
         return Result::Continue;
@@ -212,9 +212,6 @@ namespace
 
 Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    SmallVector<ResolvedCallArgument> resolvedArgs;
-    codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
-
     const auto* unaryPayload = codeGen.sema().semaPayload<UnarySpecOpPayload>(codeGen.curNodeRef());
     if (unaryPayload && unaryPayload->calledFn != nullptr)
     {
@@ -222,12 +219,15 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), unaryPayload->calledFn);
     }
 
-    const SemaNodeView specialOpView = codeGen.curViewSymbol();
-    if (!resolvedArgs.empty() && specialOpView.sym() && specialOpView.sym()->isFunction())
+    if (codeGen.sema().currentNodePayloadContext().hasResolvedCallArguments(codeGen.curNodeRef()))
     {
-        const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
-        if (calledFn.specOpKind() == SpecOpKind::OpUnary)
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        const SemaNodeView specialOpView = codeGen.curViewSymbol();
+        if (specialOpView.sym() && specialOpView.sym()->isFunction())
+        {
+            const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
+            if (calledFn.specOpKind() == SpecOpKind::OpUnary)
+                return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        }
     }
 
     const Token& tok = codeGen.token(codeRef());

@@ -610,9 +610,6 @@ namespace
 
 Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    SmallVector<ResolvedCallArgument> resolvedArgs;
-    codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
-
     const auto* binaryPayload = codeGen.sema().semaPayload<BinarySpecOpPayload>(codeGen.curNodeRef());
     if (binaryPayload && binaryPayload->calledFn != nullptr)
     {
@@ -620,12 +617,15 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), binaryPayload->calledFn);
     }
 
-    const SemaNodeView specialOpView = codeGen.curViewSymbol();
-    if (!resolvedArgs.empty() && specialOpView.sym() && specialOpView.sym()->isFunction())
+    if (codeGen.sema().currentNodePayloadContext().hasResolvedCallArguments(codeGen.curNodeRef()))
     {
-        const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
-        if (calledFn.specOpKind() == SpecOpKind::OpBinary || calledFn.specOpKind() == SpecOpKind::OpBinaryRight)
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        const SemaNodeView specialOpView = codeGen.curViewSymbol();
+        if (specialOpView.sym() && specialOpView.sym()->isFunction())
+        {
+            const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
+            if (calledFn.specOpKind() == SpecOpKind::OpBinary || calledFn.specOpKind() == SpecOpKind::OpBinaryRight)
+                return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        }
     }
 
     const TokenId             tokId     = Token::canonicalBinary(codeGen.token(codeRef()).id);

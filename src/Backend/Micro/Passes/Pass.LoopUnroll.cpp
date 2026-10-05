@@ -667,8 +667,7 @@ namespace
                 const MicroInstr*                 src    = storage.ptr(order[ordinal]);
                 const MicroInstrOperand*          srcOps = src->ops(operands);
                 SmallVector<MicroInstrOperand, 8> cloned;
-                for (uint32_t index = 0; index < src->numOperands; ++index)
-                    cloned.push_back(srcOps[index]);
+                cloned.append(srcOps, src->numOperands);
                 if ((src->op == MicroInstrOpcode::LoadAmcRegMem || src->op == MicroInstrOpcode::LoadZeroExtAmcRegMem) &&
                     cloned[2].reg == counter)
                     cloned[6].valueU64 += copy;
@@ -1202,8 +1201,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     const MicroInstrOperand* srcOps = src->ops(operands);
 
                     newOps.clear();
-                    for (uint32_t oi = 0; oi < src->numOperands; ++oi)
-                        newOps.push_back(srcOps[oi]);
+                    newOps.append(srcOps, src->numOperands);
 
                     if (src->op == MicroInstrOpcode::Label)
                     {

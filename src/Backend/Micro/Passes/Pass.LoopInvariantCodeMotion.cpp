@@ -705,8 +705,7 @@ namespace
                 const MicroReg                    rooted      = MicroReg::virtualIntReg(nextReg);
                 const MicroInstrOpcode            rewrittenOp = inst->op;
                 SmallVector<MicroInstrOperand, 8> rewritten;
-                for (uint32_t opIdx = 0; opIdx < inst->numOperands; ++opIdx)
-                    rewritten.push_back(instOps[opIdx]);
+                rewritten.append(instOps, inst->numOperands);
                 rewritten[outerLayout.baseIdx].reg     = rooted;
                 rewritten[outerLayout.indexIdx].reg    = induction;
                 rewritten[outerLayout.addIdx].valueU64 = 0;

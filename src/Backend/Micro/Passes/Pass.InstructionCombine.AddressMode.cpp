@@ -340,8 +340,7 @@ namespace InstructionCombine
             return false;
 
         SmallVector<MicroInstrOperand, 8> newOps;
-        for (uint32_t i = 0; i < inst.numOperands; ++i)
-            newOps.push_back(ops[i]);
+        newOps.append(ops, inst.numOperands);
         newOps[layout.indexIdx].reg    = leaBase;
         newOps[layout.addIdx].valueU64 = static_cast<uint64_t>(newAdd);
         ctx.emitRewrite(ref, inst.op, {newOps.data(), newOps.size()});
@@ -1064,8 +1063,7 @@ namespace InstructionCombine
             return false;
 
         SmallVector<MicroInstrOperand, 8> newOps;
-        for (uint32_t i = 0; i < inst.numOperands; ++i)
-            newOps.push_back(ops[i]);
+        newOps.append(ops, inst.numOperands);
         newOps[layout.baseIdx].reg     = leaBase;
         newOps[layout.offIdx].valueU64 = static_cast<uint64_t>(newOff);
         ctx.emitRewrite(ref, inst.op, {newOps.data(), newOps.size()});

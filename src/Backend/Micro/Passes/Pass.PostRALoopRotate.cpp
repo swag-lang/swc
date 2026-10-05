@@ -827,8 +827,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
             const MicroInstrOperand* testOps = testInst->ops(operands);
             SWC_ASSERT(testOps);
             SmallVector<MicroInstrOperand, 8> testCopy;
-            for (uint32_t i = 0; i < testInst->numOperands; ++i)
-                testCopy.push_back(testOps[i]);
+            testCopy.append(testOps, testInst->numOperands);
             const MicroInstrOpcode testOp  = testInst->op;
             const MicroInstrRef    copyRef = storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
             const auto             relocIt = relocationsByRef.find(order[ordinal].get());

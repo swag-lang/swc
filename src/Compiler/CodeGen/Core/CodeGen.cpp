@@ -819,13 +819,14 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
     if (sym.hasGlobalStorage())
         return;
 
-    if (inDeferredEmission() && isStackAddressPayload(*this, sym, payload))
+    const bool isStackAddress = isStackAddressPayload(*this, sym, payload);
+    if (inDeferredEmission() && isStackAddress)
         return;
 
     VariablePayloadState& symbolPayload = variablePayloads_[&sym];
     symbolPayload.payload               = payload;
     symbolPayload.hasPayload            = true;
-    symbolPayload.addressGeneration     = isStackAddressPayload(*this, sym, payload) ? currentDeferredAddressGeneration_ : 0;
+    symbolPayload.addressGeneration     = isStackAddress ? currentDeferredAddressGeneration_ : 0;
 }
 
 const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
@@ -883,12 +884,12 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     // rely on `payload.typeRef` to pick the real operand width, and keeping the context type would
     // make them read a 64-bit pointer as a single byte.
     const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
+    const AstNode&   payloadNode = node(nodeRef);
     if (resolvedRef.isValid() && resolvedRef != nodeRef && typeRef.isValid() && typeRef == viewType(nodeRef).typeRef())
     {
         // Cast-like nodes are the exception: their own codegen converts the value to the
         // substitute-resolved context type (e.g. `cast() pow(...)` under a return-context cast),
         // so for them the register really holds a value of the view type.
-        const AstNode& payloadNode = node(nodeRef);
         if (payloadNode.isNot(AstNodeId::CastExpr) &&
             payloadNode.isNot(AstNodeId::AutoCastExpr) &&
             payloadNode.isNot(AstNodeId::AsCastExpr) &&
@@ -903,8 +904,8 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     CodeGenNodePayload& nodePayload = ensureNodePayload<CodeGenNodePayload>(nodeRef);
 
     nodePayload.reg           = nextVirtualRegister();
-    nodePayload.sourceCodeRef = node(nodeRef).codeRef();
-    if (const auto* memberAccess = node(nodeRef).safeCast<AstMemberAccessExpr>())
+    nodePayload.sourceCodeRef = payloadNode.codeRef();
+    if (const auto* memberAccess = payloadNode.safeCast<AstMemberAccessExpr>())
     {
         const CodeGenNodePayload* leftPayload = safePayload(memberAccess->nodeLeftRef);
         if (leftPayload && leftPayload->sourceCodeRef.isValid())

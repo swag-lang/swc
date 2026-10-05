@@ -247,7 +247,7 @@ namespace
                 }
                 uint32_t     materializedOffset = INVALID_REF;
                 DataSegment& segment            = sema.cstMgr().shardDataSegment(0);
-                SWC_RESULT(ConstantLower::materializeStaticPayload(materializedOffset, sema, segment, typeRef, lowered));
+                SWC_RESULT(ConstantLower::materializeStaticPayload(sema, materializedOffset, segment, type, lowered));
                 sourceRef = {.shardIndex = 0, .offset = materializedOffset};
                 source    = {segment.ptr<std::byte>(materializedOffset), static_cast<size_t>(size)};
             }
@@ -450,7 +450,8 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
         storageTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, storageTypeRef, view.cstRef());
     }
 
-    const uint64_t sizeOf = sema.typeMgr().get(storageTypeRef).sizeOf(sema.ctx());
+    const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+    const uint64_t  sizeOf      = storageType.sizeOf(sema.ctx());
     if (!sizeOf)
         return 0;
 
@@ -468,7 +469,7 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
     const uint32_t shardIndex = view.cstRef().get() >> ConstantManager::LOCAL_BITS;
     DataSegment&   segment    = manager.shardDataSegment(shardIndex);
     uint32_t       offset     = INVALID_REF;
-    SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(offset, sema, segment, storageTypeRef, storageSpan) == Result::Continue);
+    SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(sema, offset, segment, storageType, storageSpan) == Result::Continue);
     const DataSegmentRef dataRef = manager.publishConstantStorage(view.cstRef(), storageTypeRef, {.shardIndex = shardIndex, .offset = offset});
     return reinterpret_cast<uint64_t>(manager.shardDataSegment(dataRef.shardIndex).ptr<std::byte>(dataRef.offset));
 }
@@ -711,7 +712,7 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     const uint32_t placementShardIndex = staticPayloadPlacementShardIndex(ctx, typeRef, payload, hasRequiredShard, shardIndex);
     DataSegment&   segment             = sema.cstMgr().shardDataSegment(placementShardIndex);
     uint32_t       offset              = INVALID_REF;
-    if (ConstantLower::materializeStaticPayload(offset, sema, segment, typeRef, payload) != Result::Continue)
+    if (ConstantLower::materializeStaticPayload(sema, offset, segment, typeInfo, payload) != Result::Continue)
         return ConstantRef::invalid();
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);

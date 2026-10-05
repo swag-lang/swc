@@ -256,12 +256,13 @@ namespace
 
         const TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(srcAny.type);
         SWC_INTERNAL_CHECK(valueTypeRef.isValid());
-        const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(ctx);
+        const TypeInfo& valueType = sema.typeMgr().get(valueTypeRef);
+        const uint64_t  valueSize = valueType.sizeOf(ctx);
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
 
         uint32_t valueOffset = INVALID_REF;
         // Nested `any` values get their own static storage so relocations can target them.
-        SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, valueTypeRef, rawBytes(srcAny.value, valueSize)));
+        SWC_RESULT(ConstantLower::materializeStaticPayload(sema, valueOffset, segment, valueType, rawBytes(srcAny.value, valueSize)));
         dstAny.value = segment.ptr<std::byte>(valueOffset);
         segment.addRelocation(payload.baseOffset + offsetof(Runtime::Any, value), valueOffset);
         return Result::Continue;
@@ -1041,14 +1042,14 @@ Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, std::span<std::byt
     return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstType.payloadSymStruct().typeRef());
 }
 
-Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const std::span<const std::byte> srcBytes)
+Result ConstantLower::materializeStaticPayload(Sema& sema, uint32_t& outOffset, DataSegment& segment, const TypeInfo& typeInfo, const std::span<const std::byte> srcBytes)
 {
-    outOffset = INVALID_REF;
+    outOffset             = INVALID_REF;
+    const TypeRef typeRef = typeInfo.typeRef();
     SWC_INTERNAL_CHECK(typeRef.isValid());
 
-    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-    const uint64_t  sizeOf   = typeInfo.sizeOf(sema.ctx());
-    const uint32_t  alignOf  = typeInfo.alignOf(sema.ctx());
+    const uint64_t sizeOf  = typeInfo.sizeOf(sema.ctx());
+    const uint32_t alignOf = typeInfo.alignOf(sema.ctx());
     SWC_ASSERT(sizeOf <= std::numeric_limits<uint32_t>::max());
     SWC_INTERNAL_CHECK(sizeOf == srcBytes.size());
 

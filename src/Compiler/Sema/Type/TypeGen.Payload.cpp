@@ -73,8 +73,9 @@ namespace
         // Value generic arguments need a stable address in runtime metadata. Lower
         // the constant to bytes, materialize it in the data segment, then store a
         // relocation from Runtime::TypeValue::value to that static payload.
-        TaskContext&   ctx       = sema.ctx();
-        const uint64_t valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
+        TaskContext&    ctx       = sema.ctx();
+        const TypeInfo& valueType = ctx.typeMgr().get(valueTypeRef);
+        const uint64_t  valueSize = valueType.sizeOf(ctx);
         if (!valueSize)
             return;
 
@@ -82,7 +83,7 @@ namespace
         ConstantLower::lowerToBytes(sema, valueBytes, arg.cstRef, valueTypeRef);
 
         uint32_t     valueOffset    = INVALID_REF;
-        const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, valueTypeRef, valueBytes);
+        const Result materializeRes = ConstantLower::materializeStaticPayload(sema, valueOffset, storage, valueType, valueBytes);
         SWC_ASSERT(materializeRes == Result::Continue);
         SWC_ASSERT(valueOffset != INVALID_REF);
         storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
@@ -520,7 +521,8 @@ namespace
         storage.addRelocation(baseOffset + fieldOffset + offsetof(Runtime::Any, type), typeEntry.offset);
         dstAny->type = storage.ptr<Runtime::TypeInfo>(typeEntry.offset);
 
-        const uint64_t valueSize = sema.typeMgr().get(boxedValueTypeRef).sizeOf(sema.ctx());
+        const TypeInfo& boxedValueType = sema.typeMgr().get(boxedValueTypeRef);
+        const uint64_t  valueSize      = boxedValueType.sizeOf(sema.ctx());
         if (!valueSize)
             return;
 
@@ -528,7 +530,7 @@ namespace
         SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, boxedValueTypeRef) == Result::Continue);
 
         uint32_t valueOffset = INVALID_REF;
-        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(valueOffset, sema, storage, boxedValueTypeRef, std::span{valueBytes.data(), valueBytes.size()}) == Result::Continue);
+        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(sema, valueOffset, storage, boxedValueType, std::span{valueBytes.data(), valueBytes.size()}) == Result::Continue);
         SWC_ASSERT(valueOffset != INVALID_REF);
 
         storage.addRelocation(baseOffset + fieldOffset + offsetof(Runtime::Any, value), valueOffset);
@@ -621,7 +623,8 @@ namespace
         entry.enumValuesOffset               = valuesOffset;
         storage.addRelocation(offset + offsetof(Runtime::TypeInfoEnum, values.ptr), valuesOffset);
 
-        const uint64_t valueSize = ctx.typeMgr().get(rawTypeRef).sizeOf(ctx);
+        const TypeInfo& rawType   = ctx.typeMgr().get(rawTypeRef);
+        const uint64_t  valueSize = rawType.sizeOf(ctx);
         for (uint32_t i = 0; i < values.size(); ++i)
         {
             const SymbolEnumValue* symValue = values[i];
@@ -646,7 +649,7 @@ namespace
             ConstantLower::lowerToBytes(sema, valueBytes, rawValueRef, rawTypeRef);
 
             uint32_t     valueOffset    = INVALID_REF;
-            const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, rawTypeRef, valueBytes);
+            const Result materializeRes = ConstantLower::materializeStaticPayload(sema, valueOffset, storage, rawType, valueBytes);
             SWC_ASSERT(materializeRes == Result::Continue);
             SWC_ASSERT(valueOffset != INVALID_REF);
             storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);

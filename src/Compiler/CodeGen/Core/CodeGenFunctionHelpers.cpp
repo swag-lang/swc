@@ -779,7 +779,7 @@ namespace
 
         DataSegment& segment = codeGen.cstMgr().shardDataSegment(0);
         uint32_t     offset  = INVALID_REF;
-        SWC_RESULT(ConstantLower::materializeStaticPayload(offset, codeGen.sema(), segment, typeRef, payloadBytes));
+        SWC_RESULT(ConstantLower::materializeStaticPayload(codeGen.sema(), offset, segment, typeInfo, payloadBytes));
         SWC_ASSERT(offset != INVALID_REF);
 
         std::byte* storedBytes = segment.ptr<std::byte>(offset);

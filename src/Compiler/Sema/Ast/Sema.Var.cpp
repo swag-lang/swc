@@ -195,7 +195,7 @@ namespace
         {
             if (storageKind == DataSegmentKind::GlobalInit && !hasMaterializedUnionInitializer)
             {
-                SWC_RESULT(ConstantLower::materializeStaticPayload(offset, sema, segment, storageTypeRef, loweredBytes.span()));
+                SWC_RESULT(ConstantLower::materializeStaticPayload(sema, offset, segment, storageTypeInfo, loweredBytes.span()));
             }
             else
             {

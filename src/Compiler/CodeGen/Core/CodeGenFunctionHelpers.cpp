@@ -570,10 +570,8 @@ void CodeGenFunctionHelpers::emitLocalStackFramePrologue(CodeGen& codeGen, CallC
     // RegAlloc picks the physical register for the frame base. Forbidding every transient
     // (caller-saved) one, plus the stack and frame pointers, leaves only persistent registers,
     // so neither a call nor later instruction selection can clobber the active frame base.
-    const MicroReg        frameBaseReg = codeGen.nextVirtualIntRegister();
-    SmallVector<MicroReg> forbiddenRegs;
-    for (const MicroReg reg : callConv.intTransientRegs)
-        forbiddenRegs.push_back(reg);
+    const MicroReg        frameBaseReg  = codeGen.nextVirtualIntRegister();
+    SmallVector<MicroReg> forbiddenRegs = callConv.intTransientRegs;
     forbiddenRegs.push_back(callConv.stackPointer);
     if (callConv.framePointer.isValid())
         forbiddenRegs.push_back(callConv.framePointer);

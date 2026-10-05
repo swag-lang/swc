@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantEnumType.h"
-#include "Compiler/Sema/Constant/ConstantFoldStorage.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantShardPreference.h"
@@ -435,11 +434,11 @@ Result ConstantHelpers::waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, 
 uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, const SemaNodeView& view)
 {
     SWC_ASSERT(view.type());
-    TypeRef storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, view.typeRef());
+    const TypeInfo& originalStorageType = SemaHelpers::aliasEnumType(sema, view);
+    TypeRef         storageTypeRef      = originalStorageType.typeRef();
     if (view.cstRef().isValid())
     {
-        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-        if (storageType.isScalarUnsized())
+        if (originalStorageType.isScalarUnsized())
         {
             ConstantRef concretizedCstRef = ConstantRef::invalid();
             SWC_INTERNAL_CHECK(Cast::concretizeConstant(sema, concretizedCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown) == Result::Continue);

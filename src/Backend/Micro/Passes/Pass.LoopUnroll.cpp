@@ -1230,8 +1230,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         {
                             if (*regOp.reg == counter)
                                 *regOp.reg = copyCounter;
-                            else if (regOp.use && renamable.contains(*regOp.reg))
+                            else if (regOp.use)
                             {
+                                // Only renamable definitions enter this map.
                                 const auto nameIt = currentName.find(*regOp.reg);
                                 if (nameIt != currentName.end())
                                     *regOp.reg = nameIt->second;

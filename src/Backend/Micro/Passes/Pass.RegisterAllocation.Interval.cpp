@@ -2412,10 +2412,16 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             }
 
             const bool defDst     = std::ranges::find(defs, c.dst) != defs.end();
-            const bool defSrc     = std::ranges::find(defs, c.src) != defs.end();
             const bool touchesDst = defDst || std::ranges::find(uses, c.dst) != uses.end();
+            if (touchesDst && !namedByOperand(c.dst))
+            {
+                c.rejected = true;
+                continue;
+            }
+
+            const bool defSrc     = std::ranges::find(defs, c.src) != defs.end();
             const bool touchesSrc = defSrc || std::ranges::find(uses, c.src) != uses.end();
-            if ((touchesDst && !namedByOperand(c.dst)) || (touchesSrc && !namedByOperand(c.src)))
+            if (touchesSrc && !namedByOperand(c.src))
             {
                 c.rejected = true;
                 continue;

@@ -31,10 +31,9 @@ private:
         std::map<std::pair<const Symbol*, const Symbol*>, NodeLoc>    edges;
     };
 
-    void addNodeIfNeeded(const Symbol* sym);
     void addEdge(const Symbol* from, const Symbol* to, Job* job, const TaskState& state);
     void reportCycle(const std::vector<const Symbol*>& cycle);
-    void findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack, SymbolIndexMap& stackPositions);
+    void findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolIndexMap& stackPositions);
     void detectAndReportCycles();
 
     TaskContext* ctx_ = nullptr;

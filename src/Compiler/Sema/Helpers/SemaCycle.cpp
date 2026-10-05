@@ -185,18 +185,11 @@ namespace
     }
 }
 
-void SemaCycle::addNodeIfNeeded(const Symbol* sym)
-{
-    if (!graph_.adj.contains(sym))
-        graph_.adj[sym] = {};
-}
-
 void SemaCycle::addEdge(const Symbol* from, const Symbol* to, Job* job, const TaskState& state)
 {
-    addNodeIfNeeded(from);
-    addNodeIfNeeded(to);
-
-    graph_.adj[from].push_back(to);
+    auto& adjacent = graph_.adj.try_emplace(from).first->second;
+    graph_.adj.try_emplace(to);
+    adjacent.push_back(to);
 
     WaitGraph::NodeLoc& nodeLoc = graph_.edges[{from, to}];
     if (!nodeLoc.job)
@@ -269,10 +262,9 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
     diag.report(*ctx_);
 }
 
-void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack, SymbolIndexMap& stackPositions)
+void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolIndexMap& stackPositions)
 {
     visited.insert(v);
-    onStack.insert(v);
     stackPositions.emplace(v, stack.size());
     stack.push_back(v);
 
@@ -281,37 +273,33 @@ void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, S
     {
         for (const auto* w : it->second)
         {
-            if (onStack.contains(w))
+            if (const auto itPos = stackPositions.find(w); itPos != stackPositions.end())
             {
                 std::vector<const Symbol*> cycle;
-                const auto                 itPos = stackPositions.find(w);
-                SWC_ASSERT(itPos != stackPositions.end());
                 cycle.insert(cycle.end(), stack.begin() + static_cast<ptrdiff_t>(itPos->second), stack.end());
                 reportCycle(cycle);
             }
             else if (!visited.contains(w))
             {
-                findCycles(w, stack, visited, onStack, stackPositions);
+                findCycles(w, stack, visited, stackPositions);
             }
         }
     }
 
     stack.pop_back();
     stackPositions.erase(v);
-    onStack.erase(v);
 }
 
 void SemaCycle::detectAndReportCycles()
 {
     SymbolSet                  visited;
-    SymbolSet                  onStack;
     std::vector<const Symbol*> stack;
     SymbolIndexMap             stackPositions;
 
     for (const auto& key : graph_.adj | std::views::keys)
     {
         if (!visited.contains(key))
-            findCycles(key, stack, visited, onStack, stackPositions);
+            findCycles(key, stack, visited, stackPositions);
     }
 }
 

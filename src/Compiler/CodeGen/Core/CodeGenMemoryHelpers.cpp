@@ -20,9 +20,9 @@ namespace
     Result emitDynamicIdentityRec(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, bool initializeUsingSlots)
     {
         // The caller has established dynamic storage; array elements retain that property.
-        const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-        const TypeInfo& type             = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : originalType;
-        MicroBuilder&   builder          = codeGen.builder();
+        const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
+        MicroBuilder&   builder       = codeGen.builder();
         if (type.isArray())
             return CodeGenArrayTraversal::emit(codeGen, dstReg, type, [&](const TypeInfo& elementType, MicroReg elementReg) {
                 return emitDynamicIdentityRec(codeGen, elementType, elementReg, true);
@@ -621,8 +621,9 @@ namespace
         if (symVar.isPublic() || symVar.globalAddressEscapes())
             return false;
 
-        const TypeRef   typeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), symVar.typeRef());
-        const TypeInfo& type    = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& declaredType  = codeGen.typeMgr().get(symVar.typeRef());
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
         return type.isNumericIntLike() || type.isFloat() || type.isAnyPointer();
     }
 }
@@ -877,9 +878,9 @@ Result CodeGenMemoryHelpers::emitDynamicIdentity(CodeGen& codeGen, TypeRef typeR
 
 void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, MicroReg srcReg)
 {
-    const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-    const TypeInfo& type             = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : originalType;
-    const uint64_t  size             = type.sizeOf(codeGen.ctx());
+    const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
+    const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
+    const uint64_t  size          = type.sizeOf(codeGen.ctx());
     SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
     if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
     {

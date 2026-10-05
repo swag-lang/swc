@@ -37,8 +37,8 @@ namespace
 
     Result emitTypedLifecyclePoison(CodeGen& codeGen, MicroReg addressReg, const TypeInfo& originalType)
     {
-        const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-        const TypeInfo& type             = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : originalType;
+        const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
         if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
             return CodeGenSafety::emitLifecyclePoison(codeGen, addressReg, type.sizeOf(codeGen.ctx()));
 
@@ -353,9 +353,10 @@ Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg a
     // The local's storage must be the struct itself: for a reference-like variable the
     // frame slot holds a pointer, and marking it would flag legitimate reads of the
     // reference on the way to its (correctly poisoned) pointee.
-    const TypeRef unwrappedVarTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), symVar.typeRef());
-    const TypeRef varTypeRef          = unwrappedVarTypeRef.isValid() ? unwrappedVarTypeRef : symVar.typeRef();
-    if (!codeGen.typeMgr().get(varTypeRef).isStruct())
+    const TypeInfo& declaredType  = codeGen.typeMgr().get(symVar.typeRef());
+    const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+    const TypeInfo& varType       = unwrappedType ? *unwrappedType : declaredType;
+    if (!varType.isStruct())
         return Result::Continue;
 
     const CodeGenNodePayload localPayload = codeGen.resolveLocalStackPayload(symVar, false);
@@ -507,13 +508,13 @@ Result CodeGenSafety::emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, As
     if (!valueTypeRef.isValid())
         return Result::Continue;
 
-    const TypeInfo& originalType     = *valueView.type();
-    const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-    if (unwrappedTypeRef.isValid())
-        valueTypeRef = unwrappedTypeRef;
+    const TypeInfo& originalType  = *valueView.type();
+    const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
+    if (unwrappedType)
+        valueTypeRef = unwrappedType->typeRef();
 
     const CodeGenNodePayload& valuePayload = codeGen.payload(valueRef);
-    const TypeInfo&           valueType    = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(valueTypeRef) : originalType;
+    const TypeInfo&           valueType    = unwrappedType ? *unwrappedType : originalType;
     const MicroOpBits         presenceBits = nullPresenceBits(codeGen, valueType);
     SWC_ASSERT(presenceBits != MicroOpBits::Zero);
 
@@ -545,10 +546,10 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Null))
         return Result::Continue;
 
-    const TypeInfo& originalType     = codeGen.typeMgr().get(resultTypeRef);
-    const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-    const TypeRef   resolvedTypeRef  = unwrappedTypeRef.isValid() ? unwrappedTypeRef : resultTypeRef;
-    const TypeInfo& typeInfo         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(resolvedTypeRef) : originalType;
+    const TypeInfo& originalType    = codeGen.typeMgr().get(resultTypeRef);
+    const TypeInfo* unwrappedType   = originalType.unwrapAliasEnumType(codeGen.ctx());
+    const TypeRef   resolvedTypeRef = unwrappedType ? unwrappedType->typeRef() : resultTypeRef;
+    const TypeInfo& typeInfo        = unwrappedType ? *unwrappedType : originalType;
     if (!typeInfo.isNonNullable())
         return Result::Continue;
 
@@ -588,9 +589,9 @@ Result CodeGenSafety::emitLateReadCheck(CodeGen& codeGen, const AstNode& node, M
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Null))
         return Result::Continue;
 
-    const TypeInfo& originalType     = codeGen.typeMgr().get(lateTypeRef);
-    const TypeRef   unwrappedTypeRef = originalType.isAlias() || originalType.isEnum() ? originalType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
-    const TypeInfo& typeInfo         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : originalType;
+    const TypeInfo& originalType  = codeGen.typeMgr().get(lateTypeRef);
+    const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
+    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : originalType;
     if (!typeInfo.isNonNullable())
         return Result::Continue;
 

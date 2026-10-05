@@ -247,10 +247,11 @@ const SymbolVariable* CodeGenMoveElision::directStructVariable(CodeGen& codeGen,
     if (!sym || !sym->isVariable())
         return nullptr;
 
-    const auto&   symVar           = sym->cast<SymbolVariable>();
-    const TypeRef unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), symVar.typeRef());
-    const TypeRef storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : symVar.typeRef();
-    if (!codeGen.typeMgr().get(storageTypeRef).isStruct())
+    const auto&     symVar        = sym->cast<SymbolVariable>();
+    const TypeInfo& declaredType  = codeGen.typeMgr().get(symVar.typeRef());
+    const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : declaredType;
+    if (!storageType.isStruct())
         return nullptr;
 
     if (outResolvedRef)

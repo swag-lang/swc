@@ -1418,12 +1418,15 @@ impl Allocator
     //
     // The common allocation: a default alignment, a size a page class carries, and a block ready on the
     // calling thread's current page for that class. Returns zero whenever anything else has to happen; the
-    // general path then repeats every check and handles it. A zero size wraps to the largest value, so one
+    // general path then repeats every check and handles it. Diagnostic and memory-filling modes also return
+    // zero so the general path can record or initialize the block. A zero size wraps to the largest value, so one
     // comparison rejects it with the sizes no class carries. Every class but the 8-byte one is 16-byte
     // aligned, so an alignment up to 16 only moves the smallest requests one class up.
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd allocateFast(size: u64, alignment: u32)->u64
     {
+        if .slowPath do
+            return 0
         if size - 1 >= AllocatorMaxClassSize do
             return 0
 
@@ -2086,14 +2089,11 @@ impl IAllocator for Allocator
 
     mtd impl alloc(request: *AllocatorRequest)
     {
-        if not .slowPath
+        let block = .allocateFast(request.size, request.alignment)
+        if block != 0
         {
-            let block = .allocateFast(request.size, request.alignment)
-            if block != 0
-            {
-                request.address = cast(*void) block
-                return
-            }
+            request.address = cast(*void) block
+            return
         }
 
         .allocateGeneral(request)

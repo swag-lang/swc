@@ -6,6 +6,29 @@ var AllocationFailureFallback: u8
 
 struct RejectAllocationAllocator {}
 
+struct RecordingAllocationAllocator
+{
+    request: Swag.AllocatorRequest
+    calls:   u32
+    #[Swag.Align(64)]
+    storage: [128] u8
+}
+
+impl Swag.IAllocator for RecordingAllocationAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest)
+    {
+        .request        = request[]
+        .calls          += 1
+        request.address = .storage.buffer
+    }
+
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(request: *Swag.AllocatorRequest) {}
+    mtd impl freeAll(request: *Swag.AllocatorRequest) {}
+    mtd impl assertAllocated(request: *Swag.AllocatorRequest) {}
+}
+
 impl Swag.IAllocator for RejectAllocationAllocator
 {
     mtd impl alloc(request: *Swag.AllocatorRequest)
@@ -72,4 +95,86 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     let result = Memory.alloc(777, allocator, 32, "asset cache")
     Swag.assert(AllocationFailureMatched)
     Swag.assert(result == &AllocationFailureFallback)
+}
+
+// Both explicit and context-selected custom allocators receive the complete request.
+#test
+{
+    var recorder:  RecordingAllocationAllocator
+    let allocator: Swag.IAllocator = &recorder
+    let loc      = #curlocation
+    let explicit = Memory.alloc(73, allocator, 32, "explicit request", loc)
+    Swag.assert(explicit == recorder.storage.buffer)
+    Swag.assert(recorder.request.size == 73 and recorder.request.alignment == 32)
+    Swag.assert(recorder.request.hint == "explicit request")
+    Swag.assert(recorder.request.callerLoc.lineStart == loc.lineStart)
+    Swag.assert(recorder.request.address == null and recorder.request.oldSize == 0)
+
+    Memory.withAllocator(allocator)
+    {
+        let contextual = Memory.alloc(91, alignment: 64, hint: "context request", loc: loc)
+        Swag.assert(contextual == recorder.storage.buffer)
+    }
+
+    Swag.assert(recorder.calls == 2)
+    Swag.assert(recorder.request.size == 91 and recorder.request.alignment == 64)
+    Swag.assert(recorder.request.hint == "context request")
+    Swag.assert(recorder.request.callerLoc.fileName == loc.fileName)
+    Swag.assert(recorder.request.address == null and recorder.request.oldSize == 0)
+}
+
+// Reusing a current page and falling back for a larger size or alignment share the same contract.
+#test
+{
+    var runtime: Swag.Allocator
+    runtime.setup()
+    defer runtime.releaseAll()
+    let allocator: Swag.IAllocator = &runtime
+    for size in [1'u64, 8, 16, 32, 500, 65536, 131072]
+    {
+        for alignment in [0'u32, 8, 16, 32, 256]
+        {
+            for 2
+            {
+                let block = cast([*] u8) Memory.alloc(size, allocator, alignment)
+                if alignment != 0 do
+                    Swag.assert(cast(u64) block % alignment == 0)
+                block[0]        = 17
+                block[size - 1] = 29
+                Swag.assert(block[size - 1] == 29)
+                Memory.free(block, size, allocator)
+            }
+        }
+    }
+
+    Swag.assert(runtime.stats().countAlloc == 0)
+}
+
+// A warm page cannot bypass filling or tracking when those modes are enabled later.
+#test
+{
+    for tracked in [false, true]
+    {
+        var runtime: Swag.Allocator
+        runtime.setup()
+        defer runtime.releaseAll()
+        let allocator: Swag.IAllocator = &runtime
+        let warm = Memory.alloc(32, allocator)
+        Memory.free(warm, 32, allocator)
+        runtime.configure(false, true, false, tracked, true)
+
+        let loc   = #curlocation
+        let block = cast([*] u8) Memory.alloc(32, allocator, hint: "tracked fast allocation", loc: loc)
+        for i in 32 do
+            Swag.assert(block[i] == Swag.Allocator.AllocByte)
+        if tracked
+        {
+            let tracking = runtime.firstAlloc!.tracking!
+            Swag.assert(tracking.hint == "tracked fast allocation")
+            Swag.assert(tracking.loc.lineStart == loc.lineStart)
+        }
+
+        Memory.free(block, 32, allocator)
+        Swag.assert(runtime.stats().countAlloc == 0)
+    }
 }

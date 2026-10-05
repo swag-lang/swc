@@ -60,6 +60,18 @@ namespace
         return nodePayload && nodePayload->hasRuntimeSafety(what);
     }
 
+    MicroOpBits nullPresenceBits(CodeGen& codeGen, const TypeInfo& type)
+    {
+        const uint64_t size = type.sizeOf(codeGen.ctx());
+        if (size > sizeof(uint64_t))
+            return MicroOpBits::B64;
+        const MicroOpBits numericBits = CodeGenTypeHelpers::numericOrBoolBits(type);
+        if (numericBits != MicroOpBits::Zero)
+            return numericBits;
+        const MicroOpBits storageBits = CodeGenTypeHelpers::bitsFromStorageSize(size);
+        return storageBits != MicroOpBits::Zero ? storageBits : MicroOpBits::B64;
+    }
+
     SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen, const CodeGenLoweringPayload* nodePayload = nullptr)
     {
         if (nodePayload && nodePayload->runtimeFunctionSymbol != nullptr)
@@ -404,12 +416,9 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
     SWC_ASSERT(panicFunction != nullptr);
 
-    const MicroOpBits opBits = compareType->isInt() ? MicroOpBits::B64 : CodeGenTypeHelpers::conditionBits(*compareType, codeGen.ctx());
-    SWC_ASSERT(opBits != MicroOpBits::Zero);
-
     MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef inBoundsRef = builder.createLabel();
-    builder.emitCmpRegReg(lowerReg, upperReg, opBits);
+    builder.emitCmpRegReg(lowerReg, upperReg, MicroOpBits::B64);
     builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(compareType->isIntUnsigned()), MicroOpBits::B32, inBoundsRef);
     SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(nodeRef), DiagnosticId::safety_err_bound_check));
     builder.placeLabel(inBoundsRef);
@@ -502,9 +511,7 @@ Result CodeGenSafety::emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, As
 
     const CodeGenNodePayload& valuePayload = codeGen.payload(valueRef);
     const TypeInfo&           valueType    = codeGen.typeMgr().get(valueTypeRef);
-    const uint64_t            sizeOf       = valueType.sizeOf(codeGen.ctx());
-
-    const MicroOpBits presenceBits = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(valueType, codeGen.ctx());
+    const MicroOpBits         presenceBits = nullPresenceBits(codeGen, valueType);
     SWC_ASSERT(presenceBits != MicroOpBits::Zero);
 
     MicroBuilder&  builder     = codeGen.builder();
@@ -542,8 +549,7 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
     if (!typeInfo.isNonNullable())
         return Result::Continue;
 
-    const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
-    const auto     bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+    const MicroOpBits bits = nullPresenceBits(codeGen, typeInfo);
     SWC_ASSERT(bits != MicroOpBits::Zero);
 
     MicroBuilder&      builder = codeGen.builder();
@@ -586,8 +592,7 @@ Result CodeGenSafety::emitLateReadCheck(CodeGen& codeGen, const AstNode& node, M
     if (!typeInfo.isNonNullable())
         return Result::Continue;
 
-    const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
-    const auto     bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+    const MicroOpBits bits = nullPresenceBits(codeGen, typeInfo);
     SWC_ASSERT(bits != MicroOpBits::Zero);
 
     MicroBuilder&  builder     = codeGen.builder();
@@ -931,8 +936,7 @@ Result CodeGenSafety::emitUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntr
 
     const AstNodeRef          valueRef      = codeGen.ast().oneNode(node.spanChildrenRef);
     const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
-    const SemaNodeView        valueView     = codeGen.viewType(valueRef);
-    const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+    const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
     const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
     MicroReg                  valueReg      = MicroReg::invalid();
     MicroBuilder&             builder       = codeGen.builder();

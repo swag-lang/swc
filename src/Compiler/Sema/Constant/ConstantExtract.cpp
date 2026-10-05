@@ -14,10 +14,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasFunctionPointerRelocation(Sema& sema, TypeRef typeRef, const void* ptr)
+    bool hasFunctionPointerRelocation(Sema& sema, const TypeInfo& declaredType, const void* ptr)
     {
-        const TypeRef   storageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        const TypeInfo& type           = sema.typeMgr().get(storageTypeRef.isValid() ? storageTypeRef : typeRef);
+        const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema.ctx(), declaredType.typeRef()) : TypeRef::invalid();
+        const TypeInfo& type           = storageTypeRef.isValid() ? sema.typeMgr().get(storageTypeRef) : declaredType;
         if (!type.isAnyPointer() && !type.isFunction())
             return false;
 
@@ -189,7 +189,7 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
 
     // Reflected method addresses can still be unpublished. Keep the load from their
     // relocatable slot instead of freezing its current bytes (possibly null).
-    if (hasFunctionPointerRelocation(sema, symVar.typeRef(), fieldBytes.data()))
+    if (hasFunctionPointerRelocation(sema, *typeField, fieldBytes.data()))
         return Result::Continue;
 
     ConstantRef cstRef = ConstantRef::invalid();
@@ -235,7 +235,7 @@ namespace
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
 
         const auto elemBytes = std::span{bytes.data() + (constIndex * elemSize), elemSize};
-        if (hasFunctionPointerRelocation(sema, elemTypeRef, elemBytes.data()))
+        if (hasFunctionPointerRelocation(sema, elemType, elemBytes.data()))
             return Result::Continue;
 
         const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);

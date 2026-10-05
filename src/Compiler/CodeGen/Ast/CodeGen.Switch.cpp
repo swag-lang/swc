@@ -17,6 +17,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1297,9 +1298,8 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
     {
         const SemaNodeView        exprView       = codeGen.viewType(exprRef);
         const CodeGenNodePayload& exprPayload    = codeGen.payload(exprRef);
-        const TypeInfo&           exprType       = *exprView.type();
-        const TypeRef             compareTypeRef = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
-        const TypeInfo&           compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const TypeInfo&           compareType    = SemaHelpers::aliasEnumType(codeGen.sema(), exprView);
+        const TypeRef             compareTypeRef = compareType.typeRef();
         if (isDynamicStructSwitch(codeGen, compareTypeRef, *switchState))
             return initializeDynamicStructSwitchState(codeGen, *switchState, compareTypeRef, compareType, exprPayload);
 

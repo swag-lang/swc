@@ -542,9 +542,11 @@ impl Allocator
         if not address do
             return
 
-        __hostPageRelease(address, size)
+        // The host returns whole pages, including the unused tail of a thread-heap record.
+        let rounded = memAlign(size, cast(u32) AllocatorCommitGranularity)
+        __hostPageRelease(address, rounded)
 
-        atomicSubU64(&g_AllocatorCommittedBytes, size)
+        atomicSubU64(&g_AllocatorCommittedBytes, rounded)
         atomicAddU64(&g_AllocatorOsDecommitCount, 1)
     }
 

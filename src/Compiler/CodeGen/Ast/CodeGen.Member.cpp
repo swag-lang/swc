@@ -76,22 +76,12 @@ namespace
         if (!ownerStruct)
             return false;
 
-        TypeRef baseTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftTypeRef);
-        if (baseTypeRef.isInvalid())
-            return false;
-
-        const TypeInfo* baseTypeInfo = &codeGen.typeMgr().get(baseTypeRef);
-        if (baseTypeInfo->isPointerOrReference())
-        {
-            baseTypeRef  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), baseTypeInfo->payloadTypeRef());
-            baseTypeInfo = &codeGen.typeMgr().get(baseTypeRef);
-        }
-
-        if (!baseTypeInfo->isStruct())
+        const SymbolStruct* baseStruct = CodeGenStructHelpers::resolveRuntimeStructType(codeGen, leftTypeRef);
+        if (!baseStruct)
             return false;
 
         std::unordered_set<const SymbolStruct*> visited;
-        return resolveUsingMemberPathRec(codeGen, baseTypeInfo->payloadSymStruct(), *ownerStruct, outSteps, visited);
+        return resolveUsingMemberPathRec(codeGen, *baseStruct, *ownerStruct, outSteps, visited);
     }
 
     struct AggregateMemberInfo

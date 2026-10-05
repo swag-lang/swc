@@ -35,20 +35,6 @@ namespace
         MicroLabelRef doneLabel  = MicroLabelRef::invalid();
     };
 
-    MicroReg materializeTruthyOperand(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
-    {
-        const TypeInfo* typeInfo = &codeGen.typeMgr().get(operandTypeRef);
-        if (operandPayload.typeRef.isValid() && operandPayload.typeRef != operandTypeRef && typeInfo->isBool())
-        {
-            operandTypeRef = operandPayload.typeRef;
-            typeInfo       = &codeGen.typeMgr().get(operandTypeRef);
-        }
-
-        const MicroOpBits opBits = CodeGenTypeHelpers::compareBits(*typeInfo, codeGen.ctx());
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
-        return CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, *typeInfo, opBits);
-    }
-
     template<typename T>
     inline void resetConditionalLabels(CodeGen& codeGen, AstNodeRef nodeRef)
     {
@@ -60,9 +46,8 @@ namespace
         }
     }
 
-    bool usesAddressBackedSelection(CodeGen& codeGen, TypeRef typeRef)
+    bool usesAddressBackedSelection(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         return !typeInfo.isSimd() && typeInfo.sizeOf(codeGen.ctx()) > 8;
     }
 
@@ -80,8 +65,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
     SWC_ASSERT(resolvedChildRef.isValid());
 
-    const SemaNodeView resultView = codeGen.curViewType();
-    SWC_ASSERT(resultView.type() != nullptr);
+    SWC_ASSERT(codeGen.curViewType().type() != nullptr);
 
     // When the conditional was wrapped by an implicit cast, the wrapper's type shows
     // through the resolved view. The selection must produce its own stored type; the
@@ -89,7 +73,6 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     const TypeRef                  resultTypeRef = codeGen.transparentPayloadTypeRef();
     const auto*                    lowering      = codeGen.loweringPayload(codeGen.curNodeRef());
     const bool                     ownsValue     = lowering && lowering->ownsValue;
-    const bool                     addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
     MicroBuilder&                  builder       = codeGen.builder();
     ConditionalExprCodeGenPayload* state         = codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef());
 
@@ -105,7 +88,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(condType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
 
-        const MicroReg condReg = materializeTruthyOperand(codeGen, condPayload, condTypeRef);
+        const MicroReg condReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, condPayload, condTypeRef, condType, condBits);
         SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
 
         ConditionalExprCodeGenPayload& newState = codeGen.ensureNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef());
@@ -152,6 +135,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         return Result::Continue;
     }
 
+    const TypeInfo& resultType    = codeGen.typeMgr().get(resultTypeRef);
+    const bool      addressBacked = usesAddressBackedSelection(codeGen, resultType);
     if (state->stage == ConditionalExprStage::TrueBranch)
     {
         const CodeGenNodePayload& truePayload = codeGen.payload(resolvedChildRef);
@@ -164,7 +149,6 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         }
         else
         {
-            const TypeInfo&     resultType    = codeGen.typeMgr().get(resultTypeRef);
             const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
             // The join register must match the result type's register class: a float
@@ -190,7 +174,6 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         }
         else
         {
-            const TypeInfo&   resultType = codeGen.typeMgr().get(resultTypeRef);
             const MicroOpBits resultBits = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             emitSelectedOperand(codeGen, resultPayload, falsePayload, resultBits);
         }
@@ -218,9 +201,10 @@ namespace
     // Emit the lhs-selected value of a null-coalescing and fall through to the false
     // label where the rhs will be produced. Shared by the truthiness-tested path and
     // the fused '?.'-chain path.
-    void emitNullCoalescingSelectedLeft(CodeGen& codeGen, const NullCoalescingCodeGenPayload& state, const CodeGenNodePayload& leftPayload, TypeRef resultTypeRef, bool addressBacked)
+    void emitNullCoalescingSelectedLeft(CodeGen& codeGen, const NullCoalescingCodeGenPayload& state, const CodeGenNodePayload& leftPayload, const TypeInfo& resultType, bool addressBacked)
     {
-        MicroBuilder& builder = codeGen.builder();
+        const TypeRef resultTypeRef = resultType.typeRef();
+        MicroBuilder& builder       = codeGen.builder();
         if (addressBacked)
         {
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
@@ -228,7 +212,6 @@ namespace
         }
         else
         {
-            const TypeInfo&     resultType    = codeGen.typeMgr().get(resultTypeRef);
             const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
             // The join register must match the result type's register class: a float
@@ -250,7 +233,8 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
 
     // Same stored-type rule as the conditional expression above.
     const TypeRef                       resultTypeRef = codeGen.transparentPayloadTypeRef();
-    const bool                          addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
+    const TypeInfo&                     resultType    = codeGen.typeMgr().get(resultTypeRef);
+    const bool                          addressBacked = usesAddressBackedSelection(codeGen, resultType);
     MicroBuilder&                       builder       = codeGen.builder();
     const NullCoalescingCodeGenPayload* state         = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
 
@@ -273,7 +257,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
             chainState->falseLabel                 = MicroLabelRef::invalid();
             chainState->doneLabel                  = MicroLabelRef::invalid();
 
-            emitNullCoalescingSelectedLeft(codeGen, newState, codeGen.payload(resolvedChildRef), resultTypeRef, addressBacked);
+            emitNullCoalescingSelectedLeft(codeGen, newState, codeGen.payload(resolvedChildRef), resultType, addressBacked);
             return Result::Continue;
         }
 
@@ -283,7 +267,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(leftType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
 
-        const MicroReg condReg = materializeTruthyOperand(codeGen, leftPayload, leftTypeRef);
+        const MicroReg condReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, leftPayload, leftTypeRef, leftType, condBits);
 
         NullCoalescingCodeGenPayload& newState = codeGen.ensureNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
         newState.falseLabel                    = builder.createLabel();
@@ -293,7 +277,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         CodeGenCompareHelpers::emitConditionJump(codeGen, leftType, CodeGenCompareHelpers::falseyCondition(leftType), newState.falseLabel);
 
         // When the lhs is present, null-coalescing resolves immediately and the rhs is skipped entirely.
-        emitNullCoalescingSelectedLeft(codeGen, newState, leftPayload, resultTypeRef, addressBacked);
+        emitNullCoalescingSelectedLeft(codeGen, newState, leftPayload, resultType, addressBacked);
         return Result::Continue;
     }
 
@@ -307,7 +291,6 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         }
         else
         {
-            const TypeInfo&   resultType = codeGen.typeMgr().get(resultTypeRef);
             const MicroOpBits resultBits = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             emitSelectedOperand(codeGen, resultPayload, rightPayload, resultBits);
         }
@@ -366,7 +349,7 @@ Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
 
     // Standalone nullable result: join the produced value with a materialized null.
     const CodeGenNodePayload& childPayload = codeGen.payload(resolvedChildRef);
-    if (usesAddressBackedSelection(codeGen, chainTypeRef))
+    if (usesAddressBackedSelection(codeGen, chainType))
     {
         const uint64_t chainSize = chainType.sizeOf(codeGen.ctx());
         SWC_ASSERT(chainSize % 8 == 0);

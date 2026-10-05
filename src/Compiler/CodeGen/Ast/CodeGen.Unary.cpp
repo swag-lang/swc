@@ -33,7 +33,6 @@ namespace
     struct UnaryOperandInfo
     {
         const CodeGenNodePayload* childPayload    = nullptr;
-        TypeRef                   operandTypeRef  = TypeRef::invalid();
         TypeRef                   storageTypeRef  = TypeRef::invalid();
         TypeRef                   resultTypeRef   = TypeRef::invalid();
         const TypeInfo*           storageTypeInfo = nullptr;
@@ -44,11 +43,19 @@ namespace
     {
         UnaryOperandInfo info;
         info.childPayload    = &codeGen.payload(nodeExprRef);
-        info.operandTypeRef  = info.childPayload->typeRef.isValid() ? info.childPayload->typeRef : codeGen.viewType(nodeExprRef).typeRef();
-        info.storageTypeRef  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), info.operandTypeRef);
-        info.resultTypeRef   = codeGen.curViewType().typeRef();
+        info.storageTypeRef  = info.childPayload->typeRef.isValid() ? info.childPayload->typeRef : codeGen.viewType(nodeExprRef).typeRef();
         info.storageTypeInfo = &codeGen.typeMgr().get(info.storageTypeRef);
-        info.opBits          = CodeGenTypeHelpers::compareBits(*info.storageTypeInfo, codeGen.ctx());
+        if (info.storageTypeInfo->isAlias() || info.storageTypeInfo->isEnum())
+        {
+            const TypeRef unwrappedTypeRef = info.storageTypeInfo->unwrapAliasEnum(codeGen.ctx());
+            if (unwrappedTypeRef.isValid())
+            {
+                info.storageTypeRef  = unwrappedTypeRef;
+                info.storageTypeInfo = &codeGen.typeMgr().get(unwrappedTypeRef);
+            }
+        }
+        info.resultTypeRef = codeGen.curViewType().typeRef();
+        info.opBits        = CodeGenTypeHelpers::compareBits(*info.storageTypeInfo, codeGen.ctx());
         SWC_ASSERT(info.opBits != MicroOpBits::Zero);
         return info;
     }
@@ -183,8 +190,6 @@ namespace
             else
                 codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         }
-        else if (childPayload.isAddress())
-            codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         else
             codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         return Result::Continue;

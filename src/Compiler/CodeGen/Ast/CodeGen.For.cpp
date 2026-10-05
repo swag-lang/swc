@@ -67,22 +67,18 @@ namespace
         return typeRef;
     }
 
-    MicroOpBits loopOperationBits(CodeGen& codeGen, TypeRef typeRef)
+    MicroOpBits loopOperationBits(CodeGen& codeGen, const TypeInfo& compareType)
     {
-        const TypeRef   compareTypeRef = loopCompareTypeRef(codeGen, typeRef);
-        const TypeInfo& compareType    = codeGen.typeMgr().get(compareTypeRef);
         if (compareType.isInt())
             return MicroOpBits::B64;
         return CodeGenTypeHelpers::conditionBits(compareType, codeGen.ctx());
     }
 
-    MicroReg materializeLoopValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef)
+    MicroReg materializeLoopValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, const TypeInfo& compareType)
     {
-        const TypeRef     compareTypeRef = loopCompareTypeRef(codeGen, typeRef);
-        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits valueBits      = CodeGenTypeHelpers::conditionBits(compareType, codeGen.ctx());
-        const MicroReg    outReg         = codeGen.nextVirtualIntRegister();
-        MicroBuilder&     builder        = codeGen.builder();
+        const MicroOpBits valueBits = CodeGenTypeHelpers::conditionBits(compareType, codeGen.ctx());
+        const MicroReg    outReg    = codeGen.nextVirtualIntRegister();
+        MicroBuilder&     builder   = codeGen.builder();
 
         if (payload.isAddress())
         {
@@ -116,19 +112,17 @@ namespace
         return outReg;
     }
 
-    MicroReg materializeLoopZeroReg(CodeGen& codeGen, TypeRef typeRef)
+    MicroReg materializeLoopZeroReg(CodeGen& codeGen, MicroOpBits opBits)
     {
-        const MicroOpBits opBits  = loopOperationBits(codeGen, typeRef);
-        const MicroReg    outReg  = codeGen.nextVirtualIntRegister();
-        MicroBuilder&     builder = codeGen.builder();
+        const MicroReg outReg  = codeGen.nextVirtualIntRegister();
+        MicroBuilder&  builder = codeGen.builder();
         builder.emitLoadRegImm(outReg, ApInt(0, 64), opBits);
         return outReg;
     }
 
-    MicroReg materializeLoopConstantReg(CodeGen& codeGen, ConstantRef cstRef, TypeRef typeRef)
+    MicroReg materializeLoopConstantReg(CodeGen& codeGen, ConstantRef cstRef, MicroOpBits opBits)
     {
         const ConstantValue& cst    = codeGen.cstMgr().get(cstRef);
-        const MicroOpBits    opBits = loopOperationBits(codeGen, typeRef);
         const MicroReg       outReg = codeGen.nextVirtualIntRegister();
         SWC_ASSERT(cst.isInt());
         SWC_ASSERT(cst.getInt().fits64());
@@ -136,7 +130,7 @@ namespace
         return outReg;
     }
 
-    Result materializeLoopCountOfReg(MicroReg& outReg, CodeGen& codeGen, AstNodeRef exprRef, TypeRef resultTypeRef)
+    Result materializeLoopCountOfReg(MicroReg& outReg, CodeGen& codeGen, AstNodeRef exprRef, const TypeInfo& resultType)
     {
         outReg = MicroReg::invalid();
 
@@ -150,7 +144,7 @@ namespace
             const CodeGenNodePayload countPayload = codeGen.payload(codeGen.curNodeRef());
             codeGen.clearNodePayload<CodeGenNodePayload>(codeGen.curNodeRef());
 
-            outReg = materializeLoopValueReg(codeGen, countPayload, resultTypeRef);
+            outReg = materializeLoopValueReg(codeGen, countPayload, resultType);
             return Result::Continue;
         }
 
@@ -162,7 +156,7 @@ namespace
 
         if (exprType.isInt())
         {
-            outReg = materializeLoopValueReg(codeGen, exprPayload, resultTypeRef);
+            outReg = materializeLoopValueReg(codeGen, exprPayload, resultType);
             return Result::Continue;
         }
 
@@ -218,12 +212,12 @@ namespace
 
     void emitLoopVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar, MicroReg valueReg)
     {
-        const TypeInfo&   typeInfo = codeGen.typeMgr().get(symVar.typeRef());
-        const MicroOpBits opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         if (codeGen.localStackBaseReg().isValid() &&
             symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
             symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
+            const TypeInfo&          typeInfo       = codeGen.typeMgr().get(symVar.typeRef());
+            const MicroOpBits        opBits         = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
             const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(symVar, false);
             codeGen.builder().emitLoadMemReg(storagePayload.reg, 0, valueReg, opBits);
             codeGen.setVariablePayload(symVar, storagePayload);
@@ -261,37 +255,37 @@ namespace
         loopState.indexTypeRef = semaPayload->indexTypeRef;
         loopState.inclusive    = semaPayload->inclusive;
 
-        MicroReg lowerReg = MicroReg::invalid();
-        MicroReg upperReg = MicroReg::invalid();
+        const TypeRef     compareTypeRef = loopCompareTypeRef(codeGen, loopState.indexTypeRef);
+        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits         = loopOperationBits(codeGen, compareType);
+        MicroReg          lowerReg       = MicroReg::invalid();
+        MicroReg          upperReg       = MicroReg::invalid();
         if (semaPayload->isRangeLoop)
         {
             if (semaPayload->lowerBoundRef.isValid())
             {
                 const AstNodeRef downRef = codeGen.resolvedNodeRef(semaPayload->lowerBoundRef);
-                lowerReg                 = materializeLoopValueReg(codeGen, codeGen.payload(downRef), loopState.indexTypeRef);
+                lowerReg                 = materializeLoopValueReg(codeGen, codeGen.payload(downRef), compareType);
             }
             else
             {
-                lowerReg = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
+                lowerReg = materializeLoopZeroReg(codeGen, opBits);
             }
 
             const AstNodeRef upRef = codeGen.resolvedNodeRef(semaPayload->upperBoundRef);
-            upperReg               = materializeLoopValueReg(codeGen, codeGen.payload(upRef), loopState.indexTypeRef);
+            upperReg               = materializeLoopValueReg(codeGen, codeGen.payload(upRef), compareType);
         }
         else
         {
-            lowerReg = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
+            lowerReg = materializeLoopZeroReg(codeGen, opBits);
             if (semaPayload->countCstRef.isValid())
-                upperReg = materializeLoopConstantReg(codeGen, semaPayload->countCstRef, loopState.indexTypeRef);
+                upperReg = materializeLoopConstantReg(codeGen, semaPayload->countCstRef, opBits);
             else
-                SWC_RESULT(materializeLoopCountOfReg(upperReg, codeGen, exprRef, loopState.indexTypeRef));
+                SWC_RESULT(materializeLoopCountOfReg(upperReg, codeGen, exprRef, compareType));
         }
 
-        const TypeRef     compareTypeRef = loopCompareTypeRef(codeGen, loopState.indexTypeRef);
-        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits         = loopOperationBits(codeGen, loopState.indexTypeRef);
-        loopState.unsignedCmp            = compareType.isIntUnsigned();
-        loopState.indexReg               = codeGen.nextVirtualIntRegister();
+        loopState.unsignedCmp = compareType.isIntUnsigned();
+        loopState.indexReg    = codeGen.nextVirtualIntRegister();
 
         SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, compareType));
 
@@ -493,8 +487,10 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
             return Result::Continue;
         }
 
-        const MicroOpBits opBits  = loopOperationBits(codeGen, loopState->indexTypeRef);
-        MicroBuilder&     builder = codeGen.builder();
+        const TypeRef     compareTypeRef = loopCompareTypeRef(codeGen, loopState->indexTypeRef);
+        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits         = loopOperationBits(codeGen, compareType);
+        MicroBuilder&     builder        = codeGen.builder();
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);
 

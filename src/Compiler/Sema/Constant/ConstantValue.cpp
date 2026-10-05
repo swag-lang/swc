@@ -34,6 +34,9 @@ namespace
 
     void validateSlicePayload(TaskContext& ctx, const TypeRef elementTypeRef, const std::span<const std::byte> bytes, const uint64_t count)
     {
+        if constexpr (!SWC_HAS_ASSERT)
+            return;
+
         const TypeInfo& elementType = ctx.typeMgr().get(elementTypeRef);
         const uint64_t  elementSize = elementType.sizeOf(ctx);
         if (!elementSize)

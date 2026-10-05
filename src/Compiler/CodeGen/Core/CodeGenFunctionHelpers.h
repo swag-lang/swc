@@ -71,9 +71,9 @@ namespace CodeGenFunctionHelpers
     Result             emitMovedFromDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
     Result             emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, uint32_t count);
     Result             emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg);
-    Result             emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
-    Result             emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, uint32_t count);
-    Result             emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg);
+    Result             emitStructDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg);
+    Result             emitStructDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg, uint32_t count);
+    Result             emitStructDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg, MicroReg countReg);
     void               emitStackPointerSubtract(CodeGen& codeGen, const CallConv& callConv, uint64_t sizeInBytes, MicroReg scratchReg);
     bool               tryUseDirectVarInitStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym);
     bool               tryUseDirectReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym);

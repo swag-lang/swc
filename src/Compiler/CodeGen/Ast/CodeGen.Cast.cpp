@@ -1364,7 +1364,7 @@ namespace
 
         const MicroReg runtimeStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         if (!setPayload.calledFn->hasFullInitialization())
-            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, dstTypeRef, runtimeStorageReg));
+            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, codeGen.typeMgr().get(dstTypeRef), runtimeStorageReg));
 
         CodeGenNodePayload& receiverArg = codeGen.setPayload(resolvedArgs[0].argRef, dstTypeRef);
         receiverArg.reg                 = runtimeStorageReg;

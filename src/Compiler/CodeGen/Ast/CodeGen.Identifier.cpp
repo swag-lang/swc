@@ -342,9 +342,7 @@ namespace
 
         if (storageType->isStruct())
         {
-            const auto& symStruct = storageType->payloadSymStruct();
-            symStruct.computeImplicitDefaultFlags(codeGen.sema());
-            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), dstReg));
+            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, *storageType, dstReg));
             return Result::Continue;
         }
 

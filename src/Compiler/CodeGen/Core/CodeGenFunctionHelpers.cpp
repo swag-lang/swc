@@ -723,22 +723,22 @@ namespace
         return resultReg;
     }
 
-    bool canEmitDefaultPayloadBytesInline(CodeGen& codeGen, TypeRef typeRef)
+    bool canEmitDefaultPayloadBytesInline(CodeGen& codeGen, const TypeInfo& declaredType)
     {
-        typeRef                  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const TypeRef   unwrappedTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(codeGen.ctx()) : TypeRef::invalid();
+        const TypeInfo& typeInfo         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : declaredType;
 
         if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
             return true;
 
         if (typeInfo.isArray())
-            return canEmitDefaultPayloadBytesInline(codeGen, typeInfo.payloadArrayElemTypeRef());
+            return canEmitDefaultPayloadBytesInline(codeGen, codeGen.typeMgr().get(typeInfo.payloadArrayElemTypeRef()));
 
         if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
         {
             for (const TypeRef childTypeRef : typeInfo.payloadAggregate().types)
             {
-                if (!canEmitDefaultPayloadBytesInline(codeGen, childTypeRef))
+                if (!canEmitDefaultPayloadBytesInline(codeGen, codeGen.typeMgr().get(childTypeRef)))
                     return false;
             }
 
@@ -751,7 +751,7 @@ namespace
                 return false;
             for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
             {
-                if (field && !canEmitDefaultPayloadBytesInline(codeGen, field->typeRef()))
+                if (field && !canEmitDefaultPayloadBytesInline(codeGen, codeGen.typeMgr().get(field->typeRef())))
                     return false;
             }
 
@@ -792,9 +792,8 @@ namespace
 
     Result emitDefaultConstantToAddress(CodeGen& codeGen, const TypeInfo& typeInfo, ConstantRef valueRef, MicroReg dstAddressReg)
     {
-        const TypeRef        typeRef = typeInfo.typeRef();
-        const uint32_t       size    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
-        const ConstantValue& value   = codeGen.cstMgr().get(valueRef);
+        const uint32_t       size  = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        const ConstantValue& value = codeGen.cstMgr().get(valueRef);
         if ((value.isStruct() || value.isArray()) && value.isPayloadBorrowed() && value.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(codeGen.ctx(), typeInfo))
         {
             // Construction already identified the live relocations. A raw byte round trip
@@ -809,7 +808,7 @@ namespace
         SmallVector<std::byte> payloadBytes;
         payloadBytes.resize(size);
         SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{payloadBytes.data(), payloadBytes.size()}, valueRef, typeInfo));
-        const bool canEmitInline = canEmitDefaultPayloadBytesInline(codeGen, typeRef);
+        const bool canEmitInline = canEmitDefaultPayloadBytesInline(codeGen, typeInfo);
         if (CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, std::span{payloadBytes.data(), payloadBytes.size()}, canEmitInline))
             return Result::Continue;
 
@@ -852,7 +851,7 @@ namespace
         const TypeInfo& typeInfo       = storageTypeRef.isValid() ? codeGen.typeMgr().get(storageTypeRef) : declaredType;
         const TypeRef   typeRef        = typeInfo.typeRef();
         if (typeInfo.isStruct())
-            return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
+            return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeInfo, dstAddressReg);
         if (typeInfo.isArray())
             return emitArrayDefaultValue(codeGen, typeInfo, dstAddressReg);
         if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), typeRef))
@@ -880,7 +879,7 @@ namespace
         const TypeRef   storageElemTypeRef = elemType.isAlias() || elemType.isEnum() ? elemType.unwrapAliasEnum(codeGen.ctx(), elemTypeRef) : elemTypeRef;
         const TypeInfo& storageElemType    = storageElemTypeRef == elemTypeRef ? elemType : codeGen.typeMgr().get(storageElemTypeRef);
         if (storageElemType.isStruct())
-            return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageElemTypeRef, dstAddressReg, static_cast<uint32_t>(elemCount));
+            return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageElemType, dstAddressReg, static_cast<uint32_t>(elemCount));
         if (!storageElemType.isArray())
         {
             if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), storageElemTypeRef))
@@ -1071,11 +1070,10 @@ Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeR
     return Result::Continue;
 }
 
-Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
+Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg)
 {
-    typeRef = codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
-
-    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    const TypeRef   unwrappedTypeRef = declaredType.isAlias() ? declaredType.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias) : TypeRef::invalid();
+    const TypeInfo& typeInfo         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : declaredType;
     if (!typeInfo.isStruct())
         return Result::Continue;
 
@@ -1103,7 +1101,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     SWC_RESULT(lowerStructDefaultPayload(codeGen, payloadStorage, payloadBytes, typeInfo));
 
     SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
-    if (CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, payloadBytes, canEmitDefaultPayloadBytesInline(codeGen, typeRef)))
+    if (CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, payloadBytes, canEmitDefaultPayloadBytesInline(codeGen, typeInfo)))
         return Result::Continue;
     if (shouldComposeLargeSparseStructDefault(codeGen, typeInfo, payloadBytes))
         return emitStructComposedDefaultValue(codeGen, typeInfo, dstAddressReg);
@@ -1121,16 +1119,15 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     return Result::Continue;
 }
 
-Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, uint32_t count)
+Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg, uint32_t count)
 {
     if (!count)
         return Result::Continue;
     if (count == 1)
-        return emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
+        return emitStructDefaultValue(codeGen, declaredType, dstAddressReg);
 
-    typeRef = codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
-
-    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    const TypeRef   unwrappedTypeRef = declaredType.isAlias() ? declaredType.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias) : TypeRef::invalid();
+    const TypeInfo& typeInfo         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : declaredType;
     if (!typeInfo.isStruct())
         return Result::Continue;
 
@@ -1155,7 +1152,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
             const uint64_t offset = static_cast<uint64_t>(sizeOf) * i;
             SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
             const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
-            SWC_RESULT(emitStructDefaultValue(codeGen, typeRef, elemAddressReg));
+            SWC_RESULT(emitStructDefaultValue(codeGen, typeInfo, elemAddressReg));
         }
 
         return Result::Continue;
@@ -1167,11 +1164,10 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     return Result::Continue;
 }
 
-Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg)
+Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg, MicroReg countReg)
 {
-    typeRef = codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef);
-
-    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    const TypeRef   unwrappedTypeRef = declaredType.isAlias() ? declaredType.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias) : TypeRef::invalid();
+    const TypeInfo& typeInfo         = unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef) : declaredType;
     if (!typeInfo.isStruct())
         return Result::Continue;
 
@@ -1192,7 +1188,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (symStruct.hasImplicitAllZeroDefault())
         CodeGenMemoryHelpers::emitMemZero(codeGen, cursorReg, sizeOf);
     else
-        SWC_RESULT(emitStructDefaultValue(codeGen, typeRef, cursorReg));
+        SWC_RESULT(emitStructDefaultValue(codeGen, typeInfo, cursorReg));
     builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
@@ -1210,7 +1206,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
 
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (typeInfo.isStruct())
-        return emitStructDefaultValue(codeGen, typeRef, dstAddressReg, count);
+        return emitStructDefaultValue(codeGen, typeInfo, dstAddressReg, count);
     if (count == 1)
         return emitImplicitDefaultValue(codeGen, typeInfo, dstAddressReg);
 
@@ -1247,7 +1243,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
 
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (typeInfo.isStruct())
-        return emitStructDefaultValue(codeGen, typeRef, dstAddressReg, countReg);
+        return emitStructDefaultValue(codeGen, typeInfo, dstAddressReg, countReg);
 
     const uint32_t sizeOf    = checkedTypeSizeInBytes(codeGen, typeInfo);
     MicroBuilder&  builder   = codeGen.builder();

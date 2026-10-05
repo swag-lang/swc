@@ -207,7 +207,7 @@ namespace
         SWC_ASSERT(fillType.isStruct());
 
         const MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-        SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, fillTypeRef, storageReg));
+        SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, fillType, storageReg));
 
         const auto& fields = fillType.payloadSymStruct().fields();
         for (size_t i = 0; i < args.size(); ++i)

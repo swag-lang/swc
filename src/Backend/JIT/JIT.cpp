@@ -1419,7 +1419,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     SWC_ASSERT(targetFn != nullptr);
 
     const CallConv&                        conv    = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType retType = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType retType = ABITypeNormalize::normalize(ctx, conv, ctx.typeMgr().get(ret.typeRef), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
     struct IndirectArgCopy
@@ -1453,7 +1453,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     for (uint32_t i = 0; i < numArgs; ++i)
     {
         const JITArgument&                     arg     = args[i];
-        const ABITypeNormalize::NormalizedType argType = ABITypeNormalize::normalize(ctx, conv, arg.typeRef, ABITypeNormalize::Usage::Argument);
+        const ABITypeNormalize::NormalizedType argType = ABITypeNormalize::normalize(ctx, conv, ctx.typeMgr().get(arg.typeRef), ABITypeNormalize::Usage::Argument);
         SWC_ASSERT(!argType.isVoid);
         SWC_ASSERT(arg.valuePtr != nullptr);
 

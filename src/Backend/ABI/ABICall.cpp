@@ -311,7 +311,7 @@ void ABICall::loadCanonicalIntToReg(MicroBuilder& builder, MicroReg dstReg, Micr
 uint32_t ABICall::argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKind callConvKind, TypeRef returnTypeRef, uint32_t parameterIndex)
 {
     const CallConv&                        callConv      = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
     if (normalizedRet.isIndirect)
         return parameterIndex + 1;
     return parameterIndex;

@@ -194,7 +194,7 @@ namespace
         uint32_t regIndex = 1;
 
         const CallConv&                        callConv      = CallConv::get(adapter.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, adapter.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(adapter.returnTypeRef()), ABITypeNormalize::Usage::Return);
         const bool                             hasHiddenRet  = normalizedRet.isIndirect;
 
         MicroBuilder& builder = adapter.microInstrBuilder(ctx);
@@ -213,7 +213,7 @@ namespace
         for (const SymbolVariable* param : adapter.parameters())
         {
             SWC_ASSERT(param != nullptr);
-            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
             incomingArgLayouts.push_back({.numBits = static_cast<uint8_t>(normalizedParam.numBits ? normalizedParam.numBits : 64), .isFloat = normalizedParam.isFloat});
         }
 
@@ -240,7 +240,7 @@ namespace
             SWC_ASSERT(param != nullptr);
 
             const ABITypeNormalize::NormalizedType normalizedParam =
-                ABITypeNormalize::normalize(ctx, callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+                ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
 
             const uint32_t incomingSlot = param->parameterIndex() + (hasHiddenRet ? 1u : 0u) + 1u;
 
@@ -395,7 +395,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
     else
     {
         const CallConv&                        callConv      = CallConv::get(callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(returnTypeRef()), ABITypeNormalize::Usage::Return);
         builder.setRetUsesAbiRegs(!normalizedRet.isFloat, normalizedRet.isFloat);
     }
     // The static sanitizer runs the checks whose sanity guard is on for this function:

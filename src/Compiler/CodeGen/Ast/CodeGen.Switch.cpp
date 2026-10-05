@@ -275,7 +275,7 @@ namespace
         const auto    callInfo          = CodeGenBinaryValueCall::emit(codeGen, stringCmpFunction, switchState.switchValuePayload, casePayload);
         MicroBuilder& builder           = codeGen.builder();
 
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, codeGen.typeMgr().get(stringCmpFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
         SWC_ASSERT(normalizedRet.numBits == 8);

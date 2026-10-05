@@ -286,7 +286,7 @@ namespace
 
 void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, TypeRef argTypeRef, MicroReg srcReg)
 {
-    const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
+    const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(argTypeRef), ABITypeNormalize::Usage::Argument);
 
     ABICall::PreparedArg& arg = outArgs.emplace_back();
     arg.srcReg                = srcReg;
@@ -300,7 +300,7 @@ void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedAr
 void CodeGenCallHelpers::appendPreparedValueArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
 {
     const TypeInfo&                        argType       = codeGen.typeMgr().get(argTypeRef);
-    const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
+    const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argType, ABITypeNormalize::Usage::Argument);
 
     ABICall::PreparedArg& preparedArg = outArgs.emplace_back();
     preparedArg.srcReg                = operandPayload.reg;

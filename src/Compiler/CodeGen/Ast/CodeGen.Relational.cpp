@@ -264,7 +264,7 @@ namespace
         MicroBuilder& builder           = codeGen.builder();
 
         const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, codeGen.typeMgr().get(stringCmpFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
         SWC_ASSERT(normalizedRet.numBits == 8);
@@ -752,7 +752,7 @@ namespace
         codeGen.function().addCallDependency(&equalsFn);
 
         const MicroReg                         resultReg     = codeGen.nextVirtualIntRegister();
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, equalsFn.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(equalsFn.returnTypeRef()), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid && !normalizedRet.isIndirect);
         ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
 

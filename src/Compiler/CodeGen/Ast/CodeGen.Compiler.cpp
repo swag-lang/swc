@@ -211,7 +211,7 @@ namespace
 
         if (returnTypeRef.isValid())
         {
-            const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+            const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
             if (normalizedRet.isIndirect)
             {
                 codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
@@ -438,7 +438,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const CodeGenNodePayload&              runExprPayload   = codeGen.payload(codeGen.curNodeRef());
     const MicroReg                         outputStorageReg = runExprPayload.reg;
     const AstNode&                         exprNode         = codeGen.node(nodeExprRef);
-    const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, *exprView.type(), ABITypeNormalize::Usage::Return);
     const bool                             needsPersistent  = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), exprView.typeRef());
 
     if (normalizedRet.isIndirect)

@@ -652,7 +652,7 @@ namespace
 
         const CallConvKind                     callConvKind  = calledFunction->callConvKind();
         const CallConv&                        callConv      = CallConv::get(callConvKind);
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction->returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(calledFunction->returnTypeRef()), ABITypeNormalize::Usage::Return);
         if (normalizedRet.isVoid || normalizedRet.isIndirect)
             return false;
 
@@ -966,7 +966,7 @@ namespace
         const CallConvKind                     callConvKind                  = symbolFunc.callConvKind();
         const CallConv&                        callConv                      = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef                 = symbolFunc.returnTypeRef();
-        const ABITypeNormalize::NormalizedType normalizedRet                 = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet                 = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
         const bool                             needsPersistentCompilerReturn = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
 
         if (normalizedRet.isVoid)
@@ -1110,7 +1110,7 @@ namespace
         const CallConvKind                     callConvKind     = symbolFunc.callConvKind();
         const CallConv&                        callConv         = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef    = symbolFunc.returnTypeRef();
-        const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
         const MicroReg                         outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
         MicroBuilder&                          builder          = codeGen.builder();
 
@@ -1217,7 +1217,7 @@ namespace
         const CallConvKind                     callConvKind                       = symbolFunc.callConvKind();
         const CallConv&                        callConv                           = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef                      = symbolFunc.returnTypeRef();
-        const ABITypeNormalize::NormalizedType normalizedRet                      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet                      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
         const bool                             needsPersistentCompilerBlockReturn = isCompilerRunBlockFunction(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
         const bool                             needsPersistentCompilerReturn      = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
 
@@ -1296,7 +1296,7 @@ namespace
     {
         const SymbolFunction&                  symbolFunc    = codeGen.function();
         const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symbolFunc.returnTypeRef()), ABITypeNormalize::Usage::Return);
         if (normalizedRet.isVoid)
             return emitFallibleFailureReturnNoDefers(codeGen, symbolFunc, nullptr);
 
@@ -1365,7 +1365,7 @@ namespace
         const SymbolFunction&                  symbolFunc    = codeGen.function();
         const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
         const CallConv&                        callConv      = CallConv::get(callConvKind);
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symbolFunc.returnTypeRef()), ABITypeNormalize::Usage::Return);
 
         if (hasExpressionBody)
         {

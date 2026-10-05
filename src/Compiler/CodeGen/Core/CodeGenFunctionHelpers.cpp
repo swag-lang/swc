@@ -261,7 +261,7 @@ bool CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(CodeGen& codeGen,
         return false;
 
     const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
     return normalizedRet.isIndirect;
 }
 
@@ -399,7 +399,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     FunctionParameterInfo                  result;
     const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
     const uint32_t                         parameterIndex  = symVar.parameterIndex();
-    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
+    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symVar.typeRef()), ABITypeNormalize::Usage::Argument);
 
     setParameterTypeInfo(result, normalizedParam, parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
 
@@ -417,7 +417,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     {
         const SymbolVariable* param = params[i];
         SWC_ASSERT(param != nullptr);
-        const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+        const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
     }
     setParameterLocationInfo(result, callConv, argLayouts, ABICall::argumentRegisterIndex(callConv, argLayouts, result.slotIndex));
@@ -448,7 +448,7 @@ void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::s
         const SymbolVariable* param = params[i];
         SWC_ASSERT(param != nullptr && param->hasParameterIndex());
         SWC_ASSERT(param->parameterIndex() == i);
-        const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+        const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex = param->parameterIndex() + hiddenArgCount;
         setParameterTypeInfo(outParamInfos[i], type, slotIndex);
         argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
@@ -473,7 +473,7 @@ bool CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParamet
         return false;
 
     const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
-    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
+    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symVar.typeRef()), ABITypeNormalize::Usage::Argument);
     return normalizedParam.isIndirect;
 }
 
@@ -483,7 +483,7 @@ bool CodeGenFunctionHelpers::isBorrowedIndirectParameter(CodeGen& codeGen, const
         return false;
 
     const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
-    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
+    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symVar.typeRef()), ABITypeNormalize::Usage::Argument);
     return normalizedParam.isIndirect && !normalizedParam.needsIndirectCopy;
 }
 
@@ -506,7 +506,7 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
         return false;
 
     const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
-    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, typeRef, ABITypeNormalize::Usage::Argument);
+    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, storageType, ABITypeNormalize::Usage::Argument);
     return !normalizedParam.isIndirect;
 }
 

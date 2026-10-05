@@ -152,7 +152,7 @@ namespace
                 continue;
 
             const CallConv&                        callConv        = CallConv::get(codeGen.function().callConvKind());
-            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, typeRef, ABITypeNormalize::Usage::Argument);
+            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, typeInfo, ABITypeNormalize::Usage::Argument);
 
             if (!normalizedParam.isIndirect && normalizedParam.numBits)
                 slotSize = std::max<uint32_t>(slotSize, normalizedParam.numBits / 8);
@@ -310,7 +310,7 @@ namespace
         outParamInfos.resize(params.size());
 
         const CallConv&                        callConv             = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet        = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet        = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symbolFunc.returnTypeRef()), ABITypeNormalize::Usage::Return);
         const bool                             hasIndirectReturnArg = normalizedRet.isIndirect;
         const bool                             hasClosureContextArg = symbolFunc.isClosure();
         CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc, hasIndirectReturnArg, hasClosureContextArg);
@@ -459,7 +459,7 @@ namespace
         const SymbolFunction&                  symbolFunc    = codeGen.function();
         const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
         const CallConv&                        callConv      = CallConv::get(callConvKind);
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symbolFunc.returnTypeRef()), ABITypeNormalize::Usage::Return);
 
         codeGen.setCurrentFunctionIndirectReturnReg(MicroReg::invalid());
         codeGen.setCurrentFunctionClosureContextReg(MicroReg::invalid());

@@ -455,7 +455,7 @@ namespace
             return;
 
         const CallConv&                        callConv         = CallConv::get(codeGen.function().callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedSource = ABITypeNormalize::normalize(ctx, callConv, sourceTypeRef, ABITypeNormalize::Usage::Argument);
+        const ABITypeNormalize::NormalizedType normalizedSource = ABITypeNormalize::normalize(ctx, callConv, sourceType, ABITypeNormalize::Usage::Argument);
         if (normalizedSource.isIndirect)
             return;
 
@@ -1020,7 +1020,7 @@ namespace
             SWC_RESULT(materializePreparedMovedValueArg(codeGen, argPayload, normalizedTypeRef, arg, argRef, out.postCallDrops));
             materializePreparedReferenceArg(codeGen, argPayload, normalizedType, arg, argRef);
             materializePreparedPointerDecayArg(codeGen, argPayload, normalizedType, argRef);
-            ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
+            ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedType, ABITypeNormalize::Usage::Argument);
             if (arg.passKind == CallArgumentPassKind::InterfaceObject)
                 normalizedArg.needsIndirectCopy = false;
             else if (out.copyIndirectValueAggregates && normalizedArg.isIndirect)
@@ -1554,7 +1554,7 @@ namespace
         ABICall::PreparedArg variadicPreparedArg;
         SWC_ASSERT(params[variadicParamIdx] != nullptr);
         const TypeRef                               variadicParamTypeRef = params[variadicParamIdx]->typeRef();
-        const ABITypeNormalize::NormalizedType      normalizedVariadic   = ABITypeNormalize::normalize(codeGen.ctx(), callConv, variadicParamTypeRef, ABITypeNormalize::Usage::Argument);
+        const ABITypeNormalize::NormalizedType      normalizedVariadic   = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(variadicParamTypeRef), ABITypeNormalize::Usage::Argument);
         const std::span<const ResolvedCallArgument> variadicArgs         = args.subspan(argIndex);
         if (hasTypedVariadic)
             packTypedVariadicArgument(variadicPreparedArg, out.transientStackSize, codeGen, callConv, variadicArgs, typedVariadicElemType, normalizedVariadic);
@@ -1595,7 +1595,7 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, 
     else
         ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
 
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, runtimeFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(runtimeFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(!normalizedRet.isVoid);
     SWC_ASSERT(!normalizedRet.isIndirect);
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
@@ -1642,7 +1642,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     const CallConv&    callConv     = CallConv::get(callConvKind);
     // ABI return lowering must follow the callee signature. The expression type can be a
     // transformed view of that result and is not a reliable source for hidden sret decisions.
-    const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction->returnTypeRef(), ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(calledFunction->returnTypeRef()), ABITypeNormalize::Usage::Return);
     const CodeGenNodePayload*              calleePayload     = callRequiresRuntimeTarget(codeGen, calleeRef, *calledFunction) ? resolveCallPayload(codeGen, calleeRef) : nullptr;
     MicroReg                               callTargetReg     = MicroReg::invalid();
     MicroReg                               closureContextReg = MicroReg::invalid();
@@ -1767,7 +1767,7 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNo
 
     const CallConvKind                     callConvKind  = calledFunction.callConvKind();
     const CallConv&                        callConv      = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(calledFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(!normalizedRet.isVoid);
     SWC_ASSERT(!normalizedRet.isIndirect);
 
@@ -1800,7 +1800,7 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef
 
     const CallConvKind                     callConvKind  = calledFunction.callConvKind();
     const CallConv&                        callConv      = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(calledFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(normalizedRet.isVoid);
 
     PreparedCallArguments preparedArgs;

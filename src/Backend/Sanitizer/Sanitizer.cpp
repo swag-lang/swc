@@ -767,7 +767,7 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
     const CallConv& callConv = CallConv::get(callConvKind);
     size_t          abiIndex = paramIndex;
 
-    const ABITypeNormalize::NormalizedType returnType = ABITypeNormalize::normalize(ctx(), callConv, fn.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType returnType = ABITypeNormalize::normalize(ctx(), callConv, ctx().typeMgr().get(fn.returnTypeRef()), ABITypeNormalize::Usage::Return);
     if (returnType.isIndirect)
         ++abiIndex;
     if (fn.isClosure())
@@ -781,7 +781,7 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
     {
         if (!params[i])
             return false;
-        const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(ctx(), callConv, params[i]->typeRef(), ABITypeNormalize::Usage::Argument);
+        const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(ctx(), callConv, ctx().typeMgr().get(params[i]->typeRef()), ABITypeNormalize::Usage::Argument);
         argLayouts[i + abiIndex - paramIndex]       = {.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat};
     }
 

@@ -133,7 +133,7 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
         return TypeRef::invalid();
 
     const CallConv&                        callConv       = CallConv::get(calledFn.callConvKind());
-    const ABITypeNormalize::NormalizedType normalizedType = ABITypeNormalize::normalize(sema.ctx(), callConv, paramTypeRef, ABITypeNormalize::Usage::Argument);
+    const ABITypeNormalize::NormalizedType normalizedType = ABITypeNormalize::normalize(sema.ctx(), callConv, storageType, ABITypeNormalize::Usage::Argument);
 
     // Borrowed indirect aggregates need a home whose address the call passes. Aggregates the
     // ABI passes by value in a register still need one for the rvalue case: the literal
@@ -177,7 +177,7 @@ TypeRef SemaHelpers::indirectReturnRuntimeStorageTypeRef(Sema& sema, const Symbo
         return TypeRef::invalid();
 
     const CallConv&                        callConv      = CallConv::get(calledFn.callConvKind());
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, returnType, ABITypeNormalize::Usage::Return);
     if (!normalizedRet.isIndirect)
         return TypeRef::invalid();
 
@@ -700,7 +700,7 @@ bool SemaHelpers::functionUsesIndirectReturnStorage(TaskContext& ctx, const Symb
         return false;
 
     const CallConv&                        callConv      = CallConv::get(function.callConvKind());
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
     return normalizedRet.isIndirect;
 }
 

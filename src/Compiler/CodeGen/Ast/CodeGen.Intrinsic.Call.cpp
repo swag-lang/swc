@@ -269,7 +269,7 @@ namespace
         else
             ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
 
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, runtimeFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(runtimeFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
         ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
@@ -1194,7 +1194,7 @@ namespace
         ABICall::PreparedArg messageArg;
         messageArg.srcReg = message.reg;
         {
-            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().typeString(), ABITypeNormalize::Usage::Argument);
+            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(codeGen.typeMgr().typeString()), ABITypeNormalize::Usage::Argument);
             messageArg.kind                                      = ABICall::PreparedArgKind::Direct;
             messageArg.isFloat                                   = normalizedArg.isFloat;
             messageArg.numBits                                   = normalizedArg.numBits;
@@ -1205,7 +1205,7 @@ namespace
         ABICall::PreparedArg locationArg;
         locationArg.srcReg = sourceLoc.reg;
         {
-            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, locationTypeRef, ABITypeNormalize::Usage::Argument);
+            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(locationTypeRef), ABITypeNormalize::Usage::Argument);
             locationArg.kind                                     = ABICall::PreparedArgKind::Direct;
             locationArg.isFloat                                  = normalizedArg.isFloat;
             locationArg.numBits                                  = normalizedArg.numBits;
@@ -1619,7 +1619,7 @@ namespace
         ABICall::callLocal(builder, tlsAllocCallConvKind, &tlsAllocFunction, preparedTlsAllocCall);
 
         const CallConv&                        tlsAllocCallConv = CallConv::get(tlsAllocCallConvKind);
-        const ABITypeNormalize::NormalizedType tlsAllocRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsAllocCallConv, tlsAllocFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType tlsAllocRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsAllocCallConv, codeGen.typeMgr().get(tlsAllocFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!tlsAllocRet.isVoid);
         SWC_ASSERT(!tlsAllocRet.isIndirect);
 
@@ -1798,7 +1798,7 @@ namespace
         ABICall::callLocal(builder, tlsGetPtrCallConvKind, tlsGetPtrFunction, preparedTlsGetPtrCall);
 
         const CallConv&                        tlsGetPtrCallConv = CallConv::get(tlsGetPtrCallConvKind);
-        const ABITypeNormalize::NormalizedType tlsGetPtrRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsGetPtrCallConv, codeGen.curViewType().typeRef(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType tlsGetPtrRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsGetPtrCallConv, codeGen.typeMgr().get(codeGen.curViewType().typeRef()), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!tlsGetPtrRet.isVoid);
         SWC_ASSERT(!tlsGetPtrRet.isIndirect);
 
@@ -1842,7 +1842,7 @@ namespace
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         ABICall::callLocal(builder, callConvKind, &tlsGetValueFunction, preparedCall);
 
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, resultType, ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(resultType), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
 

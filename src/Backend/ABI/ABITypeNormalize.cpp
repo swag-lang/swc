@@ -24,15 +24,13 @@ namespace
     }
 }
 
-ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, const CallConv& conv, TypeRef typeRef, Usage usage)
+ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, const CallConv& conv, const TypeInfo& type, Usage usage)
 {
     // Convert semantic types into one ABI transfer model: register value or indirect pointer.
-    SWC_ASSERT(typeRef.isValid());
-
-    const TypeInfo* normalizedType = &ctx.typeMgr().get(typeRef);
+    const TypeInfo* normalizedType = &type;
     if (normalizedType->isAlias() || normalizedType->isEnum())
     {
-        const TypeRef expanded = normalizedType->unwrapAliasEnum(ctx, typeRef);
+        const TypeRef expanded = normalizedType->unwrapAliasEnum(ctx, type.typeRef());
         SWC_ASSERT(expanded.isValid());
         normalizedType = &ctx.typeMgr().get(expanded);
     }

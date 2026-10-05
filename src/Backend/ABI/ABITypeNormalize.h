@@ -4,6 +4,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class TypeInfo;
+
 namespace ABITypeNormalize
 {
     enum class Usage : uint8_t
@@ -25,7 +27,7 @@ namespace ABITypeNormalize
         uint32_t indirectAlign     = 0;
     };
 
-    NormalizedType normalize(TaskContext& ctx, const CallConv& conv, TypeRef typeRef, Usage usage);
+    NormalizedType normalize(TaskContext& ctx, const CallConv& conv, const TypeInfo& type, Usage usage);
 }
 
 SWC_END_NAMESPACE();

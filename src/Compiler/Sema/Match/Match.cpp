@@ -468,10 +468,10 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     {
         lookup(lookUpCxt, idRef);
         preferOwnModuleNamespace(sema, lookUpCxt, idRef);
+        if (lookUpCxt.blockedByIgnored())
+            return Result::Error;
         if (lookUpCxt.empty())
         {
-            if (lookUpCxt.blockedByIgnored())
-                return Result::Error;
             if (lookUpCxt.noWaitOnEmpty)
                 return Result::Continue;
             return sema.waitIdentifier(idRef, lookUpCxt.codeRef);

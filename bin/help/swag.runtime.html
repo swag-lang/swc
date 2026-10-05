@@ -956,7 +956,7 @@
 <tr><td class="code-type"><a href="#Swag_Allocator_setup">Allocator.setup</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Allocator_sizeClass">Allocator.sizeClass</a></td><td><p>The inverse of <span class="code-inline">classSize</span>, in a handful of instructions and with no table walk.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Swag_Allocator_stats">Allocator.stats</a></td><td><p>Walks the pages this allocator holds. Exact when the caller is the only thread allocating.</p>
+<tr><td class="code-type"><a href="#Swag_Allocator_stats">Allocator.stats</a></td><td><p>Returns the allocator's current memory usage.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Allocator_threadHeap">Allocator.threadHeap</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Allocator_trim">Allocator.trim</a></td><td><p>Decommits idle pages and releases empty segments, keeping the calling heap's current page in each size class.</p>
@@ -2163,7 +2163,7 @@
 <tr><td class="code-type"><a href="#Swag_Allocator_setup">setup</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Allocator_sizeClass">sizeClass</a></td><td><p>The inverse of <span class="code-inline">classSize</span>, in a handful of instructions and with no table walk.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Swag_Allocator_stats">stats</a></td><td><p>Walks the pages this allocator holds. Exact when the caller is the only thread allocating.</p>
+<tr><td class="code-type"><a href="#Swag_Allocator_stats">stats</a></td><td><p>Returns the allocator's current memory usage.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Allocator_threadHeap">threadHeap</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Allocator_trim">trim</a></td><td><p>Decommits idle pages and releases empty segments, keeping the calling heap's current page in each size class.</p>
@@ -4343,7 +4343,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cacheFreedBlock</span>(address: [*] <span class="STpe">void</span>?, size: <span class="STpe">u64</span>, committed: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Allocator_checkAllMemory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.checkAllMemory</span> <a class="api-item-permalink" href="#Swag_Allocator_checkAllMemory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1969">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Allocator_checkAllMemory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.checkAllMemory</span> <a class="api-item-permalink" href="#Swag_Allocator_checkAllMemory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1975">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">checkAllMemory</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -4457,7 +4457,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">memAlign</span>(value: <span class="STpe">u64</span>, alignment: <span class="STpe">u32</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Allocator_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.opDrop</span> <a class="api-item-permalink" href="#Swag_Allocator_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2053">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Allocator_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.opDrop</span> <a class="api-item-permalink" href="#Swag_Allocator_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2059">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -4496,7 +4496,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">printDisplaySize</span>(value: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Allocator_printLeaks" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.printLeaks</span> <a class="api-item-permalink" href="#Swag_Allocator_printLeaks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1986">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Allocator_printLeaks" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.printLeaks</span> <a class="api-item-permalink" href="#Swag_Allocator_printLeaks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1992">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">printLeaks</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -4510,15 +4510,15 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reallocate</span>(request: *<span class="SCst"><a href="#Swag_AllocatorRequest">AllocatorRequest</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Allocator_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.release</span> <a class="api-item-permalink" href="#Swag_Allocator_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2040">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Allocator_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.release</span> <a class="api-item-permalink" href="#Swag_Allocator_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2046">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Allocator_releaseAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.releaseAll</span> <a class="api-item-permalink" href="#Swag_Allocator_releaseAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1888">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Allocator_releaseAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.releaseAll</span> <a class="api-item-permalink" href="#Swag_Allocator_releaseAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1894">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Allocator_releaseEmptySegments" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.releaseEmptySegments</span> <a class="api-item-permalink" href="#Swag_Allocator_releaseEmptySegments" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1867">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Allocator_releaseEmptySegments" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.releaseEmptySegments</span> <a class="api-item-permalink" href="#Swag_Allocator_releaseEmptySegments" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1873">src</a></div>
 <p>Returns every segment without a live page. The caller holds the segment mutex.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseEmptySegments</span>()</span></div>
 </section>
@@ -4559,8 +4559,9 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sizeClass</span>(size: <span class="STpe">u64</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Allocator_stats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.stats</span> <a class="api-item-permalink" href="#Swag_Allocator_stats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1751">src</a></div>
-<p>Walks the pages this allocator holds. Exact when the caller is the only thread allocating.</p>
+<div class="api-item api-item-func"><span id="Swag_Allocator_stats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.stats</span> <a class="api-item-permalink" href="#Swag_Allocator_stats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1754">src</a></div>
+<p>Returns the allocator's current memory usage.</p>
+<p>Counts are exact when no other thread modifies the allocator. Concurrent activity can make different counters reflect different instants.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">stats</span>()-&gt;<span class="SCst"><a href="#Swag_AllocatorStats">AllocatorStats</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -4569,7 +4570,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">mtd</span> <span class="SFct">threadHeap</span>()-&gt;*<span class="SCst"><a href="#Swag_AllocatorThreadHeap">AllocatorThreadHeap</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Allocator_trim" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.trim</span> <a class="api-item-permalink" href="#Swag_Allocator_trim" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1795">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Allocator_trim" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Allocator.trim</span> <a class="api-item-permalink" href="#Swag_Allocator_trim" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1801">src</a></div>
 <p>Decommits idle pages and releases empty segments, keeping the calling heap's current page in each size class.</p>
 <p>Gives idle memory back: empty pages of the calling heap, except its current page in each size class, and empty abandoned pages are decommitted. Segments with no page are released.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">trim</span>()</span></div>
@@ -4606,23 +4607,23 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">mtd</span> <span class="SFct">usesHeaderPath</span>(request: *<span class="SCst"><a href="#Swag_AllocatorRequest">AllocatorRequest</a></span>, classIndex: <span class="STpe">u32</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_acquireBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.acquireBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_acquireBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L427">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_acquireBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.acquireBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_acquireBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L428">src</a></div>
 <p>Hands out the next block, from the free list first and from the untouched tail after that.</p>
 <p>Returning zero means the page is exhausted and the caller must look further.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">acquireBlock</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_capacityBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.capacityBytes</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_capacityBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L357">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_capacityBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.capacityBytes</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_capacityBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L358">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">capacityBytes</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_checkStillFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.checkStillFree</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_checkStillFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L549">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_checkStillFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.checkStillFree</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_checkStillFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L550">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">checkStillFree</span>(block: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_collectRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.collectRemote</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_collectRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L374">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_collectRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.collectRemote</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_collectRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L375">src</a></div>
 <p>Moves the blocks other threads freed onto the owner's free list.</p>
 <p>Producers only ever push, and this takes the whole list in one exchange, so a block can never be popped from under a producer that is linking in front of it and no ABA case exists. The lock only orders this detach against <span class="code-inline">holdsFreeBlock</span>, which walks the list without taking it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">collectRemote</span>()</span></div>
@@ -4638,18 +4639,18 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">mtd</span> <span class="SFct">encode</span>(address: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_holdsFreeBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.holdsFreeBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_holdsFreeBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L462">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_holdsFreeBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.holdsFreeBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_holdsFreeBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L463">src</a></div>
 <p>Reports whether the block at <span class="code-inline">address</span> is currently waiting on one of the page's free lists.</p>
 <p>Linear in the number of free blocks, so this belongs to a check a caller asked for, never to the free path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">holdsFreeBlock</span>(address: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_holdsOwnFreeBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.holdsOwnFreeBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_holdsOwnFreeBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L470">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_holdsOwnFreeBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.holdsOwnFreeBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_holdsOwnFreeBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L471">src</a></div>
 <p>Walks the owner's list, so only the owning thread, or a caller that holds the page while no heap owns it, may ask.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">holdsOwnFreeBlock</span>(address: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_holdsRemoteFreeBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.holdsRemoteFreeBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_holdsRemoteFreeBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L484">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_holdsRemoteFreeBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.holdsRemoteFreeBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_holdsRemoteFreeBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L485">src</a></div>
 <p>Any thread may ask: producers only prepend, and the lock keeps the owner from detaching the list during the walk.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">holdsRemoteFreeBlock</span>(address: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -4666,38 +4667,38 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">liveCount</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_lockRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.lockRemote</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_lockRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L359">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_lockRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.lockRemote</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_lockRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L360">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lockRemote</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_looksFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.looksFree</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_looksFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L525">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_looksFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.looksFree</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_looksFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L526">src</a></div>
 <p>Reports whether a block's first word reads as a free-list link.</p>
 <p>Reports whether a block's first word reads as a free-list link, which every free block holds: the end of the list, or an address inside the page's block area. A live block holds one only by a coincidence of its data with the page key, about one chance in 2^40, so a match calls for a walk of the lists to tell a double free from that. The range test alone is enough to keep coincidences that rare, so the divisibility test is not repeated here.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline, </span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">looksFree</span>(address: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_markFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.markFree</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_markFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L539">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_markFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.markFree</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_markFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L540">src</a></div>
 <p>Under memory safety, a free block of sixteen bytes or more carries a canary in its second word, derived from the page key.</p>
 <p>Handing the block out again checks it, so a write through a pointer kept past its free that reaches the start of the block - where an object's fields begin - is reported instead of silently corrupting the next owner's data. The 8-byte class has no room for it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">markFree</span>(address: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_nextFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.nextFree</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_nextFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L505">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_nextFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.nextFree</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_nextFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L506">src</a></div>
 <p>Reads the link a free block stores.</p>
 <p>Under memory safety, a link that names no block of this page, other than the end of the list, means the block was overwritten after it was freed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextFree</span>(block: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_pushRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.pushRemote</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_pushRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L402">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_pushRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.pushRemote</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_pushRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L403">src</a></div>
 <p>Pushes a block freed by a thread that does not own the page.</p>
 <p>The page metadata outlives every block it carries, so this never dereferences storage that could already be gone. The block belongs to the pusher until the exchange publishes it, so writing its link needs no lock.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pushRemote</span>(address: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_releaseBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.releaseBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_releaseBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L559">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_releaseBlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.releaseBlock</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_releaseBlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L560">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">releaseBlock</span>(address: <span class="STpe">u64</span>)</span></div>
 </section>
@@ -4720,55 +4721,55 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">mtd</span> <span class="SFct">setupBlockDivision</span>(blockSize: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorPage_unlockRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.unlockRemote</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_unlockRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L364">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorPage_unlockRemote" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorPage.unlockRemote</span> <a class="api-item-permalink" href="#Swag_AllocatorPage_unlockRemote" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L365">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unlockRemote</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_acquirePage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.acquirePage</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_acquirePage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L594">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_acquirePage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.acquirePage</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_acquirePage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L595">src</a></div>
 <p>Claims a free page for a size class.</p>
 <p>Several threads carve pages from the same segment, so the mask moves only through compare-exchange and the loser simply retries.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquirePage</span>(classIndex: <span class="STpe">u32</span>, blockSize: <span class="STpe">u32</span>)-&gt;*<span class="SCst"><a href="#Swag_AllocatorPage">AllocatorPage</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_clearPageBit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.clearPageBit</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_clearPageBit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L715">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_clearPageBit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.clearPageBit</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_clearPageBit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L716">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearPageBit</span>(bit: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_decommitIdlePages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.decommitIdlePages</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_decommitIdlePages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L658">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_decommitIdlePages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.decommitIdlePages</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_decommitIdlePages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L659">src</a></div>
 <p>Decommits every idle page of the segment.</p>
 <p>A page is claimed first, exactly as an allocation would claim it, so no other thread can be reusing it while its units go away.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decommitIdlePages</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.isEmpty</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L727">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.isEmpty</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L728">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_pageCommitEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.pageCommitEnd</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_pageCommitEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L584">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_pageCommitEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.pageCommitEnd</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_pageCommitEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L585">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pageCommitEnd</span>(index: <span class="STpe">u32</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_pageCommitStart" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.pageCommitStart</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_pageCommitStart" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L577">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_pageCommitStart" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.pageCommitStart</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_pageCommitStart" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L578">src</a></div>
 <p>The committed extent of one page.</p>
 <p>The first page shares its unit with the header, which is committed for the segment's whole life, so only the remainder is committed and decommitted.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pageCommitStart</span>(index: <span class="STpe">u32</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_releasePage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.releasePage</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_releasePage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L633">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_releasePage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.releasePage</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_releasePage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L634">src</a></div>
 <p>Returns a page with no live block.</p>
 <p>It stays committed while the process-wide idle budget allows, so the next page any class needs costs no system call and no page fault; past the budget its units are decommitted and the resident cost drops back to the segment header.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releasePage</span>(page: *<span class="SCst"><a href="#Swag_AllocatorPage">AllocatorPage</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_segmentBase" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.segmentBase</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_segmentBase" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L571">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_segmentBase" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.segmentBase</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_segmentBase" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L572">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">segmentBase</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_setIdleBit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.setIdleBit</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_setIdleBit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L688">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_setIdleBit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.setIdleBit</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_setIdleBit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L689">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIdleBit</span>(bit: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_takeIdleBit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.takeIdleBit</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_takeIdleBit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L701">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AllocatorSegment_takeIdleBit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AllocatorSegment.takeIdleBit</span> <a class="api-item-permalink" href="#Swag_AllocatorSegment_takeIdleBit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L702">src</a></div>
 <p>Clears the idle bit of a page the caller has claimed, and reports whether it was set.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">takeIdleBit</span>(bit: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -5155,7 +5156,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">attr</span> <span class="SFct">Align</span>(value: <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorAcquireSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorAcquireSegment</span> <a class="api-item-permalink" href="#Swag_allocatorAcquireSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L815">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorAcquireSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorAcquireSegment</span> <a class="api-item-permalink" href="#Swag_allocatorAcquireSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L816">src</a></div>
 <p>Hands the caller a segment shaped for <span class="code-inline">unitShift</span>, reusing an emptied one when possible.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorAcquireSegment</span>(owner: *<span class="STpe">void</span>, unitShift: <span class="STpe">u32</span>)-&gt;*<span class="SCst"><a href="#Swag_AllocatorSegment">AllocatorSegment</a></span>?</span></div>
 </section>
@@ -5183,14 +5184,14 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorOsDecommit</span>(address: <span class="STpe">u64</span>, size: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorPageInSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorPageInSegment</span> <a class="api-item-permalink" href="#Swag_allocatorPageInSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L899">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorPageInSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorPageInSegment</span> <a class="api-item-permalink" href="#Swag_allocatorPageInSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L900">src</a></div>
 <p>The page of an address known to lie below an arena's bump cursor.</p>
 <p>The page of an address known to lie below an arena's bump cursor, where every segment-aligned address starts a segment whose header is committed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span> <span class="SFct">allocatorPageInSegment</span>(address: <span class="STpe">u64</span>)-&gt;*<span class="SCst"><a href="#Swag_AllocatorPage">AllocatorPage</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorPageOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorPageOf</span> <a class="api-item-permalink" href="#Swag_allocatorPageOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L871">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorPageOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorPageOf</span> <a class="api-item-permalink" href="#Swag_allocatorPageOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L872">src</a></div>
 <p>Recovers the page owning an address, or null when the address did not come from a segment.</p>
 <p>Two range tests and a shift replace every per-block header the old layout needed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline, </span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
@@ -5203,18 +5204,18 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorQueueRevisit</span>(page: *<span class="SCst"><a href="#Swag_AllocatorPage">AllocatorPage</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorReleaseSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorReleaseSegment</span> <a class="api-item-permalink" href="#Swag_allocatorReleaseSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L853">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorReleaseSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorReleaseSegment</span> <a class="api-item-permalink" href="#Swag_allocatorReleaseSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L854">src</a></div>
 <p>Returns an emptied segment to the shared pool.</p>
 <p>Its header stays committed and its address stays reserved for the process lifetime, which is what keeps an address-to-page lookup always safe.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorReleaseSegment</span>(segment: *<span class="SCst"><a href="#Swag_AllocatorSegment">AllocatorSegment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorReserveIdle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorReserveIdle</span> <a class="api-item-permalink" href="#Swag_allocatorReserveIdle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L731">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorReserveIdle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorReserveIdle</span> <a class="api-item-permalink" href="#Swag_allocatorReserveIdle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L732">src</a></div>
 <p>Charges <span class="code-inline">size</span> bytes to the idle budget, or reports that the budget has no room for them.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorReserveIdle</span>(size: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorSegmentOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorSegmentOf</span> <a class="api-item-permalink" href="#Swag_allocatorSegmentOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L910">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorSegmentOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorSegmentOf</span> <a class="api-item-permalink" href="#Swag_allocatorSegmentOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L911">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span> <span class="SFct">allocatorSegmentOf</span>(page: *<span class="SCst"><a href="#Swag_AllocatorPage">AllocatorPage</a></span>)-&gt;*<span class="SCst"><a href="#Swag_AllocatorSegment">AllocatorSegment</a></span></span></div>
 </section>
@@ -5499,7 +5500,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">func</span> <span class="SFct">currentAllocatorThreadHeap</span>()-&gt;*<span class="SCst"><a href="#Swag_AllocatorThreadHeap">AllocatorThreadHeap</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_defaultAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.defaultAllocator</span> <a class="api-item-permalink" href="#Swag_defaultAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2153">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_defaultAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.defaultAllocator</span> <a class="api-item-permalink" href="#Swag_defaultAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2159">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">defaultAllocator</span>()-&gt;*<span class="SCst"><a href="#Swag_Allocator">Allocator</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -5615,7 +5616,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">attr</span> <span class="SFct">Inline</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_installAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.installAllocator</span> <a class="api-item-permalink" href="#Swag_installAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2168">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_installAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.installAllocator</span> <a class="api-item-permalink" href="#Swag_installAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2174">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">installAllocator</span>(electricMode: <span class="STpe">bool</span> = <span class="SKwd">false</span>, detectLeaks: <span class="STpe">bool</span> = <span class="SKwd">true</span>, captureStack: <span class="STpe">bool</span> = <span class="SKwd">false</span>, trackAllocations: <span class="STpe">bool</span> = <span class="SKwd">false</span>, fillMemory: <span class="STpe">bool</span> = <span class="SKwd">false</span>, installInContext: <span class="STpe">bool</span> = <span class="SKwd">true</span>)-&gt;*<span class="SCst"><a href="#Swag_Allocator">Allocator</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -5864,7 +5865,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">attr</span> <span class="SFct">ReadOnly</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_releaseAllocatorThreadCache" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.releaseAllocatorThreadCache</span> <a class="api-item-permalink" href="#Swag_releaseAllocatorThreadCache" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2156">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_releaseAllocatorThreadCache" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.releaseAllocatorThreadCache</span> <a class="api-item-permalink" href="#Swag_releaseAllocatorThreadCache" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2162">src</a></div>
 <p>Gives the calling thread's pages back without waiting for the thread to exit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">releaseAllocatorThreadCache</span>()</span></div>
 </section>
@@ -7381,7 +7382,7 @@ task.<span class="SFct">wait</span>()</span></div>
 "f|Swag.Allocator.setFooterMagic|Swag_Allocator_setFooterMagic|",
 "f|Swag.Allocator.setup|Swag_Allocator_setup|",
 "f|Swag.Allocator.sizeClass|Swag_Allocator_sizeClass|The inverse of 'classSize', in a handful of instructions and with no table walk.",
-"f|Swag.Allocator.stats|Swag_Allocator_stats|Walks the pages this allocator holds. Exact when the caller is the only thread allocating.",
+"f|Swag.Allocator.stats|Swag_Allocator_stats|Returns the allocator's current memory usage.",
 "f|Swag.Allocator.threadHeap|Swag_Allocator_threadHeap|",
 "f|Swag.Allocator.trim|Swag_Allocator_trim|Decommits idle pages and releases empty segments, keeping the calling heap's current page in each size class.",
 "f|Swag.Allocator.unlinkAllocated|Swag_Allocator_unlinkAllocated|",

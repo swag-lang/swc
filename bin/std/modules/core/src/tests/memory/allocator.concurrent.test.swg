@@ -19,7 +19,7 @@ func pageCommitWorker(thread: Threading.Thread)
     while Swag.atomget(&shared.start) == 0 do
         Threading.Thread.yield()
 
-    for round in 48
+    for round in 512
     {
         let sizes = [128'u64, 4096, 32768, 65536]
         let size  = sizes[round % sizes.count]
@@ -32,7 +32,7 @@ func pageCommitWorker(thread: Threading.Thread)
             Swag.assert(request.address != null)
             let bytes = cast([*] u8) request.address
             bytes[0]        = cast(u8) i
-            bytes[size - 1] = cast(u8) round
+            bytes[size - 1] = cast(u8) (round & 255)
             addresses[i]    = cast(u64) request.address
         }
 
@@ -40,7 +40,7 @@ func pageCommitWorker(thread: Threading.Thread)
         for i in addresses.count
         {
             let bytes = cast([*] u8) addresses[i]
-            if bytes[0] != cast(u8) i or bytes[size - 1] != cast(u8) round do
+            if bytes[0] != cast(u8) i or bytes[size - 1] != cast(u8) (round & 255) do
                 discard Swag.atomadd(&shared.errors, 1)
             var request: AllocatorRequest
             request.address = cast(*void) addresses[i]
@@ -74,7 +74,9 @@ func pageCommitWorker(thread: Threading.Thread)
     while Swag.atomget(&shared.done) != threads.count
     {
         allocator.trim()
-        discard allocator.stats()
+        let snapshot = allocator.stats()
+        Swag.assert(snapshot.countAlloc + snapshot.countFree <= snapshot.countPage * 4096)
+        Swag.assert(snapshot.sizeAlloc + snapshot.sizeCached <= snapshot.countPage * 512 * 1024)
         Threading.Thread.yield()
     }
 

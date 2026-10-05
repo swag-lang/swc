@@ -629,8 +629,7 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         SWC_RESULT(SemaSwitch::validateExprType(sema, nodeExprRef, exprView.typeRef()));
         SWC_RESULT(SemaCheck::isConstant(sema, nodeExprRef));
 
-        const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, exprView.typeRef());
-        SemaSwitch::pushEnumScopeBinding(sema, enumTypeRef);
+        SemaSwitch::pushEnumScopeBinding(sema, SemaSwitch::enumType(sema, *exprView.type()));
 
         return Result::Continue;
     }

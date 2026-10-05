@@ -8,6 +8,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolFunction;
 class SymbolVariable;
 class Sema;
+class TypeInfo;
 struct AstSwitchStmt;
 struct SemaNodeView;
 
@@ -17,12 +18,12 @@ using SwitchSeenCases = std::unordered_map<ConstantRef, AstNodeRef>;
 
 namespace SemaSwitch
 {
-    bool    isDynamicType(Sema& sema, TypeRef typeRef);
-    TypeRef enumTypeRef(Sema& sema, TypeRef typeRef);
-    TypeRef caseCastTypeRef(Sema& sema, TypeRef switchTypeRef);
-    Result  normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView);
-    Result  validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef);
-    Result  checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef);
+    bool            isDynamicType(Sema& sema, TypeRef typeRef);
+    const TypeInfo* enumType(Sema& sema, const TypeInfo& originalType);
+    TypeRef         caseCastTypeRef(Sema& sema, TypeRef switchTypeRef);
+    Result          normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView);
+    Result          validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef);
+    Result          checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef);
     // Whether some case always matches: '#complete' promises it for an enum, and a 'default'
     // arm provides it for anything. The payload only records the default of a switch that has
     // an expression, so the expressionless form - a case with neither a match expression nor a

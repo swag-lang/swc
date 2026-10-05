@@ -1,16 +1,17 @@
 #pragma once
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace SemaSwitch
 {
-    inline void pushEnumScopeBinding(Sema& sema, TypeRef enumTypeRef)
+    inline void pushEnumScopeBinding(Sema& sema, const TypeInfo* enumType)
     {
-        if (enumTypeRef.isValid())
+        if (enumType)
         {
             SemaFrame frame = sema.frame();
-            frame.pushScopeBindingType(enumTypeRef);
+            frame.pushScopeBindingType(enumType->typeRef());
             sema.pushFramePopOnPostNode(frame);
         }
     }

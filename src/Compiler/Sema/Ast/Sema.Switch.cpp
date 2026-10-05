@@ -31,12 +31,11 @@ bool SemaSwitch::isDynamicType(Sema& sema, TypeRef typeRef)
     return pointee.isStruct() && pointee.payloadSymStruct().isDynamic();
 }
 
-TypeRef SemaSwitch::enumTypeRef(Sema& sema, TypeRef typeRef)
+const TypeInfo* SemaSwitch::enumType(Sema& sema, const TypeInfo& originalType)
 {
-    const TypeRef enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-    if (sema.typeMgr().get(enumTypeRef).isEnum())
-        return enumTypeRef;
-    return TypeRef::invalid();
+    const TypeRef   enumTypeRef = originalType.isAlias() ? originalType.unwrap(sema.ctx(), originalType.typeRef(), TypeExpandE::Alias) : TypeRef::invalid();
+    const TypeInfo& type        = enumTypeRef.isValid() ? sema.typeMgr().get(enumTypeRef) : originalType;
+    return type.isEnum() ? &type : nullptr;
 }
 
 namespace
@@ -75,12 +74,11 @@ namespace
 
     Result waitSwitchEnumCompletionIfNeeded(Sema& sema, TypeRef typeRef, AstNodeRef nodeRef)
     {
-        const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, typeRef);
-        if (enumTypeRef.isInvalid())
+        const TypeInfo* enumType = SemaSwitch::enumType(sema, sema.typeMgr().get(typeRef));
+        if (!enumType)
             return Result::Continue;
 
-        const TypeInfo& enumType = sema.typeMgr().get(enumTypeRef);
-        return sema.waitSemaCompleted(&enumType, nodeRef);
+        return sema.waitSemaCompleted(enumType, nodeRef);
     }
 
     TypeRef switchExprUltimateTypeRef(Sema& sema, TypeRef typeRef)
@@ -376,14 +374,13 @@ namespace
         return Result::Error;
     }
 
-    Result validateEnumSwitchCaseSyntax(Sema& sema, AstNodeRef caseExprRef, TypeRef enumTypeRef)
+    Result validateEnumSwitchCaseSyntax(Sema& sema, AstNodeRef caseExprRef, const TypeInfo& enumType)
     {
         const auto* identifier = sema.node(caseExprRef).safeCast<AstIdentifier>();
         if (!identifier)
             return Result::Continue;
 
         const IdentifierRef idRef      = SemaHelpers::resolveIdentifier(sema, identifier->codeRef());
-        const TypeInfo&     enumType   = sema.typeMgr().get(enumTypeRef);
         const Symbol*       enumMember = enumType.payloadSymEnum().findFirstSymbol(idRef);
         if (!enumMember || !enumMember->isEnumValue())
             return Result::Continue;
@@ -397,9 +394,9 @@ namespace
 
 TypeRef SemaSwitch::caseCastTypeRef(Sema& sema, TypeRef switchTypeRef)
 {
-    const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, switchTypeRef);
-    if (enumTypeRef.isValid())
-        return enumTypeRef;
+    const TypeInfo& switchType = sema.typeMgr().get(switchTypeRef);
+    if (const TypeInfo* enumType = SemaSwitch::enumType(sema, switchType))
+        return enumType->typeRef();
 
     // A switch case only COMPARES against the operand, it never writes through it:
     // like relational comparisons, a non-null pointer operand can be compared with
@@ -409,7 +406,6 @@ TypeRef SemaSwitch::caseCastTypeRef(Sema& sema, TypeRef switchTypeRef)
     // non-null argument must still accept its `case null`.
     if (switchTypeRef.isValid())
     {
-        const TypeInfo& switchType = sema.typeMgr().get(switchTypeRef);
         if (switchType.isAnyPointer() && !switchType.isNullable())
         {
             TypeInfo widenedType = switchType;
@@ -524,16 +520,12 @@ Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, 
     if (exprTypeRef.isInvalid())
         return Result::Continue;
 
-    const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, exprTypeRef);
-    if (enumTypeRef.isInvalid())
-        return Result::Continue;
-
-    const TypeInfo& enumType = sema.typeMgr().get(enumTypeRef);
-    if (!enumType.isEnum())
+    const TypeInfo* enumType = SemaSwitch::enumType(sema, sema.typeMgr().get(exprTypeRef));
+    if (!enumType)
         return Result::Continue;
 
     std::vector<const Symbol*> symbols;
-    enumType.payloadSymEnum().getAllSymbols(symbols);
+    enumType->payloadSymEnum().getAllSymbols(symbols);
 
     for (const Symbol* sym : symbols)
     {
@@ -548,7 +540,7 @@ Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, 
         if (!seen.contains(cstRef))
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_complete_enum_not_exhaustive, errorRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, enumTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, enumType->typeRef());
 
             diag.addNote(DiagnosticId::sema_note_switch_missing_enum_value);
             diag.last().addArgument(Diagnostic::ARG_VALUE, value.getFullScopedName(sema.ctx()));
@@ -597,8 +589,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SWC_RESULT(attachSwitchExprRuntimeDependencies(sema, *payload, exprView.typeRef(), sema.node(sema.curNodeRef()).codeRef()));
 
         // Every case of a switch on an enum names the members bare, in its label and its body.
-        const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, exprView.typeRef());
-        SemaSwitch::pushEnumScopeBinding(sema, enumTypeRef);
+        SemaSwitch::pushEnumScopeBinding(sema, SemaSwitch::enumType(sema, *exprView.type()));
     }
 
     // Each completed case restarts the borrow flow from the switch entry state.
@@ -669,9 +660,8 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
     if (isDynamicStructSwitchCase(sema, switchRef) && sema.node(childRef).is(AstNodeId::AsCastExpr))
         markDynamicStructSwitchAsCaseExpr(sema, childRef);
 
-    const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, switchTypeRef);
-    if (enumTypeRef.isValid())
-        SWC_RESULT(validateEnumSwitchCaseSyntax(sema, childRef, enumTypeRef));
+    if (const TypeInfo* enumType = SemaSwitch::enumType(sema, sema.typeMgr().get(switchTypeRef)))
+        SWC_RESULT(validateEnumSwitchCaseSyntax(sema, childRef, *enumType));
 
     return Result::Continue;
 }

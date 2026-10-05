@@ -268,13 +268,11 @@ namespace
             return Result::Continue;
         }
 
-        Result writeDefault(TypeRef typeRef, uint64_t offset)
+        Result writeDefault(const TypeInfo& declaredType, uint64_t size, uint64_t offset)
         {
-            Sema&           sema         = *sema_;
-            const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
-            const uint64_t  size         = declaredType.sizeOf(sema.ctx());
-            typeRef                      = declaredType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-            const TypeInfo& type         = sema.typeMgr().get(typeRef);
+            Sema&           sema           = *sema_;
+            const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema.ctx(), declaredType.typeRef()) : TypeRef::invalid();
+            const TypeInfo& type           = storageTypeRef.isValid() ? sema.typeMgr().get(storageTypeRef) : declaredType;
             if (!declaredType.isNonNullable() && !type.isNonNullable())
             {
                 if (type.isStruct())
@@ -303,18 +301,21 @@ namespace
                         if (field->defaultValueRef().isValid())
                             SWC_RESULT(writeValue(field->typeRef(), field->defaultValueRef(), fieldOffset));
                         else
-                            SWC_RESULT(writeDefault(field->typeRef(), fieldOffset));
+                        {
+                            const TypeInfo& fieldType = sema.typeMgr().get(field->typeRef());
+                            SWC_RESULT(writeDefault(fieldType, fieldType.sizeOf(sema.ctx()), fieldOffset));
+                        }
                     }
                     return Result::Continue;
                 }
                 if (type.isArray())
                 {
-                    const TypeRef  elementRef  = type.payloadArrayElemTypeRef();
-                    const uint64_t elementSize = sema.typeMgr().get(elementRef).sizeOf(sema.ctx());
+                    const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());
+                    const uint64_t  elementSize = elementType.sizeOf(sema.ctx());
                     if (elementSize)
                     {
                         for (uint64_t cursor = 0; cursor < size; cursor += elementSize)
-                            SWC_RESULT(writeDefault(elementRef, offset + cursor));
+                            SWC_RESULT(writeDefault(elementType, elementSize, offset + cursor));
                     }
                     return Result::Continue;
                 }
@@ -324,20 +325,20 @@ namespace
             return Result::Continue;
         }
 
-        Result collectDynamicRelocations(TypeRef typeRef, uint64_t offset)
+        Result collectDynamicRelocations(const TypeInfo& declaredType, uint64_t offset)
         {
-            Sema& sema           = *sema_;
-            typeRef              = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-            const TypeInfo& type = sema.typeMgr().get(typeRef);
+            Sema&           sema           = *sema_;
+            const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema.ctx(), declaredType.typeRef()) : TypeRef::invalid();
+            const TypeInfo& type           = storageTypeRef.isValid() ? sema.typeMgr().get(storageTypeRef) : declaredType;
             if (type.isArray())
             {
-                const TypeRef  elementRef  = type.payloadArrayElemTypeRef();
-                const uint64_t elementSize = sema.typeMgr().get(elementRef).sizeOf(sema.ctx());
+                const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());
+                const uint64_t  elementSize = elementType.sizeOf(sema.ctx());
                 if (elementSize)
                 {
                     const uint64_t size = type.sizeOf(sema.ctx());
                     for (uint64_t cursor = 0; cursor < size; cursor += elementSize)
-                        SWC_RESULT(collectDynamicRelocations(elementRef, offset + cursor));
+                        SWC_RESULT(collectDynamicRelocations(elementType, offset + cursor));
                 }
             }
             else if (type.isStruct())
@@ -357,7 +358,7 @@ namespace
                 for (const SymbolVariable* field : owner.fields())
                 {
                     if (field)
-                        SWC_RESULT(collectDynamicRelocations(field->typeRef(), offset + field->offset()));
+                        SWC_RESULT(collectDynamicRelocations(sema.typeMgr().get(field->typeRef()), offset + field->offset()));
                 }
             }
             return Result::Continue;
@@ -381,7 +382,7 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
     const uint64_t  size = type.sizeOf(sema.ctx());
     SWC_ASSERT(size <= UINT32_MAX);
     AggregateConstruction construction{.sema_ = &sema, .bytes = std::vector<std::byte>(size, std::byte{0})};
-    if (construction.writeDefault(typeRef, 0) != Result::Continue)
+    if (construction.writeDefault(type, size, 0) != Result::Continue)
         return ConstantRef::invalid();
     for (const ConstantPayloadWrite& write : writes)
     {
@@ -390,7 +391,7 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
     }
     if (SymbolStruct::initializeDynamicIdentityBytes(sema, construction.bytes, typeRef) != Result::Continue)
         return ConstantRef::invalid();
-    if (construction.collectDynamicRelocations(typeRef, 0) != Result::Continue)
+    if (construction.collectDynamicRelocations(type, 0) != Result::Continue)
         return ConstantRef::invalid();
     if (std::ranges::any_of(construction.runtimeBytes, [](uint8_t byte) { return byte != 0; }))
         return ConstantRef::invalid();

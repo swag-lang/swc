@@ -110,9 +110,12 @@ namespace
 
     bool isDynamicStructSwitch(CodeGen& codeGen, TypeRef typeRef, const SwitchStmtCodeGenPayload& switchState)
     {
-        if (!SemaSwitch::isDynamicType(codeGen.sema(), typeRef))
+        if (typeRef.isInvalid())
             return false;
-        if (!codeGen.typeMgr().get(typeRef).isValuePointer())
+        const TypeInfo& type = codeGen.typeMgr().get(typeRef);
+        if (!SemaSwitch::isDynamicType(codeGen.sema(), type))
+            return false;
+        if (!type.isValuePointer())
             return true;
         for (const auto& [caseRef, caseState] : switchState.caseStates)
         {

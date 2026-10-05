@@ -589,7 +589,7 @@ namespace
             castedByDst[dstIndex] = castedRef;
         }
 
-        if (ConstantHelpers::typeHasUnionStorage(args.sema->ctx(), args.dstTypeRef))
+        if (ConstantHelpers::typeHasUnionStorage(args.sema->ctx(), *args.dstType))
         {
             SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
             writes.reserve(values.size());
@@ -646,7 +646,7 @@ namespace
     // Single-field structs follow the same best-effort static-materialization rule.
     Result foldSingleFieldStructConstant(const CastAggregateArgs& args, const SymbolVariable& field, ConstantRef fieldValueRef)
     {
-        if (ConstantHelpers::typeHasUnionStorage(args.sema->ctx(), args.dstTypeRef))
+        if (ConstantHelpers::typeHasUnionStorage(args.sema->ctx(), *args.dstType))
         {
             const ConstantHelpers::ConstantPayloadWrite write{field.offset(), field.typeRef(), fieldValueRef};
             args.castRequest->outConstRef = ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, std::span{&write, 1});

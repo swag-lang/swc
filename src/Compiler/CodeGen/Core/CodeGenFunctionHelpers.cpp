@@ -789,7 +789,7 @@ namespace
         const TypeRef        typeRef = typeInfo.typeRef();
         const uint32_t       size    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
         const ConstantValue& value   = codeGen.cstMgr().get(valueRef);
-        if ((value.isStruct() || value.isArray()) && value.isPayloadBorrowed() && value.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(codeGen.ctx(), typeRef))
+        if ((value.isStruct() || value.isArray()) && value.isPayloadBorrowed() && value.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(codeGen.ctx(), typeInfo))
         {
             // Construction already identified the live relocations. A raw byte round trip
             // would lose that inventory and reinterpret inactive union alternatives.

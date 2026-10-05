@@ -160,27 +160,27 @@ namespace
         return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, capturedTarget);
     }
 
-    bool typeHasUnionStorageRec(const TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visited)
+    bool typeHasUnionStorageRec(const TaskContext& ctx, const TypeInfo& declaredType, std::unordered_set<TypeRef>& visited)
     {
-        const TypeInfo* type = &ctx.typeMgr().get(typeRef);
+        const TypeInfo* type = &declaredType;
         if (type->isAlias() || type->isEnum())
         {
-            typeRef = type->unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-            type    = &ctx.typeMgr().get(typeRef);
+            const TypeRef typeRef = type->unwrapAliasEnum(ctx, type->typeRef());
+            type                  = &ctx.typeMgr().get(typeRef);
         }
         if (!type->isArray() && !type->isStruct())
             return false;
-        if (!visited.insert(typeRef).second)
+        if (!visited.insert(type->typeRef()).second)
             return false;
         if (type->isArray())
-            return typeHasUnionStorageRec(ctx, type->payloadArrayElemTypeRef(), visited);
+            return typeHasUnionStorageRec(ctx, ctx.typeMgr().get(type->payloadArrayElemTypeRef()), visited);
         if (type->isStruct())
         {
             if (type->payloadSymStruct().isUnion())
                 return true;
             for (const SymbolVariable* field : type->payloadSymStruct().fields())
             {
-                if (field && typeHasUnionStorageRec(ctx, field->typeRef(), visited))
+                if (field && typeHasUnionStorageRec(ctx, ctx.typeMgr().get(field->typeRef()), visited))
                     return true;
             }
         }
@@ -237,7 +237,7 @@ namespace
                 SWC_RESULT(ConstantLower::lowerToBytes(sema, lowered, valueRef, typeRef));
                 // Raw union bytes do not identify which writes established their pointers.
                 // Construction sites publish that inventory instead of guessing here.
-                if (ConstantHelpers::typeHasUnionStorage(sema.ctx(), typeRef))
+                if (ConstantHelpers::typeHasUnionStorage(sema.ctx(), type))
                 {
                     if (std::ranges::any_of(lowered, [](std::byte valueByte) { return valueByte != std::byte{0}; }))
                         return Result::Error;
@@ -366,14 +366,14 @@ namespace
     };
 }
 
-bool ConstantHelpers::typeHasUnionStorage(const TaskContext& ctx, TypeRef typeRef)
+bool ConstantHelpers::typeHasUnionStorage(const TaskContext& ctx, const TypeInfo& declaredType)
 {
-    typeRef              = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    const TypeInfo& type = ctx.typeMgr().get(typeRef);
+    const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(ctx, declaredType.typeRef()) : TypeRef::invalid();
+    const TypeInfo& type           = storageTypeRef.isValid() ? ctx.typeMgr().get(storageTypeRef) : declaredType;
     if (!type.isArray() && !type.isStruct())
         return false;
     std::unordered_set<TypeRef> visited;
-    return typeHasUnionStorageRec(ctx, typeRef, visited);
+    return typeHasUnionStorageRec(ctx, type, visited);
 }
 
 ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema, TypeRef typeRef, std::span<const ConstantPayloadWrite> writes)

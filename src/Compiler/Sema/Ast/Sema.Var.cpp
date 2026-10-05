@@ -162,7 +162,7 @@ namespace
         {
             loweredBytes.resize(size);
             const ConstantValue& initializer = sema.cstMgr().get(symVar.cstRef());
-            if ((initializer.isStruct() || initializer.isArray()) && initializer.isPayloadBorrowed() && initializer.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(ctx, storageTypeRef))
+            if ((initializer.isStruct() || initializer.isArray()) && initializer.isPayloadBorrowed() && initializer.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(ctx, storageTypeInfo))
             {
                 // A union's bytes do not identify its pointer-bearing alternative.
                 // Preserve the relocation inventory established by its actual writes.
@@ -1117,7 +1117,7 @@ namespace
                     // Arrays need each element's implicit default, including dynamic identity,
                     // just as a standalone global struct does.
                     SWC_RESULT(SymbolStruct::prepareDynamicMetadata(sema, explicitTypeRef));
-                    if (ConstantHelpers::typeHasUnionStorage(sema.ctx(), explicitTypeRef))
+                    if (ConstantHelpers::typeHasUnionStorage(sema.ctx(), *explicitType))
                         implicitGlobalStoreRef = ConstantHelpers::materializeAggregateConstructionConstant(sema, explicitTypeRef);
                     else
                     {

@@ -163,7 +163,7 @@ namespace
     {
         TaskContext&   ctx       = args.sema->ctx();
         const uint64_t arraySize = args.dstType->sizeOf(ctx);
-        if (ConstantHelpers::typeHasUnionStorage(ctx, args.dstTypeRef))
+        if (ConstantHelpers::typeHasUnionStorage(ctx, *args.dstType))
         {
             const TypeRef                                      elementType = args.dstType->payloadArrayElemTypeRef();
             const uint64_t                                     elementSize = args.sema->typeMgr().get(elementType).sizeOf(ctx);
@@ -289,7 +289,7 @@ namespace
             ByteArray                                          buffer(arraySize);
             const std::span<std::byte>                         bytes           = buffer.span();
             const uint64_t                                     subArraySize    = typeMgr.get(dstSubArrayType).sizeOf(ctx);
-            const bool                                         hasUnionStorage = ConstantHelpers::typeHasUnionStorage(ctx, args.dstTypeRef);
+            const bool                                         hasUnionStorage = ConstantHelpers::typeHasUnionStorage(ctx, *args.dstType);
             SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
             SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
 

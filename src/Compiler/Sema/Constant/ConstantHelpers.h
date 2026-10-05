@@ -24,7 +24,7 @@ namespace ConstantHelpers
     Result      waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
     uint64_t    materializeConstantStorageAndGetAddress(Sema& sema, const SemaNodeView& view);
     ConstantRef materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, std::span<const std::byte> payload);
-    bool        typeHasUnionStorage(const TaskContext& ctx, TypeRef typeRef);
+    bool        typeHasUnionStorage(const TaskContext& ctx, const TypeInfo& declaredType);
     ConstantRef materializeAggregateConstructionConstant(Sema& sema, TypeRef typeRef, std::span<const ConstantPayloadWrite> writes = {});
     uint32_t    staticPayloadPlacementShardIndex(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> payload, bool hasRequiredShard, uint32_t requiredShard);
     // The caller has checked that payload has typeInfo's layout size.

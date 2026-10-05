@@ -952,7 +952,7 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
         }
 
         SWC_ASSERT(structSize);
-        if (ConstantHelpers::typeHasUnionStorage(ctx, typeRef))
+        if (ConstantHelpers::typeHasUnionStorage(ctx, ctx.typeMgr().get(typeRef)))
         {
             defaultStructCst_ = ConstantHelpers::materializeAggregateConstructionConstant(sema, typeRef);
             if (defaultStructCst_.isInvalid())

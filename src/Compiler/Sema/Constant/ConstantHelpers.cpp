@@ -199,19 +199,17 @@ namespace
             SWC_ASSERT(offset <= bytes.size() && size <= bytes.size() - offset);
             // A partial pointer write leaves bytes of the eventual native address.
             // Later writes may replace those bytes too, making the final value constant.
-            for (const DataSegmentRelocation& relocation : relocations)
-            {
+            std::erase_if(relocations, [=, this](const DataSegmentRelocation& relocation) {
                 const uint64_t relocationEnd = uint64_t{relocation.offset} + sizeof(void*);
-                if (size && relocation.offset < offset + size && offset < relocationEnd &&
-                    (offset > relocation.offset || offset + size < relocationEnd))
+                if (!size || relocation.offset >= offset + size || offset >= relocationEnd)
+                    return false;
+                if (offset > relocation.offset || offset + size < relocationEnd)
                 {
                     if (runtimeBytes.empty())
                         runtimeBytes.resize(bytes.size(), 0);
                     std::fill_n(runtimeBytes.data() + relocation.offset, sizeof(void*), 1);
                 }
-            }
-            std::erase_if(relocations, [=](const DataSegmentRelocation& relocation) {
-                return size && relocation.offset < offset + size && offset < uint64_t{relocation.offset} + sizeof(void*);
+                return true;
             });
             if (!runtimeBytes.empty())
                 std::fill_n(runtimeBytes.data() + offset, size, 0);
@@ -337,7 +335,8 @@ namespace
                 const uint64_t elementSize = sema.typeMgr().get(elementRef).sizeOf(sema.ctx());
                 if (elementSize)
                 {
-                    for (uint64_t cursor = 0; cursor < type.sizeOf(sema.ctx()); cursor += elementSize)
+                    const uint64_t size = type.sizeOf(sema.ctx());
+                    for (uint64_t cursor = 0; cursor < size; cursor += elementSize)
                         SWC_RESULT(collectDynamicRelocations(elementRef, offset + cursor));
                 }
             }

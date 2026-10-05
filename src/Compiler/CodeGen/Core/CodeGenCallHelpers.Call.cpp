@@ -340,22 +340,22 @@ namespace
         return pointeeTypeRef.isValid() ? pointeeTypeRef : normalizedTypeRef;
     }
 
-    void materializePreparedDirectScalarArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg)
+    void materializePreparedDirectScalarArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg)
     {
-        if (!normalizedTypeRef.isValid() || normalizedArg.isIndirect)
+        if (normalizedArg.isIndirect)
             return;
 
-        TaskContext&       ctx            = codeGen.ctx();
-        const TypeManager& typeMgr        = ctx.typeMgr();
-        MicroBuilder&      builder        = codeGen.builder();
-        const TypeInfo&    normalizedType = typeMgr.get(normalizedTypeRef);
+        TaskContext&       ctx               = codeGen.ctx();
+        const TypeManager& typeMgr           = ctx.typeMgr();
+        MicroBuilder&      builder           = codeGen.builder();
+        const TypeRef      normalizedTypeRef = normalizedType.typeRef();
         if (normalizedType.isReference())
             return;
 
         const TypeRef   normalizedTypeUnwrapped = normalizedType.isAlias() ? normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias) : TypeRef::invalid();
         const TypeInfo& dstType                 = normalizedTypeUnwrapped.isValid() ? typeMgr.get(normalizedTypeUnwrapped) : normalizedType;
 
-        if (argPayload.typeRef.isValid())
+        if (argPayload.typeRef.isValid() && dstType.isFloat())
         {
             const TypeInfo& srcTypeInfo      = typeMgr.get(argPayload.typeRef);
             const TypeRef   srcTypeUnwrapped = srcTypeInfo.isAlias() ? srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias) : TypeRef::invalid();
@@ -363,7 +363,7 @@ namespace
             const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
             const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 
-            if (srcType.isIntLike() && dstType.isFloat() && srcBits != MicroOpBits::Zero && dstBits != MicroOpBits::Zero)
+            if (srcType.isIntLike() && srcBits != MicroOpBits::Zero && dstBits != MicroOpBits::Zero)
             {
                 MicroReg srcReg = argPayload.reg;
                 if (argPayload.isAddress())
@@ -380,7 +380,7 @@ namespace
                 return;
             }
 
-            if (srcType.isFloat() && dstType.isFloat() && srcBits != MicroOpBits::Zero && dstBits != MicroOpBits::Zero)
+            if (srcType.isFloat() && srcBits != MicroOpBits::Zero && dstBits != MicroOpBits::Zero)
             {
                 MicroReg srcReg = argPayload.reg;
                 if (argPayload.isAddress())
@@ -435,13 +435,13 @@ namespace
         argPayload.setIsValue();
     }
 
-    void materializePreparedReferenceArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef)
+    void materializePreparedReferenceArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef)
     {
-        if (argRef.isInvalid() || normalizedTypeRef.isInvalid())
+        if (argRef.isInvalid())
             return;
 
-        TaskContext&    ctx            = codeGen.ctx();
-        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
+        TaskContext&  ctx               = codeGen.ctx();
+        const TypeRef normalizedTypeRef = normalizedType.typeRef();
         if (!normalizedType.isReference())
             return;
 
@@ -494,13 +494,13 @@ namespace
     // copy the value into the call-site storage, run 'opPostCopy', and pass the storage
     // address as the move reference. The temporary is dropped right after the call: a no-op
     // when the callee consumed it (the move-assign reset it), a real drop when it did not.
-    Result materializePreparedCopyToMoveArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
+    Result materializePreparedCopyToMoveArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
     {
-        if (argRef.isInvalid() || normalizedTypeRef.isInvalid() || !resolvedArg.bindsReferenceToValue)
+        if (argRef.isInvalid() || !resolvedArg.bindsReferenceToValue)
             return Result::Continue;
 
-        TaskContext&    ctx            = codeGen.ctx();
-        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
+        TaskContext&  ctx               = codeGen.ctx();
+        const TypeRef normalizedTypeRef = normalizedType.typeRef();
         if (!normalizedType.isMoveReference())
             return Result::Continue;
         if (argPayload.hasMaterializedPointerLikeValue())
@@ -706,15 +706,15 @@ namespace
         argPayload.setIsAddress();
     }
 
-    void materializePreparedPointerDecayArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, AstNodeRef argRef)
+    void materializePreparedPointerDecayArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, AstNodeRef argRef)
     {
-        if (argRef.isInvalid() || normalizedTypeRef.isInvalid())
+        if (argRef.isInvalid())
             return;
         if (!argPayload.isAddress() || argPayload.hasMaterializedPointerLikeValue())
             return;
 
-        TaskContext&    ctx            = codeGen.ctx();
-        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
+        TaskContext&  ctx               = codeGen.ctx();
+        const TypeRef normalizedTypeRef = normalizedType.typeRef();
         if (!normalizedType.isAnyPointer() && !normalizedType.isCString())
             return;
 
@@ -738,10 +738,8 @@ namespace
         argPayload.markMaterializedPointerLikeValue();
     }
 
-    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, const ResolvedCallArgument& resolvedArg)
+    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg, const ResolvedCallArgument& resolvedArg)
     {
-        TaskContext&    ctx            = codeGen.ctx();
-        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
         SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect, normalizedArg.isFloat, normalizedArg.numBits));
         const bool passAddressRef = normalizedType.isReference() && resolvedArg.bindsReferenceToValue;
 
@@ -980,14 +978,14 @@ namespace
         ABICall::PreparedArg preparedArg;
         if (normalizedTypeRef.isValid())
         {
+            const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
             // An rvalue receiver held in a register gets its call-site home first, so its
             // address can travel into the pointer parameter like any other receiver. A
             // value payload that is already pointer-typed (a materialized constant
             // receiver) holds the receiver's address itself and passes through as-is.
             if (arg.passUfcsAddressAsPointer && !argPayload.isAddress() && !argPayload.hasMaterializedPointerLikeValue() && argPayload.reg.isValid())
             {
-                const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
-                const TypeRef   pointeeTypeRef = normalizedType.isAnyPointer() ? normalizedType.payloadTypeRef() : TypeRef::invalid();
+                const TypeRef pointeeTypeRef = normalizedType.isAnyPointer() ? normalizedType.payloadTypeRef() : TypeRef::invalid();
                 if (pointeeTypeRef.isValid())
                 {
                     const TypeInfo& pointeeType = codeGen.typeMgr().get(pointeeTypeRef);
@@ -1018,10 +1016,10 @@ namespace
                 argPayload.setIsValue();
             }
 
-            SWC_RESULT(materializePreparedCopyToMoveArg(codeGen, argPayload, normalizedTypeRef, arg, argRef, out.postCallDrops));
+            SWC_RESULT(materializePreparedCopyToMoveArg(codeGen, argPayload, normalizedType, arg, argRef, out.postCallDrops));
             SWC_RESULT(materializePreparedMovedValueArg(codeGen, argPayload, normalizedTypeRef, arg, argRef, out.postCallDrops));
-            materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
-            materializePreparedPointerDecayArg(codeGen, argPayload, normalizedTypeRef, argRef);
+            materializePreparedReferenceArg(codeGen, argPayload, normalizedType, arg, argRef);
+            materializePreparedPointerDecayArg(codeGen, argPayload, normalizedType, argRef);
             ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
             if (arg.passKind == CallArgumentPassKind::InterfaceObject)
                 normalizedArg.needsIndirectCopy = false;
@@ -1034,8 +1032,8 @@ namespace
             }
             SWC_RESULT(materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize));
             materializePreparedBorrowedAggregateArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize);
-            materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
-            fillPreparedDirectArgType(preparedArg, codeGen, argPayload, normalizedTypeRef, normalizedArg, arg);
+            materializePreparedDirectScalarArg(codeGen, argPayload, normalizedType, normalizedArg);
+            fillPreparedDirectArgType(preparedArg, codeGen, argPayload, normalizedType, normalizedArg, arg);
         }
 
         preparedArg.srcReg = argPayload.reg;

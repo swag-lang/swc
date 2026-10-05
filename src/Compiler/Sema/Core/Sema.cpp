@@ -1897,30 +1897,31 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         // semantic jobs without another worker finishing. JIT calls run through a
         // serialized worker-pool lane and wake their owners as each result arrives.
         const Result compilerMessageResult = compiler.executePendingCompilerMessages(ctx);
-        if (compilerMessageResult == Result::Pause)
-        {
-            SWC_DEV_LOOP_RESET(loopGuard);
-            pausedLazyBodyWakes    = 0;
-            pausedTypeInfoGenWakes = 0;
-            jobMgr.wakeAll(clientId);
-            continue;
-        }
-
         if (compilerMessageResult == Result::Error)
             break;
 
-        const Result afterSemanticResult = compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassAfterSemantic);
-        if (afterSemanticResult == Result::Pause)
+        if (compilerMessageResult == Result::Pause)
         {
-            SWC_DEV_LOOP_RESET(loopGuard);
-            pausedLazyBodyWakes    = 0;
-            pausedTypeInfoGenWakes = 0;
-            jobMgr.wakeAll(clientId);
-            continue;
+            // Dispatch can enqueue type-info preparation or JIT dependencies. Drain that
+            // work before testing progress: a message waiting on a semantic cycle must
+            // reach cycle detection instead of waking the same sleepers forever.
+            jobMgr.waitAll(clientId);
         }
+        else
+        {
+            const Result afterSemanticResult = compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassAfterSemantic);
+            if (afterSemanticResult == Result::Pause)
+            {
+                SWC_DEV_LOOP_RESET(loopGuard);
+                pausedLazyBodyWakes    = 0;
+                pausedTypeInfoGenWakes = 0;
+                jobMgr.wakeAll(clientId);
+                continue;
+            }
 
-        if (afterSemanticResult == Result::Error)
-            break;
+            if (afterSemanticResult == Result::Error)
+                break;
+        }
 
         if (compiler.consumeChanged())
         {

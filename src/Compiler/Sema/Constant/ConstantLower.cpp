@@ -17,7 +17,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
+    Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, ConstantRef cstRef);
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const struct StaticPayload& payload);
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const TypeInfo& typeInfo, const struct StaticPayload& payload);
 
@@ -198,12 +198,13 @@ namespace
     {
         outData = nullptr;
 
-        const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(sema.ctx());
+        const TypeInfo& valueType = sema.typeMgr().get(valueTypeRef);
+        const uint64_t  valueSize = valueType.sizeOf(sema.ctx());
         if (!valueSize)
             return Result::Continue;
 
         std::vector valueBytes(valueSize, std::byte{0});
-        SWC_RESULT(lowerConstantToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, valueTypeRef, cstRef));
+        SWC_RESULT(lowerConstantToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, valueType, cstRef));
 
         const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
         outData                             = rawValueData.data();
@@ -641,7 +642,7 @@ namespace
         for (uint64_t i = 0; i < maxCount; ++i)
         {
             const ConstantRef elemCstRef = castAggregateElementConstant(sema, values[i], elemTypeRef);
-            SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, i * elemSize, elemSize), elemTypeRef, elemCstRef));
+            SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, i * elemSize, elemSize), elemType, elemCstRef));
         }
 
         return Result::Continue;
@@ -670,7 +671,7 @@ namespace
             if (index < values.size())
             {
                 const ConstantRef elemCstRef = castAggregateElementConstant(sema, values[index], elemTypeRef);
-                SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, offset, elemSize), elemTypeRef, elemCstRef));
+                SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, offset, elemSize), elemType, elemCstRef));
             }
 
             offset += elemSize;
@@ -760,7 +761,7 @@ namespace
             valueRef = castAggregateElementConstant(sema, valueRef, fieldTypeRef);
 
             if (valueRef.isValid())
-                SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, fieldOffset, fieldSize), fieldTypeRef, valueRef));
+                SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, fieldOffset, fieldSize), fieldType, valueRef));
             else if (fieldSize)
                 zeroBytes(subBytes(dstBytes, fieldOffset, fieldSize));
         }
@@ -768,15 +769,15 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
+    Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, ConstantRef cstRef)
     {
-        const ConstantValue& cst     = sema.cstMgr().get(cstRef);
-        const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
+        const ConstantValue& cst        = sema.cstMgr().get(cstRef);
+        const TypeRef        dstTypeRef = dstType.typeRef();
         if (dstType.isAlias())
         {
             const TypeRef unwrappedTypeRef = dstType.unwrap(sema.ctx(), dstTypeRef, TypeExpandE::Alias);
             SWC_ASSERT(unwrappedTypeRef.isValid());
-            return lowerConstantToBytes(sema, dstBytes, unwrappedTypeRef, cstRef);
+            return lowerConstantToBytes(sema, dstBytes, sema.typeMgr().get(unwrappedTypeRef), cstRef);
         }
 
         if (dstType.isEnum())
@@ -785,7 +786,7 @@ namespace
             ConstantRef   enumValueRef      = cstRef;
             if (cst.isEnumValue())
                 enumValueRef = cst.getEnumValue();
-            return lowerConstantToBytes(sema, dstBytes, underlyingTypeRef, enumValueRef);
+            return lowerConstantToBytes(sema, dstBytes, sema.typeMgr().get(underlyingTypeRef), enumValueRef);
         }
 
         if (dstType.isStruct())
@@ -1030,7 +1031,7 @@ namespace
 
 Result ConstantLower::lowerToBytes(Sema& sema, std::span<std::byte> dstBytes, ConstantRef cstRef, TypeRef dstTypeRef)
 {
-    SWC_RESULT(lowerConstantToBytes(sema, dstBytes, dstTypeRef, cstRef));
+    SWC_RESULT(lowerConstantToBytes(sema, dstBytes, sema.typeMgr().get(dstTypeRef), cstRef));
     return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstTypeRef);
 }
 

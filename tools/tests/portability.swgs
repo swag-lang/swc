@@ -26,5 +26,7 @@ using Core
     Swag.assert(declaration == 0)
     let bindingTest = Tool.auditForeignImports("bin/std/modules/win32/src/tests/example.test.swg", imports)
     Swag.assert(bindingTest == 2)
+    let archivedEvidence = Tool.auditForeignImports("bench/results/generated-code/20261005-runtime-layout/probes/avx_probe.swgs", imports)
+    Swag.assert(archivedEvidence == 0)
     Console.println("native import ownership regression checks passed")
 }

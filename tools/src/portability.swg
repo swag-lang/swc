@@ -308,10 +308,14 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
 // Checks import ownership independently of whether a source is an approved platform backend.
 // A host leaf consumes bindings; only the ABI modules declare them. The runtime is below the
 // standard library and necessarily owns its bootstrap imports instead of depending on win32.
+// Sources archived under bench/results are frozen evidence of a past measurement, never built
+// by the repository: rewriting one would falsify what was measured.
 public func auditForeignImports(path: string, content: string)->u32
 {
     let bindingModule = isUnderAny(path, NativeInteropRoots) or isUnderAny(path, ["bin/std/modules/ogl/"])
     if bindingModule and not containsText(path, "/src/tests/") or samePath(path, "bin/runtime/os.win32.swg") do
+        return 0
+    if isUnderAny(path, ["bench/results/"]) do
         return 0
 
     var state:  PortabilityParseState

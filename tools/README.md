@@ -84,7 +84,8 @@ runs the backlog check alone.
 
 `portability.swgs` also rejects local native imports in applications, libraries, tests, tools, examples, and benchmarks,
 including approved `.win32.swg` files. Add missing operations to their official ABI modules
-instead. Only the runtime bootstrap owns imports below the standard library. Run
+instead. Only the runtime bootstrap owns imports below the standard library. Source snapshots
+archived under `bench/results` are frozen measurement evidence and are not audited. Run
 `bin\swc.dm.exe --num-cores 6 tools\tests\portability.swgs` to exercise this guard; the complete
 test campaign includes those regression checks.
 

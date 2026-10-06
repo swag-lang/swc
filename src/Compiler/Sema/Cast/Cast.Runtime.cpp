@@ -1205,15 +1205,9 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const TypeInfo* enumType  = &valueType;
         if (!enumType->isEnum() && valueType.isAlias())
         {
-            const TypeRef unwrappedTypeRef = valueType.unwrap(ctx, valueTypeRef, TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
-            {
-                const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
-                if (unwrappedType.isEnum())
-                {
-                    enumType = &unwrappedType;
-                }
-            }
+            const TypeInfo* unwrappedType = valueType.unwrapAliasType(ctx);
+            if (unwrappedType && unwrappedType->isEnum())
+                enumType = unwrappedType;
         }
 
         if (enumType->isEnum())

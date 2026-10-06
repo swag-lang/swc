@@ -1293,8 +1293,8 @@ namespace
         {
             const SymbolVariable& fieldVar      = symbols[0]->cast<SymbolVariable>();
             const TypeInfo&       fieldType     = fieldVar.typeInfo(sema.ctx());
-            const TypeRef         unwrappedRef  = fieldType.isAlias() ? fieldType.unwrap(sema.ctx(), fieldVar.typeRef(), TypeExpandE::Alias) : TypeRef::invalid();
-            const TypeInfo&       fieldRealType = unwrappedRef.isValid() ? sema.typeMgr().get(unwrappedRef) : fieldType;
+            const TypeInfo*       unwrappedType = fieldType.unwrapAliasType(sema.ctx());
+            const TypeInfo&       fieldRealType = unwrappedType ? *unwrappedType : fieldType;
             if (fieldRealType.isFunction())
                 canExtractConstantMember = false;
             // A 'late' field's value only exists at runtime: extracting the

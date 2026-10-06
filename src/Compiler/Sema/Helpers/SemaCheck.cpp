@@ -99,8 +99,8 @@ namespace
         if (!type.isAlias())
             return false;
 
-        const TypeRef unwrappedTypeRef = type.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        return unwrappedTypeRef.isValid() && sema.typeMgr().get(unwrappedTypeRef).isConst();
+        const TypeInfo* unwrappedType = type.unwrapAliasType(sema.ctx());
+        return unwrappedType && unwrappedType->isConst();
     }
 
     bool isNonReassignableFunctionParameter(Sema& sema, const SymbolVariable& symVar)

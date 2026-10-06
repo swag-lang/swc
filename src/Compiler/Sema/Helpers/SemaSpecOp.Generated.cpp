@@ -405,7 +405,7 @@ namespace
         return Result::Continue;
     }
 
-    void collectGeneratedOperatorFieldNamesFromSymbols(const TaskContext& ctx, const SymbolStruct& ownerStruct, SmallVector<Utf8>& outFields)
+    void collectGeneratedOperatorFieldNamesFromSymbols(const TaskContext& ctx, const SymbolStruct& ownerStruct, SmallVector<std::string_view>& outFields)
     {
         for (const SymbolVariable* field : ownerStruct.fields())
         {
@@ -448,7 +448,7 @@ namespace
         return false;
     }
 
-    void collectGeneratedOperatorFieldNamesFromNode(Sema& sema, AstNodeRef nodeRef, SmallVector<Utf8>& outFields)
+    void collectGeneratedOperatorFieldNamesFromNode(Sema& sema, AstNodeRef nodeRef, SmallVector<std::string_view>& outFields)
     {
         if (nodeRef.isInvalid())
             return;
@@ -471,7 +471,7 @@ namespace
         if (const auto* singleVar = node.safeCast<AstSingleVarDecl>())
         {
             if (!singleVar->hasFlag(AstVarDeclFlagsE::Const))
-                outFields.push_back(Utf8{sema.tokenString({singleVar->srcViewRef(), singleVar->tokNameRef})});
+                outFields.push_back(sema.tokenString({singleVar->srcViewRef(), singleVar->tokNameRef}));
             return;
         }
 
@@ -483,11 +483,11 @@ namespace
             SmallVector<TokenRef> names;
             sema.ast().appendTokens(names, multiVar->spanNamesRef);
             for (const TokenRef nameRef : names)
-                outFields.push_back(Utf8{sema.tokenString({multiVar->srcViewRef(), nameRef})});
+                outFields.push_back(sema.tokenString({multiVar->srcViewRef(), nameRef}));
         }
     }
 
-    void collectGeneratedOperatorFieldNamesFromAst(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<Utf8>& outFields)
+    void collectGeneratedOperatorFieldNamesFromAst(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<std::string_view>& outFields)
     {
         const AstNode* decl = ownerStruct.decl();
         const auto*    node = decl ? decl->safeCast<AstStructDecl>() : nullptr;
@@ -500,7 +500,7 @@ namespace
             collectGeneratedOperatorFieldNamesFromNode(sema, childRef, outFields);
     }
 
-    void collectGeneratedOperatorFieldNames(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<Utf8>& outFields)
+    void collectGeneratedOperatorFieldNames(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<std::string_view>& outFields)
     {
         outFields.clear();
         if (ownerStruct.isGenericRoot() && !ownerStruct.isGenericInstance())
@@ -516,7 +516,7 @@ namespace
             source += "public ";
     }
 
-    void appendGeneratedCompareOperator(Sema& sema, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields)
+    void appendGeneratedCompareOperator(Sema& sema, Utf8& source, const SymbolStruct& ownerStruct, std::span<const std::string_view> fields)
     {
         appendGeneratedAccess(source, ownerStruct);
         source += "mtd const ";
@@ -546,7 +546,7 @@ namespace
         source += "    }\n";
     }
 
-    void appendGeneratedEqualsFieldComparison(Utf8& source, std::span<const Utf8> fields)
+    void appendGeneratedEqualsFieldComparison(Utf8& source, std::span<const std::string_view> fields)
     {
         if (fields.empty())
         {
@@ -567,7 +567,7 @@ namespace
         source += "\n";
     }
 
-    void appendGeneratedEqualsOperator(Sema& sema, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, std::string_view selfTypeName)
+    void appendGeneratedEqualsOperator(Sema& sema, Utf8& source, const SymbolStruct& ownerStruct, std::span<const std::string_view> fields, std::string_view selfTypeName)
     {
         appendGeneratedAccess(source, ownerStruct);
         source += "mtd const ";
@@ -826,7 +826,7 @@ namespace
 
     Utf8 makeGeneratedEqualityMethodSource(Sema& sema, const SymbolStruct& ownerStruct, std::string_view selfTypeName)
     {
-        SmallVector<Utf8> fields;
+        SmallVector<std::string_view> fields;
         collectGeneratedOperatorFieldNames(sema, ownerStruct, fields);
 
         Utf8 source;
@@ -852,7 +852,7 @@ namespace
 
     Utf8 makeGeneratedOperatorsSource(Sema& sema, const SymbolStruct& ownerStruct, GeneratedOperatorFlags flags)
     {
-        SmallVector<Utf8> fields;
+        SmallVector<std::string_view> fields;
         collectGeneratedOperatorFieldNames(sema, ownerStruct, fields);
         const Utf8 ownerTypeName = ownerStruct.typeInfo(sema.ctx()).toName(sema.ctx());
 
@@ -960,7 +960,7 @@ namespace
         return plan;
     }
 
-    void collectGeneratedLifecycleFieldNames(const TaskContext& ctx, const SymbolStruct& ownerStruct, SmallVector<Utf8>& outFields)
+    void collectGeneratedLifecycleFieldNames(const TaskContext& ctx, const SymbolStruct& ownerStruct, SmallVector<std::string_view>& outFields)
     {
         outFields.clear();
         for (const SymbolVariable* field : ownerStruct.fields())
@@ -970,7 +970,7 @@ namespace
         }
     }
 
-    void appendGeneratedLifecycleFieldCalls(Utf8& source, std::span<const Utf8> fields, const SpecOpKind kind)
+    void appendGeneratedLifecycleFieldCalls(Utf8& source, std::span<const std::string_view> fields, const SpecOpKind kind)
     {
         const std::string_view intrinsicName = lifecycleIntrinsicName(kind);
         if (intrinsicName.empty())
@@ -990,7 +990,7 @@ namespace
             return;
         }
 
-        for (const Utf8& fieldName : fields)
+        for (const std::string_view fieldName : fields)
         {
             source += "        ";
             source += intrinsicName;
@@ -1011,7 +1011,7 @@ namespace
         source += "    }\n";
     }
 
-    void appendGeneratedLifecycleWrapper(const TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const SpecOpKind kind)
+    void appendGeneratedLifecycleWrapper(const TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const std::string_view> fields, const SpecOpKind kind)
     {
         const std::string_view wrapperName = SemaSpecOp::generatedLifecycleWrapperName(kind);
         SWC_ASSERT(!wrapperName.empty());
@@ -1040,7 +1040,7 @@ namespace
         source += "    }\n";
     }
 
-    void appendGeneratedLifecycleWrappers(const TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const GeneratedLifecyclePlan& plan)
+    void appendGeneratedLifecycleWrappers(const TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const std::string_view> fields, const GeneratedLifecyclePlan& plan)
     {
         bool addSeparator = false;
         if (plan.init)
@@ -1078,7 +1078,7 @@ namespace
         if (!plan.any())
             return {};
 
-        SmallVector<Utf8> fields;
+        SmallVector<std::string_view> fields;
         collectGeneratedLifecycleFieldNames(sema.ctx(), ownerStruct, fields);
         const Utf8 ownerTypeName = ownerStruct.typeInfo(sema.ctx()).toName(sema.ctx());
 
@@ -1097,7 +1097,7 @@ namespace
         if (!plan.any())
             return {};
 
-        SmallVector<Utf8> fields;
+        SmallVector<std::string_view> fields;
         collectGeneratedLifecycleFieldNames(sema.ctx(), ownerStruct, fields);
 
         Utf8 source;

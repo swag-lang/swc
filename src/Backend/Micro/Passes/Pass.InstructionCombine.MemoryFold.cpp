@@ -212,9 +212,8 @@ namespace InstructionCombine
                 if (tri.middleIsRegReg && (tri.rhsReg == base || tri.rhsReg == valueReg || tri.rhsReg == vt))
                     return false;
 
-                if (!valueHasSingleUse(*ctx.ssa, vt, loadRef))
-                    return false;
-                if (copyRef.isValid() && !valueHasSingleUse(*ctx.ssa, valueReg, copyRef))
+                // Accepting the copy already proved the loaded value has one use.
+                if (!valueHasSingleUse(*ctx.ssa, valueReg, copyRef.isValid() ? copyRef : loadRef))
                     return false;
                 if (!valueHasSingleUse(*ctx.ssa, valueReg, mid.ref))
                     return false;

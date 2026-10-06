@@ -982,7 +982,13 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     }
                 }
             }
-            if (trips > K_MAX_TOTAL_INSTR / bodyCount)
+            // Exact larger loops can retain one latch per two trips. Keep the
+            // counter updates between copies: body readers see the original value.
+            const bool partial = trips > K_MAX_TRIPS && trips % 2 == 0 &&
+                                 trips > K_MAX_TOTAL_INSTR / bodyCount &&
+                                 bodyCount >= 16 && bodyCount <= K_MAX_ORDINARY_BODY_INSTR;
+            const uint64_t copies = partial ? 2 : trips;
+            if (copies > K_MAX_TOTAL_INSTR / bodyCount)
                 continue;
 
             // Body scan: collect internal labels, verify every branch is either
@@ -999,6 +1005,14 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 const MicroInstr*        inst = storage.ptr(order[o]);
                 const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
                 if (!inst)
+                {
+                    ok = false;
+                    break;
+                }
+                if (partial && (inst->op == MicroInstrOpcode::Label ||
+                                MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                                MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                                (ops && MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops))))
                 {
                     ok = false;
                     break;
@@ -1070,7 +1084,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // each copy. This can repay the branch duplication within the overall
             // code-size cap; ordinary branched loops keep the smaller budget.
             const bool foldsTableIndices = indexedConstantLoads != 0;
-            if (trips > K_MAX_TRIPS && !foldsTableIndices)
+            if (trips > K_MAX_TRIPS && !foldsTableIndices && !partial)
                 continue;
 
             // A nest that flattens completely is judged on its flattened size.
@@ -1085,7 +1099,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // One trip copies nothing, so no size limit applies to it.
             const bool growsCode = trips > 1 && !flattensNest;
             if (growsCode && (!foldsTableIndices || trips > K_MAX_WIDE_TABLE_TRIPS) &&
-                (bodyCount > K_MAX_ORDINARY_BODY_INSTR || bodyCount * trips > K_MAX_ORDINARY_TOTAL_INSTR))
+                (bodyCount > K_MAX_ORDINARY_BODY_INSTR || bodyCount * copies > K_MAX_ORDINARY_TOTAL_INSTR))
                 continue;
             if (growsCode && !internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES && !foldsTableIndices)
                 continue;
@@ -1107,9 +1121,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 continue;
 
             // ------------------------------------------------------------------
-            // Unroll. The original body stays in place as copy zero, reading the
-            // original counter (still materialized as C in the preheader). Copies
-            // 1..trips-1 are inserted before the latch, then the latch goes away.
+            // The original body stays as copy zero. Full unrolling gives each
+            // copy a constant counter and removes the latch. Partial unrolling
+            // retains the latch and advances the original counter between copies.
             const MicroInstrRef addRef = order[jccOrdinal - 2];
             const MicroInstrRef cmpRef = order[jccOrdinal - 1];
             const MicroInstrRef jccRef = order[jccOrdinal];
@@ -1192,20 +1206,29 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
             std::unordered_map<MicroReg, MicroReg> currentName;
-            uint32_t                               nextFreshInt = firstFreshVirtual + static_cast<uint32_t>(trips) - 1;
+            uint32_t                               nextFreshInt = firstFreshVirtual + (partial ? 0 : static_cast<uint32_t>(copies) - 1);
             std::unordered_map<uint64_t, uint64_t> labelMap;
             labelMap.reserve(internalLabels.size());
             SmallVector<MicroInstrOperand, 8> newOps;
 
-            for (uint64_t k = 1; k < trips; ++k)
+            for (uint64_t k = 1; k < copies; ++k)
             {
-                const MicroReg copyCounter = MicroReg::virtualIntReg(firstFreshVirtual + static_cast<uint32_t>(k) - 1);
-
-                MicroInstrOperand counterOps[3];
-                counterOps[0].reg    = copyCounter;
-                counterOps[1].opBits = counterBits;
-                counterOps[2].setImmediateValue(ApInt(initValue + k * step, getNumBits(counterBits)));
-                storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegImm, counterOps);
+                const MicroReg copyCounter = partial ? counter : MicroReg::virtualIntReg(firstFreshVirtual + static_cast<uint32_t>(k) - 1);
+                if (partial)
+                {
+                    const MicroInstr*                 increment = storage.ptr(addRef);
+                    SmallVector<MicroInstrOperand, 4> stepCopy;
+                    stepCopy.append(increment->ops(operands), increment->numOperands);
+                    storage.insertDerivedBefore(operands, addRef, increment->op, stepCopy.span());
+                }
+                else
+                {
+                    MicroInstrOperand counterOps[3];
+                    counterOps[0].reg    = copyCounter;
+                    counterOps[1].opBits = counterBits;
+                    counterOps[2].setImmediateValue(ApInt(initValue + k * step, getNumBits(counterBits)));
+                    storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegImm, counterOps);
+                }
 
                 labelMap.clear();
                 for (const uint64_t id : internalLabels)
@@ -1288,16 +1311,19 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 }
             }
 
-            // Post-loop readers of the counter see its exit value.
-            MicroInstrOperand exitOps[3];
-            exitOps[0].reg    = counter;
-            exitOps[1].opBits = counterBits;
-            exitOps[2].setImmediateValue(ApInt(initValue + trips * step, getNumBits(counterBits)));
-            storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegImm, exitOps);
+            if (!partial)
+            {
+                // Post-loop readers of the counter see its exit value.
+                MicroInstrOperand exitOps[3];
+                exitOps[0].reg    = counter;
+                exitOps[1].opBits = counterBits;
+                exitOps[2].setImmediateValue(ApInt(initValue + trips * step, getNumBits(counterBits)));
+                storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegImm, exitOps);
 
-            storage.erase(addRef);
-            storage.erase(cmpRef);
-            storage.erase(jccRef);
+                storage.erase(addRef);
+                storage.erase(cmpRef);
+                storage.erase(jccRef);
+            }
 
             builder.invalidateControlFlowGraph();
             context.passChanged = true;

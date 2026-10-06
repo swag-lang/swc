@@ -1458,9 +1458,10 @@ var GValue: s32 = 0
     if (!globalVar || !globalVar->hasGlobalStorage())
         return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "global GValue not found");
 
-    const auto& nativeFunctions = compiler.nativeCodeSegment();
+    // Like the test command, install what the executable holds, not every completed function.
+    const std::vector<SymbolFunction*> nativeFunctions = nativeBuilder.collectPreparedFunctions();
     if (nativeFunctions.empty())
-        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "native code segment empty");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "no prepared native function");
 
     while (true)
     {

@@ -12,7 +12,7 @@ struct Table
 func update(table: *Table, index: u32, value: u64)->u64
 {
     let previous = table.wide[index]
-    table.bytes[index] = cast(u8) value
+    table.bytes[index] = cast #bit (u8) value
     table.words[index] = cast(s32) value
     table.wide[index] = value + previous
     return table.wide[index] + table.bytes[index] + cast(u64) table.words[index]
@@ -54,8 +54,8 @@ func acrossJoin(first, second: *Table, index: u32, redirect: bool)->u64
     {
         let value = cast(u64) i * 13
         table.wide[i] = 100 + i
-        Swag.assert(update(&table, i, value) == 100 + i + value * 2 + cast(u8) value)
-        Swag.assert(table.bytes[i] == cast(u8) value)
+        Swag.assert(update(&table, i, value) == 100 + i + value * 2 + cast #bit (u8) value)
+        Swag.assert(table.bytes[i] == cast #bit (u8) value)
         Swag.assert(table.words[i] == cast(s32) value)
         Swag.assert(table.wide[i] == 100 + i + value)
         Swag.assert(localArray(i) == cast(u64) (i + ((i + 1) & 31)) * 7)

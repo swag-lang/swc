@@ -535,6 +535,13 @@ namespace
         bool     valid = false;
     };
 
+    // What one object description contributes to the image, built without touching it.
+    struct NativeImageDescriptionSections
+    {
+        NativeSectionData     textSection;
+        DebugInfoObjectResult unwind;
+    };
+
     class NativeImageLowering
     {
     public:
@@ -548,18 +555,25 @@ namespace
                 definedNames_.insert(symbol.name);
         }
 
-        Result appendDescription(const NativeObjDescription& description)
+        // Reads only the description and the builder, so descriptions can be built in parallel.
+        Result buildDescription(NativeImageDescriptionSections& out, const NativeObjDescription& description) const
         {
-            SWC_RESULT(appendTextSection(description));
+            SWC_RESULT(buildTextSection(out.textSection, description));
+            return buildUnwindSections(out.unwind, description);
+        }
+
+        // Places a built description; the image depends on the order descriptions are placed in.
+        Result placeDescription(NativeImageDescriptionSections& sections, const NativeObjDescription& description)
+        {
+            SWC_RESULT(placeTextSection(std::move(sections.textSection), description));
             if (description.includeData)
                 SWC_RESULT(appendDataSections());
-            return appendUnwindSections(description);
+            return placeUnwindSections(sections.unwind);
         }
 
     private:
-        Result appendTextSection(const NativeObjDescription& description)
+        Result buildTextSection(NativeSectionData& textSection, const NativeObjDescription& description) const
         {
-            NativeSectionData textSection;
             textSection.name            = ".text";
             textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
 
@@ -572,7 +586,11 @@ namespace
                 SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
             for (const NativeFunctionInfo* info : description.functions)
                 SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols));
+            return Result::Continue;
+        }
 
+        Result placeTextSection(NativeSectionData&& textSection, const NativeObjDescription& description)
+        {
             SectionPlacement placement;
             SWC_RESULT(appendNativeSection(placement, std::move(textSection)));
             if (description.startup)
@@ -614,7 +632,7 @@ namespace
             return Result::Continue;
         }
 
-        Result appendUnwindSections(const NativeObjDescription& description)
+        Result buildUnwindSections(DebugInfoObjectResult& debugInfoResult, const NativeObjDescription& description) const
         {
             std::vector<DebugInfoFunctionRecord> debugFunctions;
             debugFunctions.reserve(description.functions.size() + (description.startup ? 1u : 0u));
@@ -624,7 +642,6 @@ namespace
             for (const NativeFunctionInfo* info : description.functions)
                 debugFunctions.push_back({.symbolName = info->symbolName, .debugName = info->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = info->machineCode});
 
-            DebugInfoObjectResult        debugInfoResult;
             const DebugInfoObjectRequest debugInfoRequest = {
                 .ctx          = &builder_->ctx(),
                 .targetOs     = builder_->ctx().cmdLine().targetOs,
@@ -632,8 +649,11 @@ namespace
                 .functions    = debugFunctions,
                 .emitCodeView = false,
             };
-            SWC_RESULT(DebugInfo::buildObject(debugInfoRequest, debugInfoResult));
+            return DebugInfo::buildObject(debugInfoRequest, debugInfoResult);
+        }
 
+        Result placeUnwindSections(const DebugInfoObjectResult& debugInfoResult)
+        {
             std::unordered_map<Utf8, SectionPlacement> placements;
             for (const NativeSectionData& section : debugInfoResult.sections)
             {
@@ -918,8 +938,22 @@ Result PELinker::buildNativeImage(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
     NativeImageLowering lowering(*builder_, image);
-    for (const NativeObjDescription& description : builder_->objectDescriptions)
-        SWC_RESULT(lowering.appendDescription(description));
+
+    // Each description's code, relocations and unwind records are independent of every other
+    // one; only their placement in the image is ordered.
+    const auto&                                 descriptions = builder_->objectDescriptions;
+    std::vector<NativeImageDescriptionSections> sections(descriptions.size());
+    std::vector<Result>                         results(descriptions.size(), Result::Continue);
+    JobManager&                                 jobMgr = builder_->ctx().global().jobMgr();
+    jobMgr.parallelForIndexed(builder_->ctx(), static_cast<uint32_t>(descriptions.size()), JobKind::NativeLinkPrepare, jobMgr.newClientId(), [&](TaskContext&, const uint32_t index) {
+        results[index] = lowering.buildDescription(sections[index], descriptions[index]);
+    });
+
+    for (size_t index = 0; index < descriptions.size(); ++index)
+    {
+        SWC_RESULT(results[index]);
+        SWC_RESULT(lowering.placeDescription(sections[index], descriptions[index]));
+    }
 
     return Result::Continue;
 }

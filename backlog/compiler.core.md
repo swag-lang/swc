@@ -6,6 +6,89 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
+
+- Recorded: 2026-09-15 12:47
+- Updated: 2026-10-06 09:49 — Measured what recording nothing from an assertion argument would touch.
+- Found while: the same change, on `bin/unittests/sanity/self_borrow_move.swg`.
+- Evidence: `Swag.assert(target.cursor![] == 13)` records the non-null proof for the rest of the
+  block, but `Swag.Safety(.Assert, false)` and the `release` preset drop the whole assertion,
+  including the `!` inside its argument. The proof survives compilation; the runtime guard does
+  not. `Swag.assert(p != null)` has the same property and the reference documents it as the
+  precondition form, which is why it reads as deliberate there; a `!` inside an argument does not
+  read as a precondition at all.
+- Cost: no unsoundness in `release`, where every guard is already off. In `devmode` with an
+  explicit safety override, a path can be used unguarded because of an assertion that was
+  compiled out.
+- Blast radius (2026-10-06): recording nothing from inside a `Swag.assert` argument is a
+  one-line change to `notNullRunsUnconditionally` (an `AstIntrinsicCallExpr` parent with
+  `IntrinsicAssert` returns false). `bin/` holds 89 assertions with a postfix `!` in an
+  argument, most of them in application and module tests, so any code after them that relies on
+  the proof would stop compiling; that needs every `bin/` test source compiled before it lands.
+  Recording the proof only where `Assert` safety is on would make the same source compile in one
+  configuration and not in another, which is worse.
+- Next: decide whether a proof recorded inside an argument of a removable intrinsic should be
+  kept. Either record nothing from inside a `Swag.assert` argument and compile every `bin/` test
+  source, or state the rule in `bin/reference/modules/language/src/004_007_pointers.swg` next to
+  the existing `Swag.assert` paragraph.
+- Complete when: the chosen rule is implemented or documented, with a case showing what
+  `Swag.Safety(.Assert, false)` does to the proof.
+
+### compiler.core.072 — Link preparation resolves and places the native image on one thread
+
+- Recorded: 2026-10-01 14:25
+- Updated: 2026-10-06 09:49 — Description sections are now built in parallel; placement and resolution remain serial.
+- Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
+  jobs. On 2026-10-01, probed phases in a 16-worker DevMode `gui` rebuild gave image lowering
+  about 0.6 s and resolution 0.2 s of wall time over the five native modules. Since 2026-10-06,
+  `buildNativeImage` builds each object description's text bytes, code relocations and unwind
+  sections as an indexed parallel loop, then places them in description order on the driver; an
+  in-process comparison against the sequential order produced identical sections, relocations
+  and symbols for `core`, `ogl`, `truetype`, `pixel`, `gui` and `gui2`. A module has only six
+  descriptions, so that loop is at most six-way. Placement (`placeNativeSection`, the symbol and
+  relocation tables), `resolveSymbols`, `appendSymbolTable`, and `finishImage` are still serial.
+- Next: measure `link prepare` in a 16-worker `gui` rebuild with `--dev-sched-stats` and decide
+  whether the remaining serial time justifies splitting descriptions further or resolving
+  archive members in parallel.
+- Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
+  linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
+- Related: compiler.core.069
+
+### compiler.core.056 — A library lowers the equality operator no program calls
+
+- Recorded: 2026-09-23 14:11
+- Updated: 2026-10-06 09:21 — Executables no longer lower unreachable functions; libraries remain.
+- Area: compiler/codegen, module publication, compilation time
+- Evidence: `Sema.Struct.cpp` gives every struct that `shouldGenerateEqualityOperator` selects
+  (one holding a `string`, for example) a member-wise `opEquals` when the struct completes,
+  whether or not anything compares it. Every completed function enters the module's native code
+  segment. On 2026-09-23 a hello world lowered 31 generated `opEquals` (19.4% of its lowering)
+  and `gui` 1 901 of them (4.57 s, 6.2% of its lowering, `ThemeColors.opEquals` alone 769 ms).
+- Executables (2026-10-06): a trace of every code-generation request showed all 31 hello-world
+  operators scheduled by `NativeBackendBuilder::prepare`, which seeded its lowering loop with the
+  whole code segment and restricted only the final table to what the roots reach. An executable
+  now seeds the loop with its roots, so it lowers only what they reach: no generated `opEquals`
+  in a hello world, and a one-worker DevMode `build --rebuild` of it went from a median of about
+  835 ms to 735 ms over eight alternated pairs.
+- What remains: a static or shared library still lowers every completed function, because its
+  API publishes them; an importer comparing a public struct calls its generated operator. The
+  generated operator of a struct the module does not publish, or one no published function can
+  reach, is still lowered for nothing, and `gui` is such a library.
+- The trap any lazier generation must not walk into: `==` on a struct does not resolve its
+  operator during semantic analysis. `CodeGen.Relational.cpp` asks
+  `SymbolStruct::selfEqualsFunction` while lowering the comparison, and when that returns null
+  it falls through to comparing bytes - no diagnostic, just a different answer. Generating the
+  operator on demand must be complete before any comparison is lowered, and should first turn
+  the silent fallback into a reported internal failure for a struct that
+  `shouldGenerateEqualityOperator` says needs one.
+- Next: in a library, seed lowering with what the module publishes (public functions, exported
+  generated operators of public structs, interface tables, compile-time roots) instead of the
+  whole code segment, and measure the `gui` release rebuild. If private generated operators still
+  dominate, move generation from struct completion to the first comparison that needs it.
+- Complete when: a `gui` release rebuild lowers no generated `opEquals` that neither its API nor
+  its own code can reach, with the workspace suite and `std` release green.
+- Related: compiler.core.030, compiler.core.006.
+
 ### compiler.core.039 — One module analysis resolves four and a half million substitutions
 
 - Recorded: 2026-09-09 17:44
@@ -114,25 +197,6 @@ narrowing. Such a rewrite requires a separate semantic proof.
 - Complete when: the partitioning improvement has concurrent read/write coverage
   and a measured compilation-time benefit with its memory cost explicitly bounded.
 
-
-### compiler.core.072 — Link preparation lowers the native image on one thread
-
-- Recorded: 2026-10-01 14:25
-- Updated: 2026-10-01 15:41 — per-object jobs replaced by indexed loops; narrow to the image lowering
-- Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
-  jobs, but `buildNativeImage` lowers every object description into the image on the driver
-  thread, and `resolveSymbols`, `appendSymbolTable`, and `finishImage` follow serially. Probed
-  phases in a 16-worker DevMode `gui` rebuild: image lowering about 0.6 s and resolution 0.2 s of
-  wall time over the five native modules. The side static archive of each shared library used to
-  enqueue one job per object and per archive member (about 117 000 of each); both now run as
-  indexed parallel loops, which halved the `link prepare` phase and removed its starvation.
-  Each description's text bytes, code relocations, and unwind sections (`DebugInfo::buildObject`)
-  are independent; only their placement in the image is ordered.
-- Next: build each description's sections in parallel, then place them in description order on
-  the driver, and check that the produced images are byte-identical apart from the timestamp.
-- Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
-  linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
-- Related: compiler.core.069
 
 ### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
 
@@ -392,87 +456,6 @@ the shared memory budget.
   defined twice in `HashTable`) reproduces under the same stress before attributing it here.
 - Complete when: a repeatable test fails without the post-node ownership check and passes with it.
 
-### compiler.core.056 — Every compilation lowers the equality operator no program calls
-
-- Recorded: 2026-09-23 14:11
-- Updated: 2026-09-23 16:54 — Named the silent fallback the lazy fix has to guard against.
-- Area: compiler/codegen, compile-time execution, compilation time
-- Evidence: instrumented `MachineCode::emit` (Release 0.1.1050, one worker). A four-line hello
-  world lowers **319 functions**, and **31 of them are generated `opEquals`** costing 42.5 ms of
-  the 218.7 ms the whole lowering takes - **19.4%**. `Context.opEquals` alone is 20.2 ms, 9% of
-  the compilation. On `bin/std`'s `gui` module the same probe counts **1 901 generated `opEquals`
-  for 4.57 s, 6.2%** of the module's lowering, `ThemeColors.opEquals` alone taking 769 ms.
-- Nothing calls them. A dependency probe on both of `CodeGenJob`'s dependency loops records only
-  `opEquals -> opEquals` edges: an equality function is requested by another equality function
-  and by nothing else. The executable's root set for that hello world is six functions and holds
-  none of them.
-- What decides it is the shape of the struct, not any use of it: a struct of plain fields gets no
-  `opEquals`, and a struct holding one `string`, never compared anywhere, gets one generated and
-  lowered (479 us for two fields). That is correct as generation - `==` on such a struct cannot
-  compare bytes - but it is paid by every compilation whether or not the operator is reachable.
-- Where they enter: every one of the 319 emissions comes from a `CodeGenJob`, and the roots that
-  neither dependency loop explains are the ones `SemaJIT` schedules from
-  `buildJitOrderWithNativeRoots`, whose constant roots come from `appendConstantFunctionJitRoots`
-  - the walk over the constant graph that treats every function address stored in constant data
-  as a root that must be lowered. `collectExecutableFunctionRoots` already avoids exactly this
-  for the native artifact, and says so: "this is particularly important for large implicit
-  operators that a type must declare for language correctness but that the program never calls".
-  The compile-time side has no such filter.
-- Ruled out: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` is not the
-  trigger. Replacing it with a plain variable leaves the hello world at 318 emissions and the
-  same 31 equality functions.
-- Not a quadratic: a generated struct of N nullable strings compared once costs about 2, 5, 8,
-  15, 44 and 97 ms of extra lowering at N = 8, 16, 32, 64, 128 and 256. `ThemeColors` carries 357
-  fields of its own struct type, so its 769 ms is the expanded comparison count, not a defect in
-  the pipeline. The cost is inherent to lowering the operator; the saving is in not lowering it.
-- Tried and measured as worth nothing (2026-09-23): `NativeBackendBuilder` seeds its lowering
-  loop with `compiler_->nativeCodeSegment()` - everything the module lowered - and applies the
-  executable reachability filter only to the final table, which its own comment explains by the
-  constant closure needing lowered code to read. Seeding that loop with
-  `collectExecutableFunctionRoots` instead drops 12 entries from the hello world's artifact and
-  costs the same time: three alternated pairs of nine `--rebuild` samples each read 344, 344 and
-  378 ms against 340, 330 and 348. It changes what the artifact holds without saving anything, so
-  the lowering worth avoiding is not the one this seed controls.
-- Where it is decided, and what it is worth: `Sema.Struct.cpp` calls
-  `SemaSpecOp::ensureGeneratedEquality` as part of completing **every** struct, so a struct that
-  holds a string is given a member-wise operator whether or not anything ever compares it.
-  Removing that one call is the decisive experiment: a single-file program whose struct carries 64
-  string fields drops from 316 to 284 forged functions and its lowering from 342 to 280 ms, and
-  end to end, alternated, three pairs of seven `--rebuild` samples read 525 ms against 418 ms of
-  minimum - about **a fifth of the whole compilation**. A hello world with no struct of its own
-  still loses its 31 runtime operators, but there the end-to-end difference sits inside this
-  machine's noise (640 against 611 ms of minimum over four pairs); what is certain there is the
-  19.4% of lowering measured above.
-- The lazy-body mechanism is not a way out either: `canDelayFunctionBody` already grants a
-  delayed body to generic, imported and runtime functions, but `NativeBackendBuilder` accepts a
-  function carrying `SymbolFunctionFlagsE::LazyBody` as preparable, so the body is completed and
-  lowered all the same. Delaying the body postpones the cost; only not creating the operator
-  removes it.
-- The trap that fix must not walk into: `==` on a struct does not resolve its operator during
-  semantic analysis at all. `CodeGen.Relational.cpp` asks `SymbolStruct::selfEqualsFunction` while
-  lowering the comparison, and **when that returns null it falls through to comparing bytes** - no
-  diagnostic, just a different answer. Generating the operator on demand therefore has to be
-  ordered so it is complete before any comparison is lowered, and the first commit of that work
-  should turn the silent fallback into a reported internal failure for a struct that
-  `shouldGenerateEqualityOperator` says needs one. Otherwise a mis-ordering ships as a wrong
-  comparison rather than a build error.
-- Next, and this is the shape of the fix: generate the operator when a comparison asks for it
-  rather than when the struct completes. `ensureGeneratedEquality` already carries the publish and
-  wait protocol the lifecycle generation uses, so the work is moving its call site from struct
-  completion to operator resolution - and that is a sema ordering change in a parallel compiler,
-  so it needs the full repository campaign behind it, not a focused run.
-- Why the closure is wide: these roots are collected for compile-time execution, where a `#run`
-  may call through any function address the constant graph holds, so the walk cannot decide
-  reachability statically. The lowered code is then reused by the native builder, which is how a
-  function the artifact would have excluded still costs a lowering.
-- Next: the tractable direction is not a narrower closure but a later one - lowering a
-  constant-held function on the first compile-time call through its pointer, behind the patching
-  the JIT already does in `patchConstantFunctionRelocationsRec`. The saving is bounded by the
-  numbers above and is paid by every module of every workspace.
-- Complete when: a program that compares no struct lowers no generated `opEquals`, and the `gui`
-  release rebuild loses the 4.57 s this entry measures.
-- Related: compiler.core.030, compiler.core.006.
-
 ### compiler.core.030 — Every executable lowers the runtime's functions again
 
 - Recorded: 2026-09-05 22:13
@@ -703,26 +686,6 @@ cache is part of the normal DevMode and Release paths.
   for nothing beyond it, with a JIT case for each of the four forms in
   `bin/unittests/jit/flow/nullable_narrow.swg` and the negative controls in
   `bin/unittests/errors/sema/sema_err_notnull_already_proven.swg` still passing.
-
-### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
-
-- Recorded: 2026-09-15 12:47
-- Found while: the same change, on `bin/unittests/sanity/self_borrow_move.swg`.
-- Evidence: `Swag.assert(target.cursor![] == 13)` records the non-null proof for the rest of the
-  block, but `Swag.Safety(.Assert, false)` and the `release` preset drop the whole assertion,
-  including the `!` inside its argument. The proof survives compilation; the runtime guard does
-  not. `Swag.assert(p != null)` has the same property and the reference documents it as the
-  precondition form, which is why it reads as deliberate there; a `!` inside an argument does not
-  read as a precondition at all.
-- Cost: no unsoundness in `release`, where every guard is already off. In `devmode` with an
-  explicit safety override, a path can be used unguarded because of an assertion that was
-  compiled out.
-- Next: decide whether a proof recorded inside an argument of a removable intrinsic should be
-  kept. Either record nothing from inside a `Swag.assert` argument, or state the rule in
-  `bin/reference/modules/language/src/004_007_pointers.swg` next to the existing `Swag.assert`
-  paragraph.
-- Complete when: the chosen rule is implemented or documented, with a case showing what
-  `Swag.Safety(.Assert, false)` does to the proof.
 
 ### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
 

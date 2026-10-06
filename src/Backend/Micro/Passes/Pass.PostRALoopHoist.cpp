@@ -834,7 +834,7 @@ namespace
     // Integer spill homes can use an otherwise unused caller-saved SIMD register
     // even when the GP register changes roles between accesses. Keeping every
     // read and write coherent also handles branch arms and distinct loop exits.
-    bool cacheCarriedSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop)
+    bool cachePrivateSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop)
     {
         if (context.spillAreaLo >= context.spillAreaHi)
             return false;
@@ -843,7 +843,30 @@ namespace
         auto&           operands = *context.operands;
         const auto      refs     = cfg.instructionRefs();
 
-        uint64_t unavailable = 0;
+        SmallVector<uint32_t, 4>      entries;
+        SmallVector<MicroInstrRef, 4> seeds;
+        for (const uint32_t predecessor : cfg.predecessors(loop.header))
+        {
+            if (predecessor >= refs.size())
+                return false;
+            if (loop.inBody[predecessor])
+                continue;
+            const MicroInstr* inst = storage.ptr(refs[predecessor]);
+            if (!inst)
+                return false;
+            if (inst->op == MicroInstrOpcode::JumpCond)
+                seeds.push_back(refs[predecessor]);
+            else if (predecessor + 1 == loop.header)
+                seeds.push_back(refs[loop.header]);
+            else
+                return false;
+            entries.push_back(predecessor);
+        }
+        if (entries.empty())
+            return false;
+
+        SmallVector<uint32_t, 4> calls;
+        uint64_t                 unavailable = 0;
         for (uint32_t index = 0; index < refs.size(); ++index)
         {
             if (!loop.inBody[index])
@@ -853,15 +876,45 @@ namespace
                 if (reg.isFloat())
                     unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
             for (const MicroReg reg : useDef.defs)
-                if (reg.isFloat())
+                if (reg.isFloat() && (!useDef.isCall || liveness.isLiveOut(index, reg)))
                     unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
+            if (useDef.isCall)
+                calls.push_back(index);
         }
         SmallVector<MicroReg, 6> available;
         for (const MicroReg reg : conv.floatTransientRegs)
-            if (!(unavailable & (1ull << MicroPhysLiveness::bitOf(reg))) && !liveness.isLiveOut(loop.header - 1, reg))
+            if (!(unavailable & (1ull << MicroPhysLiveness::bitOf(reg))) &&
+                std::ranges::none_of(entries, [&](const uint32_t entry) { return liveness.isLiveOut(entry, reg); }))
                 available.push_back(reg);
         if (available.empty())
             return false;
+
+        // Only a loop with a call-free route back to its header can avoid a
+        // reload on some trips. Calls on every trip would merely move the load.
+        if (!calls.empty())
+        {
+            std::vector<uint8_t>  visited(refs.size(), 0);
+            SmallVector<uint32_t> pending;
+            pending.push_back(loop.header);
+            bool callFreeTrip = false;
+            while (!pending.empty() && !callFreeTrip)
+            {
+                const uint32_t index = pending.back();
+                pending.pop_back();
+                if (visited[index] || liveness.useDefs[index].isCall)
+                    continue;
+                visited[index] = 1;
+                for (const uint32_t successor : cfg.successors(index))
+                {
+                    if (successor == loop.header)
+                        callFreeTrip = true;
+                    else if (successor < refs.size() && loop.inBody[successor] && !visited[successor])
+                        pending.push_back(successor);
+                }
+            }
+            if (!callFreeTrip)
+                return false;
+        }
 
         struct Slot
         {
@@ -877,7 +930,7 @@ namespace
             if (!loop.inBody[index])
                 continue;
             const auto& useDef = liveness.useDefs[index];
-            if (useDef.isCall || std::ranges::find(useDef.defs, conv.stackPointer) != useDef.defs.end())
+            if (std::ranges::find(useDef.defs, conv.stackPointer) != useDef.defs.end())
                 return false;
             const MicroInstr* inst = storage.ptr(refs[index]);
             const auto*       ops  = inst ? inst->ops(operands) : nullptr;
@@ -926,11 +979,12 @@ namespace
         if (exits.empty())
             return false;
         SmallVector<MicroInstrRef, 4> writeBacks;
+        bool                          exclusiveExits = true;
         for (const uint32_t exit : exits)
         {
             for (const uint32_t predecessor : cfg.predecessors(exit))
                 if (predecessor >= refs.size() || !loop.inBody[predecessor])
-                    return false;
+                    exclusiveExits = false;
             MicroInstrRef     before = refs[exit];
             const MicroInstr* inst   = storage.ptr(before);
             if (!inst)
@@ -952,7 +1006,7 @@ namespace
                 break;
             // A write-only home is observable after the loop, so it benefits
             // too: the last bank transfer replaces repeated spill stores.
-            if (!slot.eligible || !slot.writes ||
+            if (!slot.eligible || (slot.writes && (!calls.empty() || !exclusiveExits)) ||
                 slot.range.lo < context.spillAreaLo || slot.range.hi > context.spillAreaHi || slot.range.hi < slot.range.lo)
                 continue;
             bool overlap = false;
@@ -962,20 +1016,38 @@ namespace
             if (overlap)
                 continue;
 
-            const MicroReg    cached  = available[selected++];
+            const MicroReg cached       = available[selected];
+            const auto     needsRestore = [&](const uint32_t call) {
+                return call + 1 < refs.size() && loop.inBody[call + 1] &&
+                       std::ranges::find(liveness.useDefs[call].defs, cached) != liveness.useDefs[call].defs.end();
+            };
+            // A called loop must reuse the home enough to repay its explicit
+            // entry/restore reads. Otherwise the cold arms grow memory traffic.
+            if (!calls.empty() && slot.accesses.size() <= seeds.size() + std::ranges::count_if(calls, needsRestore))
+                continue;
+            ++selected;
             MicroInstrOperand seed[4] = {};
             seed[0].reg               = cached;
             seed[1].reg               = conv.stackPointer;
             seed[2].opBits            = MicroOpBits::B64;
             seed[3].valueU64          = slot.range.lo;
-            storage.insertDerivedBefore(operands, refs[loop.header], MicroInstrOpcode::LoadRegMem, seed);
+            for (const MicroInstrRef before : seeds)
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadRegMem, seed);
+            // Read-only private homes cannot be changed by a callee. Restore
+            // only clobbered caches, on the call's fallthrough edge inside the loop.
+            for (const uint32_t call : calls)
+            {
+                if (needsRestore(call))
+                    storage.insertDerivedBefore(operands, refs[call + 1], MicroInstrOpcode::LoadRegMem, seed);
+            }
             MicroInstrOperand write[4] = {};
             write[0].reg               = conv.stackPointer;
             write[1].reg               = cached;
             write[2].opBits            = MicroOpBits::B64;
             write[3].valueU64          = slot.range.lo;
-            for (const MicroInstrRef before : writeBacks)
-                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadMemReg, write);
+            if (slot.writes)
+                for (const MicroInstrRef before : writeBacks)
+                    storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadMemReg, write);
             for (const MicroInstrRef ref : slot.accesses)
             {
                 MicroInstr* inst = storage.ptr(ref);
@@ -1072,9 +1144,8 @@ namespace
                 continue;
             loops.push_back(&loop);
         }
-        if (loops.empty())
+        if (loops.empty() && context.spillAreaLo >= context.spillAreaHi)
             return false;
-
         if (!framePrivacy.computed)
             analyzeFrameReachability(framePrivacy, context, storage, operands, conv);
         const FrameReachability& reach        = framePrivacy;
@@ -1358,8 +1429,14 @@ namespace
         {
             // Use the remaining register bank only after ordinary promotion has
             // exhausted its opportunities. Mutate one loop, then refresh liveness.
-            for (const NaturalLoop* loop : loops)
-                if (cacheCarriedSpills(context, cfg, liveness, *loop))
+            SmallVector<const NaturalLoop*, 4> cacheLoops;
+            for (const auto& loop : loopsByHeader | std::views::values)
+                cacheLoops.push_back(&loop);
+            std::stable_sort(cacheLoops.begin(), cacheLoops.end(), [](const NaturalLoop* a, const NaturalLoop* b) {
+                return a->bodySize != b->bodySize ? a->bodySize < b->bodySize : a->header < b->header;
+            });
+            for (const NaturalLoop* loop : cacheLoops)
+                if (cachePrivateSpills(context, cfg, liveness, *loop))
                     return true;
             return false;
         }

@@ -1,4 +1,4 @@
-# Output-only multiplication claims: not retained
+# Output-only multiplication claims: structural improvement
 
 The candidate gives `OpBinaryRegReg` and `OpBinaryRegMem` the existing
 `RegisterDefsAtOutput` flag. A definition-only RDX claim then starts at MUL's output
@@ -29,9 +29,13 @@ including rejected ones, executable/compiler hashes and commands are retained in
 | dijkstra | -1.14% | -2.68% |
 | fannkuch | +5.16% | -2.55% |
 
-No target gain was established, and fannkuch gives an adverse signal. No second
-window was spent confirming a candidate without a target gain. The experiment is
-reverted; the fannkuch result is not claimed as an independently confirmed regression.
-A follow-up must identify a hot allocation constraint and its enabling change before
-repeating this broad flag adjustment. These samples are not a full campaign and do
-not update benchmark history.
+No target runtime gain was established, and fannkuch gives an adverse signal.
+No second window was spent attributing that signal. The user explicitly accepts a
+proven structural optimization without a measurable speedup on this shared machine.
+The change is therefore retained for its shorter fixed-register claim and reduced
+register pressure, not as a timed win. The observed fannkuch/layout interaction
+remains a separate investigation; correctness tests do not explain timing differences.
+
+The permanent Release regression covers signed and unsigned constant quotients,
+32/64-bit boundaries and operands retained across two multiply-high sequences.
+These samples are not a full campaign and do not update benchmark history.

@@ -9,7 +9,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.039 — One module analysis resolves four and a half million substitutions
 
 - Recorded: 2026-09-09 17:44
-- Updated: 2026-10-06 08:06 - Removed repeated code-generation queries at their callers.
+- Updated: 2026-10-06 08:06 — Removed repeated code-generation queries at their callers.
 
 **Evidence.** Instrumented on 2026-09-09 (Release 0.1.426): analyzing one snippet module that imports `core` — 52 files, 155 000 tokens — enters `NodePayload::followSubstituteChain` **4 554 160 times**, walking 9 121 151 links. The same walk over a 22 800-line file with no import enters it 269 675 times. A chain is short: two links on average, three at most, so the traffic is not depth but the sheer number of times the pass asks what a node now stands for. A profile of that analysis puts the walk at 2.8 % of the compiler's own code and `SemaNodeView::computeInner`, which begins with that question, at 3.2 %.
 

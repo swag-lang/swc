@@ -250,14 +250,11 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
     for (const MicroReg reg : freeFloatPersistent_)
         admit(reg);
 
-    // A claim starts at the output slot only where the definition is a
-    // plain write: a copy or a load into the register, or a call's clobber.
-    // An arithmetic form that names the register implicitly (a multiply
-    // through rax:rdx, a shift by cl, a compare-exchange) reads it or
-    // forbids its other operands from it, and the encoder's legalization
-    // of the physical form pays a save and restore around it when an
-    // operand landed there - so those keep the whole instruction.
-    const auto isPlainDefinition = [&](const uint32_t idx) {
+    // A definition-only claim starts when the result is produced. This includes
+    // MUL's RDX output: its dying source may occupy RDX at the input slot. RAX,
+    // division's RDX and shift counts still read their fixed register and keep
+    // their full claim. Liveness likewise keeps every carried value protected.
+    const auto definesAtOutput = [&](const uint32_t idx) {
         const MicroInstr* inst = instructions_->ptr(controlFlowGraph_->instructionRefs()[idx]);
         return inst && MicroInstrInfo::registerDefsAtOutput(*inst);
     };
@@ -290,7 +287,7 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
             const bool usedHere    = std::ranges::find(useConcreteIndices_[idx], denseConcrete) != useConcreteIndices_[idx].end();
             const bool definedHere = std::ranges::find(defConcreteIndices_[idx], denseConcrete) != defConcreteIndices_[idx].end();
             const bool liveInHere  = (liveInConcreteBits_[static_cast<size_t>(idx) * concreteWordCount + wordIndex] & bitMask) != 0;
-            const bool definedOnly = definedHere && !usedHere && !liveInHere && isPlainDefinition(idx);
+            const bool definedOnly = definedHere && !usedHere && !liveInHere && definesAtOutput(idx);
 
             // A call the straight-line path steps over clobbers nothing the hot path has to
             // give up. A value may keep its caller-saved register across it and be parked in

@@ -87,7 +87,7 @@ new language syntax.
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
-- Updated: 2026-10-06 08:18 — reject output-only MUL claims without an established runtime gain.
+- Updated: 2026-10-06 08:27 — retain position-precise MUL outputs on structural evidence.
 - Area: compiler/backend
 - State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
@@ -104,15 +104,19 @@ new language syntax.
   instruction, so no operand of theirs can share it, and the second legalization sweep can
   then need the scratch register `tryBorrowReservedRegister` only lends when the first sweep
   left one free.
-- Oct 6 experiment: allow definition-only RDX claims at the output of register/register
-  and register/memory binary instructions. Dying multipliers then occupy RDX; the 275
-  native Release optimizer tests pass. A focused four-task Release A/B established no
-  target gain and produced an adverse fannkuch signal. The flag change was reverted.
-  Retain the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
-  Do not repeat it without a demonstrated hot allocation constraint and an enabling change.
-- Next: give those forms their real fixed intervals - the implicit register from its input
-  slot, the operands free elsewhere - then check on a whole-library build whether the borrow
-  still fires at all.
+- Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
+  and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
+  R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
+  The Release optimizer regressions pass, including signed/unsigned boundary quotients and
+  inputs retained across multiply-high sequences. This is a structural register-pressure gain.
+  The user explicitly accepts such proof without a measurable runtime improvement.
+- Runtime evidence: the focused four-task Release A/B established no target gain and produced
+  an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
+  Investigate that allocation/layout interaction separately; it is not an independently
+  confirmed regression, and no runtime gain is claimed for the retained rule.
+- Next: audit the remaining shift and compare-exchange constraints, then address the
+  legalization reserve in compiler.optimization.035. Preserve the resolved multiply output
+  rule and diagnose remaining borrow sites on a whole-library build.
 - Complete when: the three forms carry position-precise fixed intervals, the borrow path no
   longer fires on a whole-library build, and the suites stay green.
 - Related: compiler.optimization.016.

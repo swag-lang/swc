@@ -654,12 +654,9 @@ bool SemaHelpers::needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeR
     if (!typeRef.isValid())
         return false;
 
-    const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-    if (typeInfo.isAlias())
-        return needsPersistentCompilerRunReturn(ctx, typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias));
-
-    if (typeInfo.isEnum())
-        return needsPersistentCompilerRunReturn(ctx, typeInfo.unwrap(ctx, typeRef, TypeExpandE::Enum));
+    const TypeInfo& declaredType  = ctx.typeMgr().get(typeRef);
+    const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
+    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
 
     if (typeInfo.isString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface() || typeInfo.isCString())
         return true;

@@ -2954,7 +2954,9 @@ namespace
         if (argRef.isInvalid() || !isExplicitMoveArgumentNode(sema, argRef))
             return false;
 
-        const TypeInfo& paramType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTypeRef));
+        const TypeInfo& declaredType  = sema.typeMgr().get(paramTypeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& paramType     = unwrappedType ? *unwrappedType : declaredType;
         return !paramType.isMoveReference() && (paramType.isStruct() || paramType.isArray());
     }
 
@@ -3042,7 +3044,9 @@ namespace
             if (resolvedArg.bindsReferenceToValue)
             {
                 SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
-                const TypeInfo& parameterType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, selectedFn.parameters()[i]->typeRef()));
+                const TypeInfo& declaredType  = selectedFn.parameters()[i]->type(sema.ctx());
+                const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+                const TypeInfo& parameterType = unwrappedType ? *unwrappedType : declaredType;
                 if (parameterType.isMoveReference())
                 {
                     // Binding an ordinary value to a move reference creates an owned

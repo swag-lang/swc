@@ -4379,8 +4379,8 @@ namespace
             return false;
         };
 
-        MicroInstrRef                        defRef = MicroInstrRef::invalid();
-        std::vector<MicroInstrRegOperandRef> uses;
+        MicroInstrRef          defRef = MicroInstrRef::invalid();
+        std::vector<MicroReg*> uses;
         for (size_t index = 0; index < refs.size(); ++index)
         {
             MicroInstr* inst = storage.ptr(refs[index]);
@@ -4410,17 +4410,18 @@ namespace
             if (!defRef.isValid())
                 return false;
 
-            MicroInstrRegOperandRefs regs;
-            inst->collectRegOperands(operands, regs, context.encoder);
-            size_t explicitUses = 0;
-            for (const MicroInstrRegOperandRef& reg : regs)
+            MicroInstrOperand* ops = inst->ops(operands);
+            if (!ops)
+                return false;
+            const auto modes        = MicroInstr::info(inst->op).resolvedRegModes(ops);
+            size_t     explicitUses = 0;
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                SWC_ASSERT(reg.reg);
-                if (*reg.reg != base)
+                if (modes[i] == MicroInstrRegMode::None || ops[i].reg != base)
                     continue;
-                if (reg.def)
+                if (modes[i] != MicroInstrRegMode::Use)
                     return false;
-                uses.push_back(reg);
+                uses.push_back(&ops[i].reg);
                 ++explicitUses;
             }
             if (explicitUses != static_cast<size_t>(std::ranges::count(useDef.uses, base)))
@@ -4428,15 +4429,14 @@ namespace
 
             // The stack pointer cannot be the index of an indexed address.
             MicroPassHelpers::AmcLayout layout;
-            const auto*                 ops = inst->ops(operands);
-            if (MicroPassHelpers::amcLayoutFor(layout, inst->op) && ops && ops[layout.indexIdx].reg == base)
+            if (MicroPassHelpers::amcLayoutFor(layout, inst->op) && ops[layout.indexIdx].reg == base)
                 return false;
         }
         if (!defRef.isValid())
             return false;
 
-        for (const MicroInstrRegOperandRef& use : uses)
-            *use.reg = stack;
+        for (MicroReg* use : uses)
+            *use = stack;
         storage.erase(defRef);
         context.debugStackBaseVirtualReg = MicroReg::invalid();
         context.localStackBaseFolded     = true;

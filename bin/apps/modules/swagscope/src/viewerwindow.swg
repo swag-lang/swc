@@ -706,13 +706,9 @@ impl ViewerWindow
             .fullScreenBottomVisible     = false
             .applyLayout()
 
-            // One geometry transaction, not a restore followed by a placement: the second
-            // publishes the restored bounds to the compositor before the full-screen ones.
-            let screen = Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds
-            if .fullScreenWasMaximized do
-                srfn.showNormalAt(screen)
-            else do
-                srfn.setPosition(screen)
+            // One geometry transaction that shows the full-screen frame before the window grows,
+            // as a maximize does, from a maximized window as well as from a regular one.
+            srfn.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
         }
         else
         {
@@ -738,11 +734,12 @@ impl ViewerWindow
             .applyLayout()
 
             // Going straight back to the maximized state keeps the window out of its restored
-            // bounds, which would otherwise be shown for one transaction on the way.
+            // bounds, which would otherwise be shown for one transaction on the way. Both paths
+            // show the restored frame before the window shrinks.
             if .fullScreenWasMaximized do
                 srfn.showMaximized(.fullScreenRestorePosition)
             else do
-                srfn.setPosition(.fullScreenRestorePosition)
+                srfn.showNormalAt(.fullScreenRestorePosition)
         }
 
         srfn.invalidate()

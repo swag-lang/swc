@@ -56,6 +56,33 @@ using Core, Win32, Ogl
     Swag.assert(not surface.preparedFrame and not surface.isDirty)
 }
 
+// Placing a window at explicit bounds is a discrete placement too, from a regular window and from
+// a maximized one, and it leaves the window visible at exactly those bounds.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    var app: Application
+    let surface = (expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-normal-at-placement-test"))!
+    surface.show()
+
+    for fromMaximized in [false, true]
+    {
+        if fromMaximized do
+            surface.showMaximized()
+        let target = Math.Rectangle{60, 50, 700, 460}
+        surface.showNormalAt(target)
+
+        var client: RECT
+        Swag.assert(GetClientRect(surface.win32Handle(), &client))
+        let style = cast(u32) GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE)
+        Swag.assert(not surface.isMaximized and not (style & WS_MAXIMIZE))
+        Swag.assert(IsWindowVisible(surface.win32Handle()))
+        Swag.assert(surface.position == target)
+        Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
+        Swag.assert(not surface.preparedFrame and not surface.isDirty)
+    }
+}
+
 // A taskbar restore must return a minimized maximized window to its maximized bounds.
 // Restoring a minimized normal window must still return it to its normal bounds.
 #[Swag.TestTag("integration.host.windows")]

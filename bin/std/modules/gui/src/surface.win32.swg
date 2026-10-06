@@ -1156,9 +1156,14 @@ impl Surface
     // compositor shows the window at its restored bounds in between. Entering full screen from a
     // maximized window is the case that exists, and that intermediate picture is what it looked
     // like. `pos` is in physical screen pixels and becomes the bounds a later restore uses.
+    //
+    // A visible window moves the way a maximize does: the frame for the new bounds is painted
+    // and shown before the window changes size, so the compositor never stretches or crops the
+    // previous picture to the new rectangle.
     mtd showNormalAt(pos: Math.Rectangle)
     {
-        let clampPos = .clampToSizeLimits(pos)
+        let clampPos     = .clampToSizeLimits(pos)
+        let wasMinimized = .isMinimized
         .isMaximized = false
         .isMinimized = false
         .position    = clampPos
@@ -1177,6 +1182,8 @@ impl Surface
         defer .inAppPlacement = false
         .inDiscretePlacement = true
         defer .finishDiscretePlacement()
+        if not wasMinimized and not .isHidden and .showDiscretePlacement(cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.width, cast(s32) clampPos.height, false) do
+            return
 
         with var placement: WINDOWPLACEMENT
         {

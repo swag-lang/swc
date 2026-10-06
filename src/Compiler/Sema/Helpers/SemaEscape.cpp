@@ -3437,8 +3437,7 @@ namespace
         if (!calledFn.isMethod() || calledFn.isConst())
             return false;
 
-        const Utf8             calleeName = calledFn.name(sema.ctx());
-        const std::string_view view{calleeName};
+        const std::string_view view = calledFn.name(sema.ctx());
         return view != "opPostCopy" && view != "opPostMove" && view != "opDrop" && view != "opVisit";
     }
 
@@ -3482,21 +3481,19 @@ namespace
     // from `.right.reserve()` inside one receiver.
     bool mutatedReceiverProjection(Sema& sema, AstNodeRef callRef, SemaEscapeProjection& outProjection)
     {
-        SmallVector<ResolvedCallArgument> args;
-        sema.appendResolvedCallArguments(callRef, args);
-
-        AstNodeRef receiverRef = AstNodeRef::invalid();
-        for (const ResolvedCallArgument& arg : args)
-        {
-            if (arg.passKind == CallArgumentPassKind::InterfaceObject)
-                continue;
-            receiverRef = argumentValueRef(sema, arg.argRef);
-            break;
-        }
-
         AstNodeRef projectedRef = syntacticMethodReceiverRef(sema, callRef);
         if (projectedRef.isInvalid())
-            projectedRef = receiverRef;
+        {
+            SmallVector<ResolvedCallArgument> args;
+            sema.appendResolvedCallArguments(callRef, args);
+            for (const ResolvedCallArgument& arg : args)
+            {
+                if (arg.passKind == CallArgumentPassKind::InterfaceObject)
+                    continue;
+                projectedRef = argumentValueRef(sema, arg.argRef);
+                break;
+            }
+        }
         if (projectedRef.isInvalid())
             return false;
 
@@ -5244,8 +5241,7 @@ namespace SemaEscape
         if (activeBorrows.empty())
             return Result::Continue;
 
-        const Utf8             calleeName = calledFn.name(sema.ctx());
-        const std::string_view calleeView{calleeName};
+        const std::string_view calleeView = calledFn.name(sema.ctx());
         if (calleeView.starts_with("op"))
             return Result::Continue;
 
@@ -5314,7 +5310,7 @@ namespace SemaEscape
 
             auto diag = SemaError::report(sema, DiagnosticId::sanity_err_collection_mutated, callRef);
             diag.addArgument(Diagnostic::ARG_SYM, receiverProj.root->name(sema.ctx()));
-            diag.addArgument(Diagnostic::ARG_VALUE, calleeName);
+            diag.addArgument(Diagnostic::ARG_VALUE, calleeView);
             if (borrow.sourceRef.isValid())
             {
                 diag.addNote(DiagnosticId::sema_note_iteration_source_here);

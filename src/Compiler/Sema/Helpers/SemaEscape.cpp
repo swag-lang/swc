@@ -5571,14 +5571,14 @@ namespace SemaEscape
                         bool                payload   = edge.viaOwnedPayload;
                         for (const SemaEscapeDeferredGuard& guard : edge.returnGuards)
                         {
-                            const ReturnSummary source = returns.at(guard.callee);
-                            const uint64_t      bit    = 1ULL << guard.paramIndex;
                             if (guard.indirect)
                             {
                                 borrows = false;
                                 storage = false;
                                 continue;
                             }
+                            const ReturnSummary source = returns.at(guard.callee);
+                            const uint64_t      bit    = 1ULL << guard.paramIndex;
                             borrows &= (source.borrows & bit) != 0;
                             storage &= (source.storage & bit) != 0;
                             payload |= (source.payload & bit) != 0;

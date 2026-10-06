@@ -40,16 +40,12 @@ namespace
         return typeRef;
     }
 
-    bool intrinsicInitTypeUsesFloatPayload(CodeGen& codeGen, TypeRef typeRef)
+    bool intrinsicInitTypeUsesFloatPayload(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (!typeInfo.isAlias() && !typeInfo.isEnum())
             return typeInfo.isFloat();
-        const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
-        return storageTypeRef == typeRef ? typeInfo.isFloat() : codeGen.typeMgr().get(storageTypeRef).isFloat();
+        const TypeInfo* storageType = typeInfo.unwrapAliasEnumType(codeGen.ctx());
+        return storageType ? storageType->isFloat() : typeInfo.isFloat();
     }
 
     TypeRef normalizeIntrinsicInitTypeRef(CodeGen& codeGen, TypeRef typeRef)
@@ -168,11 +164,11 @@ namespace
         return result;
     }
 
-    Result emitIntrinsicInitStore(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg)
+    Result emitIntrinsicInitStore(CodeGen& codeGen, const TypeInfo& fillType, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg)
     {
-        TaskContext&    ctx       = codeGen.ctx();
-        const TypeInfo& fillType  = codeGen.typeMgr().get(fillTypeRef);
-        const auto      storeBits = CodeGenTypeHelpers::scalarStoreBits(fillType, ctx);
+        TaskContext&  ctx         = codeGen.ctx();
+        const TypeRef fillTypeRef = fillType.typeRef();
+        const auto    storeBits   = CodeGenTypeHelpers::scalarStoreBits(fillType, ctx);
         if (storeBits != MicroOpBits::Zero)
         {
             MicroBuilder& builder = codeGen.builder();
@@ -214,7 +210,7 @@ namespace
         {
             SWC_ASSERT(fields[i] != nullptr);
             const MicroReg fieldAddressReg = fields[i]->offset() ? codeGen.offsetAddressReg(storageReg, fields[i]->offset()) : storageReg;
-            SWC_RESULT(emitIntrinsicInitStore(codeGen, fields[i]->typeRef(), codeGen.payload(args[i]), fieldAddressReg));
+            SWC_RESULT(emitIntrinsicInitStore(codeGen, codeGen.typeMgr().get(fields[i]->typeRef()), codeGen.payload(args[i]), fieldAddressReg));
         }
 
         SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, fillTypeRef, storageReg));
@@ -241,28 +237,28 @@ namespace
         return true;
     }
 
-    Result emitIntrinsicInitRepeatRuntime(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg, MicroReg countReg);
+    Result emitIntrinsicInitRepeatRuntime(CodeGen& codeGen, const TypeInfo& fillType, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg, MicroReg countReg);
 
     Result emitIntrinsicInitRepeatConst(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg, uint32_t count)
     {
         if (!count)
             return Result::Continue;
-        if (count == 1)
-            return emitIntrinsicInitStore(codeGen, fillTypeRef, srcPayload, dstAddressReg);
-
         const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
+        if (count == 1)
+            return emitIntrinsicInitStore(codeGen, fillType, srcPayload, dstAddressReg);
+
         if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), fillType))
         {
             const MicroReg countReg = codeGen.nextVirtualIntRegister();
             codeGen.builder().emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
-            return emitIntrinsicInitRepeatRuntime(codeGen, fillTypeRef, srcPayload, dstAddressReg, countReg);
+            return emitIntrinsicInitRepeatRuntime(codeGen, fillType, srcPayload, dstAddressReg, countReg);
         }
 
         const uint64_t sizeOf = fillType.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
 
         const auto storeBits = CodeGenTypeHelpers::scalarStoreBits(fillType, codeGen.ctx());
-        if (storeBits != MicroOpBits::Zero && !intrinsicInitTypeUsesFloatPayload(codeGen, fillTypeRef))
+        if (storeBits != MicroOpBits::Zero && !intrinsicInitTypeUsesFloatPayload(codeGen, fillType))
         {
             MicroReg fillReg = srcPayload.reg;
             if (srcPayload.isAddress())
@@ -285,7 +281,7 @@ namespace
         codeGen.builder().emitLoadRegReg(cursorReg, dstAddressReg, MicroOpBits::B64);
         for (uint32_t i = 0; i < count; ++i)
         {
-            SWC_RESULT(emitIntrinsicInitStore(codeGen, fillTypeRef, srcPayload, cursorReg));
+            SWC_RESULT(emitIntrinsicInitStore(codeGen, fillType, srcPayload, cursorReg));
             if (i + 1 != count)
                 codeGen.builder().emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
         }
@@ -293,10 +289,9 @@ namespace
         return Result::Continue;
     }
 
-    Result emitIntrinsicInitRepeatRuntime(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg, MicroReg countReg)
+    Result emitIntrinsicInitRepeatRuntime(CodeGen& codeGen, const TypeInfo& fillType, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg, MicroReg countReg)
     {
-        const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
-        const uint64_t  sizeOf   = fillType.sizeOf(codeGen.ctx());
+        const uint64_t sizeOf = fillType.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOf > 0);
 
         MicroBuilder&       builder   = codeGen.builder();
@@ -311,7 +306,7 @@ namespace
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
 
         builder.placeLabel(loopLabel);
-        SWC_RESULT(emitIntrinsicInitStore(codeGen, fillTypeRef, srcPayload, cursorReg));
+        SWC_RESULT(emitIntrinsicInitStore(codeGen, fillType, srcPayload, cursorReg));
         builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
@@ -371,7 +366,7 @@ namespace
         if (node.nodeCountRef.isValid())
         {
             const MicroReg countReg = materializeIntrinsicLifecycleCountReg(codeGen, node.nodeCountRef);
-            return emitIntrinsicInitRepeatRuntime(codeGen, targetInfo.fillTypeRef, srcPayload, dstAddressReg, countReg);
+            return emitIntrinsicInitRepeatRuntime(codeGen, codeGen.typeMgr().get(targetInfo.fillTypeRef), srcPayload, dstAddressReg, countReg);
         }
 
         return emitIntrinsicInitRepeatConst(codeGen, targetInfo.fillTypeRef, srcPayload, dstAddressReg, targetInfo.implicitCount);

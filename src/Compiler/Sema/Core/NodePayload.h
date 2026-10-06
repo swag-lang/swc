@@ -182,6 +182,8 @@ protected:
     void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     // Copy an existing argument under the shard lock; no view escapes payload replacement.
     ResolvedCallArgument  getResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const;
+    // Missing payloads and out-of-range indices yield no argument.
+    std::optional<ResolvedCallArgument> tryGetResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const;
     bool                  hasLoweringPayload(AstNodeRef nodeRef) const;
     void                  setLoweringPayload(AstNodeRef nodeRef, void* payload);
     void*                 getLoweringPayload(AstNodeRef nodeRef) const;

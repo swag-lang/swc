@@ -692,6 +692,21 @@ ResolvedCallArgument NodePayload::getResolvedCallArgument(AstNodeRef nodeRef, ui
     return it->second[index];
 }
 
+std::optional<ResolvedCallArgument> NodePayload::tryGetResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const
+{
+    if (nodeRef.isInvalid())
+        return std::nullopt;
+    const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
+    if (!shard || !shard->resolvedCallArgsCount.load(std::memory_order_acquire))
+        return std::nullopt;
+
+    const std::shared_lock lock(shard->resolvedCallArgsMutex);
+    const auto             it = shard->resolvedCallArgsByNode.find(nodeRef);
+    if (it == shard->resolvedCallArgsByNode.end() || index >= it->second.size())
+        return std::nullopt;
+    return it->second[index];
+}
+
 bool NodePayload::hasLoweringPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())

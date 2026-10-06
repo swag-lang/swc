@@ -338,6 +338,7 @@ namespace
     constexpr uint32_t K_STORAGE_WALK_BUDGET = 64;
 
     const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable, uint32_t depth);
+    bool                  typeHasBorrowableStorage(const TypeInfo& type);
     bool                  typeHasBorrowableStorage(Sema& sema, TypeRef typeRef);
 
     const SymbolVariable* storageRootVariable(Sema& sema, AstNodeRef nodeRef, bool forAssignment, bool& outWholeVariable, uint32_t depth = 0)
@@ -756,7 +757,10 @@ namespace
                 candidateTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), candidateVar->typeRef());
         }
 
-        if (!candidateTypeRef.isValid() || isDirectBorrowCarrier(sema, candidateTypeRef) || !typeHasBorrowableStorage(sema, candidateTypeRef))
+        if (!candidateTypeRef.isValid())
+            return {};
+        const TypeInfo& candidateType = unwrapAliasEnumType(sema, candidateTypeRef);
+        if (isDirectBorrowCarrier(candidateType) || !typeHasBorrowableStorage(candidateType))
             return {};
 
         return storageBorrowInfo(sema, candidateRef, targetTypeRef, true);
@@ -885,6 +889,11 @@ namespace
     // owner drops, and for a LOCAL owner the drop coincides with scope death - rooting a
     // view at the owner variable reports exactly the escapes that dangle. Parameter and
     // global owners yield Parameter/Static kinds and stay silent locally.
+    bool typeHasBorrowableStorage(const TypeInfo& type)
+    {
+        return type.isArray() || type.isAggregate() || type.isStruct();
+    }
+
     bool typeHasBorrowableStorage(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -892,14 +901,16 @@ namespace
 
         const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-        return type.isArray() || type.isAggregate() || type.isStruct();
+        return typeHasBorrowableStorage(unwrappedType ? *unwrappedType : declaredType);
     }
 
     bool expressionMayExposeStorageBorrow(Sema& sema, AstNodeRef exprRef)
     {
         const TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, exprRef));
-        return typeRef.isValid() && !isDirectBorrowCarrier(sema, typeRef) && typeHasBorrowableStorage(sema, typeRef);
+        if (typeRef.isInvalid())
+            return false;
+        const TypeInfo& type = unwrapAliasEnumType(sema, typeRef);
+        return !isDirectBorrowCarrier(type) && typeHasBorrowableStorage(type);
     }
 
     const TypeInfo* structuralBorrowCarrierType(Sema& sema, TypeRef typeRef)
@@ -1105,17 +1116,16 @@ namespace
         // 'self' argument loops back here, so analyze the stored operand instead.
         if (castOperandSelfSubstituted(sema, castRef, operandRef))
         {
-            const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, operandRef));
+            const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef());
             if (!operandTypeRef.isValid() || isDirectBorrowCarrier(sema, operandTypeRef) || !typeHasBorrowableStorage(sema, operandTypeRef))
                 return {};
 
             return storageBorrowInfo(sema, operandRef, resultTypeRef, true);
         }
 
-        SmallVector<ResolvedCallArgument> args;
-        sema.appendResolvedCallArguments(castRef, args);
-        if (!args.empty() && args.front().argRef.isValid())
-            return borrowInfoFromCallArgument(sema, args.front(), resultTypeRef, budget);
+        const auto arg = sema.tryGetResolvedCallArgument(castRef, 0);
+        if (arg && arg->argRef.isValid())
+            return borrowInfoFromCallArgument(sema, *arg, resultTypeRef, budget);
 
         if (expressionMayExposeStorageBorrow(sema, operandRef))
             return storageBorrowInfo(sema, operandRef, resultTypeRef);
@@ -2870,7 +2880,7 @@ namespace
                 // literal shapes the raw switch above handles directly.
                 if (castOperandSelfSubstituted(sema, resolvedRef, castNode.nodeExprRef))
                 {
-                    const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, resolvedRef, castNode.nodeExprRef));
+                    const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), sema.viewStored(castNode.nodeExprRef, SemaNodeViewPartE::Type).typeRef());
                     if (isDirectBorrowCarrier(sema, targetTypeRef) &&
                         operandTypeRef.isValid() &&
                         !isDirectBorrowCarrier(sema, operandTypeRef) &&

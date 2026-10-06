@@ -269,13 +269,9 @@ namespace
         // type so aliases/enums preserve their source-level identity in constants.
         if (!enumType->isEnum() && exprType.isAlias())
         {
-            const TypeRef unwrappedTypeRef = exprType.unwrap(ctx, exprTypeRef, TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
-            {
-                const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
-                if (unwrappedType.isEnum())
-                    enumType = &unwrappedType;
-            }
+            const TypeInfo* unwrappedType = exprType.unwrapAliasType(ctx);
+            if (unwrappedType && unwrappedType->isEnum())
+                enumType = unwrappedType;
         }
 
         if (enumType->isEnum())

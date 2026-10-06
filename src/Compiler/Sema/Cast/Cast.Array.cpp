@@ -494,7 +494,8 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
     // A scalar filling every lane is a broadcast, not a conversion, and 'Swag.vecsplat' is
     // the operation that says so.
-    if (typeMgr.get(typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef)).isScalarNumeric())
+    const TypeInfo* unwrappedSrcType = srcType.unwrapAliasEnumType(sema.ctx());
+    if ((unwrappedSrcType ? *unwrappedSrcType : srcType).isScalarNumeric())
         return castRequest.fail(DiagnosticId::sema_err_simd_scalar_cast, srcTypeRef, dstTypeRef);
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

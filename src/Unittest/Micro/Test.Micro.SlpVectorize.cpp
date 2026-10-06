@@ -1070,16 +1070,21 @@ SWC_TEST_BEGIN(SlpVectorize_IndexedReadModifyWriteProofs)
         builder.emitLoadRegReg(other, MicroReg::intReg(9), MicroOpBits::B64);
         for (uint32_t lane = 0; lane < 4; ++lane)
         {
-            auto& inst      = builder.addInstruction(MicroInstrOpcode::OpBinaryAmcMemReg, 8);
-            auto* ops       = inst.ops(builder.operands());
-            ops[0].reg      = base;
-            ops[1].reg      = index;
-            ops[2].reg      = mask;
-            ops[3].opBits   = MicroOpBits::B64;
-            ops[4].opBits   = MicroOpBits::B32;
-            ops[5].valueU64 = 4;
-            ops[6].valueU64 = lane * 4;
-            ops[7].microOp  = MicroOp::Xor;
+            // No emitter produces this read-modify-write form, so it is placed before an anchor
+            // instruction that is then removed, which appends it through the public storage API.
+            MicroInstrOperand ops[8] = {};
+            ops[0].reg               = base;
+            ops[1].reg               = index;
+            ops[2].reg               = mask;
+            ops[3].opBits            = MicroOpBits::B64;
+            ops[4].opBits            = MicroOpBits::B32;
+            ops[5].valueU64          = 4;
+            ops[6].valueU64          = lane * 4;
+            ops[7].microOp           = MicroOp::Xor;
+            builder.emitRet();
+            const MicroInstrRef anchor = builder.instructions().lastInstructionRef();
+            builder.instructions().insertDerivedBefore(builder.operands(), anchor, MicroInstrOpcode::OpBinaryAmcMemReg, ops);
+            builder.instructions().erase(anchor);
             if (variant == 1 && lane == 3)
                 builder.emitSetCondReg(MicroReg::intReg(0), MicroCond::Equal);
             if (variant == 2 && lane == 1)

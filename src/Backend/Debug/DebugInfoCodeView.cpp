@@ -788,6 +788,14 @@ namespace
         endRecord(bytes, endOffset);
     }
 
+    struct RecordBytesHash
+    {
+        using is_transparent = void;
+        size_t operator()(const std::string_view value) const noexcept { return std::hash<std::string_view>{}(value); }
+    };
+
+    using RecordIndexMap = std::unordered_map<std::string, uint32_t, RecordBytesHash, std::equal_to<>>;
+
     struct TypeTableBuilder
     {
         struct FieldDesc
@@ -808,50 +816,61 @@ namespace
             writeU32(bytes, K_CV_TYPE_SIGNATURE);
         }
 
+        // Closes the record started at 'recordOffset'. A record identical to one already emitted
+        // is dropped and answers with the earlier index, so equal types share one record however
+        // many type references or synthetic layouts lead to them.
+        uint32_t finishRecord(const uint32_t recordOffset)
+        {
+            endTypeRecord(bytes, recordOffset);
+            const std::string_view record{reinterpret_cast<const char*>(bytes.data()) + recordOffset, bytes.size() - recordOffset};
+            const auto             it = recordIndices.find(record);
+            if (it != recordIndices.end())
+            {
+                bytes.resize(recordOffset);
+                return it->second;
+            }
+
+            const uint32_t typeIndex = nextTypeIndex++;
+            recordIndices.emplace(std::string{record}, typeIndex);
+            return typeIndex;
+        }
+
         uint32_t appendArgList(const std::span<const uint32_t> arguments)
         {
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_ARGLIST);
             writeU32(bytes, static_cast<uint32_t>(arguments.size()));
             for (const uint32_t argType : arguments)
                 writeU32(bytes, argType);
-            endTypeRecord(bytes, recordOffset);
-            return typeIndex;
+            return finishRecord(recordOffset);
         }
 
         uint32_t appendProcedureType(const uint32_t returnType, const std::span<const uint32_t> arguments)
         {
             const uint32_t argListType  = appendArgList(arguments);
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_PROCEDURE);
             writeU32(bytes, returnType);
             bytes.pushBack(static_cast<std::byte>(K_CV_CALL_NEAR_C));
             bytes.pushBack(std::byte{0});
             writeU16(bytes, static_cast<uint16_t>(arguments.size()));
             writeU32(bytes, argListType);
-            endTypeRecord(bytes, recordOffset);
-            return typeIndex;
+            return finishRecord(recordOffset);
         }
 
         uint32_t appendFunctionId(const Utf8& functionName, const uint32_t procedureType)
         {
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_FUNC_ID);
             writeU32(bytes, 0);
             writeU32(bytes, procedureType);
             writeCString(bytes, functionName);
-            endTypeRecord(bytes, recordOffset);
-            return typeIndex;
+            return finishRecord(recordOffset);
         }
 
         uint32_t appendStringId(const Utf8& value)
         {
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_STRING_ID);
             writeU32(bytes, 0);
             writeCString(bytes, value);
-            endTypeRecord(bytes, recordOffset);
-            return typeIndex;
+            return finishRecord(recordOffset);
         }
 
         uint32_t appendModifierType(const uint32_t baseTypeIndex, const uint16_t modifiers)
@@ -861,11 +880,10 @@ namespace
             if (cacheIt != modifierTypes.end())
                 return cacheIt->second;
 
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_MODIFIER);
             writeU32(bytes, baseTypeIndex);
             writeU16(bytes, modifiers);
-            endTypeRecord(bytes, recordOffset);
+            const uint32_t typeIndex = finishRecord(recordOffset);
             modifierTypes.emplace(cacheKey, typeIndex);
             return typeIndex;
         }
@@ -876,11 +894,10 @@ namespace
             if (cacheIt != pointerTypes.end())
                 return cacheIt->second;
 
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_POINTER);
             writeU32(bytes, pointeeTypeIndex);
             writeU32(bytes, K_CV_PTR_ATTR_NEAR64);
-            endTypeRecord(bytes, recordOffset);
+            const uint32_t typeIndex = finishRecord(recordOffset);
             pointerTypes.emplace(pointeeTypeIndex, typeIndex);
             return typeIndex;
         }
@@ -892,13 +909,12 @@ namespace
             if (cacheIt != arrayTypes.end())
                 return cacheIt->second;
 
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_ARRAY);
             writeU32(bytes, elementTypeIndex);
             writeU32(bytes, K_T_UINT8);
             writeEncodedUnsigned(bytes, sizeOf);
             writeCString(bytes, {});
-            endTypeRecord(bytes, recordOffset);
+            const uint32_t typeIndex = finishRecord(recordOffset);
             arrayTypes.emplace(cacheKey, typeIndex);
             return typeIndex;
         }
@@ -937,7 +953,6 @@ namespace
         // record via a trailing LF_INDEX leaf (0 means no continuation). Returns its type index.
         uint32_t appendFieldListChunk(const std::span<const FieldDesc> fields, const uint32_t continuationTypeIndex)
         {
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_FIELDLIST);
             appendFieldListMembers(fields);
             if (continuationTypeIndex != 0)
@@ -947,8 +962,7 @@ namespace
                 writeU32(bytes, continuationTypeIndex);
             }
 
-            endTypeRecord(bytes, recordOffset);
-            return typeIndex;
+            return finishRecord(recordOffset);
         }
 
         uint32_t appendFieldList(const std::span<const FieldDesc> fields)
@@ -986,7 +1000,6 @@ namespace
 
         uint32_t appendStructRecord(const Utf8& typeName, const uint32_t fieldListType, const uint16_t memberCount, const uint64_t sizeOf, const uint16_t properties)
         {
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_STRUCTURE);
             writeU16(bytes, memberCount);
             writeU16(bytes, properties);
@@ -995,13 +1008,11 @@ namespace
             writeU32(bytes, 0);
             writeEncodedUnsigned(bytes, sizeOf);
             writeCString(bytes, typeName);
-            endTypeRecord(bytes, recordOffset);
-            return typeIndex;
+            return finishRecord(recordOffset);
         }
 
         uint32_t appendForwardStructRecord(const Utf8& typeName)
         {
-            const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_STRUCTURE);
             writeU16(bytes, 0);
             writeU16(bytes, 0x0080);
@@ -1010,8 +1021,7 @@ namespace
             writeU32(bytes, 0);
             writeEncodedUnsigned(bytes, 0);
             writeCString(bytes, typeName);
-            endTypeRecord(bytes, recordOffset);
-            return typeIndex;
+            return finishRecord(recordOffset);
         }
 
         static uint32_t primitiveTypeIndex(const TypeInfo& typeInfo)
@@ -1054,6 +1064,18 @@ namespace
             builtTypes.emplace(cacheKey, typeIndex);
             udtNames.emplace(baseTypeIndex, typeName);
             return typeIndex;
+        }
+
+        // The index a pointer names for its pointee. A structure is named by its forward
+        // declaration, which the debugger resolves through the definition emitted alongside it.
+        uint32_t pointeeTypeIndexFor(const TypeRef pointeeTypeRef)
+        {
+            const uint32_t pointeeType = typeIndexFor(pointeeTypeRef);
+            const auto     forward     = forwardStructTypes.find(pointeeTypeRef.get());
+            if (forward == forwardStructTypes.end())
+                return pointeeType;
+            const TypeInfo& pointee = ctx->typeMgr().get(pointeeTypeRef);
+            return pointee.isConst() ? appendModifierType(forward->second, K_CV_TYPE_MOD_CONST) : forward->second;
         }
 
         uint32_t typeIndexFor(TypeRef typeRef, bool isConst = false)
@@ -1128,7 +1150,7 @@ namespace
             if (originalType.isValuePointer() || originalType.isBlockPointer() || originalType.isReference() || originalType.isFunction() || originalType.isTypeInfo() || originalType.isTypeValue())
             {
                 const TypeRef  pointeeTypeRef = originalType.isFunction() || originalType.isTypeInfo() || originalType.isTypeValue() ? TypeRef::invalid() : originalType.payloadTypeRef();
-                const uint32_t pointeeType    = pointeeTypeRef.isValid() ? typeIndexFor(pointeeTypeRef) : K_T_VOID;
+                const uint32_t pointeeType    = pointeeTypeRef.isValid() ? pointeeTypeIndexFor(pointeeTypeRef) : K_T_VOID;
                 const uint32_t pointerType    = appendPointerType(pointeeType ? pointeeType : K_T_VOID);
                 return isConst ? appendModifierType(pointerType, K_CV_TYPE_MOD_CONST) : pointerType;
             }
@@ -1224,14 +1246,12 @@ namespace
 
         uint32_t appendBuildInfo(const std::array<uint32_t, 5>& items)
         {
-            const uint32_t     typeIndex    = nextTypeIndex++;
             const uint32_t     recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
             constexpr uint16_t size         = std::tuple_size_v<std::array<uint32_t, 5>>;
             writeU16(bytes, size);
             for (const uint32_t item : items)
                 writeU32(bytes, item);
-            endTypeRecord(bytes, recordOffset);
-            return typeIndex;
+            return finishRecord(recordOffset);
         }
 
         TaskContext*                           ctx = nullptr;
@@ -1244,6 +1264,7 @@ namespace
         std::unordered_map<uint32_t, uint32_t> forwardStructTypes;
         std::unordered_set<uint32_t>           buildingStructs;
         std::map<uint32_t, Utf8>               udtNames;
+        RecordIndexMap                         recordIndices;
     };
 
     void appendLinesSubsection(ByteArray& bytes, NativeSectionData& debugSection, const DebugInfoFunctionRecord& function, const FunctionLines& functionLines, const FileChecksumBuilder& checksums)

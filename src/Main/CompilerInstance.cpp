@@ -352,12 +352,48 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     setupRuntimeCompiler();
 }
 
+namespace
+{
+#if SWC_DEV_MODE
+    // Fill a segment with a pattern no valid pointer, length or flag is likely to hold.
+    void poisonDataSegment(const DataSegment& segment)
+    {
+        const uint32_t extent = segment.extentSize();
+        if (!extent)
+            return;
+
+        const std::vector poison(extent, std::byte{0xCD});
+        segment.restoreFromPreserveOffsets(poison);
+    }
+#endif
+}
+
 CompilerInstance::~CompilerInstance()
 {
+    // JIT code can register fiber-local storage whose cleanup callback is its own code reading its
+    // own globals, such as the runtime allocator's thread heap. Windows would run it when a thread
+    // exits, after this instance is gone; release those slots while the callbacks can still run.
+    const std::vector<SymbolFunction*> jitFunctions = jitPreparedFunctionsSnapshot();
+    if (!jitFunctions.empty())
+    {
+        JIT::releaseThreadStorage([&](const void* callback) {
+            return std::ranges::any_of(jitFunctions, [callback](const SymbolFunction* function) { return function && function->ownsJitCodeAddress(callback); });
+        });
+    }
+
     // SymbolFunction instances are arena-allocated, so their JITMemory destructors do not reliably
     // run during compiler teardown. Unregister prepared function tables before executable pages are
     // released or stale Windows unwind entries can survive into the next compiler instance.
     resetPreparedJitFunctions();
+
+#if SWC_DEV_MODE
+    // Code this instance handed across the JIT boundary can keep a pointer into its global
+    // storage after it is gone. That storage usually still holds its old bytes, so the stale read
+    // looks healthy; poisoned, it fails on its first use instead.
+    poisonDataSegment(globalZeroSegment_);
+    poisonDataSegment(globalInitSegment_);
+    poisonDataSegment(compilerSegment_);
+#endif
 }
 
 size_t CompilerInstance::numPerThreadData() const noexcept

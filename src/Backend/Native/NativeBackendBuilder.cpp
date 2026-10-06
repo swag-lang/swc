@@ -726,6 +726,14 @@ namespace
         return ModuleApi::findExportDeclRoot(*astFile, declRef).isValid() && ModuleApi::extractPublicNamespacePath(builder.ctx(), *astFile, declRef, *owner, namespacePath);
     }
 
+    // What a library publishes under its API name, and what an importer can therefore call.
+    bool isExportedLibraryFunction(NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    {
+        if (!supportsExportedPublicFunctionSymbols(builder))
+            return false;
+        return (symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport()) || isExportedOpaqueLifecycleFunction(builder, symbol);
+    }
+
     NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal)
     {
         NativeFunctionInfo info;
@@ -733,7 +741,7 @@ namespace
         info.machineCode              = &symbol.loweredCode();
         info.sortKey                  = SymbolSort::locationKey(builder.compiler(), symbol);
         info.compilerFn               = isCompilerFunction(symbol);
-        const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && ((symbol.isPublic() && !info.compilerFn && symbol.supportsPublicApiForeignExport()) || isExportedOpaqueLifecycleFunction(builder, symbol));
+        const bool exportPublicSymbol = isExportedLibraryFunction(builder, symbol);
         if (exportPublicSymbol)
             info.symbolName = symbol.computePublicApiSymbolName(builder.ctx());
         else
@@ -1480,12 +1488,21 @@ Result NativeBackendBuilder::prepare()
     filterPreparedSymbols(mainFunctions, *this);
     filterPreparedSymbols(regularGlobals, *this);
 
-    // A library publishes every function it completed. An executable holds only what its roots
-    // reach, so it starts from them: a function nothing calls, such as an equality operator a
-    // struct is given whether or not anything compares it, is never lowered.
+    // An executable holds only what its roots reach, and a library only what it exports and what
+    // that reaches, so both start from those roots: a function nothing calls, such as an equality
+    // operator a struct is given whether or not anything compares it, is never lowered.
     const bool                   executable = compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
+    const bool                   library    = supportsExportedPublicFunctionSymbols(*this);
     std::vector<SymbolFunction*> functions;
-    if (!executable)
+    if (library)
+    {
+        for (SymbolFunction* function : compiler_->nativeCodeSegment())
+        {
+            if (function && isExportedLibraryFunction(*this, *function))
+                functions.push_back(function);
+        }
+    }
+    else if (!executable)
         functions = compiler_->nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
     SymbolSort::sortAndUniqueByLocation(testFunctions, *compiler_);
@@ -1495,7 +1512,7 @@ Result NativeBackendBuilder::prepare()
     SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_);
     appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
-    if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+    if (executable || library)
     {
         auto executableRoots = collectExecutableFunctionRoots(*this);
         functions.insert(functions.end(), executableRoots.begin(), executableRoots.end());

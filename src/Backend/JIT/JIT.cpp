@@ -284,6 +284,49 @@ namespace
     }
 
 #ifdef _WIN32
+    // Fiber-local slots allocated by JIT code, with the cleanup callback each one names. Windows runs
+    // that callback whenever a thread holding a value in the slot exits, which can be long after the
+    // compiler instance that compiled the callback is gone; the instance releases its own slots first.
+    struct JitFiberSlot
+    {
+        DWORD                  slot     = FLS_OUT_OF_INDEXES;
+        PFLS_CALLBACK_FUNCTION callback = nullptr;
+    };
+
+    std::mutex& jitFiberSlotsMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
+    std::vector<JitFiberSlot>& jitFiberSlots()
+    {
+        static std::vector<JitFiberSlot> slots;
+        return slots;
+    }
+
+    DWORD WINAPI jitTrackedFlsAlloc(const PFLS_CALLBACK_FUNCTION callback)
+    {
+        const DWORD slot = FlsAlloc(callback);
+        if (slot != FLS_OUT_OF_INDEXES && callback)
+        {
+            const std::scoped_lock lock(jitFiberSlotsMutex());
+            jitFiberSlots().push_back({.slot = slot, .callback = callback});
+        }
+
+        return slot;
+    }
+
+    BOOL WINAPI jitTrackedFlsFree(const DWORD slot)
+    {
+        {
+            const std::scoped_lock lock(jitFiberSlotsMutex());
+            std::erase_if(jitFiberSlots(), [slot](const JitFiberSlot& entry) { return entry.slot == slot; });
+        }
+
+        return FlsFree(slot);
+    }
+
     [[noreturn]]
     void WINAPI jitBlockedExitProcess(const UINT exitCode)
     {
@@ -313,6 +356,10 @@ namespace
                 return reinterpret_cast<void*>(&jitBlockedExitProcess);
             if (asciiEqualsIgnoreCase(functionName, "TerminateProcess"))
                 return reinterpret_cast<void*>(&jitBlockedTerminateProcess);
+            if (asciiEqualsIgnoreCase(functionName, "FlsAlloc"))
+                return reinterpret_cast<void*>(&jitTrackedFlsAlloc);
+            if (asciiEqualsIgnoreCase(functionName, "FlsFree"))
+                return reinterpret_cast<void*>(&jitTrackedFlsFree);
         }
 #else
         SWC_UNUSED(moduleName);
@@ -2033,6 +2080,29 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
 
     TaskContext::setCurrent(savedContext);
     return hasException ? Result::Error : Result::Continue;
+}
+
+void JIT::releaseThreadStorage(const std::function<bool(const void*)>& ownsCallback)
+{
+#ifdef _WIN32
+    std::vector<DWORD> released;
+    {
+        const std::scoped_lock lock(jitFiberSlotsMutex());
+        std::erase_if(jitFiberSlots(), [&](const JitFiberSlot& entry) {
+            if (!ownsCallback(reinterpret_cast<const void*>(entry.callback)))
+                return false;
+            released.push_back(entry.slot);
+            return true;
+        });
+    }
+
+    // Freeing a slot runs its callback for every thread still holding a value in it, here, while
+    // the code and the data the callback reaches are still alive.
+    for (const DWORD slot : released)
+        FlsFree(slot);
+#else
+    SWC_UNUSED(ownsCallback);
+#endif
 }
 
 SWC_END_NAMESPACE();

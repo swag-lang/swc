@@ -1732,6 +1732,71 @@ var GHolder:  Holder
 }
 SWC_TEST_END()
 
+// A library lowers what it exports and what that reaches; an operator a struct is given whether or
+// not anything compares it, and a function nothing calls, are left out like in an executable.
+SWC_TEST_BEGIN(NativeArtifact_LibraryPrunesUnexportedUnreachableFunctions)
+{
+    static constexpr std::string_view SOURCE     = R"(#global public
+
+internal struct Holder
+{
+    text: string = ""
+}
+
+#[Swag.NoInline]
+internal func reachedFromExport()->u32 => 11
+
+#[Swag.NoInline]
+internal func neverReached()->u32 => 13
+
+#[Swag.NoInline]
+func exported()->u32 => reachedFromExport()
+)";
+    static constexpr const char*      TEST_NAME  = "NativeArtifact_LibraryPrunesUnexportedUnreachableFunctions";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "LibraryPrunesUnexportedUnreachableFunctions");
+
+    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("library_prunes_unexported_unreachable_functions", Runtime::BuildCfgBackendKind::StaticLibrary);
+    cmdLine.directories.clear();
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return failNativeArtifactTest(TEST_NAME, "errors after sema");
+
+    const TaskContext compilerCtx(compiler);
+    const auto        hasCompleted = [&](const std::string_view name) {
+        return std::ranges::any_of(compiler.nativeCodeSegment(), [&](const SymbolFunction* function) {
+            return function && function->getFullScopedName(compilerCtx).view().ends_with(name);
+        });
+    };
+    if (!hasCompleted("Holder.opEquals") || !hasCompleted("neverReached"))
+        return failNativeArtifactTest(TEST_NAME, "unreachable functions are absent before library pruning");
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    if (nativeBuilder.prepare() != Result::Continue)
+        return failNativeArtifactTest(TEST_NAME, "native builder cannot prepare the library");
+
+    const auto hasPrepared = [&](const std::string_view name) {
+        return std::ranges::any_of(nativeBuilder.functionInfos, [&](const NativeFunctionInfo& info) {
+            return info.symbol && info.symbol->getFullScopedName(compilerCtx).view().ends_with(name);
+        });
+    };
+
+    if (!hasPrepared("exported"))
+        return failNativeArtifactTest(TEST_NAME, "exported function was pruned");
+    if (!hasPrepared("reachedFromExport"))
+        return failNativeArtifactTest(TEST_NAME, "function reached from an export was pruned");
+    if (hasPrepared("neverReached"))
+        return failNativeArtifactTest(TEST_NAME, "unreachable internal function was retained");
+    if (hasPrepared("Holder.opEquals"))
+        return failNativeArtifactTest(TEST_NAME, "unreachable generated equality was retained");
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_ExecutableClosesAlternatingDependencies)
 {
     static constexpr std::string_view SOURCE     = R"(#global public

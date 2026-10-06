@@ -154,25 +154,18 @@ namespace
         return false;
     }
 
-    TypeRef resolveAggregateMemberOwnerTypeRef(CodeGen& codeGen, TypeRef leftTypeRef)
+    const TypeInfo* resolveAggregateMemberOwnerType(CodeGen& codeGen, const TypeInfo& leftType)
     {
-        if (!leftTypeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo* leftTypeInfo = &aliasEnumType(codeGen, leftTypeRef);
+        const TypeInfo* leftTypeInfo = &leftType;
         if (leftTypeInfo->isPointerOrReference())
             leftTypeInfo = &aliasEnumType(codeGen, leftTypeInfo->payloadTypeRef());
 
-        if (!leftTypeInfo->isAggregateStruct())
-            return TypeRef::invalid();
-
-        return leftTypeInfo->typeRef();
+        return leftTypeInfo->isAggregateStruct() ? leftTypeInfo : nullptr;
     }
 
-    MicroReg resolveAggregateMemberBaseAddress(CodeGen& codeGen, TypeRef leftTypeRef, const CodeGenNodePayload& leftPayload)
+    MicroReg resolveAggregateMemberBaseAddress(CodeGen& codeGen, const TypeInfo& leftTypeInfo, const CodeGenNodePayload& leftPayload)
     {
-        MicroBuilder&   builder      = codeGen.builder();
-        const TypeInfo& leftTypeInfo = aliasEnumType(codeGen, leftTypeRef);
+        MicroBuilder& builder = codeGen.builder();
 
         if (leftTypeInfo.isPointerOrReference() || leftTypeInfo.isTypeInfo())
         {
@@ -315,17 +308,18 @@ namespace
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
         const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(node.nodeLeftRef).typeRef();
         SWC_ASSERT(leftTypeRef.isValid());
-        const TypeRef aggregateTypeRef = resolveAggregateMemberOwnerTypeRef(codeGen, leftTypeRef);
-        SWC_ASSERT(aggregateTypeRef.isValid());
+        const TypeInfo& leftType      = aliasEnumType(codeGen, leftTypeRef);
+        const TypeInfo* aggregateType = resolveAggregateMemberOwnerType(codeGen, leftType);
+        SWC_ASSERT(aggregateType != nullptr);
 
         AggregateMemberInfo memberInfo;
-        if (!resolveAggregateMemberInfo(codeGen, codeGen.typeMgr().get(aggregateTypeRef), node.nodeRightRef, memberInfo))
+        if (!resolveAggregateMemberInfo(codeGen, *aggregateType, node.nodeRightRef, memberInfo))
             SWC_UNREACHABLE();
 
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberInfo.memberTypeRef);
         MicroBuilder&             builder = codeGen.builder();
         const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
-        const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftTypeRef, leftPayload);
+        const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftType, leftPayload);
         builder.emitLoadAddressRegMem(payload.reg, baseReg, memberInfo.offset, MicroOpBits::B64);
         return Result::Continue;
     }
@@ -477,7 +471,7 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 
     if (leftIsRuntimeValue && leftView.type() && leftView.type()->isInterface())
         return finalizeRuntimeMemberAccess(codeGen, codeGenInterfaceMethodMemberAccess(codeGen, *this));
-    if (leftIsRuntimeValue && resolveAggregateMemberOwnerTypeRef(codeGen, leftView.typeRef()).isValid())
+    if (leftIsRuntimeValue && leftView.type() && resolveAggregateMemberOwnerType(codeGen, SemaHelpers::aliasEnumType(codeGen.sema(), leftView)))
         return finalizeRuntimeMemberAccess(codeGen, codeGenAggregateStructMemberAccess(codeGen, *this));
 
     const SemaNodeView rightView = codeGen.viewSymbol(nodeRightRef);

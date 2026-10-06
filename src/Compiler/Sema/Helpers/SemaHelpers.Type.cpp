@@ -70,15 +70,13 @@ namespace
             return !vCheck.gt(maxCheck);
         }
 
-        const ApsInt minSigned = ApsInt::minValue(targetBits, false);
-        const ApsInt maxSigned = ApsInt::maxValue(targetBits, false);
         if (!value.isUnsigned())
         {
             ApsInt vCheck = value;
             vCheck.resize(checkBits);
 
-            ApsInt minCheck = minSigned;
-            ApsInt maxCheck = maxSigned;
+            ApsInt minCheck = ApsInt::minValue(targetBits, false);
+            ApsInt maxCheck = ApsInt::maxValue(targetBits, false);
             minCheck.resize(checkBits);
             maxCheck.resize(checkBits);
             return !vCheck.lt(minCheck) && !vCheck.gt(maxCheck);
@@ -92,7 +90,7 @@ namespace
         if (vCheck.gt(maxBits))
             return false;
 
-        ApsInt maxSignedU = maxSigned;
+        ApsInt maxSignedU = ApsInt::maxValue(targetBits, false);
         if (!maxSignedU.isUnsigned())
             maxSignedU.setUnsigned(true);
         maxSignedU.resize(checkBits);
@@ -162,7 +160,7 @@ namespace
         }
 
         if (resolvedTypeRef.isValid() && isAggregateTypeLikeElement(sema, resolvedTypeRef))
-            resolvedTypeRef = normalizeAggregateTypeLikeElementType(sema, resolvedTypeRef, defaultView.cstRef());
+            resolvedTypeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, resolvedTypeRef, defaultView.cstRef(), sema.ctx().state().nodeRef);
 
         if (outResolvedTypeRef)
             *outResolvedTypeRef = resolvedTypeRef;

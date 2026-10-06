@@ -396,15 +396,9 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
 // before the first iteration, so only an inverted range (lower above upper) panics here.
 Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType)
 {
-    const TypeInfo* compareType = &indexType;
-    if (indexType.isAlias())
-    {
-        const TypeRef compareTypeRef = indexType.unwrapAliasEnum(codeGen.ctx());
-        SWC_ASSERT(compareTypeRef.isValid());
-        compareType = &codeGen.typeMgr().get(compareTypeRef);
-    }
-
-    if (!compareType->isInt())
+    // The loop initializer passes the index type after resolving its aliases.
+    SWC_ASSERT(!indexType.isAlias());
+    if (!indexType.isInt())
         return Result::Continue;
 
     nodeRef = codeGen.resolvedNodeRef(nodeRef);
@@ -421,7 +415,7 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef inBoundsRef = builder.createLabel();
     builder.emitCmpRegReg(lowerReg, upperReg, MicroOpBits::B64);
-    builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(compareType->isIntUnsigned()), MicroOpBits::B32, inBoundsRef);
+    builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(indexType.isIntUnsigned()), MicroOpBits::B32, inBoundsRef);
     SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(nodeRef), DiagnosticId::safety_err_bound_check));
     builder.placeLabel(inBoundsRef);
     return Result::Continue;

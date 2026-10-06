@@ -179,7 +179,9 @@ namespace
         if (!receiver)
             return false;
 
-        const SymbolStruct* receiverStruct = CodeGenStructHelpers::resolveReceiverRuntimeStruct(codeGen);
+        const SymbolStruct* receiverStruct = CodeGenStructHelpers::resolveRuntimeStructType(codeGen, receiver->typeRef());
+        if (!receiverStruct)
+            receiverStruct = codeGen.function().ownerStruct();
         if (!receiverStruct)
             return false;
 
@@ -190,11 +192,13 @@ namespace
             return false;
 
         const CodeGenNodePayload receiverPayload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), *receiver);
-        const TypeRef            receiverTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), receiver->typeRef());
+        const TypeRef            receiverTypeRef = receiver->typeRef();
         if (receiverTypeRef.isInvalid())
             return false;
 
-        const TypeInfo& receiverType = codeGen.typeMgr().get(receiverTypeRef);
+        const TypeInfo& declaredReceiver  = codeGen.typeMgr().get(receiverTypeRef);
+        const TypeInfo* unwrappedReceiver = declaredReceiver.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& receiverType      = unwrappedReceiver ? *unwrappedReceiver : declaredReceiver;
         if (!receiverType.isPointerOrReference())
             return false;
 

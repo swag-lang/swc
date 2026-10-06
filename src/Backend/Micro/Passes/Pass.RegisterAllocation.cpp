@@ -1688,7 +1688,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         const SmallVector<MicroReg>& persistentPool = isFloat ? freeFloatPersistent_ : freeIntPersistent_;
         const SmallVector<MicroReg>& transientPool  = isFloat ? freeFloatTransient_ : freeIntTransient_;
 
-        MicroReg picked = MicroReg::invalid();
+        MicroReg picked           = MicroReg::invalid();
+        bool     pickedPersistent = false;
         for (int pass = 0; pass < 2 && !picked.isValid(); ++pass)
         {
             // A value not crossing a call is offered caller-saved registers
@@ -1771,7 +1772,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     // traffic, not remove it. A tight hot loop clears the gate
                     // easily; a three-hundred-instruction body does not, and
                     // should not.
-                    const bool persistentPick  = isPersistentPhysReg(reg);
+                    const bool persistentPick  = poolIsPersistent;
                     const bool benefitClears   = persistentPick ? cand.rawBenefit >= K_PERSISTENT_MIN_RAW_BENEFIT
                                                                 : cand.density >= spanScopedMinDensity;
                     const bool spanScopedGrant = benefitClears &&
@@ -1787,7 +1788,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 if (globalRangesOverlap(reg, lo, hi))
                     continue;
 
-                const bool     isPersistent      = isPersistentPhysReg(reg);
+                const bool     isPersistent      = poolIsPersistent;
                 const uint32_t minFreePersistent = isFloat ? K_MIN_FREE_PERSISTENT_FLOAT : K_MIN_FREE_PERSISTENT_INT;
                 if (hasCalls && isPersistent && totalPersistent <= minFreePersistent)
                     continue;
@@ -1854,7 +1855,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                         continue;
                 }
 
-                picked = reg;
+                picked           = reg;
+                pickedPersistent = poolIsPersistent;
                 break;
             }
         }
@@ -1867,7 +1869,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         for (uint32_t idx = lo; idx <= hi; ++idx)
         {
             ++reserved[idx];
-            if (isPersistentPhysReg(picked))
+            if (pickedPersistent)
                 ++reservedPersistent[idx];
         }
 
@@ -1879,7 +1881,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         // A caller-saved register does not survive the calls inside the hull on
         // its own: give the value a slot now, and rewriteInstructions parks it
         // there for exactly the duration of each such call.
-        if (crossesCall && !isPersistentPhysReg(picked))
+        if (crossesCall && !pickedPersistent)
         {
             ensureSpillSlot(regState, isFloat);
             pinnedCallSavedDense_.push_back(cand.denseIndex);

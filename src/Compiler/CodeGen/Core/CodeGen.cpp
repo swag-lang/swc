@@ -853,7 +853,8 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
         if (!hasPayload)
             return nullptr;
 
-        payload = &ensureNodePayload<CodeGenNodePayload>(nodeRef);
+        // A newly allocated payload already receives its lowering metadata.
+        return &ensureNodePayload<CodeGenNodePayload>(nodeRef);
     }
 
     mergeLoweringNodePayloadMetadata(*payload, nodeRef, resolvedRef);

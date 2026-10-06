@@ -55,3 +55,14 @@ The old two-latch-reload diagnosis in compiler.optimization.103 is therefore
 retired. This is a rebaseline, not an additional gain attributed to batch 13.
 The region already had no frame accesses immediately after reserve removal.
 Remaining serial decoder work continues in std.video.001.
+
+## Remaining local allocation costs
+
+The two exceptions tracked in compiler.optimization.035 still exist in the final
+cohort. Against the pre-reserve-removal baseline, parsePlaneResidualCabac changes
+from 357 instructions / 100 memory operations / 40 explicit RSP accesses / six
+pushes to 355 / 101 / 41 / seven. parsePlaneResidualCavlc changes from 397 / 99 /
+41 / six to 410 / 105 / 47 / seven. Their normalized instruction diffs are retained
+here for the next live-interval investigation. No timing regression is inferred.
+The extra general-purpose register remains available globally; these individual
+allocation choices remain unfinished work, not grounds to restore the reserve.

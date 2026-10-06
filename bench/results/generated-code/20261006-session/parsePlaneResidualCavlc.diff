@@ -1,0 +1,430 @@
+--- 
+
++++ 
+
+@@ -5,5 +5,6 @@
+
+ push r13
+ push r14
+-op_binary_reg_imm sub, rsp, 0x228, b64
++push r15
++op_binary_reg_imm sub, rsp, 0x230, b64
+ load_addr_reg_mem rbx, [rsp + 0x8], b64
+ load_reg_reg rsi, r8, b32
+@@ -38,5 +39,5 @@
+
+ load_reg_mem r9, [rbx + 0x20], b64
+ call_local swag, <relocation>
+-load_reg_reg r13, rax, b64
++load_reg_reg r15, rax, b64
+ load_reg_mem rax, [rip], b64
+ cmp_reg_imm rax, 0x0, b64
+@@ -53,8 +54,8 @@
+
+ cmp_reg_imm rax, 0x0, b8
+ jump_cond ne, b32 922
+-cmp_reg_imm r13, 0x0, b32
++cmp_reg_imm r15, 0x0, b32
+ set_cond_reg rax, a
+ load_amc_mem_reg [r12 + rsi + 0xC8], rax, b64 <- b8
+-cmp_reg_imm r13, 0x0, b32
++cmp_reg_imm r15, 0x0, b32
+ jump_cond be, b32 155
+ cmp_reg_imm r14, 0x0, b8
+@@ -89,8 +90,11 @@
+
+ load_mem_reg [rsp + 0x1D8], r14, b64
+ load_reg_mem r10, [rsp + 0x1C0], b64
++load_reg_reg r11, rax, b64
+ jump_cond jump 189
+ load_reg_reg r12, rdx, b64
+-load_reg_reg r10, rax, b64
+-load_reg_reg r14, r13, b64
++load_reg_reg r10, rcx, b64
++load_reg_reg r11, rsi, b64
++load_reg_reg r14, rax, b64
++load_reg_mem rsi, [rsp + 0x1A8], b64
+ load_reg_imm rax, b32, 0x1
+ load_reg_reg rcx, r14, b32
+@@ -99,48 +103,52 @@
+
+ jump_cond ne, b32 479
+ load_reg_reg rdx, r12, b64
+-load_reg_reg rax, r10, b64
++load_reg_reg rcx, r10, b64
++load_reg_reg rsi, r11, b64
+ jump_cond jump 915
+-clear_reg r13, b8
+-load_mem_reg [rsp + 0x1E0], r13, b64
+-clear_reg r13, b64
++clear_reg r15, b8
++load_mem_reg [rsp + 0x1E0], r15, b64
++clear_reg r15, b64
++load_reg_reg r13, r14, b32
++op_binary_reg_imm sar, r13, 0x1, b32
+ load_reg_reg rax, r14, b32
+-op_binary_reg_imm sar, rax, 0x1, b32
+-load_mem_reg [rsp + 0x1F0], rax, b64
+-load_reg_reg rcx, r14, b32
++op_binary_reg_imm and, rax, 0x1, b32
++load_addr_amc_reg_mem r14, [rax + rax], b32
++load_mem_reg [rsp + 0x1F8], r14, b64
++load_addr_amc_reg_mem rax, [r13 * 0x8], b32
++load_mem_reg [rsp + 0x1F0], r13, b64
++load_addr_amc_reg_mem r13, [rax + r14], b32
++load_mem_reg [rsp + 0x200], r13, b64
++load_addr_reg_mem r14, [rbx + 0xA0], b64
++load_mem_reg [rsp + 0x208], r14, b64
++load_reg_mem r14, [rsp + 0x1B8], b64
++load_addr_reg_mem rdx, [rbx + 0xA4], b64
++load_mem_reg [rsp + 0x210], rdx, b64
++jump_cond jump 220
++load_reg_mem rsi, [rsp + 0x1A8], b64
++load_reg_reg r12, rdx, b64
++load_reg_mem r14, [rsp + 0x1B8], b64
++load_reg_reg r15, r13, b64
++load_reg_mem r13, [rsp + 0x200], b64
++load_reg_reg rcx, r15, b32
++op_binary_reg_imm sar, rcx, 0x1, b32
++load_reg_reg rax, r13, b32
++load_addr_amc_reg_mem rcx, [rcx * 0x4], b32
++op_binary_reg_reg add, rax, rcx, b32
++load_reg_reg rcx, r15, b32
+ op_binary_reg_imm and, rcx, 0x1, b32
+-load_addr_amc_reg_mem r8, [rcx + rcx], b32
+-load_mem_reg [rsp + 0x1F8], r8, b64
+-load_addr_amc_reg_mem rcx, [rax * 0x8], b32
+-load_addr_amc_reg_mem rdx, [rcx + r8], b32
+-load_mem_reg [rsp + 0x200], rdx, b64
+-load_addr_reg_mem r14, [rbx + 0xA0], b64
+-load_reg_reg rax, rdx, b64
+-load_addr_reg_mem rsi, [rbx + 0xA4], b64
+-jump_cond jump 220
+-load_reg_reg r12, rdx, b64
+-load_mem_reg [rsp + 0x1E0], rcx, b64
+-load_reg_mem rax, [rsp + 0x200], b64
+-load_reg_reg rcx, r13, b32
+-op_binary_reg_imm sar, rcx, 0x1, b32
+-load_reg_reg rdx, rax, b32
+-load_addr_amc_reg_mem rcx, [rcx * 0x4], b32
+-op_binary_reg_reg add, rdx, rcx, b32
+-load_reg_reg rcx, r13, b32
+-op_binary_reg_imm and, rcx, 0x1, b32
+-op_binary_reg_reg add, rdx, rcx, b32
+-load_mem_reg [rsp + 0x208], rdx, b64
+-load_reg_reg rcx, rdx, b32
+-op_binary_reg_imm and, rcx, 0x3, b32
+-load_reg_reg rax, rdx, b32
+-op_binary_reg_imm sar, rax, 0x2, b32
+-load_reg_reg r9, rcx, b64
++load_addr_amc_reg_mem r13, [rax + rcx], b32
++load_mem_reg [rsp + 0x218], r13, b64
++load_reg_reg rax, r13, b32
++op_binary_reg_imm and, rax, 0x3, b32
++load_reg_reg r10, r13, b32
++op_binary_reg_imm sar, r10, 0x2, b32
+ load_reg_reg rcx, rdi, b64
+ load_reg_reg rdx, r12, b64
+-load_reg_mem r12, [rsp + 0x1B8], b64
+-load_mem_reg [rsp + 0x1E8], r13, b64
+-load_reg_mem r8, [rsp + 0x1A8], b64
+-load_reg_mem r13, [rsp + 0x1C8], b64
+-load_reg_reg r8, r8, b32
+-load_signed_ext_reg_reg r10, rax, b64 <- b32
++load_mem_reg [rsp + 0x1E8], r15, b64
++load_reg_mem r15, [rsp + 0x210], b64
++load_reg_reg r8, rsi, b32
++load_reg_reg r9, rax, b64
++load_reg_mem rsi, [rsp + 0x1C8], b64
++load_signed_ext_reg_reg r10, r10, b64 <- b32
+ call_local swag, <relocation>
+ load_mem_reg [rbx + 0xA0], rax, b32
+@@ -148,13 +156,14 @@
+
+ load_mem_reg [rbx + 0xA4], xmm0, b128
+ load_mem_reg [rbx + 0xB4], xmm0, b128
+-cmp_reg_imm r12, 0x0, b8
++cmp_reg_imm r14, 0x0, b8
+ jump_cond e, b32 470
+ load_addr_reg_mem rcx, [rdi + 0x58], b64
++load_reg_mem r14, [rsp + 0x208], b64
+ load_reg_reg rax, r14, b64
+ load_signed_ext_reg_mem rdx, [rax], b64 <- b32
+ load_reg_imm r8, b32, 0xF
+-load_reg_reg r9, rsi, b64
+-call_local swag, <relocation>
+-load_reg_reg r12, rax, b64
++load_reg_reg r9, r15, b64
++call_local swag, <relocation>
++load_reg_reg r14, rax, b64
+ load_reg_mem rax, [rip], b64
+ cmp_reg_imm rax, 0x0, b64
+@@ -172,7 +181,5 @@
+
+ cmp_reg_imm rcx, 0x0, b8
+ jump_cond ne, b32 922
+-load_mem_reg [rsp + 0x218], r12, b64
+-load_reg_mem r12, [rsp + 0x208], b64
+-load_signed_ext_reg_reg rax, r12, b64 <- b32
++load_signed_ext_reg_reg rax, r13, b64 <- b32
+ op_binary_reg_imm shl, rax, 0x4, b64
+ load_reg_mem rcx, [rbx + 0x28], b64
+@@ -184,5 +191,5 @@
+
+ load_reg_ptr_reloc r8, b64, <relocation>
+ load_zero_ext_amc_reg_mem 7 operand(s)
+-load_amc_reg_mem r9, [r13 + r8 * 0x4], b32
++load_amc_reg_mem r9, [rsi + r8 * 0x4], b32
+ load_signed_ext_reg_reg rdx, rdx, b64 <- b32
+ op_binary_reg_reg imul, rdx, r9, b64
+@@ -202,20 +209,23 @@
+
+ cmp_reg_imm rcx, 0xF, b64
+ jump_cond b, b32 377
++load_reg_mem rsi, [rsp + 0x1D0], b64
++load_reg_reg rax, r13, b64
+ load_reg_mem r13, [rsp + 0x1E8], b64
+-load_reg_mem rax, [rsp + 0x218], b64
+ jump_cond jump 798
+-load_reg_mem r13, [rsp + 0x1B0], b64
+-load_reg_mem rax, [r13 + 0xE], b8
++load_reg_mem rax, [r12 + 0xE], b8
+ cmp_reg_imm rax, 0x0, b8
+-jump_cond ne, b32 008
++jump_cond ne, b32 045
++load_reg_mem rsi, [rsp + 0x1D0], b64
+ load_reg_mem r13, [rsp + 0x1E8], b64
++load_reg_mem r12, [rsp + 0x208], b64
+ jump_cond jump 634
+ load_addr_reg_mem rcx, [rdi + 0x58], b64
++load_reg_mem r14, [rsp + 0x208], b64
+ load_reg_reg rax, r14, b64
+ load_signed_ext_reg_mem rdx, [rax], b64 <- b32
+ load_reg_imm r8, b32, 0x10
+-load_reg_reg r9, rsi, b64
+-call_local swag, <relocation>
+-load_zero_ext_reg_reg r13, rax, b64 <- b32
++load_reg_reg r9, r15, b64
++call_local swag, <relocation>
++load_zero_ext_reg_reg r14, rax, b64 <- b32
+ load_reg_mem rax, [rip], b64
+ cmp_reg_imm rax, 0x0, b64
+@@ -233,49 +243,49 @@
+
+ cmp_reg_imm rcx, 0x0, b8
+ jump_cond ne, b32 922
+-load_reg_reg rax, r13, b32
+-load_reg_mem r13, [rsp + 0x1D8], b64
+-load_signed_ext_reg_reg rcx, r13, b64 <- b32
+-op_binary_reg_imm shl, rcx, 0x6, b64
+-load_reg_mem rdx, [rbx + 0x30], b64
+-load_addr_amc_reg_mem rcx, [rdx + rcx * 0x2], b64
+-clear_reg rdx, b64
+-load_reg_mem r12, [rsp + 0x1D0], b64
++load_reg_reg r14, r14, b32
++load_reg_mem rsi, [rsp + 0x1D8], b64
++load_signed_ext_reg_reg rax, rsi, b64 <- b32
++op_binary_reg_imm shl, rax, 0x6, b64
++load_reg_mem rcx, [rbx + 0x30], b64
++load_addr_amc_reg_mem rax, [rcx + rax * 0x2], b64
++clear_reg rcx, b64
++load_reg_mem rsi, [rsp + 0x1D0], b64
+ load_reg_mem r13, [rsp + 0x1E8], b64
+ load_signed_ext_amc_reg_mem 7 operand(s)
+-load_reg_reg r9, r8, b32
+-cmp_reg_imm r8, 0x0, b32
++load_reg_reg r8, rdx, b32
++cmp_reg_imm rdx, 0x0, b32
+ jump_cond e, b32 628
+-load_reg_ptr_reloc r8, b64, <relocation>
+-load_addr_amc_reg_mem r10, [rdx * 0x4 + 0x30], b64
+-load_signed_ext_reg_reg r11, r13, b64 <- b32
+-op_binary_reg_reg add, r10, r11, b64
++load_reg_ptr_reloc rdx, b64, <relocation>
++load_addr_amc_reg_mem r9, [rcx * 0x4 + 0x30], b64
++load_signed_ext_reg_reg r10, r13, b64 <- b32
++op_binary_reg_reg add, r9, r10, b64
+ load_zero_ext_amc_reg_mem 7 operand(s)
+-load_amc_reg_mem r10, [r12 + r8 * 0x4], b32
+-load_signed_ext_reg_reg r9, r9, b64 <- b32
+-op_binary_reg_reg imul, r9, r10, b64
+-load_addr_reg_mem r9, [r9 + 0x20], b64
+-load_reg_imm r10, b32, 0x6
+-op_binary_reg_reg_reg sar, r9, r9, r10, b64
+-load_reg_reg r10, r9, b64
+-cmp_reg_imm r9, 0x7FFF, b64
+-load_reg_imm r9, b64, 0x7FFF
+-load_cond_reg_reg r10, r9, g, b64
+-load_reg_reg r9, r10, b64
+-cmp_reg_imm r10, 0xFFFFFFFFFFFF8000, b64
+-load_reg_imm r10, b64, 0xFFFFFFFFFFFF8000
+-load_cond_reg_reg r9, r10, l, b64
+-load_amc_mem_reg [rcx + r8 * 0x2], r9, b64 <- b16
+-op_binary_reg_imm add, rdx, 0x1, b64
+-cmp_reg_imm rdx, 0x10, b64
++load_amc_reg_mem r9, [rsi + rdx * 0x4], b32
++load_signed_ext_reg_reg r8, r8, b64 <- b32
++op_binary_reg_reg imul, r8, r9, b64
++load_addr_reg_mem r8, [r8 + 0x20], b64
++load_reg_imm r9, b32, 0x6
++op_binary_reg_reg_reg sar, r8, r8, r9, b64
++load_reg_reg r9, r8, b64
++cmp_reg_imm r8, 0x7FFF, b64
++load_reg_imm r8, b64, 0x7FFF
++load_cond_reg_reg r9, r8, g, b64
++load_reg_reg r8, r9, b64
++cmp_reg_imm r9, 0xFFFFFFFFFFFF8000, b64
++load_reg_imm r9, b64, 0xFFFFFFFFFFFF8000
++load_cond_reg_reg r8, r9, l, b64
++load_amc_mem_reg [rax + rdx * 0x2], r8, b64 <- b16
++op_binary_reg_imm add, rcx, 0x1, b64
++cmp_reg_imm rcx, 0x10, b64
+ jump_cond b, b32 534
+-load_reg_mem r12, [rsp + 0x208], b64
++load_reg_mem rax, [rsp + 0x218], b64
+ jump_cond jump 797
+ load_addr_reg_mem rcx, [rdi + 0x58], b64
+-load_reg_reg rax, r14, b64
++load_reg_reg rax, r12, b64
+ load_signed_ext_reg_mem rdx, [rax], b64 <- b32
+ load_reg_imm r8, b32, 0x10
+-load_reg_reg r9, rsi, b64
+-call_local swag, <relocation>
+-load_zero_ext_reg_reg r12, rax, b64 <- b32
++load_reg_reg r9, r15, b64
++call_local swag, <relocation>
++load_zero_ext_reg_reg r14, rax, b64 <- b32
+ load_reg_mem rax, [rip], b64
+ cmp_reg_imm rax, 0x0, b64
+@@ -293,7 +303,7 @@
+
+ cmp_reg_imm rcx, 0x0, b8
+ jump_cond ne, b32 922
+-load_reg_reg rax, r12, b32
+-load_reg_mem r12, [rsp + 0x208], b64
+-load_signed_ext_reg_reg rcx, r12, b64 <- b32
++load_reg_reg r14, r14, b32
++load_reg_mem rax, [rsp + 0x218], b64
++load_signed_ext_reg_reg rcx, rax, b64 <- b32
+ op_binary_reg_imm shl, rcx, 0x4, b64
+ load_reg_mem rdx, [rbx + 0x28], b64
+@@ -325,60 +335,62 @@
+
+ cmp_reg_imm rdx, 0x10, b64
+ jump_cond b, b32 705
+-load_signed_ext_reg_reg rcx, r12, b64 <- b32
+-load_reg_mem rdx, [rbx + 0x38], b64
+-load_amc_mem_reg [rdx + rcx], rax, b64 <- b8
+-cmp_reg_imm rax, 0x0, b32
+-jump_cond a, b32 530
++load_signed_ext_reg_reg rax, rax, b64 <- b32
++load_reg_mem rcx, [rbx + 0x38], b64
++load_amc_mem_reg [rcx + rax], r14, b64 <- b8
++cmp_reg_imm r14, 0x0, b32
++jump_cond a, b32 516
+ load_reg_mem rdx, [rsp + 0x1B0], b64
+-load_reg_mem rax, [rsp + 0x1C0], b64
+-load_reg_mem rcx, [rsp + 0x1E0], b64
++load_reg_mem rcx, [rsp + 0x1C0], b64
++load_reg_mem r11, [rsp + 0x1E0], b64
+ jump_cond jump 833
+-load_reg_mem rax, [rsp + 0x1C0], b64
+-cmp_reg_imm rax, 0x0, b8
+-jump_cond ne, b32 787
++load_reg_mem rcx, [rsp + 0x1C0], b64
++cmp_reg_imm rcx, 0x0, b8
++jump_cond ne, b32 767
+ load_reg_mem rdx, [rsp + 0x1B0], b64
+ jump_cond jump 827
+ load_reg_mem rdx, [rsp + 0x1B0], b64
+-load_amc_mem_imm [rdx + rcx + 0xCB], 0x1, b64 <- b8
+-load_reg_imm rcx, b8, 0x1
++load_amc_mem_imm [rdx + rax + 0xCB], 0x1, b64 <- b8
++load_reg_imm r11, b8, 0x1
++load_mem_reg [rsp + 0x1E0], r11, b64
+ op_binary_reg_imm add, r13, 0x1, b64
+ cmp_reg_imm r13, 0x4, b64
+-jump_cond l, b32 384
+-load_reg_mem r8, [rdx + 0xE], b8
++jump_cond l, b32 806
++load_reg_mem rax, [rdx + 0xE], b8
++cmp_reg_imm rax, 0x0, b8
++load_cond_reg_reg rax, r11, ne, b32
++load_reg_reg r8, rax, b64
++cmp_reg_imm rax, 0x0, b8
++load_cond_reg_reg r8, rcx, ne, b32
+ cmp_reg_imm r8, 0x0, b8
+-load_cond_reg_reg r8, rcx, ne, b32
+-load_reg_reg rcx, r8, b64
+-cmp_reg_imm r8, 0x0, b8
+-load_cond_reg_reg rcx, rax, ne, b32
+-cmp_reg_imm rcx, 0x0, b8
+ jump_cond e, b32 914
+-load_reg_mem r10, [rsp + 0x1F0], b64
+-load_addr_amc_reg_mem rcx, [r10 * 0x8], b32
+-load_reg_mem r11, [rsp + 0x1F8], b64
+-op_binary_reg_reg add, rcx, r11, b32
+-load_signed_ext_reg_reg rcx, rcx, b64 <- b32
+-load_amc_mem_imm [rdx + rcx + 0xCB], 0x1, b64 <- b8
+-load_addr_amc_reg_mem rcx, [r10 * 0x8], b32
+-op_binary_reg_reg add, rcx, r11, b32
+-op_unary_reg add, rcx, b32
+-load_signed_ext_reg_reg rcx, rcx, b64 <- b32
+-load_amc_mem_imm [rdx + rcx + 0xCB], 0x1, b64 <- b8
+-load_addr_amc_reg_mem rcx, [r10 * 0x8], b32
+-op_binary_reg_reg add, rcx, r11, b32
+-load_addr_reg_mem rcx, [rcx + 0x4], b32
+-load_signed_ext_reg_reg rcx, rcx, b64 <- b32
+-load_amc_mem_imm [rdx + rcx + 0xCB], 0x1, b64 <- b8
+-load_addr_amc_reg_mem rcx, [r10 * 0x8], b32
+-op_binary_reg_reg add, rcx, r11, b32
+-load_addr_reg_mem rcx, [rcx + 0x4], b32
+-op_unary_reg add, rcx, b32
+-load_signed_ext_reg_reg rcx, rcx, b64 <- b32
+-load_amc_mem_imm [rdx + rcx + 0xCB], 0x1, b64 <- b8
+-load_reg_mem r13, [rsp + 0x1D8], b64
+-op_binary_reg_imm add, r13, 0x1, b64
+-load_mem_reg [rsp + 0x1D8], r13, b64
+-cmp_reg_imm r13, 0x4, b64
+-jump_cond l, b32 772
+-op_binary_reg_imm add, rsp, 0x228, b64
++load_reg_mem r13, [rsp + 0x1F0], b64
++load_addr_amc_reg_mem rax, [r13 * 0x8], b32
++load_reg_mem r14, [rsp + 0x1F8], b64
++op_binary_reg_reg add, rax, r14, b32
++load_signed_ext_reg_reg rax, rax, b64 <- b32
++load_amc_mem_imm [rdx + rax + 0xCB], 0x1, b64 <- b8
++load_addr_amc_reg_mem rax, [r13 * 0x8], b32
++op_binary_reg_reg add, rax, r14, b32
++op_unary_reg add, rax, b32
++load_signed_ext_reg_reg rax, rax, b64 <- b32
++load_amc_mem_imm [rdx + rax + 0xCB], 0x1, b64 <- b8
++load_addr_amc_reg_mem rax, [r13 * 0x8], b32
++op_binary_reg_reg add, rax, r14, b32
++load_addr_reg_mem rax, [rax + 0x4], b32
++load_signed_ext_reg_reg rax, rax, b64 <- b32
++load_amc_mem_imm [rdx + rax + 0xCB], 0x1, b64 <- b8
++load_addr_amc_reg_mem rax, [r13 * 0x8], b32
++op_binary_reg_reg add, rax, r14, b32
++load_addr_reg_mem rax, [rax + 0x4], b32
++op_unary_reg add, rax, b32
++load_signed_ext_reg_reg rax, rax, b64 <- b32
++load_amc_mem_imm [rdx + rax + 0xCB], 0x1, b64 <- b8
++load_reg_mem rax, [rsp + 0x1D8], b64
++op_binary_reg_imm add, rax, 0x1, b64
++load_mem_reg [rsp + 0x1D8], rax, b64
++cmp_reg_imm rax, 0x4, b64
++jump_cond l, b32 723
++op_binary_reg_imm add, rsp, 0x230, b64
++pop r15
+ pop r14
+ pop r13
+@@ -388,5 +400,6 @@
+
+ pop rbx
+ ret
+-op_binary_reg_imm add, rsp, 0x228, b64
++op_binary_reg_imm add, rsp, 0x230, b64
++pop r15
+ pop r14
+ pop r13

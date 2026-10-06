@@ -1688,16 +1688,12 @@ namespace
     MicroReg materializeSetContextArgument(CodeGen& codeGen, AstNodeRef contextRef)
     {
         const CodeGenNodePayload& contextPayload = codeGen.payload(contextRef);
-        TypeRef                   contextTypeRef = intrinsicOperandTypeRef(codeGen, contextRef, contextPayload);
+        const TypeRef             contextTypeRef = intrinsicOperandTypeRef(codeGen, contextRef, contextPayload);
         SWC_ASSERT(contextTypeRef.isValid());
 
-        const TypeInfo& contextType   = codeGen.typeMgr().get(contextTypeRef);
-        const TypeRef   rawTypeRef    = contextType.unwrap(codeGen.ctx(), contextTypeRef, TypeExpandE::Alias);
-        const bool      resolvedAlias = rawTypeRef.isValid() && rawTypeRef != contextTypeRef;
-        if (resolvedAlias)
-            contextTypeRef = rawTypeRef;
-
-        const TypeInfo& rawContextType = resolvedAlias ? codeGen.typeMgr().get(contextTypeRef) : contextType;
+        const TypeInfo& contextType    = codeGen.typeMgr().get(contextTypeRef);
+        const TypeInfo* resolvedAlias  = contextType.unwrapAliasType(codeGen.ctx());
+        const TypeInfo& rawContextType = resolvedAlias ? *resolvedAlias : contextType;
         if (rawContextType.isReference() || rawContextType.isAnyPointer())
         {
             if (!contextPayload.isAddress())

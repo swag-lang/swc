@@ -679,6 +679,19 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
     out.append(it->second.data(), it->second.size());
 }
 
+ResolvedCallArgument NodePayload::getResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const
+{
+    SWC_ASSERT(nodeRef.isValid());
+    const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
+    SWC_ASSERT(shard != nullptr);
+
+    const std::shared_lock lock(shard->resolvedCallArgsMutex);
+    const auto             it = shard->resolvedCallArgsByNode.find(nodeRef);
+    SWC_ASSERT(it != shard->resolvedCallArgsByNode.end());
+    SWC_ASSERT(index < it->second.size());
+    return it->second[index];
+}
+
 bool NodePayload::hasLoweringPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())

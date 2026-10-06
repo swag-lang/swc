@@ -1374,20 +1374,19 @@ namespace
         SWC_ASSERT(castPayload->runtimeStorageSym != nullptr);
         SWC_ASSERT(setPayload.calledFn != nullptr);
 
-        SmallVector<ResolvedCallArgument> resolvedArgs;
-        codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
-        SWC_ASSERT(!resolvedArgs.empty() && resolvedArgs[0].argRef.isValid());
+        const AstNodeRef receiverRef = codeGen.sema().getResolvedCallArgument(codeGen.curNodeRef(), 0).argRef;
+        SWC_ASSERT(receiverRef.isValid());
 
         const MicroReg runtimeStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         if (!setPayload.calledFn->hasFullInitialization())
             SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, codeGen.typeMgr().get(dstTypeRef), runtimeStorageReg));
 
-        CodeGenNodePayload& receiverArg = codeGen.setPayload(resolvedArgs[0].argRef, dstTypeRef);
+        CodeGenNodePayload& receiverArg = codeGen.setPayload(receiverRef, dstTypeRef);
         receiverArg.reg                 = runtimeStorageReg;
         receiverArg.typeRef             = dstTypeRef;
         receiverArg.setIsAddress();
 
-        const auto* receiverSym = codeGen.viewSymbol(resolvedArgs[0].argRef).sym();
+        const auto* receiverSym = codeGen.viewSymbol(receiverRef).sym();
         if (receiverSym && receiverSym->isVariable())
             codeGen.setVariablePayload(receiverSym->cast<SymbolVariable>(), receiverArg);
 

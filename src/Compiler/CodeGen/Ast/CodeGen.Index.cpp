@@ -555,10 +555,7 @@ namespace
         }
 
         SWC_ASSERT(specOpPayload.countFn != nullptr);
-        SmallVector<ResolvedCallArgument> resolvedArgs;
-        codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
-        SWC_ASSERT(!resolvedArgs.empty());
-        ResolvedCallArgument receiverArg = resolvedArgs.front();
+        const ResolvedCallArgument receiverArg = codeGen.sema().getResolvedCallArgument(codeGen.curNodeRef(), 0);
 
         SWC_RESULT(CodeGenCallHelpers::emitCallWithResolvedArgsToReg(codeGen, codeGen.curNodeRef(), *specOpPayload.countFn, std::span<const ResolvedCallArgument>(&receiverArg, 1), outReg));
         builder.emitOpBinaryRegImm(outReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);

@@ -730,12 +730,11 @@ namespace
     {
         SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid()));
 
-        SmallVector<ResolvedCallArgument> resolvedArgs;
-        codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
-        SWC_ASSERT(!resolvedArgs.empty() && resolvedArgs[0].argRef.isValid());
+        const AstNodeRef receiverRef = codeGen.sema().getResolvedCallArgument(codeGen.curNodeRef(), 0).argRef;
+        SWC_ASSERT(receiverRef.isValid());
 
         const CodeGenNodePayload receiverPayload = resolveIdentifierVariablePayload(codeGen, symVar);
-        CodeGenNodePayload&      receiverArg     = codeGen.setPayload(resolvedArgs[0].argRef, symVar.typeRef());
+        CodeGenNodePayload&      receiverArg     = codeGen.setPayload(receiverRef, symVar.typeRef());
         receiverArg.reg                          = receiverPayload.reg;
         receiverArg.typeRef                      = receiverPayload.typeRef;
         receiverArg.storageKind                  = receiverPayload.storageKind;

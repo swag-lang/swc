@@ -180,6 +180,8 @@ protected:
     void                  copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef);
     void                  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
     void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
+    // Copy an existing argument under the shard lock; no view escapes payload replacement.
+    ResolvedCallArgument  getResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const;
     bool                  hasLoweringPayload(AstNodeRef nodeRef) const;
     void                  setLoweringPayload(AstNodeRef nodeRef, void* payload);
     void*                 getLoweringPayload(AstNodeRef nodeRef) const;

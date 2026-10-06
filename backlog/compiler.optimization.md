@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 16:48 — Extend coherent caches to call-free loops with shared exits.
+- Updated: 2026-10-06 17:13 — Reuse idle saved integer registers across mandatory calls.
 - Area: compiler/backend
 - Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
   in a caller-saved XMM register free across a call-free loop. Every matching load/store
@@ -116,11 +116,15 @@ new language syntax.
   three memory operations, with unchanged instruction and push counts. Later
   cleanup removes unobserved stores too. The other 331 bodies and CSV are unchanged;
   [comparison](../bench/results/generated-code/20261006-shared-exit-cache/README.md).
-- Next: inspect hot source-object slots and mixed-width spills. Prefer a free integer
-  register when its live range and ABI preservation permit it. Removing retained stores
-  from called loops needs an exit-liveness proof or edge-specific write-backs.
-  Loops without a call-free back-edge route are still excluded, even if a home is read
-  several times between calls. Any extension should prove reuse within each call-delimited
+- Idle integer registers already saved by the prologue are now preferred when
+  dead at every entry and untouched in the loop. A cache preserved by all calls
+  also admits mandatory-call loops: H.264 extendPlane loses twelve memory accesses
+  with unchanged instruction/push counts; see the
+  [comparison](../bench/results/generated-code/20261006-gp-spill-cache/README.md).
+- Next: inspect hot source-object slots and mixed-width spills. Removing retained
+  stores from called loops needs an exit-liveness proof or edge-specific write-backs.
+  Caches clobbered on every trip are still excluded, even when a home has several
+  reads between calls. Any extension should prove reuse within each call-delimited
   path; counting reads on mutually exclusive arms can overstate the avoided work.
 - Complete when: current codec dumps identify and resolve the remaining promotion boundary
   with aliasing, exit-path and reference-frame coverage; do not repeat the completed private

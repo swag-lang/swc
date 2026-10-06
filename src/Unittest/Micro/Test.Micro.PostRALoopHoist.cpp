@@ -15,16 +15,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRaLoopHoistPass(MicroBuilder& builder, uint64_t spillLo = 0, uint64_t spillHi = 0)
+    Result runPostRaLoopHoistPass(MicroBuilder& builder, uint64_t spillLo = 0, uint64_t spillHi = 0, MicroReg protectedBase = MicroReg::invalid())
     {
         MicroPostRaLoopHoistPass pass;
         MicroPassManager         passManager;
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        passContext.spillAreaLo  = spillLo;
-        passContext.spillAreaHi  = spillHi;
+        passContext.callConvKind          = CallConvKind::Swag;
+        passContext.spillAreaLo           = spillLo;
+        passContext.spillAreaHi           = spillHi;
+        passContext.debugStackBasePhysReg = protectedBase;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -715,6 +716,51 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
         }
         else
             SWC_ASSERT(loads == (variant == 4 ? 0 : 2) && copies == 0);
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A mandatory call may be crossed only with an already saved, idle register.
+SWC_TEST_BEGIN(PostRALoopHoist_PrivateSpillUsesSavedIntegerRegister)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
+    for (uint32_t mode = 0; mode < 6; ++mode)
+    {
+        MicroBuilder   builder(ctx);
+        const MicroReg scratch = mode == 4 ? conv.framePointer : conv.intPersistentRegs.back();
+        const MicroReg counter = conv.intPersistentRegs[0];
+        const MicroReg value   = conv.intTransientRegs[0];
+        const auto     top     = builder.createLabel();
+        if (mode != 1)
+            builder.emitPush(scratch);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(top);
+        builder.emitCallReg(conv.intArgRegs[0], CallConvKind::Swag, 0, 0);
+        builder.emitLoadRegMem(value, conv.stackPointer, 0x80, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(counter, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, conv.stackPointer, 0x80, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(counter, value, MicroOp::Xor, MicroOpBits::B64);
+        if (mode == 2)
+            builder.emitOpBinaryRegReg(counter, scratch, MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(20, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+        if (mode == 5)
+            builder.emitOpBinaryRegReg(counter, scratch, MicroOp::Add, MicroOpBits::B64);
+        if (mode != 1)
+            builder.emitPop(scratch);
+        builder.emitLoadRegReg(conv.intReturn, counter, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runPostRaLoopHoistPass(builder, 0x80, 0x88, mode == 3 ? scratch : MicroReg::invalid()));
+        SWC_ASSERT(Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) == (mode == 0 ? 1 : 2));
+        if (mode == 0)
+        {
+            bool seeded = false;
+            for (const MicroInstr& inst : builder.instructions().view())
+                if (inst.op == MicroInstrOpcode::LoadRegMem && inst.ops(builder.operands())[0].reg == scratch)
+                    seeded = true;
+            SWC_ASSERT(seeded);
+        }
     }
     return Result::Continue;
 }

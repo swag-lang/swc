@@ -1,0 +1,44 @@
+--- baseline
++++ candidate
+@@ -60,14 +60,14 @@
+ load_reg_reg rcx, rsi, b64
+ load_reg_reg rdx, r10, b64
+ load_reg_reg r8, rax, b64
+-load_mem_reg [rsp + 0x38], rax, b64
+-load_mem_reg [rsp + 0x40], r10, b64
+-load_mem_reg [rsp + 0x48], r9, b64
++load_reg_reg rdi, rax, b64
++load_reg_reg r12, r10, b64
++load_reg_reg r13, r9, b64
+ load_mem_reg [rsp + 0x50], r11, b64
+ call_local swag, <relocation>
+-load_reg_mem rax, [rsp + 0x38], b64
+-load_reg_mem r10, [rsp + 0x40], b64
+-load_reg_mem r9, [rsp + 0x48], b64
++load_reg_reg rax, rdi, b64
++load_reg_reg r10, r12, b64
++load_reg_reg r9, r13, b64
+ load_reg_mem r11, [rsp + 0x50], b64
+ cmp_reg_imm rax, 0x0, b64
+ jump_cond e, b32 200
+@@ -76,14 +76,14 @@
+ op_binary_reg_reg add, rcx, r9, b64
+ load_reg_reg rdx, r9, b64
+ load_reg_reg r8, rax, b64
+-load_mem_reg [rsp + 0x38], rax, b64
+-load_mem_reg [rsp + 0x40], r10, b64
+-load_mem_reg [rsp + 0x48], r9, b64
++load_reg_reg rdi, rax, b64
++load_reg_reg r12, r10, b64
++load_reg_reg r13, r9, b64
+ load_mem_reg [rsp + 0x50], r11, b64
+ call_local swag, <relocation>
+-load_reg_mem rax, [rsp + 0x38], b64
+-load_reg_mem r10, [rsp + 0x40], b64
+-load_reg_mem r9, [rsp + 0x48], b64
++load_reg_reg rax, rdi, b64
++load_reg_reg r10, r12, b64
++load_reg_reg r9, r13, b64
+ load_reg_mem r11, [rsp + 0x50], b64
+ op_binary_reg_imm add, r11, 0x1, b64
+ op_binary_reg_reg add, rsi, rax, b64

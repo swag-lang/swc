@@ -514,13 +514,16 @@ namespace
 
         // The value the member was read out of, seen through the pointer or reference
         // used to reach it ('me' is a '*Vec', the owning type is 'Vec').
-        const AstNodeRef leftRef        = node.cast<AstMemberAccessExpr>().nodeLeftRef;
-        const TypeRef    rawLeftTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
-        TypeRef          leftTypeRef    = unwrapAliasEnum(sema, rawLeftTypeRef);
-        const bool       leftIsCarrier  = isDirectBorrowCarrier(sema, rawLeftTypeRef);
+        const AstNodeRef leftRef       = node.cast<AstMemberAccessExpr>().nodeLeftRef;
+        TypeRef          leftTypeRef   = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
+        bool             leftIsCarrier = false;
         if (leftTypeRef.isValid())
         {
-            const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
+            const TypeInfo& declaredType  = sema.typeMgr().get(leftTypeRef);
+            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+            const TypeInfo& leftType      = unwrappedType ? *unwrappedType : declaredType;
+            leftIsCarrier                 = isDirectBorrowCarrier(leftType);
+            leftTypeRef                   = leftType.typeRef();
             if (leftType.isAnyPointer())
                 leftTypeRef = unwrapAliasEnum(sema, leftType.payloadTypeRef());
         }
@@ -674,7 +677,7 @@ namespace
 
     SemaEscapeInfo storageBorrowInfo(Sema& sema, AstNodeRef sourceRef, TypeRef typeRef, bool allowDirectCarrier = false)
     {
-        const TypeRef rawSourceTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, sourceRef));
+        const TypeRef rawSourceTypeRef = expressionTypeRef(sema, sourceRef);
         if (!allowDirectCarrier && isDirectBorrowCarrier(sema, rawSourceTypeRef))
             return {};
 

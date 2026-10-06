@@ -1,0 +1,58 @@
+{
+  "chacha": {
+    "baseline": {
+      "instructions": 470,
+      "memory": 143,
+      "rsp": 37,
+      "push": 9
+    },
+    "candidate": {
+      "instructions": 470,
+      "memory": 141,
+      "rsp": 27,
+      "push": 9
+    }
+  },
+  "nbody": {
+    "baseline": {
+      "instructions": 1380,
+      "memory": 516,
+      "rsp": 103,
+      "push": 3
+    },
+    "candidate": {
+      "instructions": 1380,
+      "memory": 516,
+      "rsp": 103,
+      "push": 3
+    }
+  },
+  "csvagg": {
+    "baseline": {
+      "instructions": 951,
+      "memory": 239,
+      "rsp": 77,
+      "push": 10
+    },
+    "candidate": {
+      "instructions": 951,
+      "memory": 239,
+      "rsp": 77,
+      "push": 10
+    }
+  },
+  "video": {
+    "baseline": {
+      "instructions": 44015,
+      "memory": 9942,
+      "rsp": 2189,
+      "push": 1002
+    },
+    "candidate": {
+      "instructions": 44015,
+      "memory": 9942,
+      "rsp": 2189,
+      "push": 1002
+    }
+  }
+}

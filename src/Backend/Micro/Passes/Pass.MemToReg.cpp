@@ -427,7 +427,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // locals through the stable frame base. In that case, resolve direct SP
     // memory through CFG displacement facts when collecting accesses, so an
     // optimizer-created SP access cannot disappear from a local's alias set.
-    // SP address propagation keeps the conservative fixed-frame contract.
+    // Address propagation uses the displacement at its definition too, so a
+    // pointer made while SP is adjusted cannot hide an escaped local.
     bool stackPointerTracksFrame = true;
     {
         bool spMoved    = false;
@@ -469,19 +470,39 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
         stackPointerTracksFrame = !spMoved;
     }
-    const auto isFrameRegister = [&](const MicroReg reg) {
-        return reg == frameBase || (stackPointerTracksFrame && reg == stackPointer);
+    std::optional<std::unordered_map<uint32_t, uint64_t>> stackPointerOffsets;
+    const auto                                            frameRegisterOffsetAt = [&](uint64_t& outOffset, MicroReg reg, MicroInstrRef ref) {
+        if (reg == frameBase)
+        {
+            outOffset = 0;
+            return true;
+        }
+        if (reg != stackPointer)
+            return false;
+        if (stackPointerTracksFrame)
+        {
+            outOffset = 0ull - frameBaseSpOffset;
+            return true;
+        }
+        if (!stackPointerOffsets)
+            stackPointerOffsets = MicroPassHelpers::collectStackPointerOffsets(context, frameBaseDefRef, frameBaseSpOffset);
+        const auto found = stackPointerOffsets->find(ref.get());
+        if (found == stackPointerOffsets->end())
+            return false;
+        outOffset = found->second;
+        return true;
     };
-    const auto frameRegisterOffset = [&](const MicroReg reg) -> uint64_t {
-        return reg == stackPointer ? 0ull - frameBaseSpOffset : 0;
+    const auto isFrameRegister = [&](const MicroReg reg) {
+        return reg == frameBase || reg == stackPointer;
     };
 
     // ---- Pass 1: collect address registers `lea ar, [fb + off]`. ----
     struct AddrRegInfo
     {
-        uint64_t      offset    = 0;
-        MicroInstrRef defRef    = MicroInstrRef::invalid();
-        bool          ambiguous = false;
+        uint64_t      offset             = 0;
+        MicroInstrRef defRef             = MicroInstrRef::invalid();
+        bool          ambiguous          = false;
+        bool          stackPointerOrigin = false;
     };
     // These tables describe one function, but their capacity can serve
     // later mem2reg rounds and functions on the same worker.
@@ -509,12 +530,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // error payload, a first local) as a plain copy of the base, and
         // treating that copy as an untrackable escape used to abandon the
         // whole function.
-        const bool isAddrLea  = inst.op == MicroInstrOpcode::LoadAddrRegMem && isFrameRegister(ops[1].reg);
-        const bool isBaseCopy = inst.op == MicroInstrOpcode::LoadRegReg && isFrameRegister(ops[1].reg) && ops[2].opBits == MicroOpBits::B64;
+        uint64_t   sourceOffset = 0;
+        const bool isAddrLea    = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64 && frameRegisterOffsetAt(sourceOffset, ops[1].reg, it.current);
+        const bool isBaseCopy   = inst.op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 && frameRegisterOffsetAt(sourceOffset, ops[1].reg, it.current);
         if (isAddrLea || isBaseCopy)
         {
             const MicroReg ar     = ops[0].reg;
-            uint64_t       offset = (isAddrLea ? ops[3].valueU64 : 0) + frameRegisterOffset(ops[1].reg);
+            uint64_t       offset = (isAddrLea ? ops[3].valueU64 : 0) + sourceOffset;
             // An adjacent add/sub is an exact address even when its flags are
             // live and prevent folding the pair to LEA. No access can observe
             // the intermediate pointer between these adjacent instructions.
@@ -532,10 +554,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             }
             if (!ar.isVirtualInt() || ar == frameBase)
                 continue;
-            const auto [found, inserted] = addrRegOffset.try_emplace(ar, AddrRegInfo{offset, it.current});
+            const auto [found, inserted] = addrRegOffset.try_emplace(ar, AddrRegInfo{.offset = offset, .defRef = it.current, .stackPointerOrigin = ops[1].reg == stackPointer});
             if (!inserted)
             {
                 found->second.ambiguous = true;
+                found->second.stackPointerOrigin |= ops[1].reg == stackPointer;
                 addrRegMoreOffsets[ar].push_back(offset);
             }
         }
@@ -568,9 +591,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     // Its original object does not bound the modified pointer.
                     // Only another recorded frame address has a known extent;
                     // defer promotion until address folding resolves the rest.
-                    const bool knownFrameAddress = (it->op == MicroInstrOpcode::LoadAddrRegMem ||
-                                                    (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64)) &&
-                                                   isFrameRegister(ops[1].reg);
+                    uint64_t   sourceOffset      = 0;
+                    const bool knownFrameAddress = (it->op == MicroInstrOpcode::LoadAddrRegMem || it->op == MicroInstrOpcode::LoadRegReg) &&
+                                                   ops[2].opBits == MicroOpBits::B64 && frameRegisterOffsetAt(sourceOffset, ops[1].reg, it.current);
                     if (!knownFrameAddress)
                         return Result::Continue;
                     found->second.ambiguous = true;
@@ -611,7 +634,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 found == addrRegOffset.end() && available.contains(ops[1].reg))
             {
                 const uint64_t offset = addrRegOffset.at(ops[1].reg).offset;
-                found                 = addrRegOffset.emplace(ops[0].reg, AddrRegInfo{offset, it.current}).first;
+                found                 = addrRegOffset.emplace(ops[0].reg, AddrRegInfo{.offset = offset, .defRef = it.current, .stackPointerOrigin = addrRegOffset.at(ops[1].reg).stackPointerOrigin}).first;
                 addressCopies.insert(it.current.get());
             }
             if (found != addrRegOffset.end() && !found->second.ambiguous && found->second.defRef == it.current)
@@ -659,20 +682,22 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // The instruction pass 2 is classifying: where an escape it records happens.
     MicroInstrRef escapingRef = MicroInstrRef::invalid();
 
-    // Poison the variable containing 'offset'; false only when no extent
-    // information is available at all and the caller must fall back to the
-    // whole-function bail.
+    const auto ensureVarRangesReady = [&] {
+        if (!rangesUsable || varRangesReady)
+            return;
+        thread_local std::vector<std::pair<uint64_t, uint64_t>> extents;
+        MicroPassHelpers::collectFrameVariableExtents(extents, context, frameBase);
+        for (const auto& [lo, hi] : extents)
+            varRanges.push_back({.lo = lo, .hi = hi});
+        varRangesReady = true;
+    };
+
+    // Poison the variable containing 'offset'; false when object extents
+    // are unavailable and the caller must abandon the whole function.
     auto poisonEscapedOffset = [&](const uint64_t offset) -> bool {
         if (!rangesUsable)
             return false;
-        if (!varRangesReady)
-        {
-            thread_local std::vector<std::pair<uint64_t, uint64_t>> extents;
-            MicroPassHelpers::collectFrameVariableExtents(extents, context, frameBase);
-            for (const auto& [lo, hi] : extents)
-                varRanges.push_back({.lo = lo, .hi = hi});
-            varRangesReady = true;
-        }
+        ensureVarRangesReady();
         bool found = false;
         for (FrameVarRange& range : varRanges)
         {
@@ -734,8 +759,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     auto escapedObjectOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
         if (isFrameRegister(reg))
         {
-            outOffset = frameRegisterOffset(reg);
-            return true;
+            return frameRegisterOffsetAt(outOffset, reg, escapingRef);
         }
         return trackedEscapeOffset(reg, outOffset);
     };
@@ -745,14 +769,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     //      pinned to one. ----
     thread_local std::unordered_map<uint64_t, SlotInfo> slots;
     slots.clear();
-    SmallVector<std::pair<uint64_t, uint64_t>>            wrappingRanges;
-    bool                                                  bail               = false;
-    bool                                                  hasFieldSplitWrite = false;
-    bool                                                  hasNarrowFieldRead = false;
-    bool                                                  hasVectorWrite     = false;
-    std::optional<std::unordered_map<uint32_t, uint64_t>> stackPointerOffsets;
+    SmallVector<std::pair<uint64_t, uint64_t>> wrappingRanges;
+    bool                                       bail               = false;
+    bool                                       hasFieldSplitWrite = false;
+    bool                                       hasNarrowFieldRead = false;
+    bool                                       hasVectorWrite     = false;
     // Slots addressed directly by the stack pointer include outgoing arguments;
-    // a callee can read those behind this analysis, so they cannot be promoted.
+    // a callee can read those behind this analysis. Only known local extents
+    // can distinguish promotable objects from that implicit argument traffic.
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
     {
         const MicroInstrRef      ref  = it.current;
@@ -768,7 +792,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             continue;
         if (addressCopies.contains(ref.get()))
             continue;
-        if (inst.op == MicroInstrOpcode::LoadAddrRegMem && isFrameRegister(ops[1].reg))
+        if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64 && isFrameRegister(ops[1].reg) && addrRegOffset.contains(ops[0].reg))
             continue;
         // The `mov ar, fb` address definition recognized by pass 1.
         if (inst.op == MicroInstrOpcode::LoadRegReg && isFrameRegister(ops[1].reg) && ops[2].opBits == MicroOpBits::B64 && addrRegOffset.contains(ops[0].reg))
@@ -777,42 +801,34 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg == stackPointer)
             continue;
 
-        MicroReg baseReg   = MicroReg::invalid();
-        uint64_t baseSlot  = 0;
-        bool     baseValid = false;
+        MicroReg baseReg      = MicroReg::invalid();
+        uint64_t baseSlot     = 0;
+        bool     baseValid    = false;
+        bool     stackAddress = false;
 
         auto resolveBase = [&](MicroReg reg, uint64_t extraOffset) {
-            // Vectorization can address locals through SP even when calls move
-            // it elsewhere in the function. Those accesses must participate in
-            // the same slot and overlap proofs as the captured frame base.
-            if (reg == stackPointer && !stackPointerTracksFrame)
+            if (isFrameRegister(reg))
             {
-                if (!stackPointerOffsets)
-                    stackPointerOffsets = MicroPassHelpers::collectStackPointerOffsets(context, frameBaseDefRef, frameBaseSpOffset);
-                const auto found = stackPointerOffsets->find(ref.get());
-                if (found == stackPointerOffsets->end())
+                uint64_t frameOffset = 0;
+                if (!frameRegisterOffsetAt(frameOffset, reg, ref))
                 {
                     bail = true;
                     return;
                 }
-                baseReg   = reg;
-                baseSlot  = extraOffset + found->second;
-                baseValid = true;
-            }
-            else if (isFrameRegister(reg))
-            {
-                baseReg   = reg;
-                baseSlot  = extraOffset + frameRegisterOffset(reg);
-                baseValid = true;
+                baseReg      = reg;
+                baseSlot     = extraOffset + frameOffset;
+                baseValid    = true;
+                stackAddress = reg == stackPointer;
             }
             else
             {
                 const auto found = addrRegOffset.find(reg);
                 if (found != addrRegOffset.end() && !found->second.ambiguous)
                 {
-                    baseReg   = reg;
-                    baseSlot  = found->second.offset + extraOffset;
-                    baseValid = true;
+                    baseReg      = reg;
+                    baseSlot     = found->second.offset + extraOffset;
+                    baseValid    = true;
+                    stackAddress = found->second.stackPointerOrigin;
                 }
             }
         };
@@ -995,7 +1011,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
             const MicroReg reg = ops[i].reg;
             if (!reg.isValid() || reg.isNoBase() ||
-                !(isTracked(reg) || (stackPointerTracksFrame && reg == stackPointer)))
+                !(isTracked(reg) || reg == stackPointer))
                 continue;
             const bool isExplainedBase    = baseValid && reg == baseReg && isHandledScalarMemOp(inst.op);
             const bool isExplainedValue   = storesTrackedValue && reg == valueReg;
@@ -1032,7 +1048,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 (pending.bits == MicroOpBits::B8 || pending.bits == MicroOpBits::B16 || pending.bits == MicroOpBits::B32))
                 hasNarrowFieldRead = true;
             SlotInfo& slot = slots[pending.offset];
-            slot.stackPointerAccess |= baseReg == stackPointer;
+            slot.stackPointerAccess |= stackAddress;
             slot.accesses.push_back(pending);
             // Compare computed ends, not widths: displacement addition can wrap.
             slot.maxAccessEnd = std::max(slot.maxAccessEnd, pending.offset + getNumBytes(pending.bits));
@@ -1318,6 +1334,18 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
         return false;
     };
+
+    // A direct SP access to a known local is not an outgoing argument. Its
+    // displacement and every derived address were checked above; ordinary
+    // object escape and overlap checks still decide whether it can promote.
+    for (auto& [offset, slot] : slots)
+    {
+        if (!slot.stackPointerAccess)
+            continue;
+        ensureVarRangesReady();
+        if (slot.maxAccessEnd > offset && insideKnownVariable(offset, slot.maxAccessEnd))
+            slot.stackPointerAccess = false;
+    }
 
     // ---- Scalarize a vector zero-fill over narrowly-used slots. ----
     //

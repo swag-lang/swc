@@ -91,11 +91,12 @@ namespace
         TypeRef  memberTypeRef = TypeRef::invalid();
     };
 
-    TypeRef aliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    const TypeInfo& aliasEnumType(CodeGen& codeGen, TypeRef typeRef)
     {
-        typeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         SWC_ASSERT(typeRef.isValid());
-        return typeRef;
+        const TypeInfo& declaredType  = codeGen.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+        return unwrappedType ? *unwrappedType : declaredType;
     }
 
     // How many indirections separate the left VALUE from the object its members live in.
@@ -109,7 +110,7 @@ namespace
         while (walk->isReference())
         {
             ++depth;
-            walk = &codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, walk->payloadTypeRef()));
+            walk = &aliasEnumType(codeGen, walk->payloadTypeRef());
         }
 
         if (walk->isAnyPointer())
@@ -158,24 +159,20 @@ namespace
         if (!leftTypeRef.isValid())
             return TypeRef::invalid();
 
-        leftTypeRef                  = aliasEnumTypeRef(codeGen, leftTypeRef);
-        const TypeInfo* leftTypeInfo = &codeGen.typeMgr().get(leftTypeRef);
+        const TypeInfo* leftTypeInfo = &aliasEnumType(codeGen, leftTypeRef);
         if (leftTypeInfo->isPointerOrReference())
-        {
-            leftTypeRef  = aliasEnumTypeRef(codeGen, leftTypeInfo->payloadTypeRef());
-            leftTypeInfo = &codeGen.typeMgr().get(leftTypeRef);
-        }
+            leftTypeInfo = &aliasEnumType(codeGen, leftTypeInfo->payloadTypeRef());
 
         if (!leftTypeInfo->isAggregateStruct())
             return TypeRef::invalid();
 
-        return leftTypeRef;
+        return leftTypeInfo->typeRef();
     }
 
     MicroReg resolveAggregateMemberBaseAddress(CodeGen& codeGen, TypeRef leftTypeRef, const CodeGenNodePayload& leftPayload)
     {
         MicroBuilder&   builder      = codeGen.builder();
-        const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
+        const TypeInfo& leftTypeInfo = aliasEnumType(codeGen, leftTypeRef);
 
         if (leftTypeInfo.isPointerOrReference() || leftTypeInfo.isTypeInfo())
         {
@@ -227,10 +224,10 @@ namespace
         const auto& semaSymVar  = rightSym->cast<SymbolVariable>();
         TypeRef     leftTypeRef = CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, preOverrideTypeRef);
         SWC_ASSERT(leftTypeRef.isValid());
-        const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
+        const TypeInfo& leftTypeInfo = aliasEnumType(codeGen, leftTypeRef);
         // The receiver override above resolves the concrete struct for FIELD lookup, but the
         // payload still carries the receiver's indirection: a pointer receiver dereferences.
-        const TypeInfo& indirectionInfo = leftTypeInfo.isPointerOrReference() ? leftTypeInfo : codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, preOverrideTypeRef));
+        const TypeInfo& indirectionInfo = leftTypeInfo.isPointerOrReference() ? leftTypeInfo : aliasEnumType(codeGen, preOverrideTypeRef);
 
         // Runtime member accesses inside generic instances must use the field symbol of the active
         // specialization. Reusing the root generic field leaks stale offsets and field types into

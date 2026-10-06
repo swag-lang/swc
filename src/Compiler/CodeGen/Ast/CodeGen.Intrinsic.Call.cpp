@@ -588,8 +588,10 @@ namespace
         const CodeGenNodePayload& ptrPayload           = codeGen.payload(ptrRef);
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef         = intrinsicOperandTypeRef(codeGen, valueRef, valuePayload);
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultTypeInfo       = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultTypeInfo       = storageType ? *storageType : *resultView.type();
         const MicroOpBits         opBits               = CodeGenTypeHelpers::numericBits(resultTypeInfo);
         MicroBuilder&             builder              = codeGen.builder();
 
@@ -639,8 +641,10 @@ namespace
         const CodeGenNodePayload& ptrPayload           = codeGen.payload(ptrRef);
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef         = intrinsicOperandTypeRef(codeGen, valueRef, valuePayload);
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultTypeInfo       = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultTypeInfo       = storageType ? *storageType : *resultView.type();
         const MicroOpBits         opBits               = CodeGenTypeHelpers::numericBits(resultTypeInfo);
         MicroBuilder&             builder              = codeGen.builder();
 
@@ -672,8 +676,10 @@ namespace
         const CodeGenNodePayload& exchangePayload      = codeGen.payload(exchangeRef);
         const TypeRef             compareTypeRef       = intrinsicOperandTypeRef(codeGen, compareRef, comparePayload);
         const TypeRef             exchangeTypeRef      = intrinsicOperandTypeRef(codeGen, exchangeRef, exchangePayload);
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultTypeInfo       = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultTypeInfo       = storageType ? *storageType : *resultView.type();
         const MicroOpBits         opBits               = CodeGenTypeHelpers::numericBits(resultTypeInfo);
         MicroBuilder&             builder              = codeGen.builder();
 
@@ -700,8 +706,10 @@ namespace
     {
         const AstNodeRef          ptrRef               = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& ptrPayload           = codeGen.payload(ptrRef);
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultTypeInfo       = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultTypeInfo       = storageType ? *storageType : *resultView.type();
         const MicroOpBits         opBits               = CodeGenTypeHelpers::numericBits(resultTypeInfo);
 
         SWC_ASSERT(resultTypeInfo.isIntLike());
@@ -898,8 +906,9 @@ namespace
         const AstNodeRef          typeRefNode        = children[1];
         const CodeGenNodePayload& objectPayload      = codeGen.payload(objectRef);
         const CodeGenNodePayload& typePayload        = codeGen.payload(typeRefNode);
-        const TypeRef             resultTypeRef      = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType         = codeGen.typeMgr().get(resultTypeRef);
+        const SemaNodeView        resultView         = codeGen.curViewType();
+        const TypeRef             resultTypeRef      = resultView.typeRef();
+        const TypeInfo&           resultType         = *resultView.type();
         const TypeRef             objectValueTypeRef = intrinsicOperandTypeRef(codeGen, objectRef, objectPayload);
         const TypeRef             objectTypeRef      = intrinsicMakeInterfaceObjectTypeRef(codeGen, typeRefNode);
         constexpr uint64_t        interfaceSize      = sizeof(Runtime::Interface);
@@ -1234,8 +1243,9 @@ namespace
     {
         const AstNodeRef          exprRef       = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
-        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const SemaNodeView        resultView    = codeGen.curViewType();
+        const TypeRef             resultTypeRef = resultView.typeRef();
+        const TypeInfo&           resultType    = *resultView.type();
         SWC_ASSERT(resultType.isFloat());
 
         const uint32_t    floatBits = resultType.payloadFloatBitsOr(64);
@@ -1266,8 +1276,10 @@ namespace
         const AstNodeRef          exprRef              = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& exprPayload          = codeGen.payload(exprRef);
         const TypeRef             exprTypeRef          = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType           = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultType           = storageType ? *storageType : *resultView.type();
         const MicroOpBits         opBits               = CodeGenTypeHelpers::numericBits(resultType);
         CodeGenNodePayload&       resultPayload        = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder              = codeGen.builder();
@@ -1317,8 +1329,10 @@ namespace
         const CodeGenNodePayload& rightPayload         = codeGen.payload(rightRef);
         const TypeRef             leftOperandTypeRef   = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(leftRef).typeRef();
         const TypeRef             rightOperandTypeRef  = rightPayload.typeRef.isValid() ? rightPayload.typeRef : codeGen.viewType(rightRef).typeRef();
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType           = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultType           = storageType ? *storageType : *resultView.type();
         const MicroOpBits         opBits               = CodeGenTypeHelpers::numericBits(resultType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
@@ -1367,8 +1381,10 @@ namespace
         const CodeGenNodePayload& countPayload         = codeGen.payload(countRef);
         const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
         const TypeRef             countTypeRef         = countPayload.typeRef.isValid() ? countPayload.typeRef : codeGen.viewType(countRef).typeRef();
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType           = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultType           = storageType ? *storageType : *resultView.type();
         const TypeInfo&           countType            = intrinsicNumericStorageType(codeGen, countTypeRef);
         const MicroOpBits         resultBits           = CodeGenTypeHelpers::numericBits(resultType);
         CodeGenNodePayload&       resultPayload        = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
@@ -1394,8 +1410,10 @@ namespace
         const AstNodeRef          valueRef             = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType           = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultType           = storageType ? *storageType : *resultView.type();
         const MicroOpBits         resultBits           = CodeGenTypeHelpers::numericBits(resultType);
         CodeGenNodePayload&       resultPayload        = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder              = codeGen.builder();
@@ -1416,8 +1434,10 @@ namespace
         const AstNodeRef          valueRef             = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& valuePayload         = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef         = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
-        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType           = intrinsicNumericStorageType(codeGen, resultTypeRef);
+        const SemaNodeView        resultView           = codeGen.curViewType();
+        const TypeRef             resultTypeRef        = resultView.typeRef();
+        const TypeInfo*           storageType          = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           resultType           = storageType ? *storageType : *resultView.type();
         const MicroOpBits         resultBits           = CodeGenTypeHelpers::numericBits(resultType);
         const uint32_t            logicalBitWidth      = getNumBits(resultBits);
         CodeGenNodePayload&       resultPayload        = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
@@ -1487,8 +1507,9 @@ namespace
         const TypeRef             aTypeRef      = aPayload.typeRef.isValid() ? aPayload.typeRef : codeGen.viewType(aRef).typeRef();
         const TypeRef             bTypeRef      = bPayload.typeRef.isValid() ? bPayload.typeRef : codeGen.viewType(bRef).typeRef();
         const TypeRef             cTypeRef      = cPayload.typeRef.isValid() ? cPayload.typeRef : codeGen.viewType(cRef).typeRef();
-        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const SemaNodeView        resultView    = codeGen.curViewType();
+        const TypeRef             resultTypeRef = resultView.typeRef();
+        const TypeInfo&           resultType    = *resultView.type();
         const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
         SWC_ASSERT(resultType.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
@@ -1511,8 +1532,9 @@ namespace
         const AstNodeRef          valueRef      = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
-        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const SemaNodeView        resultView    = codeGen.curViewType();
+        const TypeRef             resultTypeRef = resultView.typeRef();
+        const TypeInfo&           resultType    = *resultView.type();
         const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
         SWC_ASSERT(resultType.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
@@ -1533,8 +1555,9 @@ namespace
         const AstNodeRef          valueRef      = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
         const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
-        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const SemaNodeView        resultView    = codeGen.curViewType();
+        const TypeRef             resultTypeRef = resultView.typeRef();
+        const TypeInfo&           resultType    = *resultView.type();
         const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
         SWC_ASSERT(resultType.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);

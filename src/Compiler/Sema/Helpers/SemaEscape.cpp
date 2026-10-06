@@ -51,14 +51,8 @@ namespace
         return sema.viewType(nodeRef).typeRef();
     }
 
-    bool isDirectBorrowCarrier(Sema& sema, TypeRef typeRef)
+    bool isDirectBorrowCarrier(const TypeInfo& type)
     {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
         return type.isString() ||
                type.isCString() ||
                type.isSlice() ||
@@ -67,6 +61,16 @@ namespace
                type.isInterface() ||
                type.isAny() ||
                type.isLambdaClosure();
+    }
+
+    bool isDirectBorrowCarrier(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        return isDirectBorrowCarrier(unwrappedType ? *unwrappedType : declaredType);
     }
 
     bool localProjectionRootCanReceiveLocalStore(Sema& sema, const SymbolVariable& root)
@@ -105,11 +109,11 @@ namespace
             return false;
         budget--;
 
-        typeRef = unwrapAliasEnum(sema, typeRef);
-        if (!typeRef.isValid())
-            return false;
-
-        if (isDirectBorrowCarrier(sema, typeRef))
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        typeRef                       = type.typeRef();
+        if (isDirectBorrowCarrier(type))
             return true;
 
         // Structural carriers are discovered through fields/elements, but cycles are
@@ -118,7 +122,6 @@ namespace
         if (!visiting.insert(typeRef).second)
             return false;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (type.isArray())
             return typeCanCarryBorrowRec(sema, type.payloadArrayElemTypeRef(), visiting, budget);
 
@@ -511,13 +514,16 @@ namespace
 
         // The value the member was read out of, seen through the pointer or reference
         // used to reach it ('me' is a '*Vec', the owning type is 'Vec').
-        const AstNodeRef leftRef        = node.cast<AstMemberAccessExpr>().nodeLeftRef;
-        const TypeRef    rawLeftTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
-        TypeRef          leftTypeRef    = unwrapAliasEnum(sema, rawLeftTypeRef);
-        const bool       leftIsCarrier  = isDirectBorrowCarrier(sema, rawLeftTypeRef);
+        const AstNodeRef leftRef       = node.cast<AstMemberAccessExpr>().nodeLeftRef;
+        TypeRef          leftTypeRef   = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
+        bool             leftIsCarrier = false;
         if (leftTypeRef.isValid())
         {
-            const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
+            const TypeInfo& declaredType  = sema.typeMgr().get(leftTypeRef);
+            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+            const TypeInfo& leftType      = unwrappedType ? *unwrappedType : declaredType;
+            leftIsCarrier                 = isDirectBorrowCarrier(leftType);
+            leftTypeRef                   = leftType.typeRef();
             if (leftType.isAnyPointer())
                 leftTypeRef = unwrapAliasEnum(sema, leftType.payloadTypeRef());
         }
@@ -671,7 +677,7 @@ namespace
 
     SemaEscapeInfo storageBorrowInfo(Sema& sema, AstNodeRef sourceRef, TypeRef typeRef, bool allowDirectCarrier = false)
     {
-        const TypeRef rawSourceTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, sourceRef));
+        const TypeRef rawSourceTypeRef = expressionTypeRef(sema, sourceRef);
         if (!allowDirectCarrier && isDirectBorrowCarrier(sema, rawSourceTypeRef))
             return {};
 
@@ -890,14 +896,14 @@ namespace
         return typeRef.isValid() && !isDirectBorrowCarrier(sema, typeRef) && typeHasBorrowableStorage(sema, typeRef);
     }
 
-    bool isStructuralBorrowCarrier(Sema& sema, TypeRef typeRef)
+    const TypeInfo* structuralBorrowCarrierType(Sema& sema, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
-            return false;
+            return nullptr;
         const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-        return (type.isStruct() || type.isArray()) && typeCanCarryBorrowImpl(sema, type.typeRef());
+        return (type.isStruct() || type.isArray()) && typeCanCarryBorrowImpl(sema, type.typeRef()) ? &type : nullptr;
     }
 
     // A copied aggregate keeps the borrows in its fields, not the address used to
@@ -925,18 +931,22 @@ namespace
         if (!pointer.hasBorrow() && resolvedPointer.isValid() &&
             (sema.node(resolvedPointer).is(AstNodeId::IndexExpr) || sema.node(resolvedPointer).is(AstNodeId::IndexListExpr)))
             pointer = storageBorrowInfo(sema, pointerRef, valueTypeRef);
-        if (pointer.viaErasedPayload || !isStructuralBorrowCarrier(sema, valueTypeRef))
+        if (pointer.viaErasedPayload)
+            return pointer;
+        const TypeInfo* valueType = structuralBorrowCarrierType(sema, valueTypeRef);
+        if (!valueType)
             return pointer;
 
-        const TypeRef sourceTypeRef = pointer.sourceVar ? unwrapAliasEnum(sema, pointer.sourceVar->typeRef()) : TypeRef::invalid();
+        const TypeRef normalizedValueTypeRef = valueType->typeRef();
+        const TypeRef sourceTypeRef          = pointer.sourceVar ? unwrapAliasEnum(sema, pointer.sourceVar->typeRef()) : TypeRef::invalid();
         // An address of a known aggregate subobject still names the enclosing
         // variable's slot. Loading its contents must instead follow the original
         // value projection, including through a local pointer alias. Requiring
         // both that projection and its actual value type excludes pointer casts
         // that merely reinterpret an unrelated enclosing object.
-        if (pointer.sourceRef.isValid() && isStructuralBorrowCarrier(sema, sourceTypeRef) &&
-            sourceTypeRef != unwrapAliasEnum(sema, valueTypeRef) &&
-            unwrapAliasEnum(sema, expressionTypeRef(sema, pointer.sourceRef)) == unwrapAliasEnum(sema, valueTypeRef))
+        if (pointer.sourceRef.isValid() && structuralBorrowCarrierType(sema, sourceTypeRef) &&
+            sourceTypeRef != normalizedValueTypeRef &&
+            unwrapAliasEnum(sema, expressionTypeRef(sema, pointer.sourceRef)) == normalizedValueTypeRef)
         {
             SemaEscapeProjection projection;
             if (storageProjection(sema, pointer.sourceRef, projection) && projection.root == pointer.sourceVar && !projection.components.empty())
@@ -945,8 +955,8 @@ namespace
         // The runtime interface view exposes the carrier's two stored pointers,
         // not the address of the local interface slot used to inspect them.
         const bool interfaceContents = sourceTypeRef.isValid() && sema.typeMgr().get(sourceTypeRef).isInterface() &&
-                                       unwrapAliasEnum(sema, valueTypeRef) == sema.typeMgr().structInterface();
-        if (pointer.sourceVar && (sourceTypeRef == unwrapAliasEnum(sema, valueTypeRef) || interfaceContents))
+                                       normalizedValueTypeRef == sema.typeMgr().structInterface();
+        if (pointer.sourceVar && (sourceTypeRef == normalizedValueTypeRef || interfaceContents))
         {
             SemaEscapeInfo contents = sema.variableEscapeInfoIncludingProjections(*pointer.sourceVar);
             if (!contents.hasBorrow() && pointer.sourceVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
@@ -968,8 +978,8 @@ namespace
             {
                 const TypeInfo& pointerType = sema.typeMgr().get(pointerTypeRef);
                 if ((pointerType.isAnyPointer() || pointerType.isReference()) &&
-                    pointer.sourceVar && unwrapAliasEnum(sema, pointer.sourceVar->typeRef()) == pointerTypeRef &&
-                    unwrapAliasEnum(sema, pointerType.payloadTypeRef()) == unwrapAliasEnum(sema, valueTypeRef))
+                    pointer.sourceVar && sourceTypeRef == pointerTypeRef &&
+                    unwrapAliasEnum(sema, pointerType.payloadTypeRef()) == normalizedValueTypeRef)
                 {
                     pointer.parameterIndirectOriginsMask = pointer.parameterOriginsMask;
                     pointer.parameterOriginsMask         = 0;
@@ -1023,7 +1033,7 @@ namespace
     {
         // A by-value aggregate argument copies its fields, including when the
         // expression is a member reached through a pointer to its parent.
-        if (isStructuralBorrowCarrier(sema, resultTypeRef))
+        if (structuralBorrowCarrierType(sema, resultTypeRef))
             return expressionEscapeInfoWithTarget(sema, argumentValueRef(sema, arg.argRef), resultTypeRef, budget);
 
         SemaEscapeInfo info = argumentEscapeInfo(sema, arg.argRef, budget);
@@ -1301,7 +1311,7 @@ namespace
         }
 
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, indexedRef, budget);
-        if (isStructuralBorrowCarrier(sema, resultTypeRef) && !info.viaErasedPayload)
+        if (structuralBorrowCarrierType(sema, resultTypeRef) && !info.viaErasedPayload)
             return aggregatePointeeBorrowInfo(sema, indexedRef, resultTypeRef, budget);
         // A slot copy normally has an independent pointee. An erased payload's
         // elements may point back into the payload, so retain its lifetime instead.
@@ -1368,7 +1378,7 @@ namespace
         }
 
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, unary.nodeExprRef, budget);
-        if (Token::isDeref(tok.id) && isStructuralBorrowCarrier(sema, expressionTypeRef(sema, unaryRef)) && !info.viaErasedPayload)
+        if (Token::isDeref(tok.id) && structuralBorrowCarrierType(sema, expressionTypeRef(sema, unaryRef)) && !info.viaErasedPayload)
             return aggregatePointeeBorrowInfo(sema, unary.nodeExprRef, expressionTypeRef(sema, unaryRef), budget);
         if (info.hasBorrow())
             info.typeRef = expressionTypeRef(sema, unaryRef);
@@ -2033,7 +2043,7 @@ namespace
             if (paramTypeRef.isValid())
             {
                 const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
-                if ((paramType.isAnyPointer() || paramType.isReference()) && isStructuralBorrowCarrier(sema, paramType.payloadTypeRef()))
+                if ((paramType.isAnyPointer() || paramType.isReference()) && structuralBorrowCarrierType(sema, paramType.payloadTypeRef()))
                     indirectInfo = aggregatePointeeBorrowInfo(sema, arg.argRef, paramType.payloadTypeRef(), budget);
             }
             for (const bool indirect : {false, true})
@@ -2682,7 +2692,7 @@ namespace
                 const AstNodeRef leftRef     = node.cast<AstMemberAccessExpr>().nodeLeftRef;
                 const TypeRef    leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, leftRef));
                 SemaEscapeInfo   info        = expressionEscapeInfoRec(sema, leftRef, budget);
-                if (!info.hasBorrow() && isStructuralBorrowCarrier(sema, leftTypeRef))
+                if (!info.hasBorrow() && structuralBorrowCarrierType(sema, leftTypeRef))
                     info = deferredCallBorrowInfo(sema, leftRef);
                 if (info.hasBorrow())
                 {
@@ -2695,14 +2705,14 @@ namespace
                         if (leftTypeRef.isValid())
                         {
                             const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
-                            if ((leftType.isAnyPointer() || leftType.isReference()) && isStructuralBorrowCarrier(sema, leftType.payloadTypeRef()))
+                            if ((leftType.isAnyPointer() || leftType.isReference()) && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
                             {
                                 // Reading through a slot does not make a copied pointer
                                 // alias that slot. An aggregate already held by value
                                 // carries its fields' borrows, so those routes survive.
                                 info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
                             }
-                            else if (!isStructuralBorrowCarrier(sema, leftTypeRef))
+                            else if (!structuralBorrowCarrierType(sema, leftTypeRef))
                                 return {};
                             if (info.hasBorrow())
                                 info.typeRef = memberTypeRef;
@@ -2804,7 +2814,7 @@ namespace
                 // This conversion is specific to value copies. Reading an array
                 // member to form a slice or an element address still borrows the
                 // parent storage through expressionEscapeInfoRec.
-                if (!isStructuralBorrowCarrier(sema, targetTypeRef) ||
+                if (!structuralBorrowCarrierType(sema, targetTypeRef) ||
                     unwrapAliasEnum(sema, expressionTypeRef(sema, resolvedRef)) != unwrapAliasEnum(sema, targetTypeRef))
                     break;
 
@@ -2822,11 +2832,11 @@ namespace
                     break;
                 const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
                 SemaEscapeInfo  info;
-                if ((leftType.isAnyPointer() || leftType.isReference()) && isStructuralBorrowCarrier(sema, leftType.payloadTypeRef()))
+                if ((leftType.isAnyPointer() || leftType.isReference()) && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
                 {
                     info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
                 }
-                else if (isStructuralBorrowCarrier(sema, leftTypeRef))
+                else if (structuralBorrowCarrierType(sema, leftTypeRef))
                 {
                     info = expressionEscapeInfoWithTarget(sema, leftRef, leftTypeRef, budget);
                     if (!info.hasBorrow())

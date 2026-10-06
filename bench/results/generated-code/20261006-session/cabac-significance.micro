@@ -1,0 +1,678 @@
+Instance 1: significance region including hit/refill arms; zero frame accesses
+while scan < MaxCoeffs - 1
+118 491  
+119 495                   cmp_reg_imm r14, 0x3, b64               | cmp(r14, 0x3)
+120 500                     jump_cond ae, b32 1053                | if ae jump 1053
+947 .binDecisionAt(sigStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacSigAt + scan] : scan))
+121 2232  
+122 506         load_addr_amc_reg_mem rcx, [r12 + r14], b64       | rcx = &[r12 + r14]
+123 514         load_zero_ext_reg_mem r15, [rcx], b64 <- b8       | r15 = zero_extend([rcx], b64 <- b8)
+124 522                  load_reg_reg r9, r10, b32                | r9 = r10
+125 524             op_binary_reg_imm and, r9, 0xC0, b32          | r9 &= 0xC0
+126 536         load_addr_amc_reg_mem r9, [r15 + r9 * 0x2], b64   | r9 = &[r15 + r9 * 0x2]
+127 539     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+128 546             op_binary_reg_reg sub, r10, r9, b32           | r10 -= r9
+129 549                  load_reg_reg rdx, r10, b32               | rdx = r10
+130 551             op_binary_reg_imm shl, rdx, 0x11, b32         | rdx <<= 0x11
+131 555                  load_reg_reg r8, r11, b32                | r8 = r11
+132 557             op_binary_reg_reg sub, r8, rdx, b32           | r8 -= rdx
+133 567                   cmp_reg_reg rdx, r11, b32               | cmp(rdx, r11)
+134 787             load_cond_reg_reg r8, r11, ge, b32            | r8 = r11 if ge
+135 740             load_cond_reg_reg r9, r10, ge, b32            | r9 = r10 if ge
+136 596                  load_reg_reg rdx, r15, b64               | rdx = r15
+137 597                  op_unary_reg not, rdx, b64               | rdx = not rdx
+138 512             load_cond_reg_reg rdx, r15, ge, b64           | rdx = r15 if ge
+139 619              load_amc_reg_mem r10, [rsi + rdx + 0x280], b8 | r10 = [rsi + rdx + 0x280]
+140 621                  load_mem_reg [rcx], r10, b8              | [rcx] = r10
+141 626                     clear_reg rcx, b32                    | rcx = 0
+142 627             op_binary_reg_reg lzcnt, rcx, r9, b32         | rcx = lzcnt(rcx, r9)
+143 629             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+144 638         op_binary_reg_reg_reg shl, r10, r9, rcx, b32      | r10 = r9 << rcx
+145 643         op_binary_reg_reg_reg shl, r11, r8, rcx, b32      | r11 = r8 << rcx
+146 652                   cmp_reg_imm r11, 0x0, b16               | cmp(r11, 0x0)
+147 657                     jump_cond ne, b32 750                 | if ne jump 750
+148 659                     clear_reg rcx, b32                    | rcx = 0
+149 660             op_binary_reg_reg tzcnt, rcx, r11, b32        | rcx = tzcnt(rcx, r11)
+150 663             load_addr_reg_mem r8, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | r8 = &[rcx + 0xFFFFFFFFFFFFFFF0]
+151 672                     clear_reg r9, b32                     | r9 = 0
+152 678                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+153 679                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+154 684                     jump_cond a, b32 719                  | if a jump 719
+155 689                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+156 690                  load_reg_mem r9, [rax + 0x78], b64       | r9 = [rax + 0x78]
+157 693     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+158 697             op_binary_reg_imm shl, r15, 0x9, b32          | r15 <<= 0x9
+159 709     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+160 713             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+161 716             op_binary_reg_reg or, r15, rcx, b32           | r15 |= rcx
+162 718                  load_reg_reg r9, r15, b32                | r9 = r15
+163 719  
+164 725             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+165 728                  load_reg_imm r15, b32, 0xFFFF            | r15 = 0xFFFF
+166 2311                  load_reg_reg rcx, r8, b32                | rcx = r8
+167 2303             op_binary_reg_reg shl, r15, rcx, b32          | r15 <<= rcx
+168 733             op_binary_reg_reg sub, r11, r15, b32          | r11 -= r15
+169 736         op_binary_reg_reg_reg shl, rcx, r9, r8, b32       | rcx = r9 << r8
+170 739             op_binary_reg_reg add, r11, rcx, b32          | r11 += rcx
+171 750  
+948 if (binState & 1) != 0
+172 754                  test_reg_imm rdx, 0x1, b8                | test(rdx, 0x1)
+173 763                     jump_cond e, b32 1046                 | if e jump 1046
+950 indices[count] = cast(u8) scan
+174 770              load_amc_mem_reg [rbx + rdi], r14, b64 <- b8 | [rbx + rdi] = r14
+951 count += 1
+175 774             op_binary_reg_imm add, rdi, 0x1, b32          | rdi += 0x1
+952 .binDecisionAt(lastStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacLastAt + scan] : scan))
+176 781         load_addr_amc_reg_mem rcx, [r13 + r14], b64       | rcx = &[r13 + r14]
+177 789         load_zero_ext_reg_mem rdx, [rcx], b64 <- b8       | rdx = zero_extend([rcx], b64 <- b8)
+178 797                  load_reg_reg r8, r10, b32                | r8 = r10
+179 799             op_binary_reg_imm and, r8, 0xC0, b32          | r8 &= 0xC0
+180 811         load_addr_amc_reg_mem r8, [rdx + r8 * 0x2], b64   | r8 = &[rdx + r8 * 0x2]
+181 814     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+182 821             op_binary_reg_reg sub, r10, r8, b32           | r10 -= r8
+183 824                  load_reg_reg r9, r10, b32                | r9 = r10
+184 826             op_binary_reg_imm shl, r9, 0x11, b32          | r9 <<= 0x11
+185 830                  load_reg_reg r15, r11, b32               | r15 = r11
+186 832             op_binary_reg_reg sub, r15, r9, b32           | r15 -= r9
+187 842                   cmp_reg_reg r9, r11, b32                | cmp(r9, r11)
+188 399             load_cond_reg_reg r15, r11, ge, b32           | r15 = r11 if ge
+189 171             load_cond_reg_reg r8, r10, ge, b32            | r8 = r10 if ge
+190 871                  load_reg_reg r9, rdx, b64                | r9 = rdx
+191 872                  op_unary_reg not, r9, b64                | r9 = not r9
+192 061             load_cond_reg_reg r9, rdx, ge, b64            | r9 = rdx if ge
+193 894              load_amc_reg_mem rdx, [rsi + r9 + 0x280], b8 | rdx = [rsi + r9 + 0x280]
+194 896                  load_mem_reg [rcx], rdx, b8              | [rcx] = rdx
+195 901                     clear_reg rcx, b32                    | rcx = 0
+196 902             op_binary_reg_reg lzcnt, rcx, r8, b32         | rcx = lzcnt(rcx, r8)
+197 904             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+198 913         op_binary_reg_reg_reg shl, r10, r8, rcx, b32      | r10 = r8 << rcx
+199 918         op_binary_reg_reg_reg shl, r11, r15, rcx, b32     | r11 = r15 << rcx
+200 927                   cmp_reg_imm r11, 0x0, b16               | cmp(r11, 0x0)
+201 932                     jump_cond ne, b32 1025                | if ne jump 1025
+202 934                     clear_reg rcx, b32                    | rcx = 0
+203 935             op_binary_reg_reg tzcnt, rcx, r11, b32        | rcx = tzcnt(rcx, r11)
+204 938             load_addr_reg_mem rdx, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | rdx = &[rcx + 0xFFFFFFFFFFFFFFF0]
+205 947                     clear_reg r8, b32                     | r8 = 0
+206 953                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+207 954                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+208 959                     jump_cond a, b32 994                  | if a jump 994
+209 964                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+210 965                  load_reg_mem r8, [rax + 0x78], b64       | r8 = [rax + 0x78]
+211 968     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+212 972             op_binary_reg_imm shl, r15, 0x9, b32          | r15 <<= 0x9
+213 984     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+214 988             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+215 991             op_binary_reg_reg or, r15, rcx, b32           | r15 |= rcx
+216 993                  load_reg_reg r8, r15, b32                | r8 = r15
+217 994  
+218 1000             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+219 1003                  load_reg_imm r15, b32, 0xFFFF            | r15 = 0xFFFF
+220 2157                  load_reg_reg rcx, rdx, b32               | rcx = rdx
+221 2366             op_binary_reg_reg shl, r15, rcx, b32          | r15 <<= rcx
+222 1008             op_binary_reg_reg sub, r11, r15, b32          | r11 -= r15
+223 1011         op_binary_reg_reg_reg shl, rcx, r8, rdx, b32      | rcx = r8 << rdx
+224 1014             op_binary_reg_reg add, r11, rcx, b32          | r11 += rcx
+225 1025  
+953 if (binState & 1) != 0
+226 1029                  test_reg_imm r9, 0x1, b8                 | test(r9, 0x1)
+227 1038                     jump_cond ne, b32 1072                | if ne jump 1072
+954 {
+228 1045  
+949 {
+229 1046  
+960 scan += 1
+230 1048                  op_unary_reg add, r14, b64               | r14 = add r14
+946 {
+231 2120                   cmp_reg_imm r14, 0x3, b64               | cmp(r14, 0x3)
+232 1052                     jump_cond b, b32 2232                 | if b jump 2232
+233 1053  
+966 indices[count] = cast(u8) (MaxCoeffs - 1)
+234 1066              load_amc_mem_imm [rbx + rdi], 0x3, b64 <- b8 | [rbx + rdi] = 0x3
+967 count += 1
+235 1070             op_binary_reg_imm add, rdi, 0x1, b32          | rdi += 0x1
+965 {
+236 1072  
+972 
+Instance 2: significance region including hit/refill arms; zero frame accesses
+while scan < MaxCoeffs - 1
+128 491  
+129 495                   cmp_reg_imm r14, 0x3F, b64              | cmp(r14, 0x3F)
+130 500                     jump_cond ae, b32 1067                | if ae jump 1067
+947 .binDecisionAt(sigStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacSigAt + scan] : scan))
+131 1731  
+132 501            load_reg_ptr_reloc r15, b64, <relocation>   | r15 = [928] u8 = <array>
+133 508     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+134 513         load_addr_amc_reg_mem r9, [r12 + rcx], b64        | r9 = &[r12 + rcx]
+135 521         load_zero_ext_reg_mem rcx, [r9], b64 <- b8        | rcx = zero_extend([r9], b64 <- b8)
+136 529                  load_reg_reg rbx, rsi, b32               | rbx = rsi
+137 531             op_binary_reg_imm and, rbx, 0xC0, b32         | rbx &= 0xC0
+138 543         load_addr_amc_reg_mem rbx, [rcx + rbx * 0x2], b64 | rbx = &[rcx + rbx * 0x2]
+139 546     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+140 553             op_binary_reg_reg sub, rsi, rbx, b32          | rsi -= rbx
+141 556                  load_reg_reg r11, rsi, b32               | r11 = rsi
+142 558             op_binary_reg_imm shl, r11, 0x11, b32         | r11 <<= 0x11
+143 562                  load_reg_reg r8, rdi, b32                | r8 = rdi
+144 564             op_binary_reg_reg sub, r8, r11, b32           | r8 -= r11
+145 574                   cmp_reg_reg r11, rdi, b32               | cmp(r11, rdi)
+146 801             load_cond_reg_reg r8, rdi, ge, b32            | r8 = rdi if ge
+147 747             load_cond_reg_reg rbx, rsi, ge, b32           | rbx = rsi if ge
+148 603                  load_reg_reg r11, rcx, b64               | r11 = rcx
+149 604                  op_unary_reg not, r11, b64               | r11 = not r11
+150 519             load_cond_reg_reg r11, rcx, ge, b64           | r11 = rcx if ge
+151 626              load_amc_reg_mem rcx, [r15 + r11 + 0x280], b8 | rcx = [r15 + r11 + 0x280]
+152 628                  load_mem_reg [r9], rcx, b8               | [r9] = rcx
+153 633                     clear_reg rcx, b32                    | rcx = 0
+154 634             op_binary_reg_reg lzcnt, rcx, rbx, b32        | rcx = lzcnt(rcx, rbx)
+155 636             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+156 645         op_binary_reg_reg_reg shl, rsi, rbx, rcx, b32     | rsi = rbx << rcx
+157 650         op_binary_reg_reg_reg shl, rdi, r8, rcx, b32      | rdi = r8 << rcx
+158 659                   cmp_reg_imm rdi, 0x0, b16               | cmp(rdi, 0x0)
+159 664                     jump_cond ne, b32 757                 | if ne jump 757
+160 666                     clear_reg rcx, b32                    | rcx = 0
+161 667             op_binary_reg_reg tzcnt, rcx, rdi, b32        | rcx = tzcnt(rcx, rdi)
+162 670             load_addr_reg_mem r8, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | r8 = &[rcx + 0xFFFFFFFFFFFFFFF0]
+163 679                     clear_reg r9, b32                     | r9 = 0
+164 685                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+165 686                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+166 691                     jump_cond a, b32 726                  | if a jump 726
+167 696                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+168 697                  load_reg_mem r9, [rax + 0x78], b64       | r9 = [rax + 0x78]
+169 700     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+170 704             op_binary_reg_imm shl, rbx, 0x9, b32          | rbx <<= 0x9
+171 716     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+172 720             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+173 723             op_binary_reg_reg or, rbx, rcx, b32           | rbx |= rcx
+174 725                  load_reg_reg r9, rbx, b32                | r9 = rbx
+175 726  
+176 732             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+177 735                  load_reg_imm rbx, b32, 0xFFFF            | rbx = 0xFFFF
+178 2380                  load_reg_reg rcx, r8, b32                | rcx = r8
+179 2093             op_binary_reg_reg shl, rbx, rcx, b32          | rbx <<= rcx
+180 740             op_binary_reg_reg sub, rdi, rbx, b32          | rdi -= rbx
+181 743         op_binary_reg_reg_reg shl, rcx, r9, r8, b32       | rcx = r9 << r8
+182 746             op_binary_reg_reg add, rdi, rcx, b32          | rdi += rcx
+183 757  
+948 if (binState & 1) != 0
+184 761                  test_reg_imm r11, 0x1, b8                | test(r11, 0x1)
+185 770                     jump_cond e, b32 1060                 | if e jump 1060
+950 indices[count] = cast(u8) scan
+186 777              load_amc_mem_reg [rdx + r10], r14, b64 <- b8 | [rdx + r10] = r14
+951 count += 1
+187 781             op_binary_reg_imm add, r10, 0x1, b32          | r10 += 0x1
+952 .binDecisionAt(lastStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacLastAt + scan] : scan))
+188 790     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+189 795         load_addr_amc_reg_mem r8, [r13 + rcx], b64        | r8 = &[r13 + rcx]
+190 803         load_zero_ext_reg_mem rcx, [r8], b64 <- b8        | rcx = zero_extend([r8], b64 <- b8)
+191 811                  load_reg_reg r9, rsi, b32                | r9 = rsi
+192 813             op_binary_reg_imm and, r9, 0xC0, b32          | r9 &= 0xC0
+193 825         load_addr_amc_reg_mem r9, [rcx + r9 * 0x2], b64   | r9 = &[rcx + r9 * 0x2]
+194 828     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+195 835             op_binary_reg_reg sub, rsi, r9, b32           | rsi -= r9
+196 838                  load_reg_reg r11, rsi, b32               | r11 = rsi
+197 840             op_binary_reg_imm shl, r11, 0x11, b32         | r11 <<= 0x11
+198 844                  load_reg_reg rbx, rdi, b32               | rbx = rdi
+199 846             op_binary_reg_reg sub, rbx, r11, b32          | rbx -= r11
+200 856                   cmp_reg_reg r11, rdi, b32               | cmp(r11, rdi)
+201 399             load_cond_reg_reg rbx, rdi, ge, b32           | rbx = rdi if ge
+202 171             load_cond_reg_reg r9, rsi, ge, b32            | r9 = rsi if ge
+203 885                  load_reg_reg r11, rcx, b64               | r11 = rcx
+204 886                  op_unary_reg not, r11, b64               | r11 = not r11
+205 061             load_cond_reg_reg r11, rcx, ge, b64           | r11 = rcx if ge
+206 908              load_amc_reg_mem rcx, [r15 + r11 + 0x280], b8 | rcx = [r15 + r11 + 0x280]
+207 910                  load_mem_reg [r8], rcx, b8               | [r8] = rcx
+208 915                     clear_reg rcx, b32                    | rcx = 0
+209 916             op_binary_reg_reg lzcnt, rcx, r9, b32         | rcx = lzcnt(rcx, r9)
+210 918             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+211 927         op_binary_reg_reg_reg shl, rsi, r9, rcx, b32      | rsi = r9 << rcx
+212 932         op_binary_reg_reg_reg shl, rdi, rbx, rcx, b32     | rdi = rbx << rcx
+213 941                   cmp_reg_imm rdi, 0x0, b16               | cmp(rdi, 0x0)
+214 946                     jump_cond ne, b32 1039                | if ne jump 1039
+215 948                     clear_reg rcx, b32                    | rcx = 0
+216 949             op_binary_reg_reg tzcnt, rcx, rdi, b32        | rcx = tzcnt(rcx, rdi)
+217 952             load_addr_reg_mem r8, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | r8 = &[rcx + 0xFFFFFFFFFFFFFFF0]
+218 961                     clear_reg r9, b32                     | r9 = 0
+219 967                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+220 968                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+221 973                     jump_cond a, b32 1008                 | if a jump 1008
+222 978                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+223 979                  load_reg_mem r9, [rax + 0x78], b64       | r9 = [rax + 0x78]
+224 982     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+225 986             op_binary_reg_imm shl, rbx, 0x9, b32          | rbx <<= 0x9
+226 998     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+227 1002             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+228 1005             op_binary_reg_reg or, rbx, rcx, b32           | rbx |= rcx
+229 1007                  load_reg_reg r9, rbx, b32                | r9 = rbx
+230 1008  
+231 1014             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+232 1017                  load_reg_imm rbx, b32, 0xFFFF            | rbx = 0xFFFF
+233 1992                  load_reg_reg rcx, r8, b32                | rcx = r8
+234 1786             op_binary_reg_reg shl, rbx, rcx, b32          | rbx <<= rcx
+235 1022             op_binary_reg_reg sub, rdi, rbx, b32          | rdi -= rbx
+236 1025         op_binary_reg_reg_reg shl, rcx, r9, r8, b32       | rcx = r9 << r8
+237 1028             op_binary_reg_reg add, rdi, rcx, b32          | rdi += rcx
+238 1039  
+953 if (binState & 1) != 0
+239 1043                  test_reg_imm r11, 0x1, b8                | test(r11, 0x1)
+240 1052                     jump_cond ne, b32 1086                | if ne jump 1086
+954 {
+241 1059  
+949 {
+242 1060  
+960 scan += 1
+243 1062                  op_unary_reg add, r14, b64               | r14 = add r14
+946 {
+244 1710                   cmp_reg_imm r14, 0x3F, b64              | cmp(r14, 0x3F)
+245 1066                     jump_cond b, b32 1731                 | if b jump 1731
+246 1067  
+966 indices[count] = cast(u8) (MaxCoeffs - 1)
+247 1080              load_amc_mem_imm [rdx + r10], 0x3F, b64 <- b8 | [rdx + r10] = 0x3F
+967 count += 1
+248 1084             op_binary_reg_imm add, r10, 0x1, b32          | r10 += 0x1
+965 {
+249 1086  
+972 
+Instance 3: significance region including hit/refill arms; zero frame accesses
+while scan < MaxCoeffs - 1
+118 491  
+119 495                   cmp_reg_imm r14, 0xF, b64               | cmp(r14, 0xF)
+120 500                     jump_cond ae, b32 1053                | if ae jump 1053
+947 .binDecisionAt(sigStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacSigAt + scan] : scan))
+121 2232  
+122 506         load_addr_amc_reg_mem rcx, [r12 + r14], b64       | rcx = &[r12 + r14]
+123 514         load_zero_ext_reg_mem r15, [rcx], b64 <- b8       | r15 = zero_extend([rcx], b64 <- b8)
+124 522                  load_reg_reg r9, r10, b32                | r9 = r10
+125 524             op_binary_reg_imm and, r9, 0xC0, b32          | r9 &= 0xC0
+126 536         load_addr_amc_reg_mem r9, [r15 + r9 * 0x2], b64   | r9 = &[r15 + r9 * 0x2]
+127 539     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+128 546             op_binary_reg_reg sub, r10, r9, b32           | r10 -= r9
+129 549                  load_reg_reg rdx, r10, b32               | rdx = r10
+130 551             op_binary_reg_imm shl, rdx, 0x11, b32         | rdx <<= 0x11
+131 555                  load_reg_reg r8, r11, b32                | r8 = r11
+132 557             op_binary_reg_reg sub, r8, rdx, b32           | r8 -= rdx
+133 567                   cmp_reg_reg rdx, r11, b32               | cmp(rdx, r11)
+134 787             load_cond_reg_reg r8, r11, ge, b32            | r8 = r11 if ge
+135 740             load_cond_reg_reg r9, r10, ge, b32            | r9 = r10 if ge
+136 596                  load_reg_reg rdx, r15, b64               | rdx = r15
+137 597                  op_unary_reg not, rdx, b64               | rdx = not rdx
+138 512             load_cond_reg_reg rdx, r15, ge, b64           | rdx = r15 if ge
+139 619              load_amc_reg_mem r10, [rsi + rdx + 0x280], b8 | r10 = [rsi + rdx + 0x280]
+140 621                  load_mem_reg [rcx], r10, b8              | [rcx] = r10
+141 626                     clear_reg rcx, b32                    | rcx = 0
+142 627             op_binary_reg_reg lzcnt, rcx, r9, b32         | rcx = lzcnt(rcx, r9)
+143 629             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+144 638         op_binary_reg_reg_reg shl, r10, r9, rcx, b32      | r10 = r9 << rcx
+145 643         op_binary_reg_reg_reg shl, r11, r8, rcx, b32      | r11 = r8 << rcx
+146 652                   cmp_reg_imm r11, 0x0, b16               | cmp(r11, 0x0)
+147 657                     jump_cond ne, b32 750                 | if ne jump 750
+148 659                     clear_reg rcx, b32                    | rcx = 0
+149 660             op_binary_reg_reg tzcnt, rcx, r11, b32        | rcx = tzcnt(rcx, r11)
+150 663             load_addr_reg_mem r8, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | r8 = &[rcx + 0xFFFFFFFFFFFFFFF0]
+151 672                     clear_reg r9, b32                     | r9 = 0
+152 678                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+153 679                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+154 684                     jump_cond a, b32 719                  | if a jump 719
+155 689                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+156 690                  load_reg_mem r9, [rax + 0x78], b64       | r9 = [rax + 0x78]
+157 693     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+158 697             op_binary_reg_imm shl, r15, 0x9, b32          | r15 <<= 0x9
+159 709     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+160 713             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+161 716             op_binary_reg_reg or, r15, rcx, b32           | r15 |= rcx
+162 718                  load_reg_reg r9, r15, b32                | r9 = r15
+163 719  
+164 725             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+165 728                  load_reg_imm r15, b32, 0xFFFF            | r15 = 0xFFFF
+166 2311                  load_reg_reg rcx, r8, b32                | rcx = r8
+167 2303             op_binary_reg_reg shl, r15, rcx, b32          | r15 <<= rcx
+168 733             op_binary_reg_reg sub, r11, r15, b32          | r11 -= r15
+169 736         op_binary_reg_reg_reg shl, rcx, r9, r8, b32       | rcx = r9 << r8
+170 739             op_binary_reg_reg add, r11, rcx, b32          | r11 += rcx
+171 750  
+948 if (binState & 1) != 0
+172 754                  test_reg_imm rdx, 0x1, b8                | test(rdx, 0x1)
+173 763                     jump_cond e, b32 1046                 | if e jump 1046
+950 indices[count] = cast(u8) scan
+174 770              load_amc_mem_reg [rbx + rdi], r14, b64 <- b8 | [rbx + rdi] = r14
+951 count += 1
+175 774             op_binary_reg_imm add, rdi, 0x1, b32          | rdi += 0x1
+952 .binDecisionAt(lastStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacLastAt + scan] : scan))
+176 781         load_addr_amc_reg_mem rcx, [r13 + r14], b64       | rcx = &[r13 + r14]
+177 789         load_zero_ext_reg_mem rdx, [rcx], b64 <- b8       | rdx = zero_extend([rcx], b64 <- b8)
+178 797                  load_reg_reg r8, r10, b32                | r8 = r10
+179 799             op_binary_reg_imm and, r8, 0xC0, b32          | r8 &= 0xC0
+180 811         load_addr_amc_reg_mem r8, [rdx + r8 * 0x2], b64   | r8 = &[rdx + r8 * 0x2]
+181 814     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+182 821             op_binary_reg_reg sub, r10, r8, b32           | r10 -= r8
+183 824                  load_reg_reg r9, r10, b32                | r9 = r10
+184 826             op_binary_reg_imm shl, r9, 0x11, b32          | r9 <<= 0x11
+185 830                  load_reg_reg r15, r11, b32               | r15 = r11
+186 832             op_binary_reg_reg sub, r15, r9, b32           | r15 -= r9
+187 842                   cmp_reg_reg r9, r11, b32                | cmp(r9, r11)
+188 399             load_cond_reg_reg r15, r11, ge, b32           | r15 = r11 if ge
+189 171             load_cond_reg_reg r8, r10, ge, b32            | r8 = r10 if ge
+190 871                  load_reg_reg r9, rdx, b64                | r9 = rdx
+191 872                  op_unary_reg not, r9, b64                | r9 = not r9
+192 061             load_cond_reg_reg r9, rdx, ge, b64            | r9 = rdx if ge
+193 894              load_amc_reg_mem rdx, [rsi + r9 + 0x280], b8 | rdx = [rsi + r9 + 0x280]
+194 896                  load_mem_reg [rcx], rdx, b8              | [rcx] = rdx
+195 901                     clear_reg rcx, b32                    | rcx = 0
+196 902             op_binary_reg_reg lzcnt, rcx, r8, b32         | rcx = lzcnt(rcx, r8)
+197 904             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+198 913         op_binary_reg_reg_reg shl, r10, r8, rcx, b32      | r10 = r8 << rcx
+199 918         op_binary_reg_reg_reg shl, r11, r15, rcx, b32     | r11 = r15 << rcx
+200 927                   cmp_reg_imm r11, 0x0, b16               | cmp(r11, 0x0)
+201 932                     jump_cond ne, b32 1025                | if ne jump 1025
+202 934                     clear_reg rcx, b32                    | rcx = 0
+203 935             op_binary_reg_reg tzcnt, rcx, r11, b32        | rcx = tzcnt(rcx, r11)
+204 938             load_addr_reg_mem rdx, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | rdx = &[rcx + 0xFFFFFFFFFFFFFFF0]
+205 947                     clear_reg r8, b32                     | r8 = 0
+206 953                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+207 954                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+208 959                     jump_cond a, b32 994                  | if a jump 994
+209 964                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+210 965                  load_reg_mem r8, [rax + 0x78], b64       | r8 = [rax + 0x78]
+211 968     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+212 972             op_binary_reg_imm shl, r15, 0x9, b32          | r15 <<= 0x9
+213 984     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+214 988             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+215 991             op_binary_reg_reg or, r15, rcx, b32           | r15 |= rcx
+216 993                  load_reg_reg r8, r15, b32                | r8 = r15
+217 994  
+218 1000             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+219 1003                  load_reg_imm r15, b32, 0xFFFF            | r15 = 0xFFFF
+220 2157                  load_reg_reg rcx, rdx, b32               | rcx = rdx
+221 2366             op_binary_reg_reg shl, r15, rcx, b32          | r15 <<= rcx
+222 1008             op_binary_reg_reg sub, r11, r15, b32          | r11 -= r15
+223 1011         op_binary_reg_reg_reg shl, rcx, r8, rdx, b32      | rcx = r8 << rdx
+224 1014             op_binary_reg_reg add, r11, rcx, b32          | r11 += rcx
+225 1025  
+953 if (binState & 1) != 0
+226 1029                  test_reg_imm r9, 0x1, b8                 | test(r9, 0x1)
+227 1038                     jump_cond ne, b32 1072                | if ne jump 1072
+954 {
+228 1045  
+949 {
+229 1046  
+960 scan += 1
+230 1048                  op_unary_reg add, r14, b64               | r14 = add r14
+946 {
+231 2120                   cmp_reg_imm r14, 0xF, b64               | cmp(r14, 0xF)
+232 1052                     jump_cond b, b32 2232                 | if b jump 2232
+233 1053  
+966 indices[count] = cast(u8) (MaxCoeffs - 1)
+234 1066              load_amc_mem_imm [rbx + rdi], 0xF, b64 <- b8 | [rbx + rdi] = 0xF
+967 count += 1
+235 1070             op_binary_reg_imm add, rdi, 0x1, b32          | rdi += 0x1
+965 {
+236 1072  
+972 
+Instance 4: significance region including hit/refill arms; zero frame accesses
+while scan < MaxCoeffs - 1
+123 491  
+124 495                   cmp_reg_imm r15, 0xE, b64               | cmp(r15, 0xE)
+125 500                     jump_cond ae, b32 1053                | if ae jump 1053
+947 .binDecisionAt(sigStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacSigAt + scan] : scan))
+126 2232  
+127 506         load_addr_amc_reg_mem rcx, [r13 + r15], b64       | rcx = &[r13 + r15]
+128 514         load_zero_ext_reg_mem r9, [rcx], b64 <- b8        | r9 = zero_extend([rcx], b64 <- b8)
+129 522                  load_reg_reg rbx, r10, b32               | rbx = r10
+130 524             op_binary_reg_imm and, rbx, 0xC0, b32         | rbx &= 0xC0
+131 536         load_addr_amc_reg_mem rbx, [r9 + rbx * 0x2], b64  | rbx = &[r9 + rbx * 0x2]
+132 539     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+133 546             op_binary_reg_reg sub, r10, rbx, b32          | r10 -= rbx
+134 549                  load_reg_reg rdx, r10, b32               | rdx = r10
+135 551             op_binary_reg_imm shl, rdx, 0x11, b32         | rdx <<= 0x11
+136 555                  load_reg_reg r8, r11, b32                | r8 = r11
+137 557             op_binary_reg_reg sub, r8, rdx, b32           | r8 -= rdx
+138 567                   cmp_reg_reg rdx, r11, b32               | cmp(rdx, r11)
+139 787             load_cond_reg_reg r8, r11, ge, b32            | r8 = r11 if ge
+140 740             load_cond_reg_reg rbx, r10, ge, b32           | rbx = r10 if ge
+141 596                  load_reg_reg rdx, r9, b64                | rdx = r9
+142 597                  op_unary_reg not, rdx, b64               | rdx = not rdx
+143 512             load_cond_reg_reg rdx, r9, ge, b64            | rdx = r9 if ge
+144 619              load_amc_reg_mem r9, [rdi + rdx + 0x280], b8 | r9 = [rdi + rdx + 0x280]
+145 621                  load_mem_reg [rcx], r9, b8               | [rcx] = r9
+146 626                     clear_reg rcx, b32                    | rcx = 0
+147 627             op_binary_reg_reg lzcnt, rcx, rbx, b32        | rcx = lzcnt(rcx, rbx)
+148 629             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+149 638         op_binary_reg_reg_reg shl, r10, rbx, rcx, b32     | r10 = rbx << rcx
+150 643         op_binary_reg_reg_reg shl, r11, r8, rcx, b32      | r11 = r8 << rcx
+151 652                   cmp_reg_imm r11, 0x0, b16               | cmp(r11, 0x0)
+152 657                     jump_cond ne, b32 750                 | if ne jump 750
+153 659                     clear_reg rcx, b32                    | rcx = 0
+154 660             op_binary_reg_reg tzcnt, rcx, r11, b32        | rcx = tzcnt(rcx, r11)
+155 663             load_addr_reg_mem r8, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | r8 = &[rcx + 0xFFFFFFFFFFFFFFF0]
+156 672                     clear_reg r9, b32                     | r9 = 0
+157 678                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+158 679                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+159 684                     jump_cond a, b32 719                  | if a jump 719
+160 689                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+161 690                  load_reg_mem r9, [rax + 0x78], b64       | r9 = [rax + 0x78]
+162 693     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+163 697             op_binary_reg_imm shl, rbx, 0x9, b32          | rbx <<= 0x9
+164 709     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+165 713             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+166 716             op_binary_reg_reg or, rbx, rcx, b32           | rbx |= rcx
+167 718                  load_reg_reg r9, rbx, b32                | r9 = rbx
+168 719  
+169 725             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+170 728                  load_reg_imm rbx, b32, 0xFFFF            | rbx = 0xFFFF
+171 2157                  load_reg_reg rcx, r8, b32                | rcx = r8
+172 2366             op_binary_reg_reg shl, rbx, rcx, b32          | rbx <<= rcx
+173 733             op_binary_reg_reg sub, r11, rbx, b32          | r11 -= rbx
+174 736         op_binary_reg_reg_reg shl, rcx, r9, r8, b32       | rcx = r9 << r8
+175 739             op_binary_reg_reg add, r11, rcx, b32          | r11 += rcx
+176 750  
+948 if (binState & 1) != 0
+177 754                  test_reg_imm rdx, 0x1, b8                | test(rdx, 0x1)
+178 763                     jump_cond e, b32 1046                 | if e jump 1046
+950 indices[count] = cast(u8) scan
+179 770              load_amc_mem_reg [rsi + r12], r15, b64 <- b8 | [rsi + r12] = r15
+951 count += 1
+180 774             op_binary_reg_imm add, r12, 0x1, b32          | r12 += 0x1
+952 .binDecisionAt(lastStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacLastAt + scan] : scan))
+181 781         load_addr_amc_reg_mem rcx, [r14 + r15], b64       | rcx = &[r14 + r15]
+182 789         load_zero_ext_reg_mem rdx, [rcx], b64 <- b8       | rdx = zero_extend([rcx], b64 <- b8)
+183 797                  load_reg_reg r8, r10, b32                | r8 = r10
+184 799             op_binary_reg_imm and, r8, 0xC0, b32          | r8 &= 0xC0
+185 811         load_addr_amc_reg_mem r8, [rdx + r8 * 0x2], b64   | r8 = &[rdx + r8 * 0x2]
+186 814     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+187 821             op_binary_reg_reg sub, r10, r8, b32           | r10 -= r8
+188 824                  load_reg_reg r9, r10, b32                | r9 = r10
+189 826             op_binary_reg_imm shl, r9, 0x11, b32          | r9 <<= 0x11
+190 830                  load_reg_reg rbx, r11, b32               | rbx = r11
+191 832             op_binary_reg_reg sub, rbx, r9, b32           | rbx -= r9
+192 842                   cmp_reg_reg r9, r11, b32                | cmp(r9, r11)
+193 399             load_cond_reg_reg rbx, r11, ge, b32           | rbx = r11 if ge
+194 171             load_cond_reg_reg r8, r10, ge, b32            | r8 = r10 if ge
+195 871                  load_reg_reg r9, rdx, b64                | r9 = rdx
+196 872                  op_unary_reg not, r9, b64                | r9 = not r9
+197 061             load_cond_reg_reg r9, rdx, ge, b64            | r9 = rdx if ge
+198 894              load_amc_reg_mem rdx, [rdi + r9 + 0x280], b8 | rdx = [rdi + r9 + 0x280]
+199 896                  load_mem_reg [rcx], rdx, b8              | [rcx] = rdx
+200 901                     clear_reg rcx, b32                    | rcx = 0
+201 902             op_binary_reg_reg lzcnt, rcx, r8, b32         | rcx = lzcnt(rcx, r8)
+202 904             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+203 913         op_binary_reg_reg_reg shl, r10, r8, rcx, b32      | r10 = r8 << rcx
+204 918         op_binary_reg_reg_reg shl, r11, rbx, rcx, b32     | r11 = rbx << rcx
+205 927                   cmp_reg_imm r11, 0x0, b16               | cmp(r11, 0x0)
+206 932                     jump_cond ne, b32 1025                | if ne jump 1025
+207 934                     clear_reg rcx, b32                    | rcx = 0
+208 935             op_binary_reg_reg tzcnt, rcx, r11, b32        | rcx = tzcnt(rcx, r11)
+209 938             load_addr_reg_mem rdx, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | rdx = &[rcx + 0xFFFFFFFFFFFFFFF0]
+210 947                     clear_reg r8, b32                     | r8 = 0
+211 953                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+212 954                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+213 959                     jump_cond a, b32 994                  | if a jump 994
+214 964                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+215 965                  load_reg_mem r8, [rax + 0x78], b64       | r8 = [rax + 0x78]
+216 968     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+217 972             op_binary_reg_imm shl, rbx, 0x9, b32          | rbx <<= 0x9
+218 984     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+219 988             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+220 991             op_binary_reg_reg or, rbx, rcx, b32           | rbx |= rcx
+221 993                  load_reg_reg r8, rbx, b32                | r8 = rbx
+222 994  
+223 1000             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+224 1003                  load_reg_imm rbx, b32, 0xFFFF            | rbx = 0xFFFF
+225 2079                  load_reg_reg rcx, rdx, b32               | rcx = rdx
+226 1978             op_binary_reg_reg shl, rbx, rcx, b32          | rbx <<= rcx
+227 1008             op_binary_reg_reg sub, r11, rbx, b32          | r11 -= rbx
+228 1011         op_binary_reg_reg_reg shl, rcx, r8, rdx, b32      | rcx = r8 << rdx
+229 1014             op_binary_reg_reg add, r11, rcx, b32          | r11 += rcx
+230 1025  
+953 if (binState & 1) != 0
+231 1029                  test_reg_imm r9, 0x1, b8                 | test(r9, 0x1)
+232 1038                     jump_cond ne, b32 1072                | if ne jump 1072
+954 {
+233 1045  
+949 {
+234 1046  
+960 scan += 1
+235 1048                  op_unary_reg add, r15, b64               | r15 = add r15
+946 {
+236 2120                   cmp_reg_imm r15, 0xE, b64               | cmp(r15, 0xE)
+237 1052                     jump_cond b, b32 2232                 | if b jump 2232
+238 1053  
+966 indices[count] = cast(u8) (MaxCoeffs - 1)
+239 1066              load_amc_mem_imm [rsi + r12], 0xE, b64 <- b8 | [rsi + r12] = 0xE
+967 count += 1
+240 1070             op_binary_reg_imm add, r12, 0x1, b32          | r12 += 0x1
+965 {
+241 1072  
+972 
+Instance 5: significance region including hit/refill arms; zero frame accesses
+while scan < MaxCoeffs - 1
+123 491  
+124 495                   cmp_reg_imm r15, 0xF, b64               | cmp(r15, 0xF)
+125 500                     jump_cond ae, b32 1053                | if ae jump 1053
+947 .binDecisionAt(sigStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacSigAt + scan] : scan))
+126 2232  
+127 506         load_addr_amc_reg_mem rcx, [r13 + r15], b64       | rcx = &[r13 + r15]
+128 514         load_zero_ext_reg_mem r9, [rcx], b64 <- b8        | r9 = zero_extend([rcx], b64 <- b8)
+129 522                  load_reg_reg rbx, r10, b32               | rbx = r10
+130 524             op_binary_reg_imm and, rbx, 0xC0, b32         | rbx &= 0xC0
+131 536         load_addr_amc_reg_mem rbx, [r9 + rbx * 0x2], b64  | rbx = &[r9 + rbx * 0x2]
+132 539     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+133 546             op_binary_reg_reg sub, r10, rbx, b32          | r10 -= rbx
+134 549                  load_reg_reg rdx, r10, b32               | rdx = r10
+135 551             op_binary_reg_imm shl, rdx, 0x11, b32         | rdx <<= 0x11
+136 555                  load_reg_reg r8, r11, b32                | r8 = r11
+137 557             op_binary_reg_reg sub, r8, rdx, b32           | r8 -= rdx
+138 567                   cmp_reg_reg rdx, r11, b32               | cmp(rdx, r11)
+139 787             load_cond_reg_reg r8, r11, ge, b32            | r8 = r11 if ge
+140 740             load_cond_reg_reg rbx, r10, ge, b32           | rbx = r10 if ge
+141 596                  load_reg_reg rdx, r9, b64                | rdx = r9
+142 597                  op_unary_reg not, rdx, b64               | rdx = not rdx
+143 512             load_cond_reg_reg rdx, r9, ge, b64            | rdx = r9 if ge
+144 619              load_amc_reg_mem r9, [rdi + rdx + 0x280], b8 | r9 = [rdi + rdx + 0x280]
+145 621                  load_mem_reg [rcx], r9, b8               | [rcx] = r9
+146 626                     clear_reg rcx, b32                    | rcx = 0
+147 627             op_binary_reg_reg lzcnt, rcx, rbx, b32        | rcx = lzcnt(rcx, rbx)
+148 629             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+149 638         op_binary_reg_reg_reg shl, r10, rbx, rcx, b32     | r10 = rbx << rcx
+150 643         op_binary_reg_reg_reg shl, r11, r8, rcx, b32      | r11 = r8 << rcx
+151 652                   cmp_reg_imm r11, 0x0, b16               | cmp(r11, 0x0)
+152 657                     jump_cond ne, b32 750                 | if ne jump 750
+153 659                     clear_reg rcx, b32                    | rcx = 0
+154 660             op_binary_reg_reg tzcnt, rcx, r11, b32        | rcx = tzcnt(rcx, r11)
+155 663             load_addr_reg_mem r8, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | r8 = &[rcx + 0xFFFFFFFFFFFFFFF0]
+156 672                     clear_reg r9, b32                     | r9 = 0
+157 678                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+158 679                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+159 684                     jump_cond a, b32 719                  | if a jump 719
+160 689                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+161 690                  load_reg_mem r9, [rax + 0x78], b64       | r9 = [rax + 0x78]
+162 693     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+163 697             op_binary_reg_imm shl, rbx, 0x9, b32          | rbx <<= 0x9
+164 709     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+165 713             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+166 716             op_binary_reg_reg or, rbx, rcx, b32           | rbx |= rcx
+167 718                  load_reg_reg r9, rbx, b32                | r9 = rbx
+168 719  
+169 725             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+170 728                  load_reg_imm rbx, b32, 0xFFFF            | rbx = 0xFFFF
+171 2157                  load_reg_reg rcx, r8, b32                | rcx = r8
+172 2366             op_binary_reg_reg shl, rbx, rcx, b32          | rbx <<= rcx
+173 733             op_binary_reg_reg sub, r11, rbx, b32          | r11 -= rbx
+174 736         op_binary_reg_reg_reg shl, rcx, r9, r8, b32       | rcx = r9 << r8
+175 739             op_binary_reg_reg add, r11, rcx, b32          | r11 += rcx
+176 750  
+948 if (binState & 1) != 0
+177 754                  test_reg_imm rdx, 0x1, b8                | test(rdx, 0x1)
+178 763                     jump_cond e, b32 1046                 | if e jump 1046
+950 indices[count] = cast(u8) scan
+179 770              load_amc_mem_reg [rsi + r12], r15, b64 <- b8 | [rsi + r12] = r15
+951 count += 1
+180 774             op_binary_reg_imm add, r12, 0x1, b32          | r12 += 0x1
+952 .binDecisionAt(lastStates + (MaxCoeffs == 64 ? cast(u64) CabacTables[CabacLastAt + scan] : scan))
+181 781         load_addr_amc_reg_mem rcx, [r14 + r15], b64       | rcx = &[r14 + r15]
+182 789         load_zero_ext_reg_mem rdx, [rcx], b64 <- b8       | rdx = zero_extend([rcx], b64 <- b8)
+183 797                  load_reg_reg r8, r10, b32                | r8 = r10
+184 799             op_binary_reg_imm and, r8, 0xC0, b32          | r8 &= 0xC0
+185 811         load_addr_amc_reg_mem r8, [rdx + r8 * 0x2], b64   | r8 = &[rdx + r8 * 0x2]
+186 814     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+187 821             op_binary_reg_reg sub, r10, r8, b32           | r10 -= r8
+188 824                  load_reg_reg r9, r10, b32                | r9 = r10
+189 826             op_binary_reg_imm shl, r9, 0x11, b32          | r9 <<= 0x11
+190 830                  load_reg_reg rbx, r11, b32               | rbx = r11
+191 832             op_binary_reg_reg sub, rbx, r9, b32           | rbx -= r9
+192 842                   cmp_reg_reg r9, r11, b32                | cmp(r9, r11)
+193 399             load_cond_reg_reg rbx, r11, ge, b32           | rbx = r11 if ge
+194 171             load_cond_reg_reg r8, r10, ge, b32            | r8 = r10 if ge
+195 871                  load_reg_reg r9, rdx, b64                | r9 = rdx
+196 872                  op_unary_reg not, r9, b64                | r9 = not r9
+197 061             load_cond_reg_reg r9, rdx, ge, b64            | r9 = rdx if ge
+198 894              load_amc_reg_mem rdx, [rdi + r9 + 0x280], b8 | rdx = [rdi + r9 + 0x280]
+199 896                  load_mem_reg [rcx], rdx, b8              | [rcx] = rdx
+200 901                     clear_reg rcx, b32                    | rcx = 0
+201 902             op_binary_reg_reg lzcnt, rcx, r8, b32         | rcx = lzcnt(rcx, r8)
+202 904             load_addr_reg_mem rcx, [rcx + 0xFFFFFFFFFFFFFFE9], b32 | rcx = &[rcx + 0xFFFFFFFFFFFFFFE9]
+203 913         op_binary_reg_reg_reg shl, r10, r8, rcx, b32      | r10 = r8 << rcx
+204 918         op_binary_reg_reg_reg shl, r11, rbx, rcx, b32     | r11 = rbx << rcx
+205 927                   cmp_reg_imm r11, 0x0, b16               | cmp(r11, 0x0)
+206 932                     jump_cond ne, b32 1025                | if ne jump 1025
+207 934                     clear_reg rcx, b32                    | rcx = 0
+208 935             op_binary_reg_reg tzcnt, rcx, r11, b32        | rcx = tzcnt(rcx, r11)
+209 938             load_addr_reg_mem rdx, [rcx + 0xFFFFFFFFFFFFFFF0], b32 | rdx = &[rcx + 0xFFFFFFFFFFFFFFF0]
+210 947                     clear_reg r8, b32                     | r8 = 0
+211 953                  load_reg_mem rcx, [rax + 0x80], b64      | rcx = [rax + 0x80]
+212 954                   cmp_mem_reg [rax + 0x88], rcx, b64      | cmp([rax + 0x88], rcx)
+213 959                     jump_cond a, b32 994                  | if a jump 994
+214 964                  load_reg_mem rcx, [rax + 0x88], b64      | rcx = [rax + 0x88]
+215 965                  load_reg_mem r8, [rax + 0x78], b64       | r8 = [rax + 0x78]
+216 968     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+217 972             op_binary_reg_imm shl, rbx, 0x9, b32          | rbx <<= 0x9
+218 984     load_zero_ext_amc_reg_mem 7 operand(s)                | load_zero_ext_amc_reg_mem
+219 988             op_binary_reg_reg add, rcx, rcx, b32          | rcx += rcx
+220 991             op_binary_reg_reg or, rbx, rcx, b32           | rbx |= rcx
+221 993                  load_reg_reg r8, rbx, b32                | r8 = rbx
+222 994  
+223 1000             op_binary_mem_imm add, [rax + 0x88], 0x2, b64 | [rax + 0x88] += 0x2
+224 1003                  load_reg_imm rbx, b32, 0xFFFF            | rbx = 0xFFFF
+225 2079                  load_reg_reg rcx, rdx, b32               | rcx = rdx
+226 1978             op_binary_reg_reg shl, rbx, rcx, b32          | rbx <<= rcx
+227 1008             op_binary_reg_reg sub, r11, rbx, b32          | r11 -= rbx
+228 1011         op_binary_reg_reg_reg shl, rcx, r8, rdx, b32      | rcx = r8 << rdx
+229 1014             op_binary_reg_reg add, r11, rcx, b32          | r11 += rcx
+230 1025  
+953 if (binState & 1) != 0
+231 1029                  test_reg_imm r9, 0x1, b8                 | test(r9, 0x1)
+232 1038                     jump_cond ne, b32 1072                | if ne jump 1072
+954 {
+233 1045  
+949 {
+234 1046  
+960 scan += 1
+235 1048                  op_unary_reg add, r15, b64               | r15 = add r15
+946 {
+236 2120                   cmp_reg_imm r15, 0xF, b64               | cmp(r15, 0xF)
+237 1052                     jump_cond b, b32 2232                 | if b jump 2232
+238 1053  
+966 indices[count] = cast(u8) (MaxCoeffs - 1)
+239 1066              load_amc_mem_imm [rsi + r12], 0xF, b64 <- b8 | [rsi + r12] = 0xF
+967 count += 1
+240 1070             op_binary_reg_imm add, r12, 0x1, b32          | r12 += 0x1
+965 {
+241 1072  
+972 

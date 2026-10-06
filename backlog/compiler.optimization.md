@@ -1003,30 +1003,6 @@ new language syntax.
   worsening the affected hot paths through additional transfers or spill traffic.
 - Related: compiler.optimization.015, compiler.optimization.104.
 
-### compiler.optimization.103 — The CABAC significance loop reloads two pointers at its latch
-
-- Recorded: 2026-09-29 18:46
-- Area: compiler/backend, post-allocation reload placement
-- Evidence: the 4x4 luma significance loop of `Slice.residualCabac` spends 33 Micro instructions
-  on a no-hit iteration, against about 23 in FFmpeg's `decode_significance_x86`. Since the
-  interval allocator joins a copy with its source where both hold the same value
-  (`coalesceSameValueCopies`), the renormalizing shifts write the loop-carried range and offset
-  directly; what remains on that path is two frame reloads at the loop latch, the slice and the
-  significance-state pointer (`rax = [rsp + 0x2B0]`, `r12 = [rsp + 0x2E8]`). The refill path and
-  the hit path both reuse those registers, so the reloads would have to move to the end of each
-  of those cold regions, past two joins, which `sinkFrameReloadToFallthrough` does not reach.
-- Tried and reverted: after allocation, sinking a frame reload that stands just after a join into
-  the fallthrough edges of the predecessor regions that clobbered its register, planned with a
-  forward must-analysis of "register equals slot" across up to four planted reloads. Both latch
-  reloads stayed (the slice pointer arrives as a copy of the register that was stored, which the
-  analysis does not follow; why the state pointer failed was not diagnosed), while csvagg's main
-  grew by 14 instructions and leven's by 4.
-- Next: follow register copies in the must-analysis, diagnose the state pointer, and sink a latch
-  reload into every cold predecessor region that clobbers its register, across nested joins.
-- Complete when: the no-hit significance iteration reloads nothing at its latch and no decoder
-  function or benchmark program grows.
-- Related: std.video.001
-
 ### compiler.optimization.102 — Retain one floating zero across unrolled arms
 
 - Recorded: 2026-09-29 15:48

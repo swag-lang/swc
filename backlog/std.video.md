@@ -17,7 +17,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-29 18:46 — The significance bins no longer copy after their shifts.
+- Updated: 2026-10-06 11:54 — Retire the resolved significance-loop frame reload diagnosis.
 - Evidence: on 2026-09-12, decoding the same 3840x2160 one-slice High/CABAC clip and alternating
   the two decoders inside one measurement window, this decoder and FFmpeg's own build with its
   hand-written assembly disabled read within a tenth of each other, while FFmpeg with its
@@ -50,7 +50,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   table addresses to one. The allocator then joined each copy with its source where both hold
   the same value: the shifts write the loop-carried range and offset directly, the no-hit
   iteration is 33 instructions, and the significance loop span 108 with three frame accesses.
-  The two latch reloads that remain are compiler.optimization.103.
+  The two latch reloads were tracked separately; the current Release dump now has no
+  frame accesses anywhere in the significance region of all five instances, including
+  hit/refill arms. See the [retained audit](../bench/results/generated-code/20261006-session/README.md).
+  These historical instruction counts are not a current decoder performance claim.
   The multi-bin macroblock elements (motion vector difference, luma coded block pattern, intra
   mode, QP delta, reference index) now decode against local registers too. Decoded planes of a
   60-picture 3840x2160 High/CABAC extract stay byte-identical to libavcodec. Interleaved

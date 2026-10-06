@@ -84,22 +84,18 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 `Inline`, and `NoInline` contracts explicit. This plan invents no command-line spellings or
 new language syntax.
 
-### compiler.optimization.125 — Preserve performance across dirty AVX upper-state boundaries
+### compiler.optimization.125 — Finish the AVX boundary cost and caller-state audit
 
 - Recorded: 2026-10-05 17:55
-- Evidence: on Core Ultra 9 185H, the same non-inlined 5,000-step `nbody` function takes
-  52–57 ms after an ABI-compliant helper dirties YMM15's upper half, versus 0.38–0.47 ms
-  after `vzeroupper`. Both states return checksum `169020000371`. XMM15's lower half is
-  preserved, and the scalar generated code mixes legacy SSE and VEX encodings.
-  [Probe, raw samples and scope](../bench/results/generated-code/20261005-runtime-layout/README.md)
-  are retained. This is not yet an explanation of the published Oct 5 JIT regression.
-- Next: audit host/JIT entry, foreign returns and callbacks. Compare consistently VEX-encoded
-  scalar operations with cleanup at boundaries where upper state is volatile and no wider
-  value is live. Respect target CPU features and avoid changing floating-point semantics.
-  Establish which state reaches the unmodified benchmark before selecting a fix.
-- Complete when: dirty and clean caller states have equivalent numeric results and stable
-  performance through native, JIT and callback boundaries, with runtime, size and compiler
-  costs measured on representative consumers.
+- Updated: 2026-10-06 07:37 — consistently encode XMM operations with VEX and narrow the remaining audit.
+- Evidence: native, JIT, foreign-return and callback dirty-state probes now match clean-state
+  numerical results and performance. Release dirty-state nbody falls from about 23 ms to 0.17 ms.
+  Ordinary Release sentinels do not establish a general speedup or a reproducible regression;
+  retain both measurement windows in the [evidence](../bench/results/generated-code/20261006-avx-vex/README.md).
+- Next: at a later measurement milestone, check compiler cost and establish which AVX state
+  reaches the unmodified benchmark from the Oct 5 investigation. The boundary fix does not
+  establish the cause of that historical timing change. Do not repeat the completed encoding work.
+- Complete when: the unmodified caller-state question is resolved and compiler cost is assessed.
 - Related: compiler.optimization.121, cpu.simd.001.
 
 ### compiler.optimization.121 — Optimize final code and data layout with retained structure

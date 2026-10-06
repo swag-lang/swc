@@ -106,9 +106,9 @@ namespace
             if (!typeInfo.isAlias())
                 return typeRef;
 
-            const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            if (!rawTypeRef.isValid() || !ctx.typeMgr().get(rawTypeRef).isInt())
-                return rawTypeRef;
+            const TypeInfo* unwrappedType = typeInfo.unwrapAliasType(ctx);
+            if (unwrappedType && !unwrappedType->isInt())
+                return unwrappedType->typeRef();
             return typeRef;
         }
 

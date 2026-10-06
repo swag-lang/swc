@@ -1832,7 +1832,7 @@ namespace
 
         const auto&                       tlsGetValueFunction = *payload->runtimeFunctionSymbol;
         const CallConvKind                callConvKind        = tlsGetValueFunction.callConvKind();
-        const TypeRef                     resultType          = codeGen.curViewType().typeRef();
+        const SemaNodeView                resultView          = codeGen.curViewType();
         MicroBuilder&                     builder             = codeGen.builder();
         SmallVector<ABICall::PreparedArg> preparedArgs;
 
@@ -1851,11 +1851,11 @@ namespace
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         ABICall::callLocal(builder, callConvKind, &tlsGetValueFunction, preparedCall);
 
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(resultType), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, *resultView.type(), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
 
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultType);
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultView.typeRef());
         ABICall::materializeReturnToReg(builder, resultPayload.reg, callConvKind, normalizedRet);
 
         const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
@@ -2027,10 +2027,10 @@ namespace
             return Result::Continue;
         }
 
-        const CodeGenNodePayload& firstPayload = codeGen.payload(children[0]);
-        TypeRef                   firstTypeRef = firstPayload.typeRef.isValid() ? firstPayload.typeRef : codeGen.viewType(children[0]).typeRef();
-        firstTypeRef                           = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), firstTypeRef);
-        const TypeInfo& firstType              = codeGen.typeMgr().get(firstTypeRef);
+        const CodeGenNodePayload& firstPayload  = codeGen.payload(children[0]);
+        const TypeInfo&           declaredType  = firstPayload.typeRef.isValid() ? codeGen.typeMgr().get(firstPayload.typeRef) : *codeGen.viewType(children[0]).type();
+        const TypeInfo*           unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&           firstType     = unwrappedType ? *unwrappedType : declaredType;
         if (!firstType.isSimd())
             return Result::Continue;
 

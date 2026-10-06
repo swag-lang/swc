@@ -633,8 +633,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 ops[0].reg.isVirtualInt() && ops[0].reg != frameBase && definitions[ops[0].reg] == 1 &&
                 found == addrRegOffset.end() && available.contains(ops[1].reg))
             {
-                const uint64_t offset = addrRegOffset.at(ops[1].reg).offset;
-                found                 = addrRegOffset.emplace(ops[0].reg, AddrRegInfo{.offset = offset, .defRef = it.current, .stackPointerOrigin = addrRegOffset.at(ops[1].reg).stackPointerOrigin}).first;
+                const AddrRegInfo& source = addrRegOffset.at(ops[1].reg);
+                found                     = addrRegOffset.emplace(ops[0].reg, AddrRegInfo{.offset = source.offset, .defRef = it.current, .stackPointerOrigin = source.stackPointerOrigin}).first;
                 addressCopies.insert(it.current.get());
             }
             if (found != addrRegOffset.end() && !found->second.ambiguous && found->second.defRef == it.current)
@@ -985,9 +985,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // Moving a tracked pointer as a value means the address escapes. Only
         // a STORE moves it as a plain value; a load overwrites the register,
         // which the redefinition sweep above already disqualified.
-        const bool storesTrackedValue = inst.op == MicroInstrOpcode::LoadMemReg &&
-                                        baseValid && valueReg.isValid() && isTracked(valueReg);
-        if (baseValid && valueReg.isValid() && isTracked(valueReg))
+        const bool hasTrackedValue    = baseValid && valueReg.isValid() && isTracked(valueReg);
+        const bool storesTrackedValue = inst.op == MicroInstrOpcode::LoadMemReg && hasTrackedValue;
+        if (hasTrackedValue)
         {
             uint64_t   escapedOffset = 0;
             const bool resolved      = storesTrackedValue ? escapedObjectOffset(valueReg, escapedOffset)

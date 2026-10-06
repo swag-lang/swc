@@ -6706,10 +6706,10 @@ namespace
                 (firstCompareInst->op != MicroInstrOpcode::CmpRegReg && firstCompareInst->op != MicroInstrOpcode::CmpRegImm))
                 continue;
 
-            uint32_t firstTarget  = 0;
-            uint32_t secondTarget = 0;
-            if (!tryGetJumpTargetLabelId(firstTarget, *firstJumpInst, firstJumpOps) ||
-                !tryGetJumpTargetLabelId(secondTarget, secondJumpInst, secondJumpOps) || firstTarget != secondTarget ||
+            // The diamond shape already validated the second branch target.
+            const uint32_t secondTarget = static_cast<uint32_t>(secondJumpOps[2].valueU64);
+            uint32_t       firstTarget  = 0;
+            if (!tryGetJumpTargetLabelId(firstTarget, *firstJumpInst, firstJumpOps) || firstTarget != secondTarget ||
                 !conditionSupportsConditionalMove(firstJumpOps[0].cpuCond))
                 continue;
 

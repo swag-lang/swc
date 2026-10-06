@@ -1,6 +1,6 @@
 # Optimization session, 2026-10-06
 
-Twenty code batches were validated and merged into local master in sequence,
+Twenty-one code batches were validated and merged into local master in sequence,
 from the separate perf/optimization-boundaries-20261006 worktree (the initial
 VEX batch also used perf/optimization-until-noon-20261006). No remote push was
 requested. SWC_BUILD_NUM remains 1173. The compiler and optimized programs used
@@ -29,6 +29,7 @@ default devmode configuration, which is not a performance measurement.
 | 18 | Reuse unmodified private-global loads across disjoint stores and branches | [Heap values](../20261006-heap-values/README.md) |
 | 19 | Cache mutable private spills across shared loop exits | [Shared exits](../20261006-shared-exit-cache/README.md) |
 | 20 | Cache private spills in idle integer registers already saved by the prologue | [Saved integer registers](../20261006-gp-spill-cache/README.md) |
+| 21 | Reuse the prologue's saved SIMD registers as private spill caches | [Saved SIMD registers](../20261006-saved-xmm-cache/README.md) |
 
 Representative structural outcomes:
 
@@ -85,3 +86,7 @@ contains 322 bodies. Within that same panel, extendPlane loses twelve memory
 operations with no extra instruction or saved register; the other 321 bodies
 retain their counts. The smaller panel itself is not an optimization gain
 attributed to this campaign.
+
+Batch 21 reuses already saved SIMD registers in predictIntraPlane, removing
+eleven instructions and sixteen memory operations. The complete native Release
+campaign passes 3,639 tests again on the 87bfb9089 base plus batch 21.

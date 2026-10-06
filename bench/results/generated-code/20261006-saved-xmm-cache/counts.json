@@ -1,0 +1,82 @@
+[
+  {
+    "task": "video",
+    "bodies": 322,
+    "baseline": {
+      "instructions": 42796,
+      "memory": 9583,
+      "rsp": 2011,
+      "push": 967
+    },
+    "candidate": {
+      "instructions": 42785,
+      "memory": 9567,
+      "rsp": 1995,
+      "push": 967
+    }
+  },
+  {
+    "task": "nbody",
+    "bodies": 4,
+    "baseline": {
+      "instructions": 1372,
+      "memory": 507,
+      "rsp": 103,
+      "push": 3
+    },
+    "candidate": {
+      "instructions": 1372,
+      "memory": 507,
+      "rsp": 103,
+      "push": 3
+    }
+  },
+  {
+    "task": "chacha",
+    "bodies": 3,
+    "baseline": {
+      "instructions": 468,
+      "memory": 137,
+      "rsp": 25,
+      "push": 9
+    },
+    "candidate": {
+      "instructions": 468,
+      "memory": 137,
+      "rsp": 25,
+      "push": 9
+    }
+  },
+  {
+    "task": "csvagg",
+    "bodies": 3,
+    "baseline": {
+      "instructions": 969,
+      "memory": 250,
+      "rsp": 91,
+      "push": 10
+    },
+    "candidate": {
+      "instructions": 969,
+      "memory": 250,
+      "rsp": 91,
+      "push": 10
+    }
+  },
+  {
+    "task": "dijkstra",
+    "bodies": 3,
+    "baseline": {
+      "instructions": 488,
+      "memory": 201,
+      "rsp": 6,
+      "push": 7
+    },
+    "candidate": {
+      "instructions": 488,
+      "memory": 201,
+      "rsp": 6,
+      "push": 7
+    }
+  }
+]

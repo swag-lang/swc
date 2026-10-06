@@ -528,6 +528,7 @@ namespace
 Result MicroPrologEpilogPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
+    context.savedFloatRegMask = 0;
 
     // Caller can disable this when generated code does not need ABI-preserved registers.
     if (!context.preservePersistentRegs)
@@ -561,6 +562,9 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
     if (beginIt != endIt)
     {
         insertSavedRegsPrologue(context, conv, beginIt.current);
+        for (const SavedRegSlot& slot : savedRegSlots_)
+            if (slot.reg.isFloat() && slot.reg.index() < 32)
+                context.savedFloatRegMask |= 1u << slot.reg.index();
         // Insertions before a Ret preserve its successor. Walk from the
         // original first instruction to skip the newly inserted prologue.
         for (auto it = beginIt; it != endIt; ++it)

@@ -371,11 +371,9 @@ namespace
 
     const TypeInfo& narrowUnwrappedType(Sema& sema, TypeRef typeRef)
     {
-        TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (unwrappedTypeRef.isInvalid())
-            unwrappedTypeRef = typeRef;
-
-        return sema.typeMgr().get(unwrappedTypeRef);
+        const TypeInfo& type          = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = type.unwrapAliasEnumType(sema.ctx());
+        return unwrappedType ? *unwrappedType : type;
     }
 
     bool typeRefIsNullable(Sema& sema, TypeRef typeRef)

@@ -1,0 +1,500 @@
+--- Slice.bookkeepMb instance 0 baseline
++++ Slice.bookkeepMb instance 0 candidate
+@@ -591,7 +591,8 @@
+ load_reg_mem xmm3, [rsp + 0x898], b64
+ load_reg_mem xmm2, [rsp + 0x898], b64
++load_reg_mem xmm0, [rsp + 0x8A0], b64
+ jump_cond jump 1586
+ load_reg_reg rax, xmm3, b64
+-load_mem_reg [rsp + 0x8A0], r12, b64
++load_reg_reg xmm0, r12, b64
+ clear_reg r13, b64
+ load_addr_amc_reg_mem r14, [rsi + r13], b64
+@@ -632,8 +633,8 @@
+ jump_cond b, b32 1593
+ op_binary_reg_mem add, rsi, [rsp + 0x890], b64
+-load_reg_mem r12, [rsp + 0x8A0], b64
++load_reg_reg r12, xmm0, b64
+ op_binary_reg_imm add, r12, 0x1, b64
+ cmp_reg_imm r12, 0x4, b64
+-jump_cond b, b32 1682
++jump_cond b, b32 041
+ op_binary_reg_imm add, rsp, 0x8A8, b64
+ pop r15
+--- Slice.mvdCabac instance 0 baseline
++++ Slice.mvdCabac instance 0 candidate
+@@ -65,5 +65,5 @@
+ load_reg_reg r15, rax, b32
+ op_binary_reg_imm shl, r15, 0x11, b32
+-load_mem_reg [rsp + 0x148], r9, b64
++load_reg_reg xmm1, r9, b64
+ load_reg_reg r9, rdx, b32
+ op_binary_reg_reg sub, r9, r15, b32
+@@ -168,5 +168,5 @@
+ op_unary_reg add, r9, b32
+ cmp_reg_imm r9, 0x9, b32
+-jump_cond b, b32 1016
++jump_cond b, b32 1329
+ cmp_reg_imm r9, 0x9, b32
+ jump_cond b, b32 1175
+@@ -255,5 +255,5 @@
+ op_binary_reg_reg add, r9, rcx, b32
+ cmp_reg_imm r10, 0x0, b32
+-jump_cond a, b32 1329
++jump_cond a, b32 936
+ load_addr_amc_reg_mem r10, [rdx + rdx], b32
+ load_reg_reg rdx, r10, b32
+@@ -300,5 +300,5 @@
+ load_cond_reg_reg r9, rcx, l, b32
+ load_amc_mem_reg [r8 + r11 * 0x2], r9, b64 <- b16
+-load_reg_mem r9, [rsp + 0x148], b64
++load_reg_reg r9, xmm1, b64
+ op_binary_reg_imm add, r9, 0x1, b64
+ cmp_reg_imm r9, 0x2, b64
+--- Slice.residualCabac instance 0 baseline
++++ Slice.residualCabac instance 0 candidate
+@@ -215,5 +215,5 @@
+ op_unary_reg add, r14, b64
+ cmp_reg_imm r14, 0x3, b64
+-jump_cond b, b32 164
++jump_cond b, b32 2232
+ load_amc_mem_imm [rbx + rdi], 0x3, b64 <- b8
+ op_binary_reg_imm add, rdi, 0x1, b32
+@@ -243,5 +243,5 @@
+ load_zero_ext_amc_reg_mem 7 operand(s)
+ op_binary_reg_reg sub, r10, rdi, b32
+-load_mem_reg [rsp + 0x2E0], r9, b64
++load_reg_reg xmm0, r9, b64
+ load_reg_reg r9, r10, b32
+ op_binary_reg_imm shl, r9, 0x11, b32
+@@ -349,5 +349,5 @@
+ op_unary_reg add, r14, b32
+ cmp_reg_imm r14, 0xF, b32
+-jump_cond l, b32 2053
++jump_cond l, b32 1717
+ cmp_reg_imm r14, 0xF, b32
+ jump_cond l, b32 2121
+@@ -435,5 +435,5 @@
+ op_binary_reg_reg add, r9, rcx, b32
+ cmp_reg_imm rdx, 0x0, b32
+-jump_cond a, b32 1717
++jump_cond a, b32 1474
+ load_addr_reg_mem r14, [r9 + 0xE], b32
+ load_addr_amc_reg_mem rdx, [r11 + r11], b32
+@@ -485,7 +485,7 @@
+ load_reg_reg rbx, xmm1, b64
+ load_reg_reg rdx, xmm2, b64
+-load_reg_mem r9, [rsp + 0x2E0], b64
++load_reg_reg r9, xmm0, b64
+ cmp_reg_imm r9, 0x0, b32
+-jump_cond a, b32 2232
++jump_cond a, b32 2053
+ load_mem_reg [rax + 0x94], r10, b32
+ load_mem_reg [rax + 0x90], r11, b32
+--- Slice.residualCabac instance 1 baseline
++++ Slice.residualCabac instance 1 candidate
+@@ -227,5 +227,5 @@
+ op_unary_reg add, r14, b64
+ cmp_reg_imm r14, 0x3F, b64
+-jump_cond b, b32 2246
++jump_cond b, b32 1731
+ load_amc_mem_imm [rdx + r10], 0x3F, b64 <- b8
+ op_binary_reg_imm add, r10, 0x1, b32
+@@ -256,5 +256,5 @@
+ load_zero_ext_amc_reg_mem 7 operand(s)
+ op_binary_reg_reg sub, rsi, rdx, b32
+-load_mem_reg [rsp + 0x2E8], r9, b64
++load_reg_reg xmm3, r9, b64
+ load_reg_reg r9, rsi, b32
+ op_binary_reg_imm shl, r9, 0x11, b32
+@@ -302,5 +302,5 @@
+ jump_cond ne, b32 1425
+ load_zero_ext_amc_reg_mem 7 operand(s)
+-load_mem_reg [rsp + 0x2E0], rcx, b64
++load_reg_reg xmm0, rcx, b64
+ jump_cond jump 2136
+ load_reg_imm r14, b32, 0x2
+@@ -308,5 +308,5 @@
+ load_addr_amc_reg_mem rdx, [r11 + rcx], b64
+ load_zero_ext_amc_reg_mem 7 operand(s)
+-load_mem_reg [rsp + 0x2E0], rcx, b64
++load_reg_reg xmm0, rcx, b64
+ cmp_reg_imm r14, 0xF, b32
+ jump_cond ge, b32 1733
+@@ -363,5 +363,5 @@
+ op_unary_reg add, r14, b32
+ cmp_reg_imm r14, 0xF, b32
+-jump_cond l, b32 1731
++jump_cond l, b32 1058
+ cmp_reg_imm r14, 0xF, b32
+ jump_cond l, b32 2135
+@@ -449,5 +449,5 @@
+ op_binary_reg_reg add, r8, rcx, b32
+ cmp_reg_imm rdx, 0x0, b32
+-jump_cond a, b32 1488
++jump_cond a, b32 534
+ load_addr_reg_mem r14, [r8 + 0xE], b32
+ load_addr_amc_reg_mem rdx, [rdi + rdi], b32
+@@ -505,8 +505,8 @@
+ load_amc_mem_reg [r12 + rcx * 0x2], rdx, b64 <- b16
+ load_reg_reg rdx, xmm2, b64
+-load_reg_mem r8, [rsp + 0x2E0], b64
+-load_reg_mem r9, [rsp + 0x2E8], b64
++load_reg_reg r8, xmm0, b64
++load_reg_reg r9, xmm3, b64
+ cmp_reg_imm r9, 0x0, b32
+-jump_cond a, b32 2067
++jump_cond a, b32 1488
+ load_mem_reg [rax + 0x94], rsi, b32
+ load_mem_reg [rax + 0x90], rdi, b32
+--- Slice.residualCabac instance 2 baseline
++++ Slice.residualCabac instance 2 candidate
+@@ -215,5 +215,5 @@
+ op_unary_reg add, r14, b64
+ cmp_reg_imm r14, 0xF, b64
+-jump_cond b, b32 164
++jump_cond b, b32 2232
+ load_amc_mem_imm [rbx + rdi], 0xF, b64 <- b8
+ op_binary_reg_imm add, rdi, 0x1, b32
+@@ -243,5 +243,5 @@
+ load_zero_ext_amc_reg_mem 7 operand(s)
+ op_binary_reg_reg sub, r10, rdi, b32
+-load_mem_reg [rsp + 0x2E0], r9, b64
++load_reg_reg xmm0, r9, b64
+ load_reg_reg r9, r10, b32
+ op_binary_reg_imm shl, r9, 0x11, b32
+@@ -349,5 +349,5 @@
+ op_unary_reg add, r14, b32
+ cmp_reg_imm r14, 0xF, b32
+-jump_cond l, b32 2053
++jump_cond l, b32 1717
+ cmp_reg_imm r14, 0xF, b32
+ jump_cond l, b32 2121
+@@ -435,5 +435,5 @@
+ op_binary_reg_reg add, r9, rcx, b32
+ cmp_reg_imm rdx, 0x0, b32
+-jump_cond a, b32 1717
++jump_cond a, b32 1474
+ load_addr_reg_mem r14, [r9 + 0xE], b32
+ load_addr_amc_reg_mem rdx, [r11 + r11], b32
+@@ -485,7 +485,7 @@
+ load_reg_reg rbx, xmm1, b64
+ load_reg_reg rdx, xmm2, b64
+-load_reg_mem r9, [rsp + 0x2E0], b64
++load_reg_reg r9, xmm0, b64
+ cmp_reg_imm r9, 0x0, b32
+-jump_cond a, b32 2232
++jump_cond a, b32 2053
+ load_mem_reg [rax + 0x94], r10, b32
+ load_mem_reg [rax + 0x90], r11, b32
+--- Slice.residualCabac instance 3 baseline
++++ Slice.residualCabac instance 3 candidate
+@@ -220,5 +220,5 @@
+ op_unary_reg add, r15, b64
+ cmp_reg_imm r15, 0xE, b64
+-jump_cond b, b32 164
++jump_cond b, b32 2232
+ load_amc_mem_imm [rsi + r12], 0xE, b64 <- b8
+ op_binary_reg_imm add, r12, 0x1, b32
+@@ -244,5 +244,5 @@
+ load_addr_amc_reg_mem r12, [rdx + rcx], b64
+ load_zero_ext_reg_mem rcx, [r12], b64 <- b8
+-load_mem_reg [rsp + 0x2E8], r9, b64
++load_reg_reg xmm0, r9, b64
+ load_reg_reg r9, r10, b32
+ op_binary_reg_imm and, r9, 0xC0, b32
+@@ -355,5 +355,5 @@
+ op_unary_reg add, r15, b32
+ cmp_reg_imm r15, 0xF, b32
+-jump_cond l, b32 2053
++jump_cond l, b32 1717
+ cmp_reg_imm r15, 0xF, b32
+ jump_cond l, b32 2121
+@@ -441,5 +441,5 @@
+ op_binary_reg_reg add, r9, rcx, b32
+ cmp_reg_imm rdx, 0x0, b32
+-jump_cond a, b32 1717
++jump_cond a, b32 1474
+ load_addr_reg_mem r15, [r9 + 0xE], b32
+ load_addr_amc_reg_mem rdx, [r11 + r11], b32
+@@ -498,7 +498,7 @@
+ load_reg_reg rsi, xmm2, b64
+ load_reg_reg rdx, xmm3, b64
+-load_reg_mem r9, [rsp + 0x2E8], b64
++load_reg_reg r9, xmm0, b64
+ cmp_reg_imm r9, 0x0, b32
+-jump_cond a, b32 2232
++jump_cond a, b32 2053
+ load_mem_reg [rax + 0x94], r10, b32
+ load_mem_reg [rax + 0x90], r11, b32
+--- Slice.residualCabac instance 4 baseline
++++ Slice.residualCabac instance 4 candidate
+@@ -220,5 +220,5 @@
+ op_unary_reg add, r15, b64
+ cmp_reg_imm r15, 0xF, b64
+-jump_cond b, b32 164
++jump_cond b, b32 2232
+ load_amc_mem_imm [rsi + r12], 0xF, b64 <- b8
+ op_binary_reg_imm add, r12, 0x1, b32
+@@ -244,5 +244,5 @@
+ load_addr_amc_reg_mem r12, [rdx + rcx], b64
+ load_zero_ext_reg_mem rcx, [r12], b64 <- b8
+-load_mem_reg [rsp + 0x2E8], r9, b64
++load_reg_reg xmm0, r9, b64
+ load_reg_reg r9, r10, b32
+ op_binary_reg_imm and, r9, 0xC0, b32
+@@ -355,5 +355,5 @@
+ op_unary_reg add, r15, b32
+ cmp_reg_imm r15, 0xF, b32
+-jump_cond l, b32 2053
++jump_cond l, b32 1717
+ cmp_reg_imm r15, 0xF, b32
+ jump_cond l, b32 2121
+@@ -441,5 +441,5 @@
+ op_binary_reg_reg add, r9, rcx, b32
+ cmp_reg_imm rdx, 0x0, b32
+-jump_cond a, b32 1717
++jump_cond a, b32 1474
+ load_addr_reg_mem r15, [r9 + 0xE], b32
+ load_addr_amc_reg_mem rdx, [r11 + r11], b32
+@@ -498,7 +498,7 @@
+ load_reg_reg rsi, xmm2, b64
+ load_reg_reg rdx, xmm3, b64
+-load_reg_mem r9, [rsp + 0x2E8], b64
++load_reg_reg r9, xmm0, b64
+ cmp_reg_imm r9, 0x0, b32
+-jump_cond a, b32 2232
++jump_cond a, b32 2053
+ load_mem_reg [rax + 0x94], r10, b32
+ load_mem_reg [rax + 0x90], r11, b32
+--- Video.H264.filterChromaStrongVertical instance 0 baseline
++++ Video.H264.filterChromaStrongVertical instance 0 candidate
+@@ -5,5 +5,4 @@
+ push r14
+ push r15
+-op_binary_reg_imm sub, rsp, 0x90, b64
+ clear_reg rax, b64
+ load_reg_reg xmm1, r11, b64
+@@ -19,5 +18,5 @@
+ load_addr_amc_reg_mem rcx, [rcx + rdx * 0x2], b64
+ jump_cond jump 419
+-load_mem_reg [rsp + 0x78], rax, b64
++load_reg_reg xmm4, rax, b64
+ clear_reg rdi, b64
+ load_addr_reg_mem r12, [r10 + 0xFFFFFFFFFFFFFFFF], b32
+@@ -113,10 +112,9 @@
+ op_binary_reg_imm add, rdi, 0x1, b64
+ cmp_reg_imm rdi, 0x2, b64
+-jump_cond b, b32 018
+-load_reg_mem rax, [rsp + 0x78], b64
++jump_cond b, b32 234
++load_reg_reg rax, xmm4, b64
+ op_binary_reg_imm add, rax, 0x1, b64
+ cmp_reg_imm rax, 0x4, b64
+-jump_cond b, b32 208
+-op_binary_reg_imm add, rsp, 0x90, b64
++jump_cond b, b32 018
+ pop r15
+ pop r14
+--- Video.H264.halfVertical instance 0 baseline
++++ Video.H264.halfVertical instance 0 candidate
+@@ -137,5 +137,5 @@
+ cmp_reg_reg r11, rax, b64
+ jump_cond b, b32 603
+-jump_cond jump 008
++jump_cond jump 822
+ load_signed_ext_reg_reg rax, r11, b64 <- b32
+ load_mem_reg [rsp + 0x5E0], rax, b64
+@@ -148,4 +148,6 @@
+ load_mem_reg [rsp + 0x5E8], r11, b64
+ load_mem_reg [rsp + 0x5F8], r8, b64
++load_reg_reg xmm0, r11, b64
++load_reg_reg xmm1, r8, b64
+ load_reg_reg rdi, r8, b64
+ op_binary_reg_reg sub, rdi, rsi, b64
+@@ -190,15 +192,15 @@
+ cmp_reg_reg r12, r10, b64
+ jump_cond b, b32 819
+-load_reg_mem r11, [rsp + 0x5E8], b64
++load_reg_reg r11, xmm0, b64
+ op_binary_reg_imm add, r11, 0x1, b64
+ op_binary_reg_mem add, rcx, [rsp + 0x5D0], b64
+ load_reg_mem r9, [rsp + 0x5D8], b64
+-load_reg_mem r8, [rsp + 0x5F8], b64
++load_reg_reg r8, xmm1, b64
+ op_binary_reg_reg add, r8, r9, b64
+ load_reg_mem rax, [rsp + 0x5E0], b64
+-load_mem_reg [rsp + 0x5F8], r8, b64
++load_reg_reg xmm1, r8, b64
+ cmp_reg_reg r11, rax, b64
+ jump_cond ae, b32 018
+-load_mem_reg [rsp + 0x5E8], r11, b64
++load_reg_reg xmm0, r11, b64
+ load_reg_mem rsi, [rsp + 0x5F0], b64
+ jump_cond jump 784
+--- Video.H264.halfVerticalAvg instance 0 baseline
++++ Video.H264.halfVerticalAvg instance 0 candidate
+@@ -148,5 +148,5 @@
+ cmp_reg_reg rdi, rsi, b64
+ jump_cond b, b32 605
+-jump_cond jump 820
++jump_cond jump 885
+ load_signed_ext_reg_reg rsi, rsi, b64 <- b32
+ load_mem_reg [rsp + 0x5F8], rsi, b64
+@@ -159,7 +159,9 @@
+ load_mem_reg [rsp + 0x610], r8, b64
+ load_mem_reg [rsp + 0x600], rdi, b64
++load_reg_reg xmm1, rdi, b64
++load_reg_reg xmm2, r8, b64
+ load_reg_reg r13, r8, b64
+ op_binary_reg_reg sub, r13, r12, b64
+-load_mem_reg [rsp + 0x618], r13, b64
++load_reg_reg xmm0, r13, b64
+ clear_reg r14, b64
+ cmp_reg_imm rax, 0x0, b64
+@@ -206,18 +208,18 @@
+ op_binary_reg_imm add, r14, 0x1, b64
+ cmp_reg_reg r14, rax, b64
+-load_reg_mem r13, [rsp + 0x618], b64
++load_reg_reg r13, xmm0, b64
+ jump_cond b, b32 831
+-load_reg_mem rdi, [rsp + 0x600], b64
++load_reg_reg rdi, xmm1, b64
+ op_binary_reg_imm add, rdi, 0x1, b64
+ op_binary_reg_mem add, r10, [rsp + 0x5E0], b64
+ op_binary_reg_mem add, rcx, [rsp + 0x5E8], b64
+ load_reg_mem r9, [rsp + 0x5F0], b64
+-load_reg_mem r8, [rsp + 0x610], b64
++load_reg_reg r8, xmm2, b64
+ op_binary_reg_reg add, r8, r9, b64
+ load_reg_mem rsi, [rsp + 0x5F8], b64
+-load_mem_reg [rsp + 0x610], r8, b64
++load_reg_reg xmm2, r8, b64
+ cmp_reg_reg rdi, rsi, b64
+ jump_cond ae, b32 836
+-load_mem_reg [rsp + 0x600], rdi, b64
++load_reg_reg xmm1, rdi, b64
+ load_reg_mem r12, [rsp + 0x608], b64
+ jump_cond jump 786
+--- Video.H264.interpolateChroma instance 0 baseline
++++ Video.H264.interpolateChroma instance 0 candidate
+@@ -268,6 +268,6 @@
+ cmp_reg_imm r11, 0x0, b64
+ jump_cond be, b32 1029
+-load_mem_reg [rsp + 0x5C0], rsi, b64
+ load_signed_ext_reg_reg rax, rax, b64 <- b32
++load_reg_reg xmm0, rsi, b64
+ load_addr_amc_reg_mem r12, [r8 + r9], b64
+ clear_reg r15, b64
+@@ -297,5 +297,5 @@
+ op_binary_reg_reg add, rcx, rdx, b64
+ load_reg_reg r8, r12, b64
+-load_reg_mem rsi, [rsp + 0x5C0], b64
++load_reg_reg rsi, xmm0, b64
+ op_binary_reg_imm add, rsi, 0x1, b64
+ load_reg_mem r11, [rsp + 0x5B8], b64
+@@ -303,5 +303,5 @@
+ jump_cond ae, b32 005
+ load_reg_mem r9, [rsp + 0x5A8], b64
+-load_mem_reg [rsp + 0x5C0], rsi, b64
++load_reg_reg xmm0, rsi, b64
+ jump_cond jump 933
+ op_binary_reg_imm add, rsp, 0x5D0, b64
+--- Video.H264.interpolateLuma instance 0 baseline
++++ Video.H264.interpolateLuma instance 0 candidate
+@@ -47,5 +47,5 @@
+ call_local swag, <reloc>
+ op_binary_reg_imm add, rsp, 0x938, b64
+-jump_cond jump 1067
++jump_cond jump 842
+ cmp_reg_imm rsi, 0x0, b32
+ jump_cond ne, b32 126
+@@ -77,5 +77,5 @@
+ op_binary_reg_imm add, rsp, 0x18, b64
+ op_binary_reg_imm add, rsp, 0x930, b64
+-jump_cond jump 1067
++jump_cond jump 842
+ cmp_reg_imm r15, 0x0, b32
+ jump_cond ne, b32 1146
+@@ -212,4 +212,6 @@
+ load_mem_reg [rsp + 0x900], rdx, b64
+ load_mem_reg [rsp + 0x910], r13, b64
++load_reg_reg xmm0, rdx, b64
++load_reg_reg xmm1, r13, b64
+ load_reg_reg r9, r13, b64
+ op_binary_reg_reg sub, r9, r8, b64
+@@ -254,17 +256,19 @@
+ cmp_reg_reg r10, rax, b64
+ jump_cond b, b32 950
+-load_reg_mem rdx, [rsp + 0x900], b64
++load_reg_reg rdx, xmm0, b64
+ op_binary_reg_imm add, rdx, 0x1, b64
+ op_binary_reg_mem add, rdi, [rsp + 0x8D8], b64
+ load_reg_mem r14, [rsp + 0x8E0], b64
+-load_reg_mem r13, [rsp + 0x910], b64
++load_reg_reg r13, xmm1, b64
+ op_binary_reg_reg add, r13, r14, b64
+ load_reg_mem rcx, [rsp + 0x8F8], b64
+-load_mem_reg [rsp + 0x910], r13, b64
++load_reg_reg xmm1, r13, b64
+ cmp_reg_reg rdx, rcx, b64
+ jump_cond ae, b32 1339
+-load_mem_reg [rsp + 0x900], rdx, b64
++load_reg_reg xmm0, rdx, b64
+ load_reg_mem r8, [rsp + 0x908], b64
+ jump_cond jump 915
++load_mem_reg [rsp + 0x900], xmm0, b64
++load_mem_reg [rsp + 0x910], xmm1, b64
+ jump_cond jump 1143
+ load_reg_reg r10, r13, b64
+@@ -283,5 +287,5 @@
+ op_binary_reg_imm add, rsp, 0x18, b64
+ op_binary_reg_imm add, rsp, 0x930, b64
+-jump_cond jump 1067
++jump_cond jump 842
+ cmp_reg_imm r15, 0x2, b32
+ jump_cond ne, b32 1184
+@@ -297,5 +301,5 @@
+ call_local swag, <reloc>
+ op_binary_reg_imm add, rsp, 0x938, b64
+-jump_cond jump 1067
++jump_cond jump 842
+ cmp_reg_imm r15, 0x2, b32
+ jump_cond e, b32 1305
+@@ -350,5 +354,5 @@
+ call_local swag, <reloc>
+ op_binary_reg_imm add, rsp, 0x948, b64
+-jump_cond jump 1067
++jump_cond jump 842
+ cmp_reg_imm rsi, 0x2, b32
+ jump_cond e, b32 1222
+@@ -401,5 +405,5 @@
+ call_local swag, <reloc>
+ op_binary_reg_imm add, rsp, 0x948, b64
+-jump_cond jump 1067
++jump_cond jump 842
+ load_addr_reg_mem r11, [rbx + 0x7D0], b64
+ load_mem_reg [rsp + 0x928], r11, b64
+--- Video.H264.weightBi instance 0 baseline
++++ Video.H264.weightBi instance 0 candidate
+@@ -142,6 +142,6 @@
+ cmp_reg_imm rbx, 0x0, b64
+ jump_cond be, b32 606
+-load_mem_reg [rsp + 0x648], r13, b64
+ load_signed_ext_reg_reg r11, r11, b64 <- b32
++load_reg_reg xmm0, r13, b64
+ clear_reg r14, b64
+ cmp_reg_imm r11, 0x0, b64
+@@ -173,10 +173,10 @@
+ op_binary_reg_reg add, r8, r10, b64
+ op_binary_reg_reg add, r9, r10, b64
+-load_reg_mem r13, [rsp + 0x648], b64
++load_reg_reg r13, xmm0, b64
+ op_binary_reg_imm add, r13, 0x1, b64
+ load_reg_mem rbx, [rsp + 0x640], b64
+ cmp_reg_reg r13, rbx, b64
+ jump_cond ae, b32 292
+-load_mem_reg [rsp + 0x648], r13, b64
++load_reg_reg xmm0, r13, b64
+ jump_cond jump 506
+ load_reg_mem xmm6, [rsp + 0x650], b128

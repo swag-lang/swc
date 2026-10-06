@@ -1,0 +1,163 @@
+{
+  "function_bodies": 334,
+  "totals": {
+    "baseline": {
+      "instructions": 43950,
+      "memory": 9995,
+      "rsp": 2249,
+      "push": 1002
+    },
+    "candidate": {
+      "instructions": 43957,
+      "memory": 9959,
+      "rsp": 2213,
+      "push": 1002
+    }
+  },
+  "changed_groups": [
+    {
+      "name": "Slice.bookkeepMb",
+      "instances": 1,
+      "baseline": {
+        "instructions": 645,
+        "memory": 279,
+        "rsp": 17,
+        "push": 6
+      },
+      "candidate": {
+        "instructions": 646,
+        "memory": 278,
+        "rsp": 16,
+        "push": 6
+      }
+    },
+    {
+      "name": "Slice.mvdCabac",
+      "instances": 1,
+      "baseline": {
+        "instructions": 318,
+        "memory": 58,
+        "rsp": 2,
+        "push": 7
+      },
+      "candidate": {
+        "instructions": 318,
+        "memory": 56,
+        "rsp": 0,
+        "push": 7
+      }
+    },
+    {
+      "name": "Slice.residualCabac",
+      "instances": 5,
+      "baseline": {
+        "instructions": 2560,
+        "memory": 580,
+        "rsp": 89,
+        "push": 38
+      },
+      "candidate": {
+        "instructions": 2560,
+        "memory": 567,
+        "rsp": 76,
+        "push": 38
+      }
+    },
+    {
+      "name": "Video.H264.filterChromaStrongVertical",
+      "instances": 1,
+      "baseline": {
+        "instructions": 127,
+        "memory": 12,
+        "rsp": 2,
+        "push": 6
+      },
+      "candidate": {
+        "instructions": 125,
+        "memory": 10,
+        "rsp": 0,
+        "push": 6
+      }
+    },
+    {
+      "name": "Video.H264.halfVertical",
+      "instances": 1,
+      "baseline": {
+        "instructions": 222,
+        "memory": 66,
+        "rsp": 34,
+        "push": 6
+      },
+      "candidate": {
+        "instructions": 224,
+        "memory": 62,
+        "rsp": 30,
+        "push": 6
+      }
+    },
+    {
+      "name": "Video.H264.halfVerticalAvg",
+      "instances": 1,
+      "baseline": {
+        "instructions": 242,
+        "memory": 75,
+        "rsp": 38,
+        "push": 7
+      },
+      "candidate": {
+        "instructions": 244,
+        "memory": 69,
+        "rsp": 32,
+        "push": 7
+      }
+    },
+    {
+      "name": "Video.H264.interpolateChroma",
+      "instances": 1,
+      "baseline": {
+        "instructions": 315,
+        "memory": 39,
+        "rsp": 9,
+        "push": 7
+      },
+      "candidate": {
+        "instructions": 315,
+        "memory": 36,
+        "rsp": 6,
+        "push": 7
+      }
+    },
+    {
+      "name": "Video.H264.interpolateLuma",
+      "instances": 1,
+      "baseline": {
+        "instructions": 472,
+        "memory": 141,
+        "rsp": 59,
+        "push": 8
+      },
+      "candidate": {
+        "instructions": 476,
+        "memory": 139,
+        "rsp": 57,
+        "push": 8
+      }
+    },
+    {
+      "name": "Video.H264.weightBi",
+      "instances": 1,
+      "baseline": {
+        "instructions": 200,
+        "memory": 48,
+        "rsp": 31,
+        "push": 8
+      },
+      "candidate": {
+        "instructions": 200,
+        "memory": 45,
+        "rsp": 28,
+        "push": 8
+      }
+    }
+  ]
+}

@@ -85,6 +85,50 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
+
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-10-06 10:16 — retain branch and multi-exit spill caching in free SIMD registers.
+- Area: compiler/backend
+- Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
+  in a caller-saved XMM register free across a call-free loop. Every matching load/store
+  becomes a register transfer; one seed precedes the header and each distinct exclusive
+  exit writes the current value back. Mixed/overlapping accesses, indexed or derived stack
+  addresses, changing stack pointers and shared exit entries remain conservative barriers.
+- Evidence: across 334 H.264 bodies, explicit RSP accesses fall from 2,249 to 2,213 and
+  memory operations from 9,995 to 9,959, with seven extra instructions overall and no extra
+  pushes. Five residualCabac instances lose 13 memory operations with unchanged instruction
+  count. The 282 native optimizer, 23 H.264 and nine HEVC decoder tests pass in Release
+  (JIT and native). The [rewrite and per-function tradeoffs](../bench/results/generated-code/20261006-carried-spill-cache/README.md)
+  retain the structural evidence; no runtime speedup was measured.
+- Next: inspect remaining hot source-object slots, mixed-width spills and call-containing
+  loops. Prefer a free integer register when its live range and ABI preservation permit it;
+  shared exits need edge-specific write-backs before they can be admitted.
+- Complete when: current codec dumps identify and resolve the remaining promotion boundary
+  with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
+  64-bit multi-access rewrite.
+- Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
+
+### compiler.optimization.005 — Investigate the remaining Levenshtein outer-loop allocation costs
+
+- Recorded: 2026-08-07 08:30
+- Updated: 2026-10-06 10:16 — retire the stale SHA-256 spill diagnosis and retain the outer-loop cost.
+- Area: compiler/backend
+- Current evidence: Levenshtein carries both adjacent row values between iterations.
+  Its inner loop has 19 instructions and three memory operations, with no frame access
+  (previously 18 / five). The whole main function gains seven instructions and four
+  explicit RSP accesses outside that inner loop. See the
+  [retained code and validation](../bench/results/generated-code/20261006-loop-load-forward/README.md).
+- Scope correction: a fresh October 6 Release listing has 50 instructions in SHA-256's
+  compression round, two table/array reads and no frame accesses. All eight state values
+  stay in registers after the legalization-reserve removal; its earlier `d`/`e` spill lead
+  is complete. General multi-access promotion now belongs to compiler.optimization.015.
+- Next: trace the four added Levenshtein frame accesses outside its inner loop and decide
+  whether narrower carry residency or allocation can remove them without restoring the
+  two per-iteration row reads.
+- Complete when: the outer-region accesses are eliminated or attributed to unavoidable
+  carry initialization/lifetime costs with the inner-loop gain preserved.
+
 ### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
 
 - Recorded: 2026-09-05 22:13
@@ -123,39 +167,6 @@ new language syntax.
 - Complete when: the remaining rebuild reduction preserves generated code and a repeatable
   compiler gain is resolved against the measurement floor at a later milestone.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
-
-### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
-
-- Recorded: 2026-08-07 08:30
-- Updated: 2026-10-06 09:47 — carry both Levenshtein row values and isolate outer-loop frame costs.
-- Area: compiler/backend
-- Found while: the same campaign, asking why the identical loop compiles differently in two places
-- Observation: loop-invariant reloads and a single read/write carried slot are promoted, but the
-  pass refuses a group of mutually dependent carried slots and a carried slot whose register is
-  reused between its load and store. Those are the shapes left in the hottest benchmark loops.
-- Historical evidence, before the current split allocator: sha256's `a`..`h` were eight
-  slots at once and each one's register IS reused between its load and store, so the
-  carries-nothing-else test fails on all eight. Leven's DP loop writes `row1[y+1]` through a
-  program pointer, which makes the body opaque to the aliasing model: any non-frame write may alias
-  any frame slot.
-- Current Levenshtein evidence (October 6, Release): both adjacent row values are carried
-  between iterations. The inner loop has 19 instructions and three memory operations,
-  with no frame access (previously 18 / five). The whole main function gains seven
-  instructions and four explicit RSP accesses outside that inner loop. See the
-  [retained code and validation](../bench/results/generated-code/20261006-loop-load-forward/README.md).
-  The adjacent-element forwarding task is complete; these outer-region allocation costs remain.
-- Current sha256 evidence (`d4cc0a0cd`, same configuration): the compression round has 74
-  instructions and five memory operations. Two loads read `KTAB[i]` and `w[i]`; one frame load and
-  one frame store carry `d` through `[rsp + 0x438]`, while another store writes the new `e` to
-  `[rsp + 0x440]`. The other carried state is already in registers. The historical eight-slot
-  diagnosis no longer describes this loop.
-- Next: trace the remaining `d` carry and the stored copy of `e` through pre/post allocation,
-  then trace the four added Levenshtein frame accesses outside its inner loop. `promoteCarriedSlots`
-  still requires one load/store pair, an unredefined register and one converged exit; if these
-  restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
-  distinguish allocator spill storage from addressable program objects before refining aliasing.
-- Complete when: current loop dumps either retire this lead or identify a measured promotion or
-  residency improvement with aliasing and multi-slot regression coverage.
 
 ### compiler.optimization.036 — Finish shared address folding and isolate its remaining allocation cost
 
@@ -1551,22 +1562,6 @@ new language syntax.
   remains, with any surviving cause reduced to one actionable change.
 - Related: compiler.optimization.005, compiler.optimization.024.
 
-
-### compiler.optimization.015 — Carried-slot promotion still rejects multiple accesses or distinct exits
-
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: `promoteCarriedSlots` promotes a carried frame slot accessed N times across several
-  branch arms with M exits - one seed load before the header, register-only accesses inside, one
-  write-back store per exit edge - instead of only the exactly-one-load, exactly-one-store,
-  single-exit shape, mirroring LLVM's `promoteLoopAccessesToScalars`. Branch-dense codec
-  accumulators updated in several arms are exactly what the current gate misses.
-- Next: extend `promoteCarriedSlots` to a slot with several arms and exits, seed load before
-  the header and one write-back per exit edge, and audit the rewrite with the std.video.005 trace.
-- Complete when: an accumulator written in two arms of a hot loop keeps its register across the
-  back edge with no per-iteration store (dump-verified), a trace-based drop/store audit like
-  std.video.005's validates the rewrite, and HEVC serial decode does not regress.
-- Related: std.video.005, compiler.optimization.011.
 
 ### compiler.optimization.020 — Memory optimizations maintain separate frame alias analyses
 

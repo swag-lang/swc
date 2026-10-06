@@ -554,18 +554,17 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
     // The destination decides whether a copy happens: a value slot of struct type, or an
     // assignment writing through a reference. Reference declarations bind (no copy), and
     // pointer-typed destinations store an address.
-    TypeRef         destPayloadTypeRef = destTypeRef;
-    const TypeInfo* destType           = &typeMgr.get(destTypeRef);
+    const TypeInfo* destType = &typeMgr.get(destTypeRef);
     if (destType->isReference())
     {
         if (destReferenceBinds)
             return Result::Continue;
-        destPayloadTypeRef = destType->payloadTypeRef();
+        destType = &typeMgr.get(destType->payloadTypeRef());
     }
 
-    const TypeRef unwrappedDestTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), destPayloadTypeRef);
-    const TypeRef checkTypeRef         = unwrappedDestTypeRef.isValid() ? unwrappedDestTypeRef : destPayloadTypeRef;
-    if (!typeMgr.get(checkTypeRef).isStruct() && !typeMgr.get(checkTypeRef).isArray())
+    if (const TypeInfo* unwrappedType = destType->unwrapAliasEnumType(sema.ctx()))
+        destType = unwrappedType;
+    if (!destType->isStruct() && !destType->isArray())
         return Result::Continue;
 
     // Rvalue sources (call results, literals, constants) construct or move; a copy only
@@ -582,6 +581,7 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
     if (srcSymView.sym() && srcSymView.sym()->isVariable() && srcSymView.sym()->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::FwdCopy))
         return Result::Continue;
 
+    const TypeRef checkTypeRef = destType->typeRef();
     if (TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), checkTypeRef).canCopy)
         return Result::Continue;
 

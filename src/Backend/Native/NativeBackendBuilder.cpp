@@ -514,9 +514,24 @@ namespace
         return changed;
     }
 
-    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, size_t& nextFunctionIndex)
+    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, std::unordered_set<SymbolFunction*>* rejected = nullptr)
     {
         bool changed = false;
+        // Global initializers reach read-only data without a code relocation. Its function
+        // pointers, including dynamic type lifecycle hooks, need the same dependency closure.
+        for (const DataSegmentRelocation& relocation : builder.compiler().globalInitSegment().copyRelocations())
+        {
+            if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
+                continue;
+
+            changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, relocation.targetShardIndex, relocation.targetOffset, rejected) || changed;
+        }
+        return changed;
+    }
+
+    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, size_t& nextFunctionIndex)
+    {
+        bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations);
 
         // Newly discovered constant dependencies are appended to 'functions', so iterate by
         // index to keep traversal stable while still visiting the new entries in the same pass.
@@ -557,7 +572,7 @@ namespace
     bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, ConstantDependencyScan& scan)
     {
         std::unordered_set seenFunctions(functions.begin(), functions.end());
-        bool               changed = false;
+        bool               changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, &scan.rejected);
         for (auto it = scan.rejected.begin(); it != scan.rejected.end();)
         {
             SymbolFunction* target = *it;

@@ -1028,10 +1028,9 @@ namespace
         auto [returnRef, returnPtr] = sema.ast().makeNode<AstNodeId::ReturnStmt>(decl.tokRef());
         returnPtr->nodeExprRef      = clonedExprRef;
 
-        auto [blockRef, blockPtr] = sema.ast().makeNode<BLOCK_ID>(decl.tokRef());
-        SmallVector<AstNodeRef> statements;
-        statements.push_back(returnRef);
-        blockPtr->spanChildrenRef = sema.ast().pushSpan(statements.span());
+        auto [blockRef, blockPtr]    = sema.ast().makeNode<BLOCK_ID>(decl.tokRef());
+        const std::array statements = {returnRef};
+        blockPtr->spanChildrenRef    = sema.ast().pushSpan(std::span<const AstNodeRef>{statements});
         return blockRef;
     }
 

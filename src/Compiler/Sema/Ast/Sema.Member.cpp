@@ -20,11 +20,10 @@ namespace
         else
         {
             SWC_ASSERT(node.projectionId == TokenId::IntrinsicDataOf);
-            SmallVector<AstNodeRef> children;
-            children.push_back(node.nodeLeftRef);
+            const std::array children   = {node.nodeLeftRef};
             auto [newRef, substitute]   = sema.ast().makeNode<AstNodeId::IntrinsicCall>(tokNameRef);
             substitute->intrinsicId     = TokenId::IntrinsicDataOf;
-            substitute->spanChildrenRef = sema.ast().pushSpan(children.span());
+            substitute->spanChildrenRef = sema.ast().pushSpan(std::span<const AstNodeRef>{children});
             substituteRef               = newRef;
         }
 

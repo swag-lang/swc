@@ -1280,21 +1280,19 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
 
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
 
-    SmallVector<AstNodeRef> genericArgs;
-    genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), foreachRequestsByAddress(sema, node)));
+    const std::array genericArgs = {makeSyntheticBoolConstantArg(sema, node.codeRef(), foreachRequestsByAddress(sema, node))};
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, genericArgs.span(), candidates));
+    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, genericArgs, candidates));
     if (candidates.empty())
         return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 
-    SmallVector<AstNodeRef> args;
-    args.push_back(makeSyntheticCodeBlockArg(sema, node));
+    std::array args        = {makeSyntheticCodeBlockArg(sema, node)};
     AstNodeRef receiverRef = sema.viewZero(node.nodeExprRef).nodeRef();
     if (receiverRef.isInvalid())
         receiverRef = node.nodeExprRef;
     SmallVector<ResolvedCallArgument> resolvedArgs;
-    SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args.span(), receiverRef, true, resolvedArgs, outMatched));
+    SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args, receiverRef, true, resolvedArgs, outMatched));
     return Result::Continue;
 }
 
@@ -1310,21 +1308,19 @@ Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, Symbo
 
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
 
-    SmallVector<AstNodeRef> genericArgs;
-    genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), foreachRequestsByAddress(sema, node)));
+    const std::array genericArgs = {makeSyntheticBoolConstantArg(sema, node.codeRef(), foreachRequestsByAddress(sema, node))};
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, genericArgs.span(), candidates));
+    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, genericArgs, candidates));
     if (candidates.empty())
         return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 
-    SmallVector<AstNodeRef> args;
-    args.push_back(makeSyntheticCodeBlockArg(sema, node));
+    std::array args        = {makeSyntheticCodeBlockArg(sema, node)};
     AstNodeRef receiverRef = sema.viewZero(node.nodeExprRef).nodeRef();
     if (receiverRef.isInvalid())
         receiverRef = node.nodeExprRef;
     bool matched = false;
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), receiverRef, true, &matched, false, true, &outCalledFn));
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args, receiverRef, true, &matched, false, true, &outCalledFn));
     outHandled = matched;
     return Result::Continue;
 }

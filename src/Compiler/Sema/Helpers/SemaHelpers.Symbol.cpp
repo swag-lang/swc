@@ -50,12 +50,15 @@ namespace
         if (!operandType.isAnyPointer())
             return Result::Continue;
 
-        TypeRef payloadTypeRef = operandType.payloadTypeRef();
+        TypeRef         payloadTypeRef = operandType.payloadTypeRef();
+        const TypeInfo* payloadType    = nullptr;
         if (payloadTypeRef != sema.typeMgr().typeVoid())
         {
-            const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), payloadTypeRef);
-            if (unwrappedTypeRef.isValid())
-                payloadTypeRef = unwrappedTypeRef;
+            payloadType                   = &sema.typeMgr().get(payloadTypeRef);
+            const TypeInfo* unwrappedType = payloadType->unwrapAliasEnumType(sema.ctx());
+            if (unwrappedType)
+                payloadType = unwrappedType;
+            payloadTypeRef = payloadType->typeRef();
         }
 
         if (payloadTypeRef == sema.typeMgr().typeVoid())
@@ -65,7 +68,7 @@ namespace
 
         // A pointer's own type is complete before its pointee layout. Both binary and compound
         // arithmetic need that layout for their element stride before code generation can start.
-        return sema.waitSemaCompleted(&sema.typeMgr().get(payloadTypeRef), operandRef);
+        return sema.waitSemaCompleted(payloadType, operandRef);
     }
 
     bool blockPointerPayloadsMatch(Sema& sema, const TypeInfo& leftType, const TypeInfo& rightType)
@@ -1580,22 +1583,21 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     }
     else
     {
-        TypeRef typeRef = aliasEnumTypeRef(sema, nodeLeftView.typeRef());
-        typeInfo        = &sema.typeMgr().get(typeRef);
+        typeInfo = &aliasEnumType(sema, nodeLeftView);
 
         // References are transparent, so every reference layer is peeled; a pointer is
         // dereferenced exactly once. Both peels are needed for a binding to a pointer slot
         // ('&*T', what an 'opIndex' hands back), while '**T' must still stop after one.
         while (typeInfo->isReference())
         {
-            typeRef  = aliasEnumTypeRef(sema, typeInfo->payloadTypeRef());
-            typeInfo = &sema.typeMgr().get(typeRef);
+            const TypeRef typeRef = aliasEnumTypeRef(sema, typeInfo->payloadTypeRef());
+            typeInfo              = &sema.typeMgr().get(typeRef);
         }
 
         if (typeInfo->isAnyPointer())
         {
-            typeRef  = aliasEnumTypeRef(sema, typeInfo->payloadTypeRef());
-            typeInfo = &sema.typeMgr().get(typeRef);
+            const TypeRef typeRef = aliasEnumTypeRef(sema, typeInfo->payloadTypeRef());
+            typeInfo              = &sema.typeMgr().get(typeRef);
         }
     }
 

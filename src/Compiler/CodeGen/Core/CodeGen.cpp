@@ -733,9 +733,8 @@ const SymbolVariable* CodeGen::runtimeStorageSymbol(AstNodeRef nodeRef) const
     return nullptr;
 }
 
-void CodeGen::mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef) const
+void CodeGen::mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const
 {
-    const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
     if (resolvedRef.isInvalid())
         return;
 
@@ -810,7 +809,7 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
         payload = &ensureNodePayload<CodeGenNodePayload>(nodeRef);
     }
 
-    mergeLoweringNodePayloadMetadata(*payload, nodeRef);
+    mergeLoweringNodePayloadMetadata(*payload, nodeRef, resolvedRef);
     return payload;
 }
 
@@ -914,7 +913,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodePayload.typeRef     = typeRef;
     nodePayload.storageKind = CodeGenNodePayload::StorageKind::Value;
     nodePayload.clearMaterializedPointerLikeValue();
-    mergeLoweringNodePayloadMetadata(nodePayload, nodeRef);
+    mergeLoweringNodePayloadMetadata(nodePayload, nodeRef, resolvedRef);
     return nodePayload;
 }
 
@@ -1734,7 +1733,7 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
             if (payload->fallibleWrapperConsumed)
             {
                 payload->fallibleWrapperConsumed = false;
-                mergeLoweringNodePayloadMetadata(*payload, currentRef);
+                mergeLoweringNodePayloadMetadata(*payload, currentRef, currentRef);
             }
         }
 

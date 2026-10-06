@@ -350,7 +350,7 @@ public:
             payload  = ctx().allocate<T>();
             *payload = {};
             if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
-                mergeLoweringNodePayloadMetadata(*payload, queryNodeRef);
+                mergeLoweringNodePayloadMetadata(*payload, queryNodeRef, nodeRef);
             slot = payload;
         }
 
@@ -508,7 +508,7 @@ private:
     Result emitDeferredActionsInScope(size_t scopeIndex, size_t actionCount);
     Result emitDeferredActionsFrom(size_t startScopeIndex, size_t startActionCount, size_t stopScopeIndex, bool hasStopScope);
     bool   findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const;
-    void   mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef) const;
+    void   mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const;
 
     Sema*                                                            sema_ = nullptr;
     AstVisit                                                         visit_;

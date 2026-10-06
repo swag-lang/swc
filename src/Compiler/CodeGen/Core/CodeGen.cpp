@@ -720,6 +720,8 @@ const SymbolVariable* CodeGen::runtimeStorageSymbol(AstNodeRef nodeRef) const
         return exactPayload->runtimeStorageSym;
 
     const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
+    if (resolvedRef.isInvalid())
+        return nullptr;
     if (resolvedRef != nodeRef)
     {
         const auto* resolvedPayload = loweringPayload(resolvedRef);
@@ -727,7 +729,8 @@ const SymbolVariable* CodeGen::runtimeStorageSymbol(AstNodeRef nodeRef) const
             return resolvedPayload->runtimeStorageSym;
     }
 
-    const auto* payload = safeNodePayload<CodeGenNodePayload>(resolvedRef);
+    const auto  it      = nodePayloads_.find(resolvedRef);
+    const auto* payload = it == nodePayloads_.end() ? nullptr : static_cast<const CodeGenNodePayload*>(it->second);
     if (payload && payload->runtimeStorageSym != nullptr)
         return payload->runtimeStorageSym;
     return nullptr;
@@ -799,7 +802,8 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
     if (resolvedRef.isInvalid())
         return nullptr;
 
-    CodeGenNodePayload* payload = safeNodePayload<CodeGenNodePayload>(resolvedRef);
+    const auto          it      = nodePayloads_.find(resolvedRef);
+    CodeGenNodePayload* payload = it == nodePayloads_.end() ? nullptr : static_cast<CodeGenNodePayload*>(it->second);
     if (!payload)
     {
         const bool hasPayload = loweringPayload(resolvedRef) != nullptr || (resolvedRef != nodeRef && loweringPayload(nodeRef) != nullptr);

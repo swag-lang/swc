@@ -659,6 +659,9 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
                 instReloc = relocIt->second;
         }
 
+        if (shape.keyedByRelocationToo && !instReloc)
+            continue;
+
         if (inst->op == MicroInstrOpcode::OpBinaryRegMem)
         {
             if (!instReloc || instReloc->kind != MicroRelocation::Kind::ConstantAddress ||
@@ -716,7 +719,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (shape.dstIsAlsoUse)
         {
             const uint32_t valueId = canonicalUseValue(*ssaState, operands, valueAliases, dstReg, instRef, movBits);
-            usable                 = valueId != MicroSsaState::K_INVALID_VALUE;
+            if (valueId == MicroSsaState::K_INVALID_VALUE)
+                continue;
             key.push_back(valueId);
         }
         for (const uint8_t slot : shape.useSlots)
@@ -752,11 +756,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (shape.hasImmediate)
             key.push_back(ops[shape.immediateSlot].valueU64);
         if (shape.keyedByRelocationToo)
-        {
-            if (!instReloc)
-                continue;
             appendRelocationIdentity(key, *instReloc);
-        }
 
         uint32_t myValueId = MicroSsaState::K_INVALID_VALUE;
         if (!ssaState->defValue(dstReg, instRef, myValueId))

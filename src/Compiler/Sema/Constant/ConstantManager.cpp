@@ -156,10 +156,9 @@ ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const Type
     if (cached.isValid())
         return cached;
 
-    const TypeInfo& type           = ctx.typeMgr().get(typeRef);
-    const TypeRef   storageTypeRef = type.isAlias() || type.isEnum() ? type.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum) : typeRef;
-
-    const TypeInfo& storageType = storageTypeRef == typeRef ? type : ctx.typeMgr().get(storageTypeRef);
+    const TypeInfo& type          = ctx.typeMgr().get(typeRef);
+    const TypeInfo* unwrappedType = type.unwrapAliasEnumType(ctx);
+    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : type;
     SWC_ASSERT(storageType.isStruct() || storageType.isString() || storageType.isAny() || storageType.isInterface() || storageType.isArray() || (storageType.isFunction() && storageType.isLambdaClosure()));
 
     const uint64_t sizeOf = storageType.sizeOf(ctx);

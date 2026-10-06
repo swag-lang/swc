@@ -831,9 +831,32 @@ namespace
         }
     }
 
-    // Integer spill homes can use an otherwise unused caller-saved SIMD register
-    // even when the GP register changes roles between accesses. Keeping every
-    // read and write coherent also handles branch arms and distinct loop exits.
+    // Only registers whose incoming value is already preserved may be borrowed
+    // without changing the prologue, epilogue or unwind description.
+    SmallVector<MicroReg, 8> savedIntegerRegisters(const MicroPassContext& context, const CallConv& conv)
+    {
+        SmallVector<MicroReg, 8> result;
+        for (const MicroInstr& inst : context.instructions->view())
+        {
+            const auto flags = MicroInstr::info(inst.op).flags;
+            if (inst.op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
+                break;
+            const auto* ops = inst.ops(*context.operands);
+            if (inst.op != MicroInstrOpcode::Push || !ops || !conv.isIntPersistentReg(ops[0].reg))
+                continue;
+            const MicroReg reg = ops[0].reg;
+            if (isFrameBaseRegister(reg, conv) || reg == context.debugStackBasePhysReg)
+                continue;
+            if (std::ranges::find(result, reg) == result.end())
+                result.push_back(reg);
+        }
+        return result;
+    }
+
+    // Integer spill homes prefer an idle, already saved integer register, then
+    // an unused caller-saved SIMD register, even when the original GP register
+    // changes roles between accesses. Keeping every read and write coherent also
+    // handles branch arms and distinct loop exits.
     bool cachePrivateSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop)
     {
         if (context.spillAreaLo >= context.spillAreaHi)
@@ -873,30 +896,35 @@ namespace
                 continue;
             const auto& useDef = liveness.useDefs[index];
             for (const MicroReg reg : useDef.uses)
-                if (reg.isFloat())
+                if (reg.isInt() || reg.isFloat())
                     unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
             for (const MicroReg reg : useDef.defs)
-                if (reg.isFloat() && (!useDef.isCall || liveness.isLiveOut(index, reg)))
+                if ((reg.isInt() || reg.isFloat()) && (!useDef.isCall || liveness.isLiveOut(index, reg)))
                     unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
             if (useDef.isCall)
                 calls.push_back(index);
         }
-        SmallVector<MicroReg, 6> available;
+        SmallVector<MicroReg, 16> available;
+        SmallVector<MicroReg, 16> candidates;
+        for (const MicroReg reg : savedIntegerRegisters(context, conv))
+            candidates.push_back(reg);
         for (const MicroReg reg : conv.floatTransientRegs)
+            candidates.push_back(reg);
+        for (const MicroReg reg : candidates)
             if (!(unavailable & (1ull << MicroPhysLiveness::bitOf(reg))) &&
                 std::ranges::none_of(entries, [&](const uint32_t entry) { return liveness.isLiveOut(entry, reg); }))
                 available.push_back(reg);
         if (available.empty())
             return false;
 
-        // Only a loop with a call-free route back to its header can avoid a
-        // reload on some trips. Calls on every trip would merely move the load.
+        // A clobbered cache needs a call-free route to avoid restoring it on
+        // every trip. An already preserved register can cross all calls.
+        bool callFreeTrip = calls.empty();
         if (!calls.empty())
         {
             std::vector<uint8_t>  visited(refs.size(), 0);
             SmallVector<uint32_t> pending;
             pending.push_back(loop.header);
-            bool callFreeTrip = false;
             while (!pending.empty() && !callFreeTrip)
             {
                 const uint32_t index = pending.back();
@@ -912,8 +940,6 @@ namespace
                         pending.push_back(successor);
                 }
             }
-            if (!callFreeTrip)
-                return false;
         }
 
         struct Slot
@@ -1030,7 +1056,7 @@ namespace
             // entry/restore reads. Otherwise the cold arms grow memory traffic.
             const auto restores     = std::ranges::count_if(calls, needsRestore);
             const auto readsRemoved = slot.accesses.size() - (writeThrough ? slot.writes : 0);
-            if ((writeThrough && !readsRemoved) || (!calls.empty() && readsRemoved <= seeds.size() + restores))
+            if ((!callFreeTrip && restores) || (writeThrough && !readsRemoved) || (!calls.empty() && readsRemoved <= seeds.size() + restores))
                 continue;
             ++selected;
             MicroInstrOperand seed[4] = {};
@@ -1592,23 +1618,7 @@ namespace
             return false;
         const auto refs = cfg.instructionRefs();
 
-        SmallVector<MicroReg, 8> savedRegs;
-        for (uint32_t i = 0; i < n; ++i)
-        {
-            const MicroInstr* inst = storage.ptr(refs[i]);
-            if (!inst)
-                return false;
-            const MicroInstrFlags flags = MicroInstr::info(inst->op).flags;
-            if (inst->op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::JumpInstruction) ||
-                flags.has(MicroInstrFlagsE::IsCallInstruction))
-                break;
-            if (inst->op == MicroInstrOpcode::Push)
-            {
-                const MicroInstrOperand* ops = inst->ops(operands);
-                if (ops && conv.isIntPersistentReg(ops[0].reg))
-                    savedRegs.push_back(ops[0].reg);
-            }
-        }
+        const auto savedRegs = savedIntegerRegisters(context, conv);
         if (savedRegs.empty())
             return false;
 

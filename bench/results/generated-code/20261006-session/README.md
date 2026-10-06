@@ -1,6 +1,6 @@
 # Optimization session, 2026-10-06
 
-Nineteen code batches were validated and merged into local master in sequence,
+Twenty code batches were validated and merged into local master in sequence,
 from the separate perf/optimization-boundaries-20261006 worktree (the initial
 VEX batch also used perf/optimization-until-noon-20261006). No remote push was
 requested. SWC_BUILD_NUM remains 1173. The compiler and optimized programs used
@@ -28,6 +28,7 @@ default devmode configuration, which is not a performance measurement.
 | 17 | Keep packed locals in registers despite scalar lane reads | [Vector lanes](../20261006-vector-lanes/README.md) |
 | 18 | Reuse unmodified private-global loads across disjoint stores and branches | [Heap values](../20261006-heap-values/README.md) |
 | 19 | Cache mutable private spills across shared loop exits | [Shared exits](../20261006-shared-exit-cache/README.md) |
+| 20 | Cache private spills in idle integer registers already saved by the prologue | [Saved integer registers](../20261006-gp-spill-cache/README.md) |
 
 Representative structural outcomes:
 
@@ -78,3 +79,9 @@ memory operations to 425 / 113. Its necessary moving-SP alias repair is included
 with a reduced regression that fails before the repair and passes afterwards.
 Nbody saves five instructions and four memory operations; the H.264 panel has a
 net increase of one instruction and two memory operations, detailed in batch 14.
+
+After concurrent library reachability changes, the fresh batch-20 H.264 panel
+contains 322 bodies. Within that same panel, extendPlane loses twelve memory
+operations with no extra instruction or saved register; the other 321 bodies
+retain their counts. The smaller panel itself is not an optimization gain
+attributed to this campaign.

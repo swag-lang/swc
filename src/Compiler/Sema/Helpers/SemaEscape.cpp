@@ -35,6 +35,13 @@ namespace
     constexpr uint32_t K_TYPE_BUDGET = 128;
     constexpr uint32_t K_EXPR_BUDGET = 128;
 
+    const TypeInfo& unwrapAliasEnumType(Sema& sema, TypeRef typeRef)
+    {
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        return unwrappedType ? *unwrappedType : declaredType;
+    }
+
     TypeRef unwrapAliasEnum(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -93,11 +100,11 @@ namespace
 
     bool designatedStorageHasOwningLifecycle(Sema& sema, TypeRef typeRef)
     {
-        typeRef = unwrapAliasEnum(sema, typeRef);
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        const TypeInfo& type = unwrapAliasEnumType(sema, typeRef);
+        typeRef              = type.typeRef();
         if (type.isAnyPointer() || type.isReference())
             typeRef = unwrapAliasEnum(sema, type.payloadTypeRef());
         return hasOwningLifecycle(sema, typeRef);
@@ -1083,7 +1090,7 @@ namespace
             // `any.buffer` opens the same erased payload as a dynamic cast. A raw
             // pointer cast after this projection must not erase that lifetime.
             const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, storageRef));
-            if (operandTypeRef.isValid() && sema.typeMgr().get(unwrapAliasEnum(sema, operandTypeRef)).isAny())
+            if (operandTypeRef.isValid() && unwrapAliasEnumType(sema, operandTypeRef).isAny())
                 info.viaErasedPayload = true;
         }
         return info;
@@ -1136,10 +1143,10 @@ namespace
         bool valueBackedParameter = false;
         if (sourceVar && wholeVariable && sourceVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
-            const TypeRef sourceTypeRef = unwrapAliasEnum(sema, castOperandTypeRef(sema, castRef, sourceRef));
+            const TypeRef sourceTypeRef = castOperandTypeRef(sema, castRef, sourceRef);
             if (sourceTypeRef.isValid())
             {
-                const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+                const TypeInfo& sourceType = unwrapAliasEnumType(sema, sourceTypeRef);
                 valueBackedParameter       = sourceType.isAnyPointer() || sourceType.isReference();
             }
         }
@@ -1179,8 +1186,8 @@ namespace
         const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, operandRef));
         if (resultTypeRef.isValid() &&
             sourceTypeRef.isValid() &&
-            sema.typeMgr().get(unwrapAliasEnum(sema, resultTypeRef)).isAny() &&
-            !sema.typeMgr().get(unwrapAliasEnum(sema, sourceTypeRef)).isAny())
+            unwrapAliasEnumType(sema, resultTypeRef).isAny() &&
+            !unwrapAliasEnumType(sema, sourceTypeRef).isAny())
             return anyBoxEscapeInfo(sema, castRef, operandRef, resultTypeRef);
 
         SemaEscapeInfo info = operandSelfSubst
@@ -1189,7 +1196,7 @@ namespace
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
-            if (sourceTypeRef.isValid() && sema.typeMgr().get(unwrapAliasEnum(sema, sourceTypeRef)).isAny())
+            if (sourceTypeRef.isValid() && unwrapAliasEnumType(sema, sourceTypeRef).isAny())
                 info.viaErasedPayload = true;
             return info;
         }

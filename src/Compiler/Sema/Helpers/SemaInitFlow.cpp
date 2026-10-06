@@ -303,7 +303,7 @@ namespace
         {
             if (ref.isInvalid())
                 return ref;
-            const AstNodeRef resolved = sema_->viewZero(ref).nodeRef();
+            const AstNodeRef resolved = sema_->resolvedNodeRef(ref);
             return resolved.isValid() ? resolved : ref;
         }
 
@@ -1940,7 +1940,7 @@ namespace
         if (ref.isInvalid() || depth > 512)
             return Result::Continue;
 
-        const AstNodeRef resolvedRef = sema.viewZero(ref).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(ref);
         if (resolvedRef.isValid())
             ref = resolvedRef;
 

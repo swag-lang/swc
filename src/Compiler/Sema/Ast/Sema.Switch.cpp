@@ -502,7 +502,7 @@ bool SemaSwitch::alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstS
         if (childRef.isInvalid())
             continue;
 
-        const AstNodeRef caseRef  = sema.viewZero(childRef).nodeRef();
+        const AstNodeRef caseRef  = sema.resolvedNodeRef(childRef);
         const AstNodeRef resolved = caseRef.isValid() ? caseRef : childRef;
         if (sema.node(resolved).isNot(AstNodeId::SwitchCaseStmt))
             continue;

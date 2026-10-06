@@ -348,7 +348,7 @@ namespace
     {
         for (int depth = 0; depth < 16 && nodeRef.isValid(); depth++)
         {
-            const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+            const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
             if (resolvedRef.isValid())
                 nodeRef = resolvedRef;
 
@@ -640,7 +640,7 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
             const auto& assign = curNode.cast<AstAssignStmt>();
             if (sema.token(assign.codeRef()).id == TokenId::SymEqual)
             {
-                const AstNodeRef leftRef = sema.viewZero(assign.nodeLeftRef).nodeRef();
+                const AstNodeRef leftRef = sema.resolvedNodeRef(assign.nodeLeftRef);
                 if (leftRef == nodeRef)
                     return TypeRef::invalid();
 
@@ -651,7 +651,7 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
                     sema.node(leftRef).collectChildrenFromAst(targets, sema.ast());
                     for (const AstNodeRef targetRef : targets)
                     {
-                        if (sema.viewZero(targetRef).nodeRef() == nodeRef)
+                        if (sema.resolvedNodeRef(targetRef) == nodeRef)
                             return TypeRef::invalid();
                     }
                 }

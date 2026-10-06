@@ -260,7 +260,7 @@ Result AstUsingDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstParenExpr::semaPostNode(Sema& sema)
 {
-    const AstNodeRef resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
+    const AstNodeRef resolvedExprRef = sema.resolvedNodeRef(nodeExprRef);
     sema.inheritPayload(*this, resolvedExprRef);
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
     return Result::Continue;
@@ -378,7 +378,7 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
 
 Result AstNamedArgument::semaPostNode(Sema& sema)
 {
-    const AstNodeRef resolvedArgRef = sema.viewZero(nodeArgRef).nodeRef();
+    const AstNodeRef resolvedArgRef = sema.resolvedNodeRef(nodeArgRef);
     sema.inheritPayload(*this, resolvedArgRef);
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedArgRef);
     return Result::Continue;

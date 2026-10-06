@@ -225,7 +225,7 @@ namespace
         }
 
         AstNodeRef       resultRef   = nodeRef;
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isValid())
             resultRef = resolvedRef;
 

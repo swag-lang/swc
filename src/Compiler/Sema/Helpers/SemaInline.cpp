@@ -283,7 +283,7 @@ namespace
                 }
             }
 
-            const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+            const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
             if (resolvedRef.isValid() && resolvedRef != nodeRef)
                 pending.push_back(resolvedRef);
 
@@ -482,7 +482,7 @@ namespace
                 return true;
         }
 
-        const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(argRef);
         if (resolvedRef.isValid() && resolvedRef != argRef && codeArgumentInlineContextTarget(sema, outTarget, resolvedRef))
             return true;
 
@@ -561,7 +561,7 @@ namespace
                 return inlinePayload->callRef;
         }
 
-        const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(argRef);
         if (resolvedRef.isInvalid())
             return argRef;
 
@@ -600,7 +600,7 @@ namespace
 
             if (SemaReexpandExpr::isReexpandableExpr(exprNode))
             {
-                const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+                const AstNodeRef resolvedRef = sema.resolvedNodeRef(exprRef);
                 if (resolvedRef.isValid() && resolvedRef != exprRef && SemaInline::expansionPayload(sema, resolvedRef))
                     return exprRef;
             }
@@ -695,7 +695,7 @@ namespace
             if (argNode.is(AstNodeId::CompilerCodeExpr) || argNode.is(AstNodeId::CompilerCodeBlock))
                 return wrapCodeArgument(sema, param, argRef);
 
-            const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
+            const AstNodeRef resolvedRef = sema.resolvedNodeRef(argRef);
             if (resolvedRef.isValid() && resolvedRef != argRef)
             {
                 const AstNode& resolvedNode = sema.node(resolvedRef);
@@ -2863,7 +2863,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
     {
         const AstNodeRef guardedRef         = sema.node(callRef).is(AstNodeId::CallExpr) ? sema.node(callRef).cast<AstCallExpr>().nodeExprRef : AstNodeRef::invalid();
-        const AstNodeRef resolvedGuardedRef = guardedRef.isValid() ? sema.viewZero(guardedRef).nodeRef() : AstNodeRef::invalid();
+        const AstNodeRef resolvedGuardedRef = guardedRef.isValid() ? sema.resolvedNodeRef(guardedRef) : AstNodeRef::invalid();
         for (const AstNodeRef candidateRef : {guardedRef, resolvedGuardedRef})
         {
             if (candidateRef.isValid() &&

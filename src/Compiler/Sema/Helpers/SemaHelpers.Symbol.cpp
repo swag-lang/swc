@@ -120,7 +120,7 @@ AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
 {
     while (nodeRef.isValid())
     {
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isValid() && resolvedRef != nodeRef)
         {
             nodeRef = resolvedRef;

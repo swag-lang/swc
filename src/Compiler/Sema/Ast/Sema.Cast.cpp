@@ -108,7 +108,6 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
     const SemaNodeView srcTypeView  = sema.viewTypeConstant(nodeExprRef);
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
@@ -117,7 +116,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 
     // Value-check
     if (!modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
-        SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, srcTypeView.nodeRef()));
 
     // Check cast modifiers
     SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap | AstModifierFlagsE::Try | AstModifierFlagsE::Assume));
@@ -185,7 +184,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), function, codeRef());
     }
 
-    sema.inheritPayloadFlags(*this, nodeExprView.nodeRef());
+    sema.inheritPayloadFlags(*this, srcTypeView.nodeRef());
     if (srcTypeView.hasConstant())
         sema.setConstant(sema.curNodeRef(), srcTypeView.cstRef());
     else
@@ -201,7 +200,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 
     const SemaNodeView dstView                     = sema.curViewNodeTypeConstant();
     const bool         createLiteralRuntimeStorage = srcTypeView.hasConstant() && !dstView.hasConstant();
-    SWC_RESULT(Cast::retargetLiteralRuntimeStorageIfNeeded(sema, nodeExprView.nodeRef(), srcTypeView.typeRef(), dstView.typeRef(), createLiteralRuntimeStorage));
+    SWC_RESULT(Cast::retargetLiteralRuntimeStorageIfNeeded(sema, srcTypeView.nodeRef(), srcTypeView.typeRef(), dstView.typeRef(), createLiteralRuntimeStorage));
     SWC_RESULT(Cast::attachCastRuntimeStorageIfNeeded(sema, sema.curNodeRef(), srcTypeView.typeRef(), dstView.typeRef(), srcTypeView.cstRef()));
 
     return Result::Continue;
@@ -215,7 +214,6 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
     const SemaNodeView exprTypeView = sema.viewType(nodeExprRef);
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
@@ -233,10 +231,10 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
+    SWC_RESULT(SemaCheck::isValue(sema, exprTypeView.nodeRef()));
 
     DynamicStructCastSourceInfo castInfo;
-    if (!resolveDynamicStructCastSourceInfo(sema, nodeExprView.nodeRef(), exprTypeView.typeRef(), castInfo))
+    if (!resolveDynamicStructCastSourceInfo(sema, exprTypeView.nodeRef(), exprTypeView.typeRef(), castInfo))
         return SemaError::raiseCannotCast(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
 
     TypeInfoFlags resultFlags = TypeInfoFlagsE::Nullable;
@@ -307,12 +305,11 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
 
 Result AstAutoCastExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
-    const SemaNodeView exprView     = sema.viewTypeConstant(nodeExprRef);
+    const SemaNodeView exprView = sema.viewTypeConstant(nodeExprRef);
 
     // Value-check
     if (!modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
-        SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
 
     // Check cast modifiers
     SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap | AstModifierFlagsE::Try | AstModifierFlagsE::Assume));

@@ -101,7 +101,7 @@ namespace
         if (leftRef.isInvalid())
             return false;
 
-        const AstNodeRef resolvedLeftRef = sema.viewZero(leftRef).nodeRef();
+        const AstNodeRef resolvedLeftRef = sema.resolvedNodeRef(leftRef);
         if (resolvedLeftRef.isInvalid())
             return false;
 
@@ -186,7 +186,7 @@ namespace
                 return false;
             budget--;
 
-            const AstNodeRef currentRef = sema.viewZero(toScan.back()).nodeRef();
+            const AstNodeRef currentRef = sema.resolvedNodeRef(toScan.back());
             toScan.pop_back();
             if (currentRef.isInvalid())
                 return false;

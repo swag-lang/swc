@@ -336,7 +336,7 @@ namespace
         if (sema.node(valueRef).is(AstNodeId::AutoMemberAccessExpr))
             return valueRef;
 
-        const AstNodeRef substitutedRef = sema.viewZero(valueRef).nodeRef();
+        const AstNodeRef substitutedRef = sema.resolvedNodeRef(valueRef);
         if (substitutedRef.isValid() && sema.node(substitutedRef).is(AstNodeId::AutoMemberAccessExpr))
             return substitutedRef;
 
@@ -3135,7 +3135,7 @@ AstNodeRef Match::resolveCallArgumentRef(Sema& sema, AstNodeRef argRef)
     if (argNode.is(AstNodeId::CastExpr) || argNode.is(AstNodeId::AutoCastExpr))
         return argRef;
 
-    AstNodeRef finalRef = sema.viewZero(argRef).nodeRef();
+    AstNodeRef finalRef = sema.resolvedNodeRef(argRef);
     if (finalRef.isInvalid())
         finalRef = argRef;
     return finalRef;

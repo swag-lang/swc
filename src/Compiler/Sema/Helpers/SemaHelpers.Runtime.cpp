@@ -338,7 +338,7 @@ Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runt
 
 bool SemaHelpers::ownsExpressionValue(Sema& sema, AstNodeRef nodeRef)
 {
-    nodeRef = sema.viewZero(nodeRef).nodeRef();
+    nodeRef = sema.resolvedNodeRef(nodeRef);
     while (nodeRef.isValid())
     {
         const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
@@ -356,14 +356,14 @@ bool SemaHelpers::ownsExpressionValue(Sema& sema, AstNodeRef nodeRef)
             childRef = node.cast<AstNamedArgument>().nodeArgRef;
         else
             return false;
-        nodeRef = node.is(AstNodeId::CastExpr) ? childRef : sema.viewZero(childRef).nodeRef();
+        nodeRef = node.is(AstNodeId::CastExpr) ? childRef : sema.resolvedNodeRef(childRef);
     }
     return false;
 }
 
 bool SemaHelpers::expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef)
 {
-    nodeRef                   = sema.viewZero(nodeRef).nodeRef();
+    nodeRef                   = sema.resolvedNodeRef(nodeRef);
     const auto* inlinePayload = sema.inlinePayload(nodeRef);
     if (inlinePayload && inlinePayload->inlineRootRef == nodeRef && inlinePayload->returnTypeRef.isValid())
         return sema.typeMgr().get(inlinePayload->returnTypeRef).isReference();
@@ -571,8 +571,8 @@ SymbolVariable* SemaHelpers::currentRuntimeStorage(Sema& sema)
     if (!sym || !nodeRef.isValid())
         return nullptr;
 
-    const AstNodeRef resolvedTargetRef  = sema.viewZero(nodeRef).nodeRef();
-    const AstNodeRef resolvedCurrentRef = sema.viewZero(sema.curNodeRef()).nodeRef();
+    const AstNodeRef resolvedTargetRef  = sema.resolvedNodeRef(nodeRef);
+    const AstNodeRef resolvedCurrentRef = sema.resolvedNodeRef(sema.curNodeRef());
     if (resolvedTargetRef != resolvedCurrentRef)
         return nullptr;
 

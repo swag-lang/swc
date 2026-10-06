@@ -56,7 +56,7 @@ namespace
 
     AstNodeRef resolvedUfcsReceiverArg(Sema& sema, AstNodeRef nodeRef)
     {
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         return resolvedRef.isValid() ? resolvedRef : nodeRef;
     }
 
@@ -186,7 +186,7 @@ namespace
 
         attachFallibleWrapper(sema, ownerRef, ownerRef, tokenId);
         attachInlineRootFallibleWrapperIfCallLike(sema, ownerRef, managedChildRef, tokenId);
-        attachInlineRootFallibleWrapperIfCallLike(sema, ownerRef, sema.viewZero(managedChildRef).nodeRef(), tokenId);
+        attachInlineRootFallibleWrapperIfCallLike(sema, ownerRef, sema.resolvedNodeRef(managedChildRef), tokenId);
     }
 
     SemaFrame::ErrorContextMode errorContextMode(TokenId tokenId)
@@ -344,7 +344,7 @@ namespace
         if (nodeRef.isInvalid())
             return nullptr;
 
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isInvalid())
             return nullptr;
 
@@ -395,7 +395,7 @@ namespace
         if (managedChildRef.isInvalid())
             return TypeRef::invalid();
 
-        const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
+        const AstNodeRef resolvedChildRef = sema.resolvedNodeRef(managedChildRef);
         if (resolvedChildRef.isInvalid())
             return TypeRef::invalid();
 
@@ -456,7 +456,7 @@ namespace
 
     Result setupNotNullUnwrap(Sema& sema, AstNodeRef managedChildRef, ErrorManagementPayload& payload)
     {
-        const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
+        const AstNodeRef resolvedChildRef = sema.resolvedNodeRef(managedChildRef);
         SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
 
         auto& codeGenPayload         = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
@@ -612,7 +612,7 @@ namespace
                 // the value non-null, the assertion adds a guard that cannot fire, on a value
                 // the compiler would let through without it. Judge that once: on a re-entered
                 // node the only new fact in scope is the one this very '!' recorded.
-                const AstNodeRef narrowedRef = payload.notNullProofRecorded ? AstNodeRef::invalid() : sema.viewZero(managedChildRef).nodeRef();
+                const AstNodeRef narrowedRef = payload.notNullProofRecorded ? AstNodeRef::invalid() : sema.resolvedNodeRef(managedChildRef);
                 if (narrowedRef.isValid())
                 {
                     const SemaNodeView liveView = sema.viewType(narrowedRef);
@@ -623,7 +623,7 @@ namespace
                 return setupNotNullUnwrap(sema, managedChildRef, payload);
             }
 
-            const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
+            const AstNodeRef resolvedChildRef = sema.resolvedNodeRef(managedChildRef);
             if (resolvedChildRef.isValid())
             {
                 const SemaNodeView childView = sema.viewType(resolvedChildRef);
@@ -1694,7 +1694,7 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaErrorManagementPostNodeCommon(sema, nodeExprRef));
 
-    const AstNodeRef   resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
+    const AstNodeRef   resolvedExprRef = sema.resolvedNodeRef(nodeExprRef);
     const SemaNodeView exprView        = sema.viewNodeTypeConstant(resolvedExprRef);
     sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);
     TypeRef     resultTypeRef  = exprView.typeRef();

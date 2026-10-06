@@ -168,7 +168,7 @@ namespace
         if (node.is(AstNodeId::AssignStmt))
             return node.cast<AstAssignStmt>().nodeLeftRef;
 
-        const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(exprRef);
         if (!resolvedRef.isValid())
             return exprRef;
 

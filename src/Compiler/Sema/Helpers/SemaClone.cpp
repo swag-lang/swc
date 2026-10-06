@@ -165,7 +165,7 @@ namespace
 
     void inheritStoredPayloadUnderSubstitute(Sema& sema, AstNodeRef clonedRef, AstNodeRef sourceRef)
     {
-        const AstNodeRef substituteRef = sema.viewZero(clonedRef).nodeRef();
+        const AstNodeRef substituteRef = sema.resolvedNodeRef(clonedRef);
         SWC_ASSERT(substituteRef.isValid() && substituteRef != clonedRef);
         inheritStoredPayload(sema, clonedRef, sourceRef);
         sema.setSubstitute(clonedRef, substituteRef);
@@ -819,7 +819,7 @@ namespace
         if (!canReadSourcePayload(sema, cloneContext))
             return;
 
-        const AstNodeRef resolvedRef = sema.viewZero(sourceRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(sourceRef);
         if (resolvedRef.isInvalid() || resolvedRef == sourceRef)
             return;
         if (resolvedRef == cloneContext.suppressedImplicitCastSubstituteRef)
@@ -1134,7 +1134,7 @@ namespace
         SWC_ASSERT(sourceRef.isValid());
         SWC_ASSERT(clonedRef.isValid());
 
-        const AstNodeRef resolvedRef                     = sema.viewZero(sourceRef).nodeRef();
+        const AstNodeRef resolvedRef                     = sema.resolvedNodeRef(sourceRef);
         const bool       shouldReexpand                  = shouldReexpandDetachedExpr(sema, sourceRef, resolvedRef);
         const bool       sourceHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceRef, resolvedRef);
 
@@ -1191,7 +1191,7 @@ namespace
             if (sourceChildRef.isInvalid() || clonedChildRef.isInvalid())
                 continue;
 
-            const AstNodeRef resolvedChildRef                     = sema.viewZero(sourceChildRef).nodeRef();
+            const AstNodeRef resolvedChildRef                     = sema.resolvedNodeRef(sourceChildRef);
             const bool       shouldReexpandChild                  = shouldReexpandDetachedExpr(sema, sourceChildRef, resolvedChildRef);
             const bool       sourceChildHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceChildRef, resolvedChildRef);
             if (!shouldReexpandChild && !sourceChildHasImplicitCastSubstitute)

@@ -925,7 +925,7 @@ namespace
 
     void applyIndexReadSpecOpResult(Sema& sema, AstNodeRef indexExprRef, SymbolFunction& calledFn)
     {
-        const AstNodeRef inlineRootRef = sema.hasSubstitute(indexExprRef) ? sema.viewZero(indexExprRef).nodeRef() : AstNodeRef::invalid();
+        const AstNodeRef inlineRootRef = sema.hasSubstitute(indexExprRef) ? sema.resolvedNodeRef(indexExprRef) : AstNodeRef::invalid();
         auto*            payload       = sema.compiler().allocate<IndexSpecOpSemaPayload>();
         payload->calledFn              = &calledFn;
         // A re-resolved clone (a detached binding expression carried its source's
@@ -1287,7 +1287,7 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
         return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 
     std::array args        = {makeSyntheticCodeBlockArg(sema, node)};
-    AstNodeRef receiverRef = sema.viewZero(node.nodeExprRef).nodeRef();
+    AstNodeRef receiverRef = sema.resolvedNodeRef(node.nodeExprRef);
     if (receiverRef.isInvalid())
         receiverRef = node.nodeExprRef;
     SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -1315,7 +1315,7 @@ Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, Symbo
         return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 
     std::array args        = {makeSyntheticCodeBlockArg(sema, node)};
-    AstNodeRef receiverRef = sema.viewZero(node.nodeExprRef).nodeRef();
+    AstNodeRef receiverRef = sema.resolvedNodeRef(node.nodeExprRef);
     if (receiverRef.isInvalid())
         receiverRef = node.nodeExprRef;
     bool matched = false;
@@ -1436,7 +1436,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
         SemaHelpers::addCurrentFunctionCallDependency(sema, countFn);
 
     const TypeRef    returnTypeRef = calledFn.returnTypeRef();
-    const AstNodeRef resultNodeRef = sema.viewZero(sema.curNodeRef()).nodeRef();
+    const AstNodeRef resultNodeRef = sema.resolvedNodeRef(sema.curNodeRef());
     sema.setSymbol(sema.curNodeRef(), &calledFn);
     sema.setType(sema.curNodeRef(), returnTypeRef);
     sema.setType(resultNodeRef, returnTypeRef);
@@ -2080,7 +2080,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     relationalPayload->calledFn = calledFn;
 
     const ConstantRef specOpCstRef         = sema.viewConstant(relRef).cstRef();
-    const AstNodeRef  relSubstRef          = sema.viewZero(relRef).nodeRef();
+    const AstNodeRef  relSubstRef          = sema.resolvedNodeRef(relRef);
     relationalPayload->inlineSubstituteRef = relSubstRef.isValid() && relSubstRef != relRef ? relSubstRef : AstNodeRef::invalid();
 
     switch (tok.id)

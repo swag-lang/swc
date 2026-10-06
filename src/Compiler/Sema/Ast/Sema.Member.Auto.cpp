@@ -279,7 +279,7 @@ namespace
                 continue;
             }
 
-            const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+            const AstNodeRef resolvedRef = sema.resolvedNodeRef(exprRef);
             if (resolvedRef.isInvalid())
                 return false;
             if (resolvedRef != exprRef)
@@ -789,7 +789,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 {
     SWC_UNUSED(childRef);
     const AstNodeRef currentRef  = sema.curNodeRef();
-    const AstNodeRef resolvedRef = sema.viewZero(currentRef).nodeRef();
+    const AstNodeRef resolvedRef = sema.resolvedNodeRef(currentRef);
     if (resolvedRef.isValid() && resolvedRef != currentRef)
         return Result::SkipChildren;
 

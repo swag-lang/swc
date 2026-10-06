@@ -314,7 +314,7 @@ namespace
     // through their stored (pre-substitution) node and type.
     bool castOperandSelfSubstituted(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef)
     {
-        return operandRef.isValid() && sema.viewZero(operandRef).nodeRef() == castRef;
+        return operandRef.isValid() && sema.resolvedNodeRef(operandRef) == castRef;
     }
 
     TypeRef castOperandTypeRef(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef)
@@ -346,7 +346,7 @@ namespace
         if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return nullptr;
 
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isInvalid())
             return nullptr;
 
@@ -360,7 +360,7 @@ namespace
         if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return false;
 
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isInvalid())
             return false;
 
@@ -466,7 +466,7 @@ namespace
         if (carrierRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return nullptr;
 
-        const AstNodeRef resolvedRef = sema.viewZero(carrierRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(carrierRef);
         if (resolvedRef.isInvalid())
             return nullptr;
 
@@ -738,7 +738,7 @@ namespace
                 break;
         }
 
-        const AstNodeRef resolvedRef = sema.viewZero(candidateRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(candidateRef);
         if (resolvedRef.isValid() && sema.node(resolvedRef).is(AstNodeId::CastExpr))
         {
             const auto& cast = sema.node(resolvedRef).cast<AstCastExpr>();
@@ -750,7 +750,7 @@ namespace
             candidateTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, sourceRef));
         }
 
-        const AstNodeRef candidateResolvedRef = sema.viewZero(candidateRef).nodeRef();
+        const AstNodeRef candidateResolvedRef = sema.resolvedNodeRef(candidateRef);
         if (candidateResolvedRef.isValid() && sema.node(candidateResolvedRef).is(AstNodeId::Identifier))
         {
             if (const SymbolVariable* candidateVar = identifierVariable(sema, candidateResolvedRef))
@@ -775,7 +775,7 @@ namespace
         if (argRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(argRef);
         if (resolvedRef.isInvalid())
             return AstNodeRef::invalid();
 
@@ -931,7 +931,7 @@ namespace
                 pointer.deferredCalls.push_back(std::move(snapshot));
             }
         }
-        const AstNodeRef resolvedPointer = sema.viewZero(pointerRef).nodeRef();
+        const AstNodeRef resolvedPointer = sema.resolvedNodeRef(pointerRef);
         // A deeper dereference may have discarded an independent scalar carrier.
         // Keep that route conservative, but never invent a borrow of an otherwise
         // untracked pointer variable's local slot.
@@ -1159,7 +1159,7 @@ namespace
                 return info;
         }
 
-        const AstNodeRef resolvedSourceRef = sema.viewZero(sourceRef).nodeRef();
+        const AstNodeRef resolvedSourceRef = sema.resolvedNodeRef(sourceRef);
         info.kind                          = SemaEscapeKind::Materialized;
         info.sourceRef                     = resolvedSourceRef.isValid() ? resolvedSourceRef : sourceRef;
         info.typeRef                       = resultTypeRef;
@@ -1221,7 +1221,7 @@ namespace
 
             // No variable roots the storage: an rvalue produced by a call or materialized
             // from a literal is a temporary destroyed at the end of the statement.
-            const AstNodeRef resolvedOperandRef = operandSelfSubst ? operandRef : sema.viewZero(operandRef).nodeRef();
+            const AstNodeRef resolvedOperandRef = operandSelfSubst ? operandRef : sema.resolvedNodeRef(operandRef);
             if (resolvedOperandRef.isValid())
             {
                 const AstNode& operandNode = sema.node(resolvedOperandRef);
@@ -1261,7 +1261,7 @@ namespace
     // identifier still types as the struct while the resolved cast types as the slice.
     TypeRef indexedElementTypeRef(Sema& sema, AstNodeRef indexedRef)
     {
-        const AstNodeRef resolvedRef    = sema.viewZero(indexedRef).nodeRef();
+        const AstNodeRef resolvedRef    = sema.resolvedNodeRef(indexedRef);
         const TypeRef    indexedTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef.isValid() ? resolvedRef : indexedRef));
         if (!indexedTypeRef.isValid())
             return TypeRef::invalid();
@@ -1345,7 +1345,7 @@ namespace
         const Token& tok = sema.token(sema.node(unaryRef).codeRef());
         if (tok.id == TokenId::SymAmpersand)
         {
-            const AstNodeRef operandRef = sema.viewZero(unary.nodeExprRef).nodeRef();
+            const AstNodeRef operandRef = sema.resolvedNodeRef(unary.nodeExprRef);
             const auto*      index      = operandRef.isValid() ? sema.node(operandRef).safeCast<AstIndexExpr>() : nullptr;
             AstNodeRef       carrierRef = index ? index->nodeExprRef : AstNodeRef::invalid();
             AstNodeRef       memberRef  = operandRef;
@@ -1368,7 +1368,7 @@ namespace
                 }
                 if (isDirectBorrowCarrier(sema, leftTypeRef))
                     break;
-                memberRef = sema.viewZero(member->nodeLeftRef).nodeRef();
+                memberRef = sema.resolvedNodeRef(member->nodeLeftRef);
             }
             if (carrierRef.isValid() && isDirectBorrowCarrier(sema, expressionTypeRef(sema, carrierRef)))
             {
@@ -1441,7 +1441,7 @@ namespace
         if (rawNode.is(AstNodeId::ClosureExpr))
             return closureEscapeInfo(sema, nodeRef, rawNode.cast<AstClosureExpr>(), budget);
 
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isInvalid())
             return {};
 
@@ -1473,7 +1473,7 @@ namespace
         if (exprRef.isInvalid())
             return false;
 
-        AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+        AstNodeRef resolvedRef = sema.resolvedNodeRef(exprRef);
         uint32_t   unwrapGuard = 8;
         while (resolvedRef.isValid() && unwrapGuard--)
         {
@@ -1489,7 +1489,7 @@ namespace
                 innerRef = node.cast<AstAsCastExpr>().nodeExprRef;
             else
                 break;
-            resolvedRef = sema.viewZero(innerRef).nodeRef();
+            resolvedRef = sema.resolvedNodeRef(innerRef);
         }
 
         if (resolvedRef.isInvalid() || !sema.node(resolvedRef).is(AstNodeId::CallExpr))
@@ -1931,17 +1931,17 @@ namespace
             return false;
         --budget;
 
-        AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+        AstNodeRef resolvedRef = sema.resolvedNodeRef(exprRef);
         uint32_t   unwrapGuard = 8;
         while (resolvedRef.isValid() && unwrapGuard--)
         {
             const AstNode& node = sema.node(resolvedRef);
             if (node.is(AstNodeId::ParenExpr))
-                resolvedRef = sema.viewZero(node.cast<AstParenExpr>().nodeExprRef).nodeRef();
+                resolvedRef = sema.resolvedNodeRef(node.cast<AstParenExpr>().nodeExprRef);
             else if (node.is(AstNodeId::InitializerExpr))
-                resolvedRef = sema.viewZero(node.cast<AstInitializerExpr>().nodeExprRef).nodeRef();
+                resolvedRef = sema.resolvedNodeRef(node.cast<AstInitializerExpr>().nodeExprRef);
             else if (node.is(AstNodeId::NamedArgument))
-                resolvedRef = sema.viewZero(node.cast<AstNamedArgument>().nodeArgRef).nodeRef();
+                resolvedRef = sema.resolvedNodeRef(node.cast<AstNamedArgument>().nodeArgRef);
             else if (node.is(AstNodeId::CastExpr))
             {
                 // A cast (e.g. the implicit widening to a nullable destination) preserves
@@ -1950,14 +1950,14 @@ namespace
                 if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
                     resolvedRef = operandRef;
                 else
-                    resolvedRef = sema.viewZero(operandRef).nodeRef();
+                    resolvedRef = sema.resolvedNodeRef(operandRef);
             }
             else if (node.is(AstNodeId::AutoCastExpr))
-                resolvedRef = sema.viewZero(node.cast<AstAutoCastExpr>().nodeExprRef).nodeRef();
+                resolvedRef = sema.resolvedNodeRef(node.cast<AstAutoCastExpr>().nodeExprRef);
             else if (node.is(AstNodeId::AsCastExpr))
-                resolvedRef = sema.viewZero(node.cast<AstAsCastExpr>().nodeExprRef).nodeRef();
+                resolvedRef = sema.resolvedNodeRef(node.cast<AstAsCastExpr>().nodeExprRef);
             else if (node.is(AstNodeId::ErrorManagementExpr) && sema.token(node.codeRef()).id == TokenId::SymBang)
-                resolvedRef = sema.viewZero(node.cast<AstErrorManagementExpr>().nodeExprRef).nodeRef();
+                resolvedRef = sema.resolvedNodeRef(node.cast<AstErrorManagementExpr>().nodeExprRef);
             else
                 break;
         }
@@ -2437,7 +2437,7 @@ namespace
         if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return nullptr;
 
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isInvalid())
             return nullptr;
 
@@ -2806,7 +2806,7 @@ namespace
                 break;
         }
 
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isInvalid())
             return {};
 
@@ -3227,7 +3227,7 @@ namespace
         ok = false;
         if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return;
-        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isInvalid())
             return;
         iterationProjectionAt(sema, resolvedRef, out, ok, depth + 1);
@@ -3921,7 +3921,7 @@ namespace
                         if (parent.is(AstNodeId::AssignStmt))
                         {
                             const AstAssignStmt& assign = parent.cast<AstAssignStmt>();
-                            if (sema.viewZero(assign.nodeLeftRef).nodeRef() == nodeRef && subtreeContains(sema, assign.nodeRightRef, mutationRef))
+                            if (sema.resolvedNodeRef(assign.nodeLeftRef) == nodeRef && subtreeContains(sema, assign.nodeRightRef, mutationRef))
                             {
                                 assignedFromMutation = true;
                                 candidate            = true;
@@ -3951,7 +3951,7 @@ namespace
                     {
                         const AstNode& parent = sema.node(parentRef);
                         if (parent.is(AstNodeId::AssignStmt))
-                            isWrite = sema.viewZero(parent.cast<AstAssignStmt>().nodeLeftRef).nodeRef() == nodeRef;
+                            isWrite = sema.resolvedNodeRef(parent.cast<AstAssignStmt>().nodeLeftRef) == nodeRef;
                         else if (parent.is(AstNodeId::SingleVarDecl) || parent.is(AstNodeId::MultiVarDecl))
                             isWrite = true;
                     }
@@ -4852,19 +4852,19 @@ namespace SemaEscape
         // heap block from an external allocator), which must still be reported.
         bool destinationBaseIsFrameLocalPointer(Sema& sema, AstNodeRef leftRef)
         {
-            AstNodeRef ref   = sema.viewZero(leftRef).nodeRef();
+            AstNodeRef ref   = sema.resolvedNodeRef(leftRef);
             uint32_t   guard = 8;
             while (ref.isValid() && guard--)
             {
                 const AstNode& node = sema.node(ref);
                 if (node.is(AstNodeId::MemberAccessExpr))
                 {
-                    ref = sema.viewZero(node.cast<AstMemberAccessExpr>().nodeLeftRef).nodeRef();
+                    ref = sema.resolvedNodeRef(node.cast<AstMemberAccessExpr>().nodeLeftRef);
                     continue;
                 }
                 if (node.is(AstNodeId::IndexExpr))
                 {
-                    ref = sema.viewZero(node.cast<AstIndexExpr>().nodeExprRef).nodeRef();
+                    ref = sema.resolvedNodeRef(node.cast<AstIndexExpr>().nodeExprRef);
                     continue;
                 }
                 break;
@@ -5016,7 +5016,7 @@ namespace SemaEscape
             bool                  pairWhole       = false;
             const SymbolVariable* pairRoot        = storageRootVariable(sema, leftRef, false, pairWhole);
             SymbolFunction*       currentFn       = sema.currentFunction();
-            const AstNodeRef      leftResolvedRef = sema.viewZero(leftRef).nodeRef();
+            const AstNodeRef      leftResolvedRef = sema.resolvedNodeRef(leftRef);
             const bool            leftIsBareVar   = leftResolvedRef.isValid() && sema.node(leftResolvedRef).is(AstNodeId::Identifier);
             if (pairRoot && !leftIsBareVar && currentFn)
             {

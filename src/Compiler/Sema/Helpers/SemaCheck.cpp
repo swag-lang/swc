@@ -82,7 +82,7 @@ namespace
         if (nodeRef.isInvalid())
             return AstNodeRef::invalid();
 
-        AstNodeRef resolvedNodeRef = sema.viewZero(nodeRef).nodeRef();
+        AstNodeRef resolvedNodeRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedNodeRef.isInvalid())
             resolvedNodeRef = nodeRef;
         return resolvedNodeRef;

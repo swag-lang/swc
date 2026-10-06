@@ -101,7 +101,7 @@ namespace
         if (fieldNode.isNot(AstNodeId::NamedArgument))
             return;
 
-        const AstNodeRef resolvedArgRef = sema.viewZero(fieldNode.cast<AstNamedArgument>().nodeArgRef).nodeRef();
+        const AstNodeRef resolvedArgRef = sema.resolvedNodeRef(fieldNode.cast<AstNamedArgument>().nodeArgRef);
         sema.inheritPayload(fieldNode, resolvedArgRef);
         sema.copyResolvedCallArguments(fieldNodeRef, resolvedArgRef);
     }

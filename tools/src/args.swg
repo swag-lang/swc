@@ -51,6 +51,23 @@ public impl Options
         return false
     }
 
+    // Returns the worker count forwarded to the compiler with '--num-cores' or '-j', or an empty
+    // string when none was.
+    mtd const forwardedCoreCount()->string
+    {
+        let values = &.extra.values
+        for i in values.count
+        {
+            let text = values[i].toString()
+            if (text == "--num-cores" or text == "-j") and i + 1 < values.count do
+                return values[i + 1].toString()
+            if Utf8.startsWith(cast(const [..] u8) text, "--num-cores=") do
+                return text["--num-cores=".count to]
+        }
+
+        return ""
+    }
+
     // Appends the run arguments as the compiler spells them, one '--run-arg' per value.
     mtd const appendRunArguments(arguments: *Arguments)
     {

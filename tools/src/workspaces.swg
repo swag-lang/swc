@@ -139,6 +139,8 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
     {
         options.appendWorkspace(&arguments)
         options.appendRunArguments(&arguments)
+        for value in prismCompilerArguments(context, options, name) do
+            arguments.add(["--run-arg", value.toString()])
 
         // Swag Scope's smoke is a format review, not only a startup check: the application opens
         // the immutable fixture attached to every registered viewer and exits when all are ready.
@@ -180,7 +182,10 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
     let directory  = applicationDirectory(context, options, options.module.toString())
     let executable = Path.combine(directory.toString(), Format.toString("%.exe", options.module.toString()).toString())
 
-    let applicationArguments = joinArguments(options.runArguments.toSlice())
+    var runArguments = prismCompilerArguments(context, options, options.module.toString())
+    for value in options.runArguments do
+        runArguments.add(String.from(value.toString()))
+    let applicationArguments = joinArguments(runArguments.toSlice())
 
     var info    = Env.StartInfo{fileName: executable.toString(), arguments: applicationArguments.toString(), workingDirectory: directory.toString(), environment: &context.childEnv}
     var process = try Env.startProcess(info)
@@ -191,6 +196,23 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
     }
 
     return try process.waitForExit()
+}
+
+// Swag Prism compiles its snippets with a real compiler, by default the first `swc.exe` above its
+// executable. Started by a tool, it uses the compiler under test and its worker bound instead, so
+// a DevMode campaign does not silently exercise the Release compiler. `name` is empty for the
+// whole workspace. Explicit run arguments win.
+private func prismCompilerArguments(context: *Context, options: *Options, name: string)->Array'String
+{
+    var result: retval
+    if name.count and name != "swagprism" do
+        return result
+    if not options.hasRunArgument("--compiler") do
+        result.add(Format.toString("--compiler=%", context.compiler.toString()))
+    let cores = options.forwardedCoreCount()
+    if cores.count and not options.hasRunArgument("--compiler-workers") do
+        result.add(Format.toString("--compiler-workers=%", cores))
+    return result
 }
 
 private func applicationDirectory(context: *Context, options: *Options, name: string)->String

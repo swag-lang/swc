@@ -85,6 +85,35 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
+
+- Recorded: 2026-08-28 15:42
+- Updated: 2026-10-06 10:45 — Retain pure leaf array borrowing; broader bodies remain.
+- Area: compiler/sema
+- Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
+- Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
+  holds the block still emitted four 128-bit loads and four stores copying the argument into a
+  fresh frame slot, then read every row back out of that copy, around the eight interleaves that
+  are the whole operation: 40 instructions and a 0x1C8 frame for eight instructions of work. The
+  same body taking `rows: *[4] U32x4` in place compiles to 28 instructions and a 0x80 frame, which
+  is what the API now does. `materializeInlineBindings` binds a by-value aggregate argument to a
+  concrete local. The current `classifyInlineBinding` already examines parameter uses and can
+  keep a direct binding; an indexed or foreach by-value aggregate still requires a home through
+  `use.indexOrFor`, even if those uses only read. Read-only syntax alone does not establish that
+  the caller's storage remains unchanged while the inlined body executes.
+- Retained boundary: completed pure leaf inlines borrow a plain array from a stable caller
+  variable when every argument is a same-type bare variable or constant. Parameter writes,
+  addresses/buffers, captures, calls, generated source and nontrivial copy/drop types retain
+  snapshots. A Release selector wrapper drops from 36 to 24 instructions and 22 to 18 memory
+  operations. The [code evidence and validation](../bench/results/generated-code/20261006-inline-array-borrow/README.md)
+  include alias, later-argument, callback and element-copy counterexamples; 3,631 native tests
+  pass in JIT and native execution. No timing improvement is claimed.
+- Next: extend the stability proof to larger/non-leaf bodies and argument evaluations that
+  currently fail the conservative leaf/constant-or-variable boundary. Revisit the SIMD
+  transpose with evidence from its actual caller, preserving copy/drop and alias semantics.
+- Complete when: the value-returning block transform is as cheap as its in-place shape on
+  the video corpus, including bodies outside the retained pure-leaf boundary.
+
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Recorded: 2026-08-27 07:57
@@ -1454,35 +1483,6 @@ new language syntax.
   version, and it does not exist.
 - Complete when: either a rule promotes a whole-copied local array without costing vectorization,
   or this records that the two cannot be reconciled and the fill-only rule is the end of it.
-
-### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
-
-- Recorded: 2026-08-28 15:42
-- Updated: 2026-10-06 10:45 — Retain pure leaf array borrowing; broader bodies remain.
-- Area: compiler/sema
-- Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
-- Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
-  holds the block still emitted four 128-bit loads and four stores copying the argument into a
-  fresh frame slot, then read every row back out of that copy, around the eight interleaves that
-  are the whole operation: 40 instructions and a 0x1C8 frame for eight instructions of work. The
-  same body taking `rows: *[4] U32x4` in place compiles to 28 instructions and a 0x80 frame, which
-  is what the API now does. `materializeInlineBindings` binds a by-value aggregate argument to a
-  concrete local. The current `classifyInlineBinding` already examines parameter uses and can
-  keep a direct binding; an indexed or foreach by-value aggregate still requires a home through
-  `use.indexOrFor`, even if those uses only read. Read-only syntax alone does not establish that
-  the caller's storage remains unchanged while the inlined body executes.
-- Retained boundary: completed pure leaf inlines borrow a plain array from a stable caller
-  variable when every argument is a same-type bare variable or constant. Parameter writes,
-  addresses/buffers, captures, calls, generated source and nontrivial copy/drop types retain
-  snapshots. A Release selector wrapper drops from 36 to 24 instructions and 22 to 18 memory
-  operations. The [code evidence and validation](../bench/results/generated-code/20261006-inline-array-borrow/README.md)
-  include alias, later-argument, callback and element-copy counterexamples; 3,631 native tests
-  pass in JIT and native execution. No timing improvement is claimed.
-- Next: extend the stability proof to larger/non-leaf bodies and argument evaluations that
-  currently fail the conservative leaf/constant-or-variable boundary. Revisit the SIMD
-  transpose with evidence from its actual caller, preserving copy/drop and alias semantics.
-- Complete when: the value-returning block transform is as cheap as its in-place shape on
-  the video corpus, including bodies outside the retained pure-leaf boundary.
 
 ### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
 

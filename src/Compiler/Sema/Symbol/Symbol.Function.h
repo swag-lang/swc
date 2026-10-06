@@ -409,6 +409,15 @@ public:
     void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     void*                   jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
+    bool                    ownsJitCodeAddress(const void* address) const noexcept
+    {
+        if (!address)
+            return false;
+        if (address == jitEntryAddress() || address == jitPatchAddress())
+            return true;
+        const auto* begin = static_cast<const std::byte*>(jitExecMemory_.entryPoint());
+        return begin && address >= begin && address < begin + jitExecMemory_.size();
+    }
     uint64_t                jitReadyVersion() const noexcept { return jitReadyVersion_.load(std::memory_order_acquire); }
     void                    setJitReadyVersion(uint64_t version) noexcept { jitReadyVersion_.store(version, std::memory_order_release); }
     void                    resetJitState() noexcept;

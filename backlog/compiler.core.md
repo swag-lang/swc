@@ -6,6 +6,33 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
+
+- Recorded: 2026-08-12 18:01
+- Updated: 2026-10-06 16:12 — Destroyed instances are now poisoned and release their fiber-local slots; thread-local indexes remain.
+- Area: compiler, JIT runtime hosting
+- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
+  --rebuild`: imported native modules kept `Swag.processInfos().args` slices into the storage of a
+  destroyed dependency-build instance. That storage is interned for the process since.
+- Done (2026-10-06): a DevMode `~CompilerInstance` fills its global zero, initialized and compiler
+  segments with `0xCD`, so a stale reference into a destroyed instance reads the pattern instead
+  of plausible old bytes. The first thing it caught was `retireAllocatorThreadHeap`, the cleanup
+  callback the JIT-compiled runtime allocator registers through `FlsAlloc`: Windows ran it at
+  thread exit, after the instance was gone, and it read `Swag.g_AllocatorThreadHeapTlsId` from the
+  dead segment (`import_core_without_using.swgs` exited with a failure code after reporting
+  `clean`). JIT calls to `FlsAlloc` and `FlsFree` now resolve to host wrappers that record each
+  slot and its callback, and an instance frees the slots whose callback is its own JIT code before
+  it is destroyed; `FlsFree` runs the callbacks while their code and data are still valid.
+- What remains: JIT code also takes plain thread-local indexes through `TlsAlloc` (the allocator's
+  fast heap slot, for example). They have no callback, so nothing reads them after the instance
+  dies, but each instance that ran its allocator keeps one index allocated for the rest of the
+  process, and Windows has 1,088 of them.
+- Next: count the indexes a long workspace run (`tools/std.swgs dm test`) leaves allocated, and if
+  the count grows with the number of instances, record the `TlsAlloc` indexes per instance the
+  same way and free them at destruction.
+- Complete when: a process that creates and destroys many compiler instances keeps a bounded
+  number of thread-local indexes, with the workspace suite green under the poisoning.
+
 ### compiler.core.056 — A library still lowers the equality operators of its public structs
 
 - Recorded: 2026-09-23 14:11
@@ -31,53 +58,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: a library lowers no generated `opEquals` that neither its own code nor an
   importer calls, with the workspace suite and `std` release green.
 - Related: compiler.core.030, compiler.core.006.
-
-### compiler.core.021 — A dangling reference into a destroyed compiler instance has no deterministic detector
-
-- Recorded: 2026-08-12 18:01
-- Updated: 2026-10-06 15:16 — Named the stale reader: the JIT runtime's fiber-local cleanup callback.
-- Area: compiler
-- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
-  --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
-  per process) keeping `Swag.processInfos().args` slices into the run-argument storage of a dependency-build
-  compiler instance that had already been destroyed. That defect is fixed by interning the handed
-  storage for the lifetime of the process, but the *class* — long-lived imported modules holding a
-  pointer into per-instance state — was only caught because a heap block happened to be reused with
-  bytes that failed an assertion inside `Path.extension`, in the Release compiler binary only,
-  roughly once per run.
-- Observation: nothing makes such a stale reference fail deterministically, so a suite regression
-  cannot be written that reliably turns red without the fix: the dead storage usually still holds
-  its old bytes, and every read through it then looks healthy. The DevMode binary never tripped at
-  all because its allocator reused the freed block differently.
-- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m swagcapture --rebuild` loop on the
-  Release binary failed in `library.test.swg` (the one test that funnels `Env.executablePath()`
-  into a validated path API), while the same command on the DevMode binary passed 10/10; post-fix
-  the Release loop passed 8/8. A probe comparing the live instance against what JIT code reads
-  showed five compiler instances writing five run-argument storages in one process, the test
-  instance healthy, and the imported module reading a sixth, dead one.
-- Poisoning tried (2026-10-06): filling `globalZeroSegment_`, `globalInitSegment_` and
-  `compilerSegment_` with `0xCD` at the end of `~CompilerInstance` (DevMode only, through
-  `DataSegment::restoreFromPreserveOffsets` over `extentSize()` bytes) is a few lines and costs
-  nothing measurable. It immediately turned a suite step red:
-  `bin\swc.dm.exe --build-cfg devmode bin/unittests/workspace/import_core_without_using.swgs`
-  prints its marker, runs its `Drop` hooks and reports `clean`, then the process exits with a
-  failure code instead of 0. Poisoning one segment at a time isolates `globalInitSegment_`; the
-  zero and compiler segments alone keep the exit clean. So after the script's instance is gone,
-  something running at process teardown, after the script's own `Drop` stage, still reads the
-  instance's initialized globals. Poisoning byte ranges names the
-  global: only bytes 8208-8215 matter, which hold `Swag.g_AllocatorThreadHeapTlsId`. Its reader is
-  `retireAllocatorThreadHeap` (`bin/runtime/allocator.swg`), the callback the JIT-compiled runtime
-  registered through `__hostThreadStorageAlloc` (`FlsAlloc`). Windows runs it when each thread
-  that used the allocator exits, long after the instance that compiled it, and its JIT code then
-  reads that instance's dead globals. Thread-local globals (`__tlsVarPtr`, `__releaseTlsVar`)
-  register the same kind of callback. The poisoning was not kept, since it would leave the
-  workspace suite red.
-- Next: release, while the instance is still alive, every fiber-local slot its JIT code
-  allocated (`FlsFree` runs the callbacks then, with valid code and data), for example by
-  resolving JIT calls to `FlsAlloc` to a host wrapper that records the slot on the compiler
-  instance. Then land the poisoning so the whole class fails on its first run, and add the
-  `bin/unittests/workspace` case that rebuilds a dependency and asserts `Env.executablePath()` is
-  a valid, existing path from the tested module.
 
 ### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
 

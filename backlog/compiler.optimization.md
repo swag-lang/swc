@@ -84,6 +84,26 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 `Inline`, and `NoInline` contracts explicit. This plan invents no command-line spellings or
 new language syntax.
 
+### compiler.optimization.039 — Locate the remaining optimization sweep-budget outliers
+
+- Recorded: 2026-09-16 12:12
+- Updated: 2026-10-06 07:49 — reduce expectedCountOnes16 from twenty Release sweeps to six.
+- Area: compiler/backend, compilation time
+- Evidence: the pre-RA loop has a twenty-four-sweep cap. The Sep 30 standard-module test
+  campaign found a 404-instruction `#test` at that cap; its current source identity and
+  convergence still need to be recovered. The other known outlier, `expectedCountOnes16`,
+  now takes six Release sweeps instead of twenty, with the same 99 final Micro instructions.
+  Constant folding follows scaled address chains in one run; select narrowing walks queued
+  candidates backwards and uses only already accepted narrow-reader rewrites. The Release
+  optimizer selection passes 275 tests, including every u16 input and wrapping mask chains.
+  No compiler timing or memory comparison was made in this iteration.
+- Next: identify the remaining 404-instruction test during a standard-module validation
+  milestone, check whether it shares either resolved chain, and fix or bound its next blocker.
+  Do not repeat the completed constant-address or select-width chain work.
+- Complete when: no standard-module function, tests included, needs more than sixteen sweeps,
+  or each longer chain is identified and bounded.
+- Related: compiler.optimization.029, compiler.core.004.
+
 ### compiler.optimization.125 — Finish the AVX boundary cost and caller-state audit
 
 - Recorded: 2026-10-05 17:55
@@ -902,29 +922,6 @@ new language syntax.
 - Complete when: independent webs expose the intended hoisting and forwarding without
   worsening the affected hot paths through additional transfers or spill traffic.
 - Related: compiler.optimization.015, compiler.optimization.104.
-
-### compiler.optimization.039 — Two test functions still sit at the sweep budget
-
-- Recorded: 2026-09-16 12:12
-- Updated: 2026-09-30 16:42 — Recorded the sweep distribution in both configurations; one chain fixed, two test functions remain at 20 and 24 sweeps.
-- Area: compiler/backend, compilation time
-- Evidence: the pre-RA optimization loop sweeps at most twenty-four times, and a function that
-  still changes on the last sweep stops the build. A temporary counter, final unchanged sweep
-  included, over `bin/std` with six workers: the release build runs the loop 30,944 times with a
-  median of 3 sweeps and a maximum of 15 (`Slice.predictIntraPlane`, `Pixel.Webp.vp8Reconstruct`);
-  the DevMode configuration reaches 14 (`Core.Base64.digitValue`). The release test builds go
-  further: `expectedCountOnes16` of `std/core` needs 20 sweeps, and one `#test` body of 404
-  instructions needs 24, which is the budget itself. One more link in its chain stops the build.
-- Already taken: the pre-RA address forward rewrote one reader of a `lea` per run, so an unrolled
-  sixteen-trip copy (`ScalingLists.setDefaults` and `setDefaultMatrix` of the HEVC decoder) took
-  20 sweeps. It now rewrites every reader on the straight line in one run, and the reduced case
-  settles in 8 with the same final code.
-- Next: trace which pass still advances one link per sweep in `expectedCountOnes16` (sixteen
-  unrolled copies of a bit count) and in the 24-sweep test body, and make it finish its chain in
-  one run, as the induction-variable pass and the address forward now do.
-- Complete when: no function of `bin/std`, tests included, needs more than sixteen sweeps in
-  either configuration, or the chain that does is identified and bounded.
-- Related: compiler.optimization.029, compiler.core.004.
 
 ### compiler.optimization.103 — The CABAC significance loop reloads two pointers at its latch
 

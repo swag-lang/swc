@@ -281,30 +281,31 @@ namespace
         }
     }
 
-    TypeRef generatedOperatorFieldTypeRef(Sema& sema, TypeRef typeRef)
+    const TypeInfo* generatedOperatorFieldType(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
-            return TypeRef::invalid();
+            return nullptr;
 
-        const TypeInfo& fieldType = sema.typeMgr().get(typeRef);
-        if (fieldType.isReference())
-            typeRef = fieldType.payloadTypeRef();
+        const TypeInfo* fieldType = &sema.typeMgr().get(typeRef);
+        if (fieldType->isReference())
+        {
+            typeRef = fieldType->payloadTypeRef();
+            if (!typeRef.isValid())
+                return nullptr;
+            fieldType = &sema.typeMgr().get(typeRef);
+        }
 
-        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+        const TypeInfo* unwrappedType = fieldType->unwrapAliasEnumType(sema.ctx());
+        return unwrappedType ? unwrappedType : fieldType;
     }
 
     const SymbolStruct* generatedOperatorFieldStruct(Sema& sema, TypeRef typeRef)
     {
-        typeRef = generatedOperatorFieldTypeRef(sema, typeRef);
-        if (!typeRef.isValid())
+        const TypeInfo* type = generatedOperatorFieldType(sema, typeRef);
+        if (!type || !type->isStruct())
             return nullptr;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (!type.isStruct())
-            return nullptr;
-
-        return &type.payloadSymStruct();
+        return &type->payloadSymStruct();
     }
 
     bool structSupportsGeneratedOperator(Sema& sema, const SymbolStruct& ownerStruct, SpecOpKind kind)
@@ -316,13 +317,8 @@ namespace
         return flag.any() && ownerStruct.attributes().generatedOperators.has(flag);
     }
 
-    bool builtinTypeSupportsGeneratedOperator(Sema& sema, TypeRef typeRef, SpecOpKind kind)
+    bool builtinTypeSupportsGeneratedOperator(const TypeInfo& type, SpecOpKind kind)
     {
-        typeRef = generatedOperatorFieldTypeRef(sema, typeRef);
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
         switch (kind)
         {
             case SpecOpKind::OpEquals:
@@ -336,10 +332,13 @@ namespace
 
     bool fieldSupportsGeneratedOperator(Sema& sema, const SymbolVariable& field, SpecOpKind kind)
     {
-        if (const SymbolStruct* fieldStruct = generatedOperatorFieldStruct(sema, field.typeRef()))
-            return structSupportsGeneratedOperator(sema, *fieldStruct, kind);
+        const TypeInfo* type = generatedOperatorFieldType(sema, field.typeRef());
+        if (!type)
+            return false;
+        if (type->isStruct())
+            return structSupportsGeneratedOperator(sema, type->payloadSymStruct(), kind);
 
-        return builtinTypeSupportsGeneratedOperator(sema, field.typeRef(), kind);
+        return builtinTypeSupportsGeneratedOperator(*type, kind);
     }
 
     bool isGeneratedOperatorField(const SymbolVariable& field)

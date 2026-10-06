@@ -197,7 +197,7 @@ namespace
         bool                   hasStore           = false;
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            if (it->op == MicroInstrOpcode::LoadRegMem)
+            if (it->op == MicroInstrOpcode::LoadRegMem || it->op == MicroInstrOpcode::LoadVecRegMem)
             {
                 hasForwardableLoad |= hasMemoryProducer;
                 hasMemoryProducer = true;
@@ -207,6 +207,10 @@ namespace
                 // Only a store behind an earlier one can overwrite it.
                 outHasSecondStore |= hasStore;
                 hasStore          = true;
+                hasMemoryProducer = true;
+            }
+            else if (it->op == MicroInstrOpcode::StoreVecMemReg)
+            {
                 hasMemoryProducer = true;
             }
             else if (it->op == MicroInstrOpcode::LoadMemImm)

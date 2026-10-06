@@ -1,6 +1,6 @@
 # Optimization session, 2026-10-06
 
-Fourteen code batches were validated and merged into local master in sequence,
+Fifteen code batches were validated and merged into local master in sequence,
 from the separate perf/optimization-boundaries-20261006 worktree (the initial
 VEX batch also used perf/optimization-until-noon-20261006). No remote push was
 requested. SWC_BUILD_NUM remains 1173. The compiler and optimized programs used
@@ -23,6 +23,7 @@ default devmode configuration, which is not a performance measurement.
 | 12 | Cache read-only private homes across conditional calls and multiple entries | [Read-only caches](../20261006-private-read-cache/README.md) |
 | 13 | Extend those caches to mutable homes with coherent existing stores | [Write-through caches](../20261006-private-write-through/README.md) |
 | 14 | Pack indexed read-modify-write groups; reconcile moving-SP aliases | [Indexed SLP](../20261006-indexed-slp/README.md) |
+| 15 | Forward exact packed stores and loads through the existing memory cache | [Vector forwarding](../20261006-vector-forward/README.md) |
 
 Representative structural outcomes:
 

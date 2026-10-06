@@ -2,8 +2,8 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
-// Store-to-load forwarding: when a LoadRegMem reads the same slot a recent
-// LoadMemReg just wrote, and the store's source is still live/unchanged,
+// Store-to-load forwarding: when a plain scalar or vector load reads the
+// same slot a recent plain store just wrote, and the store's source is still live/unchanged,
 // rewrite the load as a plain LoadRegReg and skip the memory round-trip.
 //
 // Alias model: two memory accesses are disjoint when their base registers
@@ -211,7 +211,7 @@ namespace InstructionCombine
             const MicroInstr&        inst = *it;
             const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
 
-            if (inst.op == MicroInstrOpcode::LoadRegMem && ops)
+            if ((inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem) && ops)
             {
                 // A RIP-relative load participates through its relocation
                 // identity; one whose relocation cannot be found stays
@@ -269,7 +269,7 @@ namespace InstructionCombine
                 continue;
             }
 
-            if (inst.op == MicroInstrOpcode::LoadMemReg && ops)
+            if ((inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg) && ops)
             {
                 const MicroReg    base = ops[0].reg;
                 const MicroOpBits bits = ops[2].opBits;

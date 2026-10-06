@@ -49,7 +49,7 @@ namespace
     {
         SWC_ASSERT(targetType.isIntLike());
 
-        const ApsInt   value      = cst.getIntLike();
+        ApsInt        value      = cst.getIntLike();
         const uint32_t targetBits = targetType.payloadIntLikeBits();
         const uint32_t valueBits  = value.bitWidth();
         const uint32_t checkBits  = (valueBits > targetBits + 1) ? valueBits : (targetBits + 1);
@@ -60,41 +60,38 @@ namespace
             if (!value.isUnsigned() && value.isNegative())
                 return false;
 
-            ApsInt vCheck = value;
-            if (!vCheck.isUnsigned())
-                vCheck.setUnsigned(true);
-            vCheck.resize(checkBits);
+            if (!value.isUnsigned())
+                value.setUnsigned(true);
+            value.resize(checkBits);
 
             ApsInt maxCheck = ApsInt::maxValue(targetBits, true);
             maxCheck.resize(checkBits);
-            return !vCheck.gt(maxCheck);
+            return !value.gt(maxCheck);
         }
 
         if (!value.isUnsigned())
         {
-            ApsInt vCheck = value;
-            vCheck.resize(checkBits);
+            value.resize(checkBits);
 
             ApsInt minCheck = ApsInt::minValue(targetBits, false);
             ApsInt maxCheck = ApsInt::maxValue(targetBits, false);
             minCheck.resize(checkBits);
             maxCheck.resize(checkBits);
-            return !vCheck.lt(minCheck) && !vCheck.gt(maxCheck);
+            return !value.lt(minCheck) && !value.gt(maxCheck);
         }
 
-        ApsInt vCheck = value;
-        vCheck.resize(checkBits);
+        value.resize(checkBits);
 
         ApsInt maxBits = ApsInt::maxValue(targetBits, true);
         maxBits.resize(checkBits);
-        if (vCheck.gt(maxBits))
+        if (value.gt(maxBits))
             return false;
 
         ApsInt maxSignedU = ApsInt::maxValue(targetBits, false);
         if (!maxSignedU.isUnsigned())
             maxSignedU.setUnsigned(true);
         maxSignedU.resize(checkBits);
-        return !vCheck.gt(maxSignedU);
+        return !value.gt(maxSignedU);
     }
 
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, std::span<const ConstantRef> values);

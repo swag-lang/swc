@@ -85,22 +85,13 @@ namespace
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
 
         const TypeManager& typeMgr = ctx.typeMgr();
-        if (typeInfo.isAlias())
+        if (typeInfo.isAlias() || typeInfo.isEnum())
         {
-            const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            SWC_ASSERT(rawTypeRef.isValid());
-            if (rawTypeRef.isInvalid())
+            const TypeInfo* rawType = typeInfo.unwrapAliasEnumType(ctx);
+            SWC_ASSERT(rawType);
+            if (!rawType)
                 return Result::Error;
-            return persistCompilerRunValueRec(ctx, segment, typeMgr.get(rawTypeRef), dstBytes, srcBytes, localStackBase, localStackSize);
-        }
-
-        if (typeInfo.isEnum())
-        {
-            const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Enum);
-            SWC_ASSERT(rawTypeRef.isValid());
-            if (rawTypeRef.isInvalid())
-                return Result::Error;
-            return persistCompilerRunValueRec(ctx, segment, typeMgr.get(rawTypeRef), dstBytes, srcBytes, localStackBase, localStackSize);
+            return persistCompilerRunValueRec(ctx, segment, *rawType, dstBytes, srcBytes, localStackBase, localStackSize);
         }
 
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);

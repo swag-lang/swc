@@ -74,23 +74,17 @@ namespace
         return leftTypeInfo->crc == rightTypeInfo->crc;
     }
 
-    TypeRef scalarReferencePayloadTypeRef(Sema& sema, TypeRef typeRef)
+    const TypeInfo* scalarReferencePayloadType(Sema& sema, const SemaNodeView& view)
     {
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (!normalizedTypeRef.isValid())
-            return TypeRef::invalid();
+        if (!view.type())
+            return nullptr;
 
-        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        const TypeInfo& normalizedType = SemaHelpers::aliasEnumType(sema, view);
         if (!normalizedType.isReference())
-            return TypeRef::invalid();
+            return nullptr;
 
-        const TypeRef payloadTypeRef = normalizedType.payloadTypeRef();
-        return sema.typeMgr().get(payloadTypeRef).isScalarNumeric() ? payloadTypeRef : TypeRef::invalid();
-    }
-
-    bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
-    {
-        return scalarReferencePayloadTypeRef(sema, typeRef).isValid();
+        const TypeInfo& payloadType = sema.typeMgr().get(normalizedType.payloadTypeRef());
+        return payloadType.isScalarNumeric() ? &payloadType : nullptr;
     }
 
     ConstantRef readScalarReferenceConstant(Sema& sema, ConstantRef cstRef, TypeRef payloadTypeRef)
@@ -109,14 +103,15 @@ namespace
 
     SemaNodeView scalarReadView(Sema& sema, const SemaNodeView& view)
     {
-        const TypeRef payloadTypeRef = scalarReferencePayloadTypeRef(sema, view.typeRef());
-        if (!payloadTypeRef.isValid())
+        const TypeInfo* payloadType = scalarReferencePayloadType(sema, view);
+        if (!payloadType)
             return view;
 
-        SemaNodeView result            = view;
-        result.typeRef()               = payloadTypeRef;
-        result.type()                  = &sema.typeMgr().get(payloadTypeRef);
-        const ConstantRef scalarCstRef = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);
+        const TypeRef     payloadTypeRef = payloadType->typeRef();
+        SemaNodeView      result         = view;
+        result.typeRef()                 = payloadTypeRef;
+        result.type()                    = payloadType;
+        const ConstantRef scalarCstRef   = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);
         if (scalarCstRef.isValid())
         {
             result.cstRef() = scalarCstRef;
@@ -137,20 +132,21 @@ namespace
         if (!view.type())
             return nullptr;
 
-        TypeRef         typeRef   = view.typeRef();
-        const TypeInfo& valueType = sema.typeMgr().get(typeRef);
-        if (valueType.isReference())
-            typeRef = valueType.payloadTypeRef();
+        const TypeInfo* type = view.type();
+        if (type->isReference())
+        {
+            const TypeRef typeRef = type->payloadTypeRef();
+            if (!typeRef.isValid())
+                return nullptr;
+            type = &sema.typeMgr().get(typeRef);
+        }
 
-        typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (!typeRef.isValid())
+        if (const TypeInfo* unwrappedType = type->unwrapAliasEnumType(sema.ctx()))
+            type = unwrappedType;
+        if (!type->isStruct())
             return nullptr;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (!type.isStruct())
-            return nullptr;
-
-        return &type.payloadSymStruct();
+        return &type->payloadSymStruct();
     }
 
     void addMissingRelationalSpecOpHelp(Sema& sema, Diagnostic& diag, const SemaNodeView& leftView, SpecOpKind kind)
@@ -165,10 +161,8 @@ namespace
         if (!nodeLeftView.type() || !nodeRightView.type())
             return false;
 
-        const TypeRef   leftTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
-        const TypeRef   rightTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeRightView.typeRef());
-        const TypeInfo& leftType     = sema.typeMgr().get(leftTypeRef);
-        const TypeInfo& rightType    = sema.typeMgr().get(rightTypeRef);
+        const TypeInfo& leftType  = SemaHelpers::aliasEnumType(sema, nodeLeftView);
+        const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, nodeRightView);
         return leftType.isString() && rightType.isString();
     }
 
@@ -734,8 +728,8 @@ namespace
                                     op == TokenId::SymGreaterEqual ||
                                     op == TokenId::SymLessEqualGreater;
         const bool readScalarReference = orderedCompare &&
-                                         (shouldReadScalarReference(sema, nodeLeftView.typeRef()) ||
-                                          shouldReadScalarReference(sema, nodeRightView.typeRef()));
+                                         (scalarReferencePayloadType(sema, nodeLeftView) ||
+                                          scalarReferencePayloadType(sema, nodeRightView));
         if (!readScalarReference)
             SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
 

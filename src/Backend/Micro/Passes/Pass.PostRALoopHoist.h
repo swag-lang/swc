@@ -7,9 +7,10 @@ SWC_BEGIN_NAMESPACE();
 // persistent argument copies move to a loop preheader; simple accumulators keep
 // their assigned register across iterations. More complex private integer spills
 // can use a caller-saved SIMD register that is free throughout the loop, with one
-// seed on each entry and a coherent write-back at each exclusive exit. Read-only
-// private homes can cross conditional calls by restoring clobbered caches only
-// after those calls. Aliases, liveness and stack changes bound these rewrites.
+// seed on each entry and a coherent write-back at each exclusive exit. Private
+// homes can cross conditional calls by restoring clobbered caches after them;
+// written homes retain their stores to keep memory coherent on all exits.
+// Aliases, liveness and stack changes bound these rewrites.
 class MicroPostRaLoopHoistPass final : public MicroPass
 {
 public:

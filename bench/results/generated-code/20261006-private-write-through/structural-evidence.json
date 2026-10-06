@@ -1,0 +1,96 @@
+{
+  "inflate": {
+    "functions": 5,
+    "totals": {
+      "instructions": [
+        1204,
+        1210
+      ],
+      "memory": [
+        316,
+        313
+      ],
+      "rsp": [
+        85,
+        82
+      ],
+      "push": [
+        19,
+        19
+      ]
+    },
+    "changed": {
+      "Inflate.parseBlock": {
+        "baseline": {
+          "count": 1,
+          "instructions": 512,
+          "memory": 148,
+          "rsp": 59,
+          "push": 7
+        },
+        "candidate": {
+          "count": 1,
+          "instructions": 518,
+          "memory": 145,
+          "rsp": 56,
+          "push": 7
+        }
+      }
+    }
+  },
+  "video": {
+    "functions": 334,
+    "totals": {
+      "instructions": [
+        44008,
+        44014
+      ],
+      "memory": [
+        9943,
+        9940
+      ],
+      "rsp": [
+        2192,
+        2189
+      ],
+      "push": [
+        1002,
+        1002
+      ]
+    },
+    "changed": {
+      "Slice.predictIntraPlane": {
+        "baseline": {
+          "count": 1,
+          "instructions": 2123,
+          "memory": 699,
+          "rsp": 121,
+          "push": 7
+        },
+        "candidate": {
+          "count": 1,
+          "instructions": 2126,
+          "memory": 697,
+          "rsp": 119,
+          "push": 7
+        }
+      },
+      "Slice.parsePcm": {
+        "baseline": {
+          "count": 1,
+          "instructions": 208,
+          "memory": 48,
+          "rsp": 18,
+          "push": 7
+        },
+        "candidate": {
+          "count": 1,
+          "instructions": 211,
+          "memory": 47,
+          "rsp": 17,
+          "push": 7
+        }
+      }
+    }
+  }
+}

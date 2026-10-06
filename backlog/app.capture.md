@@ -135,7 +135,7 @@ existing form model and one undoable operation. Named reusable layouts remain ap
   decode CPU, peak memory and file size. Keep existing files readable through their codec id.
 - Complete when: a documented selection rule has measured benefits on representative captures,
   and any new encoding round-trips with compatibility tests for existing deflate files.
-- Related: app.capture.021, compiler.optimization.006
+- Related: app.capture.021
 
 ### app.capture.002 — No capture-level effect pipeline
 

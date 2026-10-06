@@ -718,7 +718,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(PostRALoopHoist_ReadOnlySpillCacheAcrossConditionalCall)
+SWC_TEST_BEGIN(PostRALoopHoist_PrivateSpillCacheAcrossConditionalCall)
 {
     const CallConv& conv = CallConv::get(CallConvKind::Swag);
     for (uint32_t variant = 0; variant < 3; ++variant)
@@ -749,8 +749,9 @@ SWC_TEST_BEGIN(PostRALoopHoist_ReadOnlySpillCacheAcrossConditionalCall)
         builder.emitRet();
         SWC_RESULT(runPostRaLoopHoistPass(builder, 0x80, 0x88));
         const uint32_t copies = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
-        SWC_ASSERT(copies == (variant == 0 ? 3u : 0u));
-        if (variant == 0)
+        SWC_ASSERT(copies == (variant == 0 ? 3u : variant == 2 ? 4u
+                                                               : 0u));
+        if (variant != 1)
         {
             for (const MicroInstr& inst : builder.instructions().view())
                 if (inst.op == MicroInstrOpcode::LoadRegMem)

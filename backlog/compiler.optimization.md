@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 11:28 — Cache read-only homes across calls and multiple entries.
+- Updated: 2026-10-06 11:49 — Keep mutable private homes coherent across conditional calls.
 - Area: compiler/backend
 - Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
   in a caller-saved XMM register free across a call-free loop. Every matching load/store
@@ -106,40 +106,18 @@ new language syntax.
   [retained evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md).
 - Read-only homes now cross conditional calls, multiple outside entries and shared exits:
   seed every entry and restore only clobbered caches after calls. A static reuse check bounds
-  the added reads. Writable homes across calls/shared exits remain outside this extension.
-- Next: inspect hot source-object slots, mixed-width spills and writable homes in loops
-  with calls. Prefer a free integer register when its live range and ABI preservation permit
-  it; writable homes need an exit-liveness proof or edge-specific write-backs at shared exits.
+  the added reads. Writable homes can now cross those calls and shared exits by retaining
+  their stores and updating the cache at each write. The literal-path Inflate latch loses
+  its final frame reload; H.264 loses three more memory operations. The full 3,634 native,
+  21 compression and 23 H.264 tests pass in Release; see the
+  [write-through evidence](../bench/results/generated-code/20261006-private-write-through/README.md).
+- Next: inspect hot source-object slots and mixed-width spills. Prefer a free integer
+  register when its live range and ABI preservation permit it. Removing retained stores
+  from called loops needs an exit-liveness proof or edge-specific write-backs.
 - Complete when: current codec dumps identify and resolve the remaining promotion boundary
   with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
   64-bit multi-access rewrite.
 - Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
-
-### compiler.optimization.006 — Keep Inflate's mutable cursor off its literal-path latch
-
-- Recorded: 2026-08-15 08:48
-- Updated: 2026-10-06 11:28 — Cache the stable private homes across conditional calls.
-- Area: compiler/backend
-- Current evidence: the Release literal-path latch in Inflate.parseBlock now reads one frame
-  home instead of four. Three read-only homes use unused transient XMM registers, seeded
-  on every outside entry and restored only after clobbering conditional calls. The mutable
-  cursor at `[rsp+0x320]` remains. Whole parseBlock changes from 497 instructions / 154 memory
-  operations / 65 explicit RSP accesses to 512 / 148 / 59; see the
-  [retained evidence](../bench/results/generated-code/20261006-private-read-cache/README.md).
-  The split allocator supplies these homes; a second interval allocator is not needed.
-- Validation: 288 native optimizer tests (JIT and native), 21 compression tests and 23 H.264
-  tests pass in Release. No runtime speedup is inferred from static counts.
-- Prior experiments to avoid repeating: a two-level decode table was slower; extracting
-  cold helpers gave only a small change; mask/table rewrites did not improve throughput;
-  short-distance shuffle copies reached only about three percent of the measured PNG
-  output. The former shift-width guard and the historical 31-load/eight-store hot-path
-  diagnosis no longer describe the current compiler.
-- Next: preserve the mutable private cursor across the same calls, with coherent flushing
-  and a proof for its shared exits. Prefer eliminating dead exit write-backs to introducing
-  stores on the common branch. Count the literal path separately from calls and exits.
-- Complete when: that path has no remaining cursor spill round-trip and the call/exit
-  handling remains correct in JIT and native execution.
-- Related: compiler.optimization.015, compiler.optimization.024.
 
 ### compiler.optimization.032 — Control register pressure in wider partial unrolling
 
@@ -1574,11 +1552,11 @@ new language syntax.
   Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
   belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
   The remaining traffic is
-  [compiler.optimization.006](#compileroptimization006--keep-inflates-mutable-cursor-off-its-literal-path-latch) again.
+  [the resolved Inflate cursor](../bench/results/generated-code/20261006-private-write-through/README.md) again.
 - Next: rebaseline `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` with the now
   shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
   gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump
   first shows an invariant value with a reusable destination.
 - Complete when: current dumps and alternating timings establish the remaining allocation cost
   on both large kernels and identify a specific next change or retire this lead.
-- Related: compiler.optimization.006, compiler.optimization.024.
+- Related: compiler.optimization.024.

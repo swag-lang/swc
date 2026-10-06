@@ -843,11 +843,9 @@ namespace
             const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), typeRef);
             var.typeHasDrop                         = lifecycle.hasDrop;
 
-            const TypeInfo& type           = sema_->typeMgr().get(typeRef);
-            TypeRef         storageTypeRef = typeRef;
-            if (const TypeRef unwrapped = type.unwrap(sema_->ctx(), typeRef, TypeExpandE::Alias); unwrapped.isValid())
-                storageTypeRef = unwrapped;
-            const TypeInfo& storageType = sema_->typeMgr().get(storageTypeRef);
+            const TypeInfo& type          = sema_->typeMgr().get(typeRef);
+            const TypeInfo* unwrappedType = type.unwrapAliasType(sema_->ctx());
+            const TypeInfo& storageType   = unwrappedType ? *unwrappedType : type;
 
             // Element-wise coverage needs a dedicated range analysis. A static array
             // with no safe default is nevertheless a useful single construction unit:
@@ -869,26 +867,29 @@ namespace
                 var.fieldStruct = &symStruct;
                 var.fieldCount  = static_cast<uint32_t>(symStruct.fields().size());
                 var.fullMask    = (1ull << var.fieldCount) - 1;
+
+                uint64_t lateMask = 0;
                 if (symStruct.opDrop() != nullptr)
                 {
                     // The struct's own opDrop may read every field.
                     var.dropMask = var.fullMask;
+                    for (uint32_t i = 0; i < var.fieldCount; i++)
+                    {
+                        if (symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                            lateMask |= 1ull << i;
+                    }
                 }
                 else
                 {
                     for (uint32_t i = 0; i < var.fieldCount; i++)
                     {
-                        const TypeRef fieldTypeRef = symStruct.fields()[i]->typeRef();
+                        const SymbolVariable& field        = *symStruct.fields()[i];
+                        const TypeRef         fieldTypeRef = field.typeRef();
                         if (fieldTypeRef.isValid() && TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), fieldTypeRef).hasDrop)
                             var.dropMask |= 1ull << i;
+                        if (field.hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                            lateMask |= 1ull << i;
                     }
-                }
-
-                uint64_t lateMask = 0;
-                for (uint32_t i = 0; i < var.fieldCount; i++)
-                {
-                    if (symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::LateInit))
-                        lateMask |= 1ull << i;
                 }
                 if (lateMask)
                 {

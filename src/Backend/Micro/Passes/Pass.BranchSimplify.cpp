@@ -2237,8 +2237,17 @@ namespace
             const MicroInstrOperand* thenOps = thenInst->ops(operands);
             if (!thenOps || thenOps[0].reg != result || wholeDefinitionBits(*thenInst, thenOps) < 32)
                 continue;
-            const MicroInstrUseDef thenUseDef = thenInst->collectUseDef(operands, nullptr);
-            if (microRegSpanContains(thenUseDef.uses, result))
+            const auto thenModes   = MicroInstr::info(thenInst->op).resolvedRegModes(thenOps);
+            bool       readsResult = false;
+            for (size_t operand = 0; operand < thenModes.size(); ++operand)
+            {
+                if ((thenModes[operand] == MicroInstrRegMode::Use || thenModes[operand] == MicroInstrRegMode::UseDef) && thenOps[operand].reg == result)
+                {
+                    readsResult = true;
+                    break;
+                }
+            }
+            if (readsResult)
                 continue;
 
             // Between the compare and its jump the hoisted arm must leave the
@@ -2265,9 +2274,10 @@ namespace
             if (compare && (compare->op == MicroInstrOpcode::CmpRegImm || compare->op == MicroInstrOpcode::CmpRegReg ||
                             compare->op == MicroInstrOpcode::TestRegReg || compare->op == MicroInstrOpcode::TestRegImm))
             {
-                const MicroInstrUseDef compareUseDef = compare->collectUseDef(operands, nullptr);
-                if (!microRegSpanContains(compareUseDef.uses, result) && !microRegSpanContains(compareUseDef.defs, result) &&
-                    (elseInst->op != MicroInstrOpcode::LoadRegReg || !microRegSpanContains(compareUseDef.defs, elseOps[1].reg)))
+                // These compare/test forms read their registers and define only CPU flags.
+                const MicroInstrOperand* compareOps           = compare->ops(operands);
+                const bool               comparesTwoRegisters = compare->op == MicroInstrOpcode::CmpRegReg || compare->op == MicroInstrOpcode::TestRegReg;
+                if (!compareOps || (compareOps[0].reg != result && (!comparesTwoRegisters || compareOps[1].reg != result)))
                     insertRef = layout.order[ordinal - 1];
             }
 

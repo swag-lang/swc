@@ -1,0 +1,10 @@
+{
+  "baseline/lz77": "622942003053",
+  "candidate/lz77": "622942003053",
+  "baseline/sha256": "2503168387",
+  "candidate/sha256": "2503168387",
+  "baseline/raytrace": "56061776",
+  "candidate/raytrace": "56061776",
+  "baseline/chacha": "633277775",
+  "candidate/chacha": "633277775"
+}

@@ -70,8 +70,25 @@ namespace
 
     bool defsRegister(const MicroInstr& inst, const MicroOperandStorage& operands, const Encoder* encoder, const MicroReg reg)
     {
-        const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
-        return std::ranges::find(useDef.defs, reg) != useDef.defs.end();
+        SWC_ASSERT(reg.isVirtualInt());
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+        {
+            const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+            return std::ranges::find(useDef.defs, reg) != useDef.defs.end();
+        }
+
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            return false;
+        const auto modes = info.resolvedRegModes(ops);
+        for (size_t operand = 0; operand < modes.size(); ++operand)
+        {
+            if ((modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef) && ops[operand].reg == reg)
+                return true;
+        }
+        return false;
     }
 
     // Whether the jump a compare of the two values feeds is taken.

@@ -481,10 +481,11 @@ namespace
         if (params.empty())
             return vi;
 
-        const TypeRef   lastParamTypeRef = unwrapAliasEnumOrSelf(sema, params.back()->typeRef());
-        const TypeInfo& lastParamTy      = sema.typeMgr().get(lastParamTypeRef);
-        vi.isVariadic                    = lastParamTy.isVariadic();
-        vi.isTypedVariadic               = lastParamTy.isTypedVariadic();
+        const TypeInfo& declaredType  = params.back()->type(sema.ctx());
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& lastParamType = unwrappedType ? *unwrappedType : declaredType;
+        vi.isVariadic                 = lastParamType.isVariadic();
+        vi.isTypedVariadic            = lastParamType.isTypedVariadic();
         return vi;
     }
 
@@ -1979,12 +1980,13 @@ namespace
             // An explicit '#move' argument binds a '#move' parameter, or a by-value
             // parameter (the source is then consumed into a call-site temporary). A
             // reference/pointer parameter would silently ignore the transfer: rejected.
-            const bool argIsExplicitMove = isExplicitMoveArgumentNode(sema, argRef);
-            if (argIsExplicitMove)
+            bool argMovesToValue = false;
+            if (isExplicitMoveArgumentNode(sema, argRef))
             {
                 const TypeInfo* unwrappedParam = param.unwrapAliasEnumType(sema.ctx());
                 const TypeInfo& paramCheck     = unwrappedParam ? *unwrappedParam : param;
-                if (!paramCheck.isMoveReference() && paramCheck.isPointerOrReference())
+                argMovesToValue                = !paramCheck.isMoveReference();
+                if (argMovesToValue && paramCheck.isPointerOrReference())
                 {
                     CastFailure cf{};
                     cf.diagId     = DiagnosticId::sema_err_move_arg_param_not_move;
@@ -2046,7 +2048,7 @@ namespace
 
             // An explicit '#move' argument consumed by a by-value parameter ranks below
             // copy-to-move: an overload with a real '#move' parameter stays preferred.
-            if (argIsExplicitMove && !sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTy)).isMoveReference())
+            if (argMovesToValue)
                 r = ConvRank::MoveToValue;
 
             outCandidate.perArg.push_back(r);
@@ -2067,8 +2069,10 @@ namespace
             }
             else
             {
-                const TypeRef variadicParamTypeRef = unwrapAliasEnumOrSelf(sema, params.back()->typeRef());
-                const TypeRef variadicTy           = sema.typeMgr().get(variadicParamTypeRef).payloadTypeRef();
+                const TypeInfo& declaredType  = params.back()->type(sema.ctx());
+                const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+                const TypeInfo& variadicType  = unwrappedType ? *unwrappedType : declaredType;
+                const TypeRef   variadicTy    = variadicType.payloadTypeRef();
                 if (fixedVariadicArg.argRef.isValid())
                     SWC_RESULT(probeTypedVariadicArgument(sema, fn, fixedVariadicArg, variadicTy, startVariadic, mapping.variadicArgs.empty(), outCandidate, outFail));
                 if (outFail.active)
@@ -2478,8 +2482,9 @@ namespace
         // Arguments in a typed variadic tail all share the element type of the last parameter.
         if (numParams > 0 && !mapping.variadicArgs.empty())
         {
-            const TypeRef   variadicParamTypeRef = unwrapAliasEnumOrSelf(sema, params.back()->typeRef());
-            const TypeInfo& variadicParamType    = sema.typeMgr().get(variadicParamTypeRef);
+            const TypeInfo& declaredType      = params.back()->type(sema.ctx());
+            const TypeInfo* unwrappedType     = declaredType.unwrapAliasEnumType(sema.ctx());
+            const TypeInfo& variadicParamType = unwrappedType ? *unwrappedType : declaredType;
             if (variadicParamType.isTypedVariadic())
             {
                 const TypeRef variadicTy = variadicParamType.payloadTypeRef();

@@ -428,25 +428,29 @@ Result resolveUsingStructCastPathWithoutPointerStep(Sema& sema, const CastReques
 
 TypeRef interfaceObjectStructTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef sourceTypeRef)
 {
-    const TypeRef resolvedSourceTypeRef = typeMgr.unwrapAliasEnumOrSelf(ctx, sourceTypeRef);
-    if (!resolvedSourceTypeRef.isValid())
+    if (!sourceTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TypeInfo& sourceType = typeMgr.get(resolvedSourceTypeRef);
-    if (sourceType.isStruct())
-        return resolvedSourceTypeRef;
+    const TypeInfo* sourceType = &typeMgr.get(sourceTypeRef);
+    if (const TypeInfo* unwrappedType = sourceType->unwrapAliasEnumType(ctx))
+        sourceType = unwrappedType;
+    if (sourceType->isStruct())
+        return sourceType->typeRef();
 
-    if (!sourceType.isAnyPointer() && !sourceType.isReference() && !sourceType.isMoveReference())
+    if (!sourceType->isAnyPointer() && !sourceType->isReference() && !sourceType->isMoveReference())
         return TypeRef::invalid();
 
-    const TypeRef objectTypeRef = typeMgr.unwrapAliasEnumOrSelf(ctx, sourceType.payloadTypeRef());
+    const TypeRef objectTypeRef = sourceType->payloadTypeRef();
     if (!objectTypeRef.isValid())
         return TypeRef::invalid();
 
-    if (!typeMgr.get(objectTypeRef).isStruct())
+    const TypeInfo* objectType = &typeMgr.get(objectTypeRef);
+    if (const TypeInfo* unwrappedType = objectType->unwrapAliasEnumType(ctx))
+        objectType = unwrappedType;
+    if (!objectType->isStruct())
         return TypeRef::invalid();
 
-    return objectTypeRef;
+    return objectType->typeRef();
 }
 
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)
@@ -455,8 +459,9 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
     if (!sourceTypeRef.isValid())
         return false;
 
-    const TypeRef   resolvedSourceTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sourceTypeRef);
-    const TypeInfo& sourceType            = sema.typeMgr().get(resolvedSourceTypeRef);
+    const TypeInfo& declaredSourceType  = sema.typeMgr().get(sourceTypeRef);
+    const TypeInfo* unwrappedSourceType = declaredSourceType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& sourceType          = unwrappedSourceType ? *unwrappedSourceType : declaredSourceType;
 
     if (sourceType.isTypeInfo())
     {
@@ -482,12 +487,13 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
 
     if (sourceType.isPointerOrReference())
     {
-        const TypeRef   pointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sourceType.payloadTypeRef());
-        const TypeInfo& pointeeType    = sema.typeMgr().get(pointeeTypeRef);
+        const TypeInfo& declaredPointeeType  = sema.typeMgr().get(sourceType.payloadTypeRef());
+        const TypeInfo* unwrappedPointeeType = declaredPointeeType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& pointeeType          = unwrappedPointeeType ? *unwrappedPointeeType : declaredPointeeType;
         if (pointeeType.isStruct())
         {
             outInfo.kind          = DynamicStructCastSourceKind::StructPointerLike;
-            outInfo.structTypeRef = pointeeTypeRef;
+            outInfo.structTypeRef = pointeeType.typeRef();
             outInfo.sourceIsConst = sourceType.isConst();
             return true;
         }
@@ -500,7 +506,7 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
         return false;
 
     outInfo.kind          = DynamicStructCastSourceKind::StructAddress;
-    outInfo.structTypeRef = resolvedSourceTypeRef;
+    outInfo.structTypeRef = sourceType.typeRef();
     outInfo.sourceIsConst = sourceType.isConst();
     return true;
 }
@@ -517,20 +523,23 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
         sourceRef = castNode->nodeExprRef;
     else if (const auto* autoCast = view.node()->safeCast<AstAutoCastExpr>())
         sourceRef = autoCast->nodeExprRef;
-    SemaNodeView    sourceView    = sema.viewTypeConstant(sourceRef);
-    TypeRef         sourceTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), sourceView.typeRef());
-    const TypeInfo& sourceType    = sema.typeMgr().get(sourceTypeRef);
-    TypeRef         targetTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), dstTypeRef);
-    if (sema.typeMgr().get(targetTypeRef).isTypeInfo())
+    SemaNodeView    sourceView     = sema.viewTypeConstant(sourceRef);
+    TypeRef        sourceTypeRef  = SemaHelpers::aliasEnumType(sema, sourceView).typeRef();
+    const TypeInfo* targetTypeInfo = &sema.typeMgr().get(dstTypeRef);
+    if (const TypeInfo* unwrappedType = targetTypeInfo->unwrapAliasEnumType(sema.ctx()))
+        targetTypeInfo = unwrappedType;
+    if (targetTypeInfo->isTypeInfo())
     {
         TypeRef baseTypeRef = TypeRef::invalid();
         SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, baseTypeRef, sema.node(view.nodeRef()).codeRef()));
         TypeInfoFlags targetFlags = TypeInfoFlagsE::Const;
-        if (sema.typeMgr().get(targetTypeRef).isNullable())
+        if (targetTypeInfo->isNullable())
             targetFlags.add(TypeInfoFlagsE::Nullable);
-        targetTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(baseTypeRef, targetFlags));
+        const TypeRef pointerTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(baseTypeRef, targetFlags));
+        targetTypeInfo               = &sema.typeMgr().get(pointerTypeRef);
     }
-    const TypeInfo& targetType = sema.typeMgr().get(targetTypeRef);
+    const TypeInfo& targetType    = *targetTypeInfo;
+    const TypeRef   targetTypeRef = targetType.typeRef();
 
     TypeRef representedTypeRef = TypeRef::invalid();
     if (!sema.isValue(sourceRef))

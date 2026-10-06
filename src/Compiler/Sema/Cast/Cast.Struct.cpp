@@ -797,18 +797,15 @@ Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeR
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
         return Result::Continue;
 
-    const TypeManager& typeMgr      = sema.typeMgr();
-    TypeRef            ownerTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), srcTypeRef);
-    if (!ownerTypeRef.isValid())
-        ownerTypeRef = srcTypeRef;
-
-    const TypeInfo* ownerType = &typeMgr.get(ownerTypeRef);
+    const TypeManager& typeMgr   = sema.typeMgr();
+    const TypeInfo*    ownerType = &typeMgr.get(srcTypeRef);
+    if (const TypeInfo* unwrappedType = ownerType->unwrapAliasEnumType(sema.ctx()))
+        ownerType = unwrappedType;
     if (ownerType->isReference())
     {
-        ownerTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), ownerType->payloadTypeRef());
-        if (!ownerTypeRef.isValid())
-            ownerTypeRef = ownerType->payloadTypeRef();
-        ownerType = &typeMgr.get(ownerTypeRef);
+        ownerType = &typeMgr.get(ownerType->payloadTypeRef());
+        if (const TypeInfo* unwrappedType = ownerType->unwrapAliasEnumType(sema.ctx()))
+            ownerType = unwrappedType;
     }
 
     if (!ownerType->isStruct())

@@ -1517,9 +1517,8 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         // left payload can carry the non-null call-site type instead of the declared one.
         if (!SemaHelpers::nullabilityValidatedBeforeInlining(sema))
         {
-            const TypeRef storedLeftTypeRef = sema.viewStored(node.nodeLeftRef, SemaNodeViewPartE::Type).typeRef();
-            const TypeRef unwrappedLeftRef  = storedLeftTypeRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), storedLeftTypeRef) : TypeRef::invalid();
-            if (unwrappedLeftRef.isInvalid() || !sema.typeMgr().get(unwrappedLeftRef).isNullable())
+            const SemaNodeView storedLeftView = sema.viewStored(node.nodeLeftRef, SemaNodeViewPartE::Type);
+            if (!storedLeftView.type() || !SemaHelpers::aliasEnumType(sema, storedLeftView).isNullable())
                 return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_optional_access_not_nullable, node.nodeLeftRef, nodeLeftView.typeRef());
         }
     }

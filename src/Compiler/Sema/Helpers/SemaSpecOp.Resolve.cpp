@@ -702,8 +702,7 @@ namespace
         if (!argView.type())
             return argRef;
 
-        const TypeRef   argTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), argView.typeRef());
-        const TypeInfo& argType    = sema.typeMgr().get(argTypeRef.isValid() ? argTypeRef : argView.typeRef());
+        const TypeInfo& argType = SemaHelpers::aliasEnumType(sema, argView);
         if (!argType.isReference())
             return argRef;
 

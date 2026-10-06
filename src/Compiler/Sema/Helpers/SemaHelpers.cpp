@@ -81,20 +81,16 @@ TypeRef SemaHelpers::unwrapBindingType(TaskContext& ctx, TypeRef typeRef)
 {
     while (typeRef.isValid())
     {
-        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-        if (typeInfo.isAlias() || typeInfo.isEnum())
+        const TypeInfo* typeInfo = &ctx.typeMgr().get(typeRef);
+        if (const TypeInfo* unwrappedType = typeInfo->unwrapAliasEnumType(ctx))
         {
-            const TypeRef unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
-            if (unwrapped.isValid())
-            {
-                typeRef = unwrapped;
-                continue;
-            }
+            typeRef  = unwrappedType->typeRef();
+            typeInfo = unwrappedType;
         }
 
-        if (typeInfo.isReference())
+        if (typeInfo->isReference())
         {
-            typeRef = typeInfo.payloadTypeRef();
+            typeRef = typeInfo->payloadTypeRef();
             continue;
         }
 

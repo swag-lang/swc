@@ -1055,24 +1055,22 @@ namespace
         return nullptr;
     }
 
-    bool typeIsCallableValue(CodeGen& codeGen, TypeRef typeRef)
+    bool typeIsCallableValue(CodeGen& codeGen, const TypeInfo* typeInfo)
     {
-        while (typeRef.isValid())
+        while (typeInfo)
         {
-            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-            if (typeInfo.isAlias())
+            if (typeInfo->isAlias())
             {
-                const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
-                if (unwrappedTypeRef.isValid())
-                {
-                    typeRef = unwrappedTypeRef;
-                    continue;
-                }
+                if (const TypeInfo* unwrappedType = typeInfo->unwrapAliasType(codeGen.ctx()))
+                    typeInfo = unwrappedType;
             }
 
-            if (!typeInfo.isReference())
-                return typeInfo.isFunction();
-            typeRef = typeInfo.payloadTypeRef();
+            if (!typeInfo->isReference())
+                return typeInfo->isFunction();
+            const TypeRef referencedTypeRef = typeInfo->payloadTypeRef();
+            if (referencedTypeRef.isInvalid())
+                return false;
+            typeInfo = &codeGen.typeMgr().get(referencedTypeRef);
         }
 
         return false;
@@ -1084,7 +1082,7 @@ namespace
             return false;
 
         const SemaNodeView calleeTypeView = codeGen.viewType(calleeRef);
-        return typeIsCallableValue(codeGen, calleeTypeView.typeRef());
+        return typeIsCallableValue(codeGen, calleeTypeView.type());
     }
 
     bool callRequiresRuntimeTarget(CodeGen& codeGen, AstNodeRef calleeRef, const SymbolFunction& calledFunction)

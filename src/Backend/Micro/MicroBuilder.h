@@ -63,6 +63,7 @@ public:
     void                                                       setCurrentDebugNoStep(bool value);
     bool                                                       currentDebugNoStep() const { return currentDebugSourceInfo_.debugNoStep; }
     void                                                       setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
+    bool                                                       hasPrintPassOptions() const { return !printPassOptions_.empty(); }
     void                                                       setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&                            backendBuildCfg() const { return backendBuildCfg_; }
     void                                                       setRetUsesAbiRegs(bool usesIntReturnReg, bool usesFloatReturnReg);

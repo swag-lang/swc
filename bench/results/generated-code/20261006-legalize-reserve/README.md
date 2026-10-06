@@ -42,7 +42,7 @@ This is a current cohort, not the historical 76-kernel sample in the backlog.
 Two H.264 groups gain memory operations: `parsePlaneResidualCabac` (+1) and
 `parsePlaneResidualCavlc` (+6). These remain allocation-quality leads; they do not
 justify withholding the register from every saturated function. Other changes
-include `addPlaneResidual` (-16), `parsePartitionsB` (-13) and `residualCabac` (-11).
+include `addPlaneResidual` (-16), `parsePartitionsB` (-13) and `residualCabac` (-38 across five emitted instances).
 
 ## Validation
 

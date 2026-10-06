@@ -85,6 +85,30 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.036 — Finish shared address folding and isolate its remaining allocation cost
+
+- Recorded: 2026-09-12 13:05
+- Updated: 2026-10-06 09:18 — fold single-use address bases after vectorization and retain the local spill lead.
+- Area: compiler/backend
+- Resolved: late pre-allocation scheduling folds a single-use constant-offset address into
+  indexed and ordinary memory operands. Cross-block candidates require an SSA proof that the
+  original base remains unchanged. Frame promotion and vectorization see their original
+  array shape, avoiding the earlier prototype's predictor regression.
+- Evidence: the current 334-function Release H.264 cohort loses 128 instructions and 23
+  memory operations. `intraPredict8x8` loses five instructions with unchanged memory-operation
+  count; the five `residualCabac` instances lose 15 instructions. The 278 native optimizer
+  and 23 H.264 tests pass. See the
+  [retained structural evidence](../bench/results/generated-code/20261006-late-addresses/README.md).
+- Remaining: `Slice.parsePartitions` gains three instructions and two memory operations.
+  Shared addresses, including the context-array base used through several copies in
+  `residualCabac`, remain outside the single-use rule. A source dump before `sink-to-use`
+  shows the base at Slice + 0x98 feeding four copies rather than one memory operand.
+- Next: attribute `parsePartitions`' new spill choice, and consider shared-base substitution
+  only when every use preserves the base and removing the address does not extend pressure.
+  Keep the late stage so array promotion/vectorization retain their input shape.
+- Complete when: the local allocation cost is resolved or explained and profitable shared
+  address cases have a bounded all-use proof.
+
 ### compiler.optimization.035 — Reduce local spill regressions after removing the legalization reserve
 
 - Recorded: 2026-09-12 11:40
@@ -1447,28 +1471,6 @@ new language syntax.
 - Complete when: the filter kernel keeps its coefficients in registers across its loop and no
   other decoder kernel grows.
 - Related: cpu.simd.035, compiler.optimization.006
-
-### compiler.optimization.036 — A constant offset ahead of an indexed access is not folded into it
-
-- Recorded: 2026-09-12 13:05
-- Area: compiler/backend
-- Evidence, read from LLVM's output on the H.264 CABAC residual parser (clang-cl /O2 /arch:AVX on
-  the same algorithm, scratch `cabacres/resbench.c`): clang reads the context array with one
-  operand, `movzx r11d, byte ptr [rdx + r8]`, where Swag computes the array's address first,
-  `lea rcx, [r10 + 0x98]`, and then indexes it. `tryFoldLeaConstIntoAmcIndex` folds such an offset
-  into the *index* of an indexed access; nothing folds it into the *base*.
-- Attempted 2026-09-12, reverted: `tryFoldLeaConstIntoAmcBase`, refusing a frame-derived base and
-  an address with more than one reader, and erasing the folded computation. It pays where it was
-  read from - the five residual parsers 3563 to 3536 instructions and 264 to 240 frame accesses,
-  `bookkeepMb` 590 to 574, `parseResidualCabac` 243 to 229 - and `intraPredict8x8` pays for all of
-  it: 927 to 1083 instructions and 340 to 452 memory operands, fifty more address computations and
-  the spills they cost. Narrowing the rule to reads, or to stores, or off the address-computation
-  form, moves nothing: the regression follows the reads of the predictor's own reference arrays,
-  which are frame locals, though `isFrameDerivedAddress` answers for their base.
-- Next: reduce the predictor's regression to a probe and find why folding the offset of a frame
-  array into its reads costs a sixth of the function, before re-enabling the rule. The suspicion is
-  that slot promotion or the vectorizer recognizes the array by the shape of its address.
-- Complete when: the fold lands with the CABAC gain and no kernel regression.
 
 
 ### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots

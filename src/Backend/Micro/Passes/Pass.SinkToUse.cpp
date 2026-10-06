@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -40,6 +41,7 @@ namespace
         MicroInstrRef                  beforeRef;
         MicroInstrOpcode               op = MicroInstrOpcode::Nop;
         SmallVector<MicroInstrOperand> ops;
+        bool                           foldAddress = false;
     };
 
     struct SinkScratch
@@ -50,6 +52,7 @@ namespace
         std::vector<RegCounts>        regCounts;
         std::unordered_set<uint32_t>  relocationRefs;
         std::vector<Move>             moves;
+        MicroPeephole::LazyU32Set     foldedConsumers;
     };
 
     thread_local SinkScratch sinkScratch;
@@ -171,12 +174,15 @@ namespace
 
         scratch.relocationRefs.clear();
         scratch.moves.clear();
-        bool relocationsReady = false;
+        scratch.foldedConsumers.clear();
+        bool                       relocationsReady = false;
+        thread_local MicroSsaState addressSsa;
+        bool                       addressSsaReady = false;
 
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
-            if (!inst)
+            if (!inst || scratch.foldedConsumers.contains(i))
                 continue;
 
             const MicroInstrUseDef* useDef = &scratch.useDefs[i];
@@ -192,10 +198,49 @@ namespace
                 continue;
 
             const uint32_t useIdx = valueCounts.onlyUseIndex;
-            if (useIdx <= i + 1 || useIdx - i > K_MAX_SINK_DISTANCE)
+            if (useIdx <= i || useIdx - i > K_MAX_SINK_DISTANCE ||
+                (useIdx == i + 1 && inst->op != MicroInstrOpcode::LoadAddrRegMem))
                 continue;
-            if (scratch.blockIds[useIdx] != scratch.blockIds[i])
-                continue;
+            const MicroInstrOperand*    ops      = inst->ops(operands);
+            const MicroInstr*           consumer = storage.ptr(instrRefs[useIdx]);
+            MicroPassHelpers::AmcLayout layout;
+            bool                        foldAddress  = false;
+            uint64_t                    displacement = 0;
+            if (inst->op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64 &&
+                consumer->op != MicroInstrOpcode::LoadAddrRegMem && consumer->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+            {
+                const auto& info             = MicroInstr::info(consumer->op);
+                bool        hasMemoryAddress = MicroPassHelpers::amcLayoutFor(layout, consumer->op);
+                if (!hasMemoryAddress && info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
+                {
+                    hasMemoryAddress = true;
+                    layout.baseIdx   = info.memBaseOperandIndex;
+                    layout.addIdx    = info.memOffsetOperandIndex;
+                }
+                if (hasMemoryAddress)
+                {
+                    const auto* consumerOps = consumer->ops(operands);
+                    displacement            = consumerOps[layout.addIdx].valueU64 + ops[3].valueU64;
+                    foldAddress             = consumerOps[layout.baseIdx].reg == value &&
+                                  static_cast<int64_t>(displacement) == static_cast<int64_t>(static_cast<int32_t>(displacement));
+                }
+            }
+            const bool crossesBlocks = scratch.blockIds[useIdx] != scratch.blockIds[i];
+            if (crossesBlocks)
+            {
+                if (!foldAddress)
+                    continue;
+                // Address substitution can cross a branch without moving a load.
+                // Only build SSA when such a candidate needs an all-path proof.
+                if (!addressSsaReady)
+                {
+                    addressSsa.clear();
+                    addressSsa.build(*context.builder, storage, operands, context.encoder);
+                    addressSsaReady = true;
+                }
+                if (!addressSsa.sameValueAt(ops[1].reg, instrRefs[i], instrRefs[useIdx]))
+                    continue;
+            }
 
             if (!relocationsReady)
             {
@@ -219,7 +264,7 @@ namespace
             const bool readsMemory   = MicroPassHelpers::instructionReadsMemory(*inst);
             bool       blocked       = false;
             bool       meaningfulGap = false;
-            for (uint32_t k = i + 1; k < useIdx && !blocked; ++k)
+            for (uint32_t k = i + 1; !crossesBlocks && k < useIdx && !blocked; ++k)
             {
                 const MicroInstr*       between       = storage.ptr(instrRefs[k]);
                 const MicroInstrUseDef* betweenUseDef = &scratch.useDefs[k];
@@ -263,11 +308,31 @@ namespace
                     meaningfulGap = !feedsSameConsumer;
                 }
             }
-            if (blocked || !meaningfulGap)
+            if (blocked)
                 continue;
 
-            const MicroInstrOperand* ops = inst->ops(operands);
-            Move                     move;
+            // Promotion and vectorization have already consumed the original
+            // frame-array shape. Only the address changes; the memory access
+            // keeps its position, width, flags and volatile/atomic semantics.
+            if (foldAddress)
+            {
+                const auto* consumerOps = consumer->ops(operands);
+                Move        fold;
+                fold.ref         = instrRefs[i];
+                fold.beforeRef   = instrRefs[useIdx];
+                fold.foldAddress = true;
+                fold.ops.assign(consumerOps, consumerOps + consumer->numOperands);
+                fold.ops[layout.baseIdx].reg     = ops[1].reg;
+                fold.ops[layout.addIdx].valueU64 = displacement;
+                scratch.moves.push_back(std::move(fold));
+                // Do not later sink a snapshot of the consumer's old operands.
+                scratch.foldedConsumers.insert(useIdx);
+                continue;
+            }
+            if (!meaningfulGap)
+                continue;
+
+            Move move;
             move.ref       = instrRefs[i];
             move.beforeRef = instrRefs[useIdx];
             move.op        = inst->op;
@@ -284,7 +349,10 @@ namespace
         // its producer moves, even if the destination itself moves later.
         for (const Move& move : scratch.moves)
         {
-            storage.insertDerivedBefore(operands, move.beforeRef, move.op, move.ops);
+            if (move.foldAddress)
+                std::ranges::copy(move.ops, storage.ptr(move.beforeRef)->ops(operands));
+            else
+                storage.insertDerivedBefore(operands, move.beforeRef, move.op, move.ops);
             storage.erase(move.ref);
         }
 

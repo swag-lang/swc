@@ -1661,6 +1661,8 @@ void Sema::deferTopLevelItem(AstNodeRef nodeRef, DeferredTopLevelItemKind kind)
     DeferredTopLevelItem item;
     item.nodeRef = nodeRef;
     item.kind    = kind;
+    if (frames_.size() > 1)
+        item.frame = std::make_shared<const SemaFrame>(frame());
 
     if (!deferredTopLevelItemRunning_)
     {
@@ -1704,11 +1706,13 @@ Result Sema::runCurrentVisit()
     }
 }
 
-Result Sema::processDeferredTopLevelNode(AstNodeRef nodeRef, uint32_t insertIndex)
+Result Sema::processDeferredTopLevelNode(const DeferredTopLevelItem& item, uint32_t insertIndex)
 {
     if (!deferredTopLevelItemRunning_)
     {
-        visit_.start(ast(), nodeRef);
+        visit_.start(ast(), item.nodeRef);
+        if (item.frame)
+            pushFramePopOnPostNode(*item.frame, item.nodeRef);
         deferredTopLevelItemRunning_     = true;
         deferredTopLevelItemInsertIndex_ = insertIndex;
     }
@@ -1723,14 +1727,14 @@ Result Sema::processDeferredTopLevelNode(AstNodeRef nodeRef, uint32_t insertInde
 
 Result Sema::processPendingTopLevelCompilerRuns(uint32_t insertIndex)
 {
-    while (pendingTopLevelCompilerRunIndex_ < pendingTopLevelCompilerRunRefs_.size())
+    while (pendingTopLevelCompilerRunIndex_ < pendingTopLevelCompilerRuns_.size())
     {
-        const AstNodeRef nodeRef = pendingTopLevelCompilerRunRefs_[pendingTopLevelCompilerRunIndex_];
-        SWC_RESULT(processDeferredTopLevelNode(nodeRef, insertIndex));
+        const DeferredTopLevelItem item = pendingTopLevelCompilerRuns_[pendingTopLevelCompilerRunIndex_];
+        SWC_RESULT(processDeferredTopLevelNode(item, insertIndex));
         pendingTopLevelCompilerRunIndex_++;
     }
 
-    pendingTopLevelCompilerRunRefs_.clear();
+    pendingTopLevelCompilerRuns_.clear();
     pendingTopLevelCompilerRunIndex_ = 0;
 
     return Result::Continue;
@@ -1745,14 +1749,19 @@ Result Sema::processDeferredTopLevelItems()
         {
             case DeferredTopLevelItemKind::SemaJob:
             {
+                // A child job starts from a copy of the current frame.
+                if (item.frame)
+                    pushFrame(*item.frame);
                 enqueueTopLevelSemaJob(item.nodeRef);
+                if (item.frame)
+                    popFrame();
                 deferredTopLevelItemIndex_++;
                 break;
             }
 
             case DeferredTopLevelItemKind::CompilerRun:
             {
-                pendingTopLevelCompilerRunRefs_.push_back(item.nodeRef);
+                pendingTopLevelCompilerRuns_.push_back(item);
                 deferredTopLevelItemIndex_++;
                 break;
             }
@@ -1762,20 +1771,20 @@ Result Sema::processDeferredTopLevelItems()
                 // Top-level #ast expansion must observe all earlier top-level #run output.
                 // Flush queued compiler runs before expanding the AST item, but keep later
                 // items in the queue so nested insertions preserve source order.
-                if (!pendingTopLevelCompilerRunRefs_.empty())
+                if (!pendingTopLevelCompilerRuns_.empty())
                 {
                     SWC_RESULT(processPendingTopLevelCompilerRuns(deferredTopLevelItemIndex_));
                     break;
                 }
 
-                SWC_RESULT(processDeferredTopLevelNode(item.nodeRef, deferredTopLevelItemIndex_ + 1));
+                SWC_RESULT(processDeferredTopLevelNode(item, deferredTopLevelItemIndex_ + 1));
                 deferredTopLevelItemIndex_++;
                 break;
             }
         }
     }
 
-    if (!pendingTopLevelCompilerRunRefs_.empty())
+    if (!pendingTopLevelCompilerRuns_.empty())
         SWC_RESULT(processPendingTopLevelCompilerRuns(static_cast<uint32_t>(deferredTopLevelItems_.size())));
 
     return Result::Continue;

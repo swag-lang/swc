@@ -6,7 +6,8 @@ SWC_BEGIN_NAMESPACE();
 
 // Pre-RA scheduling for register pressure: a pure, flag-free, single-use
 // definition moves down to sit just before its one consumer in the same
-// basic block.
+// basic block. A single-use constant-offset address is folded into its
+// memory consumer here, after frame promotion and vectorization.
 //
 // The front end emits a block in source order, so a run of declarations
 // materializes every value before the first one is consumed - sixteen sample

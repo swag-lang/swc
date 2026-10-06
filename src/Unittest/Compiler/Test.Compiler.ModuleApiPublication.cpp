@@ -254,6 +254,30 @@ private const Hidden: [2] s32 = [41, 42]
 func exposed(index: u64)->s32 => Hidden[index]
 )",
          "symbol 'Hidden' is not exposed by the module API"},
+        {"FoldedPrivateConstant", R"(#global public
+private const Hidden = 42
+#[Swag.Inline]
+func exposed()->s32 => Hidden
+)",
+         "symbol 'Hidden' is not exposed by the module API",
+         {},
+         "static-library",
+         "discard exposed()"},
+        {"FoldedQualifiedConstant", R"(#global public
+namespace Inner { private const Hidden = 42'u8 }
+#[Swag.Inline]
+func exposed(value: s32)->s32 => value + Inner.Hidden
+)",
+         "is not exposed by the module API"},
+        {"FoldedPublicConstant", R"(#global public
+const Visible = 42
+#[Swag.Inline]
+func exposed()->s32 => Visible
+)",
+         {},
+         "=> Visible",
+         "static-library",
+         "discard exposed()"},
         {"OpaqueMember", R"(#global public
 #[Swag.Opaque]
 struct Hidden { value: s32 }

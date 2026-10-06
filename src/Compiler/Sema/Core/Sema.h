@@ -671,15 +671,19 @@ private:
         CompilerAst,
     };
 
+    // A deferred item runs after the walk that met it has left its enclosing nodes, so it
+    // keeps the context those nodes had established, such as an attribute list's attributes.
+    // Only an item nested under such a node needs a copy; the base frame is still current.
     struct DeferredTopLevelItem
     {
-        AstNodeRef               nodeRef;
-        DeferredTopLevelItemKind kind;
+        AstNodeRef                       nodeRef;
+        DeferredTopLevelItemKind         kind;
+        std::shared_ptr<const SemaFrame> frame;
     };
 
     Result runCurrentVisit();
     Result processDeferredTopLevelItems();
-    Result processDeferredTopLevelNode(AstNodeRef nodeRef, uint32_t insertIndex);
+    Result processDeferredTopLevelNode(const DeferredTopLevelItem& item, uint32_t insertIndex);
     Result processPendingTopLevelCompilerRuns(uint32_t insertIndex);
     void   deferTopLevelItem(AstNodeRef nodeRef, DeferredTopLevelItemKind kind);
     void   enqueueTopLevelSemaJob(AstNodeRef nodeRef);
@@ -759,7 +763,7 @@ private:
     std::vector<DeferredPostNodeAction>     deferredPostNodeActions_;
     std::vector<ActiveCompilerAstExpansion> compilerAstExpansions_;
     std::vector<DeferredTopLevelItem>       deferredTopLevelItems_;
-    std::vector<AstNodeRef>                 pendingTopLevelCompilerRunRefs_;
+    std::vector<DeferredTopLevelItem>       pendingTopLevelCompilerRuns_;
     uint32_t                                deferredTopLevelItemIndex_       = 0;
     uint32_t                                deferredTopLevelItemInsertIndex_ = 0;
     uint32_t                                pendingTopLevelCompilerRunIndex_ = 0;

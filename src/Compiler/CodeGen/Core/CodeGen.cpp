@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
@@ -42,6 +43,43 @@ CodeGenNodePayload CodeGen::conditionBindingPayload(TypeRef& outTypeRef, AstNode
 
 namespace
 {
+    // A '*' matches any run of characters; everything else matches itself.
+    bool printMicroPatternMatches(std::string_view pattern, std::string_view name)
+    {
+        const size_t star = pattern.find('*');
+        if (star == std::string_view::npos)
+            return pattern == name;
+        if (!name.starts_with(pattern.substr(0, star)))
+            return false;
+
+        const std::string_view rest = pattern.substr(star + 1);
+        for (size_t start = star; start <= name.size(); ++start)
+        {
+            if (printMicroPatternMatches(rest, name.substr(start)))
+                return true;
+        }
+
+        return false;
+    }
+
+    // '--print-micro' selects a function by its scoped name or by a trailing part of it, so
+    // 'Pixel.Webp.decodeLossy', 'Webp.decodeLossy' and 'decodeLossy' all name the same function.
+    void appendCommandLinePrintMicroStages(std::vector<Utf8>& stages, std::span<const Utf8> requests, std::string_view scopedName)
+    {
+        for (const Utf8& request : requests)
+        {
+            const std::string_view value   = request.view();
+            const size_t           colon   = value.find(':');
+            const std::string_view pattern = value.substr(0, colon);
+
+            bool matches = printMicroPatternMatches(pattern, scopedName);
+            for (size_t dot = scopedName.find('.'); !matches && dot != std::string_view::npos; dot = scopedName.find('.', dot + 1))
+                matches = printMicroPatternMatches(pattern, scopedName.substr(dot + 1));
+            if (matches)
+                stages.emplace_back(colon == std::string_view::npos ? std::string_view{"pre-emit"} : value.substr(colon + 1));
+        }
+    }
+
     const CodeGenFrame::InlineContext* findMatchingInlineContext(std::span<const CodeGenFrame> frames, AstNodeRef rootNodeRef, const SemaInlinePayload* payload)
     {
         if (!payload || rootNodeRef.isInvalid())
@@ -555,8 +593,17 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
         const SourceFile*     file      = srcView.file();
         const Utf8            fileName  = file ? file->formattedFileName(&ctx()) : Utf8{};
-        builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
-        builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), fileName, codeRange.line);
+        const Utf8            fullName  = symbolFunc.getFullScopedName(ctx());
+        const auto&           requests  = ctx().cmdLine().printMicro;
+        if (requests.empty())
+            builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
+        else
+        {
+            std::vector<Utf8> stages = symbolFunc.attributes().printMicroPassOptions;
+            appendCommandLinePrintMicroStages(stages, requests, fullName.view());
+            builder_->setPrintPassOptions(stages);
+        }
+        builder_->setPrintLocation(fullName, fileName, codeRange.line);
 
         started_ = true;
     }

@@ -31,24 +31,6 @@ narrowing. Such a rewrite requires a separate semantic proof.
 
 **Related:** compiler.core.001, compiler.core.038.
 
-### compiler.core.040 — Select microcode output without a source attribute
-
-- Recorded: 2026-09-11 22:14
-- Updated: 2026-10-04 15:02 — Retain only command-line selection after the attribute stage documentation was corrected.
-- Evidence: moved from the compiler portion of app.prism.004. `CodeGen::startFunction` installs
-  only `symbolFunc.attributes().printMicroPassOptions` before recording the fully scoped name;
-  the command-line parser has no symbol/stage selector. Inspecting a library function therefore
-  requires editing its attributes today.
-- The attribute documentation already names the implemented `pre-<pass>` / `post-<pass>`
-  stages (`bin/runtime/api.swg`). The remaining boundary is command-line selection.
-- Next: define a command-line symbol-pattern and stage selector, including matching and
-  diagnostics, then combine its selected stages with the function's own print options in
-  code generation.
-- Complete when: an unedited library function can emit selected stages, attribute requests retain
-  their behavior, unmatched and ambiguous requests have a stated contract, and help and focused
-  command tests describe the selector. The proposed spelling is `--print-micro=<pattern>:<stage>`.
-- Related: app.prism.004, app.prism.002
-
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 
 - Recorded: 2026-09-30 08:32

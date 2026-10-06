@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [app.prism.md](app.prism.md) | The Swag Prism application | 2026-10-06 09:07 |
 | [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-06 08:54 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-06 08:06 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-05 21:40 |
@@ -56,7 +57,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-27 18:11 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-27 18:09 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:06 |
-| [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-27 17:52 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-27 17:45 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-12 06:37 |

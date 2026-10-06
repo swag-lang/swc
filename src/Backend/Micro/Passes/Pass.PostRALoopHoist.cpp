@@ -449,7 +449,6 @@ namespace
 
         // Every rewritten instruction has to remain encodable with the hoisted
         // register in place of the dead one.
-        MicroInstrRegOperandRefs refs;
         for (const uint32_t k : useSites)
         {
             const MicroInstr*        inst = storage.ptr(instrRefs[k]);
@@ -481,16 +480,19 @@ namespace
 
         for (const uint32_t k : useSites)
         {
-            const MicroInstr*        inst = storage.ptr(instrRefs[k]);
-            const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            const MicroInstr*  inst = storage.ptr(instrRefs[k]);
+            MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
             if (!ops)
                 continue;
-            refs.clear();
-            inst->collectRegOperands(operands, refs, encoder);
-            for (const auto& ref : refs)
+            const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
+            for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
             {
-                if (ref.reg && *ref.reg == dead && ref.use)
-                    *ref.reg = hoisted;
+                const MicroInstrRegMode mode = modes[operandIndex];
+                if (mode != MicroInstrRegMode::Use && mode != MicroInstrRegMode::UseDef)
+                    continue;
+                MicroReg& reg = ops[operandIndex].reg;
+                if (reg.isValid() && !reg.isNoBase() && reg == dead)
+                    reg = hoisted;
             }
         }
 

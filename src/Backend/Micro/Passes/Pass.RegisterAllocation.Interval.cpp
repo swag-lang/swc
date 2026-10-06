@@ -2477,9 +2477,11 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         MicroInstr&         inst           = *it;
         ++it;
 
-        const MicroInstrOperand* ops         = inst.ops(*operands_);
-        bool                     copiesWhole = false;
-        if (inst.op == MicroInstrOpcode::LoadRegReg && ops && ops[1].reg.isVirtual())
+        MicroInstrOperand* ops = inst.ops(*operands_);
+        if (!ops)
+            continue;
+        bool copiesWhole = false;
+        if (inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg.isVirtual())
         {
             if (ops[1].reg.isVirtualInt())
             {
@@ -2496,17 +2498,21 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             }
         }
 
-        regRefs.clear();
-        inst.collectRegOperands(*operands_, regRefs, context_->encoder);
-        bool renamed = false;
-        for (const MicroInstrRegOperandRef& ref : regRefs)
+        const auto modes   = MicroInstr::info(inst.op).resolvedRegModes(ops);
+        bool       renamed = false;
+        for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
         {
+            if (modes[operandIndex] == MicroInstrRegMode::None)
+                continue;
+            MicroReg& reg = ops[operandIndex].reg;
+            if (!reg.isValid() || reg.isNoBase())
+                continue;
             for (const auto& [fromReg, toReg] : renames)
             {
-                if (*ref.reg == fromReg)
+                if (reg == fromReg)
                 {
-                    *ref.reg = toReg;
-                    renamed  = true;
+                    reg     = toReg;
+                    renamed = true;
                     break;
                 }
             }

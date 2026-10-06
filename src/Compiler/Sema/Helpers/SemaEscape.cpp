@@ -696,8 +696,7 @@ namespace
             // that binding's borrow. Decided on the declared type - a self-substituted
             // cast operand (implicit receiver conversion) reports the cast's result
             // type, not the variable's.
-            const TypeRef varTypeRef = unwrapAliasEnum(sema, sourceVar->typeRef());
-            if (wholeVariable && varTypeRef.isValid() && sema.typeMgr().get(varTypeRef).isReference())
+            if (wholeVariable && sourceVar->typeRef().isValid() && unwrapAliasEnumType(sema, sourceVar->typeRef()).isReference())
             {
                 if (const SemaEscapeInfo* existing = sema.variableEscapeInfo(*sourceVar))
                 {
@@ -980,12 +979,12 @@ namespace
         if (pointer.kind == SemaEscapeKind::Parameter && !pointer.viaOwnedPayload && !pointer.viaStoredField &&
             !pointer.parameterIndirectOriginsMask)
         {
-            const TypeRef pointerTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, pointerRef));
+            const TypeRef pointerTypeRef = expressionTypeRef(sema, pointerRef);
             if (pointerTypeRef.isValid())
             {
-                const TypeInfo& pointerType = sema.typeMgr().get(pointerTypeRef);
+                const TypeInfo& pointerType = unwrapAliasEnumType(sema, pointerTypeRef);
                 if ((pointerType.isAnyPointer() || pointerType.isReference()) &&
-                    pointer.sourceVar && sourceTypeRef == pointerTypeRef &&
+                    pointer.sourceVar && sourceTypeRef == pointerType.typeRef() &&
                     unwrapAliasEnum(sema, pointerType.payloadTypeRef()) == normalizedValueTypeRef)
                 {
                     pointer.parameterIndirectOriginsMask = pointer.parameterOriginsMask;
@@ -3456,11 +3455,11 @@ namespace
     // into the payload, and that is what moves.
     bool viewAliasesVariableItself(Sema& sema, const SymbolVariable& viewVar, const SymbolVariable& sourceVar)
     {
-        const TypeRef viewTypeRef = unwrapAliasEnum(sema, viewVar.typeRef());
+        const TypeRef viewTypeRef = viewVar.typeRef();
         if (!viewTypeRef.isValid())
             return false;
 
-        const TypeInfo& viewType = sema.typeMgr().get(viewTypeRef);
+        const TypeInfo& viewType = unwrapAliasEnumType(sema, viewTypeRef);
         if (viewType.isInterface() || viewType.isAny())
             return true;
 
@@ -4081,11 +4080,11 @@ namespace
         if (!root || !isLocalVariableStorage(sema, *root))
             return false;
 
-        const TypeRef rootTypeRef = unwrapAliasEnum(sema, root->typeRef());
+        const TypeRef rootTypeRef = root->typeRef();
         if (!rootTypeRef.isValid())
             return false;
 
-        const TypeInfo& rootType = sema.typeMgr().get(rootTypeRef);
+        const TypeInfo& rootType = unwrapAliasEnumType(sema, rootTypeRef);
         return !rootType.isAnyPointer() && !rootType.isReference();
     }
 
@@ -5290,10 +5289,10 @@ namespace SemaEscape
             // address binding), which the iteration snapshot survives.
             if (const SymbolStruct* calleeOwner = calledFn.ownerStruct())
             {
-                const TypeRef sourceTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, borrow.sourceRef));
+                const TypeRef sourceTypeRef = expressionTypeRef(sema, borrow.sourceRef);
                 if (sourceTypeRef.isValid())
                 {
-                    const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+                    const TypeInfo& sourceType = unwrapAliasEnumType(sema, sourceTypeRef);
                     // A fixed array has no method-owned structure to invalidate. A method
                     // reached through its element binding can only change that element.
                     if (sourceType.isArray())

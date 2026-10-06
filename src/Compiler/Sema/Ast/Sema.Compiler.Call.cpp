@@ -933,10 +933,7 @@ namespace
     {
         TypeInfoFlags reflectedFlags = resolvedType.flags();
         reflectedFlags.add(TypeInfoFlagsE::Const);
-        SmallVector<uint64_t> dims;
-        for (const uint64_t dim : resolvedType.payloadArrayDims())
-            dims.push_back(dim);
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, resolvedType.payloadArrayElemTypeRef(), reflectedFlags, resolvedType.payloadArrayIndexTypeRefs()));
+        return sema.typeMgr().addType(TypeInfo::makeArray(resolvedType.payloadArrayDims(), resolvedType.payloadArrayElemTypeRef(), reflectedFlags, resolvedType.payloadArrayIndexTypeRefs()));
     }
 
     TypeRef preserveTopLevelConstForReflectedAggregateLiteral(Sema& sema, TypeRef originalTypeRef, TypeRef resolvedTypeRef)
@@ -1583,10 +1580,9 @@ namespace
         SWC_RESULT(loadCompilerIncludeBytes(sema, childRef, resolvedPath, bytes));
         sema.compiler().registerCompilerInputFile(resolvedPath);
 
-        SmallVector4<uint64_t> dims;
-        dims.push_back(bytes.size());
-        const TypeRef       arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
-        const ConstantValue value        = ConstantValue::makeArray(ctx, arrayTypeRef, bytes.span());
+        const std::array<uint64_t, 1> dims         = {bytes.size()};
+        const TypeRef                 arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        const ConstantValue           value        = ConstantValue::makeArray(ctx, arrayTypeRef, bytes.span());
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }

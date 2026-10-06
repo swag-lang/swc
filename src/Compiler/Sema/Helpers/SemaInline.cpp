@@ -2317,10 +2317,9 @@ namespace
         auto [arrayRef, arrayPtr] = sema.ast().makeNode<AstNodeId::ArrayLiteral>(callTokRef);
         arrayPtr->spanChildrenRef = sema.ast().pushSpan(clonedValues.span());
 
-        SmallVector4<uint64_t> dims;
-        dims.push_back(clonedValues.size());
-        outExprTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), targetElemTypeRef));
-        outExprRef     = arrayRef;
+        const std::array<uint64_t, 1> dims = {clonedValues.size()};
+        outExprTypeRef                   = sema.typeMgr().addType(TypeInfo::makeArray(dims, targetElemTypeRef));
+        outExprRef                       = arrayRef;
         return Result::Continue;
     }
 

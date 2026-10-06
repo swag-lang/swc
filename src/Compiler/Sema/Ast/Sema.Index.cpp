@@ -373,9 +373,8 @@ namespace
         if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8 && !indexedType.isSimd())
             return Result::Continue;
 
-        SmallVector<uint64_t> dims;
-        dims.push_back(indexedType.isSimd() ? 16 : 8);
-        outRuntimeStorageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
+        const std::array<uint64_t, 1> dims = {indexedType.isSimd() ? 16u : 8u};
+        outRuntimeStorageTypeRef          = sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         return Result::Continue;
     }
 }

@@ -91,6 +91,9 @@ public:
     }
 
     void             operator+=(const Utf8& txt) { this->append(txt); }
+    void             operator+=(const std::string& txt) { this->append(txt); }
+    void             operator+=(std::string&& txt) { this->append(Utf8{std::move(txt)}); }
+    void             operator+=(std::string_view txt) { this->append(txt); }
     void             operator+=(const char* txt) { this->append(txt); }
     void             operator+=(char32_t c) { push_back_uni(c); }
     void             operator+=(char8_t c) { push_back_uni(c); }

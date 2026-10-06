@@ -1746,6 +1746,7 @@ namespace
         InlineBodyIdentifiers            identifiers;
         std::optional<InlineBindingUses> uses;
         bool                             isOrdinaryInline = false;
+        std::optional<bool>              stableArrayArguments;
     };
 
     void collectInlineBodyIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, InlineBodyIdentifiers& outIdentifiers)
@@ -1775,6 +1776,55 @@ namespace
         }
 
         return nullptr;
+    }
+
+    // This initial borrowing boundary excludes user-defined copy/drop behavior,
+    // even when a function's explicit statements were classified as pure.
+    bool isPlainInlineValue(Sema& sema, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+        const TypeInfo& type = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef));
+        if (type.isArray())
+            return isPlainInlineValue(sema, type.payloadArrayElemTypeRef());
+        return type.isScalarNumeric() || type.isBool() || type.isSimd() || type.isAnyPointer();
+    }
+
+    bool canShareInlineArrayArguments(Sema& sema, const InlineBindingContext& context, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        // A completed leaf body has a published purity result. Do not wait for
+        // explicit/local inlines here: their owning sema job may be this job.
+        const SymbolFunction& fn = *context.fn;
+        if (!context.isOrdinaryInline || !fn.isSemaCompleted() || !fn.isPure() ||
+            context.decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls) || context.identifiers.hasGeneratedCode)
+            return false;
+        if (fn.returnTypeRef().isInvalid() ||
+            (!sema.typeMgr().get(fn.returnTypeRef()).isVoid() && !isPlainInlineValue(sema, fn.returnTypeRef())))
+            return false;
+        for (const SymbolVariable* local : fn.localVariables())
+            if (local && !isPlainInlineValue(sema, local->typeRef()))
+                return false;
+        for (const SemaClone::ParamBinding& binding : bindings)
+        {
+            if (!binding.sourceParam || !isPlainInlineValue(sema, binding.sourceParam->typeRef()))
+                return false;
+            if (binding.exprRef.isInvalid())
+            {
+                if (!binding.cstRef.isValid())
+                    return false;
+                continue;
+            }
+            // Earlier by-value arguments must also survive evaluation of later
+            // arguments. Bare variables and constants cannot mutate their storage;
+            // calls, overloaded expressions and conversions keep the snapshot copy.
+            if (sema.viewType(binding.exprRef).typeRef() != binding.sourceParam->typeRef())
+                return false;
+            if (sema.viewConstant(binding.exprRef).hasConstant())
+                continue;
+            if (!sema.node(binding.exprRef).is(AstNodeId::Identifier) || !sema.isLValue(binding.exprRef))
+                return false;
+        }
+        return true;
     }
 
     // Why a binding cannot be substituted into the cloned body as it stands, and what
@@ -1859,9 +1909,12 @@ namespace
         mat.forNarrowFact          = mat.narrowDependent && (!mat.bindsByAddress || narrowedPointer);
         mat.forContextLambda       = isInlineContextualLambdaArg(sema, binding.exprRef);
 
-        // A reference bound to a stable lvalue survives an index or foreach use as it
-        // stands; every other such use needs a home.
+        // A reference or proven stable plain array can survive indexed/foreach
+        // reads directly; other by-value uses retain their snapshot home.
         const bool canBindReferenceDirectly = mat.bindsByAddress && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
+        const bool canShareArrayDirectly    = paramType.isArray() && context.stableArrayArguments.value_or(false) &&
+                                           !use.mutableUse && !use.address && !use.buffer && !isCaptured &&
+                                           inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
 
         // Generated source can read, repeat, or modify a parameter without naming it
         // in the template AST. Give ordinary inline parameters real local homes so
@@ -1875,7 +1928,7 @@ namespace
                             mat.forNarrowFact ||
                             mat.forContextLambda ||
                             (!isCaptured && binding.forceMaterialize && !paramType.isAnyVariadic()) ||
-                            (!isCaptured && !canBindReferenceDirectly && use.indexOrFor) ||
+                            (!isCaptured && !canBindReferenceDirectly && !canShareArrayDirectly && use.indexOrFor) ||
                             (!isCaptured && inlineBindingNeedsRepeatedRValueMaterialization(sema, binding, use)) ||
                             (!isCaptured && inlineBindingNeedsRepeatedLValueMaterialization(sema, binding, use)) ||
                             (!isCaptured && bindsPointeeByAddress && use.pointerLevel);
@@ -2015,6 +2068,9 @@ namespace
                 }
                 collectInlineBindingUses(sema, *context.uses, sourceAst, decl.nodeBodyRef);
             }
+
+            if (paramType.isArray() && !context.stableArrayArguments)
+                context.stableArrayArguments = canShareInlineArrayArguments(sema, context, ioBindings.span());
 
             const InlineBindingMaterialization mat = classifyInlineBinding(sema, context, binding, *param);
             if (!mat.required)

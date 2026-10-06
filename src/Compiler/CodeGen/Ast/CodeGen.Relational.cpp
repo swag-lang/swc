@@ -223,7 +223,7 @@ namespace
     // would only look at the data pointer, so two slices holding the same bytes over different
     // storage would answer 'false', and two slices of different lengths over the same storage
     // would answer 'true'.
-    Result emitSliceCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const TypeInfo& sliceType)
+    Result emitSliceCompareBool(CodeGen& codeGen, TypeRef resultTypeRef, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const TypeInfo& sliceType)
     {
         const SymbolFunction* sliceCmpSymbol = preparedRuntimeCompareFunction(codeGen, IdentifierManager::PredefinedName::RuntimeSliceCmp);
         SWC_ASSERT(sliceCmpSymbol != nullptr);
@@ -247,7 +247,7 @@ namespace
         builder.emitLoadRegMem(rightCountReg, rightPayload.reg, countOffset, MicroOpBits::B64);
         builder.emitLoadRegImm(sizeReg, ApInt(elementSize, 64), MicroOpBits::B64);
 
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         const MicroReg            argRegs[]     = {leftDataReg, rightDataReg, leftCountReg, rightCountReg, sizeReg};
         SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *sliceCmpSymbol, argRegs, resultPayload.reg));
 
@@ -255,7 +255,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitStringCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
+    Result emitStringCompareBool(CodeGen& codeGen, TypeRef resultTypeRef, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
     {
         SymbolFunction* stringCmpSymbol = preparedRuntimeCompareFunction(codeGen, IdentifierManager::PredefinedName::RuntimeStringCmp);
         SWC_ASSERT(stringCmpSymbol != nullptr);
@@ -266,7 +266,7 @@ namespace
         const auto    callInfo          = CodeGenBinaryValueCall::emit(codeGen, stringCmpFunction, leftPayload, rightPayload);
         MicroBuilder& builder           = codeGen.builder();
 
-        const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, codeGen.typeMgr().get(stringCmpFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
@@ -277,14 +277,14 @@ namespace
         return Result::Continue;
     }
 
-    Result emitTypeInfoCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, TypeRef leftOperandTypeRef, const CodeGenNodePayload& rightPayload, TypeRef rightOperandTypeRef, TypeRef compareTypeRef)
+    Result emitTypeInfoCompareBool(CodeGen& codeGen, TypeRef resultTypeRef, TokenId tokId, const CodeGenNodePayload& leftPayload, TypeRef leftOperandTypeRef, const CodeGenNodePayload& rightPayload, TypeRef rightOperandTypeRef, TypeRef compareTypeRef)
     {
         MicroReg leftPtrReg, rightPtrReg;
         loadTypeInfoComparePtr(leftPtrReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
         loadTypeInfoComparePtr(rightPtrReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
 
         MicroBuilder&       builder       = codeGen.builder();
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
 
         const MicroLabelRef sameTypeLabel  = builder.createLabel();
@@ -820,10 +820,10 @@ namespace
     // Compare two address-backed aggregate operands (structs/arrays) for equality, step by step.
     // The scalar compare path only looks at a single register-sized load, which silently ignores
     // every field past the first machine word for aggregates larger than a register.
-    Result emitAggregateEqualsBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, std::span<const ComparePart> parts)
+    Result emitAggregateEqualsBool(CodeGen& codeGen, TypeRef resultTypeRef, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, std::span<const ComparePart> parts)
     {
         MicroBuilder&       builder       = codeGen.builder();
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
 
         const bool          isEqual       = tokId == TokenId::SymEqualEqual;
@@ -843,7 +843,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitRelationalBool(CodeGen& codeGen, const AstRelationalExpr& node, TokenId tokId)
+    Result emitRelationalBool(CodeGen& codeGen, TypeRef resultTypeRef, const AstRelationalExpr& node, TokenId tokId)
     {
         const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
@@ -861,19 +861,19 @@ namespace
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             compareType.isString() &&
             hasPreparedRuntimeContentCompare(codeGen))
-            return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
+            return emitStringCompareBool(codeGen, resultTypeRef, tokId, leftPayload, rightPayload);
 
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             compareType.isSlice() &&
             hasPreparedRuntimeContentCompare(codeGen))
-            return emitSliceCompareBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, compareType);
+            return emitSliceCompareBool(codeGen, resultTypeRef, tokId, leftOperandPayload, rightOperandPayload, compareType);
 
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && compareType.isAnyTypeInfo(codeGen.ctx()))
-            return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, compareTypeRef);
+            return emitTypeInfoCompareBool(codeGen, resultTypeRef, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, compareTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), leftOperandTypeRef) &&
             codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), rightOperandTypeRef))
-            return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
+            return emitTypeInfoCompareBool(codeGen, resultTypeRef, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
 
         // An aggregate (struct/array) wider than a machine register must be compared over its full
         // content. Interfaces compare both their receiver and method table. An aggregate
@@ -893,7 +893,7 @@ namespace
                 // is always memory-backed; a narrower one reaches here only because a member has
                 // an answer of its own, and such a member is only ever reached through a place.
                 SWC_ASSERT(isWiderThanRegister || (leftOperandPayload.isAddress() && rightOperandPayload.isAddress()));
-                return emitAggregateEqualsBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, parts.span());
+                return emitAggregateEqualsBool(codeGen, resultTypeRef, tokId, leftOperandPayload, rightOperandPayload, parts.span());
             }
         }
 
@@ -904,7 +904,7 @@ namespace
         materializeCompareOperand(leftReg, codeGen, leftOperandPayload, leftOperandTypeRef, compareTypeRef);
         materializeCompareOperand(rightReg, codeGen, rightOperandPayload, rightOperandTypeRef, compareTypeRef);
 
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
         MicroBuilder& builder             = codeGen.builder();
         builder.emitCmpRegReg(leftReg, rightReg, opBits);
@@ -914,7 +914,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitThreeWayCompare(CodeGen& codeGen, const AstRelationalExpr& node)
+    Result emitThreeWayCompare(CodeGen& codeGen, TypeRef resultTypeRef, const AstRelationalExpr& node)
     {
         const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
@@ -957,7 +957,7 @@ namespace
             builder.emitOpBinaryRegReg(lessReg, orderedReg, MicroOp::And, MicroOpBits::B32);
         }
 
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         // `<=>` is reconstructed from two predicates: `left > right` minus `left < right` yields
         // {+1, 0, -1} without needing a dedicated three-way compare opcode.
         builder.emitLoadRegReg(resultPayload.reg, greatReg, MicroOpBits::B32);
@@ -966,7 +966,7 @@ namespace
     }
 
     // Element-wise simd compare: the result is a mask vector, not a bool.
-    Result emitRelationalVector(CodeGen& codeGen, const AstRelationalExpr& node, TokenId tokId)
+    Result emitRelationalVector(CodeGen& codeGen, TypeRef resultTypeRef, const AstRelationalExpr& node, TokenId tokId)
     {
         const SemaNodeView leftView = codeGen.viewType(node.nodeLeftRef);
         const TypeInfo&    vecType  = SemaHelpers::aliasEnumType(codeGen.sema(), leftView);
@@ -977,7 +977,7 @@ namespace
         const MicroReg rhsReg  = CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(node.nodeRightRef));
         const MicroReg maskReg = CodeGenVectorHelpers::emitCompare(codeGen, tokId, lhsReg, rhsReg, laneType);
 
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         resultPayload.reg                 = maskReg;
         return Result::Continue;
     }
@@ -996,15 +996,16 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
             return emitSpecialRelational(codeGen, tok.id, calledFn, resultTypeRef, *relationalPayload);
     }
 
-    const SemaNodeView resultView = codeGen.curViewType();
+    const SemaNodeView resultView    = codeGen.curViewType();
+    const TypeRef      resultTypeRef = resultView.typeRef();
     if (resultView.type() && resultView.type()->isSimd())
-        return emitRelationalVector(codeGen, *this, tok.id);
+        return emitRelationalVector(codeGen, resultTypeRef, *this, tok.id);
 
     if (tok.id == TokenId::SymLessEqualGreater)
-        return emitThreeWayCompare(codeGen, *this);
+        return emitThreeWayCompare(codeGen, resultTypeRef, *this);
 
     SWC_INTERNAL_CHECK(Token::isOpRelational(tok.id));
-    return emitRelationalBool(codeGen, *this, tok.id);
+    return emitRelationalBool(codeGen, resultTypeRef, *this, tok.id);
 }
 
 SWC_END_NAMESPACE();

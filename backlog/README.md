@@ -36,8 +36,8 @@ the latest entry was removed. The removal itself lives in Git.
 | File | Area | Updated |
 | --- | --- | --- |
 | [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-06 08:18 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-06 08:06 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-05 21:40 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-05 17:55 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-10-05 11:56 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-04 15:14 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-10-04 15:06 |

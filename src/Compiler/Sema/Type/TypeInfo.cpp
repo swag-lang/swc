@@ -421,7 +421,8 @@ TypeRef TypeInfo::unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef
     return type ? type->typeRef() : defaultTypeRef;
 }
 
-const TypeInfo* TypeInfo::resolveAliasEnumType(const TaskContext& ctx) const noexcept
+template<bool IncludeEnum>
+const TypeInfo* TypeInfo::resolveAliasType(const TaskContext& ctx) const noexcept
 {
     TypeRef         result = typeRef_;
     const TypeInfo* type   = this;
@@ -430,8 +431,11 @@ const TypeInfo* TypeInfo::resolveAliasEnumType(const TaskContext& ctx) const noe
         TypeRef sub = TypeRef::invalid();
         if (type->isAlias())
             sub = type->payloadAlias_.sym->underlyingTypeRef();
-        else if (type->isEnum())
-            sub = type->payloadEnum_.sym->underlyingTypeRef();
+        else if constexpr (IncludeEnum)
+        {
+            if (type->isEnum())
+                sub = type->payloadEnum_.sym->underlyingTypeRef();
+        }
 
         if (sub.isInvalid())
             break;
@@ -441,6 +445,9 @@ const TypeInfo* TypeInfo::resolveAliasEnumType(const TaskContext& ctx) const noe
 
     return result == typeRef_ ? nullptr : type;
 }
+
+template const TypeInfo* TypeInfo::resolveAliasType<false>(const TaskContext& ctx) const noexcept;
+template const TypeInfo* TypeInfo::resolveAliasType<true>(const TaskContext& ctx) const noexcept;
 
 uint32_t TypeInfo::hash() const
 {

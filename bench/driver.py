@@ -226,11 +226,15 @@ def keep_run(acc, got, r):
     # Every sample is kept, not just the minimum that becomes the result: without them
     # a campaign cannot say how sure it is, and a number nobody can question is not a
     # measurement.
-    acc.setdefault("samples", []).append(round(ms, 4))
+    acc.setdefault("samples", []).append(ms)
 
 
 def spread_pct(samples):
-    return (max(samples) / min(samples) - 1.0) * 100.0 if samples else 0.0
+    if not samples:
+        return 0.0
+    # A zero timer reading has no relative spread; keep it instead of inventing a duration.
+    minimum = min(samples)
+    return (max(samples) / minimum - 1.0) * 100.0 if minimum > 0 else None
 
 
 def campaign_errors(results):
@@ -611,18 +615,20 @@ def main():
                     entry["build"] = acc_build[name]
                 entry["run"] = acc_run.get(name, {})
                 r = entry["run"]
+                spread = spread_pct(r.get("samples"))
+                spread = "%+4.0f%%" % spread if spread is not None else "n/a"
                 if r.get("error"):
                     print("  %-20s RUN ERROR %s" % (name, r["error"]))
                 elif name in aot and measure_build:
-                    print("  %-20s run=%10.2f ms (%2dx, %+4.0f%%)  build=%8.1f ms  "
+                    print("  %-20s run=%10.2f ms (%2dx, %s)  build=%8.1f ms  "
                           "bmem=%7.1f MB  check=%d"
                           % (name, r["ms"], len(r.get("samples") or []),
-                             spread_pct(r.get("samples")), entry["build"]["wall_ms"],
+                             spread, entry["build"]["wall_ms"],
                              entry["build"]["peak_bytes"] / 1048576.0, r["check"]))
                 else:
-                    print("  %-20s run=%10.2f ms (%2dx, %+4.0f%%)  rmem=%7.1f MB  check=%d"
+                    print("  %-20s run=%10.2f ms (%2dx, %s)  rmem=%7.1f MB  check=%d"
                           % (name, r["ms"], len(r.get("samples") or []),
-                             spread_pct(r.get("samples")), r["peak_bytes"] / 1048576.0,
+                             spread, r["peak_bytes"] / 1048576.0,
                              r["check"]))
             elif name in aot:
                 entry["build"] = acc_build[name]

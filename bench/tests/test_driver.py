@@ -105,6 +105,27 @@ class CampaignMetadataTests(unittest.TestCase):
                         self.assertEqual(entry["meta"]["settings"], archived["meta"]["settings"])
 
 
+class SampleSpreadTests(unittest.TestCase):
+    def test_zero_duration_has_no_relative_spread(self):
+        for samples in ([0.0], [0.0, 0.0], [1.0, 0.0, 2.0]):
+            with self.subTest(samples=samples):
+                self.assertIsNone(driver.spread_pct(samples))
+
+    def test_positive_samples_keep_their_relative_spread(self):
+        self.assertEqual(driver.spread_pct([2.0, 3.0, 4.0]), 100.0)
+        self.assertEqual(driver.spread_pct([2.0]), 0.0)
+        self.assertEqual(driver.spread_pct([]), 0.0)
+        self.assertEqual(driver.spread_pct(None), 0.0)
+
+    def test_small_positive_samples_are_not_rounded_to_zero(self):
+        acc = {}
+        for ms in (0.00001, 0.00002):
+            driver.keep_run(acc, (42, ms), {"wall_ms": 1.0, "peak_job_bytes": 10})
+        self.assertEqual(acc["samples"], [0.00001, 0.00002])
+        self.assertEqual(acc["ms"], 0.00001)
+        self.assertEqual(driver.spread_pct(acc["samples"]), 100.0)
+
+
 class SampleBudgetTests(unittest.TestCase):
     def test_a_fast_runtime_gets_the_ceiling_and_a_slow_one_the_floor(self):
         self.assertEqual(driver.plan_reps(1), driver.RUN_MAX_REPS)

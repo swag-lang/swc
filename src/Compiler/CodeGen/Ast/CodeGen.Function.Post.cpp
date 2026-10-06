@@ -307,14 +307,14 @@ namespace
         return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Expect);
     }
 
-    bool isNotNullUnwrap(CodeGen& codeGen, AstNodeRef nodeRef)
+    bool hasNotNullRuntimeSafety(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
         if (!resolvedNodeRef.isValid())
             return false;
 
         const auto* payload = codeGen.loweringPayload(resolvedNodeRef);
-        return payload && payload->notNullUnwrap;
+        return payload && payload->notNullUnwrap && payload->hasRuntimeSafety(Runtime::SafetyWhat::Expect);
     }
 
     AstNodeRef resolveCodeGenErrorNodeRef(CodeGen& codeGen, AstNodeRef preferredNodeRef)
@@ -380,7 +380,7 @@ namespace
 
     Result emitNotNullRuntimeSafety(CodeGen& codeGen, AstNodeRef ownerRef, AstNodeRef exprRef)
     {
-        if (!isNotNullUnwrap(codeGen, ownerRef) || !hasExpectRuntimeSafety(codeGen, ownerRef))
+        if (!hasNotNullRuntimeSafety(codeGen, ownerRef))
             return Result::Continue;
 
         const AstNodeRef resolvedExprRef = codeGen.resolvedNodeRef(exprRef);

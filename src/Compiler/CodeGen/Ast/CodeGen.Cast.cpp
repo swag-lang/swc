@@ -1403,12 +1403,11 @@ namespace
 
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
-        const auto* dynamicPayload = codeGen.loweringPayload(codeGen.curNodeRef());
-        if (dynamicPayload && dynamicPayload->dynamicCast)
+        const auto* castPayload = codeGen.loweringPayload(codeGen.curNodeRef());
+        if (castPayload && castPayload->dynamicCast)
             return emitCheckedDynamicCast(codeGen, srcNodeRef, dstTypeRef);
         MicroBuilder&            builder             = codeGen.builder();
         const CodeGenNodePayload srcPayload          = sourcePayloadForCast(codeGen, srcNodeRef);
-        const auto*              castPayload         = codeGen.loweringPayload(codeGen.curNodeRef());
         const bool               needsRuntimeStorage = castPayload && castPayload->runtimeStorageSym != nullptr;
 
         const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();
@@ -2034,7 +2033,7 @@ Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
             codeGen.registerTemporaryDrop(codeGen.curNodeRef(), typeRef, *lowering->runtimeStorageSym);
         return Result::Continue;
     }
-    if (const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef()); lowering && (lowering->runtimeTypeCast || lowering->runtimeValueCast))
+    if (lowering && (lowering->runtimeTypeCast || lowering->runtimeValueCast))
         return emitRuntimeTargetCast(codeGen, *this, *lowering);
     return emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef());
 }

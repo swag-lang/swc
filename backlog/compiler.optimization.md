@@ -85,22 +85,38 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.098 — Remove the remaining packed state stores
+### compiler.optimization.046 — Promote mixed-width whole-copied locals after vectorization
+
+- Recorded: 2026-09-23 19:51
+- Updated: 2026-10-06 15:34 — Retain packed promotion and narrow the remaining whole-copy barrier.
+- Area: compiler/backend, mem2reg, vectorization
+- Evidence: splitting whole-array copies before SLP previously destroyed packing
+  (52 vector operations to zero and a 2.1x ChaCha slowdown). Uniform B128 chunks
+  can instead promote after packing: three of ChaCha's four copied state chunks
+  now stay in XMM registers. Its fourth chunk combines full vector accesses and
+  a lane-3 scalar read, outside ordinary promotion and single-store lane splitting.
+- Next: extend packed promotion to supported narrow lane reads without splitting
+  the vector's writes. Coordinate with compiler.optimization.098; retain the
+  pre-SLP scalarization barrier and the existing object/overlap proofs.
+- Complete when: whole-copied packed locals with supported scalar lane reads
+  promote while vectorization and alias correctness remain intact.
+
+### compiler.optimization.098 — Keep the last mixed-width state chunk in registers
 
 - Recorded: 2026-09-29 08:04
-- Updated: 2026-10-06 15:13 — Forward the four state-vector reloads and retain dead-store work.
+- Updated: 2026-10-06 15:34 — Promote three packed state chunks and isolate the remaining lane read.
 - Area: compiler/backend, SIMD dataflow and memory forwarding
-- Evidence: indexed RMW SLP packs ChaCha's 16 output updates. Packed store/load
-  forwarding now carries its four final round vectors directly into the output
-  additions. Main is 423 instructions / 111 memory operations, against 446 / 143
-  before the two batches. One extra XMM save/restore offsets two of the four
-  reloads removed from the repeated output path.
-- Next: remove the four exit stores only after proving every later read is
-  forwarded or preceded by an overwrite. Mixed-width and escaped-frame reads
-  remain barriers. Inspect vector lifetimes and spills before keeping the rule.
-- Complete when: the dead stores disappear with unchanged checksum and no new
-  hot-loop spill traffic, or their remaining observable use is established.
-- Evidence artifact: [vector forwarding](../bench/results/generated-code/20261006-vector-forward/README.md).
+- Evidence: known SP-addressed locals now promote after SLP. ChaCha loses three
+  copy stores, three round-entry loads and three round-exit stores per encrypted
+  block. Main is 423 instructions / 109 memory operations; initialization changes
+  account for the smaller whole-function decrease. The last chunk at frame +0xF4
+  is written/read as B128 but also read as B32 at +0x100 (lane 3).
+- Next: preserve a vector register across full-width writes and extract a narrow
+  lane at its use. Existing single-store lane splitting rejects this loop-carried
+  chunk. Keep mixed-width writes and escaped objects as barriers.
+- Complete when: the fourth chunk is register-resident with matching checksums,
+  retained packed rounds and inspected register pressure.
+- Evidence artifact: [known-local promotion](../bench/results/generated-code/20261006-local-vector/README.md).
 
 ### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
 
@@ -1430,31 +1446,6 @@ new language syntax.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
-
-### compiler.optimization.046 — A local array copied whole stays in memory, and scalarizing the copy costs the vectorizer
-
-- Recorded: 2026-09-23 19:51
-- Area: compiler/backend, mem2reg, vectorization
-- Evidence: mem2reg promotes a local array's elements once its 16-byte zero fill is split into one
-  store per element (build 1069). A whole-object copy - `var state = initial` in
-  `bench/src/swag/chacha.swg` - is the other vector access such an array sees, and it keeps both
-  arrays in memory: the copy puts a B128 access on each element of both, and the width-disagreement
-  rule admits a disagreeing read but not a write.
-  Splitting that copy element by element was implemented and measured: ChaCha20's state does become
-  register-resident and its scalar quarter-round works in registers, but the release build goes from
-  **206 to 348 instructions** because scalarizing the vector traffic destroys the SLP vectorization
-  of the rounds. That is the same trade `keepAccessScalar` exists to prevent, and disabling that
-  guard outright was measured separately at **52 vector operations to 0 and chacha 2.1x slower**.
-  Two smaller obstacles were also identified and are real: the zero fill and the copy each
-  disqualify the other's uniformity test, and lowering reuses one vector temporary across all four
-  chunks of a copy, so a "no other use in the function" test never holds.
-- Next: decide the shape before touching this again. Promotion and vectorization want opposite
-  things here, so a split is only correct when the object is not a vectorization candidate -
-  which the fill-only rule already approximates by requiring no other B128 access on the window.
-  A cost model that compares the promoted scalar form against the vectorized one is the honest
-  version, and it does not exist.
-- Complete when: either a rule promotes a whole-copied local array without costing vectorization,
-  or this records that the two cannot be reconciled and the fill-only rule is the end of it.
 
 ### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
 

@@ -103,6 +103,54 @@ SWC_TEST_BEGIN(MemToReg_MovingStackPointerKeepsFramePromotion)
 }
 SWC_TEST_END()
 
+// SP-derived local addresses use the displacement at their definition, even
+// after SP is restored. Captured outgoing argument addresses remain memory.
+SWC_TEST_BEGIN(MemToReg_CapturedStackAddressRespectsObjectExtent)
+{
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolVariable local(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        local.setTypeRef(ctx.typeMgr().typeU64());
+        local.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+        local.setCodeGenLocalSize(16);
+        local.setOffset(0x20);
+        function.addLocalVariable(ctx, &local);
+
+        const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg addr   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg copy   = MicroReg::virtualIntReg(3);
+        constexpr MicroReg packed = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg value  = MicroReg::virtualFloatReg(2);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+        builder.emitClearReg(packed, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(sp, ApInt(0x40, 64), MicroOp::Subtract, MicroOpBits::B64);
+        // Variants 0/1 name the local, 2 names outgoing space, 3 crosses its end.
+        const uint64_t displacement = variant == 2 ? 0x20 : variant == 3 ? 0x68
+                                                                         : 0x60;
+        builder.emitLoadAddressRegMem(addr, sp, displacement, MicroOpBits::B64);
+        builder.emitLoadRegReg(copy, addr, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(sp, ApInt(0x40, 64), MicroOp::Add, MicroOpBits::B64);
+        const MicroReg base = variant == 0 ? addr : copy;
+        builder.emitStoreVecMemReg(base, 0, packed, MicroOpBits::B128);
+        const MicroInstrRef store = builder.instructions().lastInstructionRef();
+        builder.emitLoadVecRegMem(value, base, 0, MicroOpBits::B128);
+        const MicroInstrRef load = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+
+        SWC_RESULT(runMemToRegPass(builder, &function));
+        const bool promote = variant < 2;
+        if (builder.instructions().ptr(store)->op != (promote ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::StoreVecMemReg))
+            return Result::Error;
+        if (builder.instructions().ptr(load)->op != (promote ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadVecRegMem))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MemToReg_MixedSlotsKeepDistinctFreshRegisters)
 {
     const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;

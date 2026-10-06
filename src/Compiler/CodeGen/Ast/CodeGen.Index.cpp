@@ -88,14 +88,10 @@ namespace
 
         TypeRef         normalizedTypeRef = ioTypeRef;
         const TypeInfo* normalizedType    = &codeGen.typeMgr().get(normalizedTypeRef);
-        if (normalizedType->isAlias())
+        if (const TypeInfo* unwrappedType = normalizedType->unwrapAliasType(codeGen.ctx()))
         {
-            const TypeRef unwrappedTypeRef = normalizedType->unwrap(codeGen.ctx(), normalizedTypeRef, TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
-            {
-                normalizedTypeRef = unwrappedTypeRef;
-                normalizedType    = &codeGen.typeMgr().get(normalizedTypeRef);
-            }
+            normalizedTypeRef = unwrappedType->typeRef();
+            normalizedType    = unwrappedType;
         }
 
         if (normalizedType->isEnum())

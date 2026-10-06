@@ -236,7 +236,7 @@ namespace
 
         if (referenceType.isReference())
         {
-            TypeRef payloadTypeRef = ioTypeRef;
+            TypeRef payloadTypeRef = referenceType.typeRef();
             CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, ioPayload, payloadTypeRef);
             ioTypeRef         = payloadTypeRef;
             ioPayload.typeRef = ioTypeRef;

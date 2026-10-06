@@ -77,8 +77,8 @@ namespace
             return !cst.getString().data();
 
         const TypeInfo& rawSrcType    = sema.typeMgr().get(srcTypeRef);
-        const TypeRef   unwrappedRef  = rawSrcType.unwrap(sema.ctx(), srcTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedRef);
+        const TypeInfo* resolvedType  = rawSrcType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& unwrappedType = resolvedType ? *resolvedType : rawSrcType;
         if (unwrappedType.isAny())
             return isProvablyNullRuntimeAnyConstant(cst);
 
@@ -113,18 +113,6 @@ namespace
 
         const AstNodeRef waitNodeRef = castRequest.errorNodeRef.isValid() ? castRequest.errorNodeRef : sema.curNodeRef();
         return sema.waitSemaCompleted(&typeInfo, waitNodeRef);
-    }
-
-    TypeRef unwrapCastOverflowTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
     }
 
     Result collectAggregateStructConstantFieldValues(Sema& sema, SmallVector<ConstantRef>& outValues, ConstantRef srcCstRef, const TypeInfo& srcType)
@@ -354,13 +342,17 @@ namespace
         if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Overflow))
             return false;
 
-        srcTypeRef = unwrapCastOverflowTypeRef(sema, srcTypeRef);
-        dstTypeRef = unwrapCastOverflowTypeRef(sema, dstTypeRef);
-        if (!srcTypeRef.isValid() || !dstTypeRef.isValid() || srcTypeRef == dstTypeRef)
+        if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return false;
 
-        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        const TypeInfo& declaredSrcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo* unwrappedSrc    = declaredSrcType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& srcType         = unwrappedSrc ? *unwrappedSrc : declaredSrcType;
+        const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
+        const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
+        if (srcType.typeRef() == dstType.typeRef())
+            return false;
 
         if (srcType.isNumericIntLike() && dstType.isNumericIntLike())
         {

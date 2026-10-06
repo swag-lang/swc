@@ -212,28 +212,35 @@ namespace
         ctx.rightOperandTypeRef = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
         ctx.leftOperandTypeRef  = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
         ctx.rightOperandTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
-        ctx.resultTypeRef       = codeGen.curViewType().typeRef();
+        const TypeInfo* resultTypeInfo = codeGen.curViewType().type();
         if (codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
         {
-            const TypeRef storedResultTypeRef = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type).typeRef();
-            if (storedResultTypeRef.isValid())
-                ctx.resultTypeRef = storedResultTypeRef;
+            const TypeInfo* storedResultType = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type).type();
+            if (storedResultType)
+                resultTypeInfo = storedResultType;
         }
+        SWC_ASSERT(resultTypeInfo);
+        ctx.resultTypeRef                = resultTypeInfo->typeRef();
         const TypeInfo& leftSemanticType = SemaHelpers::aliasEnumType(codeGen.sema(), leftView);
-        ctx.operationTypeRef             = leftSemanticType.typeRef();
-        const TypeInfo& resultType       = typeMgr.get(ctx.resultTypeRef);
+        const TypeInfo* operationType    = &leftSemanticType;
+        const TypeInfo& resultType       = *resultTypeInfo;
         const bool      resultIsBool     = resultType.isBool();
         if (!resultIsBool && resultType.isScalarNumeric() && leftSemanticType.isScalarNumeric())
         {
             const MicroOpBits resultBits = CodeGenTypeHelpers::numericOrBoolBits(resultType);
             const MicroOpBits opBits     = CodeGenTypeHelpers::numericOrBoolBits(leftSemanticType);
             if (resultType.isFloat() != leftSemanticType.isFloat() || resultBits != opBits)
-                ctx.operationTypeRef = ctx.resultTypeRef;
+                operationType = &resultType;
         }
-        if (ctx.resultTypeRef.isValid() && resultIsBool && typeMgr.get(ctx.leftOperandTypeRef).isNumericIntLike())
-            ctx.operationTypeRef = ctx.leftOperandTypeRef;
-        if (ctx.resultTypeRef.isValid() && resultIsBool && typeMgr.get(ctx.operationTypeRef).isNumericIntLike())
-            ctx.resultTypeRef = ctx.operationTypeRef;
+        if (ctx.resultTypeRef.isValid() && resultIsBool)
+        {
+            const TypeInfo& leftOperandType = typeMgr.get(ctx.leftOperandTypeRef);
+            if (leftOperandType.isNumericIntLike())
+                operationType = &leftOperandType;
+            if (operationType->isNumericIntLike())
+                ctx.resultTypeRef = operationType->typeRef();
+        }
+        ctx.operationTypeRef = operationType->typeRef();
         SWC_ASSERT(ctx.leftOperandTypeRef.isValid());
         SWC_ASSERT(ctx.rightOperandTypeRef.isValid());
         SWC_ASSERT(ctx.resultTypeRef.isValid());
@@ -241,7 +248,7 @@ namespace
 
         const TypeInfo& rightSemanticType = SemaHelpers::aliasEnumType(codeGen.sema(), rightView);
         ctx.encodingKind                  = resolveBinaryEncodingKind(tokId, leftSemanticType, rightSemanticType);
-        if (ctx.encodingKind == BinaryEncodingKind::IntLike && typeMgr.get(ctx.operationTypeRef).isFloat())
+        if (ctx.encodingKind == BinaryEncodingKind::IntLike && operationType->isFloat())
         {
             // An inlined parameter resolves to its call-site expression. That expression can
             // still have an integer type even though the provider's binary expression, and the

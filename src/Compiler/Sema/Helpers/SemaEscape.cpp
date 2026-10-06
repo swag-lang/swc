@@ -738,19 +738,19 @@ namespace
                 break;
         }
 
-        const AstNodeRef resolvedRef = sema.resolvedNodeRef(candidateRef);
-        if (resolvedRef.isValid() && sema.node(resolvedRef).is(AstNodeId::CastExpr))
+        AstNodeRef candidateResolvedRef = sema.resolvedNodeRef(candidateRef);
+        if (candidateResolvedRef.isValid() && sema.node(candidateResolvedRef).is(AstNodeId::CastExpr))
         {
-            const auto& cast = sema.node(resolvedRef).cast<AstCastExpr>();
-            candidateRef     = cast.nodeExprRef;
-            candidateTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, resolvedRef, cast.nodeExprRef));
+            const auto& cast = sema.node(candidateResolvedRef).cast<AstCastExpr>();
+            candidateRef         = cast.nodeExprRef;
+            candidateTypeRef     = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, candidateResolvedRef, cast.nodeExprRef));
+            candidateResolvedRef = sema.resolvedNodeRef(candidateRef);
         }
         else
         {
             candidateTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, sourceRef));
         }
 
-        const AstNodeRef candidateResolvedRef = sema.resolvedNodeRef(candidateRef);
         if (candidateResolvedRef.isValid() && sema.node(candidateResolvedRef).is(AstNodeId::Identifier))
         {
             if (const SymbolVariable* candidateVar = identifierVariable(sema, candidateResolvedRef))

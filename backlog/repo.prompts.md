@@ -100,318 +100,98 @@ agent's in-flight code into the binary being validated.
 ## 1. Repository health reset
 
 ```
-Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 1].
+Prefix every commit of this campaign with [prompt 1].
 
-Keep commits tied to verified repairs. Record routine observations in the final report; consolidate
-required backlog and documentation corrections at useful milestones instead of committing each note.
-Keep `SWC_BUILD_NUM` at its current value during ordinary source changes; isolate or clear affected
-caches when changed compiler behavior would make an older binary's artifacts unsafe to reuse.
+You are running a repository-wide health reset on swc: execute the complete validation ladder,
+fix every failure it exposes at its root, and leave a clean, current, all-green baseline.
+Code failures always come first; documentation, backlog, and hygiene follow once the code is green.
 
-You are running a repository-wide health reset on swc. The primary goal is to verify the code,
-find bugs by executing the complete validation campaigns, and fix them. Documentation and backlog
-accuracy are required secondary outcomes; they must never delay the first complete code campaign.
+Read AGENTS.md, modify-swag-codebase, and validate-swag-changes before the first build. Read any
+other skill only when the work enters its scope. Follow the machine-load admission rules before
+every build and test, cap every compiler at six workers (`--num-cores 6` on the compiler and on
+the tool), and use the checkout-local compilers (`bin\swc.exe`, `bin\swc.dm.exe`). Keep
+`SWC_BUILD_NUM` unchanged.
 
-Read AGENTS.md, modify-swag-codebase, validate-swag-changes, and the README/tool instructions needed
-to start the builds and tests. Read each additional skill when the work enters its scope. Do not
-read every backlog domain, audit every document, or normalize prose before starting validation.
+START ON MASTER, FROM A CLEAN STATE - ONCE
 
-This is not an audit that ends with a list of problems. You own every concrete problem this pass
-exposes, wherever it lives: compiler, language, runtime, standard library, application, example,
-test, tool, documentation, formatting, packaging, or repository hygiene. Find its root cause, fix
-it, add the regression protection it was missing, and rerun the affected campaign. "Pre-existing",
-"unrelated", "flaky", and "outside the original scope" describe where a defect came from; none is
-a reason to leave it behind.
+Work directly on `master` in the main checkout. Record the starting commit,
+`git status --short --branch`, and the toolchain versions. Preserve and record any pre-existing
+local change; never reset it away.
 
-WORK DIRECTLY ON MASTER
+Then, once, before anything else:
+  - Remove every Swag build artifact: `bin\swc.exe clean --workspace <ws>` for each workspace
+    (apps, examples, reference, std, unittests, unittests/workspace), `clean --module` for the
+    script folders that hold a `.tmp` (tools, tools/tests, bin/examples/scripts, bin/help/tools),
+    and `bin\swc.exe clean --cache`. Preview with `--dry-run` first and confirm the targets are
+    gone afterwards.
+  - Rebuild both compilers from fresh objects with MSBuild `/t:Rebuild` (DevMode, then Release,
+    `/m:6` and `SwcCompileJobs=6`; never `tools/release.bat`).
 
-Run this campaign in the main checkout on `master`, not in a separate worktree. Before changing
-anything, confirm that `master` is checked out and that the working tree contains no unexplained
-local change. Preserve any intentional pre-existing change and include it in the recorded starting
-state; never reset or overwrite it merely to make the campaign start clean.
+This clean start is the only one. After a fix, build incrementally (`/t:Build`) only the compiler
+the fix affects; never rebuild from scratch or clean the workspaces again mid-campaign.
 
-Use the main checkout's compiler explicitly for every repository tool, for example
-`bin\swc.exe tools\tests.swgs`; never use an unrelated `swc` found on PATH. Compiler builds and test
-runs launched by AI agents, including Codex and Claude, share the machine with every worktree,
-IDE build, and user command. Follow the CPU and memory admission rules in modify-swag-codebase
-before every build and test command, and cap compiler workers at six. Never terminate or interfere
-with another session's processes to create headroom.
+RUN THE LADDER, STOP AT THE FIRST FAILURE
 
-Record the starting commit, `git status --short --branch`, toolchain versions, and the available
-external prerequisites before changing anything. A starting failure is useful attribution, but it
-is not an exemption: this campaign fixes baseline failures too.
+  1. `bin\swc.exe tools\build.swgs dm --all-cfg` - every workspace, both configurations.
+  2. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the full headless campaign with the DevMode
+     compiler in both configurations; then `bin\swc.exe tools\integrations.swgs dm --all-cfg`
+     (OpenGL, host window, smoke; needs an interactive desktop).
+  3. `bin\swc.exe tools\tests.swgs` and `bin\swc.exe tools\integrations.swgs` - the Release
+     compiler, default configuration only.
+  4. `bin\swc.exe tools\vsix.swgs` - package the VSCode extension and inspect the result.
 
-CLEAR ALL SWAG BUILD STATE FIRST
+Some applications (Swag Prism) launch `bin\swc.exe` itself, so keep the Release compiler current
+before running a campaign that reaches them.
 
-Immediately after recording that starting state, and before inventorying, formatting, generating,
-building, or testing anything, remove every Swag compilation artifact from every workspace. Use
-the checkout-local compiler's `clean --workspace` command for each workspace so all `.dep`, `.tmp`,
-and `.output` trees are removed, then run `bin\swc.exe clean --cache` to clear every dependency copy
-created by scripts, including the legacy script cache. Preview and verify the exact targets first,
-following the repository's destructive-action rules; do not substitute a broad `git clean` or an
-unscoped recursive deletion. Confirm that the targeted workspace artifacts and script caches are
-absent before continuing. This initial reset is mandatory even when the tree appears clean, and is
-separate from the final repository-hygiene pass.
-
-GOAL
-
-Leave one reproducible baseline from which new work can start without inheriting noise or doubt:
-
-  - DevMode and Release compilers build from source.
-  - Every canonical build, test, integration, smoke, and packaging campaign listed below is green.
-  - Every project-owned Swag and C++ source is canonically formatted, and a second formatting pass
-    changes nothing.
-  - Generated documentation and website assets are current, reviewed, and reproducible; a second
-    generation changes nothing.
-  - A complete benchmark campaign passes from a cold Swag build state near the end of the reset,
-    with valid checksums, accepted measurements, and regenerated history and report.
-  - Every backlog entry is truthful, current, uniquely identified by its owning file, correctly
-    linked, and stored in the right domain. Resolved or invalid entries are gone.
-  - Inline TODO, FIXME, HACK, and XXX markers have either been resolved or moved into a properly
-    evidenced backlog entry; stale comments and dead instructions are gone.
-  - Temporary files, misplaced output folders, abandoned snapshots, crash residue, and editor or
-    tool noise are gone without deleting intentional fixtures or canonical output roots.
-  - The intended fixes are committed in coherent changes, `git diff --check` is clean, and
-    `git status --short` is empty at the final commit.
-
-This does not mean implementing every backlog item. Deliberate future intent and unresolved leads
-may remain. It does mean fixing every actual defect, inconsistency, stale statement, broken link,
-failing command, formatting drift, and hygiene problem discovered by this pass. Rewording a
-concrete failure as an investigation is not a way to make the campaign appear green.
-
-EXECUTION PRIORITY: RUN CODE FIRST
-
-After the starting-state record and mandatory artifact reset, immediately start validation steps
-1 through 7. Stop at the first failure, reduce it, fix its cause, add its regression, and rerun
-the affected campaign. An already failing test always takes priority over documentation wording,
-backlog ordering, historical identifier research, or a general API/prose review.
-
-Mechanical preflight checks may block a test launch. Fix only the blocking invariant, then resume
-the tests; do not turn that interruption into a full documentation audit. Update documentation
-needed to make a code fix correct, but defer unrelated editorial cleanup until the code campaign
-has passed. Report executed suites, test counts, failures, and fixes as the main progress evidence.
-
-Use parallel work when available: keep the primary agent on code validation and failure diagnosis,
-and delegate bounded backlog/documentation audits. A secondary audit may advance while tests run,
-but it must not hold up the next validation command. Coordinate file ownership: collect proposed
-documentation/backlog edits separately while a running campaign reads those inputs, then apply
-them at a safe boundary. Do not change test inputs underneath a running suite.
-
-Parallel agents do not make build outputs independent. Never overlap cleanup or rebuilding with
-another command using the same artifact or dependency paths. Serialize such commands unless all
-shared outputs are actually isolated, and admit every build/test from measured machine load.
-
-After the code campaign is green, finish the secondary audit, canonical formatting, documentation
-generation, and the final backlog pass. Any newly exposed code failure immediately regains
-priority. Complete affected reruns, review, cleanup, and commits before the final Vault integration.
-
-RUN THE COMPLETE VALIDATION LADDER
-
-Run steps 1 through 7 first, in order, stopping at the first failure as the tooling requires.
-Steps 8 and 9 remain deferred until the secondary audit and final cleanup are complete. After any fix, rerun the
-smallest focused reproducer first, then restart the smallest aggregate campaign that contains it.
-Resume the ladder at the earliest step the fix can actually affect; keep earlier independent green
-steps valid. A stale golden, fixture, generated asset, packaging input, or similarly local data
-change does not invalidate compiler builds or unrelated workspace campaigns merely because it was
-committed later. Restart the ladder from the beginning only when the fix changes a shared compiler,
-runtime, standard-library, repository-tooling, or build input that earlier steps consumed, or when
-the impact cannot be bounded confidently. Record the invalidation decision in the live campaign
-table so both a full restart and a narrow resume have explicit evidence:
-
-  1. Rebuild `swc.dm.exe` with the DevMode solution configuration using MSBuild `/t:Rebuild`
-     to establish the initial baseline from freshly compiled C++ objects.
-  2. `bin\swc.exe tools\build.swgs dm --all-cfg` - build every workspace in release and devmode,
-     including modules that have no tests.
-  3. `bin\swc.exe tools\tests.swgs dm` - the full DevMode default campaign.
-  4. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the same four-rung headless campaign in both target
-     configurations.
-     Then run `bin\swc.exe tools\integrations.swgs dm --all-cfg`: the named OpenGL renderer,
-     Windows host-window, and real-program smoke campaigns in both target configurations. These
-     integrations require an interactive desktop and remain outside the headless test set. Later
-     renderer and host campaigns belong here under their own tags and names.
-  5. Rebuild `swc.exe` with the Release solution configuration using MSBuild `/t:Rebuild`
-     to establish the initial baseline from freshly compiled C++ objects.
-  6. `bin\swc.exe tools\tests.swgs` - the full Release validation campaign. Do not add a Release
-     `--all-cfg` pass; the repository workflow deliberately reserves all-config coverage for
-     DevMode.
-     Then run `bin\swc.exe tools\integrations.swgs` with the Release compiler for the OpenGL,
-     current-host window, and smoke campaigns in the default target configuration.
-  7. `bin\swc.exe tools\vsix.swgs` - refresh and package the VSCode extension with its documented
-     Node.js/vsce prerequisites, then inspect the package result.
-  8. Run the complete cold-start benchmark described below, after all non-privileged repairs,
-     affected reruns, formatting, documentation generation, cleanup, and source commits.
-  9. LAST: run `bin\swc.exe tools\vault.swgs dm` with the bundled signed WinFsp runtime and the
-     required Windows elevation (UAC); no prior machine-wide WinFsp installation is required.
-     This integration is intentionally outside tests.swgs and is part of a genuinely full pass.
-     Start it only after steps 1 through 8, all fixes and affected reruns, the final backlog and
-     documentation reviews, repository cleanup, and commits are complete. Do not trigger its
-     elevation prompt or any privileged WinFsp setup earlier or in parallel: the secure desktop
-     can block the user's computer, so Swag Vault must be the last remaining work.
-
-Do not silently skip a campaign because a prerequisite is absent. Install or arrange an in-scope
-prerequisite when authorized. If external privilege, hardware, software, or authority genuinely
-cannot be obtained, keep working through every independent item, report that command as an explicit
-blocker, and do not describe the overall baseline as fully green.
+After a fix: run its smallest reproducer, then resume at the earliest step the fix can affect.
+Restart from step 1 only when the fix changes the compiler, runtime, standard library, or the
+repository tools that earlier steps consumed. A test, golden, fixture, or application-local fix
+resumes where it failed. Record each decision in the live table.
 
 FIX, DO NOT EXPLAIN AWAY
 
-For every failure or suspicious result:
+Every failure is yours, whoever introduced it: reduce it, fix the owning subsystem, add the
+regression test at the real boundary (a `bin/unittests` case for a compiler defect exposed
+downstream, a C++ test for an internal seam), update the documentation the fix touches, and rerun.
+"Pre-existing", "flaky", and "unrelated" are not reasons to leave a defect. A flaky test is fixed
+by removing its nondeterminism. Never disable or weaken a test, broaden a timeout, or promote a
+golden that was not reviewed and proved correct.
 
-  1. Reduce it to the smallest reproducer and identify the root cause.
-  2. Fix the owning subsystem, even when it is different from the subsystem that exposed it.
-  3. Add a test at the real boundary. For compiler regressions exposed downstream, add the required
-     `bin/unittests` suite case before relying on the downstream test alone.
-  4. Update affected documentation, reference prose, examples, public API comments, backlog entries,
-     and tooling maps in the same fix.
-  5. Rerun the focused test, its all-configuration coverage where applicable, and then the aggregate
-     campaign that found it.
+THEN FINISH THE REPOSITORY
 
-A rerun that happens to pass does not close a flaky failure. Find and fix its nondeterminism. Do not
-disable a test, weaken an assertion, broaden a timeout, accept a crash, update a golden blindly,
-narrow a safety check until it stops firing, or add a local workaround. A golden changes only after
-the new output has been independently reviewed and proved correct.
+Once the ladder is green (a newly exposed code failure takes priority again at any point):
+  1. Format: `bin\swc.exe tools\format.swgs dm`, and clang-format every project-owned `.cpp`,
+     `.h`, `.inc` under `src/` (not vendored mimalloc). A second pass of both must change nothing;
+     review the diff.
+  2. Generate: `bin\swc.exe tools\help.swgs dm`; review the tracked changes; a second run must
+     change nothing. Fix a nondeterministic generator, never its output by hand.
+  3. Backlog and markers: make every backlog entry true against the current code, delete what
+     is done or invalid, keep the file invariants (`tools\tests\repository.swgs` checks them), and
+     resolve or properly record every TODO/FIXME/HACK/XXX marker. A secondary agent may do this
+     audit in parallel while tests run, but must not edit test inputs under a running suite.
+  4. Hygiene: remove exact, reviewed residue (scratch files, stale `.actual.*`, crash dumps,
+     misplaced `.output` folders other than `bin/unittests/.output` and
+     `bin/unittests/workspace/.output`, line-ending-only changes). Never run a broad clean.
+  5. Benchmark: after the last source commit, run
+     `bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6 --label "prompt 1 baseline"`
+     on a quiet machine, check checksums and acceptance, and commit its history and report.
+  6. LAST: `bin\swc.exe tools\vault.swgs dm` (UAC elevation, bundled WinFsp). Nothing else may
+     run after it except inspecting its result; a defect it exposes is fixed and the affected
+     steps rerun before retrying it.
 
-COMPLETE THE SECONDARY REPOSITORY AND DOCUMENTATION AUDIT
+THE CAMPAIGN ENDS ONLY WHEN
 
-This work follows the code-validation priority above. It may run in parallel through a separate
-agent, but the primary agent must not wait for it before launching or advancing the code campaign.
-Read backlog/README.md and every inventoried domain when starting this phase, then:
-
-  1. Inspect tracked, untracked, and ignored state. Use `git clean -ndX` only as a preview; never
-     run a broad clean command without classifying its exact targets first.
-  2. Search project-owned files for TODO, FIXME, HACK, XXX, disabled tests, unconditional skips,
-     suspicious expected failures, stale `.actual.txt`/`.actual.png` snapshots, crash dumps, and
-     scratch names. Exclude vendored sources and generated outputs from conclusions, not from the
-     initial inventory.
-  3. Rebuild the backlog from repository reality, file by file; do not merely proofread its prose
-     or assume a recently edited entry is current. Verify every claim against the current
-     implementation, tests, documentation, and relevant Git history. Delete shipped or invalid
-     outcomes even when their entry contains useful history; history belongs in Git. Cut a partly
-     completed entry down to one independently finishable result, split unrelated remaining
-     results under fresh identifiers, move work to the domain that owns it, refresh evidence,
-     acceptance conditions, and next actions, merge duplicates, and stamp each refreshed entry so
-     it rises to the top of its file.
-     When investigation establishes implementation work, update the same entry in place and retain
-     its identifier. A move to another domain is the exception: allocate that file's next suffix and
-     update every live reference and Markdown fragment. Audit files with no recent commit too, and
-     delete empty category files rather than treating their existence as coverage.
-  4. Check backlog invariants mechanically: every domain file follows `<family>.<what>.md`; every
-     entry identifier is that file name without `.md` plus a three-digit suffix; live identifiers
-     are unique; a new suffix is one above the greatest suffix ever allocated in that file; every
-     entry opens with its `Recorded` stamp and any `Updated` stamp under it is no earlier and says
-     what changed; and the README inventory carries each file's latest stamp, newest first.
-     Compare with Git history when needed to prove that a deleted suffix was not reused. Check valid
-     Markdown anchors and file links, no dangling live cross-reference, and no domain file missing
-     from the README inventory. The README is an index and naming contract, not a counter registry.
-     A `Related:` line names live entries only; a retired identifier may remain solely as explicit
-     historical provenance. Sort each file by `Updated`, or by `Recorded` when there is no
-     `Updated` stamp, from newest to oldest. Neither identifiers nor judged value decide position,
-     and no `##` heading groups the entries. Read new stamps from the clock when writing them;
-     preserve existing `Recorded` stamps when updating an entry.
-  5. Check the portability exception explicitly: every operating-system backend, product port,
-     target integration, and Windows-bound contract that must become portable lives in
-     `backlog/platform.portability.md`, with none of that work scattered through owner-domain files.
-  6. Check repository instructions, READMEs, public API documentation, the language reference,
-     examples, command help, and website prose against the code that exists now. Update every stale
-     command, count, name, guarantee, prerequisite, or link you find.
-
-If an invariant can regress silently and no automated check protects it, add the smallest useful
-check to the repository tooling or tests. The next health reset should not need to rediscover the
-same class of problem manually.
-
-Repeat the complete backlog pass after the last source, test, or documentation fix. A health
-reset changes the facts the backlog describes, so an audit performed only at the start is stale by
-construction. In the live campaign table, record every backlog entry removed, narrowed, split,
-moved, or refreshed, plus the code/test evidence used to keep every entry that remains.
-
-FORMAT AND REGENERATE, THEN REVIEW THE DIFF
-
-After the complete code campaign is green, finish formatting and generation. These are validation
-steps too: fix any code defect they expose, run its focused reproducer, and rerun only the affected
-aggregate before returning to the secondary audit:
-
-  1. Format every Swag workspace with `bin\swc.exe tools\format.swgs dm`.
-  2. Format every project-owned compiler `.cpp`, `.h`, and `.inc` file under `src/` with
-     clang-format and the repository `.clang-format`. Exclude vendored mimalloc sources; do not
-     rewrite third-party code.
-  3. Run both formatters a second time and prove that the second pass introduces no additional
-     change. Review the complete formatting diff; formatting is not permission to hide a semantic
-     change or rewrite unrelated generated/vendor files.
-  4. Regenerate the complete documentation site and brand assets with
-     `bin\swc.exe tools\help.swgs dm`. Review every tracked change for correctness, including public
-     API pages, the executable language reference, links, images, indexes, and examples.
-  5. Run the documentation generation a second time and prove it is idempotent. Fix the generator
-     if it is not; do not normalize nondeterministic output as expected churn.
-
-When formatting or documentation exposes a compiler or tool defect, fix that defect at the root
-and add its regression test. Never hand-edit generated output to make the diff look right.
-
-RUN THE FINAL BENCHMARK FROM A COLD BUILD STATE
-
-The benchmark is required on every health reset. A crash or failed benchmark is a code failure:
-reduce it, repair its cause, add focused coverage, and repeat the complete benchmark after the
-affected validation. A quick smoke or report-only invocation does not satisfy this step.
-
-After the cleanup below and the final source commits, preview and verify the exact generated
-targets, then clear the benchmark's generated build outputs, the Swag workspace artifacts it
-consumes through `clean --workspace`, and the script dependency cache through `clean --cache`.
-Preserve benchmark sources, recorded campaigns, history, and reports. Confirm the selected build
-state is absent before launching; never clear another session's live artifacts.
-
-Use the freshly validated Release compiler without rebuilding it inside the measurement command:
-`bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6 --label "prompt 1 cold baseline"`.
-Wait for machine-load admission and the harness's quiet-machine gate. Run no other build, test,
-generation, or audit workload during the measurements. Cold means no reused Swag build artifacts
-at campaign entry; retain the harness's calibration, warm-up, per-sample preparation, checksum,
-and noise-rejection rules so the result remains comparable with history.
-
-Review the campaign's checksums, errors, acceptance status, history, and generated report. Record
-the measured commit, compiler identity, worker cap, cleared targets, campaign identifier, and
-result in the live table. Commit the accepted benchmark artifacts before the final Vault run.
-
-CLEAN THE TREE BEFORE THE FINAL BENCHMARK AND SWAG VAULT INTEGRATION
-
-After validation steps 1 through 7 and before steps 8 and 9, classify and remove temporary material created
-before or during the campaign. Inspect `git status --short --ignored`, the preview from `git clean -ndX`,
-snapshot actuals, crash files, scratch worktrees/files, and every `.output` directory under test sources.
-Preserve `bin/unittests/.output` and `bin/unittests/workspace/.output`: they are canonical roots
-owned by the test tooling. Remove another nested `.output` only after proving it is misplaced
-generated output rather than an intentional fixture.
-
-Remove only exact, reviewed targets. Do not use a broad destructive command against the repository,
-the workspace root, or a computed path that has not been resolved and checked. Recheck for files
-whose only difference is line endings, restore that noise in one batch, and retain every real
-content change. Keep every final campaign commit directly on `master` so the repaired baseline is
-immediately reachable from the branch it resets.
-
-After the Swag Vault integration, only inspect its result, remove any temporary material it created,
-and finish the report. If it exposes a defect, fix it and complete every affected non-privileged
-rerun, review, cleanup, and commit before retrying Swag Vault, again as the final validation step.
-
-THE CAMPAIGN MAY END ONLY WHEN
-
-  - Every required validation result is valid for the final code and artifacts, with the affected
-    focused and aggregate checks rerun after changes. Pure prose edits do not invalidate unrelated
-    green code campaigns.
-  - Formatting and documentation generation are idempotent.
-  - The final cold-start benchmark is accepted and its history and report are current.
-  - The backlog and inline-marker audit has no unresolved inconsistency.
-  - No concrete defect discovered during the campaign remains open or has merely been relabeled.
-  - No unexpected temporary or generated material remains.
-  - All intended changes are committed on `master` and the final working tree is clean.
-
-The campaign does not end because the first full run was mostly green, because a problem predates
-the campaign, because it lives in an inconvenient subsystem, because fixing it expands the diff,
-or because the session has run for a long time. If a true external blocker remains, the result is
-an incomplete health reset with a precise blocker, never an all-green baseline.
+The ladder, formatting, generation, benchmark, and Vault are green for the final code; no defect
+found during the campaign remains open or relabeled; the backlog is truthful; and every change is
+committed on `master` with a clean working tree. A genuine external blocker is reported precisely
+and means the reset is incomplete, not green.
 
 REPORT
 
-Keep a live table with each command, configuration, start/end time, result, failure root cause, fix,
-and successful rerun. At the end, report the final commit(s), every validation command and result,
-backlog entries removed/moved/updated, documentation regenerated, formatting performed, cold-start
-benchmark campaign and acceptance result, temporary
-targets removed, and any external blocker. The final statement "ready for new work" is allowed only
-when every end condition above is true.
+Keep a live table of each command, start/end, result, root cause, fix, and rerun. At the end give
+the final commits, every validation result, backlog changes, formatting and generation results,
+the benchmark campaign, removed residue, and any blocker. Say "ready for new work" only when
+every end condition holds.
 ```
 
 ---

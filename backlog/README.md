@@ -35,45 +35,45 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.gui.md](std.gui.md) | `std/gui` | 2026-10-06 21:12 |
+| [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-10-06 20:59 |
+| [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-10-06 20:59 |
+| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-06 20:59 |
+| [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-06 20:59 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-06 20:59 |
+| [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-10-06 20:57 |
+| [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-10-06 20:57 |
+| [std.video.md](std.video.md) | `std/video` | 2026-10-06 20:56 |
+| [std.audio.md](std.audio.md) | `std/audio` | 2026-10-06 20:56 |
+| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-06 20:56 |
+| [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-10-06 20:56 |
+| [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-10-06 20:55 |
+| [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` | 2026-10-06 20:54 |
+| [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-10-06 20:54 |
+| [std.core.md](std.core.md) | `std/core` | 2026-10-06 20:54 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-10-06 20:35 |
-| [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-06 17:31 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-06 16:12 |
-| [std.video.md](std.video.md) | `std/video` | 2026-10-06 11:54 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-10-06 09:07 |
-| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-05 21:40 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-10-05 11:56 |
-| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-04 15:14 |
-| [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-10-04 15:06 |
-| [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` | 2026-10-04 15:06 |
-| [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-10-04 15:06 |
-| [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-10-04 15:06 |
 | [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` | 2026-10-04 15:06 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-10-04 15:06 |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-10-04 15:04 |
-| [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-10-04 14:59 |
-| [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-30 16:13 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-30 10:20 |
-| [std.core.md](std.core.md) | `std/core` | 2026-09-27 18:13 |
 | [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-27 18:11 |
-| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-27 18:09 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:06 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-27 17:45 |
-| [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-12 06:37 |
-| [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-12 06:24 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-12 06:19 |
 | [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-12 06:01 |
 | [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer | 2026-09-12 05:55 |
 | [app.scope.image.md](app.scope.image.md) | The Swag Scope image viewer | 2026-09-12 05:46 |
 | [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-12 05:22 |
 | [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer | 2026-09-11 22:08 |
-| [std.audio.md](std.audio.md) | `std/audio` | 2026-09-10 19:12 |
 | [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer | 2026-09-10 19:10 |
 | [app.scope.hexa.md](app.scope.hexa.md) | The Swag Scope hexadecimal viewer | 2026-09-10 19:06 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-06 17:42 |
+| [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-06 07:51 |
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
-| [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
 
 Put an entry in the domain where it will be investigated or fixed, not where it happened to be
 noticed. Create a new domain file only when a real cluster forms; a category holding one isolated

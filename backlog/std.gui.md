@@ -27,11 +27,132 @@ The entries below describe remaining contracts, behavior, and investigations.
 
 ## Entries
 
-Animation supports touch inertia and docking feedback; docking also depends on drag and drop.
+Touch inertia (std.gui.021) and docking feedback (std.gui.026) will need animation; docking also
+depends on drag and drop.
 Each entry names the
 smallest coherent version that can ship and the existing controls or applications that would
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
+
+### std.gui.057 — Prevent stale compositor frames during maximize and restore
+
+- Recorded: 2026-09-26 18:37
+- Updated: 2026-10-06 21:12 — Credit the shipped prepared frame and placement overlay; only capture validation remains.
+- Evidence: a 30 fps, 3680x1970 screen recording of Swag Scope viewing a large Markdown
+  manuscript shows one visibly broken restore frame at frame 84 (2.8 s): the old maximized
+  document is cropped over the desktop at the restored window's location, with no window chrome.
+  Frame 85 has the correctly laid-out restored window. The reverse transition at frames 199-200
+  jumps directly to the maximized frame. The reporter has also seen worse instances.
+- Current boundary: `c9eef3a58` and `2c7c3dbb4` (2026-09-27) prepare the new-size frame before
+  the native geometry commit and cover the transition with a topmost DWM placement overlay
+  (`Surface.showDiscretePlacement` in `surface.win32.swg`). The native tests assert only that
+  surface and window sizes agree; no display-cadence capture has confirmed that the stale frame
+  is gone.
+- Capture constraint: an initial automated desktop capture sampled only about five frames per
+  second and recorded a different foreground window, so it cannot validate this one-frame defect.
+- Next: capture repeated maximize/restore at display cadence on a controlled foreground desktop,
+  with a large reflowing document, and confirm no old-size frame; then turn that capture into a
+  repeatable native visual boundary. Keep the physical border-drag latency measured in
+  std.gui.056 within its existing range.
+- Complete when: repeated maximize/restore captures show no old-size, clipped or blank frame,
+  including when document layout exceeds one refresh, and the regression has a repeatable native
+  visual boundary.
+- Related: std.gui.056
+
+### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
+
+- Recorded: 2026-08-07 19:13
+- Updated: 2026-10-06 21:12 — Mark the face metrics as predating the Inter and Roboto Mono switch.
+- Area: std/gui
+- Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
+  the fixed-width theme family and read as riding high inside its own box.
+- Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
+  which hands the placement to the internal leading of the face. Measured on the theme as it was
+  before `98c34ccbd` replaced Segoe UI and the fixed family with Inter and Roboto Mono; the
+  offsets below must be re-measured on the current faces:
+  Segoe UI at 13 has `ascent 14.03, descent -3.27, capHeight 9.11`, so its capitals sit 0.83
+  logical pixels below the middle of its line box; the fixed family at 14 has
+  `ascent 10.40, descent -3.60, capHeight 8.94` and sits 1.07 above. Two fields of one form set in
+  the two families therefore put their words 1.9 pixels apart, and neither on the middle of the
+  frame the reader compares them against. `EditBox`, `ComboBox` and `PopupListCtrl` now center on the capitals
+  through `StringVertAlignment.OpticalCenter`; other labels and menu rows still center on the line box.
+- Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
+  [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
+  `bin/apps/modules/swagvault/src/tests/goldens/surface.png`: the "256" digits of the capacity
+  field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
+  password placeholder below it sat exactly on the middle of its own box.
+- Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
+  are read against their neighbours rather than against a frame, and they all share the interface
+  family, so line-box centering is consistent among them today — the defect only shows where a
+  frame is drawn or where two families meet. If it does follow, `Gui.opticalTop` degenerates to a
+  plain centering and its twenty-odd call sites go with it, and every golden holding text moves by
+  the offset of its face; that is the whole cost, and it is why the existing change is limited to the framed fields and
+  popup-list rows. Pin the decision with a headless test that puts one field of each
+  family side by side and asserts their capitals share a center.
+
+- Complete when: A headless side-by-side case measures the cap centers of framed fields, labels, menus, and list rows across shipped font families; the chosen placement rule is documented and the resulting goldens pin the decision.
+
+### std.gui.054 — Presenting a small update still copies the whole surface render target
+
+- Recorded: 2026-08-24 08:48
+- Updated: 2026-10-06 21:12 — Locate the full copy in `presentRenderTarget`.
+- Evidence: `Surface.presentRenderTarget` (`surface.swg`) still copies the whole surface render
+  target to the back buffer.
+  On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
+  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. A 2026-09-19
+  maximized manuscript repaint probe spent 9.09 of 11.22 ms per frame in `end`. These totals
+  include driver backpressure and earlier GPU work; they are not input-to-display measurements.
+- Current boundary: the GUI's default OpenGL context and native window are owned by the same
+  thread. The previous worker adapter allowed drawable reallocation to overlap native sizing,
+  causing multi-second driver waits (std.gui.056), so its faster stationary repaint was not
+  evidence of a safe native presentation architecture. `Pixel.RenderThread` remains available
+  as an explicit adapter. The default WGL swap interval is one.
+- Rejected approach: bounding the copy alone relied on preserved back-buffer contents. The
+  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy
+  was requested, so the unexercised partial-copy machinery was removed.
+- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input,
+  separating GPU execution from native-present wait. Measure whether surfaces that do not need
+  compositing can render directly to the back buffer. Keep the render target where effects
+  need it. Any asynchronous replacement must establish drawable ownership and buffer lifetime
+  during physical resizing, not merely move blocking calls to a worker and wait for them.
+- Complete when: unnecessary surface copies and input-thread stalls have a measured policy,
+  equivalent pixels, bounded resource ownership and frame queues, and real input-latency evidence.
+- Related: std.gui.049, std.gui.056, platform.portability.066
+
+### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
+
+- Recorded: 2026-09-06 21:57
+- Updated: 2026-10-06 21:12 — Point at the renamed `SlideIds` table; the defect stands.
+- Evidence: `Gui.WndId` is `string`, and `MenuCtrl.addItem` and `addRadioItem` keep the view
+  they are handed. Swag Scope built the identifiers of its slideshow-pace submenu with
+  `Format.toString(...).toString()` inside the call: the temporary `String` was dropped at the
+  end of the statement, every entry kept a dangling identifier, nothing failed at build or run
+  time, and the headless driver's `clickPopupMenuItem` simply never matched an entry
+  (2026-09-06). The borrow-escape analysis did not see the escape through the `WndId`
+  parameter. The video viewer avoids it by keeping an `Array'String` of commands alive across
+  `doModal`; Swag Scope now uses a literal table, `SlideIds`
+  in `bin/apps/modules/swagscope/src/api/playback.swg`.
+- Next: decide whether `Item.id` and the other retained `WndId` fields should own a `String`, or
+  whether the sanitizer can flag a `string` view of a temporary escaping into a struct through a
+  parameter; prototype the owning field on `PopupMenuItem` and measure the churn on consumers.
+- Complete when: an identifier formatted at the call site either works or is rejected at build
+  time, and a test in `menu.test.swg` pins whichever it is.
+
+### std.gui.049 — One dirty rectangle couples distant changes on a surface
+
+- Recorded: 2026-09-06 17:42
+- Updated: 2026-10-06 21:12 — Name `paintToRenderTarget` as the consumer of the unioned rectangle.
+- Evidence: invalidations are unioned into one clip rectangle, which
+  `Surface.paintToRenderTarget` (`surface.swg`) consumes to paint the hierarchy and chrome. A video picture and a distant timeline can therefore expand
+  a small update to most of the window. In the 2026-08-25 1650x915 logical-window measurement,
+  hierarchy recording cost 0.5 ms of CPU and chrome recording 0.7 ms; adapter work was the larger
+  cost. These are historical measurements, not a current frame budget.
+- Next: compare a bounded list of dirty rectangles with dirty-subtree clips on separated animated
+  widgets. Include overlapping effects, antialiasing and shadow extents so smaller clips cannot
+  leave stale pixels or repaint overlaps incorrectly.
+- Complete when: distant local changes stay local under a bounded invalidation policy, or the
+  single rectangle is retained for a measured reason, with paint/golden tests for the decision.
+- Related: std.gui.054
 
 ### std.gui.001 — Clipboard data cannot represent virtual files
 
@@ -301,8 +422,8 @@ construction so static labels do not depend on each application remembering a ma
   up to half a logical unit in the round trip. Half a unit is enough: in the message box it was one
   wrapped line, and it clipped the second sentence of every error box on a scaled display. Only
   some lengths land on a losing fraction, which is why it read as intermittent.
-- Evidence: `Dialog.physicalRoom` and the commit-then-measure order in
-  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs, and
+- Evidence: `Dialog.physicalRoom` in [dialog.swg](../bin/std/modules/gui/src/dialogs/dialog.swg)
+  and the commit-then-measure order in [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs, and
   [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg) now rounds its measurement *up* on both
   axes. The tool tip is what the pattern costs when nobody guards it: a third of a pixel dropped
   from the committed height put the content one line over its viewport, which raised a scroll bar,
@@ -314,37 +435,6 @@ construction so static labels do not depend on each application remembering a ma
   `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
 
 - Complete when: Popup lists, menu popups, and automatic labels retain all measured content after committing size across fractional scales and a sweep of content lengths, with no new scroll bar or clipped last line.
-
-### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
-
-- Recorded: 2026-08-07 19:13
-- Updated: 2026-09-27 18:08 — define cross-family optical-alignment decision.
-- Area: std/gui
-- Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
-  the fixed-width theme family and read as riding high inside its own box.
-- Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
-  which hands the placement to the internal leading of the face. Measured on the shipped theme:
-  Segoe UI at 13 has `ascent 14.03, descent -3.27, capHeight 9.11`, so its capitals sit 0.83
-  logical pixels below the middle of its line box; the fixed family at 14 has
-  `ascent 10.40, descent -3.60, capHeight 8.94` and sits 1.07 above. Two fields of one form set in
-  the two families therefore put their words 1.9 pixels apart, and neither on the middle of the
-  frame the reader compares them against. `EditBox`, `ComboBox` and `PopupListCtrl` now center on the capitals
-  through `StringVertAlignment.OpticalCenter`; other labels and menu rows still center on the line box.
-- Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
-  [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
-  `bin/apps/modules/swagvault/src/tests/goldens/surface.png`: the "256" digits of the capacity
-  field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
-  password placeholder below it sat exactly on the middle of its own box.
-- Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
-  are read against their neighbours rather than against a frame, and they all share the interface
-  family, so line-box centering is consistent among them today — the defect only shows where a
-  frame is drawn or where two families meet. If it does follow, `Gui.opticalTop` degenerates to a
-  plain centering and its twenty-odd call sites go with it, and every golden holding text moves by
-  the offset of its face; that is the whole cost, and it is why the existing change is limited to the framed fields and
-  popup-list rows. Pin the decision with a headless test that puts one field of each
-  family side by side and asserts their capitals share a center.
-
-- Complete when: A headless side-by-side case measures the cap centers of framed fields, labels, menus, and list rows across shipped font families; the chosen placement rule is documented and the resulting goldens pin the decision.
 
 ### std.gui.004 — French is the only shipped GUI translation
 
@@ -504,32 +594,6 @@ preview. Validate requested settings against the capabilities supplied by platfo
 
 - Complete when: Check and radio marker ink aligns with the field column in the Swag Vault form and representative GUI layouts across shipped palettes and scales, without changing hit bounds or clipping the atlas tile.
 
-### std.gui.057 — Prevent stale compositor frames during maximize and restore
-
-- Recorded: 2026-09-26 18:37
-- Updated: 2026-09-26 18:56 — constrain native capture to the target window at display cadence
-- Evidence: a 30 fps, 3680x1970 screen recording of Swag Scope viewing a large Markdown
-  manuscript shows one visibly broken restore frame at frame 84 (2.8 s): the old maximized
-  document is cropped over the desktop at the restored window's location, with no window chrome.
-  Frame 85 has the correctly laid-out restored window. The reverse transition at frames 199-200
-  jumps directly to the maximized frame. The reporter has also seen worse instances.
-- Current boundary: `Surface.showNormal` calls `ShowWindow(SW_RESTORE)`, and `WM_SIZE` relayouts
-  and paints synchronously. `WM_NCCALCSIZE` requests that no old client pixels be preserved;
-  `DWMWA_TRANSITIONS_FORCEDISABLED` is already set. The recording still captures old-sized pixels
-  between the geometry change and the new presentation. A DWM composition race is plausible,
-  but the exact message, swap and composition order has not been measured.
-- Capture constraint: an initial automated desktop capture sampled only about five frames per
-  second and recorded a different foreground window, so it cannot validate this one-frame defect.
-- Next: reproduce on a controlled foreground desktop with a capture at least as fast as the
-  display while timestamping window messages, `SwapBuffers` and composed frames. Test preparing
-  the new render target before the native geometry commit, then presenting it as the size
-  changes. Compare with the current path on the same display and with a large reflowing
-  document; keep the physical border-drag latency measured in std.gui.056 within its existing range.
-- Complete when: repeated maximize/restore captures show no old-size, clipped or blank frame,
-  including when document layout exceeds one refresh, and the regression has a repeatable native
-  visual boundary.
-- Related: std.gui.056
-
 ### std.gui.056 — Reduce ordinary WGL resize latency with window-thread ownership preserved
 
 - Recorded: 2026-09-09 06:35
@@ -559,64 +623,6 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Complete when: ordinary resize presentation has a measured latency budget and a validated
   ownership contract on the chosen backend.
 - Related: std.gui.054, platform.portability.066
-
-### std.gui.054 — Presenting a small update still copies the whole surface render target
-
-- Recorded: 2026-08-24 08:48
-- Updated: 2026-09-21 19:04 — retain the full-surface copy investigation with owner-thread native rendering
-- Evidence: `Surface.paintWnd` calls `drawTexture(dstRect, dstRect, ...)` for the whole surface.
-  On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
-  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. A 2026-09-19
-  maximized manuscript repaint probe spent 9.09 of 11.22 ms per frame in `end`. These totals
-  include driver backpressure and earlier GPU work; they are not input-to-display measurements.
-- Current boundary: the GUI's default OpenGL context and native window are owned by the same
-  thread. The previous worker adapter allowed drawable reallocation to overlap native sizing,
-  causing multi-second driver waits (std.gui.056), so its faster stationary repaint was not
-  evidence of a safe native presentation architecture. `Pixel.RenderThread` remains available
-  as an explicit adapter. The default WGL swap interval is one.
-- Rejected approach: bounding the copy alone relied on preserved back-buffer contents. The
-  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy
-  was requested, so the unexercised partial-copy machinery was removed.
-- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input,
-  separating GPU execution from native-present wait. Measure whether surfaces that do not need
-  compositing can render directly to the back buffer. Keep the render target where effects
-  need it. Any asynchronous replacement must establish drawable ownership and buffer lifetime
-  during physical resizing, not merely move blocking calls to a worker and wait for them.
-- Complete when: unnecessary surface copies and input-thread stalls have a measured policy,
-  equivalent pixels, bounded resource ownership and frame queues, and real input-latency evidence.
-- Related: std.gui.049, std.gui.056, platform.portability.066
-
-### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
-
-- Recorded: 2026-09-06 21:57
-- Evidence: `Gui.WndId` is `string`, and `MenuCtrl.addItem` and `addRadioItem` keep the view
-  they are handed. Swag Scope built the identifiers of its slideshow-pace submenu with
-  `Format.toString(...).toString()` inside the call: the temporary `String` was dropped at the
-  end of the statement, every entry kept a dangling identifier, nothing failed at build or run
-  time, and the headless driver's `clickPopupMenuItem` simply never matched an entry
-  (2026-09-06). The borrow-escape analysis did not see the escape through the `WndId`
-  parameter. The video viewer avoids it by keeping an `Array'String` of commands alive across
-  `doModal`; Swag Scope now uses a literal table, `ViewerSlideIds`.
-- Next: decide whether `Item.id` and the other retained `WndId` fields should own a `String`, or
-  whether the sanitizer can flag a `string` view of a temporary escaping into a struct through a
-  parameter; prototype the owning field on `PopupMenuItem` and measure the churn on consumers.
-- Complete when: an identifier formatted at the call site either works or is rejected at build
-  time, and a test in `menu.test.swg` pins whichever it is.
-
-### std.gui.049 — One dirty rectangle couples distant changes on a surface
-
-- Recorded: 2026-09-06 17:42
-- Evidence: `Surface.paintWnd` unions invalidations into one clip rectangle and paints the
-  hierarchy and chrome through it. A video picture and a distant timeline can therefore expand
-  a small update to most of the window. In the 2026-08-25 1650x915 logical-window measurement,
-  hierarchy recording cost 0.5 ms of CPU and chrome recording 0.7 ms; adapter work was the larger
-  cost. These are historical measurements, not a current frame budget.
-- Next: compare a bounded list of dirty rectangles with dirty-subtree clips on separated animated
-  widgets. Include overlapping effects, antialiasing and shadow extents so smaller clips cannot
-  leave stale pixels or repaint overlaps incorrectly.
-- Complete when: distant local changes stay local under a bounded invalidation policy, or the
-  single rectangle is retained for a measured reason, with paint/golden tests for the decision.
-- Related: std.gui.054
 ---
 
 ## Out of scope

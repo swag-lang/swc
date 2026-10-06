@@ -66,6 +66,11 @@ struct MicroPassContext
     uint64_t spillAreaLo = std::numeric_limits<uint64_t>::max();
     uint64_t spillAreaHi = 0;
 
+    // Persistent SIMD registers whose full incoming value the emitted prologue
+    // already saves and every epilogue restores. Post-RA caches may borrow one
+    // only when physical liveness proves it idle throughout their region.
+    uint32_t savedFloatRegMask = 0;
+
     // First instruction of the blocks the final layout moved behind the function's last return
     // (see MicroColdBlockLayoutPass). Each of them jumps back into the body, and emission must
     // not read those jumps as the back edges of loops. Invalid when nothing was moved.

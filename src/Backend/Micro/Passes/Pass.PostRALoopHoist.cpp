@@ -908,6 +908,9 @@ namespace
         SmallVector<MicroReg, 16> candidates;
         for (const MicroReg reg : savedIntegerRegisters(context, conv))
             candidates.push_back(reg);
+        for (const MicroReg reg : conv.floatPersistentRegs)
+            if (reg.index() < 32 && (context.savedFloatRegMask & (1u << reg.index())))
+                candidates.push_back(reg);
         for (const MicroReg reg : conv.floatTransientRegs)
             candidates.push_back(reg);
         for (const MicroReg reg : candidates)

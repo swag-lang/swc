@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 17:13 — Reuse idle saved integer registers across mandatory calls.
+- Updated: 2026-10-06 17:31 — Reuse the prologue's saved SIMD registers across calls.
 - Area: compiler/backend
 - Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
   in a caller-saved XMM register free across a call-free loop. Every matching load/store
@@ -121,6 +121,10 @@ new language syntax.
   also admits mandatory-call loops: H.264 extendPlane loses twelve memory accesses
   with unchanged instruction/push counts; see the
   [comparison](../bench/results/generated-code/20261006-gp-spill-cache/README.md).
+- The prologue now records its actual saved SIMD registers. Idle members of that
+  set also serve as caches without adding preservation traffic. H.264
+  predictIntraPlane loses eleven instructions and sixteen memory operations;
+  [comparison](../bench/results/generated-code/20261006-saved-xmm-cache/README.md).
 - Next: inspect hot source-object slots and mixed-width spills. Removing retained
   stores from called loops needs an exit-liveness proof or edge-specific write-backs.
   Caches clobbered on every trip are still excluded, even when a home has several

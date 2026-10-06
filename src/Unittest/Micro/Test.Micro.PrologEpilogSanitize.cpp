@@ -122,6 +122,7 @@ SWC_TEST_BEGIN(MicroPrologEpilog_FirstDefinitionsPreserveSaveOrderAcrossRegister
     passContext.preservePersistentRegs = true;
     SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
 
+    SWC_ASSERT(passContext.savedFloatRegMask == ((1u << 6) | (1u << 7)));
     const std::array expectedPushes = {conv.framePointer, MicroReg::intReg(6), MicroReg::intReg(7)};
     uint32_t         pushes         = 0;
     uint32_t         pops           = 0;
@@ -185,6 +186,7 @@ SWC_TEST_BEGIN(MicroPrologEpilog_FoldsFloatSaveAreaIntoTheBodyAllocation)
     passContext.preservePersistentRegs = true;
     SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
 
+    SWC_ASSERT(passContext.savedFloatRegMask == (1u << 6));
     uint32_t subs       = 0;
     uint32_t adds       = 0;
     uint32_t pushes     = 0;

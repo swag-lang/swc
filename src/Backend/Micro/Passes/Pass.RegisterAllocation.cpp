@@ -2902,7 +2902,7 @@ bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg requestVirtKe
 
 MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePools(const AllocRequest& request)
 {
-    if (request.virtReg.isVirtualInt())
+    if (request.virtKey.isVirtualInt())
     {
         if (request.needsPersistent)
             return FreePools{&freeIntPersistent_, &freeIntTransient_};
@@ -2910,7 +2910,7 @@ MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePool
         return FreePools{&freeIntTransient_, freeIntPersistent_.empty() ? nullptr : &freeIntPersistent_};
     }
 
-    SWC_ASSERT(request.virtReg.isVirtualFloat());
+    SWC_ASSERT(request.virtKey.isVirtualFloat());
     if (request.needsPersistent)
         return FreePools{&freeFloatPersistent_, &freeFloatTransient_};
 
@@ -3017,7 +3017,7 @@ bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest& requ
     if (!canUsePhysical(request.virtKey, request.instructionIndex, sourcePhys, forbiddenPhysRegs, allowConcreteLive))
         return false;
 
-    const uint32_t dstDense = denseVirtualIndex(request.virtKey);
+    const uint32_t dstDense = request.denseIndex;
     auto&          dstState = states_[dstDense];
     if (dstState.mapped && dstState.phys != sourcePhys)
     {
@@ -3099,7 +3099,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         return false;
 
     const uint32_t lo         = request.instructionIndex;
-    const uint32_t denseIndex = denseVirtualRegs_.find(request.virtKey);
+    const uint32_t denseIndex = request.denseIndex;
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= virtualSpanHi_.size())
         return false;
 
@@ -3109,7 +3109,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
     if (!isStraightLineRange(lo, hi))
         return false;
 
-    const bool isFloat = request.virtReg.isVirtualFloat();
+    const bool isFloat = request.virtKey.isVirtualFloat();
     for (const MicroReg reg : context_->globalReservedRegs)
     {
         if (reg.isFloat() != isFloat)
@@ -3191,7 +3191,7 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& reque
     MicroReg victimKey = MicroReg::invalid();
     MicroReg victimReg;
 
-    const bool isFloatReg           = request.virtReg.isVirtualFloat();
+    const bool isFloatReg           = request.virtKey.isVirtualFloat();
     const bool preferPersistentPool = request.needsPersistent;
     if (!selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, false, victimKey, victimReg))
     {
@@ -3296,7 +3296,7 @@ void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<
 MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, MicroRegSpan remapForbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
 {
     // Reuse existing mapping when possible, otherwise allocate and load from spill on use.
-    const uint32_t denseIndex = denseVirtualIndex(request.virtKey);
+    const uint32_t denseIndex = request.denseIndex;
     auto&          regState   = states_[denseIndex];
 
     // Pinned values permanently live in their reserved register: no allocation,
@@ -3947,7 +3947,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 {
                     protectedKeys.push_back(reg);
                     auto& request            = allocRequests.emplace_back();
-                    request.virtReg          = reg;
+                    request.denseIndex       = denseVirtualIndex(reg);
                     request.virtKey          = reg;
                     request.instructionIndex = idx;
                     existing                 = &request;
@@ -3995,7 +3995,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             // measured to change nothing, so the cheaper rule stands.
             if (request.preferredPhysReg.isValid() || request.transferSource.isValid())
                 continue;
-            const uint32_t denseIndex = denseVirtualIndex(request.virtKey);
+            const uint32_t denseIndex = request.denseIndex;
             if (denseIndex < edgeRegisterHint_.size() && edgeRegisterHint_[denseIndex].isValid())
                 request.preferredPhysReg = edgeRegisterHint_[denseIndex];
         }
@@ -4072,7 +4072,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             {
                 for (const MicroReg key : currentConcreteLiveOut_)
                 {
-                    if (!request.virtReg.isSameClass(key))
+                    if (!request.virtKey.isSameClass(key))
                         continue;
                     if (!isConcreteLiveInAt(denseConcreteRegs_.find(key), idx))
                         continue;
@@ -4113,7 +4113,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             {
                 for (const MicroReg key : mentionedConcreteRegs)
                 {
-                    if (!request.virtReg.isSameClass(key))
+                    if (!request.virtKey.isSameClass(key))
                         continue;
 
                     appendUniqueReg(forbiddenPhysRegs, key);
@@ -4124,7 +4124,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 {
                     if (assigned.virtKey == request.virtKey)
                         continue;
-                    if (!request.virtReg.isSameClass(assigned.physReg))
+                    if (!request.virtKey.isSameClass(assigned.physReg))
                         continue;
 
                     appendUniqueReg(forbiddenPhysRegs, assigned.physReg);
@@ -4132,7 +4132,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 }
             }
 
-            const uint32_t requestDenseIndex = denseVirtualIndex(request.virtKey);
+            const uint32_t requestDenseIndex = request.denseIndex;
             const bool     liveAcrossCall    = requestDenseIndex < vregsLiveAcrossCall_.size() && vregsLiveAcrossCall_[requestDenseIndex] != 0;
             // A callee-saved FLOAT register is only worth its prologue
             // save/restore for a value that crosses calls which actually run
@@ -4141,7 +4141,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             // them. Ints keep the simple any-call rule: their persistent
             // save is a one-byte push, not a two-instruction 16-byte slot
             // round-trip.
-            if (request.virtReg.isVirtualInt())
+            if (request.virtKey.isVirtualInt())
                 request.needsPersistent = liveAcrossCall && !conv_->intPersistentRegs.empty();
             else
                 request.needsPersistent = requestDenseIndex < vregsLiveAcrossHotCall_.size() && vregsLiveAcrossHotCall_[requestDenseIndex] >= 10 && !conv_->floatPersistentRegs.empty();

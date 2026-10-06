@@ -83,7 +83,7 @@ private:
 
     struct AllocRequest
     {
-        MicroReg virtReg;
+        uint32_t denseIndex       = MicroDenseRegIndex::K_INVALID_INDEX;
         MicroReg virtKey          = MicroReg::invalid();
         MicroReg preferredPhysReg = MicroReg::invalid();
         MicroReg transferSource   = MicroReg::invalid();

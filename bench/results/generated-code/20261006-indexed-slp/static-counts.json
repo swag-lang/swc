@@ -1,0 +1,4842 @@
+{
+  "chacha": {
+    "baseline": [
+      {
+        "name": "Chacha.quarterRound",
+        "instructions": 45,
+        "memory": 32,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Chacha.add32",
+        "instructions": 2,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Chacha.__main_0",
+        "instructions": 446,
+        "memory": 143,
+        "rsp": 31,
+        "push": 8
+      }
+    ],
+    "candidate": [
+      {
+        "name": "Chacha.quarterRound",
+        "instructions": 45,
+        "memory": 32,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Chacha.add32",
+        "instructions": 2,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Chacha.__main_0",
+        "instructions": 425,
+        "memory": 113,
+        "rsp": 39,
+        "push": 8
+      }
+    ]
+  },
+  "nbody": {
+    "baseline": [
+      {
+        "name": "Nbody.energy",
+        "instructions": 211,
+        "memory": 79,
+        "rsp": 10,
+        "push": 0
+      },
+      {
+        "name": "Nbody.advance",
+        "instructions": 424,
+        "memory": 138,
+        "rsp": 44,
+        "push": 0
+      },
+      {
+        "name": "Nbody.offsetMomentum",
+        "instructions": 29,
+        "memory": 13,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Nbody.__main_0",
+        "instructions": 721,
+        "memory": 290,
+        "rsp": 47,
+        "push": 3
+      }
+    ],
+    "candidate": [
+      {
+        "name": "Nbody.offsetMomentum",
+        "instructions": 29,
+        "memory": 13,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Nbody.energy",
+        "instructions": 211,
+        "memory": 79,
+        "rsp": 10,
+        "push": 0
+      },
+      {
+        "name": "Nbody.advance",
+        "instructions": 421,
+        "memory": 135,
+        "rsp": 44,
+        "push": 0
+      },
+      {
+        "name": "Nbody.__main_0",
+        "instructions": 719,
+        "memory": 289,
+        "rsp": 49,
+        "push": 3
+      }
+    ]
+  },
+  "csvagg": {
+    "baseline": [
+      {
+        "name": "Csvagg.writeUInt2",
+        "instructions": 14,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Csvagg.writeUInt",
+        "instructions": 51,
+        "memory": 6,
+        "rsp": 3,
+        "push": 2
+      },
+      {
+        "name": "Csvagg.__main_0",
+        "instructions": 886,
+        "memory": 231,
+        "rsp": 74,
+        "push": 8
+      }
+    ],
+    "candidate": [
+      {
+        "name": "Csvagg.writeUInt2",
+        "instructions": 14,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Csvagg.writeUInt",
+        "instructions": 51,
+        "memory": 6,
+        "rsp": 3,
+        "push": 2
+      },
+      {
+        "name": "Csvagg.__main_0",
+        "instructions": 886,
+        "memory": 231,
+        "rsp": 74,
+        "push": 8
+      }
+    ]
+  },
+  "video": {
+    "baseline": [
+      {
+        "name": "Video.H264.packedReferences",
+        "instructions": 6,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.__run_expr",
+        "instructions": 17,
+        "memory": 2,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.buildCabacTables",
+        "instructions": 230,
+        "memory": 171,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterLumaVertical",
+        "instructions": 254,
+        "memory": 103,
+        "rsp": 29,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.halfCenterStrip",
+        "instructions": 137,
+        "memory": 48,
+        "rsp": 8,
+        "push": 1
+      },
+      {
+        "name": "Video.H264.addIdct8x8",
+        "instructions": 183,
+        "memory": 35,
+        "rsp": 10,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterLumaWeakHorizontal",
+        "instructions": 141,
+        "memory": 35,
+        "rsp": 16,
+        "push": 3
+      },
+      {
+        "name": "Video.H264.halfHorizontal",
+        "instructions": 155,
+        "memory": 32,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.intraPredict8x8",
+        "instructions": 972,
+        "memory": 429,
+        "rsp": 234,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.filterLumaStrongHorizontal",
+        "instructions": 361,
+        "memory": 85,
+        "rsp": 54,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.interpolateChroma",
+        "instructions": 316,
+        "memory": 32,
+        "rsp": 2,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.halfVerticalAvg",
+        "instructions": 248,
+        "memory": 68,
+        "rsp": 31,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.interpolateLuma",
+        "instructions": 479,
+        "memory": 137,
+        "rsp": 55,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.halfHorizontalAvg",
+        "instructions": 183,
+        "memory": 40,
+        "rsp": 3,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.halfVertical",
+        "instructions": 227,
+        "memory": 60,
+        "rsp": 28,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.weightBi",
+        "instructions": 201,
+        "memory": 43,
+        "rsp": 26,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.filterChromaWeakVertical",
+        "instructions": 132,
+        "memory": 31,
+        "rsp": 8,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.halfVerticalRows",
+        "instructions": 165,
+        "memory": 52,
+        "rsp": 22,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.deblockMb",
+        "instructions": 1423,
+        "memory": 384,
+        "rsp": 172,
+        "push": 8
+      },
+      {
+        "name": "Slice.addPlaneResidual",
+        "instructions": 539,
+        "memory": 125,
+        "rsp": 15,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.intraPredict16x16",
+        "instructions": 297,
+        "memory": 79,
+        "rsp": 8,
+        "push": 3
+      },
+      {
+        "name": "Video.H264.addIdct4x4",
+        "instructions": 56,
+        "memory": 12,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.planeStride",
+        "instructions": 5,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.storeLines4",
+        "instructions": 14,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.storeRows4",
+        "instructions": 9,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterChromaWeakHorizontal",
+        "instructions": 77,
+        "memory": 17,
+        "rsp": 4,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.edgeStrengths",
+        "instructions": 153,
+        "memory": 40,
+        "rsp": 9,
+        "push": 7
+      },
+      {
+        "name": "Slice.assignSkipMotion",
+        "instructions": 246,
+        "memory": 76,
+        "rsp": 14,
+        "push": 8
+      },
+      {
+        "name": "Slice.intraMbAvailable",
+        "instructions": 39,
+        "memory": 6,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Frame.pixPlane",
+        "instructions": 34,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.pixLuma",
+        "instructions": 12,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.edgeStrength",
+        "instructions": 136,
+        "memory": 30,
+        "rsp": 4,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.hadamard4x4",
+        "instructions": 45,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.addDc8x8Quad",
+        "instructions": 99,
+        "memory": 16,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.addIdct8x8Scalar",
+        "instructions": 357,
+        "memory": 98,
+        "rsp": 56,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.addDc4x4",
+        "instructions": 38,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.intraPredict4x4",
+        "instructions": 510,
+        "memory": 126,
+        "rsp": 48,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.filterLuma",
+        "instructions": 284,
+        "memory": 46,
+        "rsp": 24,
+        "push": 7
+      },
+      {
+        "name": "Frame.pixChroma",
+        "instructions": 19,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.appendFrames",
+        "instructions": 349,
+        "memory": 99,
+        "rsp": 11,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.copyIntra16x16",
+        "instructions": 8,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.fillIntra16x16",
+        "instructions": 11,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.predictIntraPlane",
+        "instructions": 2126,
+        "memory": 697,
+        "rsp": 119,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.intraPredictChroma",
+        "instructions": 312,
+        "memory": 43,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.weightUni",
+        "instructions": 152,
+        "memory": 18,
+        "rsp": 7,
+        "push": 8
+      },
+      {
+        "name": "Slice.reconstructMb",
+        "instructions": 535,
+        "memory": 94,
+        "rsp": 16,
+        "push": 6
+      },
+      {
+        "name": "Slice.buildLists",
+        "instructions": 331,
+        "memory": 87,
+        "rsp": 9,
+        "push": 7
+      },
+      {
+        "name": "Slice.planeResidual",
+        "instructions": 31,
+        "memory": 10,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.lowpassBytes",
+        "instructions": 8,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterChromaStrongHorizontal",
+        "instructions": 126,
+        "memory": 19,
+        "rsp": 6,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.tap6Row16",
+        "instructions": 46,
+        "memory": 14,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.installFrames",
+        "instructions": 127,
+        "memory": 35,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.residualCavlc",
+        "instructions": 457,
+        "memory": 75,
+        "rsp": 20,
+        "push": 7
+      },
+      {
+        "name": "Slice.bookkeepSkippedPMb",
+        "instructions": 136,
+        "memory": 47,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.storeIntra8Vertical",
+        "instructions": 25,
+        "memory": 18,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.weightBiRow",
+        "instructions": 75,
+        "memory": 10,
+        "rsp": 10,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.chromaWeakDelta",
+        "instructions": 61,
+        "memory": 11,
+        "rsp": 4,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.storeIntra8Filtered",
+        "instructions": 4,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.sortForB",
+        "instructions": 60,
+        "memory": 17,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.chromaQpAtLevel",
+        "instructions": 13,
+        "memory": 3,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.bookkeepMb",
+        "instructions": 646,
+        "memory": 278,
+        "rsp": 16,
+        "push": 6
+      },
+      {
+        "name": "Sps.is444",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.chromaQpAt",
+        "instructions": 16,
+        "memory": 3,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Video.H264.weakStrengthLanes",
+        "instructions": 8,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.colMotion",
+        "instructions": 58,
+        "memory": 36,
+        "rsp": 6,
+        "push": 0
+      },
+      {
+        "name": "Decoder.applyMmco",
+        "instructions": 245,
+        "memory": 75,
+        "rsp": 4,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.parseScalingMatrices",
+        "instructions": 339,
+        "memory": 118,
+        "rsp": 38,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.tap6Row8",
+        "instructions": 31,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.sortByPicNumDescending",
+        "instructions": 32,
+        "memory": 10,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Video.H264.centerSums8",
+        "instructions": 16,
+        "memory": 7,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterChromaStrongVertical",
+        "instructions": 125,
+        "memory": 10,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.addIdct4x4Scalar",
+        "instructions": 223,
+        "memory": 101,
+        "rsp": 63,
+        "push": 7
+      },
+      {
+        "name": "Slice.prepareMb",
+        "instructions": 106,
+        "memory": 55,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.halfCenter",
+        "instructions": 190,
+        "memory": 22,
+        "rsp": 7,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.averagePlanes",
+        "instructions": 103,
+        "memory": 14,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.filterChroma",
+        "instructions": 121,
+        "memory": 10,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.combineBi",
+        "instructions": 214,
+        "memory": 49,
+        "rsp": 11,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.hadamard4x4Scalar",
+        "instructions": 142,
+        "memory": 40,
+        "rsp": 16,
+        "push": 7
+      },
+      {
+        "name": "Slice.mcPlaneList",
+        "instructions": 160,
+        "memory": 38,
+        "rsp": 14,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.mcChromaPair",
+        "instructions": 168,
+        "memory": 42,
+        "rsp": 26,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.deblockMotion",
+        "instructions": 28,
+        "memory": 9,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.parsePlaneResidualCavlc",
+        "instructions": 410,
+        "memory": 105,
+        "rsp": 47,
+        "push": 7
+      },
+      {
+        "name": "Slice.resolveNeighbors",
+        "instructions": 137,
+        "memory": 44,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.pullOuter",
+        "instructions": 13,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.mcLuma",
+        "instructions": 148,
+        "memory": 27,
+        "rsp": 15,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.addPlane4x4Residual",
+        "instructions": 23,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.extendPlane",
+        "instructions": 97,
+        "memory": 27,
+        "rsp": 17,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.biasedEdge",
+        "instructions": 15,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.releasePendingBelow",
+        "instructions": 32,
+        "memory": 5,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.weightUniRow",
+        "instructions": 41,
+        "memory": 2,
+        "rsp": 2,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.copyPlane",
+        "instructions": 65,
+        "memory": 8,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.mcChroma",
+        "instructions": 133,
+        "memory": 31,
+        "rsp": 13,
+        "push": 8
+      },
+      {
+        "name": "Decoder.parsePpsNal",
+        "instructions": 172,
+        "memory": 73,
+        "rsp": 49,
+        "push": 6
+      },
+      {
+        "name": "AvcStream.seekTo",
+        "instructions": 118,
+        "memory": 22,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.compensate",
+        "instructions": 1244,
+        "memory": 366,
+        "rsp": 128,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.deblockMotionMatches",
+        "instructions": 16,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.addChromaResidual",
+        "instructions": 290,
+        "memory": 78,
+        "rsp": 10,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.deblockMotionDiffers",
+        "instructions": 19,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.storeWeightedRow",
+        "instructions": 18,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.addRow8",
+        "instructions": 7,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.refCtxFlag",
+        "instructions": 72,
+        "memory": 19,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.blockNz",
+        "instructions": 58,
+        "memory": 16,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.syncRankAt",
+        "instructions": 15,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.presentationTimeAtRank",
+        "instructions": 6,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.predictMv",
+        "instructions": 382,
+        "memory": 80,
+        "rsp": 11,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.copyClamped",
+        "instructions": 80,
+        "memory": 6,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Slice.parseHeader",
+        "instructions": 539,
+        "memory": 134,
+        "rsp": 8,
+        "push": 7
+      },
+      {
+        "name": "Slice.releaseScratchResidual",
+        "instructions": 83,
+        "memory": 44,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.extendPlaneRows",
+        "instructions": 55,
+        "memory": 11,
+        "rsp": 1,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.storeChromaBlend",
+        "instructions": 11,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.sameList",
+        "instructions": 22,
+        "memory": 7,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.storeLevels",
+        "instructions": 44,
+        "memory": 4,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "AvcStream.nextDisplayFrame",
+        "instructions": 111,
+        "memory": 27,
+        "rsp": 3,
+        "push": 6
+      },
+      {
+        "name": "Slice.parseResidualCavlc",
+        "instructions": 213,
+        "memory": 29,
+        "rsp": 3,
+        "push": 7
+      },
+      {
+        "name": "AvcStream.open",
+        "instructions": 178,
+        "memory": 33,
+        "rsp": 2,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.hadamard2x2",
+        "instructions": 19,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.mcChromaList",
+        "instructions": 63,
+        "memory": 14,
+        "rsp": 4,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.reconstructBand",
+        "instructions": 103,
+        "memory": 26,
+        "rsp": 5,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.within",
+        "instructions": 9,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.reconstructPicture",
+        "instructions": 106,
+        "memory": 24,
+        "rsp": 3,
+        "push": 4
+      },
+      {
+        "name": "Decoder.decodePreparedAccessUnit",
+        "instructions": 105,
+        "memory": 14,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Decoder.parseSpsNal",
+        "instructions": 114,
+        "memory": 15,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.unmarkLongIndex",
+        "instructions": 21,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.chromaBlockNz",
+        "instructions": 49,
+        "memory": 13,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.motionAt",
+        "instructions": 134,
+        "memory": 20,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcStream.startFrame",
+        "instructions": 196,
+        "memory": 44,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Slice.decodeData",
+        "instructions": 336,
+        "memory": 79,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.addDc4x4Scalar",
+        "instructions": 51,
+        "memory": 8,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.parseScalingList",
+        "instructions": 52,
+        "memory": 4,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.deblockGridMotion",
+        "instructions": 6,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.packedMotion",
+        "instructions": 12,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.halfSum",
+        "instructions": 7,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.assignMotion",
+        "instructions": 157,
+        "memory": 37,
+        "rsp": 11,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.dcLanes",
+        "instructions": 15,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.matchVlc",
+        "instructions": 51,
+        "memory": 8,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.extendPlaneBottom",
+        "instructions": 27,
+        "memory": 7,
+        "rsp": 7,
+        "push": 0
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 502,
+        "memory": 110,
+        "rsp": 14,
+        "push": 7
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 502,
+        "memory": 110,
+        "rsp": 14,
+        "push": 7
+      },
+      {
+        "name": "Slice.partGeometry",
+        "instructions": 34,
+        "memory": 10,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 516,
+        "memory": 114,
+        "rsp": 16,
+        "push": 8
+      },
+      {
+        "name": "Frame.copyPlanes",
+        "instructions": 144,
+        "memory": 26,
+        "rsp": 13,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.deblockMotionFromJob",
+        "instructions": 9,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.fillNeighbor",
+        "instructions": 29,
+        "memory": 12,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Video.H264.extendPlaneTop",
+        "instructions": 27,
+        "memory": 9,
+        "rsp": 9,
+        "push": 0
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 516,
+        "memory": 114,
+        "rsp": 16,
+        "push": 8
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 524,
+        "memory": 119,
+        "rsp": 16,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.dequantLevel",
+        "instructions": 19,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.tap6Half16",
+        "instructions": 13,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.computePoc",
+        "instructions": 202,
+        "memory": 43,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.chromaPairs",
+        "instructions": 3,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.deblockJobMotion",
+        "instructions": 4,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.intra16Dc",
+        "instructions": 14,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.tap6Center16",
+        "instructions": 10,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.dcFlagNeighbor",
+        "instructions": 23,
+        "memory": 7,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.insertLong",
+        "instructions": 26,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.mbAvailable",
+        "instructions": 28,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.jobAt",
+        "instructions": 43,
+        "memory": 8,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.neighborIntraMode",
+        "instructions": 48,
+        "memory": 12,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.buildImplicitWeights",
+        "instructions": 118,
+        "memory": 19,
+        "rsp": 11,
+        "push": 7
+      },
+      {
+        "name": "Decoder.decodeSliceNal",
+        "instructions": 248,
+        "memory": 29,
+        "rsp": 8,
+        "push": 6
+      },
+      {
+        "name": "Slice.deriveDirectTemporal",
+        "instructions": 323,
+        "memory": 95,
+        "rsp": 50,
+        "push": 8
+      },
+      {
+        "name": "Slice.applyListOps",
+        "instructions": 183,
+        "memory": 41,
+        "rsp": 12,
+        "push": 7
+      },
+      {
+        "name": "Slice.bBefore",
+        "instructions": 21,
+        "memory": 6,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.chromaWeights",
+        "instructions": 7,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "CabacReader.initContexts",
+        "instructions": 61,
+        "memory": 6,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.tap6Raw16",
+        "instructions": 9,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.clampPixel",
+        "instructions": 9,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.mmcoPicNum",
+        "instructions": 8,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.prepare",
+        "instructions": 119,
+        "memory": 35,
+        "rsp": 22,
+        "push": 2
+      },
+      {
+        "name": "Decoder.releaseFrame",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.decodeNext",
+        "instructions": 47,
+        "memory": 7,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcStream.clearFrameThreads",
+        "instructions": 43,
+        "memory": 11,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "AvcStream.decodeNextPlanes",
+        "instructions": 47,
+        "memory": 7,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcStream.releasePending",
+        "instructions": 23,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.startPicture",
+        "instructions": 221,
+        "memory": 54,
+        "rsp": 19,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.weightBiQuads",
+        "instructions": 18,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.tap6",
+        "instructions": 10,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.setList",
+        "instructions": 12,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.finishAccessUnit",
+        "instructions": 99,
+        "memory": 14,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.awaitJobReference",
+        "instructions": 91,
+        "memory": 18,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.mvdCabac",
+        "instructions": 318,
+        "memory": 56,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Slice.planeQp",
+        "instructions": 20,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.deblockPicture",
+        "instructions": 87,
+        "memory": 18,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Frame.awaitParse",
+        "instructions": 49,
+        "memory": 5,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Frame.awaitProgress",
+        "instructions": 58,
+        "memory": 5,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.bSubIndex",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "CabacReader.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "EdgeStrength.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "ColMotion.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbInfo.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "BlockMotion.swagLifecycleInitWrapper",
+        "instructions": 2,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MmcoOp.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "PartGeom.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbResidual.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "McJob.swagLifecycleInitWrapper",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbExtraJobs.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbNeighbor.swagLifecycleInitWrapper",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbResidual444.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "NeighborMotion.swagLifecycleInitWrapper",
+        "instructions": 2,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Mb.swagLifecycleInitWrapper",
+        "instructions": 16,
+        "memory": 14,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbNeighbors.swagLifecycleInitWrapper",
+        "instructions": 13,
+        "memory": 11,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "SliceHeader.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Pps.swagLifecycleInitWrapper",
+        "instructions": 9,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "ListOp.swagLifecycleInitWrapper",
+        "instructions": 2,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "RefPic.swagLifecycleInitWrapper",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "ThreadedAvcSample.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "PendingFrame.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcFrameThread.swagLifecycleInitWrapper",
+        "instructions": 9,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.parseSubPartitionsB",
+        "instructions": 196,
+        "memory": 37,
+        "rsp": 16,
+        "push": 8
+      },
+      {
+        "name": "AvcStream.swagLifecycleInitWrapper",
+        "instructions": 106,
+        "memory": 61,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.parsePlaneResidualCabac",
+        "instructions": 355,
+        "memory": 101,
+        "rsp": 41,
+        "push": 7
+      },
+      {
+        "name": "Frame.publishProgress",
+        "instructions": 21,
+        "memory": 2,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Frame.publishParse",
+        "instructions": 21,
+        "memory": 2,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Decoder.holdPictureReferences",
+        "instructions": 73,
+        "memory": 11,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.releasePictureReferences",
+        "instructions": 84,
+        "memory": 12,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.applyMarking",
+        "instructions": 144,
+        "memory": 26,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.parseIntraMode",
+        "instructions": 58,
+        "memory": 0,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "CabacReader.hasOverrun",
+        "instructions": 11,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "CabacReader.start",
+        "instructions": 15,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "CabacReader.reload",
+        "instructions": 22,
+        "memory": 7,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.decodeSkipFlagCabac",
+        "instructions": 86,
+        "memory": 22,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.intraMbTypeCabac",
+        "instructions": 109,
+        "memory": 6,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.subMbTypePCabac",
+        "instructions": 168,
+        "memory": 37,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.intraModeCabac",
+        "instructions": 221,
+        "memory": 48,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.subMbTypeBCabac",
+        "instructions": 422,
+        "memory": 92,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.transformFlagCabac",
+        "instructions": 22,
+        "memory": 6,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.chromaModeCabac",
+        "instructions": 189,
+        "memory": 43,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.cbpLumaCabac",
+        "instructions": 273,
+        "memory": 54,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.parseMbCabac",
+        "instructions": 886,
+        "memory": 201,
+        "rsp": 9,
+        "push": 7
+      },
+      {
+        "name": "Slice.cbpChromaCabac",
+        "instructions": 152,
+        "memory": 32,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.qpDeltaCabac",
+        "instructions": 89,
+        "memory": 16,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.refIdxCabac",
+        "instructions": 101,
+        "memory": 15,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.decision",
+        "instructions": 62,
+        "memory": 15,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.bypass",
+        "instructions": 39,
+        "memory": 10,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.terminate",
+        "instructions": 42,
+        "memory": 11,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.deblockRow",
+        "instructions": 25,
+        "memory": 2,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Frame.swagLifecycleDropWrapper",
+        "instructions": 30,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Frame.progressComplete",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.swagLifecyclePostcopyWrapper",
+        "instructions": 27,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Frame.isReference",
+        "instructions": 5,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.toRgb",
+        "instructions": 19,
+        "memory": 0,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Frame.extendEdges",
+        "instructions": 44,
+        "memory": 13,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Frame.view",
+        "instructions": 67,
+        "memory": 26,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Frame.extendRowEdges",
+        "instructions": 71,
+        "memory": 16,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Frame.extendBottomEdge",
+        "instructions": 38,
+        "memory": 10,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.swagLifecycleDropWrapper",
+        "instructions": 156,
+        "memory": 0,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.swagLifecyclePostcopyWrapper",
+        "instructions": 53,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.parseResidualCabac",
+        "instructions": 182,
+        "memory": 30,
+        "rsp": 10,
+        "push": 7
+      },
+      {
+        "name": "Decoder.configure",
+        "instructions": 115,
+        "memory": 20,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Decoder.opDrop",
+        "instructions": 28,
+        "memory": 3,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Decoder.discardAccessUnit",
+        "instructions": 13,
+        "memory": 4,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Decoder.configureSet",
+        "instructions": 71,
+        "memory": 14,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.restart",
+        "instructions": 53,
+        "memory": 13,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.decodeAccessUnit",
+        "instructions": 57,
+        "memory": 5,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.failPreparedAccessUnit",
+        "instructions": 19,
+        "memory": 7,
+        "rsp": 3,
+        "push": 0
+      },
+      {
+        "name": "Decoder.inheritPredictionState",
+        "instructions": 71,
+        "memory": 16,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Decoder.prepareAccessUnit",
+        "instructions": 174,
+        "memory": 34,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.awaitReferenceProgress",
+        "instructions": 107,
+        "memory": 23,
+        "rsp": 12,
+        "push": 7
+      },
+      {
+        "name": "Decoder.hasSinglePictureSlice",
+        "instructions": 54,
+        "memory": 5,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Decoder.parseAccessUnit",
+        "instructions": 207,
+        "memory": 32,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.firstSps",
+        "instructions": 19,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.canSkipWhileSeeking",
+        "instructions": 81,
+        "memory": 7,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.handleNal",
+        "instructions": 160,
+        "memory": 28,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.referenceIdentity",
+        "instructions": 17,
+        "memory": 6,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.validatePicture",
+        "instructions": 21,
+        "memory": 6,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.mbInfoAt",
+        "instructions": 11,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.deriveDirect",
+        "instructions": 11,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.addJob",
+        "instructions": 52,
+        "memory": 23,
+        "rsp": 4,
+        "push": 7
+      },
+      {
+        "name": "Slice.colBlockIndex",
+        "instructions": 14,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.colMbIndex",
+        "instructions": 7,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.neighborMvd",
+        "instructions": 78,
+        "memory": 17,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.deriveSkipP",
+        "instructions": 126,
+        "memory": 24,
+        "rsp": 4,
+        "push": 5
+      },
+      {
+        "name": "Slice.decodeSkipMb",
+        "instructions": 100,
+        "memory": 43,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.advanceMb",
+        "instructions": 25,
+        "memory": 12,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.allowsTransform8x8",
+        "instructions": 31,
+        "memory": 10,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.parseInterMbP",
+        "instructions": 142,
+        "memory": 19,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.parseMbCavlc",
+        "instructions": 257,
+        "memory": 53,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.parsePcm",
+        "instructions": 211,
+        "memory": 47,
+        "rsp": 17,
+        "push": 7
+      },
+      {
+        "name": "Slice.parseIntraMb",
+        "instructions": 275,
+        "memory": 57,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.parseInterMbB",
+        "instructions": 121,
+        "memory": 20,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.parsePartitions",
+        "instructions": 158,
+        "memory": 28,
+        "rsp": 11,
+        "push": 8
+      },
+      {
+        "name": "Slice.markCtxRef",
+        "instructions": 73,
+        "memory": 15,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.parseRefIdx",
+        "instructions": 78,
+        "memory": 7,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.parseMvd",
+        "instructions": 53,
+        "memory": 3,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.applyMotion",
+        "instructions": 162,
+        "memory": 58,
+        "rsp": 22,
+        "push": 8
+      },
+      {
+        "name": "Slice.parseSubRefIdx",
+        "instructions": 54,
+        "memory": 4,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.parseSubPartitions",
+        "instructions": 122,
+        "memory": 16,
+        "rsp": 5,
+        "push": 8
+      },
+      {
+        "name": "Slice.dequantRow4",
+        "instructions": 21,
+        "memory": 2,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.dequantRow8",
+        "instructions": 22,
+        "memory": 2,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.blockNz8x8",
+        "instructions": 34,
+        "memory": 2,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.deriveDirectSpatial",
+        "instructions": 635,
+        "memory": 172,
+        "rsp": 94,
+        "push": 8
+      },
+      {
+        "name": "Slice.planeNc",
+        "instructions": 52,
+        "memory": 0,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.chromaNc",
+        "instructions": 52,
+        "memory": 0,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.parsePartitionsB",
+        "instructions": 222,
+        "memory": 40,
+        "rsp": 18,
+        "push": 8
+      },
+      {
+        "name": "Slice.parseSubMvs",
+        "instructions": 323,
+        "memory": 121,
+        "rsp": 60,
+        "push": 8
+      },
+      {
+        "name": "Decoder.completeReconstructedRow",
+        "instructions": 7,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.filterRow",
+        "instructions": 24,
+        "memory": 1,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.completeInlinePicture",
+        "instructions": 29,
+        "memory": 7,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Decoder.scheduleParsedRows",
+        "instructions": 58,
+        "memory": 17,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.waitReconstructionJobs",
+        "instructions": 21,
+        "memory": 1,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Sps.swagLifecycleDropWrapper",
+        "instructions": 5,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.swagLifecyclePostcopyWrapper",
+        "instructions": 5,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.chromaShift",
+        "instructions": 4,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.height",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.width",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.swagLifecycleDropWrapper",
+        "instructions": 10,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.swagLifecyclePostcopyWrapper",
+        "instructions": 10,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.prefetchMotion",
+        "instructions": 117,
+        "memory": 15,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.initDefaultWeights",
+        "instructions": 42,
+        "memory": 18,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.skipRepeatedMarking",
+        "instructions": 33,
+        "memory": 1,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Pps.parse",
+        "instructions": 213,
+        "memory": 55,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "AvcFrameThread.opEquals",
+        "instructions": 37,
+        "memory": 8,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.parseWeights",
+        "instructions": 138,
+        "memory": 28,
+        "rsp": 5,
+        "push": 7
+      },
+      {
+        "name": "AvcFrameThread.swagLifecycleDropWrapper",
+        "instructions": 12,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Pps.buildDequant",
+        "instructions": 217,
+        "memory": 70,
+        "rsp": 10,
+        "push": 6
+      },
+      {
+        "name": "AvcFrameThread.swagLifecyclePostcopyWrapper",
+        "instructions": 5,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcFrameThread.swagLifecyclePostmoveWrapper",
+        "instructions": 5,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.opDrop",
+        "instructions": 11,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "AvcStream.swagLifecyclePostmoveWrapper",
+        "instructions": 51,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "AvcStream.stopFrameThreads",
+        "instructions": 31,
+        "memory": 3,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "AvcStream.replaceFrames",
+        "instructions": 78,
+        "memory": 17,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Sps.parse",
+        "instructions": 376,
+        "memory": 77,
+        "rsp": 2,
+        "push": 7
+      },
+      {
+        "name": "AvcStream.reserveLane",
+        "instructions": 20,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.shutdownFrameThreads",
+        "instructions": 82,
+        "memory": 5,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "AvcStream.ensureFrameThreads",
+        "instructions": 139,
+        "memory": 13,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "AvcStream.fillFrameThreads",
+        "instructions": 54,
+        "memory": 7,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcStream.decodeStoredSample",
+        "instructions": 129,
+        "memory": 35,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.runAvcFrameThread",
+        "instructions": 102,
+        "memory": 19,
+        "rsp": 4,
+        "push": 7
+      },
+      {
+        "name": "AvcStream.swagLifecyclePostcopyWrapper",
+        "instructions": 932,
+        "memory": 0,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "AvcStream.swagLifecycleDropWrapper",
+        "instructions": 2615,
+        "memory": 0,
+        "rsp": 0,
+        "push": 3
+      }
+    ],
+    "candidate": [
+      {
+        "name": "Video.H264.packedReferences",
+        "instructions": 6,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.__run_expr",
+        "instructions": 17,
+        "memory": 2,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.buildCabacTables",
+        "instructions": 230,
+        "memory": 171,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterLumaVertical",
+        "instructions": 254,
+        "memory": 103,
+        "rsp": 29,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.halfCenterStrip",
+        "instructions": 137,
+        "memory": 48,
+        "rsp": 8,
+        "push": 1
+      },
+      {
+        "name": "Video.H264.addIdct8x8",
+        "instructions": 183,
+        "memory": 35,
+        "rsp": 10,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterLumaWeakHorizontal",
+        "instructions": 141,
+        "memory": 35,
+        "rsp": 16,
+        "push": 3
+      },
+      {
+        "name": "Video.H264.filterLumaStrongHorizontal",
+        "instructions": 361,
+        "memory": 85,
+        "rsp": 54,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.halfHorizontal",
+        "instructions": 155,
+        "memory": 32,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.intraPredict8x8",
+        "instructions": 972,
+        "memory": 429,
+        "rsp": 234,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.interpolateChroma",
+        "instructions": 316,
+        "memory": 32,
+        "rsp": 2,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.halfVerticalAvg",
+        "instructions": 248,
+        "memory": 68,
+        "rsp": 31,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.interpolateLuma",
+        "instructions": 479,
+        "memory": 137,
+        "rsp": 55,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.halfVertical",
+        "instructions": 227,
+        "memory": 60,
+        "rsp": 28,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.weightBi",
+        "instructions": 201,
+        "memory": 43,
+        "rsp": 26,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.halfHorizontalAvg",
+        "instructions": 183,
+        "memory": 40,
+        "rsp": 3,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.filterChromaWeakVertical",
+        "instructions": 132,
+        "memory": 31,
+        "rsp": 8,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.deblockMb",
+        "instructions": 1423,
+        "memory": 384,
+        "rsp": 172,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.halfVerticalRows",
+        "instructions": 165,
+        "memory": 52,
+        "rsp": 22,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.addIdct4x4",
+        "instructions": 56,
+        "memory": 12,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.addPlaneResidual",
+        "instructions": 539,
+        "memory": 125,
+        "rsp": 15,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.intraPredict16x16",
+        "instructions": 297,
+        "memory": 79,
+        "rsp": 8,
+        "push": 3
+      },
+      {
+        "name": "Video.H264.filterChromaWeakHorizontal",
+        "instructions": 77,
+        "memory": 17,
+        "rsp": 4,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.edgeStrengths",
+        "instructions": 153,
+        "memory": 40,
+        "rsp": 9,
+        "push": 7
+      },
+      {
+        "name": "Slice.assignSkipMotion",
+        "instructions": 246,
+        "memory": 76,
+        "rsp": 14,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.edgeStrength",
+        "instructions": 136,
+        "memory": 30,
+        "rsp": 4,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.intraPredict4x4",
+        "instructions": 510,
+        "memory": 126,
+        "rsp": 48,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.hadamard4x4",
+        "instructions": 45,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.addIdct8x8Scalar",
+        "instructions": 357,
+        "memory": 98,
+        "rsp": 56,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.addDc8x8Quad",
+        "instructions": 99,
+        "memory": 16,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.addDc4x4",
+        "instructions": 38,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.appendFrames",
+        "instructions": 349,
+        "memory": 99,
+        "rsp": 11,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.filterLuma",
+        "instructions": 284,
+        "memory": 46,
+        "rsp": 24,
+        "push": 7
+      },
+      {
+        "name": "Slice.reconstructMb",
+        "instructions": 535,
+        "memory": 94,
+        "rsp": 16,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.weightUni",
+        "instructions": 152,
+        "memory": 18,
+        "rsp": 7,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.intraPredictChroma",
+        "instructions": 312,
+        "memory": 43,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.filterChromaStrongHorizontal",
+        "instructions": 126,
+        "memory": 19,
+        "rsp": 6,
+        "push": 6
+      },
+      {
+        "name": "Slice.buildLists",
+        "instructions": 331,
+        "memory": 87,
+        "rsp": 9,
+        "push": 7
+      },
+      {
+        "name": "AvcStream.installFrames",
+        "instructions": 127,
+        "memory": 35,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.tap6Row16",
+        "instructions": 46,
+        "memory": 14,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.bookkeepSkippedPMb",
+        "instructions": 136,
+        "memory": 47,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.residualCavlc",
+        "instructions": 457,
+        "memory": 75,
+        "rsp": 20,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.weightBiRow",
+        "instructions": 75,
+        "memory": 10,
+        "rsp": 10,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.chromaWeakDelta",
+        "instructions": 61,
+        "memory": 11,
+        "rsp": 4,
+        "push": 0
+      },
+      {
+        "name": "Slice.sortForB",
+        "instructions": 60,
+        "memory": 17,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.bookkeepMb",
+        "instructions": 646,
+        "memory": 278,
+        "rsp": 16,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.storeLines4",
+        "instructions": 14,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.storeRows4",
+        "instructions": 9,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.predictIntraPlane",
+        "instructions": 2126,
+        "memory": 697,
+        "rsp": 119,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.parseScalingMatrices",
+        "instructions": 339,
+        "memory": 118,
+        "rsp": 38,
+        "push": 7
+      },
+      {
+        "name": "Decoder.applyMmco",
+        "instructions": 245,
+        "memory": 75,
+        "rsp": 4,
+        "push": 7
+      },
+      {
+        "name": "Frame.colMotion",
+        "instructions": 58,
+        "memory": 36,
+        "rsp": 6,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.tap6Row8",
+        "instructions": 31,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.addIdct4x4Scalar",
+        "instructions": 223,
+        "memory": 101,
+        "rsp": 63,
+        "push": 7
+      },
+      {
+        "name": "Slice.sortByPicNumDescending",
+        "instructions": 32,
+        "memory": 10,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Video.H264.centerSums8",
+        "instructions": 16,
+        "memory": 7,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.planeStride",
+        "instructions": 5,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.intraMbAvailable",
+        "instructions": 39,
+        "memory": 6,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Frame.pixLuma",
+        "instructions": 12,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.pixPlane",
+        "instructions": 34,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterChromaStrongVertical",
+        "instructions": 125,
+        "memory": 10,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.copyIntra16x16",
+        "instructions": 8,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.pixChroma",
+        "instructions": 19,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.fillIntra16x16",
+        "instructions": 11,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.planeResidual",
+        "instructions": 31,
+        "memory": 10,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.lowpassBytes",
+        "instructions": 8,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.filterChroma",
+        "instructions": 121,
+        "memory": 10,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.prepareMb",
+        "instructions": 106,
+        "memory": 55,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.averagePlanes",
+        "instructions": 103,
+        "memory": 14,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.halfCenter",
+        "instructions": 190,
+        "memory": 22,
+        "rsp": 7,
+        "push": 7
+      },
+      {
+        "name": "Slice.combineBi",
+        "instructions": 214,
+        "memory": 49,
+        "rsp": 11,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.hadamard4x4Scalar",
+        "instructions": 142,
+        "memory": 40,
+        "rsp": 16,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.storeIntra8Vertical",
+        "instructions": 25,
+        "memory": 18,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.storeIntra8Filtered",
+        "instructions": 4,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.mcPlaneList",
+        "instructions": 160,
+        "memory": 38,
+        "rsp": 14,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.addPlane4x4Residual",
+        "instructions": 23,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.mcChromaPair",
+        "instructions": 168,
+        "memory": 42,
+        "rsp": 26,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.deblockMotion",
+        "instructions": 28,
+        "memory": 9,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.resolveNeighbors",
+        "instructions": 137,
+        "memory": 44,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.mcLuma",
+        "instructions": 148,
+        "memory": 27,
+        "rsp": 15,
+        "push": 8
+      },
+      {
+        "name": "Slice.parsePlaneResidualCavlc",
+        "instructions": 410,
+        "memory": 105,
+        "rsp": 47,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.pullOuter",
+        "instructions": 13,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.extendPlane",
+        "instructions": 97,
+        "memory": 27,
+        "rsp": 17,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.biasedEdge",
+        "instructions": 15,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.releasePendingBelow",
+        "instructions": 32,
+        "memory": 5,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.weightUniRow",
+        "instructions": 41,
+        "memory": 2,
+        "rsp": 2,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.copyPlane",
+        "instructions": 65,
+        "memory": 8,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.mcChroma",
+        "instructions": 133,
+        "memory": 31,
+        "rsp": 13,
+        "push": 8
+      },
+      {
+        "name": "Decoder.parsePpsNal",
+        "instructions": 172,
+        "memory": 73,
+        "rsp": 49,
+        "push": 6
+      },
+      {
+        "name": "AvcStream.seekTo",
+        "instructions": 118,
+        "memory": 22,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.compensate",
+        "instructions": 1244,
+        "memory": 366,
+        "rsp": 128,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.deblockMotionMatches",
+        "instructions": 16,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.deblockMotionDiffers",
+        "instructions": 19,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.storeWeightedRow",
+        "instructions": 18,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.addChromaResidual",
+        "instructions": 287,
+        "memory": 75,
+        "rsp": 10,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.weakStrengthLanes",
+        "instructions": 8,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.addRow8",
+        "instructions": 7,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.blockNz",
+        "instructions": 58,
+        "memory": 16,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.presentationTimeAtRank",
+        "instructions": 6,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.refCtxFlag",
+        "instructions": 72,
+        "memory": 19,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.syncRankAt",
+        "instructions": 15,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.predictMv",
+        "instructions": 382,
+        "memory": 80,
+        "rsp": 11,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.copyClamped",
+        "instructions": 80,
+        "memory": 6,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Slice.releaseScratchResidual",
+        "instructions": 83,
+        "memory": 44,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.extendPlaneRows",
+        "instructions": 55,
+        "memory": 11,
+        "rsp": 1,
+        "push": 2
+      },
+      {
+        "name": "Video.H264.storeChromaBlend",
+        "instructions": 11,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.sameList",
+        "instructions": 22,
+        "memory": 7,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.nextDisplayFrame",
+        "instructions": 111,
+        "memory": 27,
+        "rsp": 3,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.storeLevels",
+        "instructions": 44,
+        "memory": 4,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.parseHeader",
+        "instructions": 539,
+        "memory": 134,
+        "rsp": 8,
+        "push": 7
+      },
+      {
+        "name": "Slice.parseResidualCavlc",
+        "instructions": 213,
+        "memory": 29,
+        "rsp": 3,
+        "push": 7
+      },
+      {
+        "name": "AvcStream.open",
+        "instructions": 178,
+        "memory": 33,
+        "rsp": 2,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.hadamard2x2",
+        "instructions": 19,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.mcChromaList",
+        "instructions": 63,
+        "memory": 14,
+        "rsp": 4,
+        "push": 4
+      },
+      {
+        "name": "Video.H264.reconstructBand",
+        "instructions": 103,
+        "memory": 26,
+        "rsp": 5,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.within",
+        "instructions": 9,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.reconstructPicture",
+        "instructions": 106,
+        "memory": 24,
+        "rsp": 3,
+        "push": 4
+      },
+      {
+        "name": "Decoder.decodePreparedAccessUnit",
+        "instructions": 105,
+        "memory": 14,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Decoder.parseSpsNal",
+        "instructions": 114,
+        "memory": 15,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.unmarkLongIndex",
+        "instructions": 21,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.chromaBlockNz",
+        "instructions": 49,
+        "memory": 13,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.motionAt",
+        "instructions": 134,
+        "memory": 20,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcStream.startFrame",
+        "instructions": 196,
+        "memory": 44,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.addDc4x4Scalar",
+        "instructions": 51,
+        "memory": 8,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.decodeData",
+        "instructions": 336,
+        "memory": 79,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.parseScalingList",
+        "instructions": 52,
+        "memory": 4,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.deblockGridMotion",
+        "instructions": 6,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.packedMotion",
+        "instructions": 12,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.halfSum",
+        "instructions": 7,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.matchVlc",
+        "instructions": 51,
+        "memory": 8,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.extendPlaneBottom",
+        "instructions": 27,
+        "memory": 7,
+        "rsp": 7,
+        "push": 0
+      },
+      {
+        "name": "Slice.assignMotion",
+        "instructions": 157,
+        "memory": 37,
+        "rsp": 11,
+        "push": 8
+      },
+      {
+        "name": "Video.H264.dcLanes",
+        "instructions": 15,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 502,
+        "memory": 110,
+        "rsp": 14,
+        "push": 7
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 516,
+        "memory": 114,
+        "rsp": 16,
+        "push": 8
+      },
+      {
+        "name": "Slice.partGeometry",
+        "instructions": 34,
+        "memory": 10,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 502,
+        "memory": 110,
+        "rsp": 14,
+        "push": 7
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 524,
+        "memory": 119,
+        "rsp": 16,
+        "push": 8
+      },
+      {
+        "name": "Slice.residualCabac",
+        "instructions": 516,
+        "memory": 114,
+        "rsp": 16,
+        "push": 8
+      },
+      {
+        "name": "Frame.copyPlanes",
+        "instructions": 144,
+        "memory": 26,
+        "rsp": 13,
+        "push": 6
+      },
+      {
+        "name": "Video.H264.deblockMotionFromJob",
+        "instructions": 9,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.fillNeighbor",
+        "instructions": 29,
+        "memory": 12,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Video.H264.extendPlaneTop",
+        "instructions": 27,
+        "memory": 9,
+        "rsp": 9,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.dequantLevel",
+        "instructions": 19,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.tap6Half16",
+        "instructions": 13,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.chromaPairs",
+        "instructions": 3,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.computePoc",
+        "instructions": 202,
+        "memory": 43,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Video.H264.deblockJobMotion",
+        "instructions": 4,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.intra16Dc",
+        "instructions": 14,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.tap6Center16",
+        "instructions": 10,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.buildImplicitWeights",
+        "instructions": 118,
+        "memory": 19,
+        "rsp": 11,
+        "push": 7
+      },
+      {
+        "name": "Slice.dcFlagNeighbor",
+        "instructions": 23,
+        "memory": 7,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.insertLong",
+        "instructions": 26,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.mbAvailable",
+        "instructions": 28,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.jobAt",
+        "instructions": 43,
+        "memory": 8,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.neighborIntraMode",
+        "instructions": 48,
+        "memory": 12,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.decodeSliceNal",
+        "instructions": 248,
+        "memory": 29,
+        "rsp": 8,
+        "push": 6
+      },
+      {
+        "name": "Slice.deriveDirectTemporal",
+        "instructions": 324,
+        "memory": 96,
+        "rsp": 50,
+        "push": 8
+      },
+      {
+        "name": "Slice.applyListOps",
+        "instructions": 183,
+        "memory": 41,
+        "rsp": 12,
+        "push": 7
+      },
+      {
+        "name": "Slice.bBefore",
+        "instructions": 21,
+        "memory": 6,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.chromaWeights",
+        "instructions": 7,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.tap6Raw16",
+        "instructions": 9,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.clampPixel",
+        "instructions": 9,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "CabacReader.initContexts",
+        "instructions": 61,
+        "memory": 6,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Decoder.mmcoPicNum",
+        "instructions": 8,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.releaseFrame",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.prepare",
+        "instructions": 119,
+        "memory": 35,
+        "rsp": 22,
+        "push": 2
+      },
+      {
+        "name": "AvcStream.clearFrameThreads",
+        "instructions": 43,
+        "memory": 11,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "AvcStream.decodeNext",
+        "instructions": 47,
+        "memory": 7,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcStream.decodeNextPlanes",
+        "instructions": 47,
+        "memory": 7,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcStream.releasePending",
+        "instructions": 23,
+        "memory": 4,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.startPicture",
+        "instructions": 221,
+        "memory": 54,
+        "rsp": 19,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.weightBiQuads",
+        "instructions": 18,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.tap6",
+        "instructions": 10,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.mvdCabac",
+        "instructions": 318,
+        "memory": 56,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.setList",
+        "instructions": 12,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.finishAccessUnit",
+        "instructions": 99,
+        "memory": 14,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.awaitJobReference",
+        "instructions": 91,
+        "memory": 18,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.planeQp",
+        "instructions": 20,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.deblockPicture",
+        "instructions": 87,
+        "memory": 18,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Frame.awaitParse",
+        "instructions": 49,
+        "memory": 5,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Frame.awaitProgress",
+        "instructions": 58,
+        "memory": 5,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.bSubIndex",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "CabacReader.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "EdgeStrength.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "ColMotion.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbInfo.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "BlockMotion.swagLifecycleInitWrapper",
+        "instructions": 2,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MmcoOp.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "PartGeom.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "McJob.swagLifecycleInitWrapper",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbExtraJobs.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbResidual.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.parseSubPartitionsB",
+        "instructions": 196,
+        "memory": 37,
+        "rsp": 16,
+        "push": 8
+      },
+      {
+        "name": "MbResidual444.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "NeighborMotion.swagLifecycleInitWrapper",
+        "instructions": 2,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Mb.swagLifecycleInitWrapper",
+        "instructions": 16,
+        "memory": 14,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbNeighbors.swagLifecycleInitWrapper",
+        "instructions": 13,
+        "memory": 11,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "MbNeighbor.swagLifecycleInitWrapper",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.swagLifecycleInitWrapper",
+        "instructions": 8,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "SliceHeader.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "RefPic.swagLifecycleInitWrapper",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "ListOp.swagLifecycleInitWrapper",
+        "instructions": 2,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Pps.swagLifecycleInitWrapper",
+        "instructions": 9,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "ThreadedAvcSample.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "PendingFrame.swagLifecycleInitWrapper",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcFrameThread.swagLifecycleInitWrapper",
+        "instructions": 9,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.swagLifecycleInitWrapper",
+        "instructions": 106,
+        "memory": 61,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.chromaQpAtLevel",
+        "instructions": 13,
+        "memory": 3,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Sps.is444",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.chromaQpAt",
+        "instructions": 16,
+        "memory": 3,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Frame.publishProgress",
+        "instructions": 21,
+        "memory": 2,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Frame.publishParse",
+        "instructions": 21,
+        "memory": 2,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Decoder.holdPictureReferences",
+        "instructions": 73,
+        "memory": 11,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.releasePictureReferences",
+        "instructions": 84,
+        "memory": 12,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.applyMarking",
+        "instructions": 144,
+        "memory": 26,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.parseIntraMode",
+        "instructions": 58,
+        "memory": 0,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.parsePlaneResidualCabac",
+        "instructions": 355,
+        "memory": 101,
+        "rsp": 41,
+        "push": 7
+      },
+      {
+        "name": "CabacReader.hasOverrun",
+        "instructions": 11,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "CabacReader.start",
+        "instructions": 15,
+        "memory": 8,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "CabacReader.reload",
+        "instructions": 22,
+        "memory": 7,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.decodeSkipFlagCabac",
+        "instructions": 86,
+        "memory": 22,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.intraMbTypeCabac",
+        "instructions": 109,
+        "memory": 6,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.subMbTypePCabac",
+        "instructions": 168,
+        "memory": 37,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.intraModeCabac",
+        "instructions": 221,
+        "memory": 48,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.subMbTypeBCabac",
+        "instructions": 422,
+        "memory": 92,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.chromaModeCabac",
+        "instructions": 189,
+        "memory": 43,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.transformFlagCabac",
+        "instructions": 22,
+        "memory": 6,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.cbpChromaCabac",
+        "instructions": 152,
+        "memory": 32,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.qpDeltaCabac",
+        "instructions": 89,
+        "memory": 16,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.cbpLumaCabac",
+        "instructions": 273,
+        "memory": 54,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.decision",
+        "instructions": 62,
+        "memory": 15,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.refIdxCabac",
+        "instructions": 101,
+        "memory": 15,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.bypass",
+        "instructions": 39,
+        "memory": 10,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.parseMbCabac",
+        "instructions": 886,
+        "memory": 201,
+        "rsp": 9,
+        "push": 7
+      },
+      {
+        "name": "Slice.terminate",
+        "instructions": 42,
+        "memory": 11,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Video.H264.deblockRow",
+        "instructions": 25,
+        "memory": 2,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.parseResidualCabac",
+        "instructions": 182,
+        "memory": 30,
+        "rsp": 10,
+        "push": 7
+      },
+      {
+        "name": "Frame.swagLifecycleDropWrapper",
+        "instructions": 30,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Frame.swagLifecyclePostcopyWrapper",
+        "instructions": 27,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Frame.progressComplete",
+        "instructions": 3,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.isReference",
+        "instructions": 5,
+        "memory": 2,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Frame.toRgb",
+        "instructions": 19,
+        "memory": 0,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Frame.extendEdges",
+        "instructions": 44,
+        "memory": 13,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Frame.view",
+        "instructions": 67,
+        "memory": 26,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Frame.extendRowEdges",
+        "instructions": 71,
+        "memory": 16,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Frame.extendBottomEdge",
+        "instructions": 38,
+        "memory": 10,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.swagLifecycleDropWrapper",
+        "instructions": 156,
+        "memory": 0,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.swagLifecyclePostcopyWrapper",
+        "instructions": 53,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Decoder.configure",
+        "instructions": 115,
+        "memory": 20,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Decoder.opDrop",
+        "instructions": 28,
+        "memory": 3,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Decoder.configureSet",
+        "instructions": 71,
+        "memory": 14,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.discardAccessUnit",
+        "instructions": 13,
+        "memory": 4,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Decoder.restart",
+        "instructions": 53,
+        "memory": 13,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.decodeAccessUnit",
+        "instructions": 57,
+        "memory": 5,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.inheritPredictionState",
+        "instructions": 71,
+        "memory": 16,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Decoder.failPreparedAccessUnit",
+        "instructions": 19,
+        "memory": 7,
+        "rsp": 3,
+        "push": 0
+      },
+      {
+        "name": "Decoder.awaitReferenceProgress",
+        "instructions": 107,
+        "memory": 23,
+        "rsp": 12,
+        "push": 7
+      },
+      {
+        "name": "Decoder.hasSinglePictureSlice",
+        "instructions": 54,
+        "memory": 5,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Decoder.prepareAccessUnit",
+        "instructions": 174,
+        "memory": 34,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.firstSps",
+        "instructions": 19,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.parseAccessUnit",
+        "instructions": 207,
+        "memory": 32,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Decoder.referenceIdentity",
+        "instructions": 17,
+        "memory": 6,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.canSkipWhileSeeking",
+        "instructions": 81,
+        "memory": 7,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.validatePicture",
+        "instructions": 21,
+        "memory": 6,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.mbInfoAt",
+        "instructions": 11,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.handleNal",
+        "instructions": 160,
+        "memory": 28,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.neighborMvd",
+        "instructions": 78,
+        "memory": 17,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.addJob",
+        "instructions": 52,
+        "memory": 23,
+        "rsp": 4,
+        "push": 7
+      },
+      {
+        "name": "Slice.deriveDirect",
+        "instructions": 11,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.deriveSkipP",
+        "instructions": 126,
+        "memory": 24,
+        "rsp": 4,
+        "push": 5
+      },
+      {
+        "name": "Slice.colBlockIndex",
+        "instructions": 14,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.colMbIndex",
+        "instructions": 7,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.advanceMb",
+        "instructions": 25,
+        "memory": 12,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.allowsTransform8x8",
+        "instructions": 31,
+        "memory": 10,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.decodeSkipMb",
+        "instructions": 100,
+        "memory": 43,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.parseIntraMb",
+        "instructions": 275,
+        "memory": 57,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.parseMbCavlc",
+        "instructions": 257,
+        "memory": 53,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.parsePcm",
+        "instructions": 211,
+        "memory": 47,
+        "rsp": 17,
+        "push": 7
+      },
+      {
+        "name": "Slice.parseInterMbP",
+        "instructions": 142,
+        "memory": 19,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.parseInterMbB",
+        "instructions": 121,
+        "memory": 20,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.parsePartitions",
+        "instructions": 158,
+        "memory": 28,
+        "rsp": 11,
+        "push": 8
+      },
+      {
+        "name": "Slice.parseRefIdx",
+        "instructions": 78,
+        "memory": 7,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.markCtxRef",
+        "instructions": 73,
+        "memory": 15,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Slice.applyMotion",
+        "instructions": 163,
+        "memory": 59,
+        "rsp": 22,
+        "push": 8
+      },
+      {
+        "name": "Slice.parseMvd",
+        "instructions": 53,
+        "memory": 3,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.parseSubPartitions",
+        "instructions": 122,
+        "memory": 16,
+        "rsp": 5,
+        "push": 8
+      },
+      {
+        "name": "Slice.parseSubRefIdx",
+        "instructions": 54,
+        "memory": 4,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.deriveDirectSpatial",
+        "instructions": 637,
+        "memory": 174,
+        "rsp": 94,
+        "push": 8
+      },
+      {
+        "name": "Slice.dequantRow4",
+        "instructions": 21,
+        "memory": 2,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.dequantRow8",
+        "instructions": 22,
+        "memory": 2,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Slice.parsePartitionsB",
+        "instructions": 222,
+        "memory": 40,
+        "rsp": 18,
+        "push": 8
+      },
+      {
+        "name": "Slice.blockNz8x8",
+        "instructions": 34,
+        "memory": 2,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Slice.planeNc",
+        "instructions": 52,
+        "memory": 0,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Slice.parseSubMvs",
+        "instructions": 323,
+        "memory": 122,
+        "rsp": 60,
+        "push": 8
+      },
+      {
+        "name": "Slice.chromaNc",
+        "instructions": 52,
+        "memory": 0,
+        "rsp": 0,
+        "push": 6
+      },
+      {
+        "name": "Decoder.completeReconstructedRow",
+        "instructions": 7,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Decoder.filterRow",
+        "instructions": 24,
+        "memory": 1,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "Decoder.waitReconstructionJobs",
+        "instructions": 21,
+        "memory": 1,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Decoder.completeInlinePicture",
+        "instructions": 29,
+        "memory": 7,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "Decoder.scheduleParsedRows",
+        "instructions": 58,
+        "memory": 17,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Sps.swagLifecyclePostcopyWrapper",
+        "instructions": 5,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.swagLifecycleDropWrapper",
+        "instructions": 5,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.chromaShift",
+        "instructions": 4,
+        "memory": 1,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.width",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Sps.height",
+        "instructions": 5,
+        "memory": 3,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.swagLifecycleDropWrapper",
+        "instructions": 10,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.swagLifecyclePostcopyWrapper",
+        "instructions": 10,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Slice.initDefaultWeights",
+        "instructions": 42,
+        "memory": 18,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.prefetchMotion",
+        "instructions": 117,
+        "memory": 15,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "Pps.parse",
+        "instructions": 213,
+        "memory": 55,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "Slice.skipRepeatedMarking",
+        "instructions": 33,
+        "memory": 1,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "AvcFrameThread.opEquals",
+        "instructions": 37,
+        "memory": 8,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcFrameThread.swagLifecycleDropWrapper",
+        "instructions": 12,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "AvcFrameThread.swagLifecyclePostcopyWrapper",
+        "instructions": 5,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "Slice.parseWeights",
+        "instructions": 138,
+        "memory": 28,
+        "rsp": 5,
+        "push": 7
+      },
+      {
+        "name": "AvcFrameThread.swagLifecyclePostmoveWrapper",
+        "instructions": 5,
+        "memory": 0,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.swagLifecyclePostmoveWrapper",
+        "instructions": 51,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "AvcStream.opDrop",
+        "instructions": 11,
+        "memory": 0,
+        "rsp": 0,
+        "push": 1
+      },
+      {
+        "name": "AvcStream.stopFrameThreads",
+        "instructions": 31,
+        "memory": 3,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "Pps.buildDequant",
+        "instructions": 217,
+        "memory": 70,
+        "rsp": 10,
+        "push": 6
+      },
+      {
+        "name": "Sps.parse",
+        "instructions": 376,
+        "memory": 77,
+        "rsp": 2,
+        "push": 7
+      },
+      {
+        "name": "AvcStream.replaceFrames",
+        "instructions": 78,
+        "memory": 17,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "AvcStream.ensureFrameThreads",
+        "instructions": 139,
+        "memory": 13,
+        "rsp": 0,
+        "push": 5
+      },
+      {
+        "name": "AvcStream.shutdownFrameThreads",
+        "instructions": 82,
+        "memory": 5,
+        "rsp": 0,
+        "push": 4
+      },
+      {
+        "name": "AvcStream.reserveLane",
+        "instructions": 20,
+        "memory": 5,
+        "rsp": 0,
+        "push": 0
+      },
+      {
+        "name": "AvcStream.fillFrameThreads",
+        "instructions": 54,
+        "memory": 7,
+        "rsp": 0,
+        "push": 3
+      },
+      {
+        "name": "AvcStream.swagLifecyclePostcopyWrapper",
+        "instructions": 932,
+        "memory": 0,
+        "rsp": 0,
+        "push": 2
+      },
+      {
+        "name": "AvcStream.decodeStoredSample",
+        "instructions": 129,
+        "memory": 35,
+        "rsp": 0,
+        "push": 7
+      },
+      {
+        "name": "Video.H264.runAvcFrameThread",
+        "instructions": 102,
+        "memory": 19,
+        "rsp": 4,
+        "push": 7
+      },
+      {
+        "name": "AvcStream.swagLifecycleDropWrapper",
+        "instructions": 2615,
+        "memory": 0,
+        "rsp": 0,
+        "push": 3
+      }
+    ]
+  }
+}

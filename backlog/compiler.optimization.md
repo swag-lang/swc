@@ -85,6 +85,43 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.098 — Feed packed output directly from the round vectors
+
+- Recorded: 2026-09-29 08:04
+- Updated: 2026-10-06 14:54 — Narrow the remaining work to the state-vector round trip.
+- Area: compiler/backend, SIMD dataflow and memory forwarding
+- Evidence: indexed RMW SLP now packs ChaCha's 16 output updates. Main changes from
+  446 instructions / 143 memory operations to 425 / 113 with matching checksum.
+  Four vector stores at the round-loop exit are still followed by four loads of
+  those exact state chunks for the output additions. The initial-array reads and
+  destination reads/writes are necessary; the state round trip is the next target.
+- Next: forward the loop's final vector values into the output plan before allocation,
+  then remove a state store only if no later or aliased access needs it. Inspect
+  source and destination lifetimes together so forwarding does not create spills.
+  Keep mixed-width and escaped-frame reads as barriers.
+- Complete when: this round trip disappears with unchanged checksum and no new
+  spill traffic, or the remaining lifetime cost is established from emitted code.
+- Evidence artifact: [indexed SLP](../bench/results/generated-code/20261006-indexed-slp/README.md).
+
+### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
+
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-10-06 14:54 — Share LICM and SLP privacy and retain the remaining consumers.
+- Area: compiler/backend, memory alias analysis
+- Current boundary: LICM and SLP consume MicroPassHelpers::analyzeFramePrivacy.
+  SLP additionally checks escape reachability so an escape after a loop does not
+  invalidate its earlier private-frame proof. MemToReg now reconciles direct SP
+  accesses with the captured frame using shared CFG displacement facts when SP moves.
+  PostRALoopHoist still owns a separate frame-object reachability model.
+- Next: reconcile the post-allocation object model with the shared proof without
+  losing byte-range precision, then use disjoint spaces in forwarding and value
+  numbering. Inspect the four H.264 allocation changes caused by the necessary SP
+  alias repair: applyMotion, deriveDirectTemporal, deriveDirectSpatial, parseSubMvs
+  together add four instructions and five memory operands; preserve the repair.
+- Complete when: shared facts cover those consumers, forwarding crosses a proven
+  disjoint store in a real codec loop, and remaining local allocation costs are resolved.
+- Related: compiler.optimization.015, compiler.optimization.098.
+
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Recorded: 2026-08-27 07:57
@@ -1079,19 +1116,6 @@ new language syntax.
   Zig's executed path; focus on register and frame traffic rather than its absent collisions.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
-### compiler.optimization.098 — Feed adjacent array updates from a packed state
-
-- Recorded: 2026-09-29 08:04
-- Updated: 2026-09-29 10:25 — Archived the full milestone campaign under machine drift.
-- Area: compiler/backend, SIMD dataflow and memory aliasing
-- Evidence: after ChaCha's packed round loop, Swag stores four vectors to the local state array, then emits 16 repetitions of a scalar state load, an add from the initial array, and an indexed XOR into the output array: four vector stores and 48 scalar Micro instructions per output block. The latest accepted campaign names C++/clang-cl as the fastest other runtime. Its emitted code packs one four-word slice for a vector add, XOR, and store while updating the remaining words individually. This identifies an output path left scalar after Swag's round vectorization, not a measured cost for a compiler edit.
-- Mechanism: `InstructionCombine::tryMemoryFoldTriple` folds each scalar load/XOR/store into `OpBinaryMemReg` before SLP runs. A bounded four-word-store filter now defers the 32-bit XOR fold until SLP has checked the block, then the cleanup loop folds any residual scalar triples. In a scratch function with an incoming output pointer and a stack-resident four-word input, SLP emits one vector load of the input, one splat, add, vector load of the output, XOR, and vector store: seven operations instead of twelve scalar load/add/memory-XOR operations. An unrelated four-store case with different add constants retains its four memory XOR instructions and 36-function-instruction count; two overlapping parameter pointers also stay scalar and preserve sequential results. A global suppression without cleanup had grown an earlier scalar case from 30 to 38 instructions and was removed.
-- Constraint: packing several output updates changes when later state and initial elements are read relative to earlier output writes. The output comes from `benchAlloc`, a wrapper around the runtime allocator; the current Micro pass does not carry a freshness or no-alias proof from that call. A rewrite based only on adjacent addresses could change programs whose output overlaps an input array.
-- Further inspection: each source iteration has one indexed read-modify-write; the existing loop unroller makes sixteen adjacent instances, which `tryMemoryFoldAmcTriple` folds before SLP. SLP rejects every indexed read and write as unresolved, and its root proof recognizes stack and incoming-parameter disjointness but gives allocator returns an unknown root. Extending only the earlier four-store deferral therefore cannot vectorize this loop. A new path needs both a proof across the unrolled iterations and either a documented fresh-allocation contract or a checked overlap fallback.
-- Validation: native Release and DevMode tests for the packed and overlapping cases, JIT Release, 1,156 C++ tests, and all seven benchmark checksums pass. The selected functions of all seven benchmarks have unchanged normalized Micro instructions, including ChaCha's 51-instruction packed round and 457-instruction main. No individual runtime timing informed the decision.
-- Milestone: the full campaign `20260929-082219` passed every checksum but was archived under `bench/results/rejected/`. Its reference workload moved 65.9% between neighbouring probes (40% limit), and unchanged build controls spread by 30.7% (25% limit). Other compiler builds and test suites were active on the shared machine during the sweep. The accepted baseline and runtime winners remain `20260928-170009`; no speedup or regression is inferred from the rejected timings.
-- Next: establish the allocator result's usable provenance and the exact stack/heap disjointness contract, or guard the overlap case at run time. Extend the deferral and SLP proof to four indexed output updates only when their stable base and adjacent offsets are known. Test overlapping and disjoint indexed arrays, then compare the output path's instructions, memory operations, and spills with clang-cl. Keep the benchmark's computation unchanged.
-
 ### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
 
 - Recorded: 2026-09-28 16:35
@@ -1408,27 +1432,6 @@ new language syntax.
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
 
-### compiler.optimization.054 — Prove contiguous indexed updates before packing them
-
-- Recorded: 2026-09-24 23:10
-- Updated: 2026-09-24 23:42 — Confirmed the SLP memory-effect guard leaves ChaCha's 48/48 output loop unchanged.
-- Area: compiler/backend, SLP vectorization and indexed memory
-- Evidence: after folding ChaCha's output address into each XOR, its unrolled
-  16-word update has 48 micro instructions and 48 explicit memory operations.
-  Clang-cl and MSVC also use scalar indexed read-modify-write operations there.
-  `Pass.SlpVectorize.cpp` seeds groups only from plain aligned 32-bit stores at
-  known root offsets. Indexed read-modify-write operations lack a fixed offset;
-  treating them as invisible to the block scan could move packed stores across
-  an alias, so the current pass rejects such blocks.
-- Next: seek an unrelated four-lane loop with one stable base and index and
-  constant offsets, then prototype a proof that the four indexed updates are
-  adjacent, do not alias intervening accesses, and retain their source values.
-  Compare per-loop instruction and memory counts against scalar code from both
-  C++ compilers before adding a vector rewrite. Include an aliasing counterexample
-  and a case where packing costs more than the scalar memory instructions.
-- Complete when: either a profitable general rule and its alias tests are in
-  place, or measurements show that scalar indexed updates are the better form.
-
 ### compiler.optimization.046 — A local array copied whole stays in memory, and scalarizing the copy costs the vectorizer
 
 - Recorded: 2026-09-23 19:51
@@ -1453,24 +1456,6 @@ new language syntax.
   version, and it does not exist.
 - Complete when: either a rule promotes a whole-copied local array without costing vectorization,
   or this records that the two cannot be reconciled and the fill-only rule is the end of it.
-
-### compiler.optimization.020 — Memory optimizations maintain separate frame alias analyses
-
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: the three existing private frame analyses - LICM's `analyzeFramePrivacy`,
-  `PostRALoopHoist`'s `FrameReachability` root model, SLP's parameter-root classification -
-  become one shared `MicroPassHelpers` analysis (sp-space / parameter-space / unknown),
-  consumed by store-to-load forwarding (a frame-slot cache entry survives an unrelated pointer
-  store), the combine passes' window aborts, and `ValueNumbering`'s memory epochs (a store to a
-  provably disjoint space stops killing all load numbering; a label whose only predecessor is its
-  fall-through stops advancing the epoch). LLVM's analog is BasicAA feeding EarlyCSE and GVN.
-- Next: lift `analyzeFramePrivacy` into `MicroPassHelpers` and make the other two users
-  consume it, then let store-to-load forwarding survive a disjoint-space store.
-- Complete when: the shared analysis replaces all three private copies, forwarding survives
-  across a disjoint-space store in a codec inner loop (dump-verified), and instruction counts on
-  the video corpus do not regress.
-- Related: compiler.optimization.015.
 
 ### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
 

@@ -15,6 +15,145 @@
 
 SWC_BEGIN_NAMESPACE();
 
+MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const MicroPassContext& context, std::span<const MicroInstrRef> refs, std::span<const MicroInstrUseDef> useDefs, const std::unordered_map<MicroReg, RegDefinitionSummary>& definitions, bool collectEscapes)
+{
+    FramePrivacy   result;
+    const MicroReg stackPointer = CallConv::get(context.callConvKind).stackPointer;
+    const auto&    storage      = *context.instructions;
+    const auto&    operands     = *context.operands;
+    if (!stackPointer.isValid())
+    {
+        result.framePrivate = false;
+        return result;
+    }
+    const auto propagatesAddress = [](const MicroInstr& inst, const MicroInstrOperand* ops) {
+        if (inst.op == MicroInstrOpcode::LoadRegReg || inst.op == MicroInstrOpcode::LoadAddrRegMem)
+            return ops && ops[2].opBits == MicroOpBits::B64;
+        return inst.op == MicroInstrOpcode::LoadAddrAmcRegMem && ops && ops[3].opBits == MicroOpBits::B64;
+    };
+    bool changed = true;
+    while (changed)
+    {
+        changed = false;
+        for (uint32_t i = 0; i < refs.size(); ++i)
+        {
+            const MicroInstr* inst = storage.ptr(refs[i]);
+            const auto*       ops  = inst ? inst->ops(operands) : nullptr;
+            if (!inst || !propagatesAddress(*inst, ops) || useDefs[i].defs.size() != 1)
+                continue;
+            const MicroReg dst = useDefs[i].defs[0];
+            const auto     def = definitions.find(dst);
+            if (!dst.isVirtualInt() || def == definitions.end() || def->second.count != 1 || result.frameDerived.contains(dst))
+                continue;
+            if (result.isFrame(ops[1].reg, stackPointer))
+            {
+                result.frameDerived.insert(dst);
+                changed = true;
+            }
+        }
+    }
+    for (uint32_t i = 0; i < refs.size(); ++i)
+    {
+        const MicroInstr* inst = storage.ptr(refs[i]);
+        const auto*       ops  = inst ? inst->ops(operands) : nullptr;
+        if (!inst || !ops)
+            continue;
+        const auto& info        = MicroInstr::info(inst->op);
+        uint8_t     baseIndex   = 0;
+        const bool  hasBase     = dereferenceBaseOperandIndex(baseIndex, inst->op, info);
+        const bool  propagation = propagatesAddress(*inst, ops) && result.frameDerived.contains(ops[0].reg);
+        const auto  modes       = info.resolvedRegModes(ops);
+        for (size_t operand = 0; operand < modes.size(); ++operand)
+        {
+            if (modes[operand] != MicroInstrRegMode::Use && modes[operand] != MicroInstrRegMode::UseDef)
+                continue;
+            if (!result.isFrame(ops[operand].reg, stackPointer))
+                continue;
+            // Match operand positions: storing the same pointer used as the
+            // destination base still exposes that pointer as a value.
+            if ((hasBase && operand == baseIndex) || (propagation && operand == 1))
+                continue;
+            if (ops[operand].reg == stackPointer && inst->op == MicroInstrOpcode::OpBinaryRegImm && operand == 0 &&
+                (ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract))
+                continue;
+            result.framePrivate = false;
+            if (!collectEscapes)
+                return result;
+            result.escapes.push_back(refs[i]);
+            break;
+        }
+    }
+    return result;
+}
+
+std::unordered_map<uint32_t, uint64_t> MicroPassHelpers::collectStackPointerOffsets(const MicroPassContext& context, MicroInstrRef frameBaseRef, uint64_t frameBaseOffset)
+{
+    std::unordered_map<uint32_t, uint64_t> result;
+    const auto&                            cfg   = context.builder->controlFlowGraph();
+    const uint32_t                         entry = cfg.indexOf(frameBaseRef);
+    if (entry == MicroControlFlowGraph::K_NO_INDEX || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.addressTakenLabelIndices().empty())
+        return result;
+    const auto&    callConv     = CallConv::get(context.callConvKind);
+    const MicroReg stackPointer = callConv.stackPointer;
+    const auto     refs         = cfg.instructionRefs();
+    // 0: unvisited, 1: one known displacement, 2: conflicting or unknown.
+    std::vector<uint8_t>  states(refs.size());
+    std::vector<uint64_t> offsets(refs.size());
+    std::vector<uint32_t> pending{entry};
+    states[entry]  = 1;
+    offsets[entry] = 0ull - frameBaseOffset;
+    while (!pending.empty())
+    {
+        const uint32_t index = pending.back();
+        pending.pop_back();
+        uint8_t           state  = states[index];
+        uint64_t          offset = offsets[index];
+        const MicroInstr& inst   = *context.instructions->ptr(refs[index]);
+        const auto*       ops    = inst.ops(*context.operands);
+        if (state == 1)
+        {
+            if (inst.op == MicroInstrOpcode::Push)
+                offset -= callConv.stackSlotSize();
+            else if (inst.op == MicroInstrOpcode::Pop)
+            {
+                if (ops[0].reg == stackPointer)
+                    state = 2;
+                else
+                    offset += callConv.stackSlotSize();
+            }
+            else if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg == stackPointer && ops[1].opBits == MicroOpBits::B64 &&
+                     (ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract))
+                offset += ops[2].microOp == MicroOp::Add ? ops[3].valueU64 : 0ull - ops[3].valueU64;
+            else if (ops)
+            {
+                const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+                for (size_t operand = 0; operand < modes.size(); ++operand)
+                    if ((modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef) && ops[operand].reg == stackPointer)
+                        state = 2;
+            }
+        }
+        for (const uint32_t successor : cfg.successors(index))
+        {
+            if (states[successor] == 2)
+                continue;
+            if (states[successor] == 1 && state == 1 && offsets[successor] == offset)
+                continue;
+            if (states[successor])
+                states[successor] = 2;
+            else
+            {
+                states[successor]  = state;
+                offsets[successor] = offset;
+            }
+            pending.push_back(successor);
+        }
+    }
+    for (uint32_t index = 0; index < refs.size(); ++index)
+        if (states[index] == 1)
+            result.emplace(refs[index].get(), offsets[index]);
+    return result;
+}
+
 std::unordered_set<uint32_t> MicroPassHelpers::collectReadOnlyCallRefs(const MicroBuilder& builder)
 {
     std::unordered_set<uint32_t> refs;

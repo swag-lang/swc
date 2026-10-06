@@ -27,7 +27,8 @@ namespace
 {
     constexpr uint32_t K_MAX_ROUNDS = 64;
 
-    using NaturalLoop = MicroPassHelpers::NaturalLoop;
+    using NaturalLoop          = MicroPassHelpers::NaturalLoop;
+    using RegDefinitionSummary = MicroPassHelpers::RegDefinitionSummary;
 
     // Value-producing opcodes that never write memory or call. A flag-writing
     // clear additionally needs dead flags at both sites. Hoisting relocates its single
@@ -141,15 +142,6 @@ namespace
                op == MicroInstrOpcode::LoadVecRegMem;
     }
 
-    // A `mov`/`lea` that merely re-points an address. Returns the source whose
-    // address it propagates (first use), else invalid().
-    bool isAddressPropagation(MicroInstrOpcode op)
-    {
-        return op == MicroInstrOpcode::LoadRegReg ||
-               op == MicroInstrOpcode::LoadAddrRegMem ||
-               op == MicroInstrOpcode::LoadAddrAmcRegMem;
-    }
-
     // Stores whose base register is the first use operand. Push/Pop write only
     // the stack; any other memory writer is treated as an opaque pointer store.
     bool isFirstUseBaseStore(MicroInstrOpcode op)
@@ -173,127 +165,6 @@ namespace
     bool isStackOnlyWrite(MicroInstrOpcode op)
     {
         return op == MicroInstrOpcode::Push || op == MicroInstrOpcode::Pop;
-    }
-
-    // Sound frame-privacy analysis.
-    //
-    // `frameDerived` is the set of single-def virtual registers that provably
-    // hold an address into the current stack frame (the stack pointer, plus any
-    // `mov`/`lea` chain rooted at it). `framePrivate` is true when no such
-    // address ever escapes — i.e. every appearance of a frame-derived register
-    // is either the base of a load/store or the propagation of another tracked
-    // frame address. When private, a store to a frame slot cannot alias a load
-    // through a register that is not frame-derived (no outside pointer can name
-    // a private frame slot), which is what lets LICM hoist invariant loads past
-    // the loop-carried accumulator spill.
-    struct FramePrivacy
-    {
-        std::unordered_set<MicroReg> frameDerived;
-        bool                         framePrivate = true;
-
-        bool isFrame(MicroReg reg, MicroReg stackPointer) const
-        {
-            return reg == stackPointer || frameDerived.contains(reg);
-        }
-    };
-
-    struct RegDefinitionSummary
-    {
-        uint32_t count    = 0;
-        uint32_t lastSlot = 0;
-    };
-
-    FramePrivacy analyzeFramePrivacy(MicroStorage& storage, MicroOperandStorage& operands, std::span<const MicroInstrRef> instrRefs, std::span<const MicroInstrUseDef> useDefs, MicroReg stackPointer, const std::unordered_map<MicroReg, RegDefinitionSummary>& definitions)
-    {
-        FramePrivacy   fp;
-        const uint32_t n = static_cast<uint32_t>(instrRefs.size());
-        if (!stackPointer.isValid())
-        {
-            fp.framePrivate = false;
-            return fp;
-        }
-
-        auto singleDefVirtual = [&](MicroReg reg) {
-            if (!reg.isVirtualInt())
-                return false;
-            const auto it = definitions.find(reg);
-            return it != definitions.end() && it->second.count == 1;
-        };
-
-        // Closure: propagate frame-derivedness through single-def mov/lea chains.
-        bool changed = true;
-        while (changed)
-        {
-            changed = false;
-            for (uint32_t i = 0; i < n; ++i)
-            {
-                const MicroInstr* inst = storage.ptr(instrRefs[i]);
-                if (!inst || !isAddressPropagation(inst->op))
-                    continue;
-                const MicroInstrUseDef* ud = &useDefs[i];
-                if (ud->defs.size() != 1 || ud->uses.empty())
-                    continue;
-                const MicroReg dst = ud->defs[0];
-                const MicroReg src = ud->uses[0];
-                if (!singleDefVirtual(dst) || fp.frameDerived.contains(dst))
-                    continue;
-                if (fp.isFrame(src, stackPointer))
-                {
-                    fp.frameDerived.insert(dst);
-                    changed = true;
-                }
-            }
-        }
-
-        // Without derived registers, every operand in the escape scan would
-        // be ignored; the stack pointer itself never escapes through this rule.
-        if (fp.frameDerived.empty())
-            return fp;
-
-        // Escape scan: any frame-derived register that appears as something other
-        // than an explained base / propagation marks the frame as non-private.
-        for (uint32_t i = 0; i < n && fp.framePrivate; ++i)
-        {
-            const MicroInstr* inst = storage.ptr(instrRefs[i]);
-            if (!inst)
-                continue;
-            const MicroInstrUseDef* ud = &useDefs[i];
-
-            MicroReg explainedBase = MicroReg::invalid();
-            MicroReg explainedSrc  = MicroReg::invalid();
-            MicroReg explainedDst  = MicroReg::invalid();
-
-            if (isAddressPropagation(inst->op) && ud->defs.size() == 1 && fp.frameDerived.contains(ud->defs[0]))
-            {
-                explainedSrc = ud->uses.empty() ? MicroReg::invalid() : ud->uses[0];
-                explainedDst = ud->defs[0];
-            }
-            else if (opcodeReadsMemory(inst->op) || isFirstUseBaseStore(inst->op))
-            {
-                explainedBase = firstUseReg(*ud);
-            }
-
-            const MicroInstrOperand* ops = inst->ops(operands);
-            if (!ops)
-                continue;
-            const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
-            for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
-            {
-                if (modes[operandIndex] == MicroInstrRegMode::None)
-                    continue;
-                const MicroReg reg = ops[operandIndex].reg;
-                if (!reg.isValid() || reg.isNoBase())
-                    continue;
-                if (reg == stackPointer || !fp.frameDerived.contains(reg))
-                    continue;
-                if (reg == explainedBase || reg == explainedSrc || reg == explainedDst)
-                    continue;
-                fp.framePrivate = false;
-                break;
-            }
-        }
-
-        return fp;
     }
 
     // One instruction scheduled to move to a preheader, with its operands
@@ -488,8 +359,8 @@ namespace
             }
         }
 
-        const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
-        const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, definitions);
+        const MicroReg stackPointer = CallConv::get(context.callConvKind).stackPointer;
+        const auto     frame        = MicroPassHelpers::analyzeFramePrivacy(context, instrRefs, useDefs, definitions);
 
         // A value-handle parameter passed by reference is immutable to the
         // callee: no store and no call in a loop changes what a read through

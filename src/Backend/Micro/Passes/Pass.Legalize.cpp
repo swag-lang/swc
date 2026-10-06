@@ -198,6 +198,12 @@ namespace
         SWC_ASSERT(virtualReg.isVirtual());
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
+        // After interval allocation every carried value has concrete uses.
+        // The allocator protects that liveness and can save an untouched
+        // register for a short borrow. Making liveness a permanent operand
+        // prohibition would prevent that save/restore fallback as well.
+        if (!context.isFirstAllocationSweep && context.intervalAllocated)
+            return;
         if (!context.instructions->ptr(instRef))
             return;
 

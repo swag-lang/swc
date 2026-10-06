@@ -84,10 +84,32 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 `Inline`, and `NoInline` contracts explicit. This plan invents no command-line spellings or
 new language syntax.
 
+
+### compiler.optimization.035 — Reduce local spill regressions after removing the legalization reserve
+
+- Recorded: 2026-09-12 11:40
+- Updated: 2026-10-06 08:54 — remove the permanent reserve and isolate two remaining spill regressions.
+- Area: compiler/backend
+- Resolved: the interval allocator no longer withholds an integer register. Late legalization
+  can borrow a concrete register through the existing frame save/restore, while protecting
+  hard operand exclusions, concrete uses and other scratch mappings. Release native tests
+  (3622), pixel/gui builds and 23 H.264 tests pass.
+- Evidence: the current 334-function H.264 cohort loses 196 instructions and 276 explicit
+  RSP memory operations; LZ77 and SHA-256 also lose frame traffic. The extra callee-saved
+  register adds 59 prologue pushes across the cohort. See the
+  [complete structural evidence](../bench/results/generated-code/20261006-legalize-reserve/README.md).
+- Remaining: `Slice.parsePlaneResidualCabac` gains one memory operation and
+  `Slice.parsePlaneResidualCavlc` gains six (plus thirteen instructions). The full-pool
+  allocation is retained; these are local allocation-quality problems, not a reason to
+  reserve a register globally. No runtime regression is inferred from these static counts.
+- Next: compare the two functions' live intervals and spill choices with the retained
+  full-pool allocator, and identify why the extra register changes their split decisions.
+- Complete when: these local increases are removed or explained by a necessary tradeoff.
+
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
-- Updated: 2026-10-06 08:27 — retain position-precise MUL outputs on structural evidence.
+- Updated: 2026-10-06 08:54 — update the remaining fixed-claim scope after reserve removal.
 - Area: compiler/backend
 - State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
@@ -102,8 +124,7 @@ new language syntax.
   for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
   the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
   instruction, so no operand of theirs can share it, and the second legalization sweep can
-  then need the scratch register `tryBorrowReservedRegister` only lends when the first sweep
-  left one free.
+  then need a short save/restore borrow from `tryBorrowReservedRegister`.
 - Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
   and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
   R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
@@ -114,12 +135,58 @@ new language syntax.
   an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
   Investigate that allocation/layout interaction separately; it is not an independently
   confirmed regression, and no runtime gain is claimed for the retained rule.
-- Next: audit the remaining shift and compare-exchange constraints, then address the
-  legalization reserve in compiler.optimization.035. Preserve the resolved multiply output
-  rule and diagnose remaining borrow sites on a whole-library build.
+- Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
+  multiply output rule and diagnose remaining borrow sites on a whole-library build. The
+  global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
 - Complete when: the three forms carry position-precise fixed intervals, the borrow path no
   longer fires on a whole-library build, and the suites stay green.
 - Related: compiler.optimization.016.
+
+### compiler.optimization.105 — Prove lz77's signed remainder bounds
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-06 08:54 — remove the resolved XMM index transfer from the remaining LZ77 scope.
+- Area: compiler/backend, value ranges and signed remainder lowering.
+- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
+  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
+  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
+  loop has six instructions and two reads. Swag now matches those counts after
+  caching the invariant index in an otherwise unused caller-saved SIMD register.
+  The latch transfers its bits back to a GP register; one seed load runs before
+  the loop. These static changes have not been timed in a new full campaign.
+- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
+  floor-modulo result for a positive power-of-two divisor permits masking even for
+  negative inputs; Swag's signed remainder has a different contract. The previously
+  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
+  remaining remainders requires proving the counters' bounds under its own semantics.
+- October 3: an unsigned remainder by a constant whose dividend is bounded multiplies by a
+  dword magic number, so the checksum loop `hc = (hc * 31 + comp[k]) % 1000003` has 12
+  instructions instead of 18 and a carried chain of about 12 cycles (clang's two-way unrolled
+  loop takes about 13 per element). Paired lz77 medians were 0.961 in two controlled windows;
+  the second window's spread overlaps its unchanged-binary control.
+- Rejected on October 3, measured with an unchanged-binary control on a quiet machine (41 to
+  61 rounds), each rule alone on master `1898124b1`:
+  - Byte and word loads whose upper bits are dead as `movzx` (`2b23c932f` on
+    `perf/prompt2-int-20261003`): lz77 0.998 against a 0.999 control, and fannkuch 1.046 and
+    1.050 in two windows against 1.003: its main loop is byte-identical but sits 0x50 bytes
+    later because each `movzx` is one byte longer, moving the flips loop within its cache line.
+  - A multiplication by 2^n+1 or 2^n-1 as a shift and an add or subtract (`27ef513e8`, same
+    branch): every task inside its control spread (lz77 1.003).
+  - Post-RA copy forwarding through indexed loads (`aacbe30d8` on
+    `perf/prompt2-int-lot3-20261003`): the candidate loop loses
+    `mov rax, [rsi + 8 * r10]; mov r10, rax` (19 to 18 instructions) and 10 to 15 copies go
+    per executable, but lz77 is 1.000 against a 1.005 control; the core renames such moves away.
+- October 6: removing the legalization reserve keeps the invariant index in an integer
+  register and removes its XMM2 transfer on each candidate. Main loses eight instructions
+  and seven memory operations. The `l < limit` guard before the byte loop still remains
+  where clang proves `n - i >= 4`.
+- Next: follow the loop-carried counters through SSA ranges and exit conditions.
+  Establish nonnegativity before replacing sign correction; retain negative-input
+  controls and do not infer a bound merely from this benchmark's current inputs.
+- Complete when: each removable sign correction has a sound range proof, exact
+  checksums and unrelated positive/negative coverage, with the candidate and byte
+  loops retaining their instruction and memory counts without a loss elsewhere.
 
 ### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
 
@@ -707,52 +774,6 @@ new language syntax.
 - Complete when: grouping rounds lowers both instructions and frame traffic per compression round
   with correctness coverage, or the remaining register-residency prerequisite is isolated.
 - Related: compiler.optimization.005, compiler.optimization.016.
-
-### compiler.optimization.105 — Prove lz77's signed remainder bounds
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-03 18:52 — Measured the byte-load, 2^n+-1 and indexed-load forwarding rules on a quiet machine: no gain.
-- Area: compiler/backend, value ranges and signed remainder lowering.
-- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
-  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
-  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
-  loop has six instructions and two reads. Swag now matches those counts after
-  caching the invariant index in an otherwise unused caller-saved SIMD register.
-  The latch transfers its bits back to a GP register; one seed load runs before
-  the loop. These static changes have not been timed in a new full campaign.
-- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
-  floor-modulo result for a positive power-of-two divisor permits masking even for
-  negative inputs; Swag's signed remainder has a different contract. The previously
-  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
-  remaining remainders requires proving the counters' bounds under its own semantics.
-- October 3: an unsigned remainder by a constant whose dividend is bounded multiplies by a
-  dword magic number, so the checksum loop `hc = (hc * 31 + comp[k]) % 1000003` has 12
-  instructions instead of 18 and a carried chain of about 12 cycles (clang's two-way unrolled
-  loop takes about 13 per element). Paired lz77 medians were 0.961 in two controlled windows;
-  the second window's spread overlaps its unchanged-binary control.
-- Rejected on October 3, measured with an unchanged-binary control on a quiet machine (41 to
-  61 rounds), each rule alone on master `1898124b1`:
-  - Byte and word loads whose upper bits are dead as `movzx` (`2b23c932f` on
-    `perf/prompt2-int-20261003`): lz77 0.998 against a 0.999 control, and fannkuch 1.046 and
-    1.050 in two windows against 1.003: its main loop is byte-identical but sits 0x50 bytes
-    later because each `movzx` is one byte longer, moving the flips loop within its cache line.
-  - A multiplication by 2^n+1 or 2^n-1 as a shift and an add or subtract (`27ef513e8`, same
-    branch): every task inside its control spread (lz77 1.003).
-  - Post-RA copy forwarding through indexed loads (`aacbe30d8` on
-    `perf/prompt2-int-lot3-20261003`): the candidate loop loses
-    `mov rax, [rsi + 8 * r10]; mov r10, rax` (19 to 18 instructions) and 10 to 15 copies go
-    per executable, but lz77 is 1.000 against a 1.005 control; the core renames such moves away.
-- The candidate loop has 19 instructions against clang's 16 and Odin's 18. `i` lives in xmm2
-  and is restored on every candidate while rbx is unused (allocator policy
-  `K_MIN_FREE_PERSISTENT_INT`); the `l < limit` guard before the byte loop stays where clang
-  proves `n - i >= 4`.
-- Next: follow the loop-carried counters through SSA ranges and exit conditions.
-  Establish nonnegativity before replacing sign correction; retain negative-input
-  controls and do not infer a bound merely from this benchmark's current inputs.
-- Complete when: each removable sign correction has a sound range proof, exact
-  checksums and unrelated positive/negative coverage, with the candidate and byte
-  loops retaining their instruction and memory counts without a loss elsewhere.
 
 
 ### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
@@ -1449,31 +1470,6 @@ new language syntax.
   that slot promotion or the vectorizer recognizes the array by the shape of its address.
 - Complete when: the fold lands with the CABAC gain and no kernel regression.
 
-### compiler.optimization.035 — Legalization cannot stage a value without a free register
-
-- Recorded: 2026-09-12 11:40
-- Area: compiler/backend
-- Evidence: the interval allocator holds one callee-saved integer register out of its pool for the
-  legalization that runs on its own output. Measured on the 76 H.264 kernels at build 497, giving
-  that register back is worth 80 instructions and 177 frame accesses (19676 to 19596, 1914 to
-  1737), against 39 more prologue saves. It cannot simply be given back: without the reserve the
-  `pixel` and `gui` modules fail to compile, the scan allocator reaching
-  `SWC_INTERNAL_CHECK(false)` with no register it may name.
-- What exists: the reserve is now paid only by a function whose allocation took every integer
-  register **and** that carries a shape whose legalization may need a register of its own
-  (`Encoder::mayNeedLegalizeScratchRegister`). Ordinary functions keep the register. The H.264
-  kernels still pay it: they carry shifts by a register and multiplies, whose rewrites move an
-  operand through a named register and save the occupant in a fresh virtual.
-- Boundary: `Pass.Legalize.cpp` stages through a virtual register and forbids it every physical
-  register live across the instruction, so a saturated function leaves it nothing. The
-  scratch-frame scaffolding (`stackScratchFrameSize` / `insertScratchFrame` /
-  `computeStackScratchBaseOffset`) is wired and unused, and the float-immediate rewrite already
-  demonstrates the other way out, a transient push/pop around the staged sequence.
-- Next: make the staged rewrites fall back to a frame slot (or a push/pop pair that the stack
-  adjustment normalization already understands) when no physical register is admissible, then
-  drop the reserve entirely and re-measure the kernels.
-- Complete when: no allocation holds a register back for legalization, `pixel` and `gui` compile,
-  and the kernel frame traffic drops by the measured amount.
 
 ### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
 

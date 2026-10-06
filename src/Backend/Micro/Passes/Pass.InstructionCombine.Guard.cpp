@@ -60,13 +60,13 @@ namespace InstructionCombine
             if (!ops || !ops[0].reg.isVirtualInt())
                 return false;
 
-            const MicroSsaState::ReachingDef left = ctx.ssa->reachingDef(ops[0].reg, cmpRef);
-            if (!left.valid())
+            const uint32_t left = ctx.ssa->reachingValueId(ops[0].reg, cmpRef);
+            if (left == MicroSsaState::K_INVALID_VALUE)
                 return false;
 
             out.op     = cmp->op;
             out.cond   = cond;
-            out.leftId = left.valueId;
+            out.leftId = left;
             if (cmp->op == MicroInstrOpcode::CmpRegImm)
             {
                 if (ops[2].hasWideImmediateValue())
@@ -78,11 +78,11 @@ namespace InstructionCombine
 
             if (!ops[1].reg.isVirtualInt())
                 return false;
-            const MicroSsaState::ReachingDef right = ctx.ssa->reachingDef(ops[1].reg, cmpRef);
-            if (!right.valid())
+            const uint32_t right = ctx.ssa->reachingValueId(ops[1].reg, cmpRef);
+            if (right == MicroSsaState::K_INVALID_VALUE)
                 return false;
             out.bits    = ops[2].opBits;
-            out.rightId = right.valueId;
+            out.rightId = right;
             return true;
         }
 

@@ -1465,7 +1465,13 @@ Result NativeBackendBuilder::prepare()
     filterPreparedSymbols(mainFunctions, *this);
     filterPreparedSymbols(regularGlobals, *this);
 
-    auto functions = compiler_->nativeCodeSegment();
+    // A library publishes every function it completed. An executable holds only what its roots
+    // reach, so it starts from them: a function nothing calls, such as an equality operator a
+    // struct is given whether or not anything compares it, is never lowered.
+    const bool                   executable = compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
+    std::vector<SymbolFunction*> functions;
+    if (!executable)
+        functions = compiler_->nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
     SymbolSort::sortAndUniqueByLocation(testFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(initFunctions, *compiler_);
@@ -1524,9 +1530,9 @@ Result NativeBackendBuilder::prepare()
                 filterPreparedSymbols(mainFunctions, *this);
             }
 
-            // Preparing native code also serves the JIT, which must keep the complete lowered
-            // segment available. Restrict only the final executable function table after every
-            // function has therefore been lowered successfully.
+            // The lowering loop above grows its set from what each lowered function names, and
+            // drops nothing. The final executable function table keeps only what its roots reach
+            // once every dependency is known.
             if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
                 auto                                executableFunctions = collectExecutableFunctionRoots(*this);

@@ -161,12 +161,8 @@ namespace
 
     bool typeHasUnionStorageRec(const TaskContext& ctx, const TypeInfo& declaredType, std::unordered_set<TypeRef>& visited)
     {
-        const TypeInfo* type = &declaredType;
-        if (type->isAlias() || type->isEnum())
-        {
-            const TypeRef typeRef = type->unwrapAliasEnum(ctx, type->typeRef());
-            type                  = &ctx.typeMgr().get(typeRef);
-        }
+        const TypeInfo* storageType = declaredType.unwrapAliasEnumType(ctx);
+        const TypeInfo* type        = storageType ? storageType : &declaredType;
         if (!type->isArray() && !type->isStruct())
             return false;
         if (!visited.insert(type->typeRef()).second)
@@ -269,9 +265,9 @@ namespace
 
         Result writeDefault(const TypeInfo& declaredType, uint64_t size, uint64_t offset)
         {
-            Sema&           sema           = *sema_;
-            const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema.ctx(), declaredType.typeRef()) : TypeRef::invalid();
-            const TypeInfo& type           = storageTypeRef.isValid() ? sema.typeMgr().get(storageTypeRef) : declaredType;
+            Sema&           sema        = *sema_;
+            const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
+            const TypeInfo& type        = storageType ? *storageType : declaredType;
             if (!declaredType.isNonNullable() && !type.isNonNullable())
             {
                 if (type.isStruct())
@@ -326,9 +322,9 @@ namespace
 
         Result collectDynamicRelocations(const TypeInfo& declaredType, uint64_t offset)
         {
-            Sema&           sema           = *sema_;
-            const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema.ctx(), declaredType.typeRef()) : TypeRef::invalid();
-            const TypeInfo& type           = storageTypeRef.isValid() ? sema.typeMgr().get(storageTypeRef) : declaredType;
+            Sema&           sema        = *sema_;
+            const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
+            const TypeInfo& type        = storageType ? *storageType : declaredType;
             if (type.isArray())
             {
                 const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());
@@ -367,8 +363,8 @@ namespace
 
 bool ConstantHelpers::typeHasUnionStorage(const TaskContext& ctx, const TypeInfo& declaredType)
 {
-    const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(ctx, declaredType.typeRef()) : TypeRef::invalid();
-    const TypeInfo& type           = storageTypeRef.isValid() ? ctx.typeMgr().get(storageTypeRef) : declaredType;
+    const TypeInfo* storageType = declaredType.unwrapAliasEnumType(ctx);
+    const TypeInfo& type        = storageType ? *storageType : declaredType;
     if (!type.isArray() && !type.isStruct())
         return false;
     std::unordered_set<TypeRef> visited;

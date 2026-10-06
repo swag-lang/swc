@@ -16,8 +16,8 @@ namespace
 {
     bool hasFunctionPointerRelocation(Sema& sema, const TypeInfo& declaredType, const void* ptr)
     {
-        const TypeRef   storageTypeRef = declaredType.isAlias() || declaredType.isEnum() ? declaredType.unwrapAliasEnum(sema.ctx(), declaredType.typeRef()) : TypeRef::invalid();
-        const TypeInfo& type           = storageTypeRef.isValid() ? sema.typeMgr().get(storageTypeRef) : declaredType;
+        const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type        = storageType ? *storageType : declaredType;
         if (!type.isAnyPointer() && !type.isFunction())
             return false;
 

@@ -53,11 +53,12 @@ namespace
 
     bool isDirectBorrowCarrier(Sema& sema, TypeRef typeRef)
     {
-        typeRef = unwrapAliasEnum(sema, typeRef);
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
         return type.isString() ||
                type.isCString() ||
                type.isSlice() ||
@@ -176,11 +177,13 @@ namespace
         if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
             return false;
 
-        const TypeRef paramTypeRef = unwrapAliasEnum(sema, symVar.typeRef());
+        const TypeRef paramTypeRef = symVar.typeRef();
         if (!paramTypeRef.isValid())
             return false;
 
-        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        const TypeInfo& declaredType  = sema.typeMgr().get(paramTypeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& paramType     = unwrappedType ? *unwrappedType : declaredType;
         return !paramType.isAnyPointer() && !paramType.isReference() && !paramType.isAnyVariadic();
     }
 
@@ -431,11 +434,12 @@ namespace
     // exist.
     bool isOwnedPayloadCarrier(Sema& sema, TypeRef typeRef)
     {
-        typeRef = unwrapAliasEnum(sema, typeRef);
         if (!typeRef.isValid())
             return false;
 
-        return sema.typeMgr().get(typeRef).isBlockPointer();
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        return (unwrappedType ? *unwrappedType : declaredType).isBlockPointer();
     }
 
     // The variable owning the storage a carrier EXPRESSION addresses, when that carrier
@@ -871,11 +875,12 @@ namespace
     // global owners yield Parameter/Static kinds and stay silent locally.
     bool typeHasBorrowableStorage(Sema& sema, TypeRef typeRef)
     {
-        typeRef = unwrapAliasEnum(sema, typeRef);
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
         return type.isArray() || type.isAggregate() || type.isStruct();
     }
 
@@ -887,11 +892,12 @@ namespace
 
     bool isStructuralBorrowCarrier(Sema& sema, TypeRef typeRef)
     {
-        typeRef = unwrapAliasEnum(sema, typeRef);
         if (typeRef.isInvalid())
             return false;
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
-        return (type.isStruct() || type.isArray()) && typeCanCarryBorrowImpl(sema, typeRef);
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        return (type.isStruct() || type.isArray()) && typeCanCarryBorrowImpl(sema, type.typeRef());
     }
 
     // A copied aggregate keeps the borrows in its fields, not the address used to

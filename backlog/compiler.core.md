@@ -6,6 +6,84 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
+
+- Recorded: 2026-08-12 18:01
+- Updated: 2026-10-06 16:12 — Destroyed instances are now poisoned and release their fiber-local slots; thread-local indexes remain.
+- Area: compiler, JIT runtime hosting
+- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
+  --rebuild`: imported native modules kept `Swag.processInfos().args` slices into the storage of a
+  destroyed dependency-build instance. That storage is interned for the process since.
+- Done (2026-10-06): a DevMode `~CompilerInstance` fills its global zero, initialized and compiler
+  segments with `0xCD`, so a stale reference into a destroyed instance reads the pattern instead
+  of plausible old bytes. The first thing it caught was `retireAllocatorThreadHeap`, the cleanup
+  callback the JIT-compiled runtime allocator registers through `FlsAlloc`: Windows ran it at
+  thread exit, after the instance was gone, and it read `Swag.g_AllocatorThreadHeapTlsId` from the
+  dead segment (`import_core_without_using.swgs` exited with a failure code after reporting
+  `clean`). JIT calls to `FlsAlloc` and `FlsFree` now resolve to host wrappers that record each
+  slot and its callback, and an instance frees the slots whose callback is its own JIT code before
+  it is destroyed; `FlsFree` runs the callbacks while their code and data are still valid.
+- What remains: JIT code also takes plain thread-local indexes through `TlsAlloc` (the allocator's
+  fast heap slot, for example). They have no callback, so nothing reads them after the instance
+  dies, but each instance that ran its allocator keeps one index allocated for the rest of the
+  process, and Windows has 1,088 of them.
+- Next: count the indexes a long workspace run (`tools/std.swgs dm test`) leaves allocated, and if
+  the count grows with the number of instances, record the `TlsAlloc` indexes per instance the
+  same way and free them at destruction.
+- Complete when: a process that creates and destroys many compiler instances keeps a bounded
+  number of thread-local indexes, with the workspace suite green under the poisoning.
+
+### compiler.core.056 — A library still lowers the equality operators of its public structs
+
+- Recorded: 2026-09-23 14:11
+- Updated: 2026-10-06 15:26 — Libraries now lower only what they export and what that reaches.
+- Area: compiler/codegen, module publication, compilation time
+- Evidence: `Sema.Struct.cpp` gives every struct that `shouldGenerateEqualityOperator` selects
+  (one holding a `string`, for example) a member-wise `opEquals` when the struct completes,
+  whether or not anything compares it. On 2026-09-23 a hello world lowered 31 of them (19.4% of
+  its lowering) and `gui` 1 901 (4.57 s, 6.2% of its lowering).
+- Done (2026-10-06): `NativeBackendBuilder::prepare` used to seed lowering with the whole code
+  segment. An executable now seeds it with its roots, and a static or shared library with the
+  functions it exports under their API name plus the executable roots (test, init, drop, runtime
+  and global-initialization targets). A hello world lowers none of those operators. Functions
+  lowered by a DevMode `gui` chain rebuild: `core` 5 212 to 3 915, `ogl` 1 845 to 1 585,
+  `truetype` 1 275 to 934, `pixel` 5 250 to 4 477, `gui` 9 274 to 8 238. Wall time at six workers
+  stayed within the machine's noise. The `std` tests in both configurations, every application
+  and example build, the script smokes and a `swagscope` smoke pass.
+- What remains: a public struct's generated `opEquals` is public, so a library still exports and
+  lowers it even when neither the library nor any importer compares the struct. An importer that
+  compares it generates its own operator from the published struct source.
+- Next: check whether an importer ever calls a library's generated operator. If it never does,
+  stop exporting generated equality, and the remaining ones fall out of the library's closure.
+- Complete when: a library lowers no generated `opEquals` that neither its own code nor an
+  importer calls, with the workspace suite and `std` release green.
+- Related: compiler.core.030, compiler.core.006.
+
+### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
+
+- Recorded: 2026-09-17 08:42
+- Updated: 2026-10-06 14:55 — One type table no longer repeats a record; a linked program remains to be measured.
+- Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
+- Evidence: `swc tools/apps.swgs dm build swagscope --debug` (build 847) wrote a 12.2 MB PDB
+  whose TPI stream held 38,154 records, 5,178 of them `LF_STRUCTURE`, with `Surface` defined 28
+  times, `interface` 26, `Wnd` 24 and `Application` 22.
+- Done (2026-10-06): `TypeTableBuilder` now hash-conses every record it emits, so a record
+  identical to an earlier one returns the earlier index, and a pointer to a structure names its
+  forward declaration, as MSVC does, so a structure's records no longer depend on whether its
+  definition was complete when they were emitted. On a 60-structure probe compiled with
+  `--debug`, the TPI stream went from 1,253 to 913 records (procedures 296 to 200, argument
+  lists 296 to 154), `interface` from five structure records to one and `string` from four to
+  one; each structure keeps one forward declaration and one definition. The `DebugInfo_*` and
+  `Pdb_*` tests pass.
+- What remains: `LinkDebugMerger` already keeps one copy of each record once remapped, so the
+  copies archive members brought came from records that differed only by which index a pointer
+  named. With pointers now naming forward declarations those records should coincide, but no
+  linked `--debug` program with debug archives has been measured yet.
+- Next: build swagscope with `--debug` before and after this change and compare the PDB size,
+  the TPI record count and the number of `LF_STRUCTURE` records per name.
+- Complete when: every structure has one definition per distinct layout in a linked PDB, the
+  `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
+
 ### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
 
 - Recorded: 2026-09-15 12:47
@@ -53,41 +131,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
   linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
 - Related: compiler.core.069
-
-### compiler.core.056 — A library lowers the equality operator no program calls
-
-- Recorded: 2026-09-23 14:11
-- Updated: 2026-10-06 09:21 — Executables no longer lower unreachable functions; libraries remain.
-- Area: compiler/codegen, module publication, compilation time
-- Evidence: `Sema.Struct.cpp` gives every struct that `shouldGenerateEqualityOperator` selects
-  (one holding a `string`, for example) a member-wise `opEquals` when the struct completes,
-  whether or not anything compares it. Every completed function enters the module's native code
-  segment. On 2026-09-23 a hello world lowered 31 generated `opEquals` (19.4% of its lowering)
-  and `gui` 1 901 of them (4.57 s, 6.2% of its lowering, `ThemeColors.opEquals` alone 769 ms).
-- Executables (2026-10-06): a trace of every code-generation request showed all 31 hello-world
-  operators scheduled by `NativeBackendBuilder::prepare`, which seeded its lowering loop with the
-  whole code segment and restricted only the final table to what the roots reach. An executable
-  now seeds the loop with its roots, so it lowers only what they reach: no generated `opEquals`
-  in a hello world, and a one-worker DevMode `build --rebuild` of it went from a median of about
-  835 ms to 735 ms over eight alternated pairs.
-- What remains: a static or shared library still lowers every completed function, because its
-  API publishes them; an importer comparing a public struct calls its generated operator. The
-  generated operator of a struct the module does not publish, or one no published function can
-  reach, is still lowered for nothing, and `gui` is such a library.
-- The trap any lazier generation must not walk into: `==` on a struct does not resolve its
-  operator during semantic analysis. `CodeGen.Relational.cpp` asks
-  `SymbolStruct::selfEqualsFunction` while lowering the comparison, and when that returns null
-  it falls through to comparing bytes - no diagnostic, just a different answer. Generating the
-  operator on demand must be complete before any comparison is lowered, and should first turn
-  the silent fallback into a reported internal failure for a struct that
-  `shouldGenerateEqualityOperator` says needs one.
-- Next: in a library, seed lowering with what the module publishes (public functions, exported
-  generated operators of public structs, interface tables, compile-time roots) instead of the
-  whole code segment, and measure the `gui` release rebuild. If private generated operators still
-  dominate, move generation from struct completion to the first comparison that needs it.
-- Complete when: a `gui` release rebuild lowers no generated `opEquals` that neither its API nor
-  its own code can reach, with the workspace suite and `std` release green.
-- Related: compiler.core.030, compiler.core.006.
 
 ### compiler.core.039 — One module analysis resolves four and a half million substitutions
 
@@ -548,27 +591,6 @@ cache is part of the normal DevMode and Release paths.
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.030.
 
-### compiler.core.053 — CodeView type records repeat every structure a module reaches
-
-- Recorded: 2026-09-17 08:42
-- Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
-- Evidence: `swc tools/apps.swgs dm build swagscope --debug` (build 847) writes a 12.2 MB PDB
-  whose TPI stream holds 38,154 records, 5,178 of them `LF_STRUCTURE`. Full definitions repeat:
-  `Surface` 28 times, `interface` 26, `Wnd` 24, `Application` 22. The repeated `interface`
-  records are byte-for-byte equal apart from the field list they name, and those field lists are
-  equal too: `TypeTableBuilder` shares a record only per `TypeRef`, so every interface type emits
-  its own copy of the same synthetic structure. Named structures differ for another reason: a
-  pointer names the forward declaration while the structure is being built and the definition
-  afterwards, so the same type comes out as different bytes depending on emission order, and the
-  link cannot merge the copies archive members bring.
-- Constraint: forward references now resolve, since the TPI hash files a definition under its
-  name (`Pdb_DbgHelpResolvesNamesAndLines` watches it), so a pointer can always name the forward
-  declaration, as MSVC does.
-- Next: hash-cons every record `TypeTableBuilder` emits, point pointers at forward declarations,
-  and compare the swagscope PDB size and link time before and after.
-- Complete when: every structure has one definition per distinct layout in a linked PDB, the
-  `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
-
 ### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
 
 - Recorded: 2026-09-16 19:54
@@ -986,35 +1008,6 @@ definition provider and does not consume resolved compiler symbols.
 - Tests cover direct source changes, transitive loads, imports, configuration changes, corrupt entries, and concurrent cache population.
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
-
-### compiler.core.021 — A dangling reference into a destroyed compiler instance has no deterministic detector
-
-- Recorded: 2026-08-12 18:01
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: compiler
-- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
-  --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
-  per process) keeping `Swag.processInfos().args` slices into the run-argument storage of a dependency-build
-  compiler instance that had already been destroyed. That defect is fixed by interning the handed
-  storage for the lifetime of the process, but the *class* — long-lived imported modules holding a
-  pointer into per-instance state — was only caught because a heap block happened to be reused with
-  bytes that failed an assertion inside `Path.extension`, in the Release compiler binary only,
-  roughly once per run.
-- Observation: nothing makes such a stale reference fail deterministically, so a suite regression
-  cannot be written that reliably turns red without the fix: the dead storage usually still holds
-  its old bytes, and every read through it then looks healthy. The DevMode binary never tripped at
-  all because its allocator reused the freed block differently.
-- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m swagcapture --rebuild` loop on the
-  Release binary failed in `library.test.swg` (the one test that funnels `Env.executablePath()`
-  into a validated path API), while the same command on the DevMode binary passed 10/10; post-fix
-  the Release loop passed 8/8. A probe comparing the live instance against what JIT code reads
-  showed five compiler instances writing five run-argument storages in one process, the test
-  instance healthy, and the imported module reading a sixth, dead one.
-- Next step: poison the global segments and other instance-owned storage handed across the JIT
-  boundary when a `CompilerInstance` is destroyed, under `SWC_DEV_MODE` — a stale cross-instance
-  reference then reads the poison pattern instead of plausible stale bytes, which makes this whole
-  class reproduce on the first run. Then add a `bin/unittests/workspace` case that rebuilds a
-  dependency and asserts `Env.executablePath()` is a valid, existing path from the tested module.
 
 ### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
 

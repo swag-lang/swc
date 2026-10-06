@@ -22,3 +22,8 @@ removes stores whose value is unobserved at exit. Csvagg's three bodies remain
 Validation: 293 native optimizer tests and 23 H.264 tests pass in Release JIT
 and native execution; the repository check also passes. Internal fixtures cover shared exits and reject a write-only home in
 this mode; those C++ fixtures are not executed by the Release compiler.
+
+Integration: master changes through 66fb759fc (library reachability, JIT thread
+storage cleanup and internal SLP fixture corrections) were merged and rebuilt
+in Release. The optimizer and H.264 checks are repeated on this combined tree;
+the retained code-count comparison uses the earlier a172a3428 base.

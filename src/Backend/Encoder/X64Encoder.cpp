@@ -457,12 +457,6 @@ namespace
         return static_cast<uint8_t>(result);
     }
 
-    void emitPrefixF64(PagedStore& store, MicroOpBits opBits)
-    {
-        if (opBits == MicroOpBits::B64)
-            store.pushU8(0x66);
-    }
-
     void emitSib(PagedStore& store, uint8_t scale, uint8_t index, uint8_t base)
     {
         const uint8_t value = static_cast<uint8_t>(scale << 6) | static_cast<uint8_t>(index << 3) | base;
@@ -597,14 +591,6 @@ namespace
             store.pushU8(value);
     }
 
-    void emitSpecF64(PagedStore& store, uint8_t value, MicroOpBits opBits)
-    {
-        if (opBits == MicroOpBits::B64)
-            store.pushU8(value & ~1);
-        else if (opBits == MicroOpBits::B32)
-            store.pushU8(value);
-    }
-
     uint8_t x64RegNumber(X64Reg reg)
     {
         return static_cast<uint8_t>((isExtendedReg(reg) ? 8 : 0) | encodeReg(reg));
@@ -636,25 +622,25 @@ namespace
     // the opcode map named explicitly. The two-byte C5 form only exists for
     // the 0F map, so the other maps always take the three-byte form. The
     // R/X/B/vvvv fields are stored inverted, which is why every one of them
-    // is written as its complement.
-    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2, bool wide = false)
+    // is written as its complement. Use Rax for src1 when vvvv is reserved.
+    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2, bool wide = false, bool extendedIndex = false)
     {
         const uint8_t pp     = vexPrefixBits(mandatoryPrefix);
         const uint8_t vvvv   = static_cast<uint8_t>(~x64RegNumber(src1) & 0x0F);
         const bool    extDst = isExtendedReg(dst);
         const bool    extSrc = isExtendedReg(src2);
 
-        if (map == VEX_MAP_0F && !extSrc && !wide)
+        if (map == VEX_MAP_0F && !extSrc && !wide && !extendedIndex)
         {
             store.pushU8(0xC5);
             store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | (vvvv << 3) | pp));
             return;
         }
 
-        // Three-byte form: X is unused, B covers the r/m register, and mmmmm
+        // Three-byte form: X covers the index, B the r/m register, and mmmmm
         // names the opcode map.
         store.pushU8(0xC4);
-        store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | 0x40 | (extSrc ? 0 : 0x20) | map));
+        store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | (extendedIndex ? 0 : 0x40) | (extSrc ? 0 : 0x20) | map));
         store.pushU8(static_cast<uint8_t>((wide ? 0x80 : 0) | (vvvv << 3) | pp));
     }
 
@@ -666,10 +652,8 @@ namespace
     };
 
     // Opcode selection for the packed forms whose ModRM carries plain
-    // registers. The same entry serves the destructive legacy SSE shape where
-    // one is still emitted and the VEX shape. The shift-by-immediate group is
-    // keyed separately (vecShiftImmEncoding) because it carries an opcode
-    // extension instead of a destination in ModRM.reg.
+    // registers. Two- and three-operand Micro forms share VEX encoding. Immediate
+    // shifts use vecShiftImmEncoding because ModRM.reg holds an opcode extension.
     VecOpEncoding vecOpEncoding(MicroOp op)
     {
         switch (op)
@@ -1703,25 +1687,22 @@ void X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits 
 {
     if (regDst.isFloat() && regSrc.isFloat())
     {
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
-        emitCpuOp(store_, 0x0F);
+        // Scalar register moves preserve the destination's other XMM lanes.
+        const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+        const X64Reg  merge  = opBits == MicroOpBits::B128 ? X64Reg::Rax : microRegToX64Reg(regDst);
+        emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), merge, microRegToX64Reg(regSrc));
         emitCpuOp(store_, 0x10);
         emitModRm(store_, regDst, regSrc);
     }
     else if (regDst.isFloat())
     {
-        emitPrefixF64(store_, MicroOpBits::B64);
-        emitRex(store_, opBits, regDst, regSrc);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, 0x66, VEX_MAP_0F, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(regSrc), opBits == MicroOpBits::B64);
         emitCpuOp(store_, 0x6E);
         emitModRm(store_, regDst, regSrc);
     }
     else if (regSrc.isFloat())
     {
-        emitPrefixF64(store_, MicroOpBits::B64);
-        emitRex(store_, opBits, regSrc, regDst);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, 0x66, VEX_MAP_0F, microRegToX64Reg(regSrc), X64Reg::Rax, microRegToX64Reg(regDst), opBits == MicroOpBits::B64);
         emitCpuOp(store_, 0x7E);
         emitModRm(store_, regSrc, regDst);
     }
@@ -1809,9 +1790,8 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
         SWC_ASSERT(memOffset == 0);
         if (reg.isFloat())
         {
-            emitSpecF64(store_, 0xF3, opBits);
-            emitRex(store_, MicroOpBits::Zero, reg, memReg);
-            emitCpuOp(store_, 0x0F);
+            const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+            emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
             emitCpuOp(store_, 0x10);
         }
         else
@@ -1826,9 +1806,8 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
 
     if (reg.isFloat())
     {
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, MicroOpBits::Zero, reg, memReg);
-        emitCpuOp(store_, 0x0F);
+        const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+        emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
         emitCpuOp(store_, 0x10);
         emitModRm(store_, memOffset, reg, memReg);
     }
@@ -2255,24 +2234,27 @@ namespace
             store.pushU8(0xF3);
         if (opBitsBaseMul == MicroOpBits::B32)
             store.pushU8(0x67);
-        if (reg.isFloat() && opBitsReg == MicroOpBits::B128)
-            store.pushU8(0xF3); // movdqu (128-bit) - mandatory prefix, not the 0x66 of movd/movq
-        else if (floatArithmetic)
-            store.pushU8(opBitsReg == MicroOpBits::B64 ? 0xF2 : 0xF3); // scalar sd/ss arithmetic
-        else if (opBitsReg == MicroOpBits::B16 || (reg.isFloat() && (!floatCompare || opBitsReg == MicroOpBits::B64)))
-            store.pushU8(0x66);
-
-        // REX prefix. Scalar float arithmetic takes its width from F2/F3,
-        // never from REX.W.
-        const bool wide    = opBitsReg == MicroOpBits::B64 && !floatArithmetic && !floatCompare;
-        const bool b0      = isExtendedReg(regX64);
-        const bool b1      = isExtendedReg(mulX64);
-        const bool b2      = !baseIsNoBase && isExtendedReg(baseX64);
-        const bool needRex = wide || needsRexForByteReg(regX64);
-        if (needRex || b0 || b1 || b2)
+        if (reg.isFloat())
         {
-            const auto value = getRex(wide, b0, b1, b2);
-            store.pushU8(value);
+            uint8_t prefix;
+            if (floatArithmetic)
+                prefix = opBitsReg == MicroOpBits::B64 ? 0xF2 : 0xF3;
+            else if (floatCompare)
+                prefix = opBitsReg == MicroOpBits::B64 ? 0x66 : 0;
+            else
+                prefix = opBitsReg == MicroOpBits::B128 || (opBitsReg == MicroOpBits::B64 && !mr) ? 0xF3 : 0x66;
+            emitVex(store, prefix, VEX_MAP_0F, regX64, floatArithmetic ? regX64 : X64Reg::Rax, baseX64, false, isExtendedReg(mulX64));
+        }
+        else
+        {
+            if (opBitsReg == MicroOpBits::B16)
+                store.pushU8(0x66);
+            const bool wide = opBitsReg == MicroOpBits::B64;
+            const bool b0   = isExtendedReg(regX64);
+            const bool b1   = isExtendedReg(mulX64);
+            const bool b2   = !baseIsNoBase && isExtendedReg(baseX64);
+            if (wide || needsRexForByteReg(regX64) || b0 || b1 || b2)
+                store.pushU8(getRex(wide, b0, b1, b2));
         }
 
         // Opcode
@@ -2291,7 +2273,6 @@ namespace
                 if (floatCompare)
                 {
                     SWC_ASSERT(!mr && (opBitsReg == MicroOpBits::B32 || opBitsReg == MicroOpBits::B64));
-                    emitCpuOp(store, 0x0F);
                     emitCpuOp(store, 0x2F);
                 }
                 else
@@ -2332,7 +2313,6 @@ namespace
             case MicroOp::FloatMin:
             case MicroOp::FloatMax:
                 SWC_ASSERT(!mr && floatArithmetic);
-                emitCpuOp(store, 0x0F);
                 emitCpuOp(store, op);
                 break;
             case MicroOp::MoveSignExtend:
@@ -2360,11 +2340,12 @@ namespace
                 }
                 else if (reg.isFloat())
                 {
-                    emitCpuOp(store, 0x0F);
                     if (opBitsReg == MicroOpBits::B128)
-                        emitCpuOp(store, mr ? 0x7F : 0x6F); // movdqu store/load (128-bit)
+                        emitCpuOp(store, mr ? 0x7F : 0x6F); // vmovdqu
+                    else if (opBitsReg == MicroOpBits::B64)
+                        emitCpuOp(store, mr ? 0xD6 : 0x7E); // vmovq
                     else
-                        emitCpuOp(store, mr ? 0x7E : 0x6E); // movd/movq store/load (32/64-bit)
+                        emitCpuOp(store, mr ? 0x7E : 0x6E); // vmovd
                 }
                 else
                 {
@@ -2500,7 +2481,6 @@ void X64Encoder::encodeCmpRegAmc(MicroReg regLhs, MicroReg regBase, MicroReg reg
 
 // ============================================================================
 
-// movdqu xmm, m128   (F3 0F 6F /r) : unaligned 128-bit packed load.
 // mov dst, gs:[index * 8 + K_TEB_TLS_SLOTS]: the thread's slot array lives at a
 // fixed offset of the thread environment block, which the GS segment addresses.
 // The index operand carries the slot number plus one, so the displacement is
@@ -2526,9 +2506,7 @@ void X64Encoder::encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t 
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !memReg.isFloat());
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
-    emitCpuOp(store_, 0xF3);
-    emitRex(store_, MicroOpBits::Zero, regDst, memReg);
-    emitCpuOp(store_, 0x0F);
+    emitVex(store_, 0xF3, VEX_MAP_0F, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(memReg));
     emitCpuOp(store_, 0x6F);
     emitModRm(store_, memOffset, regDst, memReg);
 }
@@ -2599,26 +2577,22 @@ void X64Encoder::encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, Micr
         emitValue(store_, addValue, mode == ModRmMode::Displacement8 ? MicroOpBits::B8 : MicroOpBits::B32);
 }
 
-// movdqu m128, xmm   (F3 0F 7F /r) : unaligned 128-bit packed store.
+// Unaligned 128-bit packed store.
 void X64Encoder::encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regSrc.isFloat() && !memReg.isFloat());
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
-    emitCpuOp(store_, 0xF3);
-    emitRex(store_, MicroOpBits::Zero, regSrc, memReg);
-    emitCpuOp(store_, 0x0F);
+    emitVex(store_, 0xF3, VEX_MAP_0F, microRegToX64Reg(regSrc), X64Reg::Rax, microRegToX64Reg(memReg));
     emitCpuOp(store_, 0x7F);
     emitModRm(store_, memOffset, regSrc, memReg);
 }
 
-// pshufd xmm, xmm, imm8   (66 0F 70 /r ib) : four-lane 32-bit permute.
+// Four-lane 32-bit permutation.
 void X64Encoder::encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits)
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
     SWC_ASSERT(control <= 0xFF);
-    emitCpuOp(store_, 0x66);
-    emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
-    emitCpuOp(store_, 0x0F);
+    emitVex(store_, 0x66, VEX_MAP_0F, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(regSrc));
     emitCpuOp(store_, 0x70);
     emitModRm(store_, regDst, regSrc);
     emitValue(store_, control, MicroOpBits::B8);
@@ -2637,9 +2611,8 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
         SWC_ASSERT(memOffset == 0);
         if (reg.isFloat())
         {
-            emitSpecF64(store_, 0xF3, opBits);
-            emitRex(store_, MicroOpBits::Zero, reg, memReg);
-            emitCpuOp(store_, 0x0F);
+            const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+            emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
             emitCpuOp(store_, 0x11);
         }
         else
@@ -2654,9 +2627,8 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
 
     if (reg.isFloat())
     {
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, MicroOpBits::Zero, reg, memReg);
-        emitCpuOp(store_, 0x0F);
+        const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+        emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
         emitCpuOp(store_, 0x11);
         emitModRm(store_, memOffset, reg, memReg);
     }
@@ -2713,9 +2685,7 @@ void X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits)
 {
     if (reg.isFloat())
     {
-        emitPrefixF64(store_, opBits);
-        emitRex(store_, MicroOpBits::Zero, reg, reg);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, opBits == MicroOpBits::B64 ? 0x66 : 0, VEX_MAP_0F, microRegToX64Reg(reg), microRegToX64Reg(reg), microRegToX64Reg(reg));
         emitCpuOp(store_, MicroOp::FloatXor);
         emitModRm(store_, reg, reg);
     }
@@ -2888,9 +2858,7 @@ void X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBit
     {
         SWC_ASSERT(!reg1.isInt());
 
-        emitPrefixF64(store_, opBits);
-        emitRex(store_, MicroOpBits::Zero, reg0, reg1);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, opBits == MicroOpBits::B64 ? 0x66 : 0, VEX_MAP_0F, microRegToX64Reg(reg0), X64Reg::Rax, microRegToX64Reg(reg1));
         emitCpuOp(store_, 0x2F);
         emitModRm(store_, reg0, reg1);
     }
@@ -3224,21 +3192,12 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     if (regDst.isFloat())
     {
         // Scalar roots must not read the adjacent lane. Clear the destination
-        // to avoid a false dependency through the upper lanes preserved by SSE.
+        // to avoid a false dependency through the preserved upper XMM lanes.
         if (op == MicroOp::FloatSqrt)
             encodeClearReg(regDst, MicroOpBits::B128);
-        if (op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
-        {
-            emitSpecF64(store_, 0xF3, opBits);
-            emitRex(store_, MicroOpBits::Zero, regDst, memReg);
-        }
-        else
-        {
-            emitPrefixF64(store_, opBits);
-            emitRex(store_, MicroOpBits::Zero, regDst, memReg);
-        }
-
-        emitCpuOp(store_, 0x0F);
+        const bool    isBitwise = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
+        const uint8_t prefix    = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0) : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
+        emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regDst), microRegToX64Reg(memReg));
         emitCpuOp(store_, op);
         emitMemoryOperand(encodeReg(regDst));
     }
@@ -3353,20 +3312,15 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     SWC_ASSERT(op != MicroOp::ConvertUIntToFloat64);
 
     ///////////////////////////////////////////
-    // 128-bit packed integer forms (SSE2): 66 0F <op> /r with the destination
-    // in the reg field. The lane width is carried by the operation itself;
-    // opBits is the full vector width. Only the 0F-map 66-prefixed operations
-    // have this destructive legacy shape; everything else goes through the
-    // VEX three-operand form.
+    // Keep two-operand Micro operations in VEX form too: a caller may leave
+    // the volatile upper YMM halves dirty, even when this function uses only XMM.
     if (isVecMicroOp(op))
     {
         SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
 
         const VecOpEncoding enc = vecOpEncoding(op);
         SWC_ASSERT(enc.map == VEX_MAP_0F && enc.prefix == 0x66);
-        emitCpuOp(store_, 0x66);
-        emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), microRegToX64Reg(regDst), microRegToX64Reg(regSrc));
         emitCpuOp(store_, enc.opcode);
         emitModRm(store_, regDst, regSrc);
         return;
@@ -3375,63 +3329,29 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     ///////////////////////////////////////////
     if (regDst.isFloat() && regSrc.isInt())
     {
-        if (op == MicroOp::ConvertInt64ToFloat32)
-        {
-            SWC_ASSERT(opBits == MicroOpBits::B32);
-            emitCpuOp(store_, 0xF3);
-            emitRex(store_, MicroOpBits::B64, regDst, regSrc);
-        }
-        else if (op == MicroOp::ConvertInt32ToFloat64)
-        {
-            // CVTSI2SD takes a dword source without REX.W and sign-extends it
-            // itself, so a 32-bit value needs no widening move in front.
-            SWC_ASSERT(opBits == MicroOpBits::B64);
-            emitCpuOp(store_, 0xF2);
-            emitRex(store_, MicroOpBits::B32, regDst, regSrc);
-        }
-        else
-        {
-            emitSpecF64(store_, 0xF3, opBits);
-            emitRex(store_, opBits, regDst, regSrc);
-        }
-        emitCpuOp(store_, 0x0F);
+        const bool wide = op == MicroOp::ConvertInt64ToFloat32 || (opBits == MicroOpBits::B64 && op != MicroOp::ConvertInt32ToFloat64);
+        SWC_ASSERT(op != MicroOp::ConvertInt64ToFloat32 || opBits == MicroOpBits::B32);
+        SWC_ASSERT(op != MicroOp::ConvertInt32ToFloat64 || opBits == MicroOpBits::B64);
+        emitVex(store_, opBits == MicroOpBits::B64 ? 0xF2 : 0xF3, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regDst), microRegToX64Reg(regSrc), wide);
         emitCpuOp(store_, op);
         emitModRm(store_, regDst, regSrc);
     }
 
     else if (regDst.isInt() && regSrc.isFloat())
     {
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, opBits, regDst, regSrc);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, opBits == MicroOpBits::B64 ? 0xF2 : 0xF3, VEX_MAP_0F, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(regSrc), opBits == MicroOpBits::B64);
         emitCpuOp(store_, op);
         emitModRm(store_, regDst, regSrc);
     }
 
     else if (regDst.isFloat() && regSrc.isFloat())
     {
-        // VEX takes the preserved upper lanes from the source too, so an
-        // out-of-place scalar root has no dependency on the old destination
-        // and performs no arithmetic on an unrelated upper lane.
-        if (op == MicroOp::FloatSqrt && regDst != regSrc)
-        {
-            emitVex(store_, opBits == MicroOpBits::B64 ? 0xF2 : 0xF3, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regSrc), microRegToX64Reg(regSrc));
-            emitCpuOp(store_, op);
-            emitModRm(store_, regDst, regSrc);
-            return;
-        }
-        if (op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
-        {
-            emitSpecF64(store_, 0xF3, opBits);
-            emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
-        }
-        else
-        {
-            emitPrefixF64(store_, opBits);
-            emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
-        }
-
-        emitCpuOp(store_, 0x0F);
+        // A scalar root takes its preserved upper lanes from the source, avoiding
+        // a dependency on the old destination without evaluating another lane.
+        const MicroReg merge     = op == MicroOp::FloatSqrt ? regSrc : regDst;
+        const bool     isBitwise = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
+        const uint8_t  prefix    = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0) : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
+        emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(merge), microRegToX64Reg(regSrc));
         emitCpuOp(store_, op);
         emitModRm(store_, regDst, regSrc);
     }
@@ -3686,15 +3606,12 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
     const uint64_t value = immediateToU64(valueInt);
 
     ///////////////////////////////////////////
-    // pslld/psrld xmm, imm8 (66 0F 72 /6|/2 ib): packed 32-bit lane shift by
-    // an immediate count.
+    // Packed 32-bit lane shift by an immediate count.
     if (op == MicroOp::VecShiftLeft32 || op == MicroOp::VecShiftRight32)
     {
         SWC_ASSERT(opBits == MicroOpBits::B128 && reg.isFloat());
         SWC_ASSERT(value <= 31);
-        emitCpuOp(store_, 0x66);
-        emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, 0x66, VEX_MAP_0F, X64Reg::Rax, microRegToX64Reg(reg), microRegToX64Reg(reg));
         emitCpuOp(store_, 0x72);
         emitModRm(store_, op == MicroOp::VecShiftLeft32 ? MODRM_REG_6 : MODRM_REG_2, reg);
         emitValue(store_, value, MicroOpBits::B8);
@@ -3708,10 +3625,7 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
         SWC_ASSERT(reg.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
         SWC_ASSERT(value <= 0x03);
-        emitCpuOp(store_, 0x66);
-        emitRex(store_, MicroOpBits::Zero, reg, reg);
-        emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, 0x3A);
+        emitVex(store_, 0x66, VEX_MAP_0F3A, microRegToX64Reg(reg), microRegToX64Reg(reg), microRegToX64Reg(reg));
         emitCpuOp(store_, opBits == MicroOpBits::B64 ? 0x0B : 0x0A);
         emitModRm(store_, reg, reg);
         emitValue(store_, value, MicroOpBits::B8);
@@ -4399,9 +4313,7 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
 
     SWC_ASSERT(regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
 
-    // 128-bit packed: the VEX form of the same legacy encoding the two-operand
-    // shape uses, with the untouched source named in vvvv instead of having to
-    // be copied into the destination first.
+    // Naming the untouched source in vvvv avoids a copy into the destination.
     if (isVecMicroOp(op))
     {
         SWC_ASSERT(opBits == MicroOpBits::B128);
@@ -4453,9 +4365,7 @@ void X64Encoder::encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, Micro
     // Together with control B1 they rotate every 32-bit lane by 16 bits.
     if (op == MicroOp::VecShuffleLow16 || op == MicroOp::VecShuffleHigh16)
     {
-        emitCpuOp(store_, op == MicroOp::VecShuffleLow16 ? 0xF2 : 0xF3);
-        emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, op == MicroOp::VecShuffleLow16 ? 0xF2 : 0xF3, VEX_MAP_0F, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(regSrc));
         emitCpuOp(store_, 0x70);
         emitModRm(store_, regDst, regSrc);
         emitValue(store_, value, MicroOpBits::B8);
@@ -4567,15 +4477,11 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     if (op == MicroOp::MultiplyAdd)
     {
         SWC_ASSERT(reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, MicroOpBits::Zero, reg0, reg1);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, opBits == MicroOpBits::B64 ? 0xF2 : 0xF3, VEX_MAP_0F, microRegToX64Reg(reg0), microRegToX64Reg(reg0), microRegToX64Reg(reg1));
         emitCpuOp(store_, MicroOp::FloatMultiply);
         emitModRm(store_, reg0, reg1);
 
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, MicroOpBits::Zero, reg0, reg2);
-        emitCpuOp(store_, 0x0F);
+        emitVex(store_, opBits == MicroOpBits::B64 ? 0xF2 : 0xF3, VEX_MAP_0F, microRegToX64Reg(reg0), microRegToX64Reg(reg0), microRegToX64Reg(reg2));
         emitCpuOp(store_, MicroOp::FloatAdd);
         emitModRm(store_, reg0, reg2);
     }

@@ -1305,6 +1305,56 @@ SWC_TEST_BEGIN(JIT_ScalarSquareRootIgnoresAdjacentValues)
 }
 SWC_TEST_END()
 
+// Scalar register moves merge the other lanes; scalar memory loads clear them.
+SWC_TEST_BEGIN(JIT_ScalarVexMovesPreserveOnlyRegisterUpperLanes)
+{
+    constexpr MicroReg            address = MicroReg::intReg(8);
+    constexpr MicroReg            source  = MicroReg::floatReg(1);
+    constexpr MicroReg            result  = MicroReg::floatReg(0);
+    const std::array<uint32_t, 4> initial = {0x3F800000u, 0x7F800001u, 0x7F800003u, 0x7F800005u};
+    const std::array<uint32_t, 4> input   = {0x40000000u, 0x40000000u, 0x7F800007u, 0x7F800009u};
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool memory : {false, true})
+        {
+            std::array<uint32_t, 4> actual{};
+            auto                    expected = memory ? actual : initial;
+            const size_t            width    = bits == MicroOpBits::B64 ? 8 : 4;
+            std::memcpy(expected.data(), input.data(), width);
+
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(initial.data()));
+            builder.emitLoadVecRegMem(result, address, 0, MicroOpBits::B128);
+            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(input.data()));
+            if (memory)
+                builder.emitLoadRegMem(result, address, 0, bits);
+            else
+            {
+                builder.emitLoadVecRegMem(source, address, 0, MicroOpBits::B128);
+                builder.emitLoadRegReg(result, source, bits);
+            }
+            builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(actual.data()));
+            builder.emitStoreVecMemReg(address, 0, result, MicroOpBits::B128);
+            builder.emitRet();
+
+            MachineCode loweredCode;
+            SWC_RESULT(loweredCode.emit(ctx, builder));
+            JITMemory executableMemory;
+            SWC_RESULT(JIT::emit(ctx, executableMemory, loweredCode.bytes, loweredCode.codeRelocations, loweredCode.unwindInfo));
+            using TestFn         = void (*)();
+            const auto     fn    = reinterpret_cast<TestFn>(executableMemory.entryPoint());
+            const uint32_t saved = _mm_getcsr();
+            _mm_setcsr((saved | 0x1F80u) & ~0x3Fu);
+            fn();
+            const uint32_t raised = _mm_getcsr() & 0x3Fu;
+            _mm_setcsr(saved);
+            if (actual != expected || raised)
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 // The product rounds to one on its own, but contraction retains the exact
 // cancellation residue. Signaling NaNs in the unused lanes must remain untouched.
 SWC_TEST_BEGIN(JIT_FusedScalarProductRoundsOnceAndPreservesUpperLanes)

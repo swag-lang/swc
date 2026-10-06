@@ -60,6 +60,23 @@ namespace
 {
     constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
 
+    bool hasStackPointerOperand(const MicroInstrDef& def, const MicroInstrOperand* ops, MicroReg stackPointer, bool allowMemoryBase)
+    {
+        SWC_ASSERT(stackPointer.isValid() && !stackPointer.isNoBase());
+        if (!ops)
+            return false;
+
+        const auto modes = def.resolvedRegModes(ops);
+        for (size_t i = 0; i < modes.size(); ++i)
+        {
+            if (modes[i] == MicroInstrRegMode::None || ops[i].reg != stackPointer)
+                continue;
+            if (!allowMemoryBase || !def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) || i != def.memBaseOperandIndex)
+                return true;
+        }
+        return false;
+    }
+
     bool isFramePointerSetupInstruction(const CallConv& conv, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackPointer)
     {
         if (!ops || !conv.framePointer.isValid())
@@ -688,7 +705,6 @@ namespace
             uint8_t       offsetIndex;
         };
         SmallVector<StackAccess> accesses;
-        MicroInstrRegOperandRefs regOperands;
 
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
@@ -750,14 +766,8 @@ namespace
                 accesses.push_back({it.current, def.memOffsetOperandIndex});
             }
 
-            regOperands.clear();
-            inst.collectRegOperands(*context.operands, regOperands, context.encoder);
-            for (const MicroInstrRegOperandRef& operand : regOperands)
-            {
-                if (operand.reg && *operand.reg == conv.stackPointer &&
-                    (!directAccess || operand.reg != &ops[def.memBaseOperandIndex].reg))
-                    return false;
-            }
+            if (hasStackPointerOperand(def, ops, conv.stackPointer, true))
+                return false;
         }
 
         if (phase != Phase::Done || frameRef.isInvalid() || releaseRef.isInvalid())
@@ -858,7 +868,6 @@ namespace
         };
         SmallVector<Access>        accesses;
         SmallVector<MicroInstrRef> callAdjusts;
-        MicroInstrRegOperandRefs   regs;
         size_t                     tailStart    = order.size();
         size_t                     finalAdd     = order.size();
         uint64_t                   tailSubtract = 0;
@@ -930,11 +939,8 @@ namespace
                         sawCall = true;
                         continue;
                     }
-                    regs.clear();
-                    step->collectRegOperands(*context.operands, regs, context.encoder);
-                    for (const MicroInstrRegOperandRef& operand : regs)
-                        if (operand.reg && *operand.reg == conv.stackPointer)
-                            return false;
+                    if (hasStackPointerOperand(MicroInstr::info(step->op), stepOps, conv.stackPointer, false))
+                        return false;
                 }
                 if (release >= order.size())
                     return false;
@@ -980,12 +986,8 @@ namespace
                     return false;
                 accesses.push_back({order[i], def.memOffsetOperandIndex, candidate[def.memOffsetOperandIndex].valueU64});
             }
-            regs.clear();
-            inst->collectRegOperands(*context.operands, regs, context.encoder);
-            for (const MicroInstrRegOperandRef& operand : regs)
-                if (operand.reg && *operand.reg == conv.stackPointer &&
-                    (!direct || operand.reg != &ops[def.memBaseOperandIndex].reg))
-                    return false;
+            if (hasStackPointerOperand(def, ops, conv.stackPointer, true))
+                return false;
         }
 
         if (!foldedCalls || tailStart == order.size() || finalAdd == order.size() || retCount != 1 ||
@@ -1097,12 +1099,11 @@ namespace
             if (!enclosed)
                 continue;
 
-            uint32_t                 subIndex  = n;
-            uint32_t                 addIndex  = n;
-            uint32_t                 callCount = 0;
-            uint64_t                 amount    = 0;
-            bool                     inside    = false;
-            MicroInstrRegOperandRefs regOperands;
+            uint32_t subIndex  = n;
+            uint32_t addIndex  = n;
+            uint32_t callCount = 0;
+            uint64_t amount    = 0;
+            bool     inside    = false;
             for (uint32_t i = header; i <= tail && enclosed; ++i)
             {
                 const MicroInstr* inst = context.instructions->ptr(refs[i]);
@@ -1147,19 +1148,8 @@ namespace
                     enclosed = false;
                     break;
                 }
-                regOperands.clear();
-                inst->collectRegOperands(*context.operands, regOperands, context.encoder);
-                for (const MicroInstrRegOperandRef& operand : regOperands)
-                {
-                    SWC_ASSERT(operand.reg);
-                    if (*operand.reg != conv.stackPointer)
-                        continue;
-                    const MicroInstrDef& def    = MicroInstr::info(inst->op);
-                    const bool           direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
-                                        operand.reg == &ops[def.memBaseOperandIndex].reg;
-                    if (!inside || !direct)
-                        enclosed = false;
-                }
+                if (hasStackPointerOperand(MicroInstr::info(inst->op), ops, conv.stackPointer, inside))
+                    enclosed = false;
             }
             if (!enclosed || inside || subIndex == n || addIndex == n || callCount != 1 ||
                 !flagsDeadUntilRedefined(header, subIndex) ||

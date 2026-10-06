@@ -47,8 +47,8 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
         return nullptr;
 
     const TypeInfo& originalFieldType = typeMgr.get(typeRef());
-    const TypeRef   fieldTypeRef      = originalFieldType.isAlias() || originalFieldType.isEnum() ? originalFieldType.unwrapAliasEnum(ctx) : TypeRef::invalid();
-    const TypeInfo& fieldType         = fieldTypeRef.isValid() ? typeMgr.get(fieldTypeRef) : originalFieldType;
+    const TypeInfo* unwrappedField    = originalFieldType.unwrapAliasEnumType(ctx);
+    const TypeInfo& fieldType         = unwrappedField ? *unwrappedField : originalFieldType;
     if (fieldType.isStruct())
         return &fieldType.payloadSymStruct();
 
@@ -60,8 +60,8 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
         return nullptr;
 
     const TypeInfo& originalPointeeType = typeMgr.get(rawPointeeTypeRef);
-    const TypeRef   pointeeTypeRef      = originalPointeeType.isAlias() || originalPointeeType.isEnum() ? originalPointeeType.unwrapAliasEnum(ctx) : TypeRef::invalid();
-    const TypeInfo& pointeeType         = pointeeTypeRef.isValid() ? typeMgr.get(pointeeTypeRef) : originalPointeeType;
+    const TypeInfo* unwrappedPointee    = originalPointeeType.unwrapAliasEnumType(ctx);
+    const TypeInfo& pointeeType         = unwrappedPointee ? *unwrappedPointee : originalPointeeType;
     if (!pointeeType.isStruct())
         return nullptr;
 

@@ -220,24 +220,8 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
     outPoolRegs.clear();
     const MicroReg excludedBase = context_->debugStackBaseVirtualReg.isValid() || context_->keepLocalStackBase ? conv_->preferredLocalStackBaseReg() : MicroReg::invalid();
 
-    // One callee-saved integer register is kept out of the walk entirely. What
-    // needs it is the legalization that runs on this pass's own output: it
-    // stages a value in a fresh virtual and forbids that virtual every physical
-    // register still live across the instruction, so a function this allocator
-    // packed tightly leaves it nothing to take and the sweep that follows has
-    // no register it is allowed to name. The existing scan never packs that
-    // hard, which is why it never needed the reserve. Callee-saved, because the
-    // lowering names those least: an argument lane or a call clobber would put
-    // the reserve back under the same pressure it exists to relieve.
-    //
-    // Most functions never need it: their allocation leaves a register
-    // untouched on its own, which serves the same purpose for free. The walk
-    // therefore runs without the reserve first and only repeats with it when
-    // it took every integer register (runIntervalAllocation).
-    const MicroReg legalizeReserve = intervalHoldsLegalizeReserve_ && !freeIntPersistent_.empty() ? freeIntPersistent_.back() : MicroReg::invalid();
-
     const auto admit = [&](const MicroReg reg) {
-        if (reg == conv_->framePointer || reg == excludedBase || reg == legalizeReserve)
+        if (reg == conv_->framePointer || reg == excludedBase)
             return;
         outPoolRegs.push_back(reg);
     };
@@ -2124,48 +2108,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     return true;
 }
 
-// Whether any instruction of this function may need a register of its own
-// when it is legalized, once registers are assigned. Nothing else has to
-// leave one free.
-bool MicroRegisterAllocationPass::functionMayNeedLegalizeScratch() const
-{
-    if (!context_ || !context_->encoder)
-        return true;
-
-    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt; ++it)
-    {
-        if (context_->encoder->mayNeedLegalizeScratchRegister(*it, it->ops(*operands_)))
-            return true;
-    }
-
-    return false;
-}
-
-// Whether the allocation left an integer register the legalization that
-// follows may name freely: never given to a value, and claimed by nothing in
-// the function, so it is live nowhere and admissible everywhere.
-bool MicroRegisterAllocationPass::walkLeftAnIntegerRegisterFree(const IntervalWalkResult& result) const
-{
-    for (const MicroReg reg : result.poolRegs)
-    {
-        if (!reg.isInt())
-            continue;
-
-        const uint32_t denseConcrete = denseConcreteRegs_.find(reg);
-        if (denseConcrete != MicroDenseRegIndex::K_INVALID_INDEX &&
-            denseConcrete < concreteClaimPositionsByDenseIndex_.size() &&
-            !concreteClaimPositionsByDenseIndex_[denseConcrete].empty())
-            continue;
-
-        if (std::ranges::any_of(result.nodes, [&](const LiveInterval& node) { return node.assignedReg == reg; }))
-            continue;
-
-        return true;
-    }
-
-    return false;
-}
-
 // compiler.optimization.099: joins the two values of a copy whose source stays live after it,
 // when the two never hold different contents while both are live, as LLVM's register coalescer
 // joins a copy's intervals through value numbers. The walk sees one interval per value and treats
@@ -2544,28 +2486,12 @@ bool MicroRegisterAllocationPass::runIntervalAllocation()
     {
         std::vector<LiveInterval> intervals;
         buildLiveIntervals(intervals);
-        intervalHoldsLegalizeReserve_ = false;
         if (!walkIntervals(std::move(intervals), result))
             return false;
     }
 
-    // The legalization that runs on this output needs one integer register it
-    // may name. An allocation that took them all has to give one back, and
-    // only such a function pays for it: the walk repeats with the register
-    // held out of the pool. Building the intervals again is what the retry
-    // costs - the walk consumed the first set - and it is analysis, so the
-    // second set is the same one.
-    if (!walkLeftAnIntegerRegisterFree(result) && functionMayNeedLegalizeScratch())
-    {
-        std::vector<LiveInterval> intervals;
-        buildLiveIntervals(intervals);
-        intervalHoldsLegalizeReserve_ = true;
-        IntervalWalkResult reserved;
-        if (!walkIntervals(std::move(intervals), reserved))
-            return false;
-        result = std::move(reserved);
-    }
-
+    // Later legalization borrows a register only around its short staging
+    // sequence, preserving the concrete occupant in a frame slot.
     if (!applyIntervalAllocation(result))
         return false;
 

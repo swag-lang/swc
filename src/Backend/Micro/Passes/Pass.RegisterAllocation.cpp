@@ -3127,6 +3127,26 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
 
         if (std::ranges::find(pendingBorrowRestores_, reg, &BorrowRestore::physReg) != pendingBorrowRestores_.end())
             continue;
+        // A different scratch value can already own this register in the
+        // current sweep. Its uses are virtual in the original CFG, so the
+        // concrete-touch guard alone cannot see that owner. Expired mappings
+        // can remain cached in a function with branches; discard those only
+        // after deciding to borrow, just as ordinary eviction would.
+        uint32_t mappedOwner = MicroDenseRegIndex::K_INVALID_INDEX;
+        for (const uint32_t index : mappedVirtualIndices_)
+        {
+            if (states_[index].phys == reg)
+            {
+                mappedOwner = index;
+                break;
+            }
+        }
+        if (mappedOwner != MicroDenseRegIndex::K_INVALID_INDEX)
+        {
+            if (isLiveInAt(mappedOwner, lo) || containsKey(protectedKeys, denseVirtualRegs_.regs()[mappedOwner]))
+                continue;
+            unmapVirtReg(states_[mappedOwner]);
+        }
 
         const MicroOpBits bits     = isFloat ? MicroOpBits::B128 : MicroOpBits::B64;
         const uint64_t    slotSize = bits == MicroOpBits::B128 ? 16u : 8u;
@@ -4047,7 +4067,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             forbiddenPhysRegs.reserve((defOnlyCopyFromConcrete ? currentConcreteLiveOut_.size() : 0) + addressSourceRegs.size() + mentionedConcreteRegs.size() + assignedPhysRegs.size());
             SmallVector<MicroReg> remapForbiddenPhysRegs;
             remapForbiddenPhysRegs.reserve(1 + mentionedConcreteRegs.size() + assignedPhysRegs.size());
-            if (defOnlyCopyFromConcrete)
+            if (defOnlyCopyFromConcrete && (context_->isFirstAllocationSweep || !context_->intervalAllocated))
             {
                 for (const MicroReg key : currentConcreteLiveOut_)
                 {

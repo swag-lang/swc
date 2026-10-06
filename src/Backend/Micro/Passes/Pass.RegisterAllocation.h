@@ -222,8 +222,6 @@ public:
 
 private:
     bool intervalAllocationAccepts() const;
-    bool walkLeftAnIntegerRegisterFree(const IntervalWalkResult& result) const;
-    bool functionMayNeedLegalizeScratch() const;
     void buildLiveIntervals(std::vector<LiveInterval>& out) const;
     void buildFixedIntervals(std::vector<LiveInterval>& outByPoolIndex, SmallVector<MicroReg>& outPoolRegs) const;
     bool walkIntervals(std::vector<LiveInterval>&& intervals, IntervalWalkResult& out) const;
@@ -356,7 +354,6 @@ private:
     // Whether this walk holds one callee-saved integer register back for the
     // legalization that runs on its output. Only a function whose first walk
     // left nothing free pays it.
-    bool                                             intervalHoldsLegalizeReserve_ = false;
     std::vector<SmallVector<uint32_t, 4>>            useVirtualIndices_;
     std::vector<SmallVector<uint32_t, 4>>            defVirtualIndices_;
     std::vector<SmallVector<uint32_t, 4>>            useConcreteIndices_;

@@ -34,7 +34,6 @@ public:
     bool supportsCarryArithmetic() const override { return true; }
     bool supportsHighByteExtract(MicroReg regDst, MicroReg regSrc) const override;
     bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
-    bool mayNeedLegalizeScratchRegister(const MicroInstr& inst, const MicroInstrOperand* ops) const override;
 
 protected:
     void     resetCode() override;

@@ -247,25 +247,6 @@ is the current scorecard.
   survives at the interop and bit-punning boundary, which is where the marker belongs and where it
   joins compiler.safety.007. Also compiler.safety.014.
 
-### compiler.safety.004 — Diagnostic allocation does not intercept a stale heap read
-
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-11 16:29 — Correct guard placement and freed-payload checking evidence.
-- Area: runtime/allocator, `bin/runtime`
-- Evidence: lifecycle guards poison moved or dropped storage. The runtime allocator also supports
-  allocation tracking, freed-byte fill, a bounded diagnostic quarantine, double-free diagnostics
-  and electric allocations next to a guard page, with alignment slack for non-multiple sizes.
-  Electric mode retains freed addresses, but `freeHeaderBlock` leaves their payload readable
-  and writable. `checkFree` checks only header/footer magic; it does not verify the freed payload
-  pattern. `allocator_debug_modes.swg` explicitly reads the freed pattern.
-  Ordinary page allocations reuse storage and provide no stale-read instrumentation.
-- Next: evaluate a diagnostic mode that makes a freed payload inaccessible while retaining enough
-  metadata to diagnose release errors, or instrument reads. Measure its cost on an application
-  workload and specify how it composes with the existing electric/quarantine modes.
-- Complete when: a stale read through an alias is detected at the read in the selected diagnostic
-  mode, with its limits and measured cost documented; Release defaults remain unchanged.
-- Related: runtime.allocator.010.
-
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
 - Recorded: 2026-09-08 09:05

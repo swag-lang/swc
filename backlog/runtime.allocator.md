@@ -17,6 +17,25 @@ touch payloads and distinguish working set, committed bytes, and reserved addres
 runtime.allocator.001's comparable workloads and parity gate before deciding whether to retain or
 replace the allocator; a similar architecture alone does not establish comparable behavior.
 
+### runtime.allocator.018 — Diagnostic allocation does not intercept a stale heap read
+
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-10-06 21:14 — Moved from compiler.safety.004 to the allocator that owns the work.
+- Area: runtime/allocator, `bin/runtime`
+- Evidence: lifecycle guards poison moved or dropped storage. The runtime allocator also supports
+  allocation tracking, freed-byte fill, a bounded diagnostic quarantine, double-free diagnostics
+  and electric allocations next to a guard page, with alignment slack for non-multiple sizes.
+  Electric mode retains freed addresses, but `freeHeaderBlock` leaves their payload readable
+  and writable. `checkFree` checks only header/footer magic; it does not verify the freed payload
+  pattern. `allocator_debug_modes.swg` explicitly reads the freed pattern.
+  Ordinary page allocations reuse storage and provide no stale-read instrumentation.
+- Next: evaluate a diagnostic mode that makes a freed payload inaccessible while retaining enough
+  metadata to diagnose release errors, or instrument reads. Measure its cost on an application
+  workload and specify how it composes with the existing electric/quarantine modes.
+- Complete when: a stale read through an alias is detected at the read in the selected diagnostic
+  mode, with its limits and measured cost documented; Release defaults remain unchanged.
+- Related: runtime.allocator.010.
+
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Recorded: 2026-08-06 06:22
@@ -171,7 +190,7 @@ replace the allocator; a similar architecture alone does not establish comparabl
   compose, and test non-multiple sizes explicitly.
 - `quarantine` never evicts in electric mode, so freed addresses are not reused before teardown,
   but their payload stays committed/readable/writable. Retention can grow without a byte limit.
-  Stale-read interception is already owned by compiler.safety.004; retaining an address is not
+  Stale-read interception is already owned by runtime.allocator.018; retaining an address is not
   interception. Ordinary page allocations also reuse memory without stale-access instrumentation.
 - `fillFree` writes a pattern, but `checkFree` checks only header/footer magic. It does not scan
   the freed payload for later writes. `fillMemory` alone does not enable diagnostic mode or
@@ -184,7 +203,7 @@ replace the allocator; a similar architecture alone does not establish comparabl
   optional diagnostics and unsupported cases.
 - Complete when: every claimed guarantee has a focused regression and accurate documentation,
   with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
-- Related: compiler.safety.004, runtime.allocator.001.
+- Related: runtime.allocator.018, runtime.allocator.001.
 
 ### runtime.allocator.003 — Return idle memory without being asked
 

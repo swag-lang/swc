@@ -75,7 +75,8 @@ func readAfterMoveThroughCall()->s32
 }
 
 // GAP compiler.safety.005 - a pointer stored INSIDE the value survives the move and then
-// addresses the abandoned source. Nothing reports it and the write lands in dead storage.
+// addresses the abandoned source. A read through it is reported (sanity/self_borrow_move.swg);
+// a write is not, and lands in dead storage.
 // Left commented because it really does write through a dangling pointer.
 //
 // struct SelfReferential

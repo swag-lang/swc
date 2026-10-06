@@ -399,8 +399,10 @@ namespace
 
         const TypeInfo& leftAliasType            = SemaHelpers::aliasType(sema, nodeLeftView);
         const TypeInfo& rightAliasType           = SemaHelpers::aliasType(sema, nodeRightView);
-        const TypeInfo& leftType                 = leftAliasType.isEnum() ? sema.typeMgr().get(leftAliasType.unwrapAliasEnum(sema.ctx(), leftAliasType.typeRef())) : leftAliasType;
-        const TypeInfo& rightType                = rightAliasType.isEnum() ? sema.typeMgr().get(rightAliasType.unwrapAliasEnum(sema.ctx(), rightAliasType.typeRef())) : rightAliasType;
+        const TypeInfo* leftEnumType             = leftAliasType.isEnum() ? leftAliasType.unwrapAliasEnumType(sema.ctx()) : nullptr;
+        const TypeInfo* rightEnumType            = rightAliasType.isEnum() ? rightAliasType.unwrapAliasEnumType(sema.ctx()) : nullptr;
+        const TypeInfo& leftType                 = leftEnumType ? *leftEnumType : leftAliasType;
+        const TypeInfo& rightType                = rightEnumType ? *rightEnumType : rightAliasType;
         TypeRef         resultTypeRef            = nodeLeftView.typeRef();
         bool            handledPointerArithmetic = false;
         switch (op)

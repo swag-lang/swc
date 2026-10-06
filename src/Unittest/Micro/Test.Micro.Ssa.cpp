@@ -959,7 +959,7 @@ SWC_TEST_BEGIN(MicroSsa_ReusedAnalysisMatchesFreshAnalysisAfterMutations)
     builder.emitRet();
 
     MicroSsaState reused;
-    for (uint32_t stage = 0; stage < 10; ++stage)
+    for (uint32_t stage = 0; stage < 15; ++stage)
     {
         switch (stage)
         {
@@ -975,6 +975,47 @@ SWC_TEST_BEGIN(MicroSsa_ReusedAnalysisMatchesFreshAnalysisAfterMutations)
             case 7: builder.instructions().erase(leftOp); break;
             case 8: builder.emitLoadRegImm(third, ApInt(13, 64), MicroOpBits::B64); break;
             case 9: reused.clear(); break;
+            case 10:
+            case 14:
+            {
+                // Drop reads with the same definition and CFG. Stage fourteen
+                // then forces a full rebuild after the reuse probe's repaired prefix.
+                auto* inst        = builder.instructions().ptr(rightOp);
+                auto* ops         = inst->ops(builder.operands());
+                inst->op          = MicroInstrOpcode::LoadRegImm;
+                inst->numOperands = 3;
+                ops[0].reg        = first;
+                ops[1].opBits     = MicroOpBits::B64;
+                ops[2].setImmediateValue(ApInt(17, 64));
+                if (stage == 14)
+                    builder.instructions().ptr(builder.instructions().lastInstructionRef())->ops(builder.operands())[0].reg = second;
+                break;
+            }
+            case 12:
+            {
+                // Preserve one of the two reads of the same reaching value.
+                auto* inst        = builder.instructions().ptr(rightOp);
+                auto* ops         = inst->ops(builder.operands());
+                inst->op          = MicroInstrOpcode::LoadRegReg;
+                inst->numOperands = 3;
+                ops[0].reg        = first;
+                ops[1].reg        = first;
+                ops[2].opBits     = MicroOpBits::B64;
+                break;
+            }
+            case 11:
+            case 13:
+            {
+                auto* inst        = builder.instructions().ptr(rightOp);
+                auto* ops         = inst->ops(builder.operands());
+                inst->op          = MicroInstrOpcode::OpBinaryRegReg;
+                inst->numOperands = 4;
+                ops[0].reg        = first;
+                ops[1].reg        = first;
+                ops[2].opBits     = MicroOpBits::B64;
+                ops[3].microOp    = MicroOp::Add;
+                break;
+            }
             default: break;
         }
         reused.invalidate();

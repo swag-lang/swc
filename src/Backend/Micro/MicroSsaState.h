@@ -158,6 +158,9 @@ private:
     static bool isTrackedReg(MicroReg reg);
 
     bool            updateUseDef(InstrInfo& info, const MicroInstr& inst, const MicroOperandStorage& operands, const Encoder* encoder, bool comparePrevious);
+    bool            removeUsesWithoutRenaming(const InstrInfo& info, const MicroInstrUseDef& replacement);
+    void            pruneRemovedUses();
+    uint32_t        findReachingValue(uint32_t regIndex, uint32_t position) const;
     void            resetForBuild(MicroStorage& storage);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
     bool            computeDominators(bool acyclic); // true when any dominance frontier exists
@@ -215,6 +218,8 @@ private:
     std::vector<SmallVector4<ReachingValue>> reachingValuesByReg_;
     mutable std::vector<uint32_t>            useVisitStamps_;
     mutable std::vector<uint32_t>            useVisitStack_;
+    std::vector<uint32_t>                    removedUseValues_;
+    uint32_t                                 removedUseStamp_ = 0;
     uint32_t                                 trackedDefCount_ = 0;
     uint32_t                                 valueInfoCount_  = 0;
     uint32_t                                 phiInfoCount_    = 0;

@@ -57,6 +57,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
     // can invalidate the analysis without changing any of those inputs.
     if (reuseBlocks && storage_ == &storage)
     {
+        removedUseValues_.clear();
         bool reuseValues = true;
         for (const MicroInstrRef instRef : instructionRefs_)
         {
@@ -69,6 +70,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         }
         if (reuseValues)
         {
+            pruneRemovedUses();
             valid_ = true;
             return;
         }
@@ -180,7 +182,9 @@ bool MicroSsaState::updateUseDef(InstrInfo& info, const MicroInstr& inst, const 
         inst.collectUseDef(useDef, operands, encoder);
         unchanged = info.useDefCacheEpoch == useDefCacheEpoch_ &&
                     info.useDef.isCall == useDef.isCall && info.useDef.callConv == useDef.callConv &&
-                    std::ranges::equal(info.useDef.uses, useDef.uses) && std::ranges::equal(info.useDef.defs, useDef.defs);
+                    std::ranges::equal(info.useDef.defs, useDef.defs);
+        if (unchanged && !std::ranges::equal(info.useDef.uses, useDef.uses))
+            unchanged = removeUsesWithoutRenaming(info, useDef);
         info.useDef = std::move(useDef);
     }
     else
@@ -192,6 +196,76 @@ bool MicroSsaState::updateUseDef(InstrInfo& info, const MicroInstr& inst, const 
     for (uint8_t i = 0; i < numOperands; ++i)
         info.cachedOperandWords.push_back(ops[i].valueU64);
     return unchanged;
+}
+
+// The CFG and definitions are unchanged. Removing reads cannot change phi placement,
+// value identities or reaching definitions; only the affected values' use lists change.
+bool MicroSsaState::removeUsesWithoutRenaming(const InstrInfo& info, const MicroInstrUseDef& replacement)
+{
+    for (const MicroReg reg : replacement.uses)
+    {
+        if (std::ranges::count(replacement.uses, reg) > std::ranges::count(info.useDef.uses, reg))
+            return false;
+    }
+
+    for (const MicroReg reg : info.useDef.uses)
+    {
+        if (!isTrackedReg(reg) || std::ranges::count(info.useDef.uses, reg) == std::ranges::count(replacement.uses, reg))
+            continue;
+        const uint32_t regIndex = trackedRegs_.find(reg);
+        if (regIndex == MicroDenseRegIndex::K_INVALID_INDEX)
+            continue;
+        const uint32_t valueId = findReachingValue(regIndex, info.renamePosition);
+        if (valueId == K_INVALID_VALUE)
+            continue;
+
+        if (removedUseValues_.empty())
+        {
+            if (useVisitStamps_.size() < valueInfoCount_)
+                useVisitStamps_.resize(valueInfoCount_, 0);
+            if (useVisitStamp_ == std::numeric_limits<uint32_t>::max())
+            {
+                std::ranges::fill(useVisitStamps_, 0);
+                useVisitStamp_ = 1;
+            }
+            removedUseStamp_ = useVisitStamp_++;
+        }
+        if (useVisitStamps_[valueId] == removedUseStamp_)
+            continue;
+        useVisitStamps_[valueId] = removedUseStamp_;
+        removedUseValues_.push_back(valueId);
+    }
+    return true;
+}
+
+void MicroSsaState::pruneRemovedUses()
+{
+    // Filter each affected value once, preserving use order and duplicate operand
+    // reads. Erasing each changed instruction separately would be quadratic for
+    // a constant with many readers. Phi edges are untouched.
+    for (const uint32_t valueId : removedUseValues_)
+    {
+        ValueInfo&    value   = valueInfos_[valueId];
+        MicroInstrRef lastRef = MicroInstrRef::invalid();
+        uint32_t      left    = 0;
+        uint32_t      kept    = 0;
+        for (const UseSite& use : value.uses)
+        {
+            if (use.kind == UseSite::Kind::Instruction)
+            {
+                if (use.instRef != lastRef)
+                {
+                    lastRef = use.instRef;
+                    left    = static_cast<uint32_t>(std::ranges::count(instrInfos_[lastRef.get()].useDef.uses, value.reg));
+                }
+                if (!left)
+                    continue;
+                --left;
+            }
+            value.uses[kept++] = use;
+        }
+        value.uses.resize(kept);
+    }
 }
 
 const MicroSsaState* MicroSsaState::ensureFor(const MicroPassContext& context, MicroSsaState& localState)
@@ -283,9 +357,13 @@ uint32_t MicroSsaState::reachingValueId(const MicroReg reg, const MicroInstrRef 
     if (regIndex == MicroDenseRegIndex::K_INVALID_INDEX)
         return K_INVALID_VALUE;
 
-    const uint32_t position = instrInfos_[slot].renamePosition;
-    const auto&    values   = reachingValuesByReg_[regIndex];
-    const auto     after    = std::ranges::upper_bound(values, position, {}, &ReachingValue::position);
+    return findReachingValue(regIndex, instrInfos_[slot].renamePosition);
+}
+
+uint32_t MicroSsaState::findReachingValue(const uint32_t regIndex, const uint32_t position) const
+{
+    const auto& values = reachingValuesByReg_[regIndex];
+    const auto  after  = std::ranges::upper_bound(values, position, {}, &ReachingValue::position);
     if (after == values.begin())
         return K_INVALID_VALUE;
     return (after - 1)->valueId;

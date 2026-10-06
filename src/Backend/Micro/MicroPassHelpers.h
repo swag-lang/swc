@@ -14,6 +14,32 @@ class MicroSsaState;
 
 namespace MicroPassHelpers
 {
+    struct RegDefinitionSummary
+    {
+        uint32_t count    = 0;
+        uint32_t lastSlot = 0;
+    };
+
+    struct FramePrivacy
+    {
+        std::unordered_set<MicroReg> frameDerived;
+        std::vector<MicroInstrRef>   escapes;
+        bool                         framePrivate = true;
+
+        bool isFrame(MicroReg reg, MicroReg stackPointer) const
+        {
+            return reg == stackPointer || frameDerived.contains(reg);
+        }
+    };
+
+    // A frame stays private when every derived address is only propagated or
+    // used as a memory base. Passing or storing an address exposes the frame.
+    FramePrivacy analyzeFramePrivacy(const MicroPassContext& context, std::span<const MicroInstrRef> refs, std::span<const MicroInstrUseDef> useDefs, const std::unordered_map<MicroReg, RegDefinitionSummary>& definitions, bool collectEscapes = false);
+
+    // SP displacement from a captured frame base at each reachable instruction.
+    // Conflicting paths and unmodelled SP definitions leave the offset unknown.
+    std::unordered_map<uint32_t, uint64_t> collectStackPointerOffsets(const MicroPassContext& context, MicroInstrRef frameBaseRef, uint64_t frameBaseOffset);
+
     // The integer comparison conditions accepted by branch layout rewrites.
     inline bool invertLayoutBranchCondition(MicroCond& outInverted, MicroCond cond)
     {

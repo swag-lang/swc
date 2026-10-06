@@ -424,10 +424,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // writes and the escape of the addresses they make. That only holds while
     // the body never moves the stack pointer. A function with calls can reserve
     // outgoing argument space around each call while continuing to address all
-    // locals through the stable frame base. In that case, ignore SP-relative
-    // memory altogether instead of abandoning promotion for the frame-base
-    // slots. A local address stored into the untracked outgoing area still
-    // appears as a tracked VALUE and the generic escape scan poisons its object.
+    // locals through the stable frame base. In that case, resolve direct SP
+    // memory through CFG displacement facts when collecting accesses, so an
+    // optimizer-created SP access cannot disappear from a local's alias set.
+    // SP address propagation keeps the conservative fixed-frame contract.
     bool stackPointerTracksFrame = true;
     {
         bool spMoved    = false;
@@ -745,11 +745,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     //      pinned to one. ----
     thread_local std::unordered_map<uint64_t, SlotInfo> slots;
     slots.clear();
-    SmallVector<std::pair<uint64_t, uint64_t>> wrappingRanges;
-    bool                                       bail               = false;
-    bool                                       hasFieldSplitWrite = false;
-    bool                                       hasNarrowFieldRead = false;
-    bool                                       hasVectorWrite     = false;
+    SmallVector<std::pair<uint64_t, uint64_t>>            wrappingRanges;
+    bool                                                  bail               = false;
+    bool                                                  hasFieldSplitWrite = false;
+    bool                                                  hasNarrowFieldRead = false;
+    bool                                                  hasVectorWrite     = false;
+    std::optional<std::unordered_map<uint32_t, uint64_t>> stackPointerOffsets;
     // Slots addressed directly by the stack pointer include outgoing arguments;
     // a callee can read those behind this analysis, so they cannot be promoted.
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
@@ -781,7 +782,24 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         bool     baseValid = false;
 
         auto resolveBase = [&](MicroReg reg, uint64_t extraOffset) {
-            if (isFrameRegister(reg))
+            // Vectorization can address locals through SP even when calls move
+            // it elsewhere in the function. Those accesses must participate in
+            // the same slot and overlap proofs as the captured frame base.
+            if (reg == stackPointer && !stackPointerTracksFrame)
+            {
+                if (!stackPointerOffsets)
+                    stackPointerOffsets = MicroPassHelpers::collectStackPointerOffsets(context, frameBaseDefRef, frameBaseSpOffset);
+                const auto found = stackPointerOffsets->find(ref.get());
+                if (found == stackPointerOffsets->end())
+                {
+                    bail = true;
+                    return;
+                }
+                baseReg   = reg;
+                baseSlot  = extraOffset + found->second;
+                baseValid = true;
+            }
+            else if (isFrameRegister(reg))
             {
                 baseReg   = reg;
                 baseSlot  = extraOffset + frameRegisterOffset(reg);

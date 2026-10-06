@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.SlpVectorize.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroRelocation.h"
@@ -20,7 +21,8 @@
 // forward their value to later loads of the same location. Memory addresses
 // are resolved through hoisted address chains down to a stable root register,
 // so `%a = &[%root + 16]` followed by `[%a] = v` is understood as a store to
-// (root, 16).
+// (root, 16). Indexed accesses additionally retain the stable index and scale;
+// a read-modify-write contributes both its input load and its final store.
 //
 // Seeds are the block's final lane-sized stores: four 32-bit or two 64-bit stores covering one
 // contiguous 16-byte chunk of a root become one candidate group. Each group
@@ -46,10 +48,10 @@
 //
 // Aliasing: all memory operations of a block must resolve against at most two
 // roots - the stack pointer and one other - before any group is attempted.
-// The frame-privacy assumption (an incoming pointer cannot alias the
-// function's own frame) is what allows the pair; two unknown non-frame roots
-// are never assumed disjoint, and any unresolvable memory operation in the
-// block disables it entirely.
+// An incoming pointer predates the frame; another foreign pointer requires
+// the shared proof that no frame address escapes on a path reaching the block.
+// Two non-frame roots are never assumed disjoint, and any unresolvable memory
+// operation in the block disables it entirely.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -246,15 +248,35 @@ namespace
         Parameter,
         // Anything else. Never assumed disjoint from another root.
         Unknown,
+        IndexedFrame,
     };
 
     struct RootInfo
     {
-        MicroReg reg  = MicroReg::invalid();
-        RootKind kind = RootKind::Unknown;
+        MicroReg reg   = MicroReg::invalid();
+        MicroReg index = MicroReg::invalid();
+        uint64_t scale = 1;
+        RootKind kind  = RootKind::Unknown;
         // Global position of the root register's single definition, or
         // K_INVALID_ID when the root is the stack pointer (always available).
         uint32_t defPos = K_INVALID_ID;
+    };
+
+    struct IndexedRootKey
+    {
+        uint32_t base  = 0;
+        uint32_t index = 0;
+        uint64_t scale = 1;
+
+        bool operator==(const IndexedRootKey&) const = default;
+    };
+
+    struct IndexedRootKeyHash
+    {
+        size_t operator()(const IndexedRootKey& key) const
+        {
+            return std::hash<uint64_t>{}((static_cast<uint64_t>(key.base) << 32) | key.index) ^ std::hash<uint64_t>{}(key.scale);
+        }
     };
 
     struct PlanInstr
@@ -312,10 +334,12 @@ namespace
         std::unordered_map<uint32_t, RegDefInfo> regDefs;
 
         // Root registry: register -> dense key.
-        std::unordered_map<uint32_t, uint32_t> rootKeys;
-        std::vector<RootInfo>                  roots;
+        std::unordered_map<uint32_t, uint32_t>                           rootKeys;
+        std::vector<RootInfo>                                            roots;
+        std::unordered_map<IndexedRootKey, uint32_t, IndexedRootKeyHash> indexedRootKeys;
 
-        const MicroSsaState* ssa = nullptr;
+        const MicroSsaState*                          ssa = nullptr;
+        std::optional<MicroPassHelpers::FramePrivacy> framePrivacy;
 
         uint32_t nextVirtualFloatRegIndex = 0;
         uint32_t nextVirtualIntRegIndex   = 0;
@@ -379,9 +403,9 @@ namespace
 
     // Resolves a memory operand's base register to (rootKey, extra offset) by
     // walking single-definition address chains: `lea` style address loads and
-    // 64-bit register copies. Fails on multi-definition bases and on anything
-    // it does not understand, which makes the caller treat the access as
-    // unresolvable.
+    // 64-bit register copies. A multi-definition root is kept as a snapshot
+    // and must be stable across the block's accesses; copies out of such a
+    // register remain distinct roots because they can capture older values.
     bool resolveRoot(SlpFunctionContext& fn, MicroReg baseReg, uint64_t& inOutOffset, uint32_t& outRootKey)
     {
         MicroReg reg = baseReg;
@@ -397,28 +421,36 @@ namespace
                 return false;
 
             const auto defIt = fn.regDefs.find(reg.packed);
-            if (defIt == fn.regDefs.end() || defIt->second.defCount != 1)
+            if (defIt == fn.regDefs.end())
                 return false;
+            if (defIt->second.defCount != 1)
+            {
+                // A loop-carried register can be stable over this block's
+                // accesses. The block validates its definition positions later.
+                outRootKey = fn.rootKeyFor(reg, RootKind::Unknown, K_INVALID_ID);
+                return true;
+            }
 
             const MicroInstr* defInst = fn.storage->ptr(defIt->second.defRef);
             if (!defInst)
                 return false;
 
-            const MicroInstrOperand* defOps = defInst->ops(*fn.operands);
-            if (defInst->op == MicroInstrOpcode::LoadAddrRegMem && defOps && !defOps[1].reg.isInstructionPointer())
+            const MicroInstrOperand* defOps      = defInst->ops(*fn.operands);
+            const bool               addressCopy = (defInst->op == MicroInstrOpcode::LoadAddrRegMem || defInst->op == MicroInstrOpcode::LoadRegReg) &&
+                                     defOps && defOps[2].opBits == MicroOpBits::B64;
+            if (addressCopy)
             {
-                inOutOffset += defOps[3].valueU64;
-                reg = defOps[1].reg;
-                continue;
-            }
-
-            // Follow full-width pointer copies into registers the walk can
-            // keep reasoning about.
-            if (defInst->op == MicroInstrOpcode::LoadRegReg && defOps && defOps[2].opBits == MicroOpBits::B64 &&
-                (defOps[1].reg.isVirtual() || isStackPointer(fn, defOps[1].reg)))
-            {
-                reg = defOps[1].reg;
-                continue;
+                const MicroReg source       = defOps[1].reg;
+                const auto     sourceDef    = fn.regDefs.find(source.packed);
+                const bool     stableSource = isStackPointer(fn, source) ||
+                                          (source.isVirtual() && sourceDef != fn.regDefs.end() && sourceDef->second.defCount == 1);
+                if (stableSource)
+                {
+                    if (defInst->op == MicroInstrOpcode::LoadAddrRegMem)
+                        inOutOffset += defOps[3].valueU64;
+                    reg = source;
+                    continue;
+                }
             }
 
             // The register itself is the root value. A copy out of a physical
@@ -427,7 +459,7 @@ namespace
             // is what makes it provably disjoint from the frame.
             auto kind = RootKind::Unknown;
             if (defInst->op == MicroInstrOpcode::LoadRegReg && defOps && defOps[2].opBits == MicroOpBits::B64 &&
-                defOps[1].reg.isInt() && defIt->second.defPos < fn.firstCallPos)
+                !defOps[1].reg.isVirtual() && defOps[1].reg.isInt() && defIt->second.defPos < fn.firstCallPos)
             {
                 kind = RootKind::Parameter;
             }
@@ -437,6 +469,156 @@ namespace
         }
 
         return false;
+    }
+
+    // Match one affine address, not just its base. Different indexes remain
+    // different, potentially aliasing roots and cannot be packed together.
+    bool resolveIndexedRoot(SlpFunctionContext& fn, uint64_t& offset, uint32_t& rootKey, const MicroInstr& inst)
+    {
+        MicroPassHelpers::AmcLayout layout;
+        if (!MicroPassHelpers::amcLayoutFor(layout, inst.op))
+            return false;
+        const auto*    ops   = inst.ops(*fn.operands);
+        const uint64_t scale = ops[layout.mulIdx].valueU64;
+        if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
+            return false;
+        uint32_t baseKey     = K_INVALID_ID;
+        uint32_t indexKey    = K_INVALID_ID;
+        uint64_t indexOffset = 0;
+        if (!resolveRoot(fn, ops[layout.baseIdx].reg, offset, baseKey) ||
+            !resolveRoot(fn, ops[layout.indexIdx].reg, indexOffset, indexKey))
+            return false;
+        offset += indexOffset * scale;
+        const IndexedRootKey key{baseKey, indexKey, scale};
+        const auto [it, inserted] = fn.indexedRootKeys.try_emplace(key, static_cast<uint32_t>(fn.roots.size()));
+        if (inserted)
+        {
+            const RootInfo base  = fn.roots[baseKey];
+            const RootInfo index = fn.roots[indexKey];
+            fn.roots.push_back(RootInfo{.reg = base.reg, .index = index.reg, .scale = scale, .kind = base.kind == RootKind::StackPointer ? RootKind::IndexedFrame : base.kind == RootKind::Parameter && index.kind == RootKind::Parameter ? RootKind::Parameter
+                                                                                                                                                                                                                                          : RootKind::Unknown});
+        }
+        rootKey = it->second;
+        return true;
+    }
+
+    // Give the scanner the ordinary operand layout while preserving the actual
+    // instruction and its SSA definition. Address identity is resolved separately.
+    MicroInstrOpcode normalizeIndexedAccess(MicroInstrOperand* out, const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadAmcRegMem:
+                out[0] = ops[0];
+                out[1] = ops[1];
+                out[2] = ops[3];
+                if (ops[3].opBits == ops[4].opBits)
+                {
+                    out[3] = ops[6];
+                    return MicroInstrOpcode::LoadRegMem;
+                }
+                out[3] = ops[4];
+                out[4] = ops[6];
+                return MicroInstrOpcode::LoadZeroExtRegMem;
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+                out[0] = ops[0];
+                out[1] = ops[1];
+                out[2] = ops[3];
+                out[3] = ops[4];
+                out[4] = ops[6];
+                return inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ? MicroInstrOpcode::LoadZeroExtRegMem : MicroInstrOpcode::LoadSignedExtRegMem;
+            case MicroInstrOpcode::LoadAmcMemReg:
+                out[0] = ops[0];
+                out[1] = ops[2];
+                out[2] = ops[4];
+                out[3] = ops[6];
+                return MicroInstrOpcode::LoadMemReg;
+            case MicroInstrOpcode::LoadAmcMemImm:
+                out[0] = ops[0];
+                out[1] = ops[4];
+                out[2] = ops[6];
+                out[3] = ops[7];
+                return MicroInstrOpcode::LoadMemImm;
+            case MicroInstrOpcode::OpBinaryRegAmcMem:
+                out[0] = ops[0];
+                out[1] = ops[1];
+                out[2] = ops[3];
+                out[3] = ops[7];
+                out[4] = ops[6];
+                return MicroInstrOpcode::OpBinaryRegMem;
+            case MicroInstrOpcode::OpBinaryAmcMemReg:
+                out[0] = ops[0];
+                out[1] = ops[2];
+                out[2] = ops[4];
+                out[3] = ops[7];
+                out[4] = ops[6];
+                return MicroInstrOpcode::OpBinaryMemReg;
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
+                out[0] = ops[0];
+                out[1] = ops[2];
+                out[2] = ops[7];
+                out[3] = ops[5];
+                out[4] = ops[6];
+                return MicroInstrOpcode::OpBinaryMemImm;
+            default:
+                return inst.op;
+        }
+    }
+
+    bool hasPrivateFrame(SlpFunctionContext& fn, MicroInstrRef lastRef)
+    {
+        if (!fn.framePrivacy)
+        {
+            std::vector<MicroInstrRef>                                           refs;
+            std::vector<MicroInstrUseDef>                                        useDefs;
+            std::unordered_map<MicroReg, MicroPassHelpers::RegDefinitionSummary> definitions;
+            refs.reserve(fn.storage->count());
+            useDefs.reserve(fn.storage->count());
+            for (auto it = fn.storage->view().begin(); it != fn.storage->view().end(); ++it)
+            {
+                refs.push_back(it.current);
+                useDefs.push_back(it->collectUseDef(*fn.operands, fn.encoder));
+                for (const MicroReg reg : useDefs.back().defs)
+                    ++definitions[reg].count;
+            }
+            fn.framePrivacy = MicroPassHelpers::analyzeFramePrivacy(*fn.context, refs, useDefs, definitions, true);
+        }
+        if (fn.framePrivacy->framePrivate)
+            return true;
+        if (fn.framePrivacy->escapes.empty())
+            return false;
+
+        // A later escape cannot alias an earlier access unless control flow
+        // can bring it back here. Include every predecessor, including cycles.
+        const auto& cfg = fn.context->builder->controlFlowGraph();
+        if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.addressTakenLabelIndices().empty())
+            return false;
+        const uint32_t lastIndex = cfg.indexOf(lastRef);
+        if (lastIndex == MicroControlFlowGraph::K_NO_INDEX)
+            return false;
+        std::vector<bool>     reachable(cfg.instructionCount());
+        std::vector<uint32_t> pending{lastIndex};
+        reachable[lastIndex] = true;
+        while (!pending.empty())
+        {
+            const uint32_t index = pending.back();
+            pending.pop_back();
+            for (const uint32_t predecessor : cfg.predecessors(index))
+            {
+                if (reachable[predecessor])
+                    continue;
+                reachable[predecessor] = true;
+                pending.push_back(predecessor);
+            }
+        }
+        for (const MicroInstrRef escape : fn.framePrivacy->escapes)
+        {
+            const uint32_t index = cfg.indexOf(escape);
+            if (index == MicroControlFlowGraph::K_NO_INDEX || reachable[index])
+                return false;
+        }
+        return true;
     }
 
     uint32_t entryValueFor(BlockScan& scan, MicroReg reg)
@@ -1269,7 +1451,16 @@ namespace
         MicroInstr&              inst = *blockInstr.inst;
         const MicroInstrOperand* ops  = inst.ops(*fn.operands);
 
-        switch (inst.op)
+        MicroInstrOperand      normalized[5];
+        const MicroInstrOpcode opcode  = normalizeIndexedAccess(normalized, inst, ops);
+        const bool             indexed = opcode != inst.op;
+        if (indexed)
+            ops = normalized;
+        const auto resolveAddress = [&](const MicroReg base, uint64_t& offset, uint32_t& root) {
+            return indexed ? resolveIndexedRoot(fn, offset, root, inst) : resolveRoot(fn, base, offset, root);
+        };
+
+        switch (opcode)
         {
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Breakpoint:
@@ -1311,11 +1502,11 @@ namespace
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadVecRegMem:
             {
-                const bool        isPlainLoad = inst.op == MicroInstrOpcode::LoadRegMem;
-                const bool        isZeroExt   = inst.op == MicroInstrOpcode::LoadZeroExtRegMem;
+                const bool        isPlainLoad = opcode == MicroInstrOpcode::LoadRegMem;
+                const bool        isZeroExt   = opcode == MicroInstrOpcode::LoadZeroExtRegMem;
                 const MicroReg    baseReg     = ops[1].reg;
-                const uint64_t    offsetIndex = isPlainLoad || inst.op == MicroInstrOpcode::LoadVecRegMem ? 3 : 4;
-                const MicroOpBits sizeBits    = isPlainLoad || inst.op == MicroInstrOpcode::LoadVecRegMem ? ops[2].opBits : ops[3].opBits;
+                const uint64_t    offsetIndex = isPlainLoad || opcode == MicroInstrOpcode::LoadVecRegMem ? 3 : 4;
+                const MicroOpBits sizeBits    = isPlainLoad || opcode == MicroInstrOpcode::LoadVecRegMem ? ops[2].opBits : ops[3].opBits;
 
                 if (baseReg.isInstructionPointer())
                 {
@@ -1326,7 +1517,7 @@ namespace
 
                 uint64_t offset  = ops[offsetIndex].valueU64;
                 uint32_t rootKey = K_INVALID_ID;
-                if (!resolveRoot(fn, baseReg, offset, rootKey))
+                if (!resolveAddress(baseReg, offset, rootKey))
                 {
                     scan.hasUnresolvedMemRead = true;
                     setOpaque(scan, ops[0].reg);
@@ -1368,10 +1559,10 @@ namespace
             case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::StoreVecMemReg:
             {
-                const bool        isRegStore  = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg;
+                const bool        isRegStore  = opcode == MicroInstrOpcode::LoadMemReg || opcode == MicroInstrOpcode::StoreVecMemReg;
                 const MicroReg    baseReg     = ops[0].reg;
-                const uint64_t    offsetIndex = inst.op == MicroInstrOpcode::LoadMemImm ? 2 : 3;
-                const MicroOpBits sizeBits    = inst.op == MicroInstrOpcode::LoadMemImm ? ops[1].opBits : ops[2].opBits;
+                const uint64_t    offsetIndex = opcode == MicroInstrOpcode::LoadMemImm ? 2 : 3;
+                const MicroOpBits sizeBits    = opcode == MicroInstrOpcode::LoadMemImm ? ops[1].opBits : ops[2].opBits;
 
                 if (baseReg.isInstructionPointer())
                 {
@@ -1381,14 +1572,14 @@ namespace
 
                 uint64_t offset  = ops[offsetIndex].valueU64;
                 uint32_t rootKey = K_INVALID_ID;
-                if (!resolveRoot(fn, baseReg, offset, rootKey))
+                if (!resolveAddress(baseReg, offset, rootKey))
                 {
                     scan.hasUnresolvedMemWrite = true;
                     return;
                 }
 
                 const uint32_t size      = std::max<uint32_t>(getNumBytes(sizeBits), 1);
-                const bool     plainLane = inst.op != MicroInstrOpcode::StoreVecMemReg && sizeBits == scan.shape.bits() && (offset % scan.shape.bytes) == 0;
+                const bool     plainLane = opcode != MicroInstrOpcode::StoreVecMemReg && sizeBits == scan.shape.bits() && (offset % scan.shape.bytes) == 0;
                 scan.stores.push_back(StoreRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .plainLane = plainLane});
 
                 if (!plainLane)
@@ -1421,12 +1612,12 @@ namespace
             case MicroInstrOpcode::CmpMemImm:
             {
                 const MicroReg    baseReg  = ops[0].reg;
-                const bool        isReg    = inst.op == MicroInstrOpcode::CmpMemReg;
+                const bool        isReg    = opcode == MicroInstrOpcode::CmpMemReg;
                 const MicroOpBits sizeBits = isReg ? ops[2].opBits : ops[1].opBits;
 
                 uint64_t offset  = isReg ? ops[3].valueU64 : ops[2].valueU64;
                 uint32_t rootKey = K_INVALID_ID;
-                if (baseReg.isInstructionPointer() || !resolveRoot(fn, baseReg, offset, rootKey))
+                if (baseReg.isInstructionPointer() || !resolveAddress(baseReg, offset, rootKey))
                 {
                     scan.hasUnresolvedMemRead = true;
                     return;
@@ -1516,7 +1707,7 @@ namespace
                 const MicroReg baseReg = ops[1].reg;
                 uint64_t       offset  = ops[4].valueU64;
                 uint32_t       rootKey = K_INVALID_ID;
-                if (baseReg.isInstructionPointer() || !resolveRoot(fn, baseReg, offset, rootKey))
+                if (baseReg.isInstructionPointer() || !resolveAddress(baseReg, offset, rootKey))
                 {
                     scan.hasUnresolvedMemRead = true;
                     setOpaque(scan, ops[0].reg);
@@ -1561,23 +1752,62 @@ namespace
             case MicroInstrOpcode::OpUnaryMem:
             {
                 const MicroReg    baseReg  = ops[0].reg;
-                uint64_t          offset   = inst.op == MicroInstrOpcode::OpBinaryMemReg ? ops[4].valueU64 : ops[3].valueU64;
-                const MicroOpBits sizeBits = inst.op == MicroInstrOpcode::OpBinaryMemReg ? ops[2].opBits : ops[1].opBits;
+                uint64_t          offset   = opcode == MicroInstrOpcode::OpBinaryMemReg ? ops[4].valueU64 : ops[3].valueU64;
+                const MicroOpBits sizeBits = opcode == MicroInstrOpcode::OpBinaryMemReg ? ops[2].opBits : ops[1].opBits;
 
                 uint32_t rootKey = K_INVALID_ID;
-                if (baseReg.isInstructionPointer() || !resolveRoot(fn, baseReg, offset, rootKey))
+                if (baseReg.isInstructionPointer() || !resolveAddress(baseReg, offset, rootKey))
                 {
                     scan.hasUnresolvedMemRead  = true;
                     scan.hasUnresolvedMemWrite = true;
                     return;
                 }
 
-                // Read-modify-write on a resolvable location: record both
-                // sides and drop the known value.
+                // Keep the read and resulting lane value together. Unsupported
+                // widths and operations still invalidate the overlapping window.
                 const uint32_t size = std::max<uint32_t>(getNumBytes(sizeBits), 1);
                 scan.loads.push_back(LoadRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .dstReg = MicroReg::invalid()});
-                scan.stores.push_back(StoreRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .plainLane = false});
-                killLocationRange(scan, rootKey, offset, size, blockInstr.instRef);
+                LaneOp        laneOp{};
+                const bool    regSource       = opcode == MicroInstrOpcode::OpBinaryMemReg;
+                const bool    immediateSource = opcode == MicroInstrOpcode::OpBinaryMemImm;
+                const MicroOp operation       = regSource ? ops[3].microOp : ops[2].microOp;
+                const bool    laneStore       = (regSource || immediateSource) && sizeBits == scan.shape.bits() &&
+                                       offset % scan.shape.bytes == 0 && laneOpForBinaryRegReg(operation, sizeBits, laneOp, scan.shape);
+                scan.stores.push_back(StoreRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .plainLane = laneStore});
+                if (!laneStore)
+                {
+                    killLocationRange(scan, rootKey, offset, size, blockInstr.instRef);
+                    return;
+                }
+                MemLocation& loc         = scan.locations[BlockScan::locationKey(rootKey, offset)];
+                uint32_t     loadedValue = loc.valueId;
+                if (loadedValue == K_INVALID_ID)
+                {
+                    SlpValue load;
+                    load.kind        = SlpValueKind::Load;
+                    load.loadRootKey = rootKey;
+                    load.loadOffset  = offset;
+                    load.loadEpoch   = loc.epoch;
+                    loadedValue      = scan.values.intern(load);
+                }
+                uint32_t sourceValue;
+                if (regSource)
+                    sourceValue = currentValue(scan, ops[1].reg);
+                else
+                {
+                    SlpValue constant;
+                    constant.kind = SlpValueKind::Const;
+                    constant.imm  = ops[4].valueU64 & getBitsMask(sizeBits);
+                    sourceValue   = scan.values.intern(constant);
+                }
+                SlpValue value;
+                value.kind          = SlpValueKind::BinaryRegReg;
+                value.op            = laneOp;
+                value.lhs           = loadedValue;
+                value.rhs           = sourceValue;
+                loc.valueId         = scan.values.intern(value);
+                loc.lastIsLaneStore = true;
+                loc.lastStoreRef    = blockInstr.instRef;
                 return;
             }
 
@@ -1692,12 +1922,10 @@ namespace
 
         // Aliasing policy. Every memory access in the block must have
         // resolved to a root, and the roots the block touches must be
-        // provably disjoint: a single root, or the stack pointer paired with
-        // one incoming parameter. The frame a function executes in did not
-        // exist when its caller formed the pointer it passed, so an argument
-        // cannot address it - which is why a parameter is the only foreign
-        // root ever paired with the frame. Two roots of unknown provenance
-        // are never assumed disjoint.
+        // provably disjoint: a single root, or the frame paired with one
+        // foreign root. An incoming parameter predates this frame. An unknown
+        // pointer is disjoint only while no frame address has escaped along
+        // a path reaching the block. Two foreign roots may always alias.
         SmallVector<uint32_t, 2> touchedRoots;
         const auto               touchRoot = [&](uint32_t rootKey) {
             if (std::ranges::find(touchedRoots, rootKey) != touchedRoots.end())
@@ -1720,15 +1948,52 @@ namespace
 
         if (touchedRoots.size() == 2)
         {
-            bool hasStack     = false;
-            bool hasParameter = false;
+            bool hasStack        = false;
+            bool hasParameter    = false;
+            bool hasIndexedFrame = false;
             for (const uint32_t rootKey : touchedRoots)
             {
-                hasStack     = hasStack || fn.roots[rootKey].kind == RootKind::StackPointer;
-                hasParameter = hasParameter || fn.roots[rootKey].kind == RootKind::Parameter;
+                hasStack |= fn.roots[rootKey].kind == RootKind::StackPointer;
+                hasParameter |= fn.roots[rootKey].kind == RootKind::Parameter;
+                hasIndexedFrame |= fn.roots[rootKey].kind == RootKind::IndexedFrame;
             }
-            if (!hasStack || !hasParameter)
+            if (!hasStack || hasIndexedFrame || (!hasParameter && !hasPrivateFrame(fn, blockInstrs.back().instRef)))
                 return false;
+        }
+
+        for (const uint32_t rootKey : touchedRoots)
+        {
+            uint32_t firstAccess = K_INVALID_ID;
+            uint32_t lastAccess  = 0;
+            for (const auto& load : scan.loads)
+                if (load.rootKey == rootKey)
+                {
+                    firstAccess = std::min(firstAccess, load.pos);
+                    lastAccess  = std::max(lastAccess, load.pos);
+                }
+            for (const auto& store : scan.stores)
+                if (store.rootKey == rootKey)
+                {
+                    firstAccess = std::min(firstAccess, store.pos);
+                    lastAccess  = std::max(lastAccess, store.pos);
+                }
+            const RootInfo& root = fn.roots[rootKey];
+            for (const MicroReg reg : {root.reg, root.index})
+            {
+                if (!reg.isValid())
+                    continue;
+                const auto def = fn.regDefs.find(reg.packed);
+                if (reg.isVirtual() && (def == fn.regDefs.end() || def->second.defCount == 1))
+                    continue;
+                for (const BlockInstr& blockInstr : blockInstrs)
+                {
+                    if (blockInstr.pos < firstAccess || blockInstr.pos > lastAccess)
+                        continue;
+                    const auto useDef = blockInstr.inst->collectUseDef(*fn.operands, fn.encoder);
+                    if (std::ranges::find(useDef.defs, reg) != useDef.defs.end())
+                        return false;
+                }
+            }
         }
 
         // Build the seed groups: complete 16-byte chunks of candidates.
@@ -1816,6 +2081,10 @@ namespace
         {
             if (!record.plainLane || !vectorizedLocations.contains(BlockScan::locationKey(record.rootKey, record.offset)))
                 continue;
+            const MicroInstr* store = fn.storage->ptr(record.instRef);
+            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*store, store->ops(*fn.operands)) &&
+                !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*fn.context->builder, record.instRef))
+                return false;
             deletedStoreRefs.insert(record.instRef.get());
             if (record.pos < firstDeletedPos)
             {
@@ -1872,7 +2141,7 @@ namespace
         DeletionOracle oracle(fn, deletedStoreRefs);
         for (const LoadRecord& load : scan.loads)
         {
-            if (load.pos <= firstDeletedPos)
+            if (load.pos <= firstDeletedPos || deletedStoreRefs.contains(load.instRef.get()))
                 continue;
             if (!overlapsVectorized(load.rootKey, load.offset, load.size))
                 continue;
@@ -1901,15 +2170,37 @@ namespace
         for (const uint32_t rootKey : referencedRoots)
         {
             const RootInfo& root = fn.roots[rootKey];
-            if (!root.reg.isVirtual())
-                continue;
-            const auto defIt = fn.regDefs.find(root.reg.packed);
-            if (defIt == fn.regDefs.end())
-                continue;
-            for (const BlockInstr& blockInstr : blockInstrs)
+            for (const MicroReg reg : {root.reg, root.index})
             {
-                if (blockInstr.instRef == defIt->second.defRef && blockInstr.pos >= firstDeletedPos)
-                    return false;
+                if (!reg.isVirtual())
+                    continue;
+                const auto defIt = fn.regDefs.find(reg.packed);
+                if (defIt == fn.regDefs.end())
+                    continue;
+                if (defIt->second.defCount != 1)
+                {
+                    uint32_t lastAccess = 0;
+                    for (const auto& load : scan.loads)
+                        if (load.rootKey == rootKey)
+                            lastAccess = std::max(lastAccess, load.pos);
+                    for (const auto& store : scan.stores)
+                        if (store.rootKey == rootKey)
+                            lastAccess = std::max(lastAccess, store.pos);
+                    for (const BlockInstr& blockInstr : blockInstrs)
+                    {
+                        if (blockInstr.pos < firstDeletedPos || blockInstr.pos > lastAccess)
+                            continue;
+                        const auto useDef = blockInstr.inst->collectUseDef(*fn.operands, fn.encoder);
+                        if (std::ranges::find(useDef.defs, reg) != useDef.defs.end())
+                            return false;
+                    }
+                    continue;
+                }
+                for (const BlockInstr& blockInstr : blockInstrs)
+                {
+                    if (blockInstr.instRef == defIt->second.defRef && blockInstr.pos >= firstDeletedPos)
+                        return false;
+                }
             }
         }
 
@@ -1982,6 +2273,25 @@ namespace
         std::array<MicroReg, 4> rotateMaskRegs;
         rotateMaskRegs.fill(MicroReg::invalid());
 
+        std::vector<MicroReg> rootRegs(fn.roots.size(), MicroReg::invalid());
+        for (const uint32_t rootKey : referencedRoots)
+        {
+            const RootInfo& root = fn.roots[rootKey];
+            rootRegs[rootKey]    = root.reg;
+            if (!root.index.isValid())
+                continue;
+            SWC_ASSERT(fn.nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX);
+            rootRegs[rootKey]            = MicroReg::virtualIntReg(fn.nextVirtualIntRegIndex++);
+            MicroInstrOperand address[8] = {};
+            address[0].reg               = rootRegs[rootKey];
+            address[1].reg               = root.reg;
+            address[2].reg               = root.index;
+            address[3].opBits            = MicroOpBits::B64;
+            address[4].opBits            = MicroOpBits::B64;
+            address[5].valueU64          = root.scale;
+            fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadAddrAmcRegMem, address);
+        }
+
         const auto emitPlanInstr = [&](const PlanInstr& planInstr) {
             switch (planInstr.kind)
             {
@@ -1989,7 +2299,7 @@ namespace
                 {
                     std::array<MicroInstrOperand, 4> ops;
                     ops[0].reg      = planRegs[planInstr.dst];
-                    ops[1].reg      = fn.roots[planInstr.rootKey].reg;
+                    ops[1].reg      = rootRegs[planInstr.rootKey];
                     ops[2].opBits   = MicroOpBits::B128;
                     ops[3].valueU64 = planInstr.baseOffset;
                     fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadVecRegMem, ops);
@@ -1998,7 +2308,7 @@ namespace
                 case PlanInstr::Kind::StoreVec:
                 {
                     std::array<MicroInstrOperand, 4> ops;
-                    ops[0].reg      = fn.roots[planInstr.rootKey].reg;
+                    ops[0].reg      = rootRegs[planInstr.rootKey];
                     ops[1].reg      = planRegs[planInstr.src];
                     ops[2].opBits   = MicroOpBits::B128;
                     ops[3].valueU64 = planInstr.baseOffset;
@@ -2219,6 +2529,7 @@ namespace
 
         for (const uint32_t refValue : deletedStoreRefs)
             fn.storage->erase(MicroInstrRef(refValue));
+        fn.context->builder->invalidateControlFlowGraph();
 
         return true;
     }
@@ -2250,7 +2561,7 @@ namespace
         uint32_t                scalarStores = 0;
         for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
         {
-            if (it->op == MicroInstrOpcode::LoadMemReg || it->op == MicroInstrOpcode::LoadMemImm)
+            if (MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::WritesMemory))
                 scalarStores++;
 
             if (fn.firstCallPos == K_INVALID_ID && MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
@@ -2282,8 +2593,8 @@ namespace
             }
         }
 
-        // Every vectorized group needs one scalar memory write per lane. Other memory
-        // operations can only disqualify a group, so skip the block scan here.
+        // Every vectorized group needs one memory write per lane. Count
+        // conservatively here; the scan checks widths and supported operations.
         if (scalarStores < shape.count())
             return Result::Continue;
 
@@ -2319,7 +2630,7 @@ namespace
                 continue;
             }
 
-            if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm)
+            if (info.flags.has(MicroInstrFlagsE::WritesMemory))
                 ++scalarStoresInBlock;
             blockInstrs.push_back(BlockInstr{.instRef = it.current, .inst = &inst, .pos = position});
         }

@@ -1053,6 +1053,51 @@ SWC_TEST_BEGIN(SlpVectorize_MultipleBlocks_PreservesSnapshotAndFreshRegisters)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_IndexedReadModifyWriteProofs)
+{
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        X64Encoder     encoder(ctx);
+        MicroSsaState  ssa;
+        const MicroReg base  = MicroReg::virtualIntReg(1);
+        const MicroReg index = MicroReg::virtualIntReg(2);
+        const MicroReg mask  = MicroReg::virtualIntReg(3);
+        const MicroReg other = MicroReg::virtualIntReg(4);
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(mask, MicroReg::intReg(8), MicroOpBits::B32);
+        builder.emitLoadRegReg(other, MicroReg::intReg(9), MicroOpBits::B64);
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            auto& inst      = builder.addInstruction(MicroInstrOpcode::OpBinaryAmcMemReg, 8);
+            auto* ops       = inst.ops(builder.operands());
+            ops[0].reg      = base;
+            ops[1].reg      = index;
+            ops[2].reg      = mask;
+            ops[3].opBits   = MicroOpBits::B64;
+            ops[4].opBits   = MicroOpBits::B32;
+            ops[5].valueU64 = 4;
+            ops[6].valueU64 = lane * 4;
+            ops[7].microOp  = MicroOp::Xor;
+            if (variant == 1 && lane == 3)
+                builder.emitSetCondReg(MicroReg::intReg(0), MicroCond::Equal);
+            if (variant == 2 && lane == 1)
+                builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            if (variant == 3 && lane == 1)
+                builder.emitLoadMemReg(other, 0, mask, MicroOpBits::B32);
+            if (variant == 4 && lane == 1)
+                builder.emitLoadAmcMemImm(base, index, 4, 8, MicroOpBits::B64, ApInt(0xA7, 8), MicroOpBits::B8);
+        }
+        builder.emitRet();
+        SWC_RESULT(runSlpPass(builder, ssa, encoder));
+        SWC_ASSERT(Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) == (variant == 0 ? 1u : 0u));
+        SWC_ASSERT(Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemReg) == (variant == 0 ? 0u : 4u));
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

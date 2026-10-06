@@ -1,6 +1,6 @@
 # Optimization session, 2026-10-06
 
-Thirteen code batches were validated and merged into local master in sequence,
+Fourteen code batches were validated and merged into local master in sequence,
 from the separate perf/optimization-boundaries-20261006 worktree (the initial
 VEX batch also used perf/optimization-until-noon-20261006). No remote push was
 requested. SWC_BUILD_NUM remains 1173. The compiler and optimized programs used
@@ -22,6 +22,7 @@ default devmode configuration, which is not a performance measurement.
 | 11 | Group two counted iterations with bounded code growth; cache write-only homes | [Partial unrolling](../20261006-partial-counted-unroll/README.md) |
 | 12 | Cache read-only private homes across conditional calls and multiple entries | [Read-only caches](../20261006-private-read-cache/README.md) |
 | 13 | Extend those caches to mutable homes with coherent existing stores | [Write-through caches](../20261006-private-write-through/README.md) |
+| 14 | Pack indexed read-modify-write groups; reconcile moving-SP aliases | [Indexed SLP](../20261006-indexed-slp/README.md) |
 
 Representative structural outcomes:
 
@@ -37,7 +38,7 @@ Representative structural outcomes:
   the final dump. This endpoint comparison includes concurrent master updates;
   individual batch records provide closer attribution. It is not a runtime result.
 
-The latest complete native Release run passes 3,634 tests in JIT and native
+The latest complete native Release run passes 3,638 tests in JIT and native
 execution plus expected recovery probes; 21 compression and 23 H.264 tests pass.
 Earlier selected validation also covered HEVC and the seven benchmark checksums.
 After integrating concurrent master work, Release rebuilds succeed and the new
@@ -66,3 +67,9 @@ pushes to 355 / 101 / 41 / seven. parsePlaneResidualCavlc changes from 397 / 99 
 here for the next live-interval investigation. No timing regression is inferred.
 The extra general-purpose register remains available globally; these individual
 allocation choices remain unfinished work, not grounds to restore the reserve.
+
+The afternoon indexed-SLP batch reduces ChaCha main from 446 instructions / 143
+memory operations to 425 / 113. Its necessary moving-SP alias repair is included,
+with a reduced regression that fails before the repair and passes afterwards.
+Nbody saves five instructions and four memory operations; the H.264 panel has a
+net increase of one instruction and two memory operations, detailed in batch 14.

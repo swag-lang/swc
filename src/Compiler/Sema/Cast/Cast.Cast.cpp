@@ -1775,11 +1775,18 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
     if (effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::Assume}))
     {
-        const TypeInfo& sourceType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef));
-        const TypeInfo& targetType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), dstTypeRef));
-        const bool      assumedAnyValue = effectiveFlags.has(CastFlagsE::Assume) &&
-                                     !effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::BitCast, CastFlagsE::NoOverflow, CastFlagsE::UnConst}) &&
-                                     sourceType.isAny() && !targetType.isValuePointer() && !targetType.isInterface() && !targetType.isTypeInfo();
+        bool assumedAnyValue = false;
+        if (effectiveFlags.has(CastFlagsE::Assume) && !effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::BitCast, CastFlagsE::NoOverflow, CastFlagsE::UnConst}))
+        {
+            const TypeInfo& sourceType = SemaHelpers::aliasEnumType(sema, view);
+            if (sourceType.isAny())
+            {
+                const TypeInfo& declaredTarget = sema.typeMgr().get(dstTypeRef);
+                const TypeInfo* unwrappedType  = declaredTarget.unwrapAliasEnumType(sema.ctx());
+                const TypeInfo& targetType     = unwrappedType ? *unwrappedType : declaredTarget;
+                assumedAnyValue                = !targetType.isValuePointer() && !targetType.isInterface() && !targetType.isTypeInfo();
+            }
+        }
         if (!assumedAnyValue)
             return castDynamic(sema, view, dstTypeRef, effectiveFlags);
     }

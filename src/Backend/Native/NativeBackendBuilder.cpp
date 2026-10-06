@@ -726,12 +726,21 @@ namespace
         return ModuleApi::findExportDeclRoot(*astFile, declRef).isValid() && ModuleApi::extractPublicNamespacePath(builder.ctx(), *astFile, declRef, *owner, namespacePath);
     }
 
+    // An importer regenerates a struct's member-wise equality from the published struct, so the
+    // module's own copy is never called from outside.
+    bool isGeneratedEqualityOperator(NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    {
+        return symbol.srcViewRef().isValid() && builder.compiler().srcView(symbol.srcViewRef()).isGeneratedEqualitySource();
+    }
+
     // What a library publishes under its API name, and what an importer can therefore call.
     bool isExportedLibraryFunction(NativeBackendBuilder& builder, const SymbolFunction& symbol)
     {
         if (!supportsExportedPublicFunctionSymbols(builder))
             return false;
-        return (symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport()) || isExportedOpaqueLifecycleFunction(builder, symbol);
+        if (isExportedOpaqueLifecycleFunction(builder, symbol))
+            return true;
+        return symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport() && !isGeneratedEqualityOperator(builder, symbol);
     }
 
     NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal)

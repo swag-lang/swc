@@ -86,6 +86,11 @@ public:
     bool                         runsNativeArtifact() const { return runsJit(); }
     bool                         isRuntimeFile() const { return file_ && file_->isRuntime(); }
 
+    // Source the compiler wrote for a struct's member-wise equality. An importer regenerates that
+    // operator from the published struct, so nothing outside the module calls this copy.
+    bool isGeneratedEqualitySource() const { return generatedEqualitySource_; }
+    void setGeneratedEqualitySource() { generatedEqualitySource_ = true; }
+
     SourceCodeRange               tokenCodeRange(const TaskContext& ctx, TokenRef tokRef) const;
     void                          codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runtime::SourceCodeLocation& location, SourceCodeRange& outCodeRange) const;
     std::string_view              tokenString(TokenRef tokRef) const;
@@ -110,9 +115,10 @@ private:
     std::vector<SourceTrivia>     trivia_;
     std::vector<uint32_t>         triviaStart_;
     std::vector<SourceIdentifier> identifiers_;
-    uint32_t                      sourceStartOffset_ = 0;
-    uint32_t                      lineOffset_        = 0;
-    SourceViewFlags               parseFlags_        = SourceViewFlagsE::Zero;
+    uint32_t                      sourceStartOffset_       = 0;
+    uint32_t                      lineOffset_              = 0;
+    SourceViewFlags               parseFlags_              = SourceViewFlagsE::Zero;
+    bool                          generatedEqualitySource_ = false;
 };
 
 SWC_END_NAMESPACE();

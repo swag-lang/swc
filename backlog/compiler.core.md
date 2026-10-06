@@ -33,32 +33,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: a process that creates and destroys many compiler instances keeps a bounded
   number of thread-local indexes, with the workspace suite green under the poisoning.
 
-### compiler.core.056 — A library still lowers the equality operators of its public structs
-
-- Recorded: 2026-09-23 14:11
-- Updated: 2026-10-06 15:26 — Libraries now lower only what they export and what that reaches.
-- Area: compiler/codegen, module publication, compilation time
-- Evidence: `Sema.Struct.cpp` gives every struct that `shouldGenerateEqualityOperator` selects
-  (one holding a `string`, for example) a member-wise `opEquals` when the struct completes,
-  whether or not anything compares it. On 2026-09-23 a hello world lowered 31 of them (19.4% of
-  its lowering) and `gui` 1 901 (4.57 s, 6.2% of its lowering).
-- Done (2026-10-06): `NativeBackendBuilder::prepare` used to seed lowering with the whole code
-  segment. An executable now seeds it with its roots, and a static or shared library with the
-  functions it exports under their API name plus the executable roots (test, init, drop, runtime
-  and global-initialization targets). A hello world lowers none of those operators. Functions
-  lowered by a DevMode `gui` chain rebuild: `core` 5 212 to 3 915, `ogl` 1 845 to 1 585,
-  `truetype` 1 275 to 934, `pixel` 5 250 to 4 477, `gui` 9 274 to 8 238. Wall time at six workers
-  stayed within the machine's noise. The `std` tests in both configurations, every application
-  and example build, the script smokes and a `swagscope` smoke pass.
-- What remains: a public struct's generated `opEquals` is public, so a library still exports and
-  lowers it even when neither the library nor any importer compares the struct. An importer that
-  compares it generates its own operator from the published struct source.
-- Next: check whether an importer ever calls a library's generated operator. If it never does,
-  stop exporting generated equality, and the remaining ones fall out of the library's closure.
-- Complete when: a library lowers no generated `opEquals` that neither its own code nor an
-  importer calls, with the workspace suite and `std` release green.
-- Related: compiler.core.030, compiler.core.006.
-
 ### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
 
 - Recorded: 2026-09-17 08:42
@@ -180,7 +154,7 @@ narrowing. Such a rewrite requires a separate semantic proof.
   replacing the release scan with a worklist.
 - Complete when: each item is either removed with compile-time execution and safety tests, or
   recorded as measured and not worth its risk.
-- Related: compiler.core.056, compiler.core.030.
+- Related: compiler.core.030.
 
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 

@@ -1166,7 +1166,7 @@ namespace
         return Result::Continue;
     }
 
-    Result declareGeneratedOperatorSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source)
+    Result declareGeneratedOperatorSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source, const bool equality = false)
     {
         if (source.empty())
             return Result::Continue;
@@ -1177,6 +1177,8 @@ namespace
         PreparedGeneratedSourceView prepared;
         SWC_RESULT(prepareGeneratedSourceView(sema, source, ownerStruct.codeRef(), prepared));
         SourceView& srcView = *prepared.sourceView;
+        if (equality)
+            srcView.setGeneratedEqualitySource();
         if (prepared.hasError || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
@@ -1459,7 +1461,7 @@ Result SemaSpecOp::ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct
     }
 
     const Utf8 source = makeGeneratedEqualitySource(sema, ownerStruct);
-    SWC_RESULT(declareGeneratedOperatorSource(sema, ownerStruct, source.view()));
+    SWC_RESULT(declareGeneratedOperatorSource(sema, ownerStruct, source.view(), true));
     ownerStruct.publishGeneratedEquality();
     return Result::Continue;
 }

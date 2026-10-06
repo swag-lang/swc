@@ -1738,7 +1738,12 @@ SWC_TEST_BEGIN(NativeArtifact_LibraryPrunesUnexportedUnreachableFunctions)
 {
     static constexpr std::string_view SOURCE     = R"(#global public
 
-internal struct Holder
+internal struct InternalHolder
+{
+    text: string = ""
+}
+
+struct ExportedHolder
 {
     text: string = ""
 }
@@ -1773,7 +1778,7 @@ func exported()->u32 => reachedFromExport()
             return function && function->getFullScopedName(compilerCtx).view().ends_with(name);
         });
     };
-    if (!hasCompleted("Holder.opEquals") || !hasCompleted("neverReached"))
+    if (!hasCompleted("InternalHolder.opEquals") || !hasCompleted("ExportedHolder.opEquals") || !hasCompleted("neverReached"))
         return failNativeArtifactTest(TEST_NAME, "unreachable functions are absent before library pruning");
 
     NativeBackendBuilder nativeBuilder(compiler, false);
@@ -1792,8 +1797,11 @@ func exported()->u32 => reachedFromExport()
         return failNativeArtifactTest(TEST_NAME, "function reached from an export was pruned");
     if (hasPrepared("neverReached"))
         return failNativeArtifactTest(TEST_NAME, "unreachable internal function was retained");
-    if (hasPrepared("Holder.opEquals"))
+    if (hasPrepared("InternalHolder.opEquals"))
         return failNativeArtifactTest(TEST_NAME, "unreachable generated equality was retained");
+    // An importer generates its own member-wise equality from the published struct.
+    if (hasPrepared("ExportedHolder.opEquals"))
+        return failNativeArtifactTest(TEST_NAME, "generated equality of a public struct was exported");
 }
 SWC_TEST_END()
 

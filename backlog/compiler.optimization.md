@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 11:49 — Keep mutable private homes coherent across conditional calls.
+- Updated: 2026-10-06 11:58 — Record the remaining mandatory-call and mixed-width boundaries.
 - Area: compiler/backend
 - Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
   in a caller-saved XMM register free across a call-free loop. Every matching load/store
@@ -114,6 +114,9 @@ new language syntax.
 - Next: inspect hot source-object slots and mixed-width spills. Prefer a free integer
   register when its live range and ABI preservation permit it. Removing retained stores
   from called loops needs an exit-liveness proof or edge-specific write-backs.
+  Loops without a call-free back-edge route are still excluded, even if a home is read
+  several times between calls. Any extension should prove reuse within each call-delimited
+  path; counting reads on mutually exclusive arms can overstate the avoided work.
 - Complete when: current codec dumps identify and resolve the remaining promotion boundary
   with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
   64-bit multi-access rewrite.

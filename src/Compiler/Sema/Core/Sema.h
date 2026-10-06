@@ -473,8 +473,9 @@ public:
         return static_cast<T*>(payload);
     }
 
-    void setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
-    void appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
+    void                 setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
+    void                 appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
+    ResolvedCallArgument getResolvedCallArgument(AstNodeRef n, uint32_t index) const { return nodePayloadContext().getResolvedCallArgument(n, index); }
     void markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef);
     bool isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const;
 

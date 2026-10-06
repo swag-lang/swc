@@ -930,9 +930,8 @@ bool MicroRegisterAllocationPass::isPinnedCallSavedOwner(const uint32_t denseInd
     return std::ranges::find(pinnedCallSavedDense_, denseIndex) != pinnedCallSavedDense_.end();
 }
 
-bool MicroRegisterAllocationPass::globalRangesOverlap(const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
+bool MicroRegisterAllocationPass::globalRangesOverlap(const uint32_t denseIndex, const uint32_t lo, const uint32_t hi) const
 {
-    const uint32_t denseIndex = denseGlobalPhysRegs_.find(physReg);
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= globalRangesByPhysDense_.size())
         return false;
 
@@ -1610,7 +1609,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             localStackBaseReg.isValid() &&
             !isPhysRegForbiddenForVirtual(vreg, localStackBaseReg) &&
             !concreteClaimsOverlap(localStackBaseReg, lo, hi) &&
-            !globalRangesOverlap(localStackBaseReg, lo, hi))
+            !globalRangesOverlap(denseGlobalPhysRegs_.find(localStackBaseReg), lo, hi))
         {
             addGlobalRange(localStackBaseReg, lo, hi, cand.denseIndex);
             appendUniqueReg(context_->globalReservedRegs, localStackBaseReg);
@@ -1785,7 +1784,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 }
                 if (isPhysRegForbiddenForVirtual(vreg, reg))
                     continue;
-                if (globalRangesOverlap(reg, lo, hi))
+                const uint32_t regDense = denseGlobalPhysRegs_.find(reg);
+                if (globalRangesOverlap(regDense, lo, hi))
                     continue;
 
                 const bool     isPersistent      = poolIsPersistent;
@@ -1813,8 +1813,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 // class floor's worth of registers (and the per-class persistent
                 // floor's worth of callee-saved ones) carrying no reservation at all. Registers that
                 // already hold one may keep stacking disjoint hulls freely.
-                const uint32_t regDense      = denseGlobalPhysRegs_.find(reg);
-                const bool     carriesRanges = regDense != MicroDenseRegIndex::K_INVALID_INDEX &&
+                const bool carriesRanges = regDense != MicroDenseRegIndex::K_INVALID_INDEX &&
                                            regDense < globalRangesByPhysDense_.size() &&
                                            !globalRangesByPhysDense_[regDense].empty();
                 if (!carriesRanges)

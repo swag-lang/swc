@@ -271,7 +271,7 @@ private:
     bool              isProvenFreeRegister(MicroReg physReg) const;
     bool              hullConcreteClaimsBlock(MicroReg physReg, uint32_t lo, uint32_t hi) const;
     bool              isPinnedCallSavedOwner(uint32_t denseIndex) const;
-    bool              globalRangesOverlap(MicroReg physReg, uint32_t lo, uint32_t hi) const;
+    bool              globalRangesOverlap(uint32_t denseIndex, uint32_t lo, uint32_t hi) const;
     void              addGlobalRange(MicroReg physReg, uint32_t lo, uint32_t hi, uint32_t ownerDense);
     bool              isReservedByGlobalFor(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const;
     bool              hasConcreteTouchInRange(MicroReg physReg, uint32_t lo, uint32_t hi) const;

@@ -351,18 +351,20 @@ namespace
         if (lifecycle.canCopy)
             addFlag(rtType, Runtime::TypeInfoFlags::CanCopy);
 
-        Utf8 fullName = type.toFullName(ctx);
-        Utf8 name     = type.toName(ctx);
         if (type.isFunction())
         {
             const SymbolFunction& symFunc = type.payloadSymFunction();
             if (symFunc.isAttribute())
             {
-                fullName = symFunc.getFullScopedName(ctx);
-                name     = Utf8{symFunc.name(ctx)};
+                const Utf8 fullName    = symFunc.getFullScopedName(ctx);
+                rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), fullName);
+                rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), symFunc.name(ctx));
+                return;
             }
         }
 
+        const Utf8 fullName    = type.toFullName(ctx);
+        const Utf8 name        = type.toName(ctx);
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), fullName);
         rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), name);
     }
@@ -630,11 +632,11 @@ namespace
             const SymbolEnumValue* symValue = values[i];
             SWC_ASSERT(symValue);
 
-            Runtime::TypeValue& tv         = valuesPtr[i];
-            const uint32_t      elemOffset = valuesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-            const Utf8          name{symValue->name(ctx)};
-            tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), name);
-            tv.crc         = Math::crc32(name.view());
+            Runtime::TypeValue&    tv         = valuesPtr[i];
+            const uint32_t         elemOffset = valuesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+            const std::string_view name       = symValue->name(ctx);
+            tv.name.length                    = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), name);
+            tv.crc                            = Math::crc32(name);
 
             // Enum values keep their declared enum type, while the pointed payload stores the lowered raw bytes.
             storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, pointedType), offset);
@@ -872,12 +874,12 @@ namespace
 
                 Runtime::TypeValue& tv = fieldsPtr[i];
 
-                const auto&    id = ctx.idMgr().get(symField->idRef());
-                const Utf8     fName{id.name};
-                const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
-                tv.crc                    = Math::crc32(fName.view());
-                tv.offset                 = symField->offset();
+                const auto&            id         = ctx.idMgr().get(symField->idRef());
+                const std::string_view fieldName  = id.name;
+                const uint32_t         elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                tv.name.length                    = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
+                tv.crc                            = Math::crc32(fieldName);
+                tv.offset                         = symField->offset();
                 if (symField->isUsingField())
                     tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
                 if (symField->hasExtraFlag(SymbolVariableFlagsE::LateInit))
@@ -911,8 +913,8 @@ namespace
                 Runtime::TypeValue& usingTv = usingFieldsPtr[usingIndex];
                 const uint32_t      usingElemOffset =
                     usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
-                usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
-                usingTv.crc         = Math::crc32(fName.view());
+                usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
+                usingTv.crc         = Math::crc32(fieldName);
                 usingTv.offset      = symField->offset();
                 usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
                 entry.usingFieldTypes.push_back(symField->typeRef());
@@ -937,11 +939,11 @@ namespace
                 const SymbolFunction* symMethod = methods[i];
                 SWC_ASSERT(symMethod);
 
-                Runtime::TypeValue& tv         = methodsPtr[i];
-                const uint32_t      elemOffset = methodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                const Utf8          methodName{symMethod->name(ctx)};
-                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
-                tv.crc         = Math::crc32(methodName.view());
+                Runtime::TypeValue&    tv         = methodsPtr[i];
+                const uint32_t         elemOffset = methodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                const std::string_view methodName = symMethod->name(ctx);
+                tv.name.length                    = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
+                tv.crc                            = Math::crc32(methodName);
                 if (canReflectMethodValue(*symMethod))
                     storage.addFunctionRelocation(elemOffset + offsetof(Runtime::TypeValue, value), symMethod, true);
             }

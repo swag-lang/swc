@@ -1,0 +1,54 @@
+{
+  "baseline": [
+    {
+      "name": "Dijkstra.pop",
+      "location": "partial-dijkstra.swg:35",
+      "instructions": 43,
+      "memory": 28,
+      "rsp": 0,
+      "push": 0
+    },
+    {
+      "name": "Dijkstra.push",
+      "location": "partial-dijkstra.swg:13",
+      "instructions": 27,
+      "memory": 16,
+      "rsp": 0,
+      "push": 0
+    },
+    {
+      "name": "Dijkstra.__main_0",
+      "location": "partial-dijkstra.swg:65",
+      "instructions": 424,
+      "memory": 163,
+      "rsp": 6,
+      "push": 7
+    }
+  ],
+  "candidate": [
+    {
+      "name": "Dijkstra.pop",
+      "location": "partial-dijkstra.swg:35",
+      "instructions": 39,
+      "memory": 24,
+      "rsp": 0,
+      "push": 0
+    },
+    {
+      "name": "Dijkstra.push",
+      "location": "partial-dijkstra.swg:13",
+      "instructions": 25,
+      "memory": 14,
+      "rsp": 0,
+      "push": 0
+    },
+    {
+      "name": "Dijkstra.__main_0",
+      "location": "partial-dijkstra.swg:65",
+      "instructions": 424,
+      "memory": 163,
+      "rsp": 6,
+      "push": 7
+    }
+  ]
+}

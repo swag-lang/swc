@@ -39,7 +39,8 @@
 // slot is promoted.
 // RIP-relative loads use the relocation target in place of a register base.
 // Reads from the constant pool can cross memory epochs because their bytes
-// cannot change; mutable targets still require the same epoch.
+// cannot change. Private globals proven unmodified throughout this function
+// can cross epochs too; other mutable targets require the same epoch.
 // A string, slice, interface or any parameter the ABI passes by reference is
 // immutable to the callee too, so a read through its incoming address crosses
 // stores and labels. It stops at a call: keeping the value across one costs a saved
@@ -445,6 +446,90 @@ namespace
         return true;
     }
 
+    struct PrivateGlobalFacts
+    {
+        struct Write
+        {
+            MicroRelocation::Kind kind;
+            uint64_t              lo;
+            uint64_t              hi;
+        };
+        SmallVector<Write, 8> writes;
+        uint32_t              blockedKinds = 0;
+        bool                  hasCall      = false;
+
+        bool preserves(const MicroRelocation& target, uint64_t offset, uint64_t width) const
+        {
+            if (hasCall || !target.privateGlobal ||
+                (target.kind != MicroRelocation::Kind::GlobalInitAddress && target.kind != MicroRelocation::Kind::GlobalZeroAddress) ||
+                (blockedKinds & (1u << static_cast<uint32_t>(target.kind))))
+                return false;
+            const uint64_t lo = target.targetAddress + offset;
+            const uint64_t hi = lo + width;
+            if (lo < target.targetAddress || hi < lo)
+                return false;
+            return std::ranges::none_of(writes, [&](const Write& write) { return write.kind == target.kind && lo < write.hi && write.lo < hi; });
+        }
+    };
+
+    // A private global cannot alias an arbitrary pointer store. Direct writes
+    // still overlap by byte range, and a materialized global address makes its
+    // segment opaque here. Calls are excluded across the entire function, so a
+    // back edge cannot bring an unexamined callee mutation to a later load.
+    PrivateGlobalFacts collectPrivateGlobalFacts(const MicroPassContext& context, const std::unordered_map<MicroInstrRef, const MicroRelocation*>& relocations)
+    {
+        PrivateGlobalFacts result;
+        for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
+        {
+            const auto& info = MicroInstr::info(it->op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+            {
+                result.hasCall = true;
+                return result;
+            }
+            const auto* ops = it->ops(*context.operands);
+            if (info.flags.has(MicroInstrFlagsE::WritesMemory) && ops &&
+                info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                ops[info.memBaseOperandIndex].reg.isInstructionPointer() && !relocations.contains(it.current))
+                result.blockedKinds = ~0u;
+        }
+        for (const MicroRelocation& relocation : context.builder->codeRelocations())
+        {
+            if (relocation.kind != MicroRelocation::Kind::GlobalInitAddress && relocation.kind != MicroRelocation::Kind::GlobalZeroAddress)
+                continue;
+            if (relocation.instructionRef.isInvalid())
+                continue;
+            const MicroInstr* inst = context.instructions->ptr(relocation.instructionRef);
+            if (!inst)
+                continue;
+            const uint32_t              kind = 1u << static_cast<uint32_t>(relocation.kind);
+            const auto&                 info = MicroInstr::info(inst->op);
+            const auto*                 ops  = inst->ops(*context.operands);
+            MicroPassHelpers::AmcLayout layout;
+            if (!ops || relocation.form != MicroRelocation::Form::Relative32 ||
+                !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) || !ops[info.memBaseOperandIndex].reg.isInstructionPointer() ||
+                (!MicroPassHelpers::instructionReadsMemory(*inst) && !info.flags.has(MicroInstrFlagsE::WritesMemory)) ||
+                MicroPassHelpers::amcLayoutFor(layout, inst->op))
+            {
+                result.blockedKinds |= kind;
+                continue;
+            }
+            if (!info.flags.has(MicroInstrFlagsE::WritesMemory))
+                continue;
+            uint64_t width = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0;
+            for (uint32_t operand = 0; operand < inst->numOperands; ++operand)
+                if (info.opBitsMask & (1u << operand))
+                    width = std::max<uint64_t>(width, getNumBytes(ops[operand].opBits));
+            const uint64_t lo = relocation.targetAddress + ops[info.memOffsetOperandIndex].valueU64;
+            const uint64_t hi = lo + width;
+            if (!width || lo < relocation.targetAddress || hi < lo)
+                result.blockedKinds |= kind;
+            else
+                result.writes.push_back({relocation.kind, lo, hi});
+        }
+        return result;
+    }
+
     struct NumberingEntry
     {
         uint32_t                 index      = 0;
@@ -556,19 +641,20 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     // functions. Resetting the contents keeps all keys local to this run.
     thread_local NumberingScratch scratch;
     scratch.reset(n);
-    auto&    relocationByInstruction = scratch.relocationByInstruction;
-    auto&    frameDerivedRegs        = scratch.frameDerivedRegs;
-    auto&    immutableBases          = scratch.immutableBases;
-    auto&    table                   = scratch.table;
-    auto&    rewrites                = scratch.rewrites;
-    auto&    valueAliases            = scratch.valueAliases;
-    auto&    epochAt                 = scratch.epochAt;
-    bool     relocationsReady        = false;
-    bool     frameDerivedRegsReady   = false;
-    bool     immutableBasesReady     = !context.builder || context.builder->immutableStorageBases().empty();
-    uint32_t callCount               = 0;
-    uint32_t memoryEpoch             = 0;
-    uint32_t lastEpoch               = 0;
+    auto&                             relocationByInstruction = scratch.relocationByInstruction;
+    auto&                             frameDerivedRegs        = scratch.frameDerivedRegs;
+    auto&                             immutableBases          = scratch.immutableBases;
+    auto&                             table                   = scratch.table;
+    auto&                             rewrites                = scratch.rewrites;
+    auto&                             valueAliases            = scratch.valueAliases;
+    auto&                             epochAt                 = scratch.epochAt;
+    std::optional<PrivateGlobalFacts> privateGlobalFacts;
+    bool                              relocationsReady      = false;
+    bool                              frameDerivedRegsReady = false;
+    bool                              immutableBasesReady   = !context.builder || context.builder->immutableStorageBases().empty();
+    uint32_t                          callCount             = 0;
+    uint32_t                          memoryEpoch           = 0;
+    uint32_t                          lastEpoch             = 0;
 
     const bool readOnlySelfCalls = selfCallsOnlyReadMemory(context);
 
@@ -691,6 +777,12 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         }
 
         bool immutableLoad = false;
+        if (ripLoad && instReloc->privateGlobal)
+        {
+            if (!privateGlobalFacts)
+                privateGlobalFacts = collectPrivateGlobalFacts(context, relocationByInstruction);
+            immutableLoad = privateGlobalFacts->preserves(*instReloc, ops[3].valueU64, getNumBytes(ops[2].opBits));
+        }
         if (shape.readsMemory && !ripLoad)
         {
             if (!immutableBasesReady)

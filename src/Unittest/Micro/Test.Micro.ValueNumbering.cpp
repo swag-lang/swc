@@ -527,6 +527,55 @@ SWC_TEST_BEGIN(ValueNumbering_RipRelocationSharesOnlyIdenticalMemory)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ValueNumbering_PrivateGlobalCrossesOnlyDisjointWrites)
+{
+    for (uint32_t mode = 0; mode < 9; ++mode)
+    {
+        constexpr MicroReg pointer = MicroReg::virtualIntReg(10);
+        constexpr MicroReg first   = MicroReg::virtualIntReg(11);
+        constexpr MicroReg second  = MicroReg::virtualIntReg(12);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(pointer, MicroReg::intReg(2), MicroOpBits::B64);
+        const auto relocate = [&](uint64_t address, bool isPrivate) {
+            MicroRelocation relocation;
+            relocation.kind           = MicroRelocation::Kind::GlobalInitAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = builder.instructions().lastInstructionRef();
+            relocation.targetAddress  = address;
+            relocation.privateGlobal  = isPrivate;
+            builder.addRelocation(relocation);
+        };
+        builder.emitLoadRegMem(first, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        relocate(0x100, mode != 5);
+        builder.emitLoadMemReg(pointer, 0, first, MicroOpBits::B64);
+        if (mode == 1 || mode == 2 || mode == 6 || mode == 7 || mode == 8)
+        {
+            builder.emitLoadMemReg(MicroReg::instructionPointer(), 0, first, mode == 7 ? MicroOpBits::B32 : MicroOpBits::B64);
+            if (mode != 6)
+            {
+                const uint64_t address = mode == 1 ? 0x200 : mode == 7 ? 0x104
+                                                         : mode == 8   ? 0x108
+                                                                       : 0x100;
+                relocate(address, true);
+            }
+        }
+        if (mode == 4)
+            builder.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(13), DataSegmentKind::GlobalInit, 0x100, true);
+        builder.emitLoadRegMem(second, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        relocate(0x100, mode != 5);
+        const MicroInstrRef repeated = builder.instructions().lastInstructionRef();
+        if (mode == 3)
+            builder.emitCallReg(MicroReg::intReg(3), CallConvKind::Swag, 0, 0);
+        builder.emitRet();
+        SWC_RESULT(runValueNumberingPass(builder));
+        const bool reused = mode == 0 || mode == 1 || mode == 8;
+        if (builder.instructions().ptr(repeated)->op != (reused ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ValueNumbering_RipRelocationKeepsDifferentTargetsAndStores)
 {
     constexpr MicroReg pointer = MicroReg::virtualIntReg(10);

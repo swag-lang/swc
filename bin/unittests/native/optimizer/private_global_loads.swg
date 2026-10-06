@@ -95,4 +95,41 @@ func countAcrossCalls(slots: [*] u64)->u64
     g_CalledCount = 0
     Swag.assert(countAcrossCalls(&slots[0]) == 36)
     Swag.assert(slots[7] == 7)
+
+    g_PrivateCount = 13
+    var target = 0'u64
+    Swag.assert(readPrivateAroundStores(&target, false) == 26)
+    Swag.assert(target == 20 and g_DirectCount == 99)
+    Swag.assert(readPrivateAroundStores(&target, true) == 26)
+    Swag.assert(target == 24)
+    g_CalledCount = 0
+    var laterSlots: [4] u64
+    Swag.assert(readBeforeLaterCall(&laterSlots[0]) == 6)
+    Swag.assert(laterSlots[0] == 0 and laterSlots[3] == 3 and g_CalledCount == 4)
+}
+
+// A straight-line pointer store and a write of another private global do not
+// invalidate this cell. Both branch outcomes must still observe the writes.
+#[Swag.NoInline]
+func readPrivateAroundStores(target: *u64, alternate: bool) -> u64
+{
+    let before = g_PrivateCount
+    target[] = before + 7
+    g_DirectCount = 99
+    if alternate do target[] = before + 11
+    return before + g_PrivateCount
+}
+
+// The call follows both reads in source order, but reaches them on the next trip.
+#[Swag.NoInline]
+func readBeforeLaterCall(slots: [*] u64) -> u64
+{
+    var sum = 0'u64
+    for i in 4
+    {
+        slots[i] = g_CalledCount
+        sum += g_CalledCount
+        bumpCalledCount()
+    }
+    return sum
 }

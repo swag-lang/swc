@@ -1,0 +1,26 @@
+[
+  {
+    "task": "dijkstra",
+    "tag": "candidate",
+    "checksum": "4431000",
+    "exit": 0
+  },
+  {
+    "task": "chacha",
+    "tag": "candidate",
+    "checksum": "633277775",
+    "exit": 0
+  },
+  {
+    "task": "nbody",
+    "tag": "candidate",
+    "checksum": "169096566666",
+    "exit": 0
+  },
+  {
+    "task": "csvagg",
+    "tag": "candidate",
+    "checksum": "24828641",
+    "exit": 0
+  }
+]

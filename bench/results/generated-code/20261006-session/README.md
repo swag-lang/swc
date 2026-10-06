@@ -1,6 +1,6 @@
 # Optimization session, 2026-10-06
 
-Seventeen code batches were validated and merged into local master in sequence,
+Eighteen code batches were validated and merged into local master in sequence,
 from the separate perf/optimization-boundaries-20261006 worktree (the initial
 VEX batch also used perf/optimization-until-noon-20261006). No remote push was
 requested. SWC_BUILD_NUM remains 1173. The compiler and optimized programs used
@@ -26,6 +26,7 @@ default devmode configuration, which is not a performance measurement.
 | 15 | Forward exact packed stores and loads through the existing memory cache | [Vector forwarding](../20261006-vector-forward/README.md) |
 | 16 | Promote known stack-pointer-addressed local vectors | [Local vectors](../20261006-local-vector/README.md) |
 | 17 | Keep packed locals in registers despite scalar lane reads | [Vector lanes](../20261006-vector-lanes/README.md) |
+| 18 | Reuse unmodified private-global loads across disjoint stores and branches | [Heap values](../20261006-heap-values/README.md) |
 
 Representative structural outcomes:
 
@@ -37,11 +38,11 @@ Representative structural outcomes:
 - Inflate's literal-path latch goes from four frame reloads to zero across the
   two call-aware cache batches. Whole-function growth is documented separately.
 - The same 334 H.264 bodies go from 44,274 instructions / 10,296 memory operations /
-  2,538 explicit RSP accesses before reserve removal to 44,014 / 9,940 / 2,189 in
-  the final dump. This endpoint comparison includes concurrent master updates;
+  2,538 explicit RSP accesses before reserve removal to 43,998 / 9,925 / 2,191 after
+  batch 17. This endpoint comparison includes concurrent master updates;
   individual batch records provide closer attribution. It is not a runtime result.
 
-The latest complete native Release run passes 3,638 tests in JIT and native
+The latest complete native Release run passes 3,639 tests in JIT and native
 execution plus expected recovery probes; 21 compression and 23 H.264 tests pass.
 Earlier selected validation also covered HEVC and the seven benchmark checksums.
 After integrating concurrent master work, Release rebuilds succeed and the new

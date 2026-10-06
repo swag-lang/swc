@@ -762,7 +762,7 @@ peak-memory measurements. If a change needs timing to establish that it saves wo
 try a change whose saving can be proved from the code.
 
 You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then compiler.core.004, compiler.core.030 and compiler.core.056 in backlog/compiler.core.md and
+then compiler.core.004 and compiler.core.030 in backlog/compiler.core.md and
 compiler.optimization.029, compiler.optimization.039 and compiler.optimization.045 in
 backlog/compiler.optimization.md. Use their existing profiles to choose a costly internal path and
 their rejected experiments to avoid repeating work. Start editing compiler code after this review.

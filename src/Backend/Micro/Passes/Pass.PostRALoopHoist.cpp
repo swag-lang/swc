@@ -1016,12 +1016,10 @@ namespace
             if (overlap)
                 continue;
 
-            // Keep a called loop's writes coherent in memory. This needs no
-            // extra call flush or exit store, including at a shared exit.
-            const bool writeThrough   = slot.writes && !calls.empty();
+            // Keep writes coherent when calls or shared exits prevent deferred
+            // write-back. Existing stores also cover paths that skip the loop.
+            const bool writeThrough   = slot.writes && (!calls.empty() || !exclusiveExits);
             const bool needsWriteBack = slot.writes && !writeThrough;
-            if (needsWriteBack && !exclusiveExits)
-                continue;
 
             const MicroReg cached       = available[selected];
             const auto     needsRestore = [&](const uint32_t call) {
@@ -1032,7 +1030,7 @@ namespace
             // entry/restore reads. Otherwise the cold arms grow memory traffic.
             const auto restores     = std::ranges::count_if(calls, needsRestore);
             const auto readsRemoved = slot.accesses.size() - (writeThrough ? slot.writes : 0);
-            if (!calls.empty() && readsRemoved <= seeds.size() + restores)
+            if ((writeThrough && !readsRemoved) || (!calls.empty() && readsRemoved <= seeds.size() + restores))
                 continue;
             ++selected;
             MicroInstrOperand seed[4] = {};

@@ -1,0 +1,23 @@
+--- baseline
++++ candidate
+@@ -62,7 +62,7 @@
+ load_reg_imm r14, b32, 0xFFFFFF80
+ load_cond_reg_reg r15, r14, l, b32
+ load_reg_reg r14, r15, b32
+-load_mem_reg [rsp + 0xB8], rax, b64
++load_reg_reg xmm2, rax, b64
+ load_reg_reg rax, r15, b32
+ op_binary_reg_imm shr, rax, 0x1F, b32
+ op_binary_reg_reg add, r14, rax, b32
+@@ -75,9 +75,9 @@
+ cmp_reg_reg r15, rax, b32
+ jump_cond ne, b32 183
+ cmp_reg_imm r14, 0x80000000, b32
+-load_reg_mem r9, [rsp + 0xB8], b64
++load_reg_reg r9, xmm2, b64
+ jump_cond e, b32 185
+-load_reg_mem r9, [rsp + 0xB8], b64
++load_reg_reg r9, xmm2, b64
+ load_reg_reg rax, r14, b32
+ op_binary_reg_reg idiv, rax, r15, b32
+ load_reg_reg r14, rax, b32

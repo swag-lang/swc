@@ -1,0 +1,27 @@
+--- baseline
++++ candidate
+@@ -123,8 +123,8 @@
+ cmp_reg_imm rsi, 0x0, b64
+ jump_cond be, b32 931
+ load_signed_ext_reg_reg rax, rax, b64 <- b32
+-load_mem_reg [rsp + 0x728], r8, b64
+-load_reg_reg xmm0, rsi, b64
++load_reg_reg xmm0, r8, b64
++load_reg_reg xmm1, rsi, b64
+ load_addr_reg_mem r12, [r8 + 0xFFFFFFFFFFFFFFFE], b64
+ clear_reg r13, b64
+ cmp_reg_imm rax, 0x0, b64
+@@ -166,10 +166,10 @@
+ op_binary_reg_imm add, rdi, 0x1, b64
+ op_binary_reg_reg add, r10, r11, b64
+ op_binary_reg_reg add, rcx, rdx, b64
+-load_reg_mem r8, [rsp + 0x728], b64
++load_reg_reg r8, xmm0, b64
+ op_binary_reg_reg add, r8, r9, b64
+-load_reg_reg rsi, xmm0, b64
+-load_mem_reg [rsp + 0x728], r8, b64
++load_reg_reg rsi, xmm1, b64
++load_reg_reg xmm0, r8, b64
+ cmp_reg_reg rdi, rsi, b64
+ jump_cond b, b32 727
+ op_binary_reg_imm add, rsp, 0x738, b64

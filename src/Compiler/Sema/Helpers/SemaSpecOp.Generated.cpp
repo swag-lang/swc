@@ -68,14 +68,16 @@ namespace
 
     bool typeHasLifecycleRec(TaskContext& ctx, TypeRef typeRef, const SpecOpKind kind, std::unordered_set<TypeRef>& visiting)
     {
-        typeRef = ctx.typeMgr().unwrapAlias(ctx, typeRef);
         if (typeRef.isInvalid())
             return false;
 
+        const TypeInfo& declaredType  = ctx.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasType(ctx);
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        typeRef                      = type.typeRef();
         if (!visiting.insert(typeRef).second)
             return false;
 
-        const TypeInfo& type = ctx.typeMgr().get(typeRef);
         if (type.isVoid() || type.isNull())
         {
             visiting.erase(typeRef);
@@ -137,11 +139,13 @@ namespace
     {
         // None denotes implicit default initialization, which has no special operator.
         const bool defaultInit = kind == SpecOpKind::None;
-        typeRef                = defaultInit ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef) : sema.typeMgr().unwrapAlias(sema.ctx(), typeRef);
         if (typeRef.isInvalid())
             return Result::Continue;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = defaultInit ? declaredType.unwrapAliasEnumType(sema.ctx()) : declaredType.unwrapAliasType(sema.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        typeRef                      = type.typeRef();
         if (!type.isArray() && !type.isStruct())
             return Result::Continue;
         if (!visited.insert(typeRef).second)
@@ -719,14 +723,17 @@ namespace
     Result typeComparesAsBytesRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         outResult = true;
-        typeRef   = sema.typeMgr().unwrapAlias(sema.ctx(), typeRef);
         if (typeRef.isInvalid())
             return Result::Continue;
+
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasType(sema.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        typeRef                      = type.typeRef();
         if (!visiting.insert(typeRef).second)
             return Result::Continue;
 
-        const TypeInfo& type   = sema.typeMgr().get(typeRef);
-        bool            result = true;
+        bool result = true;
         if (type.isString() || type.isSlice())
             result = false;
         else if (type.isStruct())
@@ -761,14 +768,17 @@ namespace
     Result typeCompareNeedsContentHelperRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         outResult = false;
-        typeRef   = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
         if (typeRef.isInvalid())
             return Result::Continue;
+
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        typeRef                      = type.typeRef();
         if (!visiting.insert(typeRef).second)
             return Result::Continue;
 
-        const TypeInfo& type   = sema.typeMgr().get(typeRef);
-        bool            result = false;
+        bool result = false;
         if (type.isString() || type.isSlice())
             result = true;
         else if (type.isArray())

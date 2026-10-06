@@ -414,25 +414,17 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef intrinsicMakeInterfaceRuntimeStorageTypeRef(Sema& sema, TypeRef objectTypeRef, TypeRef interfaceTypeRef)
+    TypeRef intrinsicMakeInterfaceRuntimeStorageTypeRef(Sema& sema, const TypeInfo* objectType)
     {
-        if (interfaceTypeRef.isInvalid())
-            return TypeRef::invalid();
-
-        const TypeInfo& interfaceType = sema.typeMgr().get(interfaceTypeRef);
-        SWC_ASSERT(interfaceType.isInterface());
-
         uint64_t objectStorageSize = 0;
-        if (objectTypeRef.isValid())
+        if (objectType)
         {
-            const TypeInfo& objectType = sema.typeMgr().get(objectTypeRef);
-            if (!objectType.isNull() && !objectType.isPointerLikeAliasAware(sema.ctx()) && !objectType.isReference())
-                objectStorageSize = objectType.sizeOf(sema.ctx());
+            if (!objectType->isNull() && !objectType->isPointerLikeAliasAware(sema.ctx()) && !objectType->isReference())
+                objectStorageSize = objectType->sizeOf(sema.ctx());
         }
 
-        constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
-        SmallVector4<uint64_t> dims;
-        dims.push_back(interfaceStorageSize + objectStorageSize);
+        constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
+        const std::array   dims                 = {interfaceStorageSize + objectStorageSize};
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
     }
 
@@ -466,29 +458,27 @@ namespace
         if (!isTypeInfoOperand(sema, itfView))
             return SemaError::raiseRequestedTypeFam(sema, itfView.nodeRef(), itfView.typeRef(), sema.typeMgr().typeTypeInfo());
 
-        const TypeRef interfaceTypeValueRef = SemaHelpers::resolveRepresentedTypeRef(sema, itfView);
-        const TypeRef interfaceTypeRef      = interfaceTypeValueRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), interfaceTypeValueRef) : TypeRef::invalid();
-        if (!interfaceTypeRef.isValid() || !sema.typeMgr().get(interfaceTypeRef).isInterface())
+        const TypeRef   interfaceTypeValueRef = SemaHelpers::resolveRepresentedTypeRef(sema, itfView);
+        const TypeRef   interfaceTypeRef      = interfaceTypeValueRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), interfaceTypeValueRef) : TypeRef::invalid();
+        const TypeInfo* interfaceType         = interfaceTypeRef.isValid() ? &sema.typeMgr().get(interfaceTypeRef) : nullptr;
+        if (!interfaceType || !interfaceType->isInterface())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, itfView.nodeRef());
 
-        const TypeRef objectTypeValueRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView);
-        const TypeRef objectTypeRef      = objectTypeValueRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), objectTypeValueRef) : TypeRef::invalid();
-        if (objectTypeRef.isValid())
+        const TypeRef   objectTypeValueRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView);
+        const TypeRef   objectTypeRef      = objectTypeValueRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), objectTypeValueRef) : TypeRef::invalid();
+        const TypeInfo* objectType         = objectTypeRef.isValid() ? &sema.typeMgr().get(objectTypeRef) : nullptr;
+        const bool     objectIsStruct     = objectType && objectType->isStruct();
+        if (objectIsStruct)
         {
-            const TypeInfo& objectType = sema.typeMgr().get(objectTypeRef);
-            if (objectType.isStruct())
+            SWC_RESULT(sema.waitSemaCompleted(objectType, typeView.nodeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(interfaceType, itfView.nodeRef()));
+            if (!objectType->payloadSymStruct().implementsInterfaceOrUsingFields(sema, interfaceType->payloadSymInterface()))
             {
-                const TypeInfo& interfaceType = sema.typeMgr().get(interfaceTypeRef);
-                SWC_RESULT(sema.waitSemaCompleted(&objectType, typeView.nodeRef()));
-                SWC_RESULT(sema.waitSemaCompleted(&interfaceType, itfView.nodeRef()));
-                if (!objectType.payloadSymStruct().implementsInterfaceOrUsingFields(sema, interfaceType.payloadSymInterface()))
-                {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast_to_interface, typeView.nodeRef());
-                    diag.addArgument(Diagnostic::ARG_TYPE, objectTypeRef);
-                    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, interfaceTypeRef);
-                    diag.report(sema.ctx());
-                    return Result::Error;
-                }
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast_to_interface, typeView.nodeRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, objectTypeRef);
+                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, interfaceTypeRef);
+                diag.report(sema.ctx());
+                return Result::Error;
             }
         }
 
@@ -498,13 +488,13 @@ namespace
         TypeInfoFlags resultFlags = TypeInfoFlagsE::Zero;
         if (makeInterfaceObjectIsConst(sema, objectView))
             resultFlags.add(TypeInfoFlagsE::Const);
-        if (!objectTypeRef.isValid() || !sema.typeMgr().get(objectTypeRef).isStruct())
+        if (!objectIsStruct)
             resultFlags.add(TypeInfoFlagsE::Nullable);
 
         TypeRef resultTypeRef = interfaceTypeRef;
         if (resultFlags != TypeInfoFlagsE::Zero)
         {
-            auto* interfaceSym = &sema.typeMgr().get(interfaceTypeRef).payloadSymInterface();
+            auto* interfaceSym = &interfaceType->payloadSymInterface();
             resultTypeRef      = sema.typeMgr().addType(TypeInfo::makeInterface(interfaceSym, resultFlags));
         }
 
@@ -513,7 +503,7 @@ namespace
 
         if (sema.isCurrentFunction())
         {
-            const TypeRef storageTypeRef = intrinsicMakeInterfaceRuntimeStorageTypeRef(sema, objectView.typeRef(), resultTypeRef);
+            const TypeRef storageTypeRef = intrinsicMakeInterfaceRuntimeStorageTypeRef(sema, objectView.type());
             SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, storageTypeRef, "__intrinsic_runtime_storage"));
         }
 

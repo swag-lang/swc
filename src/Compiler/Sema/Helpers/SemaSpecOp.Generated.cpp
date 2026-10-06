@@ -1350,18 +1350,21 @@ Result SemaSpecOp::addValueTransferCallDependencies(Sema& sema, const AstNodeRef
 {
     if (!sema.isCurrentFunction() || sourceRef.isInvalid() || destinationTypeRef.isInvalid())
         return Result::Continue;
-    destinationTypeRef              = sema.typeMgr().unwrapAliasEnum(sema.ctx(), destinationTypeRef);
-    const TypeInfo& destinationType = sema.typeMgr().get(destinationTypeRef);
-    if (destinationType.isReference())
+    const TypeInfo* valueType = &sema.typeMgr().get(destinationTypeRef);
+    if (const TypeInfo* unwrappedType = valueType->unwrapAliasEnumType(sema.ctx()))
+        valueType = unwrappedType;
+    if (valueType->isReference())
     {
         if (destinationBindsReference)
             return Result::Continue;
-        destinationTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), destinationType.payloadTypeRef());
+        valueType = &sema.typeMgr().get(valueType->payloadTypeRef());
+        if (const TypeInfo* unwrappedType = valueType->unwrapAliasEnumType(sema.ctx()))
+            valueType = unwrappedType;
     }
-    const TypeInfo& valueType = sema.typeMgr().get(destinationTypeRef);
-    if (!valueType.isStruct() && !valueType.isArray())
+    if (!valueType->isStruct() && !valueType->isArray())
         return Result::Continue;
 
+    destinationTypeRef = valueType->typeRef();
     // Assignment destroys the previous destination even when the replacement is
     // a constant. Declarations and conditional/literal storage have no old value.
     if (sema.curNode().is(AstNodeId::AssignStmt) && !modifiers.has(AstModifierFlagsE::NoDrop))

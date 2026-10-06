@@ -51,14 +51,8 @@ namespace
         return sema.viewType(nodeRef).typeRef();
     }
 
-    bool isDirectBorrowCarrier(Sema& sema, TypeRef typeRef)
+    bool isDirectBorrowCarrier(const TypeInfo& type)
     {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
         return type.isString() ||
                type.isCString() ||
                type.isSlice() ||
@@ -67,6 +61,16 @@ namespace
                type.isInterface() ||
                type.isAny() ||
                type.isLambdaClosure();
+    }
+
+    bool isDirectBorrowCarrier(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        return isDirectBorrowCarrier(unwrappedType ? *unwrappedType : declaredType);
     }
 
     bool localProjectionRootCanReceiveLocalStore(Sema& sema, const SymbolVariable& root)
@@ -105,11 +109,11 @@ namespace
             return false;
         budget--;
 
-        typeRef = unwrapAliasEnum(sema, typeRef);
-        if (!typeRef.isValid())
-            return false;
-
-        if (isDirectBorrowCarrier(sema, typeRef))
+        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        typeRef                       = type.typeRef();
+        if (isDirectBorrowCarrier(type))
             return true;
 
         // Structural carriers are discovered through fields/elements, but cycles are
@@ -118,7 +122,6 @@ namespace
         if (!visiting.insert(typeRef).second)
             return false;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (type.isArray())
             return typeCanCarryBorrowRec(sema, type.payloadArrayElemTypeRef(), visiting, budget);
 

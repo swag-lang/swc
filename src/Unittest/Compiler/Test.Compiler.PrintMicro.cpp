@@ -133,6 +133,67 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroSelectsFunctionsFromTheCommandLine)
 }
 SWC_TEST_END()
 
+// A library lowers only what it exports and reaches, yet a listing asked for by the attribute or
+// by the command line names a function the user wants to see, reached or not.
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroListsUnreachedLibraryFunctions)
+{
+    constexpr std::string_view SOURCE = R"(#global internal
+#[Swag.PrintMicro]
+func listedByAttribute()->u32 => 17
+func listedByCommandLine()->u32 => 19
+func neverListed()->u32 => 29
+public func exported()->u32 => 23
+)";
+
+    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_library" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+    std::error_code ec;
+    fs::remove_all(directory, ec);
+    const fs::path source = directory / "print_micro_library.swg";
+    SWC_RESULT(CompilerTestFile::writeText(source, SOURCE));
+
+    const std::vector<Utf8> args = {"build", "--num-cores", "6", "--no-log-color", "--artifact-kind", "static-library",
+                                    "--out-dir", Utf8((directory / "out").string()), "--work-dir", Utf8((directory / "work").string()),
+                                    "-f", Utf8(source.string()), "--print-micro", "listedByCommandLine"};
+    PrintMicroRun           run;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &run.output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 15000;
+    run.process            = Os::runProcess(run.exitCode, Os::getExeFullName(), args, directory, &options);
+
+    // A built library scopes its functions under the module name.
+    const auto listings = [&](std::string_view name) {
+        constexpr std::string_view HEADER = "function : ";
+        const std::string_view     output = run.output;
+        size_t                     count  = 0;
+        for (size_t pos = output.find(HEADER); pos != std::string_view::npos; pos = output.find(HEADER, pos + HEADER.size()))
+        {
+            const size_t           start   = pos + HEADER.size();
+            const size_t           end     = output.find_first_of("\r\n", start);
+            const std::string_view listed  = output.substr(start, end == std::string_view::npos ? std::string_view::npos : end - start);
+            const size_t           dot     = listed.rfind('.');
+            const std::string_view unscope = dot == std::string_view::npos ? listed : listed.substr(dot + 1);
+            if (unscope == name)
+                count++;
+        }
+
+        return count;
+    };
+
+    Result result = Result::Continue;
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 ||
+        listings("listedByAttribute") != 1 || listings("listedByCommandLine") != 1 || listings("neverListed") != 0)
+    {
+        std::println(stderr, "[print micro library] {}", run.output);
+        result = Result::Error;
+    }
+
+    fs::remove_all(directory, ec);
+    if (result != Result::Continue)
+        return result;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

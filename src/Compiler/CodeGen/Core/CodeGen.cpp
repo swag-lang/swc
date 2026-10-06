@@ -61,25 +61,28 @@ namespace
 
         return false;
     }
+}
 
-    // '--print-micro' selects a function by its scoped name or by a trailing part of it, so
-    // 'Pixel.Webp.decodeLossy', 'Webp.decodeLossy' and 'decodeLossy' all name the same function.
-    void appendCommandLinePrintMicroStages(std::vector<Utf8>& stages, std::span<const Utf8> requests, std::string_view scopedName)
+// '--print-micro' selects a function by its scoped name or by a trailing part of it, so
+// 'Pixel.Webp.decodeLossy', 'Webp.decodeLossy' and 'decodeLossy' all name the same function.
+void CodeGen::appendCommandLinePrintMicroStages(std::vector<Utf8>& stages, std::span<const Utf8> requests, std::string_view scopedName)
+{
+    for (const Utf8& request : requests)
     {
-        for (const Utf8& request : requests)
-        {
-            const std::string_view value   = request.view();
-            const size_t           colon   = value.find(':');
-            const std::string_view pattern = value.substr(0, colon);
+        const std::string_view value   = request.view();
+        const size_t           colon   = value.find(':');
+        const std::string_view pattern = value.substr(0, colon);
 
-            bool matches = printMicroPatternMatches(pattern, scopedName);
-            for (size_t dot = scopedName.find('.'); !matches && dot != std::string_view::npos; dot = scopedName.find('.', dot + 1))
-                matches = printMicroPatternMatches(pattern, scopedName.substr(dot + 1));
-            if (matches)
-                stages.emplace_back(colon == std::string_view::npos ? std::string_view{"pre-emit"} : value.substr(colon + 1));
-        }
+        bool matches = printMicroPatternMatches(pattern, scopedName);
+        for (size_t dot = scopedName.find('.'); !matches && dot != std::string_view::npos; dot = scopedName.find('.', dot + 1))
+            matches = printMicroPatternMatches(pattern, scopedName.substr(dot + 1));
+        if (matches)
+            stages.emplace_back(colon == std::string_view::npos ? std::string_view{"pre-emit"} : value.substr(colon + 1));
     }
+}
 
+namespace
+{
     const CodeGenFrame::InlineContext* findMatchingInlineContext(std::span<const CodeGenFrame> frames, AstNodeRef rootNodeRef, const SemaInlinePayload* payload)
     {
         if (!payload || rootNodeRef.isInvalid())

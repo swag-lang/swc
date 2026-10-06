@@ -211,6 +211,9 @@ public:
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
+    // Appends one stage per '--print-micro' request whose pattern names `scopedName`.
+    static void appendCommandLinePrintMicroStages(std::vector<Utf8>& stages, std::span<const Utf8> requests, std::string_view scopedName);
+
     Sema&                           sema() { return *(sema_); }
     const Sema&                     sema() const { return *(sema_); }
     TaskContext&                    ctx();

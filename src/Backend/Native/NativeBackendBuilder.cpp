@@ -10,6 +10,7 @@
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Backend/RuntimeName.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/ModuleApi/ModuleApi.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -741,6 +742,20 @@ namespace
         if (isExportedOpaqueLifecycleFunction(builder, symbol))
             return true;
         return symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport() && !isGeneratedEqualityOperator(builder, symbol);
+    }
+
+    // A function whose microcode the user asked to see is lowered even when nothing reaches it:
+    // the listing is the request, and an unreached function would print nothing at all.
+    bool requestsMicroListing(NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    {
+        if (!symbol.attributes().printMicroPassOptions.empty())
+            return true;
+        const auto& requests = builder.ctx().cmdLine().printMicro;
+        if (requests.empty())
+            return false;
+        std::vector<Utf8> stages;
+        CodeGen::appendCommandLinePrintMicroStages(stages, requests, symbol.getFullScopedName(builder.ctx()).view());
+        return !stages.empty();
     }
 
     NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal)
@@ -1503,15 +1518,15 @@ Result NativeBackendBuilder::prepare()
     const bool                   executable = compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
     const bool                   library    = supportsExportedPublicFunctionSymbols(*this);
     std::vector<SymbolFunction*> functions;
-    if (library)
+    if (executable || library)
     {
         for (SymbolFunction* function : compiler_->nativeCodeSegment())
         {
-            if (function && isExportedLibraryFunction(*this, *function))
+            if (function && ((library && isExportedLibraryFunction(*this, *function)) || requestsMicroListing(*this, *function)))
                 functions.push_back(function);
         }
     }
-    else if (!executable)
+    else
         functions = compiler_->nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
     SymbolSort::sortAndUniqueByLocation(testFunctions, *compiler_);

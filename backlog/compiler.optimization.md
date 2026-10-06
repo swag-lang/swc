@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 11:04 — Include write-only private homes in the retained cache.
+- Updated: 2026-10-06 11:28 — Cache read-only homes across calls and multiple entries.
 - Area: compiler/backend
 - Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
   in a caller-saved XMM register free across a call-free loop. Every matching load/store
@@ -104,13 +104,42 @@ new language syntax.
 - Extended boundary: write-only private 64-bit homes use the same cache and exit write-back
   proof. This removes the per-two-round SHA spill introduced by partial unrolling; see the
   [retained evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md).
-- Next: inspect remaining hot source-object slots, mixed-width spills and call-containing
-  loops. Prefer a free integer register when its live range and ABI preservation permit it;
-  shared exits need edge-specific write-backs before they can be admitted.
+- Read-only homes now cross conditional calls, multiple outside entries and shared exits:
+  seed every entry and restore only clobbered caches after calls. A static reuse check bounds
+  the added reads. Writable homes across calls/shared exits remain outside this extension.
+- Next: inspect hot source-object slots, mixed-width spills and writable homes in loops
+  with calls. Prefer a free integer register when its live range and ABI preservation permit
+  it; writable homes need an exit-liveness proof or edge-specific write-backs at shared exits.
 - Complete when: current codec dumps identify and resolve the remaining promotion boundary
   with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
   64-bit multi-access rewrite.
 - Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
+
+### compiler.optimization.006 — Keep Inflate's mutable cursor off its literal-path latch
+
+- Recorded: 2026-08-15 08:48
+- Updated: 2026-10-06 11:28 — Cache the stable private homes across conditional calls.
+- Area: compiler/backend
+- Current evidence: the Release literal-path latch in Inflate.parseBlock now reads one frame
+  home instead of four. Three read-only homes use unused transient XMM registers, seeded
+  on every outside entry and restored only after clobbering conditional calls. The mutable
+  cursor at `[rsp+0x320]` remains. Whole parseBlock changes from 497 instructions / 154 memory
+  operations / 65 explicit RSP accesses to 512 / 148 / 59; see the
+  [retained evidence](../bench/results/generated-code/20261006-private-read-cache/README.md).
+  The split allocator supplies these homes; a second interval allocator is not needed.
+- Validation: 288 native optimizer tests (JIT and native), 21 compression tests and 23 H.264
+  tests pass in Release. No runtime speedup is inferred from static counts.
+- Prior experiments to avoid repeating: a two-level decode table was slower; extracting
+  cold helpers gave only a small change; mask/table rewrites did not improve throughput;
+  short-distance shuffle copies reached only about three percent of the measured PNG
+  output. The former shift-width guard and the historical 31-load/eight-store hot-path
+  diagnosis no longer describe the current compiler.
+- Next: preserve the mutable private cursor across the same calls, with coherent flushing
+  and a proof for its shared exits. Prefer eliminating dead exit write-backs to introducing
+  stores on the common branch. Count the literal path separately from calls and exits.
+- Complete when: that path has no remaining cursor spill round-trip and the call/exit
+  handling remains correct in JIT and native execution.
+- Related: compiler.optimization.015, compiler.optimization.024.
 
 ### compiler.optimization.032 — Control register pressure in wider partial unrolling
 
@@ -1468,65 +1497,6 @@ new language syntax.
 - Complete when: either a rule promotes a whole-copied local array without costing vectorization,
   or this records that the two cannot be reconciled and the fill-only rule is the end of it.
 
-### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
-
-- Recorded: 2026-08-15 08:48
-- Updated: 2026-09-11 22:17 — Correct the experiment count and retain the current split-allocator rebaseline boundary.
-- Area: compiler/backend
-- Found while: making `Compress.Inflate` fast. The library side of that is done and shipped —
-  the block loop keeps its cursors in locals and refills branchlessly, and it went from 62 MB/s
-  to 119 MB/s. What this entry keeps is the part no source shape could reach: the same algorithm
-  written line by line in C and compiled by clang-cl `/O2` runs at 191 MB/s, so 1.6x is left and
-  all of it is in the emitted code.
-- Observation: `#[Swag.PrintMicro("post-emit")]` on the block loop against clang's assembly for
-  that C transcription. **Every loop-carried local is a stack slot.** The bit buffer, the bit
-  count, the source cursor, the output cursor and the decoded symbol are each loaded and stored
-  on every symbol; a table entry read once in the source is stored to a stack temporary and
-  re-loaded twice. In the literal fast path — ten live scalars, fifteen usable registers — that
-  is 31 stack loads and 8 stack stores against clang's zero. The prologue also materializes ~25
-  field addresses and spills each one. mem2reg is not the culprit and was checked:
-  `pre-mem-to-reg`/`post-mem-to-reg` differ by 212 promoted instructions, so it promotes what it
-  should and the allocator puts the values back.
-- Evidence: measured 2026-08-15 on an otherwise idle machine, release config, on the 12.8 MB
-  deflate payload of `8_9_2025_15_43_58.scc` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
-  symbol — a stored photograph, so the loop runs about once per output byte). Best of several
-  alternating runs: clang-cl `/O2` 88.8 ms (191 MB/s), a bare Swag prototype of the same loop
-  121.7 ms (139 MB/s), the shipped `Compress.Inflate` 141.9 ms (119 MB/s). Swag block loop 619
-  instructions against clang's 411. **Machine load moves every one of these numbers by up to 3x,
-  so only same-run comparisons mean anything** — an earlier pass of this measurement read
-  122 ms for clang and 176 ms for Swag, and the ratio was the only part that survived.
-- Five experiments ruled out by measurement, so they are not retried:
-  - **zlib's two-level decode table.** Written in C beside the current design, same payload:
-    93.8 ms against 88.8 ms — *slower*. Only 6.7% of length codes and no distance code at all
-    miss the nine-bit fast table on this data.
-  - **Lifting the cold paths out of the loop.** The Huffman fallback and the slow refill moved
-    into `#[Swag.NoInline]` functions taking the bit cursor by value and handing it back: 3%.
-    So the allocator is not evicting the loop-carried scalars because cold blocks compete with
-    them; it evicts them anyway.
-  - **Eliding the shift width guard.** Implemented in `CodeGenSafety::emitShiftIntLike` (skip
-    the materialized count, width compare and conditional move when the count is a constant or
-    a mask by one, looking through casts and parentheses), verified to fire — 14 conditional
-    moves down to 8 in the block loop — and measured at **zero**, twice, on a quiet machine.
-    The loop is latency-bound on the serial bit-cursor chain and its stack round-trips, so
-    removing twelve independent instructions changes nothing. Reverted. Since 2026-09-10 the
-    guard no longer exists at all: a shift amount must be below the value's width, and release
-    emits the bare instruction — so this workload should be re-timed without it.
-  - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
-  - **A shuffle-based fill for matches closer than eight bytes**, which libdeflate carries and
-    this loop still copies one byte at a time. Counted rather than timed, over the IDAT of the
-    PNG fixtures: matches at a distance of two to seven bytes produce 2.7% of the output on
-    `rgb.png` and 3.3% on `rgba.png`, against 78% for distances of sixteen bytes and up, which
-    already run on vectors. The whole path is too small to pay for the two shuffle tables.
-- Current boundary: `Pass.RegisterAllocation.Interval.cpp` now supplies live-range splitting for
-  optimizing builds, with the older scan retained for `-O0` and failed preconditions. The historical
-  spill counts above predate that allocator and cannot establish the current gap.
-- Next: repeat the same Inflate/clang comparison and count frame accesses with the current Release
-  compiler. If a gap remains, attribute it to the split allocator or its fallback before selecting
-  a change; do not implement a second interval allocator.
-- Complete when: the current emitted loop and alternating timing decide whether an allocator gap
-  remains, with any surviving cause reduced to one actionable change.
-- Related: compiler.optimization.005, compiler.optimization.024.
-
 ### compiler.optimization.020 — Memory optimizations maintain separate frame alias analyses
 
 - Recorded: 2026-08-27 07:57
@@ -1604,7 +1574,7 @@ new language syntax.
   Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
   belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
   The remaining traffic is
-  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
+  [compiler.optimization.006](#compileroptimization006--keep-inflates-mutable-cursor-off-its-literal-path-latch) again.
 - Next: rebaseline `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` with the now
   shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
   gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump

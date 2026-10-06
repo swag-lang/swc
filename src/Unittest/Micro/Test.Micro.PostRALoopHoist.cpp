@@ -704,7 +704,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
         SWC_RESULT(runPostRaLoopHoistPass(builder, 0x80, 0x88));
         const uint32_t loads  = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem);
         const uint32_t copies = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
-        if (variant == 0)
+        if (variant == 0 || variant == 3)
         {
             SWC_ASSERT(loads == 1 && copies == 4);
             SWC_ASSERT(Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) == 2);
@@ -713,6 +713,49 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
         }
         else
             SWC_ASSERT(loads == 2 && copies == 0);
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopHoist_ReadOnlySpillCacheAcrossConditionalCall)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        const MicroReg value     = conv.intTransientRegs[3];
+        const MicroReg counter   = conv.intPersistentRegs[2];
+        const auto     top       = builder.createLabel();
+        const auto     afterCall = builder.createLabel();
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(top);
+        builder.emitLoadRegMem(value, conv.stackPointer, 0x80, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(counter, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+        if (variant != 1)
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B64, afterCall);
+        builder.emitCallReg(conv.intReturn, CallConvKind::Swag, 0, 1);
+        builder.placeLabel(afterCall);
+        builder.emitLoadRegMem(value, conv.stackPointer, 0x80, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(counter, value, MicroOp::Add, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadMemReg(conv.stackPointer, 0x80, counter, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, conv.stackPointer, 0x80, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(counter, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(100, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+        builder.emitRet();
+        SWC_RESULT(runPostRaLoopHoistPass(builder, 0x80, 0x88));
+        const uint32_t copies = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
+        SWC_ASSERT(copies == (variant == 0 ? 3u : 0u));
+        if (variant == 0)
+        {
+            for (const MicroInstr& inst : builder.instructions().view())
+                if (inst.op == MicroInstrOpcode::LoadRegMem)
+                    SWC_ASSERT(inst.ops(builder.operands())[0].reg == conv.floatTransientRegs[1]);
+        }
     }
     return Result::Continue;
 }

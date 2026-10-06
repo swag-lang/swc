@@ -435,8 +435,7 @@ namespace
             return sema.cstMgr().addConstant(sema.ctx(), enumCst);
         }
 
-        const TypeRef       loadTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), valueTypeRef);
-        const ConstantValue valueCst    = ConstantValue::make(sema.ctx(), valuePtr, loadTypeRef.isValid() ? loadTypeRef : valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+        const ConstantValue valueCst = ConstantValue::make(sema.ctx(), valuePtr, valueNoAliasTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         if (!valueCst.isValid())
             return ConstantRef::invalid();
 
@@ -1422,14 +1421,14 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         if (!castRequest.flags.has(CastFlagsE::AllowCopyToMoveRef))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-        const TypeRef resolvedSrcTypeRef     = typeMgr.unwrapAliasEnum(sema.ctx(), srcTypeRef);
-        const TypeRef srcToCheck             = resolvedSrcTypeRef.isValid() ? resolvedSrcTypeRef : srcTypeRef;
-        const TypeRef resolvedPointeeTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), dstPointeeTypeRef);
-        const TypeRef pointeeToCheck         = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : dstPointeeTypeRef;
+        const TypeInfo* resolvedSrcType     = srcType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& srcCheckType        = resolvedSrcType ? *resolvedSrcType : srcType;
+        const TypeInfo* resolvedPointeeType = dstPointeeType.unwrapAliasEnumType(sema.ctx());
+        const TypeRef   srcToCheck          = srcCheckType.typeRef();
+        const TypeRef   pointeeToCheck      = resolvedPointeeType ? resolvedPointeeType->typeRef() : dstPointeeTypeRef;
         if (srcToCheck != pointeeToCheck)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-        const TypeInfo& srcCheckType = typeMgr.get(srcToCheck);
         if (!srcCheckType.isStruct() && !srcCheckType.isScalarNumeric() && !srcCheckType.isBool() && !srcCheckType.isRune())
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 

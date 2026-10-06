@@ -488,14 +488,12 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
     if (!sema.isLValue(sourceRef))
         return false;
 
-    const TypeRef   structTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), resolvedSourceTypeRef);
-    const TypeInfo& structType    = sema.typeMgr().get(structTypeRef);
-    if (!structType.isStruct())
+    if (!sourceType.isStruct())
         return false;
 
     outInfo.kind          = DynamicStructCastSourceKind::StructAddress;
-    outInfo.structTypeRef = structTypeRef;
-    outInfo.sourceIsConst = structType.isConst();
+    outInfo.structTypeRef = resolvedSourceTypeRef;
+    outInfo.sourceIsConst = sourceType.isConst();
     return true;
 }
 

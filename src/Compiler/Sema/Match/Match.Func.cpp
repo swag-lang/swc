@@ -2837,8 +2837,7 @@ namespace
         // A const non-null value pointer boxes as its pointee (the codegen packer hands over
         // the pointee's address), except the implicit receiver, which keeps address identity.
         TypeRef         boxTypeRef  = argView.typeRef();
-        const TypeRef   unwrapped   = sema.typeMgr().unwrapAliasEnum(sema.ctx(), boxTypeRef);
-        const TypeInfo& unwrappedTy = sema.typeMgr().get(unwrapped.isValid() ? unwrapped : boxTypeRef);
+        const TypeInfo& unwrappedTy = SemaHelpers::aliasEnumType(sema, argView);
         if (unwrappedTy.isValuePointer() && !unwrappedTy.isNullable() && unwrappedTy.isConst())
         {
             const AstNodeRef   sourceRef  = SemaHelpers::resolveTransparentExprSourceRef(sema, outResolvedArg.argRef);
@@ -2863,14 +2862,12 @@ namespace
         if (!paramType.isReference())
             return false;
 
-        const AstNodeRef sourceRef     = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
-        const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
-        if (sourceTypeRef.isInvalid())
+        const AstNodeRef   sourceRef  = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
+        const SemaNodeView sourceView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type);
+        if (sourceView.typeRef().isInvalid())
             return true;
 
-        const TypeRef   unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
-        const TypeInfo& sourceType             = sema.typeMgr().get(resolvedSourceTypeRef);
+        const TypeInfo& sourceType = SemaHelpers::aliasEnumType(sema, sourceView);
         return !sourceType.isPointerOrReference();
     }
 
@@ -2893,17 +2890,16 @@ namespace
         // receiver still names the value whose address must be passed. Inspect that
         // receiver directly; a genuine using-path conversion remains excluded by the
         // pointee/source type comparison below.
-        const AstNodeRef receiverRef   = appliedUfcsArg.isValid() ? appliedUfcsArg : argRef;
-        const AstNodeRef sourceRef     = SemaHelpers::resolveTransparentExprSourceRef(sema, receiverRef);
-        const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
-        if (!sourceTypeRef.isValid())
+        const AstNodeRef   receiverRef = appliedUfcsArg.isValid() ? appliedUfcsArg : argRef;
+        const AstNodeRef   sourceRef   = SemaHelpers::resolveTransparentExprSourceRef(sema, receiverRef);
+        const SemaNodeView sourceView  = sema.viewStored(sourceRef, SemaNodeViewPartE::Type);
+        if (!sourceView.typeRef().isValid())
             return false;
 
-        const TypeRef   resolvedSourceTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sourceTypeRef);
+        const TypeInfo& sourceType             = SemaHelpers::aliasEnumType(sema, sourceView);
         const TypeRef   resolvedPointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), paramType.payloadTypeRef());
-        const TypeRef   sourceTypeToCheck      = resolvedSourceTypeRef.isValid() ? resolvedSourceTypeRef : sourceTypeRef;
+        const TypeRef   sourceTypeToCheck      = sourceType.typeRef();
         const TypeRef   pointeeTypeToCheck     = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : paramType.payloadTypeRef();
-        const TypeInfo& sourceType             = sema.typeMgr().get(sourceTypeToCheck);
         if (sourceType.isPointerOrReference())
             return false;
 

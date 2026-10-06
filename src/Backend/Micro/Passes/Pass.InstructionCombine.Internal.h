@@ -50,6 +50,10 @@ namespace InstructionCombine
         // Registers a byte copy of a setcc result writes: the boolean merges
         // branch simplification reads as bytes, which keep their width.
         MicroPeephole::LazyU32Set booleanMerges;
+        // Resolve select demand from the last reader backwards. Only committed
+        // queued narrowings supply reduced read widths to earlier candidates.
+        SmallVector<MicroInstrRef> pendingNarrowSelects;
+        MicroPeephole::LazyU32Set  narrowedSelects;
 
         bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
 
@@ -222,7 +226,8 @@ namespace InstructionCombine
     bool tryUseOffsetRelatedIndex(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldGlobalMemoryOp(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryNarrowSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool deferNarrowSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    void runSelectNarrowing(Context& ctx);
     bool tryNarrowBooleanDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCaseRangePair(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowByteRangeCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

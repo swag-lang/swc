@@ -53,9 +53,12 @@ namespace InstructionCombine
         // merged value's readers read: one nothing reads, as the SSA places at
         // a join the value does not live through, reads nothing, and one met
         // again on a loop adds nothing new.
-        uint32_t demandedBits(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t depth, SmallVector<uint32_t>& visitedPhis)
+        uint32_t demandedBits(const Context& ctx, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t depth, SmallVector<uint32_t>& visitedPhis)
         {
-            uint32_t widest = 0;
+            const MicroSsaState&       ssa      = *ctx.ssa;
+            const MicroStorage&        storage  = *ctx.storage;
+            const MicroOperandStorage& operands = *ctx.operands;
+            uint32_t                   widest   = 0;
             for (const auto& useSite : valueInfo.uses)
             {
                 if (useSite.kind == MicroSsaState::UseSite::Kind::Phi)
@@ -69,7 +72,7 @@ namespace InstructionCombine
                     const auto* phiValue = ssa.valueInfo(phi->resultValueId);
                     if (!phiValue)
                         return 64;
-                    widest = std::max(widest, demandedBits(ssa, storage, operands, *phiValue, reg, depth + 1, visitedPhis));
+                    widest = std::max(widest, demandedBits(ctx, *phiValue, reg, depth + 1, visitedPhis));
                     if (widest >= 64)
                         return 64;
                     continue;
@@ -94,10 +97,14 @@ namespace InstructionCombine
                     const auto* resultInfo = ssa.valueInfo(resultValueId);
                     if (!resultInfo)
                         return 64;
-                    bits = std::max(partialBits, demandedBits(ssa, storage, operands, *resultInfo, reg, depth + 1, visitedPhis));
+                    bits = std::max(partialBits, demandedBits(ctx, *resultInfo, reg, depth + 1, visitedPhis));
                 }
+                // A queued 32-bit select reads only that width from either arm.
+                // Its rewrite is already claimed and will be applied in this run.
+                if (useInst->op == MicroInstrOpcode::LoadCondRegReg && ctx.narrowedSelects.contains(useSite.instRef.get()))
+                    bits = std::min(bits, 32u);
                 // A select carries the value it keeps through, at its width.
-                if (useInst->op == MicroInstrOpcode::LoadCondRegReg && useOps[0].reg == reg && useOps[1].reg != reg && depth < K_MAX_SELECT_DEPTH)
+                else if (useInst->op == MicroInstrOpcode::LoadCondRegReg && useOps[0].reg == reg && useOps[1].reg != reg && depth < K_MAX_SELECT_DEPTH)
                 {
                     uint32_t resultValueId = 0;
                     if (!ssa.defValue(reg, useSite.instRef, resultValueId))
@@ -105,7 +112,7 @@ namespace InstructionCombine
                     const auto* resultInfo = ssa.valueInfo(resultValueId);
                     if (!resultInfo)
                         return 64;
-                    bits = std::min(getNumBits(useOps[3].opBits), demandedBits(ssa, storage, operands, *resultInfo, reg, depth + 1, visitedPhis));
+                    bits = std::min(getNumBits(useOps[3].opBits), demandedBits(ctx, *resultInfo, reg, depth + 1, visitedPhis));
                 }
                 if (useInst->op == MicroInstrOpcode::LoadRegReg && useOps[1].reg == reg && useOps[0].reg != reg &&
                     useOps[0].reg.isVirtual() && depth < K_MAX_DEMAND_DEPTH)
@@ -116,7 +123,7 @@ namespace InstructionCombine
                     const auto* copyInfo = ssa.valueInfo(copyValueId);
                     if (!copyInfo)
                         return 64;
-                    bits = std::min(bits, demandedBits(ssa, storage, operands, *copyInfo, useOps[0].reg, depth + 1, visitedPhis));
+                    bits = std::min(bits, demandedBits(ctx, *copyInfo, useOps[0].reg, depth + 1, visitedPhis));
                 }
 
                 widest = std::max(widest, bits);
@@ -690,7 +697,7 @@ namespace InstructionCombine
         if (!valueInfo || valueInfo->uses.empty())
             return false;
         SmallVector<uint32_t> visitedPhis;
-        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, ops[0].reg, 0, visitedPhis) > 32)
+        if (demandedBits(ctx, *valueInfo, ops[0].reg, 0, visitedPhis) > 32)
             return false;
 
         // The readers keep reading no more than the low half during the sweep.
@@ -718,7 +725,27 @@ namespace InstructionCombine
             narrowOps[i] = ops[i];
         narrowOps[3].opBits = MicroOpBits::B32;
         ctx.emitRewrite(ref, MicroInstrOpcode::LoadCondRegReg, narrowOps);
+        ctx.narrowedSelects.insert(ref.get());
         return true;
+    }
+
+    bool deferNarrowSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.isClaimed(ref) && inst.ops(*ctx.operands)[3].opBits == MicroOpBits::B64)
+            ctx.pendingNarrowSelects.push_back(ref);
+        return false;
+    }
+
+    void runSelectNarrowing(Context& ctx)
+    {
+        // A partial update copied into the next select carries its upper bits.
+        // Knowing that reader will narrow lets the preceding select narrow too,
+        // without another SSA rebuild or another whole optimization sweep.
+        for (size_t i = ctx.pendingNarrowSelects.size(); i > 0; --i)
+        {
+            const MicroInstrRef ref = ctx.pendingNarrowSelects[i - 1];
+            tryNarrowSelect(ctx, ref, *ctx.storage->ptr(ref));
+        }
     }
 
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
@@ -747,7 +774,7 @@ namespace InstructionCombine
             return false;
 
         SmallVector<uint32_t> visitedPhis;
-        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0, visitedPhis) > getNumBits(srcBits))
+        if (demandedBits(ctx, *valueInfo, dst, 0, visitedPhis) > getNumBits(srcBits))
             return false;
 
         if (!ctx.claimAll({ref}))
@@ -810,7 +837,7 @@ namespace InstructionCombine
         if (!valueInfo || valueInfo->uses.empty())
             return false;
         SmallVector<uint32_t> visitedPhis;
-        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0, visitedPhis) > getNumBits(bits))
+        if (demandedBits(ctx, *valueInfo, dst, 0, visitedPhis) > getNumBits(bits))
             return false;
 
         if (ctx.isRelocated(ref))

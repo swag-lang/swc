@@ -562,6 +562,35 @@ namespace
                 return true;
             }
 
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+            {
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt() || !ops[2].reg.isVirtualInt())
+                    return false;
+                const MicroOpBits resultBits  = ops[3].opBits;
+                const MicroOpBits addressBits = ops[4].opBits;
+                if ((resultBits != MicroOpBits::B32 && resultBits != MicroOpBits::B64) ||
+                    (addressBits != MicroOpBits::B32 && addressBits != MicroOpBits::B64))
+                    return false;
+                const uint64_t scale = ops[5].valueU64;
+                if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
+                    return false;
+
+                // Only the low address/result bits survive. In particular, a
+                // 32-bit address wraps before being written to a 64-bit result.
+                const MicroOpBits readBits = std::min(resultBits, addressBits);
+                KnownValue        base;
+                KnownValue        index;
+                if (!ops[1].reg.isNoBase() &&
+                    (!ops[1].reg.isVirtualInt() || !tryGetKnownReachingValue(base, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef) || !base.covers(readBits, ops[1].reg)))
+                    return false;
+                if (!tryGetKnownReachingValue(index, context, knownValues, knownFlags, ops[2].reg, valueInfo.instRef) || !index.covers(readBits, ops[2].reg))
+                    return false;
+
+                outValue.value  = (base.value + index.value * scale + ops[6].valueU64) & getBitsMask(readBits);
+                outValue.opBits = resultBits;
+                return true;
+            }
+
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
             {
@@ -616,7 +645,7 @@ namespace
 
     bool tryFoldAddressFromKnown(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
-        if (inst.op != MicroInstrOpcode::LoadAddrRegMem || !ops || !ops[0].reg.isVirtualInt())
+        if (!ops || !ops[0].reg.isVirtualInt())
             return false;
 
         uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
@@ -628,7 +657,7 @@ namespace
             return false;
 
         // An address computation leaves the flags alone, as a load does.
-        const MicroOpBits bits = ops[2].opBits;
+        const MicroOpBits bits = resultValue.opBits;
         inst.op                = MicroInstrOpcode::LoadRegImm;
         ops[1].opBits          = bits;
         ops[2].setImmediateValue(ApInt(resultValue.value, getNumBits(bits)));
@@ -985,6 +1014,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
                 changed = tryFoldCopyFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, inst.ops(operands));
                 break;
             case MicroInstrOpcode::LoadAddrRegMem:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
                 changed = tryFoldAddressFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, inst.ops(operands));
                 break;
             case MicroInstrOpcode::OpBinaryRegImm:

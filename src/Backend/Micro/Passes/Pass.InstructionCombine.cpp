@@ -159,7 +159,7 @@ namespace
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseCompareOperandForSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldThreeWaySelects);
-        r.add(MicroInstrOpcode::LoadCondRegReg, tryNarrowSelect);
+        r.add(MicroInstrOpcode::LoadCondRegReg, deferNarrowSelect);
         // Narrowing the masked operation keeps the extend's work in a 32-bit
         // operation; dropping the extend first would leave the operation wide.
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowMaskedArithmetic);
@@ -249,6 +249,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.actions.clear();
     ctx.relocated.clear();
     ctx.booleanMerges.clear();
+    ctx.pendingNarrowSelects.clear();
+    ctx.narrowedSelects.clear();
     ctx.loopSlots.clear();
     ctx.reportCalls.clear();
     ctx.reportCallsReady         = false;
@@ -284,6 +286,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         runStoreToLoadForwarding(ctx);
     if (hasSecondStore)
         runDeadStoreElimination(ctx);
+
+    runSelectNarrowing(ctx);
 
     // Widening a 32-bit copy changes a fact other rules read (its upper half
     // being zero) and claims the copy's readers. It runs only once no other

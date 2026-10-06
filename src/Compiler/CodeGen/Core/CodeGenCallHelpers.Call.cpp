@@ -307,36 +307,30 @@ namespace
             payload.setIsValue();
     }
 
-    TypeRef resolveNormalizedArgTypeRef(CodeGen& codeGen, const SymbolVariable* param, const SemaNodeView& argView)
+    const TypeInfo* resolveNormalizedArgType(CodeGen& codeGen, const SymbolVariable* param, const SemaNodeView& argView)
     {
-        TypeRef normalizedTypeRef = TypeRef::invalid();
-        if (param != nullptr)
-            normalizedTypeRef = param->typeRef();
+        const TypeRef paramTypeRef = param ? param->typeRef() : TypeRef::invalid();
+        if (paramTypeRef.isInvalid())
+            return argView.type();
 
-        if (normalizedTypeRef.isInvalid())
-            return argView.typeRef();
-
-        const TypeInfo& paramType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
-        if (paramType.isAnyVariadic())
-            return argView.typeRef();
-
-        return normalizedTypeRef;
+        const TypeInfo& paramType = codeGen.typeMgr().get(paramTypeRef);
+        return paramType.isAnyVariadic() ? argView.type() : &paramType;
     }
 
-    TypeRef resolveConstantMaterializationTypeRef(CodeGen& codeGen, TypeRef normalizedTypeRef, ConstantRef cstRef)
+    TypeRef resolveConstantMaterializationTypeRef(CodeGen& codeGen, const TypeInfo* normalizedType, ConstantRef cstRef)
     {
-        if (!normalizedTypeRef.isValid() || !cstRef.isValid())
-            return normalizedTypeRef;
+        if (!normalizedType)
+            return TypeRef::invalid();
 
-        const TypeInfo& normalizedType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
-        if (!normalizedType.isReference())
+        const TypeRef normalizedTypeRef = normalizedType->typeRef();
+        if (!cstRef.isValid() || !normalizedType->isReference())
             return normalizedTypeRef;
 
         const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
         if (cst.isNull() || cst.isValuePointer() || cst.isBlockPointer())
             return normalizedTypeRef;
 
-        const TypeRef pointeeTypeRef = normalizedType.payloadTypeRef();
+        const TypeRef pointeeTypeRef = normalizedType->payloadTypeRef();
         return pointeeTypeRef.isValid() ? pointeeTypeRef : normalizedTypeRef;
     }
 
@@ -902,8 +896,8 @@ namespace
     Result appendPreparedFixedArg(PreparedCallArguments& out, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg)
     {
         CodeGenNodePayload argPayload;
-        TypeRef            normalizedTypeRef = TypeRef::invalid();
-        const AstNodeRef   argRef            = arg.argRef;
+        const TypeInfo*    normalizedTypeInfo = nullptr;
+        const AstNodeRef   argRef             = arg.argRef;
         if (argRef.isValid())
         {
             const AstNodeRef                  resolvedArgRef = codeGen.resolvedNodeRef(argRef);
@@ -918,8 +912,8 @@ namespace
                 argView = codeGen.sema().viewStored(argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             }
 
-            normalizedTypeRef               = resolveNormalizedArgTypeRef(codeGen, param, argView);
-            const TypeRef constantTypeRef   = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argView.cstRef());
+            normalizedTypeInfo              = resolveNormalizedArgType(codeGen, param, argView);
+            const TypeRef constantTypeRef   = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeInfo, argView.cstRef());
             const bool    isNullConstantArg = argView.cst() && argView.cst()->isNull();
 
             if ((!payload || !payload->reg.isValid()) && resolvedArgRef == argRef)
@@ -963,18 +957,21 @@ namespace
         else
         {
             SWC_ASSERT(param != nullptr);
-            normalizedTypeRef         = param->typeRef();
-            ConstantRef defaultCstRef = ConstantRef::invalid();
+            const TypeRef normalizedTypeRef = param->typeRef();
+            ConstantRef   defaultCstRef     = ConstantRef::invalid();
             SWC_RESULT(defaultArgumentConstantRef(codeGen, defaultCstRef, callRef, arg));
             SWC_ASSERT(defaultCstRef.isValid());
-            const TypeRef constantTypeRef = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, defaultCstRef);
+            if (normalizedTypeRef.isValid())
+                normalizedTypeInfo = &codeGen.typeMgr().get(normalizedTypeRef);
+            const TypeRef constantTypeRef = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeInfo, defaultCstRef);
             SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, argPayload, constantTypeRef, defaultCstRef));
         }
 
         ABICall::PreparedArg preparedArg;
-        if (normalizedTypeRef.isValid())
+        if (normalizedTypeInfo)
         {
-            const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
+            const TypeInfo& normalizedType    = *normalizedTypeInfo;
+            const TypeRef   normalizedTypeRef = normalizedType.typeRef();
             // An rvalue receiver held in a register gets its call-site home first, so its
             // address can travel into the pointer parameter like any other receiver. A
             // value payload that is already pointer-typed (a materialized constant

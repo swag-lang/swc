@@ -259,12 +259,12 @@ namespace
         return static_cast<const JITPendingNodeData*>(completion.completionPayload.get());
     }
 
-    ConstantValue makeRunExprConstant(Sema& sema, TypeRef exprTypeRef, TypeRef storageTypeRef, const std::byte* storagePtr)
+    ConstantValue makeRunExprConstant(Sema& sema, const TypeInfo& exprType, const TypeInfo& storageType, const std::byte* storagePtr)
     {
-        TaskContext&    ctx         = sema.ctx();
-        const TypeInfo& exprType    = sema.typeMgr().get(exprTypeRef);
-        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-        const TypeInfo* enumType    = &exprType;
+        TaskContext&    ctx            = sema.ctx();
+        const TypeRef   exprTypeRef    = exprType.typeRef();
+        const TypeRef   storageTypeRef = storageType.typeRef();
+        const TypeInfo* enumType       = &exprType;
         // JIT returns normalized storage bytes. Re-wrap them as the expression
         // type so aliases/enums preserve their source-level identity in constants.
         if (!enumType->isEnum() && exprType.isAlias())
@@ -306,8 +306,9 @@ namespace
     ConstantRef makeJitCallResultConstantRef(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
     {
         const TypeInfo& exprType        = sema.typeMgr().get(resultMeta.exprTypeRef);
+        const TypeInfo& storageType     = sema.typeMgr().get(resultMeta.storageTypeRef);
         const TypeRef   constantTypeRef = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
-        const uint64_t  resultSize      = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
+        const uint64_t  resultSize      = storageType.sizeOf(sema.ctx());
         const auto      resultBytes     = std::span{storagePtr, static_cast<size_t>(resultSize)};
 
         if (resultSize && SemaHelpers::needsPersistentCompilerRunReturn(sema.ctx(), resultMeta.storageTypeRef))
@@ -317,7 +318,7 @@ namespace
                 return cstRef;
         }
 
-        return sema.cstMgr().addConstant(sema.ctx(), makeRunExprConstant(sema, resultMeta.exprTypeRef, resultMeta.storageTypeRef, storagePtr));
+        return sema.cstMgr().addConstant(sema.ctx(), makeRunExprConstant(sema, exprType, storageType, storagePtr));
     }
 
     void applyPendingJitResult(Sema& sema, AstNodeRef nodeRef, const JITPendingNodeData& pendingEntry)

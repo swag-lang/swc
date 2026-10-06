@@ -18,7 +18,7 @@ namespace
         Full,
     };
 
-    Utf8 renderTypeName(const TypeInfo& typeInfo, const TaskContext& ctx, TypeNameMode mode);
+    void appendTypeName(const TaskContext& ctx, Utf8& out, const TypeInfo& typeInfo, TypeNameMode mode);
 
     void appendGenericStructInstanceArgs(Utf8& out, const SymbolStruct& instance, const TaskContext& ctx, const TypeNameMode mode)
     {
@@ -35,7 +35,7 @@ namespace
             if (args[i].typeRef.isValid())
             {
                 const TypeInfo& argType = ctx.typeMgr().get(args[i].typeRef);
-                out += renderTypeName(argType, ctx, mode);
+                appendTypeName(ctx, out, argType, mode);
             }
             else if (args[i].cstRef.isValid())
             {
@@ -536,9 +536,11 @@ uint32_t TypeInfo::hash() const
 
 namespace
 {
-    Utf8 renderTypeName(const TypeInfo& typeInfo, const TaskContext& ctx, const TypeNameMode mode)
+    void appendTypeName(const TaskContext& ctx, Utf8& out, const TypeInfo& typeInfo, const TypeNameMode mode)
     {
-        Utf8 out;
+        // Type values and literals can replace their own prefix, while the
+        // enclosing type's spelling stays in the shared buffer.
+        const size_t start = out.size();
 
         if (typeInfo.isConst())
             out += "const ";
@@ -575,17 +577,22 @@ namespace
                 if (type.isVoid())
                     out += "#code";
                 else
-                    out += std::format("#code->{}", renderTypeName(type, ctx, mode));
+                {
+                    out += "#code->";
+                    appendTypeName(ctx, out, type, mode);
+                }
                 break;
             }
             case TypeInfoKind::TypeInfo:
                 out += "typeinfo";
                 break;
             case TypeInfoKind::AggregateStruct:
-                out = "struct literal";
+                out.resize(start);
+                out += "struct literal";
                 break;
             case TypeInfoKind::AggregateArray:
-                out = "array literal";
+                out.resize(start);
+                out += "array literal";
                 break;
 
             case TypeInfoKind::Enum:
@@ -639,7 +646,7 @@ namespace
                     }
 
                     const TypeInfo& paramType = ctx.typeMgr().get(param->typeRef());
-                    out += renderTypeName(paramType, ctx, mode);
+                    appendTypeName(ctx, out, paramType, mode);
                 }
                 out += ")";
 
@@ -647,7 +654,7 @@ namespace
                 {
                     out += "->";
                     const TypeInfo& returnType = ctx.typeMgr().get(function.returnTypeRef());
-                    out += renderTypeName(returnType, ctx, mode);
+                    appendTypeName(ctx, out, returnType, mode);
                 }
 
                 out += function.isFallible() ? " fail" : "";
@@ -658,8 +665,14 @@ namespace
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
                 if (mode == TypeNameMode::Full)
-                    return renderTypeName(type, ctx, mode);
-                out += std::format("typeinfo({})", renderTypeName(type, ctx, mode));
+                {
+                    out.resize(start);
+                    appendTypeName(ctx, out, type, mode);
+                    return;
+                }
+                out += "typeinfo(";
+                appendTypeName(ctx, out, type, mode);
+                out += ")";
                 break;
             }
 
@@ -667,11 +680,14 @@ namespace
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
                 out += "*";
-                const Utf8 pointee = renderTypeName(type, ctx, mode);
                 if (type.isNullable())
-                    out += std::format("({})", pointee);
+                {
+                    out += "(";
+                    appendTypeName(ctx, out, type, mode);
+                    out += ")";
+                }
                 else
-                    out += pointee;
+                    appendTypeName(ctx, out, type, mode);
                 break;
             }
 
@@ -679,11 +695,14 @@ namespace
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
                 out += "[*] ";
-                const Utf8 pointee = renderTypeName(type, ctx, mode);
                 if (type.isNullable())
-                    out += std::format("({})", pointee);
+                {
+                    out += "(";
+                    appendTypeName(ctx, out, type, mode);
+                    out += ")";
+                }
                 else
-                    out += pointee;
+                    appendTypeName(ctx, out, type, mode);
                 break;
             }
 
@@ -691,11 +710,14 @@ namespace
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
                 out += "#move ";
-                const Utf8 pointee = renderTypeName(type, ctx, mode);
                 if (type.isNullable())
-                    out += std::format("({})", pointee);
+                {
+                    out += "(";
+                    appendTypeName(ctx, out, type, mode);
+                    out += ")";
+                }
                 else
-                    out += pointee;
+                    appendTypeName(ctx, out, type, mode);
                 break;
             }
 
@@ -731,11 +753,14 @@ namespace
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
                 out += "[..] ";
-                const Utf8 elem = renderTypeName(type, ctx, mode);
                 if (type.isNullable())
-                    out += std::format("({})", elem);
+                {
+                    out += "(";
+                    appendTypeName(ctx, out, type, mode);
+                    out += ")";
+                }
                 else
-                    out += elem;
+                    appendTypeName(ctx, out, type, mode);
                 break;
             }
 
@@ -752,7 +777,7 @@ namespace
                             out += ", ";
                         const TypeRef indexTypeRef = typeInfo.payloadArrayIndexTypeRef(i);
                         if (indexTypeRef.isValid())
-                            out += renderTypeName(ctx.typeMgr().get(indexTypeRef), ctx, mode);
+                            appendTypeName(ctx, out, ctx.typeMgr().get(indexTypeRef), mode);
                         else
                             out += std::to_string(typeInfo.payloadArrayDims()[i]);
                     }
@@ -762,11 +787,14 @@ namespace
                 const TypeInfo& elemType = ctx.typeMgr().get(typeInfo.payloadArrayElemTypeRef());
                 if (!elemType.isArray())
                     out += " ";
-                const Utf8 elem = renderTypeName(elemType, ctx, mode);
                 if (elemType.isNullable())
-                    out += std::format("({})", elem);
+                {
+                    out += "(";
+                    appendTypeName(ctx, out, elemType, mode);
+                    out += ")";
+                }
                 else
-                    out += elem;
+                    appendTypeName(ctx, out, elemType, mode);
                 break;
             }
 
@@ -776,7 +804,8 @@ namespace
             case TypeInfoKind::TypedVariadic:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
-                out += std::format("{}...", renderTypeName(type, ctx, mode));
+                appendTypeName(ctx, out, type, mode);
+                out += "...";
                 break;
             }
 
@@ -785,7 +814,8 @@ namespace
             case TypeInfoKind::Simd:
             {
                 const TypeInfo& laneType = ctx.typeMgr().get(typeInfo.payloadSimdLaneTypeRef());
-                out += std::format("#simd [{}] {}", typeInfo.payloadSimdLaneCount(), renderTypeName(laneType, ctx, mode));
+                out += std::format("#simd [{}] ", typeInfo.payloadSimdLaneCount());
+                appendTypeName(ctx, out, laneType, mode);
                 break;
             }
 
@@ -796,21 +826,27 @@ namespace
         if (typeInfo.isNullable())
         {
             if (typeInfo.isFunction())
-                out = std::format("({})", out);
+            {
+                out.insert(start, 1, '(');
+                out += ")";
+            }
             out += "?";
         }
-        return out;
     }
 }
 
 Utf8 TypeInfo::toName(const TaskContext& ctx) const
 {
-    return renderTypeName(*this, ctx, TypeNameMode::Short);
+    Utf8 out;
+    appendTypeName(ctx, out, *this, TypeNameMode::Short);
+    return out;
 }
 
 Utf8 TypeInfo::toFullName(const TaskContext& ctx) const
 {
-    return renderTypeName(*this, ctx, TypeNameMode::Full);
+    Utf8 out;
+    appendTypeName(ctx, out, *this, TypeNameMode::Full);
+    return out;
 }
 
 Utf8 TypeInfo::toFamily(const TaskContext& ctx) const

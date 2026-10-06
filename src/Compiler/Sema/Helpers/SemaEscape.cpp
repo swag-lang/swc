@@ -1271,8 +1271,7 @@ namespace
     // identifier still types as the struct while the resolved cast types as the slice.
     TypeRef indexedElementTypeRef(Sema& sema, AstNodeRef indexedRef)
     {
-        const AstNodeRef resolvedRef    = sema.resolvedNodeRef(indexedRef);
-        const TypeRef    indexedTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef.isValid() ? resolvedRef : indexedRef));
+        const TypeRef indexedTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, indexedRef));
         if (!indexedTypeRef.isValid())
             return TypeRef::invalid();
 
@@ -1289,14 +1288,12 @@ namespace
     // pointer stored in a buffer keeps addressing its own object however much the buffer
     // moves. A REFERENCE-typed result is an alias, and a carrier result of a different
     // type is a sub-slice over the elements; both keep the borrow.
-    bool indexReadsElementByValue(Sema& sema, AstNodeRef indexRef, AstNodeRef indexedRef)
+    bool indexReadsElementByValue(Sema& sema, TypeRef resultTypeRef, AstNodeRef indexedRef)
     {
-        const TypeRef resultTypeRef = expressionTypeRef(sema, indexRef);
-        if (!isDirectBorrowCarrier(sema, resultTypeRef))
+        if (!resultTypeRef.isValid())
             return false;
-
-        const TypeRef unwrappedResult = unwrapAliasEnum(sema, resultTypeRef);
-        if (unwrappedResult.isValid() && sema.typeMgr().get(unwrappedResult).isReference())
+        const TypeInfo& resultType = unwrapAliasEnumType(sema, resultTypeRef);
+        if (!isDirectBorrowCarrier(resultType) || resultType.isReference())
             return false;
 
         // A struct container reached through 'opIndex', or a raw pointer opened with
@@ -1307,7 +1304,7 @@ namespace
             return true;
 
         // A builtin array or slice: the element VALUE read ('result == element') copies.
-        return unwrapAliasEnum(sema, elemTypeRef) == unwrappedResult;
+        return unwrapAliasEnum(sema, elemTypeRef) == resultType.typeRef();
     }
 
     SemaEscapeInfo indexEscapeInfo(Sema& sema, AstNodeRef indexRef, AstNodeRef indexedRef, uint32_t& budget)
@@ -1322,7 +1319,7 @@ namespace
             // Copying a slot preserves the borrow of the value stored there, but not
             // a borrow of the container storage holding that slot.
             const bool viewOfContainerStorage = projectedInfo.viaOwnedPayload && !projectedInfo.viaErasedPayload &&
-                                                indexReadsElementByValue(sema, indexRef, indexedRef);
+                                                indexReadsElementByValue(sema, resultTypeRef, indexedRef);
             if (projectedInfo.hasBorrow() && !viewOfContainerStorage)
                 return projectedInfo;
         }
@@ -1332,7 +1329,7 @@ namespace
             return aggregatePointeeBorrowInfo(sema, indexedRef, resultTypeRef, budget);
         // A slot copy normally has an independent pointee. An erased payload's
         // elements may point back into the payload, so retain its lifetime instead.
-        if (indexReadsElementByValue(sema, indexRef, indexedRef) && !info.viaErasedPayload)
+        if (indexReadsElementByValue(sema, resultTypeRef, indexedRef) && !info.viaErasedPayload)
             return {};
 
         if (info.hasBorrow())

@@ -73,12 +73,13 @@ namespace
         }
     }
 
-    TypeRef unwrapPointerOrRef(TaskContext& ctx, TypeRef typeRef)
+    const TypeInfo& unwrapPointerOrRefType(TaskContext& ctx, TypeRef typeRef)
     {
-        const TypeInfo& type = ctx.typeMgr().get(typeRef);
-        if (type.isReference() || type.isAnyPointer())
-            return ctx.typeMgr().unwrapAlias(ctx, type.payloadTypeRef());
-        return ctx.typeMgr().unwrapAlias(ctx, typeRef);
+        const TypeInfo* type = &ctx.typeMgr().get(typeRef);
+        if (type->isReference() || type->isAnyPointer())
+            type = &ctx.typeMgr().get(type->payloadTypeRef());
+        const TypeInfo* unwrappedType = type->unwrapAliasType(ctx);
+        return unwrappedType ? *unwrappedType : *type;
     }
 
     bool isOpBinarySecondParamImmutable(TaskContext& ctx, const SymbolFunction& sym, TypeRef typeRef)
@@ -275,11 +276,14 @@ namespace
         if (!SemaSpecOp::isOwnerStructType(ctx, owner, params[0]->typeRef()))
             return reportSpecOpError(sema, sym, kind);
 
-        const TypeRef returnTypeRef = typeMgr.unwrapAlias(ctx, sym.returnTypeRef());
-        if (returnTypeRef.isInvalid())
+        if (sym.returnTypeRef().isInvalid())
             return reportSpecOpError(sema, sym, kind);
 
-        const TypeInfo& returnType       = typeMgr.get(returnTypeRef);
+        const TypeInfo& declaredReturnType  = typeMgr.get(sym.returnTypeRef());
+        const TypeInfo* unwrappedReturnType = declaredReturnType.unwrapAliasType(ctx);
+        const TypeInfo& returnType          = unwrappedReturnType ? *unwrappedReturnType : declaredReturnType;
+        const TypeRef   returnTypeRef       = returnType.typeRef();
+
         const bool      receiverIsConst  = params[0]->type(ctx).isConst();
         const bool      returnIsVoid     = returnType.isVoid();
         const bool      returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
@@ -349,8 +353,7 @@ namespace
                 if (params.size() != 2 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
 
-                const TypeRef   underlying = unwrapPointerOrRef(ctx, params[1]->typeRef());
-                const TypeInfo& type       = typeMgr.get(underlying);
+                const TypeInfo& type = unwrapPointerOrRefType(ctx, params[1]->typeRef());
                 if (type.isStruct() && &type.payloadSymStruct() == &owner)
                     return reportSpecOpError(sema, sym, kind);
 

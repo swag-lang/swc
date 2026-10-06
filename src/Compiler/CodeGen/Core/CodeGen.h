@@ -365,13 +365,6 @@ public:
         return payload;
     }
 
-    template<typename T>
-    void resetNodePayload(AstNodeRef nodeRef)
-    {
-        if (T* payload = safeNodePayload<T>(nodeRef))
-            *payload = {};
-    }
-
     // Payload of the innermost enclosing ancestor with the given node id. Every '?.'
     // link is by construction inside its own OptionalChainExpr root, so the first
     // match going up is always the right owner.

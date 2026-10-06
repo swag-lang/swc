@@ -1548,13 +1548,14 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
     UserDefinedLiteralSuffixInfo suffixInfo;
     const bool                   hasUserDefinedLiteralSuffix = dstTypeRef.isValid() && resolveUserDefinedLiteralSuffix(sema, castRequest.errorNodeRef, suffixInfo);
-    TypeRef                      literalSuffixDstTypeRef     = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), dstTypeRef);
-    if (!literalSuffixDstTypeRef.isValid())
-        literalSuffixDstTypeRef = dstTypeRef;
-    if (hasUserDefinedLiteralSuffix &&
-        !castRequest.flags.has(CastFlagsE::LiteralSuffixConsume) &&
-        !sema.typeMgr().get(literalSuffixDstTypeRef).isStruct())
-        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    if (hasUserDefinedLiteralSuffix && !castRequest.flags.has(CastFlagsE::LiteralSuffixConsume))
+    {
+        const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
+        const TypeInfo* unwrappedType   = declaredDstType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& literalDstType  = unwrappedType ? *unwrappedType : declaredDstType;
+        if (!literalDstType.isStruct())
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    }
 
     if (srcTypeRef == dstTypeRef)
     {

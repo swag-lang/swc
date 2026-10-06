@@ -112,6 +112,8 @@ campaign or an explicit `--test-tag`. `smoke` runs the real program
 for a bounded number of frames under process and filesystem isolation to prove it starts and keeps going.
 GUI smokes use the desktop and can create real windows.
 A program without `#test` is smoked: testing it would report zero tests and prove nothing.
+Swag Prism compiles snippets with a real compiler; started by `apps.swgs`, it uses the compiler
+under test and its `--num-cores` bound rather than the `swc.exe` it would find above its output.
 `--test-file` filters only the `#test` functions that execute; the whole owning module still
 compiles. Repeat it to select several files. `--file-filter` is different: it filters compiler
 input files and is suitable for standalone compiler suites, not module tests that need the rest

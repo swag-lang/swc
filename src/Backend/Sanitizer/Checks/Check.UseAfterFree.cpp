@@ -20,15 +20,13 @@ namespace
     // the frame-address rule reads it.
     bool returnsPointer(Sanitizer& sanitizer, const SymbolFunction& fn)
     {
-        TypeRef returnTypeRef = fn.returnTypeRef();
+        const TypeRef returnTypeRef = fn.returnTypeRef();
         if (!returnTypeRef.isValid())
             return false;
 
-        const TypeRef unwrapped = sanitizer.ctx().typeMgr().unwrapAliasEnum(sanitizer.ctx(), returnTypeRef);
-        if (unwrapped.isValid())
-            returnTypeRef = unwrapped;
-
-        const TypeInfo& returnType = sanitizer.ctx().typeMgr().get(returnTypeRef);
+        const TypeInfo& declaredType  = sanitizer.ctx().typeMgr().get(returnTypeRef);
+        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sanitizer.ctx());
+        const TypeInfo& returnType    = unwrappedType ? *unwrappedType : declaredType;
         return returnType.isAnyPointer() || returnType.isReference();
     }
 }

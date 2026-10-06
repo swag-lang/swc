@@ -288,10 +288,12 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         {
             if (!parameters[i])
                 continue;
-            const TypeRef typeRef = ctx().typeMgr().unwrapAliasEnum(ctx(), parameters[i]->typeRef());
+            const TypeRef typeRef = parameters[i]->typeRef();
             if (!typeRef.isValid())
                 continue;
-            const TypeInfo& type = ctx().typeMgr().get(typeRef);
+            const TypeInfo& declaredType  = ctx().typeMgr().get(typeRef);
+            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx());
+            const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
             MicroReg        reg;
             if (type.isAnyPointer() && !type.isNullable() && callParameterRegister(reg, *function, context_.callConvKind, i))
                 setRegValue(inState_[0], reg, SanitizerValue::makeNonZero());
@@ -1514,10 +1516,12 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                     const LocalSlotExtent* extent = findLocalSlot(slot);
                     if (extent && extent->start == slot && extent->sym)
                     {
-                        const TypeRef typeRef = ctx().typeMgr().unwrapAliasEnum(ctx(), extent->sym->typeRef());
+                        const TypeRef typeRef = extent->sym->typeRef();
                         if (typeRef.isValid())
                         {
-                            const TypeInfo& type = ctx().typeMgr().get(typeRef);
+                            const TypeInfo& declaredType  = ctx().typeMgr().get(typeRef);
+                            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx());
+                            const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
                             if (type.isAnyPointer() && !type.isNullable())
                                 info.value = SanitizerValue::makeNonZero();
                         }

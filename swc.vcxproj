@@ -167,6 +167,7 @@
         <ClCompile Include="src\Unittest\Micro\Test.Micro.InductionVariable.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.InstructionCombine.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.LoopInvariantCodeMotion.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.LoopLoadForward.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.LoopUnroll.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.MemToReg.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PassManager.cpp"/>
@@ -286,6 +287,7 @@
         <ClCompile Include="src\Backend\Micro\Passes\Pass.MemToReg.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.LoopInvariantCodeMotion.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.LoopUnroll.cpp"/>
+        <ClCompile Include="src\Backend\Micro\Passes\Pass.LoopLoadForward.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.SinkToUse.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.SlpVectorize.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.VecLoopPromote.cpp"/>
@@ -629,6 +631,7 @@
         <ClInclude Include="src\Backend\Micro\Passes\Pass.LoopUnroll.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PrologEpilogSanitize.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.RegisterAllocation.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.LoopLoadForward.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.SinkToUse.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.SlpVectorize.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.VecLoopPromote.h"/>

@@ -14,6 +14,7 @@
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
+#include "Backend/Micro/Passes/Pass.LoopLoadForward.h"
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
@@ -505,6 +506,7 @@ MicroPassManager::MicroPassManager()
     valueNumberingPass_        = std::make_unique<MicroValueNumberingPass>();
     licmPass_                  = std::make_unique<MicroLoopInvariantCodeMotionPass>();
     sinkToUsePass_             = std::make_unique<MicroSinkToUsePass>();
+    loopLoadForwardPass_       = std::make_unique<MicroLoopLoadForwardPass>();
     deadCodeEliminationPass_   = std::make_unique<MicroDeadCodeEliminationPass>();
     branchSimplifyPass_        = std::make_unique<MicroBranchSimplifyPass>();
     lateBranchSimplifyPass_    = std::make_unique<MicroBranchSimplifyPass>(true);
@@ -609,6 +611,11 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         // policy; when it rewrites something, the pre-RA loop runs again to
         // clean up the dead scalar chains.
         addVectorizePass(*slpVectorizePass_);
+        // Carry adjacent elements only after loop/alias shapes have converged
+        // and vectorization has selected its lanes. Analyze each function once;
+        // the ordinary cleanup loop folds the new copies.
+        if (costly)
+            addVectorizePass(*loopLoadForwardPass_);
         // Also once on the converged IR: a short-circuit exit takes the
         // constant its branch pins only when no fold of the loop wants the
         // chain any more. The cleanup loop then drops the dead setcc.

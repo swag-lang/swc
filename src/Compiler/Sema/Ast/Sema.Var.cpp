@@ -1593,8 +1593,8 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
         (modifierFlags.has(AstModifierFlagsE::Move) || modifierFlags.has(AstModifierFlagsE::NoDrop)))
         return SemaError::raise(sema, DiagnosticId::sema_err_relocate_modifier_conflict, sema.curNodeRef());
 
-    const AstNodeRef   resolvedExprRef = sema.resolvedNodeRef(nodeExprRef);
-    const SemaNodeView exprView        = sema.viewNodeTypeConstant(resolvedExprRef);
+    const SemaNodeView exprView        = sema.viewNodeTypeConstant(nodeExprRef);
+    const AstNodeRef   resolvedExprRef = exprView.nodeRef();
     if (exprView.typeRef().isValid())
     {
         sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);

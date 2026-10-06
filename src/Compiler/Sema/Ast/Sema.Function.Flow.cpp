@@ -1694,8 +1694,8 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaErrorManagementPostNodeCommon(sema, nodeExprRef));
 
-    const AstNodeRef   resolvedExprRef = sema.resolvedNodeRef(nodeExprRef);
-    const SemaNodeView exprView        = sema.viewNodeTypeConstant(resolvedExprRef);
+    const SemaNodeView exprView        = sema.viewNodeTypeConstant(nodeExprRef);
+    const AstNodeRef   resolvedExprRef = exprView.nodeRef();
     sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);
     TypeRef     resultTypeRef  = exprView.typeRef();
     const auto* codeGenPayload = sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef());

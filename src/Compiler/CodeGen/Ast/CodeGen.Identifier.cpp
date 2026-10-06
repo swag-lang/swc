@@ -333,12 +333,8 @@ namespace
             return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), dstReg);
 
         const TypeInfo* storageType = &codeGen.typeMgr().get(symVar.typeRef());
-        if (storageType->isAlias())
-        {
-            const TypeRef unwrappedTypeRef = storageType->unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
-                storageType = &codeGen.typeMgr().get(unwrappedTypeRef);
-        }
+        if (const TypeInfo* unwrappedType = storageType->unwrapAliasType(codeGen.ctx()))
+            storageType = unwrappedType;
 
         if (storageType->isStruct())
         {

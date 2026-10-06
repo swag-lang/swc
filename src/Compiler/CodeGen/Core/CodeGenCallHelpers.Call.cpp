@@ -223,9 +223,9 @@ namespace
 
     void dereferenceConstUntypedVariadicArgument(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef, AstNodeRef argRef)
     {
-        const TypeInfo& argType          = codeGen.typeMgr().get(ioTypeRef);
-        const TypeRef   referenceTypeRef = argType.isAlias() ? argType.unwrap(codeGen.ctx(), ioTypeRef, TypeExpandE::Alias) : TypeRef::invalid();
-        const TypeInfo& referenceType    = referenceTypeRef.isValid() ? codeGen.typeMgr().get(referenceTypeRef) : argType;
+        const TypeInfo& argType       = codeGen.typeMgr().get(ioTypeRef);
+        const TypeInfo* unaliasedType = argType.unwrapAliasType(codeGen.ctx());
+        const TypeInfo& referenceType = unaliasedType ? *unaliasedType : argType;
 
         // The implicit receiver keeps its address identity for variadic APIs. Other const
         // references and const non-null value pointers represent borrowed values and are
@@ -352,14 +352,14 @@ namespace
         if (normalizedType.isReference())
             return;
 
-        const TypeRef   normalizedTypeUnwrapped = normalizedType.isAlias() ? normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias) : TypeRef::invalid();
-        const TypeInfo& dstType                 = normalizedTypeUnwrapped.isValid() ? typeMgr.get(normalizedTypeUnwrapped) : normalizedType;
+        const TypeInfo* normalizedTypeUnwrapped = normalizedType.unwrapAliasType(ctx);
+        const TypeInfo& dstType                 = normalizedTypeUnwrapped ? *normalizedTypeUnwrapped : normalizedType;
 
         if (argPayload.typeRef.isValid() && dstType.isFloat())
         {
             const TypeInfo& srcTypeInfo      = typeMgr.get(argPayload.typeRef);
-            const TypeRef   srcTypeUnwrapped = srcTypeInfo.isAlias() ? srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias) : TypeRef::invalid();
-            const TypeInfo& srcType          = srcTypeUnwrapped.isValid() ? typeMgr.get(srcTypeUnwrapped) : srcTypeInfo;
+            const TypeInfo* srcTypeUnwrapped = srcTypeInfo.unwrapAliasType(ctx);
+            const TypeInfo& srcType          = srcTypeUnwrapped ? *srcTypeUnwrapped : srcTypeInfo;
             const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
             const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 

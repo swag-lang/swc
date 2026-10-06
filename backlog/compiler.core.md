@@ -6,6 +6,74 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
+
+- Recorded: 2026-09-17 08:42
+- Updated: 2026-10-06 14:55 — One type table no longer repeats a record; a linked program remains to be measured.
+- Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
+- Evidence: `swc tools/apps.swgs dm build swagscope --debug` (build 847) wrote a 12.2 MB PDB
+  whose TPI stream held 38,154 records, 5,178 of them `LF_STRUCTURE`, with `Surface` defined 28
+  times, `interface` 26, `Wnd` 24 and `Application` 22.
+- Done (2026-10-06): `TypeTableBuilder` now hash-conses every record it emits, so a record
+  identical to an earlier one returns the earlier index, and a pointer to a structure names its
+  forward declaration, as MSVC does, so a structure's records no longer depend on whether its
+  definition was complete when they were emitted. On a 60-structure probe compiled with
+  `--debug`, the TPI stream went from 1,253 to 913 records (procedures 296 to 200, argument
+  lists 296 to 154), `interface` from five structure records to one and `string` from four to
+  one; each structure keeps one forward declaration and one definition. The `DebugInfo_*` and
+  `Pdb_*` tests pass.
+- What remains: `LinkDebugMerger` already keeps one copy of each record once remapped, so the
+  copies archive members brought came from records that differed only by which index a pointer
+  named. With pointers now naming forward declarations those records should coincide, but no
+  linked `--debug` program with debug archives has been measured yet.
+- Next: build swagscope with `--debug` before and after this change and compare the PDB size,
+  the TPI record count and the number of `LF_STRUCTURE` records per name.
+- Complete when: every structure has one definition per distinct layout in a linked PDB, the
+  `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
+
+### compiler.core.021 — A dangling reference into a destroyed compiler instance has no deterministic detector
+
+- Recorded: 2026-08-12 18:01
+- Updated: 2026-10-06 14:51 — Poisoning found a stale reference into a destroyed instance's initialized globals.
+- Area: compiler
+- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
+  --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
+  per process) keeping `Swag.processInfos().args` slices into the run-argument storage of a dependency-build
+  compiler instance that had already been destroyed. That defect is fixed by interning the handed
+  storage for the lifetime of the process, but the *class* — long-lived imported modules holding a
+  pointer into per-instance state — was only caught because a heap block happened to be reused with
+  bytes that failed an assertion inside `Path.extension`, in the Release compiler binary only,
+  roughly once per run.
+- Observation: nothing makes such a stale reference fail deterministically, so a suite regression
+  cannot be written that reliably turns red without the fix: the dead storage usually still holds
+  its old bytes, and every read through it then looks healthy. The DevMode binary never tripped at
+  all because its allocator reused the freed block differently.
+- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m swagcapture --rebuild` loop on the
+  Release binary failed in `library.test.swg` (the one test that funnels `Env.executablePath()`
+  into a validated path API), while the same command on the DevMode binary passed 10/10; post-fix
+  the Release loop passed 8/8. A probe comparing the live instance against what JIT code reads
+  showed five compiler instances writing five run-argument storages in one process, the test
+  instance healthy, and the imported module reading a sixth, dead one.
+- Poisoning tried (2026-10-06): filling `globalZeroSegment_`, `globalInitSegment_` and
+  `compilerSegment_` with `0xCD` at the end of `~CompilerInstance` (DevMode only, through
+  `DataSegment::restoreFromPreserveOffsets` over `extentSize()` bytes) is a few lines and costs
+  nothing measurable. It immediately turned a suite step red:
+  `bin\swc.dm.exe --build-cfg devmode bin/unittests/workspace/import_core_without_using.swgs`
+  prints its marker, runs its `Drop` hooks and reports `clean`, then the process exits with a
+  failure code instead of 0. Poisoning one segment at a time isolates `globalInitSegment_`; the
+  zero and compiler segments alone keep the exit clean. So after the script's instance is gone,
+  something reached through the imported `core.dll` (process teardown, after the script's own
+  `Drop` stage) still reads the instance's initialized globals. Candidates: the per-thread
+  `runtimeContext` that `initPerThreadRuntimeContextForJit` leaves in the TLS slot, and whatever
+  it references in the instance. The poisoning was not kept, since it would leave the workspace
+  suite red.
+- Next: reproduce under a debugger with the poisoning applied to `globalInitSegment_` only,
+  name the reader, and fix its lifetime (clear or replace the TLS context the instance
+  installed, or move the referenced state to process-lifetime storage, as the run arguments
+  were). Then land the poisoning so the whole class fails on its first run, and add the
+  `bin/unittests/workspace` case that rebuilds a dependency and asserts `Env.executablePath()`
+  is a valid, existing path from the tested module.
+
 ### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
 
 - Recorded: 2026-09-15 12:47
@@ -548,27 +616,6 @@ cache is part of the normal DevMode and Release paths.
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.030.
 
-### compiler.core.053 — CodeView type records repeat every structure a module reaches
-
-- Recorded: 2026-09-17 08:42
-- Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
-- Evidence: `swc tools/apps.swgs dm build swagscope --debug` (build 847) writes a 12.2 MB PDB
-  whose TPI stream holds 38,154 records, 5,178 of them `LF_STRUCTURE`. Full definitions repeat:
-  `Surface` 28 times, `interface` 26, `Wnd` 24, `Application` 22. The repeated `interface`
-  records are byte-for-byte equal apart from the field list they name, and those field lists are
-  equal too: `TypeTableBuilder` shares a record only per `TypeRef`, so every interface type emits
-  its own copy of the same synthetic structure. Named structures differ for another reason: a
-  pointer names the forward declaration while the structure is being built and the definition
-  afterwards, so the same type comes out as different bytes depending on emission order, and the
-  link cannot merge the copies archive members bring.
-- Constraint: forward references now resolve, since the TPI hash files a definition under its
-  name (`Pdb_DbgHelpResolvesNamesAndLines` watches it), so a pointer can always name the forward
-  declaration, as MSVC does.
-- Next: hash-cons every record `TypeTableBuilder` emits, point pointers at forward declarations,
-  and compare the swagscope PDB size and link time before and after.
-- Complete when: every structure has one definition per distinct layout in a linked PDB, the
-  `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
-
 ### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
 
 - Recorded: 2026-09-16 19:54
@@ -986,35 +1033,6 @@ definition provider and does not consume resolved compiler symbols.
 - Tests cover direct source changes, transitive loads, imports, configuration changes, corrupt entries, and concurrent cache population.
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
-
-### compiler.core.021 — A dangling reference into a destroyed compiler instance has no deterministic detector
-
-- Recorded: 2026-08-12 18:01
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: compiler
-- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
-  --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
-  per process) keeping `Swag.processInfos().args` slices into the run-argument storage of a dependency-build
-  compiler instance that had already been destroyed. That defect is fixed by interning the handed
-  storage for the lifetime of the process, but the *class* — long-lived imported modules holding a
-  pointer into per-instance state — was only caught because a heap block happened to be reused with
-  bytes that failed an assertion inside `Path.extension`, in the Release compiler binary only,
-  roughly once per run.
-- Observation: nothing makes such a stale reference fail deterministically, so a suite regression
-  cannot be written that reliably turns red without the fix: the dead storage usually still holds
-  its old bytes, and every read through it then looks healthy. The DevMode binary never tripped at
-  all because its allocator reused the freed block differently.
-- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m swagcapture --rebuild` loop on the
-  Release binary failed in `library.test.swg` (the one test that funnels `Env.executablePath()`
-  into a validated path API), while the same command on the DevMode binary passed 10/10; post-fix
-  the Release loop passed 8/8. A probe comparing the live instance against what JIT code reads
-  showed five compiler instances writing five run-argument storages in one process, the test
-  instance healthy, and the imported module reading a sixth, dead one.
-- Next step: poison the global segments and other instance-owned storage handed across the JIT
-  boundary when a `CompilerInstance` is destroyed, under `SWC_DEV_MODE` — a stale cross-instance
-  reference then reads the poison pattern instead of plausible stale bytes, which makes this whole
-  class reproduce on the first run. Then add a `bin/unittests/workspace` case that rebuilds a
-  dependency and asserts `Env.executablePath()` is a valid, existing path from the tested module.
 
 ### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
 

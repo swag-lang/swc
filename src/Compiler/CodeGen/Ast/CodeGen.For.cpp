@@ -59,14 +59,6 @@ namespace
         return preparedChildRef(codeGen, callbackRef) == preparedChildRef(codeGen, targetRef);
     }
 
-    TypeRef loopCompareTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        const TypeRef unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-        return typeRef;
-    }
-
     MicroOpBits loopOperationBits(CodeGen& codeGen, const TypeInfo& compareType)
     {
         if (compareType.isInt())
@@ -256,8 +248,9 @@ namespace
         loopState.indexTypeRef = semaPayload->indexTypeRef;
         loopState.inclusive    = semaPayload->inclusive;
 
-        const TypeRef     compareTypeRef = loopCompareTypeRef(codeGen, loopState.indexTypeRef);
-        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const TypeInfo&   indexType      = codeGen.typeMgr().get(loopState.indexTypeRef);
+        const TypeInfo*   unwrappedType  = indexType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&   compareType    = unwrappedType ? *unwrappedType : indexType;
         const MicroOpBits opBits         = loopOperationBits(codeGen, compareType);
         MicroReg          lowerReg       = MicroReg::invalid();
         MicroReg          upperReg       = MicroReg::invalid();
@@ -488,8 +481,9 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
             return Result::Continue;
         }
 
-        const TypeRef     compareTypeRef = loopCompareTypeRef(codeGen, loopState->indexTypeRef);
-        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const TypeInfo&   indexType      = codeGen.typeMgr().get(loopState->indexTypeRef);
+        const TypeInfo*   unwrappedType  = indexType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&   compareType    = unwrappedType ? *unwrappedType : indexType;
         const MicroOpBits opBits         = loopOperationBits(codeGen, compareType);
         MicroBuilder&     builder        = codeGen.builder();
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());

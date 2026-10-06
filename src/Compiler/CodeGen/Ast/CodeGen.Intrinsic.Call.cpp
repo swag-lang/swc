@@ -1801,21 +1801,21 @@ namespace
         directU64Arg.numBits = 64;
         directU64Arg.srcReg  = tlsIdReg;
 
-        SmallVector<ABICall::PreparedArg> preparedArgs;
-        preparedArgs.push_back(directU64Arg);
+        const std::array<ABICall::PreparedArg, 1> preparedArgs = {directU64Arg};
 
         const CallConvKind          tlsGetPtrCallConvKind = tlsGetPtrFunction->callConvKind();
-        const ABICall::PreparedCall preparedTlsGetPtrCall = ABICall::prepareArgs(builder, tlsGetPtrCallConvKind, preparedArgs.span());
+        const ABICall::PreparedCall preparedTlsGetPtrCall = ABICall::prepareArgs(builder, tlsGetPtrCallConvKind, preparedArgs);
         ABICall::callLocal(builder, tlsGetPtrCallConvKind, tlsGetPtrFunction, preparedTlsGetPtrCall);
 
+        const SemaNodeView                     resultView        = codeGen.curViewType();
         const CallConv&                        tlsGetPtrCallConv = CallConv::get(tlsGetPtrCallConvKind);
-        const ABITypeNormalize::NormalizedType tlsGetPtrRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsGetPtrCallConv, *codeGen.curViewType().type(), ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType tlsGetPtrRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsGetPtrCallConv, *resultView.type(), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!tlsGetPtrRet.isVoid);
         SWC_ASSERT(!tlsGetPtrRet.isIndirect);
 
         ABICall::materializeReturnToReg(builder, contextReg, tlsGetPtrCallConvKind, tlsGetPtrRet);
         builder.placeLabel(haveContext);
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultView.typeRef());
         builder.emitLoadRegReg(resultPayload.reg, contextReg, MicroOpBits::B64);
         builder.emitLoadMemReg(resultPayload.reg, offsetof(Runtime::Context, runtimeTlsIdPlusOne), tlsIdPlusOneReg, MicroOpBits::B64);
         return Result::Continue;
@@ -1952,8 +1952,9 @@ namespace
     // the argument already has that exact type, so nothing converts here.
     Result codeGenVectorSplat(CodeGen& codeGen, AstNodeRef srcNodeRef, bool& outHandled)
     {
-        const TypeRef   resultTypeRef = codeGen.curViewType().typeRef();
-        const TypeInfo& resultType    = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), resultTypeRef));
+        const SemaNodeView resultView    = codeGen.curViewType();
+        const TypeInfo*    unwrappedType = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&    resultType    = unwrappedType ? *unwrappedType : *resultView.type();
         if (!resultType.isSimd())
             return Result::Continue;
 
@@ -1970,7 +1971,7 @@ namespace
             codeGen.builder().emitLoadRegMem(scalarReg, srcPayload.reg, 0, CodeGenTypeHelpers::numericBits(laneType));
         }
 
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultView.typeRef());
         resultPayload.reg                 = CodeGenVectorHelpers::splatScalarLane(codeGen, scalarReg, laneType);
         outHandled                        = true;
         return Result::Continue;

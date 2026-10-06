@@ -252,6 +252,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "all", "--dry-run", "-dr",
         &cmdLine_->dryRun,
         "Preview planned stages, outputs, and external commands without executing compile-time code, native tools, tests, or emitted artifacts");
+    add(HelpOptionGroup::Development, "sema test build run smoke", "--print-micro", nullptr,
+        &cmdLine_->printMicro,
+        "Print the microcode of the functions matching '<pattern>[:<stage>]' at that stage, 'pre-emit' by default, like 'Swag.PrintMicro'; the pattern matches a scoped name or its trailing part, '*' matches any run of characters, and a pattern matching nothing prints nothing");
     add(HelpOptionGroup::Development, "all", "--show-config", nullptr,
         &cmdLine_->showConfig,
         "Show the resolved command, environment, toolchain, and native artifact configuration, then exit");

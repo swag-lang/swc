@@ -142,6 +142,7 @@
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Failure.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Messages.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.NodePayload.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.PrintMicro.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Tags.cpp"/>
         <ClCompile Include="src\Unittest\Debug\Test.Debug.DebugInfo.cpp"/>
         <ClCompile Include="src\Unittest\Encoder\Test.Encoder.EncodeX64.cpp"/>

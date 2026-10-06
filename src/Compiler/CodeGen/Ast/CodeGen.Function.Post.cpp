@@ -256,8 +256,8 @@ namespace
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (!typeInfo.isAlias())
             return typeInfo.isReference();
-        const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        return unwrappedTypeRef.isValid() ? codeGen.typeMgr().get(unwrappedTypeRef).isReference() : typeInfo.isReference();
+        const TypeInfo* unwrappedType = typeInfo.unwrapAliasType(codeGen.ctx());
+        return unwrappedType ? unwrappedType->isReference() : typeInfo.isReference();
     }
 
     MicroReg materializeReferenceValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef sourceTypeRef)
@@ -280,8 +280,8 @@ namespace
         if (!typeInfo.isAlias())
             return false;
 
-        const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
-        return unwrappedTypeRef.isValid() && codeGen.typeMgr().get(unwrappedTypeRef).isEnum();
+        const TypeInfo* unwrappedType = typeInfo.unwrapAliasType(codeGen.ctx());
+        return unwrappedType && unwrappedType->isEnum();
     }
 
     bool usesAddressBackedFallibleExprResult(CodeGen& codeGen, TypeRef typeRef)

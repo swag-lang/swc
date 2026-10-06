@@ -245,6 +245,9 @@ struct CommandLine
     std::set<Utf8>    testTagFilter;
     std::set<Utf8>    workspaceModuleSelection;
     std::vector<Utf8> tags;
+
+    // '--print-micro' requests, each '<function pattern>[:<stage>]'.
+    std::vector<Utf8> printMicro;
     std::vector<Utf8> runArgs;
 
     // Raw '--warn-*' values, in the order the options accept them. They become

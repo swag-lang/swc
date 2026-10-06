@@ -93,11 +93,13 @@ namespace
     TypeRef resolveConditionalNullabilityJoin(Sema& sema, const TypeRef trueTypeRef, const TypeRef falseTypeRef)
     {
         const TypeInfo& rawTrueType          = sema.typeMgr().get(trueTypeRef);
-        const TypeRef   concreteTrueTypeRef  = rawTrueType.isAlias() ? rawTrueType.unwrap(sema.ctx(), trueTypeRef, TypeExpandE::Alias) : trueTypeRef;
-        const TypeInfo& trueType             = concreteTrueTypeRef == trueTypeRef ? rawTrueType : sema.typeMgr().get(concreteTrueTypeRef);
+        const TypeInfo* unaliasedTrueType    = rawTrueType.unwrapAliasType(sema.ctx());
+        const TypeInfo& trueType             = unaliasedTrueType ? *unaliasedTrueType : rawTrueType;
+        const TypeRef   concreteTrueTypeRef  = trueType.typeRef();
         const TypeInfo& rawFalseType         = sema.typeMgr().get(falseTypeRef);
-        const TypeRef   concreteFalseTypeRef = rawFalseType.isAlias() ? rawFalseType.unwrap(sema.ctx(), falseTypeRef, TypeExpandE::Alias) : falseTypeRef;
-        const TypeInfo& falseType            = concreteFalseTypeRef == falseTypeRef ? rawFalseType : sema.typeMgr().get(concreteFalseTypeRef);
+        const TypeInfo* unaliasedFalseType   = rawFalseType.unwrapAliasType(sema.ctx());
+        const TypeInfo& falseType            = unaliasedFalseType ? *unaliasedFalseType : rawFalseType;
+        const TypeRef   concreteFalseTypeRef = falseType.typeRef();
 
         if (trueType.isNull() || falseType.isNull())
         {
@@ -187,16 +189,18 @@ namespace
     TypeRef resolveNullCoalescingResultType(Sema& sema, const TypeRef leftTypeRef, const TypeRef rightTypeRef)
     {
         const TypeInfo& rawLeftType         = sema.typeMgr().get(leftTypeRef);
-        const TypeRef   concreteLeftTypeRef = rawLeftType.isAlias() ? rawLeftType.unwrap(sema.ctx(), leftTypeRef, TypeExpandE::Alias) : leftTypeRef;
-        const TypeInfo& leftType            = concreteLeftTypeRef == leftTypeRef ? rawLeftType : sema.typeMgr().get(concreteLeftTypeRef);
+        const TypeInfo* unaliasedLeftType   = rawLeftType.unwrapAliasType(sema.ctx());
+        const TypeInfo& leftType            = unaliasedLeftType ? *unaliasedLeftType : rawLeftType;
+        const TypeRef   concreteLeftTypeRef = leftType.typeRef();
         if (!leftType.isSupportsNullableQualifier() || leftType.isNonNullable())
             return leftTypeRef;
 
         // The left branch is selected only when it is present, so the fallback
         // determines the result contract. An explicit non-null lhs remains non-null.
         const TypeInfo& rawRightType         = sema.typeMgr().get(rightTypeRef);
-        const TypeRef   concreteRightTypeRef = rawRightType.isAlias() ? rawRightType.unwrap(sema.ctx(), rightTypeRef, TypeExpandE::Alias) : rightTypeRef;
-        const TypeInfo& rightType            = concreteRightTypeRef == rightTypeRef ? rawRightType : sema.typeMgr().get(concreteRightTypeRef);
+        const TypeInfo* unaliasedRightType   = rawRightType.unwrapAliasType(sema.ctx());
+        const TypeInfo& rightType            = unaliasedRightType ? *unaliasedRightType : rawRightType;
+        const TypeRef   concreteRightTypeRef = rightType.typeRef();
         if (rightType.isNull() || rightType.isNullable())
             return leftTypeRef;
 
@@ -221,8 +225,7 @@ namespace
         if (!nodeLeftView.typeRef().isValid())
             return false;
 
-        const TypeRef unwrappedRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
-        return unwrappedRef.isValid() && !sema.typeMgr().get(unwrappedRef).isNullable();
+        return !SemaHelpers::aliasEnumType(sema, nodeLeftView).isNullable();
     }
 
     // 'orelse' substitutes a MISSING value, never a zero one, so its left operand has to be
@@ -238,9 +241,9 @@ namespace
         if (!leftTypeRef.isValid())
             return Result::Continue;
 
-        const TypeInfo& rawLeftType  = sema.typeMgr().get(leftTypeRef);
-        const TypeRef   concreteRef  = rawLeftType.isAlias() ? rawLeftType.unwrap(sema.ctx(), leftTypeRef, TypeExpandE::Alias) : leftTypeRef;
-        const TypeInfo& concreteType = concreteRef == leftTypeRef ? rawLeftType : sema.typeMgr().get(concreteRef);
+        const TypeInfo& rawLeftType  = *nodeLeftView.type();
+        const TypeInfo* aliasType    = rawLeftType.unwrapAliasType(sema.ctx());
+        const TypeInfo& concreteType = aliasType ? *aliasType : rawLeftType;
         if (concreteType.isSupportsNullableQualifier())
             return Result::Continue;
 
@@ -382,12 +385,10 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
 
     SWC_RESULT(checkNullCoalescingOperand(sema, nodeLeftView));
 
-    const TypeRef   resultTypeRef        = resolveNullCoalescingResultType(sema, nodeLeftView.typeRef(), nodeRightView.typeRef());
-    TypeRef         fallbackTypeRef      = resultTypeRef;
-    const TypeRef   concreteLeftTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
-    const TypeInfo& leftType             = sema.typeMgr().get(concreteLeftTypeRef);
-    const TypeRef   concreteRightTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeRightView.typeRef());
-    const TypeInfo& rightType            = sema.typeMgr().get(concreteRightTypeRef);
+    const TypeRef   resultTypeRef   = resolveNullCoalescingResultType(sema, nodeLeftView.typeRef(), nodeRightView.typeRef());
+    TypeRef         fallbackTypeRef = resultTypeRef;
+    const TypeInfo& leftType        = SemaHelpers::aliasEnumType(sema, nodeLeftView);
+    const TypeInfo& rightType       = SemaHelpers::aliasEnumType(sema, nodeRightView);
     if (leftType.isNonNullable() && (rightType.isNull() || rightType.isNullable()))
     {
         // A non-null left makes the fallback unreachable, including after inline
@@ -436,9 +437,7 @@ Result AstOptionalChainExpr::semaPostNode(Sema& sema)
     if (!exprView.typeRef().isValid())
         return Result::Error;
 
-    const TypeRef unwrappedRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), exprView.typeRef());
-    SWC_ASSERT(unwrappedRef.isValid());
-    const TypeInfo& exprType = sema.typeMgr().get(unwrappedRef);
+    const TypeInfo& exprType = SemaHelpers::aliasEnumType(sema, exprView);
 
     // A skipped void chain is a statement: its null exit simply lands after the call.
     if (exprType.isVoid())

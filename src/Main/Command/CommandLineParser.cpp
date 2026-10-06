@@ -1110,6 +1110,21 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         }
     }
 
+    for (const Utf8& request : cmdLine_->printMicro)
+    {
+        const std::string_view value = request.view();
+        const size_t           colon = value.find(':');
+        const std::string_view stage = colon == std::string_view::npos ? std::string_view{} : value.substr(colon + 1);
+        if (value.substr(0, colon).empty() || (colon != std::string_view::npos && !stage.starts_with("pre-") && !stage.starts_with("post-")))
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_print_micro_value);
+            diag.addArgument(Diagnostic::ARG_ARG, "--print-micro");
+            diag.addArgument(Diagnostic::ARG_VALUE, request);
+            diag.report(ctx);
+            return Result::Error;
+        }
+    }
+
     if (!cmdLine_->verboseVerifyFilter.empty())
         cmdLine_->verboseVerify = true;
 

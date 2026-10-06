@@ -961,6 +961,10 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
     if (!functionCacheEnabled_)
         return false;
 
+    // A requested microcode listing comes from running the passes a cached object skips.
+    if (const MicroBuilder* builder = function.microInstrBuilder(); builder && builder->hasPrintPassOptions())
+        return false;
+
     const Utf8 fingerprint = functionCacheFingerprint(*this, function);
     if (fingerprint.empty())
         return false;

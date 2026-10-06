@@ -136,6 +136,14 @@ namespace
                 }
             }
 
+            // A conversion can fold a named constant in place; the body still spells its name.
+            if (!unavailable)
+            {
+                const Symbol* folded = file.nodePayloadContext().foldedSourceSymbol(nodeRef);
+                if (folded && !isExportedBodySymbolAvailable(ctx, function, *folded))
+                    unavailable = folded;
+            }
+
             if (unavailable)
             {
                 const AstNode& focus   = node.is(AstNodeId::CallExpr) ? ast.node(node.cast<AstCallExpr>().nodeExprRef) : node;

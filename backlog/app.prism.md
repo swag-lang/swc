@@ -14,6 +14,20 @@ in their viewer, and the readouts report measured compilation and frame renderin
 
 ## Entries
 
+### app.prism.004 — Inspect a library function from Prism
+
+- Recorded: 2026-09-08 21:53
+- Updated: 2026-10-06 09:07 — The compiler selector exists; only the Prism workflow remains.
+- Evidence: `MicrocodeViewer` builds a source snippet through `BuildRequest`. It has no library
+  symbol request or symbol selector. The compiler now selects unedited functions from the
+  command line: `--print-micro <pattern>[:<stage>]` matches a scoped name or its trailing part,
+  `*` matches any run of characters, and a pattern matching nothing prints nothing.
+- Next: carry library/workspace identity, symbol pattern and requested stage in the build request,
+  then pass them to the compiler as `--print-micro` without modifying library files.
+- Complete when: selecting a library function displays its requested microcode stage, ambiguous
+  or absent matches are explained, and the library working tree remains unchanged.
+- Related: app.prism.002
+
 ### app.prism.002 — Read the pipeline instead of printing it
 
 - Recorded: 2026-09-08 21:53
@@ -46,19 +60,6 @@ and show the count and the gain beside the stage selector.
 - Complete when: event order and coordinates survive fitted previews, dragging and key sequences
   work, replacing a preview clears pending input, and saturation has an explicit policy.
 - Related: app.prism.006
-
-### app.prism.004 — Inspect a library function from Prism
-
-- Recorded: 2026-09-08 21:53
-- Updated: 2026-09-11 22:14 — Move the compiler selector into its owning domain; retain the Prism workflow.
-- Evidence: `MicrocodeViewer` builds a source snippet through `BuildRequest`. It has no library
-  symbol request or symbol selector. The compiler flag needed to inspect unedited source is
-  compiler.core.040, split from this entry.
-- Next: carry library/workspace identity, symbol pattern and requested stage in the build request,
-  then connect the compiler selector without modifying library files.
-- Complete when: selecting a library function displays its requested microcode stage, ambiguous
-  or absent matches are explained, and the library working tree remains unchanged.
-- Related: compiler.core.040, app.prism.002
 
 ### app.prism.006 — Negotiate preview resolution with the panel
 

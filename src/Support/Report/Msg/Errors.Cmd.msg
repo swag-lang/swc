@@ -3,6 +3,7 @@ SWC_DIAG_DEF(cmd_err_job_failed_silently, Error, "internal compiler error: job '
 SWC_DIAG_DEF(cmdline_err_invalid_cmd_arg, Error, "command '{command}' does not accept argument '{arg}'")
 SWC_DIAG_DEF(cmdline_err_invalid_enum, Error, "argument '{arg}' does not accept value '{value}'; '{long}' accepts one of '{values}'")
 SWC_DIAG_DEF(cmdline_err_invalid_int, Error, "argument '{arg}' needs an integer value, found '{value}'")
+SWC_DIAG_DEF(cmdline_err_print_micro_value, Error, "argument '{arg}' does not accept value '{value}'; it needs a function pattern, optionally followed by ':pre-<pass>' or ':post-<pass>'")
 SWC_DIAG_DEF(cmdline_err_conflicting_arg, Error, "argument '{arg}' cannot be combined with '{value}'")
 SWC_DIAG_DEF(cmdline_err_missing_arg_val, Error, "missing value for argument '{arg}'")
 SWC_DIAG_DEF(cmdline_err_unexpected_value, Error, "argument '{arg}' does not accept a value")

@@ -291,7 +291,8 @@ void NodePayload::setConstant(AstNodeRef nodeRef, ConstantRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
-    AstNode&       node    = ast().node(nodeRef);
+    AstNode& node = ast().node(nodeRef);
+    recordFoldedSourceSymbol(nodeRef, node);
     const uint16_t setBits = static_cast<uint16_t>(NodePayloadKind::ConstantRef) | static_cast<uint16_t>(NodePayloadFlags::Value);
     node.updatePayloadState(NODE_PAYLOAD_KIND_MASK, setBits, ref.get());
 }
@@ -451,6 +452,7 @@ void NodePayload::setType(AstNodeRef nodeRef, TypeRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node = ast().node(nodeRef);
+    recordFoldedSourceSymbol(nodeRef, node);
     node.updatePayloadState(NODE_PAYLOAD_KIND_MASK, static_cast<uint16_t>(NodePayloadKind::TypeRef), ref.get());
 }
 
@@ -891,6 +893,47 @@ void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const Symbol
     const std::unique_lock lock(shard->constAssignSourceParametersMutex);
     shard->constAssignSourceParameters[nodeRef] = sourceParam;
     shard->constAssignSourceParametersCount.store(static_cast<uint32_t>(shard->constAssignSourceParameters.size()), std::memory_order_release);
+}
+
+void NodePayload::recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& node)
+{
+    const PayloadInfo info = payloadInfo(node);
+    if ((info.kind != NodePayloadKind::SymbolRef && info.kind != NodePayloadKind::SymbolList) || !tryGetShard(info.shardIdx))
+        return;
+
+    // Only a resolved name folds; an overload set still waiting for a selection does not.
+    const auto symbols = symbolsFromInfo(info);
+    if (symbols.size() != 1 || !symbols.front())
+        return;
+
+    const Symbol& symbol = *symbols.front();
+    if (!symbol.isValueExpr())
+        return;
+
+    bool mayHide = !symbol.isPublic();
+    for (const SymbolMap* owner = symbol.ownerSymMap(); owner && !mayHide; owner = owner->ownerSymMap())
+        mayHide = owner->isStruct() || owner->isEnum();
+    if (!mayHide)
+        return;
+
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*                 shard    = ensureShard(shardIdx);
+    const std::unique_lock lock(shard->foldedSourceSymbolsMutex);
+    shard->foldedSourceSymbols[nodeRef] = &symbol;
+    shard->foldedSourceSymbolsCount.store(static_cast<uint32_t>(shard->foldedSourceSymbols.size()), std::memory_order_release);
+}
+
+const Symbol* NodePayload::foldedSourceSymbol(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return nullptr;
+    const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
+    if (!shard || !shard->foldedSourceSymbolsCount.load(std::memory_order_acquire))
+        return nullptr;
+
+    const std::shared_lock lock(shard->foldedSourceSymbolsMutex);
+    const auto             it = shard->foldedSourceSymbols.find(nodeRef);
+    return it == shard->foldedSourceSymbols.end() ? nullptr : it->second;
 }
 
 const SymbolVariable* NodePayload::getConstAssignSourceParameter(AstNodeRef nodeRef) const

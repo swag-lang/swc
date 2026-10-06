@@ -19,18 +19,18 @@ func indexedXor16(values: [*] u32, index: u64, mask: u32)
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedAddImmediate4(values: [*] u32, index: u64)
 {
-    values[index] += 3
-    values[index + 1] += 3
-    values[index + 2] += 3
-    values[index + 3] += 3
+    values[index] += #wrap 3
+    values[index + 1] += #wrap 3
+    values[index + 2] += #wrap 3
+    values[index + 3] += #wrap 3
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedChain4(values: [*] u32, index: u64)
 {
-    values[index] += values[index + 1]
+    values[index] += #wrap values[index + 1]
     values[index + 1] ^= values[index + 2]
-    values[index + 2] += values[index + 3]
+    values[index + 2] += #wrap values[index + 3]
     values[index + 3] ^= values[index]
 }
 
@@ -68,9 +68,9 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
             for i in 12 do Swag.assert(actual[i] == expected[i])
 
             indexedChain4(&actual[0], offset)
-            expected[offset] += expected[offset + 1]
+            expected[offset] += #wrap expected[offset + 1]
             expected[offset + 1] ^= expected[offset + 2]
-            expected[offset + 2] += expected[offset + 3]
+            expected[offset + 2] += #wrap expected[offset + 3]
             expected[offset + 3] ^= expected[offset]
             for i in 12 do Swag.assert(actual[i] == expected[i])
 
@@ -105,7 +105,7 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
             indexedXor16(&actual[0], offset, mask)
             for i in 16 do expected[offset + i] ^= mask
             indexedAddImmediate4(&actual[0], offset)
-            for i in 4 do expected[offset + i] += 3
+            for i in 4 do expected[offset + i] += #wrap 3
             for i in 24 do Swag.assert(actual[i] == expected[i])
         }
     }

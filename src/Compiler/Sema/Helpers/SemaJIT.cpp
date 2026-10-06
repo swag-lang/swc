@@ -873,34 +873,26 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef computeRunExprStorageTypeRef(Sema& sema, TypeRef exprTypeRef)
-    {
-        const TypeInfo& exprType = sema.typeMgr().get(exprTypeRef);
-        return exprType.unwrap(sema.ctx(), exprTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    }
-
     JITCallResultMeta computeJitCallResultMeta(Sema& sema, TypeRef exprTypeRef)
     {
         TaskContext&                           ctx            = sema.ctx();
-        const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
-        const TypeInfo&                        storageType    = sema.typeMgr().get(storageTypeRef);
+        const TypeInfo&                        exprType       = sema.typeMgr().get(exprTypeRef);
+        const TypeInfo*                        unwrappedType  = exprType.unwrapAliasEnumType(ctx);
+        const TypeInfo&                        storageType    = unwrappedType ? *unwrappedType : exprType;
         const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::swag(), storageType, ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!storageType.isVoid());
 
-        uint64_t resultSize = storageType.sizeOf(ctx);
-        if (!normalizedRet.isIndirect)
-        {
-            if (normalizedRet.numBits)
-                resultSize = normalizedRet.numBits / 8;
-            else
-                resultSize = 8;
-        }
+        uint64_t resultSize;
+        if (normalizedRet.isIndirect)
+            resultSize = storageType.sizeOf(ctx);
+        else
+            resultSize = normalizedRet.numBits ? normalizedRet.numBits / 8 : 8;
 
         SWC_ASSERT(resultSize > 0);
 
         JITCallResultMeta resultMeta;
         resultMeta.exprTypeRef    = exprTypeRef;
-        resultMeta.storageTypeRef = storageTypeRef;
+        resultMeta.storageTypeRef = storageType.typeRef();
         resultMeta.normalizedRet  = normalizedRet;
         resultMeta.resultSize     = resultSize;
         return resultMeta;

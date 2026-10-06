@@ -38,16 +38,9 @@ namespace
         outReg = boolReg;
     }
 
-    void eraseLogicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        LogicalExprCodeGenPayload* payload = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(nodeRef);
-        if (payload)
-            payload->doneLabel = MicroLabelRef::invalid();
-    }
-
     bool emitLogicalRightOperandAndDone(CodeGen& codeGen, AstNodeRef nodeRef, AstNodeRef nodeRightRef)
     {
-        const LogicalExprCodeGenPayload* state = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(nodeRef);
+        LogicalExprCodeGenPayload* state = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(nodeRef);
         if (state == nullptr || state->doneLabel == MicroLabelRef::invalid())
             return false;
 
@@ -61,7 +54,7 @@ namespace
         if (state->reg != rightReg)
             codeGen.builder().emitLoadRegReg(state->reg, rightReg, MicroOpBits::B8);
         codeGen.builder().placeLabel(state->doneLabel);
-        eraseLogicalExprCodeGenPayload(codeGen, nodeRef);
+        state->doneLabel = MicroLabelRef::invalid();
         return true;
     }
 }

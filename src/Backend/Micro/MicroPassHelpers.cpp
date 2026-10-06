@@ -1291,7 +1291,6 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
     std::unordered_set<MicroReg>                  defined;
     std::unordered_set<MicroReg>                  rejected;
     SmallVector<std::pair<MicroReg, MicroReg>, 4> copies;
-    MicroInstrRegOperandRefs                      regOps;
     for (const MicroInstr& inst : storage.view())
     {
         if (!inst.numOperands)
@@ -1300,25 +1299,26 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
         if (!ops)
             continue;
 
-        regOps.clear();
-        inst.collectRegOperands(operands, regOps, context.encoder);
-
         const MicroInstrDef& info      = MicroInstr::info(inst.op);
         uint8_t              baseIndex = 0;
         const bool           readsBase = !info.flags.has(MicroInstrFlagsE::WritesMemory) &&
                                !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
                                dereferenceBaseOperandIndex(baseIndex, inst.op, info);
-        for (const MicroInstrRegOperandRef& regOp : regOps)
+        const auto modes = info.resolvedRegModes(ops);
+        for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
         {
-            const MicroReg reg = *regOp.reg;
-            if (!marked.contains(reg))
+            const MicroInstrRegMode mode = modes[operandIndex];
+            if (mode == MicroInstrRegMode::None)
+                continue;
+            const MicroReg reg = ops[operandIndex].reg;
+            if (!reg.isValid() || reg.isNoBase() || !marked.contains(reg))
                 continue;
 
-            if (regOp.def)
+            if (mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef)
             {
                 // The one definition takes the incoming argument: a copy of its register or
                 // of another marked base, or a read of its stack slot.
-                const bool fromArgument = !regOp.use && regOp.reg == &ops[0].reg &&
+                const bool fromArgument = mode == MicroInstrRegMode::Def && operandIndex == 0 &&
                                           ((inst.op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
                                             (!ops[1].reg.isVirtual() || marked.contains(ops[1].reg))) ||
                                            (inst.op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
@@ -1328,18 +1328,18 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
                 continue;
             }
 
-            if (readsBase && regOp.reg == &ops[baseIndex].reg)
+            if (readsBase && operandIndex == baseIndex)
                 continue;
 
             // A value handle handed to a callee in an argument register stays immutable:
             // the callee takes it by value and cannot write through the address either.
-            if (inst.op == MicroInstrOpcode::LoadRegReg && regOp.reg == &ops[1].reg && ops[2].opBits == MicroOpBits::B64 &&
+            if (inst.op == MicroInstrOpcode::LoadRegReg && operandIndex == 1 && ops[2].opBits == MicroOpBits::B64 &&
                 ops[0].reg.isAnyInt() && !ops[0].reg.isVirtual() && context.builder->forwardableStorageBases().contains(reg))
                 continue;
 
             // A copy into another marked base names the same storage: the two stand or
             // fall together.
-            if (inst.op == MicroInstrOpcode::LoadRegReg && regOp.reg == &ops[1].reg &&
+            if (inst.op == MicroInstrOpcode::LoadRegReg && operandIndex == 1 &&
                 ops[2].opBits == MicroOpBits::B64 && marked.contains(ops[0].reg))
             {
                 copies.push_back({reg, ops[0].reg});

@@ -120,20 +120,19 @@ TypeRef SemaHelpers::unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef)
 {
     while (typeRef.isValid())
     {
-        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-        if (typeInfo.isAlias())
+        const TypeInfo* typeInfo = &ctx.typeMgr().get(typeRef);
+        if (typeInfo->isAlias())
         {
-            const TypeRef unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias);
-            if (unwrapped.isValid())
+            if (const TypeInfo* unwrappedType = typeInfo->unwrapAliasType(ctx))
             {
-                typeRef = unwrapped;
-                continue;
+                typeRef  = unwrappedType->typeRef();
+                typeInfo = unwrappedType;
             }
         }
 
-        if (typeInfo.isReference())
+        if (typeInfo->isReference())
         {
-            typeRef = typeInfo.payloadTypeRef();
+            typeRef = typeInfo->payloadTypeRef();
             continue;
         }
 

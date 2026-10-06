@@ -589,23 +589,35 @@ namespace
                 break;
 
             case TypeInfoKind::Enum:
-                out += mode == TypeNameMode::Full ? typeInfo.payloadSymEnum().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymEnum().name(ctx));
+                if (mode == TypeNameMode::Full)
+                    out += typeInfo.payloadSymEnum().getFullScopedName(ctx);
+                else
+                    out += typeInfo.payloadSymEnum().name(ctx);
                 break;
             case TypeInfoKind::Struct:
             {
                 const SymbolStruct& instance = typeInfo.payloadSymStruct();
                 const SymbolStruct* root     = instance.genericRootOrSelf();
                 SWC_ASSERT(root != nullptr);
-                out += mode == TypeNameMode::Full ? root->getFullScopedName(ctx) : Utf8(root->name(ctx));
+                if (mode == TypeNameMode::Full)
+                    out += root->getFullScopedName(ctx);
+                else
+                    out += root->name(ctx);
                 if (instance.isGenericInstance())
                     appendGenericStructInstanceArgs(out, instance, ctx, mode);
                 break;
             }
             case TypeInfoKind::Interface:
-                out += mode == TypeNameMode::Full ? typeInfo.payloadSymInterface().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymInterface().name(ctx));
+                if (mode == TypeNameMode::Full)
+                    out += typeInfo.payloadSymInterface().getFullScopedName(ctx);
+                else
+                    out += typeInfo.payloadSymInterface().name(ctx);
                 break;
             case TypeInfoKind::Alias:
-                out += mode == TypeNameMode::Full ? typeInfo.payloadSymAlias().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymAlias().name(ctx));
+                if (mode == TypeNameMode::Full)
+                    out += typeInfo.payloadSymAlias().getFullScopedName(ctx);
+                else
+                    out += typeInfo.payloadSymAlias().name(ctx);
                 break;
             case TypeInfoKind::Function:
             {

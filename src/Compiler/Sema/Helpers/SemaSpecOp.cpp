@@ -81,15 +81,6 @@ namespace
         return ctx.typeMgr().unwrapAlias(ctx, typeRef);
     }
 
-    bool isConstSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
-    {
-        if (!SemaSpecOp::isOwnerStructType(ctx, owner, typeRef))
-            return false;
-
-        const TypeInfo& type = ctx.typeMgr().get(typeRef);
-        return type.isConst();
-    }
-
     bool isOpBinarySecondParamImmutable(TaskContext& ctx, const SymbolFunction& sym, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -289,15 +280,15 @@ namespace
             return reportSpecOpError(sema, sym, kind);
 
         const TypeInfo& returnType       = typeMgr.get(returnTypeRef);
-        const bool      receiverIsConst  = isConstSpecOpReceiver(ctx, owner, params[0]->typeRef());
+        const bool      receiverIsConst  = params[0]->type(ctx).isConst();
         const bool      returnIsVoid     = returnType.isVoid();
         const bool      returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
         const bool      returnIsPointer  = returnType.isAnyPointer();
         const bool      returnIsNotVoid  = !returnIsVoid;
         const bool      returnIsStrSlice = returnType.isString() || returnType.isSlice();
-        const TypeRef   u64TypeRef       = typeMgr.unwrapAlias(ctx, typeMgr.typeU64());
-        const TypeRef   boolTypeRef      = typeMgr.unwrapAlias(ctx, typeMgr.typeBool());
-        const TypeRef   s32TypeRef       = typeMgr.unwrapAlias(ctx, typeMgr.typeS32());
+        const TypeRef   u64TypeRef       = typeMgr.typeU64();
+        const TypeRef   boolTypeRef      = typeMgr.typeBool();
+        const TypeRef   s32TypeRef       = typeMgr.typeS32();
         switch (kind)
         {
             case SpecOpKind::None:

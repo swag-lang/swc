@@ -1468,9 +1468,9 @@ namespace
             // only types without lifecycle operations can be captured by value.
             if (!captureByRef && !typeInfo.isAnyVariadic())
             {
-                const TypeRef   unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(ctx, typeRef);
-                const TypeRef   checkTypeRef     = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-                const TypeInfo& checkType        = sema.typeMgr().get(checkTypeRef);
+                const TypeInfo* unwrappedType = typeInfo.unwrapAliasEnumType(ctx);
+                const TypeInfo& checkType     = unwrappedType ? *unwrappedType : typeInfo;
+                const TypeRef   checkTypeRef  = checkType.typeRef();
                 SWC_RESULT(sema.waitSemaCompleted(&checkType, captureArg.nodeIdentifierRef));
 
                 const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(ctx, checkTypeRef);

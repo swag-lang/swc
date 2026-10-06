@@ -867,7 +867,6 @@ namespace
         {
             FrameRef                      range;
             SmallVector<MicroInstrRef, 4> accesses;
-            uint32_t                      reads    = 0;
             uint32_t                      writes   = 0;
             bool                          eligible = true;
         };
@@ -922,7 +921,6 @@ namespace
             found->eligible &= (load || store) && width == 8 && found->range.hi == offset + width && ops[load ? 0 : 1].reg.isInt();
             found->range.hi = std::max(found->range.hi, offset + width);
             found->accesses.push_back(refs[index]);
-            found->reads += load;
             found->writes += store;
         }
         if (exits.empty())
@@ -952,7 +950,9 @@ namespace
         {
             if (selected == available.size())
                 break;
-            if (!slot.eligible || !slot.reads || !slot.writes ||
+            // A write-only home is observable after the loop, so it benefits
+            // too: the last bank transfer replaces repeated spill stores.
+            if (!slot.eligible || !slot.writes ||
                 slot.range.lo < context.spillAreaLo || slot.range.hi > context.spillAreaHi || slot.range.hi < slot.range.lo)
                 continue;
             bool overlap = false;

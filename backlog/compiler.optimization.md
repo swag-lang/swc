@@ -85,6 +85,59 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
+
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-10-06 11:04 — Include write-only private homes in the retained cache.
+- Area: compiler/backend
+- Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
+  in a caller-saved XMM register free across a call-free loop. Every matching load/store
+  becomes a register transfer; one seed precedes the header and each distinct exclusive
+  exit writes the current value back. Mixed/overlapping accesses, indexed or derived stack
+  addresses, changing stack pointers and shared exit entries remain conservative barriers.
+- Evidence: across 334 H.264 bodies, explicit RSP accesses fall from 2,249 to 2,213 and
+  memory operations from 9,995 to 9,959, with seven extra instructions overall and no extra
+  pushes. Five residualCabac instances lose 13 memory operations with unchanged instruction
+  count. The 282 native optimizer, 23 H.264 and nine HEVC decoder tests pass in Release
+  (JIT and native). The [rewrite and per-function tradeoffs](../bench/results/generated-code/20261006-carried-spill-cache/README.md)
+  retain the structural evidence; no runtime speedup was measured.
+- Extended boundary: write-only private 64-bit homes use the same cache and exit write-back
+  proof. This removes the per-two-round SHA spill introduced by partial unrolling; see the
+  [retained evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md).
+- Next: inspect remaining hot source-object slots, mixed-width spills and call-containing
+  loops. Prefer a free integer register when its live range and ABI preservation permit it;
+  shared exits need edge-specific write-backs before they can be admitted.
+- Complete when: current codec dumps identify and resolve the remaining promotion boundary
+  with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
+  64-bit multi-access rewrite.
+- Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
+
+### compiler.optimization.032 — Control register pressure in wider partial unrolling
+
+- Recorded: 2026-09-06 14:53
+- Updated: 2026-10-06 11:04 — Retain two-round grouping with no hot frame traffic.
+- Area: compiler/backend
+- Current boundary: exact even loops too large to fully unroll can group two straight-line
+  bodies, reusing the full unroller's temporary renaming and retaining counter updates and
+  relocations. Calls, internal control flow and CPU-flag consumers remain outside the rule.
+  Write-only private spill homes can use the existing free-XMM loop cache.
+- Evidence: two SHA-256 rounds execute 95 instructions / four memory reads / zero frame
+  accesses, against 100 / four / zero before. Whole main output gains 42 instructions and
+  six explicit RSP accesses outside that compression loop. All seven program checksums,
+  287 native optimizer tests (JIT and native), and 23 H.264 tests pass in Release. See the
+  [retained code evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md).
+  No elapsed-time improvement is claimed.
+- Rejected wider prototype: four rounds execute 180 instructions, including a back-edge
+  register copy, and four frame stores per group. It uses three transient XMM registers
+  for integer values, leaving too few for all four write-only homes. The two-round form
+  needs one such home and retains zero frame traffic after the cache extension.
+- Next: trace the remaining register-copy and store placement across four-round groups,
+  and the six additional outer-loop frame accesses in the retained two-round form. Extend
+  only with a joint allocation plan that preserves the now spill-free compression loop.
+- Complete when: wider grouping reduces per-round work without reintroducing hot frame
+  traffic, and the retained two-round form's outer spill cost is resolved.
+- Related: compiler.optimization.005, compiler.optimization.015, compiler.optimization.016.
+
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 
 - Recorded: 2026-08-28 15:42
@@ -113,30 +166,6 @@ new language syntax.
   transpose with evidence from its actual caller, preserving copy/drop and alias semantics.
 - Complete when: the value-returning block transform is as cheap as its in-place shape on
   the video corpus, including bodies outside the retained pure-leaf boundary.
-
-### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
-
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 10:16 — retain branch and multi-exit spill caching in free SIMD registers.
-- Area: compiler/backend
-- Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
-  in a caller-saved XMM register free across a call-free loop. Every matching load/store
-  becomes a register transfer; one seed precedes the header and each distinct exclusive
-  exit writes the current value back. Mixed/overlapping accesses, indexed or derived stack
-  addresses, changing stack pointers and shared exit entries remain conservative barriers.
-- Evidence: across 334 H.264 bodies, explicit RSP accesses fall from 2,249 to 2,213 and
-  memory operations from 9,995 to 9,959, with seven extra instructions overall and no extra
-  pushes. Five residualCabac instances lose 13 memory operations with unchanged instruction
-  count. The 282 native optimizer, 23 H.264 and nine HEVC decoder tests pass in Release
-  (JIT and native). The [rewrite and per-function tradeoffs](../bench/results/generated-code/20261006-carried-spill-cache/README.md)
-  retain the structural evidence; no runtime speedup was measured.
-- Next: inspect remaining hot source-object slots, mixed-width spills and call-containing
-  loops. Prefer a free integer register when its live range and ABI preservation permit it;
-  shared exits need edge-specific write-backs before they can be admitted.
-- Complete when: current codec dumps identify and resolve the remaining promotion boundary
-  with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
-  64-bit multi-access rewrite.
-- Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
 
 ### compiler.optimization.005 — Investigate the remaining Levenshtein outer-loop allocation costs
 
@@ -393,7 +422,6 @@ new language syntax.
   startup, and build costs are evaluated separately.
 - Related: compiler.optimization.118, compiler.optimization.119, compiler.optimization.120,
   compiler.core.074.
-
 
 ### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
 
@@ -841,48 +869,6 @@ new language syntax.
 - Complete when: the remaining repeated pointer/element reads disappear with sound alias and
   control-flow proofs, or a focused experiment identifies the register-residency constraint.
 
-### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
-
-- Recorded: 2026-09-06 14:53
-- Updated: 2026-10-04 15:02 — Account for the sixteen-trip gate and the narrower indexed-read partial unroller.
-- Area: compiler/backend
-- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
-- Evidence: the 2026-09-07 comparison at `8d3f0498b` reproduces the earlier counts. With
-  `/O2 /EHsc /std:c++20`, clang-cl and Swag release both emit 74 instructions and five explicit
-  memory operations per compression round. MSVC emits 224 instructions and eight memory
-  operations for four rounds, or 56 / two per round; its accesses read only `KTAB` and the
-  message schedule. Counts exclude labels and do not count address-only instructions as memory.
-- Attempted 2026-09-07, reverted: bounded partial unrolling of divisible exact trip counts,
-  retaining the original counter and inserting its add/compare between cloned bodies so that
-  counter readers, forward exits, and incoming CPU flags keep their original behavior. Internal
-  labels and relocations were cloned as in the existing full unroller. Four rounds emitted
-  296 instructions / 25 memory operations (74 / 6.25 per round); two emitted 146 / 12
-  (73 / six per round). Neither approaches MSVC's register residency. The sixteen-word input
-  decode improved from 16 / five per word to 58 / 20 per four words or 30 / ten per two words,
-  but that smaller win does not justify increasing traffic in the compression loop. No timing
-  claim or correctness acceptance was made for either rejected prototype.
-- Observation: duplicating the body alone does not eliminate the carried-state frame accesses
-  described in compiler.optimization.005. The ordinary full-unroll gate now admits up to sixteen
-  trips (`K_MAX_TRIPS`), with a separate table-folding path; raising that gate alone does not
-  solve the compression round's carried state.
-- Current boundary: since `1238a3c2e`, the full unroller gives independent temporaries fresh
-  names in cloned straight-line bodies. Values read before their first write, read outside the
-  body, or constrained by allocation keep their names; bodies with internal labels also keep
-  them. `native/optimizer/unroll_renames_temporaries.swg` covers carried and escaping values.
-  A separate four-way partial unroller now handles small, zero-based indexed-read loops
-  with no stores, calls, internal branches, or relocations. That eligibility does not cover
-  SHA-256's compression round or solve its carried-state residency.
-- Next: rebaseline the compression round, trace which carried-state values acquire extra frame
-  accesses in a partial-unroll prototype, and evaluate coalescing of those values. Reuse the
-  full unroller's temporary-renaming rules instead of treating all cloned names as unchanged.
-  Compare every hot loop across the seven tasks, with counter, exit, relocation, and carried-value
-  regression coverage if a prototype improves the emitted code.
-- Complete when: grouping rounds lowers both instructions and frame traffic per compression round
-  with correctness coverage, or the remaining register-residency prerequisite is isolated.
-- Related: compiler.optimization.005, compiler.optimization.016.
-
-
-
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
@@ -950,7 +936,6 @@ new language syntax.
 - Complete when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
-
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
 
@@ -1033,7 +1018,7 @@ new language syntax.
   reload into every cold predecessor region that clobbers its register, across nested joins.
 - Complete when: the no-hit significance iteration reloads nothing at its latch and no decoder
   function or benchmark program grows.
-- Related: std.video.001, compiler.optimization.037
+- Related: std.video.001
 
 ### compiler.optimization.102 — Retain one floating zero across unrolled arms
 
@@ -1131,7 +1116,6 @@ new language syntax.
 - Milestone: the full campaign `20260928-153255` was archived under `bench/results/rejected/`: every task and runtime passed its checksum, but the reference workload moved 101.8% between neighbouring probes (40% limit). Its build-control spread was 10.7%. No runtime conclusion comes from that run. The later `20260928-170009` campaign passed every checksum with 10.48% reference spread and 2.7% build-control spread. It is the latest accepted full campaign; its per-task winners are in `repo.prompts.md`.
 - Follow-up: a partial execution-only sweep of wordfreq and raytrace passed every runtime checksum and had 24.1% worst reference departure, but individual runtime samples varied by more than 900% in several cases. The partial sweep recorded nothing and cannot establish a runtime change.
 - Next: at the next full campaign milestone, inspect any larger ordinary loop newly reached by this layout rule and check its hot and cold branch balance before closing this lead.
-
 
 ### compiler.optimization.095 — Keep loop values off the stack on the common branch
 
@@ -1484,30 +1468,6 @@ new language syntax.
 - Complete when: either a rule promotes a whole-copied local array without costing vectorization,
   or this records that the two cannot be reconciled and the fill-only rule is the end of it.
 
-### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
-
-- Recorded: 2026-09-12 20:30
-- Evidence: loop-invariant motion refuses to hoist a memory read when the loop writes through a
-  pointer, and it applies that refusal before it looks at the address. A filter kernel reads its
-  coefficients from the constant pool on every iteration and writes its result through a pointer,
-  so its coefficient reads never leave the loop. Relaxing the refusal for a read whose base is the
-  instruction pointer and whose relocation is `ConstantAddress` is sound, since nothing writes the
-  constant pool, and it did hoist them: the sixteen-pixel body of the H.264 horizontal half-sample
-  filter went from 39 instructions to 36, its two coefficient loads moving to the preheader.
-- What it cost elsewhere: `intraPredict8x8` grew from 927 instructions to 1078 and from 340 memory
-  operands to 445 under the same change alone. The hoist gives one definition many uses spread
-  across the function, the allocator then refuses it a register, and the rematerialization recipe
-  for a constant-pool read remakes the read at every one of those uses. The hoist therefore
-  produces more reads than it removed. The change was reverted; build 520 is the number it used.
-- Next: make rematerialization weigh where it remakes a value. A value remade inside a loop is
-  remade once per iteration, and LLVM's spiller prices a remake by the block frequency of the use
-  for exactly this reason. Once a remake inside a loop is no longer free, hoist the constant-pool
-  read again and measure both kernels.
-- Complete when: the filter kernel keeps its coefficients in registers across its loop and no
-  other decoder kernel grows.
-- Related: cpu.simd.035, compiler.optimization.006
-
-
 ### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
 
 - Recorded: 2026-08-15 08:48
@@ -1566,7 +1526,6 @@ new language syntax.
 - Complete when: the current emitted loop and alternating timing decide whether an allocator gap
   remains, with any surviving cause reduced to one actionable change.
 - Related: compiler.optimization.005, compiler.optimization.024.
-
 
 ### compiler.optimization.020 — Memory optimizations maintain separate frame alias analyses
 

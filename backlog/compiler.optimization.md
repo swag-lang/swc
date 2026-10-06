@@ -84,6 +84,39 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 `Inline`, and `NoInline` contracts explicit. This plan invents no command-line spellings or
 new language syntax.
 
+### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
+
+- Recorded: 2026-08-29 15:41
+- Updated: 2026-10-06 08:18 — reject output-only MUL claims without an established runtime gain.
+- Area: compiler/backend
+- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
+  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
+  the earlier scan, which also remains the fallback whenever a precondition fails or the
+  walk bails, and the C++ conformity cases run both.
+- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
+  fixed-claim interval arrays with direct default construction. The call sites pass empty
+  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
+  copied for every register. The Release `interval` selection passed two native tests; timing
+  and peak memory were not measured.
+- Evidence: the walk describes every concrete claim by the position it occupies, except
+  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
+  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
+  instruction, so no operand of theirs can share it, and the second legalization sweep can
+  then need the scratch register `tryBorrowReservedRegister` only lends when the first sweep
+  left one free.
+- Oct 6 experiment: allow definition-only RDX claims at the output of register/register
+  and register/memory binary instructions. Dying multipliers then occupy RDX; the 275
+  native Release optimizer tests pass. A focused four-task Release A/B established no
+  target gain and produced an adverse fannkuch signal. The flag change was reverted.
+  Retain the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
+  Do not repeat it without a demonstrated hot allocation constraint and an enabling change.
+- Next: give those forms their real fixed intervals - the implicit register from its input
+  slot, the operands free elsewhere - then check on a whole-library build whether the borrow
+  still fires at all.
+- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
+  longer fires on a whole-library build, and the suites stay green.
+- Related: compiler.optimization.016.
+
 ### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
 
 - Recorded: 2026-09-05 22:13
@@ -1629,31 +1662,3 @@ new language syntax.
 - Complete when: current dumps and alternating timings establish the remaining allocation cost
   on both large kernels and identify a specific next change or retire this lead.
 - Related: compiler.optimization.006, compiler.optimization.024.
-
-### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
-
-- Recorded: 2026-08-29 15:41
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-- Area: compiler/backend
-- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
-  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
-  the earlier scan, which also remains the fallback whenever a precondition fails or the
-  walk bails, and the C++ conformity cases run both.
-- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
-  fixed-claim interval arrays with direct default construction. The call sites pass empty
-  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
-  copied for every register. The Release `interval` selection passed two native tests; timing
-  and peak memory were not measured.
-- Evidence: the walk describes every concrete claim by the position it occupies, except
-  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
-  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
-  instruction, so no operand of theirs can share it, and the second legalization sweep can
-  then need the scratch register `tryBorrowReservedRegister` only lends when the first sweep
-  left one free.
-- Next: give those forms their real fixed intervals - the implicit register from its input
-  slot, the operands free elsewhere - then check on a whole-library build whether the borrow
-  still fires at all.
-- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
-  longer fires on a whole-library build, and the suites stay green.
-- Related: compiler.optimization.016.
-

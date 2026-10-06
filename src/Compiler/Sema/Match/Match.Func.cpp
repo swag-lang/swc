@@ -2645,18 +2645,18 @@ namespace
             // (and codegen's address-pass check, which compares the same types, stays in
             // agreement - a skipped cast it refuses would dereference the receiver).
             const TypeRef preCastSrcTypeRef = argView.typeRef();
-            if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid())
+            if (flags.has(CastFlagsE::UfcsArgument) && paramType.isAnyPointer() && preCastSrcTypeRef.isValid())
             {
                 const TypeInfo& preCastSrcType         = SemaHelpers::aliasEnumType(sema, argView);
                 const TypeRef   preCastSrcCheckRef     = preCastSrcType.typeRef();
-                const TypeRef   castPointeeTypeRef     = sema.typeMgr().get(castTypeRef).payloadTypeRef();
+                const TypeRef   castPointeeTypeRef     = paramType.payloadTypeRef();
                 const TypeRef   resolvedPointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), castPointeeTypeRef);
                 const TypeRef   pointeeCheckRef        = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : castPointeeTypeRef;
 
                 // A pointer receiver that IS the parameter's type through an alias needs
                 // no cast either: strictness governs value conversions, not the method
                 // dispatch the alias inherits from its pointee's impl.
-                if (preCastSrcType.isPointerOrReference() && preCastSrcCheckRef == unwrapAliasEnumOrSelf(sema, castTypeRef) && preCastSrcTypeRef != castTypeRef)
+                if (preCastSrcType.isPointerOrReference() && preCastSrcCheckRef == castTypeRef && preCastSrcTypeRef != castTypeRef)
                 {
                     entry.valueRef = argView.nodeRef();
                     refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());

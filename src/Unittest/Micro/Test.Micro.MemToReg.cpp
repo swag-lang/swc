@@ -494,9 +494,52 @@ SWC_TEST_BEGIN(MemToReg_SplitZeroFillUsesFrameRelativeOffsets)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MemToReg_VectorLaneReadsFollowEveryWrite)
+{
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg vector = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg whole  = MicroReg::virtualFloatReg(2);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(vector, MicroReg::intReg(2), 0, MicroOpBits::B128);
+        std::array<MicroInstrRef, 2> stores;
+        std::array<MicroInstrRef, 2> reads;
+        for (uint32_t update = 0; update < 2; ++update)
+        {
+            builder.emitStoreVecMemReg(frame, 0x20, vector, MicroOpBits::B128);
+            stores[update] = builder.instructions().lastInstructionRef();
+            builder.placeLabel(builder.createLabel());
+            if (variant == 2)
+                builder.emitLoadMemImm(frame, 0x2C, ApInt(7, 32), MicroOpBits::B32);
+            const MicroOpBits bits   = variant == 1 ? MicroOpBits::B64 : MicroOpBits::B32;
+            const uint64_t    offset = variant == 1 ? 0x28 : variant == 3 ? 0x2A
+                                                                          : 0x2C;
+            builder.emitLoadRegMem(value, frame, offset, bits);
+            reads[update] = builder.instructions().lastInstructionRef();
+            builder.emitLoadVecRegMem(whole, frame, 0x20, MicroOpBits::B128);
+        }
+        builder.emitRet();
+        SWC_RESULT(runMemToRegPass(builder));
+        for (uint32_t update = 0; update < 2; ++update)
+        {
+            const bool promote = variant < 2;
+            if (builder.instructions().ptr(stores[update])->op != (promote ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::StoreVecMemReg))
+                return Result::Error;
+            if (builder.instructions().ptr(reads[update])->op != (promote ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A vector spilled once and read back lane by lane stays in a register: each lane comes out
-// with a shuffle to lane zero and one move, and no frame access remains. A read that a label
-// separates from the store keeps the slot in memory.
+// with a shuffle to lane zero and one move, and no frame access remains.
+// General promotion also carries the vector across a label.
 SWC_TEST_BEGIN(MemToReg_VectorReadByLanesSplits)
 {
     for (const bool separated : {false, true})
@@ -531,7 +574,7 @@ SWC_TEST_BEGIN(MemToReg_VectorReadByLanesSplits)
         // The source load stays; the four lane reads through the frame go.
         const uint32_t frameLoads = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) - 1;
         const uint32_t shuffles   = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm);
-        if (separated ? (frameLoads != 4 || shuffles != 0) : (frameLoads != 0 || shuffles != 3))
+        if (frameLoads != 0 || shuffles != 3)
             return Result::Error;
     }
 

@@ -16,6 +16,14 @@ func contextEscapeLeaksLocal()
     Swag.setContext(cxt)     // swc-expected-error {{sanity_err_context_escape}}
 }
 
+// Installing the same frame-local context again is not a restore.
+func contextEscapeRepeatedLocalInstall()
+{
+    var cxt = Swag.getContext()[]     // swc-expected-note {{sema_note_borrow_source_declared_here}}
+    Swag.setContext(cxt)
+    Swag.setContext(cxt)     // swc-expected-error {{sanity_err_context_escape}}
+}
+
 // A nested scope does not change the answer: nothing puts the previous context back.
 func contextEscapeLeaksFromInnerScope(patch: bool)
 {

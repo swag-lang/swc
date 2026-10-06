@@ -4089,13 +4089,6 @@ namespace
         return !rootType.isAnyPointer() && !rootType.isReference();
     }
 
-    AstNodeRef intrinsicFirstArgument(Sema& sema, AstNodeRef intrinsicRef)
-    {
-        SmallVector<AstNodeRef> children;
-        sema.node(intrinsicRef).collectChildrenFromAst(children, sema.ast());
-        return children.empty() ? AstNodeRef::invalid() : children.front();
-    }
-
     // Does this body put another context back? The scoped idiom spells that as a 'defer'
     // ('Core.withAllocator' is built on exactly that) and the compiler suites spell it as
     // a plain call at the end of the block; both restore something that outlives the
@@ -4128,7 +4121,7 @@ namespace
             if (nodeRef != exceptRef &&
                 node.is(AstNodeId::IntrinsicCallExpr) &&
                 node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicSetContext &&
-                !setContextInstallsFrameStorage(sema, intrinsicFirstArgument(sema, nodeRef)))
+                !setContextInstallsFrameStorage(sema, sema.ast().nthNode(node.cast<AstIntrinsicCallExpr>().spanChildrenRef, 0)))
                 return true;
 
             appendValidChildren(sema, node, children, worklist);

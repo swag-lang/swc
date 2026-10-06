@@ -257,8 +257,7 @@ namespace
         // lanes by converting it to the lane type; the target stays a vector.
         if (binOp != op && binOp != TokenId::SymGreaterGreater && binOp != TokenId::SymLowerLower)
         {
-            const TypeRef   targetTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), targetLeftView.typeRef());
-            const TypeInfo& targetType    = sema.typeMgr().get(targetTypeRef);
+            const TypeInfo& targetType = SemaHelpers::aliasEnumType(sema, targetLeftView);
             if (targetType.isSimd() && nodeRightView.type() && !nodeRightView.type()->isSimd())
             {
                 SWC_RESULT(Cast::cast(sema, nodeRightView, targetType.payloadSimdLaneTypeRef(), CastKind::Implicit));
@@ -524,15 +523,11 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     // widened the live view by now.
     if (tok.id == TokenId::SymEqual)
     {
-        const TypeRef storedRightTypeRef = sema.viewStored(nodeRightRef, SemaNodeViewPartE::Type).typeRef();
-        TypeRef       rightTypeRef       = sema.typeMgr().unwrapAliasEnum(sema.ctx(), storedRightTypeRef);
-        if (rightTypeRef.isInvalid())
-            rightTypeRef = storedRightTypeRef;
-
-        bool rightNonNull = false;
-        if (rightTypeRef.isValid())
+        const SemaNodeView storedRightView = sema.viewStored(nodeRightRef, SemaNodeViewPartE::Type);
+        bool               rightNonNull    = false;
+        if (storedRightView.type())
         {
-            const TypeInfo& rightType = sema.typeMgr().get(rightTypeRef);
+            const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, storedRightView);
             rightNonNull              = !rightType.isNullable() && !rightType.isNull();
         }
 

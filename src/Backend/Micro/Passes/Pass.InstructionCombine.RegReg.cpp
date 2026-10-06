@@ -49,14 +49,14 @@ namespace InstructionCombine
             {
                 const auto* copy = def.inst->ops(*ctx.operands);
                 if (!copy || copy[0].reg != reg || copy[2].opBits != MicroOpBits::B8 ||
-                    !valueHasSingleUse(*ctx.ssa, reg, def.instRef))
+                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                     return false;
                 out.copyRef = def.instRef;
                 reg         = copy[1].reg;
                 def         = ctx.ssa->reachingDef(reg, out.copyRef);
             }
             if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::SetCondReg ||
-                !valueHasSingleUse(*ctx.ssa, reg, def.instRef))
+                ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                 return false;
             const auto* set = def.inst->ops(*ctx.operands);
             if (!set || set[0].reg != reg)
@@ -93,22 +93,24 @@ namespace InstructionCombine
                 !ops[1].reg.isVirtualInt() || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                 return false;
 
+            ZeroComparisonBoolean left;
+            ZeroComparisonBoolean right;
+            if (!matchZeroComparisonBoolean(ctx, ops[0].reg, ref, left) ||
+                !matchZeroComparisonBoolean(ctx, ops[1].reg, ref, right))
+                return false;
+
             for (uint32_t nonZeroSide = 0; nonZeroSide < 2; ++nonZeroSide)
             {
-                ZeroComparisonBoolean nonZero;
-                ZeroComparisonBoolean zero;
-                const MicroReg        nonZeroReg = nonZeroSide ? ops[1].reg : ops[0].reg;
-                const MicroReg        zeroReg    = nonZeroSide ? ops[0].reg : ops[1].reg;
-                if (!matchZeroComparisonBoolean(ctx, nonZeroReg, ref, nonZero) ||
-                    !matchZeroComparisonBoolean(ctx, zeroReg, ref, zero) ||
-                    (nonZero.cond != MicroCond::NotEqual && nonZero.cond != MicroCond::NotZero) ||
+                const ZeroComparisonBoolean& nonZero = nonZeroSide ? right : left;
+                const ZeroComparisonBoolean& zero    = nonZeroSide ? left : right;
+                if ((nonZero.cond != MicroCond::NotEqual && nonZero.cond != MicroCond::NotZero) ||
                     (zero.cond != MicroCond::Equal && zero.cond != MicroCond::Zero) ||
                     nonZero.comparedBits != zero.comparedBits)
                     continue;
 
                 const auto maskDef = ctx.ssa->reachingDef(zero.comparedReg, zero.compareRef);
                 if (!maskDef.valid() || maskDef.isPhi || !maskDef.inst || maskDef.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
-                    !valueHasSingleUse(*ctx.ssa, zero.comparedReg, maskDef.instRef))
+                    ctx.ssa->transitiveInstructionUseCount(maskDef.valueId, 2) != 1)
                     continue;
                 const auto* mask = maskDef.inst->ops(*ctx.operands);
                 if (!mask || mask[0].reg != zero.comparedReg || mask[2].opBits != zero.comparedBits ||
@@ -117,7 +119,7 @@ namespace InstructionCombine
 
                 const auto sourceCopy = ctx.ssa->reachingDef(mask[0].reg, maskDef.instRef);
                 if (!sourceCopy.valid() || sourceCopy.isPhi || !sourceCopy.inst || sourceCopy.inst->op != MicroInstrOpcode::LoadRegReg ||
-                    !valueHasSingleUse(*ctx.ssa, mask[0].reg, sourceCopy.instRef))
+                    ctx.ssa->transitiveInstructionUseCount(sourceCopy.valueId, 2) != 1)
                     continue;
                 const auto* sourceCopyOps = sourceCopy.inst->ops(*ctx.operands);
                 if (!sourceCopyOps || sourceCopyOps[2].opBits != zero.comparedBits)
@@ -125,7 +127,7 @@ namespace InstructionCombine
 
                 const auto decrement = ctx.ssa->reachingDef(mask[1].reg, maskDef.instRef);
                 if (!decrement.valid() || decrement.isPhi || !decrement.inst || decrement.inst->op != MicroInstrOpcode::LoadAddrRegMem ||
-                    !valueHasSingleUse(*ctx.ssa, mask[1].reg, decrement.instRef))
+                    ctx.ssa->transitiveInstructionUseCount(decrement.valueId, 2) != 1)
                     continue;
                 const auto* decrementOps = decrement.inst->ops(*ctx.operands);
                 if (!decrementOps || decrementOps[2].opBits != zero.comparedBits || decrementOps[3].hasWideImmediateValue() ||

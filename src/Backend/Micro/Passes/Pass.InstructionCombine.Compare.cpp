@@ -466,21 +466,22 @@ namespace InstructionCombine
                 uses.push_back(use.instRef);
         }
 
-        MicroInstrRegOperandRefs regOperands;
         for (const MicroInstrRef useRef : uses)
         {
             MicroInstr* useInst = ctx.storage->ptr(useRef);
             if (!useInst || useInst->numOperands > Action::K_MAX_OPS)
                 return false;
-            regOperands.clear();
-            useInst->collectRegOperands(*ctx.operands, regOperands, nullptr);
-            bool found = false;
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            const MicroInstrOperand* useOps = useInst->ops(*ctx.operands);
+            if (!useOps)
+                return false;
+            const auto modes = MicroInstr::info(useInst->op).resolvedRegModes(useOps);
+            bool       found = false;
+            for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
             {
-                SWC_ASSERT(regOperand.reg);
-                if (*regOperand.reg != result)
+                const MicroInstrRegMode mode = modes[operandIndex];
+                if (mode == MicroInstrRegMode::None || useOps[operandIndex].reg != result)
                     continue;
-                if (!regOperand.use || regOperand.def)
+                if (mode != MicroInstrRegMode::Use)
                     return false;
                 found = true;
             }
@@ -590,7 +591,6 @@ namespace InstructionCombine
         // T or those copies.
         SmallVector<MicroInstrRef, 4> followers;
         SmallVector<MicroReg, 4>      followerRegs;
-        MicroInstrRegOperandRefs      regOperands;
         for (const MicroInstrRef betweenRef : between)
         {
             const MicroInstr*        betweenInst = ctx.storage->ptr(betweenRef);
@@ -607,12 +607,19 @@ namespace InstructionCombine
         {
             if (std::ranges::find(followers, betweenRef) != followers.end())
                 continue;
-            const MicroInstr* betweenInst = ctx.storage->ptr(betweenRef);
-            regOperands.clear();
-            betweenInst->collectRegOperands(*ctx.operands, regOperands, nullptr);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            const MicroInstr*        betweenInst = ctx.storage->ptr(betweenRef);
+            const MicroInstrOperand* betweenOps  = betweenInst->ops(*ctx.operands);
+            if (!betweenOps)
+                continue;
+            const auto modes = MicroInstr::info(betweenInst->op).resolvedRegModes(betweenOps);
+            for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
             {
-                if (regOperand.reg && (*regOperand.reg == result || std::ranges::find(followerRegs, *regOperand.reg) != followerRegs.end()))
+                if (modes[operandIndex] == MicroInstrRegMode::None)
+                    continue;
+                const MicroReg reg = betweenOps[operandIndex].reg;
+                if (!reg.isValid() || reg.isNoBase())
+                    continue;
+                if (reg == result || std::ranges::find(followerRegs, reg) != followerRegs.end())
                     return false;
             }
         }

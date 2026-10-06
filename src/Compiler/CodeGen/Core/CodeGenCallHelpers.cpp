@@ -197,11 +197,11 @@ namespace
         if (!targetTypeRef.isValid() || !defaultCstRef.isValid())
             return false;
 
-        TaskContext&    ctx              = codeGen.ctx();
-        const TypeInfo& targetType       = ctx.typeMgr().get(targetTypeRef);
-        const TypeRef   unaliasedTypeRef = targetType.isAlias() ? targetType.unwrap(ctx, targetTypeRef, TypeExpandE::Alias) : TypeRef::invalid();
-        const TypeRef   storageTypeRef   = unaliasedTypeRef.isValid() ? unaliasedTypeRef : targetTypeRef;
-        const TypeInfo& storageType      = unaliasedTypeRef.isValid() ? ctx.typeMgr().get(unaliasedTypeRef) : targetType;
+        TaskContext&    ctx            = codeGen.ctx();
+        const TypeInfo& targetType     = ctx.typeMgr().get(targetTypeRef);
+        const TypeInfo* unaliasedType  = targetType.unwrapAliasType(ctx);
+        const TypeInfo& storageType    = unaliasedType ? *unaliasedType : targetType;
+        const TypeRef   storageTypeRef = storageType.typeRef();
 
         const ConstantValue& defaultCst = codeGen.cstMgr().get(defaultCstRef);
         if (prefersAddressBackedCallConstantPayload(storageType))
@@ -263,20 +263,11 @@ namespace
         if (ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageType) != Result::Continue)
             return false;
 
-        ConstantRef materializedCstRef = ConstantRef::invalid();
-        if (storageType.isStruct() || storageType.isArray() || storageType.isAggregateStruct() || storageType.isAggregateArray() || storageType.isAny() || storageType.isInterface() || storageType.isString() || storageType.isSlice())
-        {
-            materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span{rawBytes.data(), rawBytes.size()});
-        }
-        else
-        {
-            const ConstantValue materializedCst = ConstantValue::make(codeGen.ctx(), rawBytes.data(), storageTypeRef);
-            if (materializedCst.kind() == ConstantKind::Invalid)
-                return false;
+        const ConstantValue materializedCst = ConstantValue::make(codeGen.ctx(), rawBytes.data(), storageTypeRef);
+        if (materializedCst.kind() == ConstantKind::Invalid)
+            return false;
 
-            materializedCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), materializedCst);
-        }
-
+        const ConstantRef materializedCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), materializedCst);
         if (materializedCstRef.isInvalid())
             return false;
 

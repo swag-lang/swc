@@ -294,12 +294,8 @@ namespace
             return false;
 
         const TypeInfo& originalType  = codeGen.typeMgr().get(typeRef);
-        const TypeRef   rawTypeRef    = originalType.isAlias() ? originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias) : TypeRef::invalid();
-        const bool      resolvedAlias = rawTypeRef.isValid() && rawTypeRef != typeRef;
-        if (resolvedAlias)
-            typeRef = rawTypeRef;
-
-        const TypeInfo& typeInfo = resolvedAlias ? codeGen.typeMgr().get(typeRef) : originalType;
+        const TypeInfo* unwrappedType = originalType.unwrapAliasType(codeGen.ctx());
+        const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : originalType;
         if (typeInfo.isArray())
         {
             const uint64_t multiplier = arrayTotalElementCount(typeInfo);

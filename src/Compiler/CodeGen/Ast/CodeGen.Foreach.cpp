@@ -160,12 +160,9 @@ namespace
         if (!typeRef.isValid())
             return nullptr;
 
-        const TypeInfo& type             = codeGen.typeMgr().get(typeRef);
-        TypeRef         unwrappedTypeRef = type.isAlias() ? type.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias) : typeRef;
-        if (!unwrappedTypeRef.isValid())
-            unwrappedTypeRef = typeRef;
-
-        const TypeInfo& unwrappedType = unwrappedTypeRef == typeRef ? type : codeGen.typeMgr().get(unwrappedTypeRef);
+        const TypeInfo& type          = codeGen.typeMgr().get(typeRef);
+        const TypeInfo* aliasType     = type.unwrapAliasType(codeGen.ctx());
+        const TypeInfo& unwrappedType = aliasType ? *aliasType : type;
         if (!unwrappedType.isEnum())
             return nullptr;
 

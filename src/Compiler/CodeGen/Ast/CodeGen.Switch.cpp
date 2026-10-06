@@ -967,20 +967,19 @@ namespace
 
         SmallVector<SwitchDispatchEntry> merged;
         merged.reserve(entries.size());
-        for (const SwitchDispatchEntry& entry : entries)
+        merged.push_back(entries.front());
+        for (size_t index = 1; index < entries.size(); ++index)
         {
-            if (!merged.empty())
-            {
-                SwitchDispatchEntry& previous = merged.back();
-                if (!switchDispatchKeyLess(previous.highKey, entry.lowKey, useUnsignedCond))
-                    return false;
+            const SwitchDispatchEntry& entry    = entries[index];
+            SwitchDispatchEntry&       previous = merged.back();
+            if (!switchDispatchKeyLess(previous.highKey, entry.lowKey, useUnsignedCond))
+                return false;
 
-                // Neighbouring intervals that select the same body are one interval.
-                if (previous.label == entry.label && previous.highKey + 1 == entry.lowKey)
-                {
-                    previous.highKey = entry.highKey;
-                    continue;
-                }
+            // Neighbouring intervals that select the same body are one interval.
+            if (previous.label == entry.label && previous.highKey + 1 == entry.lowKey)
+            {
+                previous.highKey = entry.highKey;
+                continue;
             }
 
             merged.push_back(entry);

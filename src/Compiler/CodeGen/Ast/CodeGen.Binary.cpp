@@ -110,13 +110,12 @@ namespace
         if (!storedSourceTypeRef.isValid())
             return false;
 
-        const TypeRef sourceTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), storedSourceTypeRef);
-        castResultTypeRef           = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), castResultTypeRef);
-        if (!sourceTypeRef.isValid() || !castResultTypeRef.isValid())
-            return false;
-
-        const TypeInfo& sourceType = codeGen.typeMgr().get(sourceTypeRef);
-        const TypeInfo& resultType = codeGen.typeMgr().get(castResultTypeRef);
+        const TypeInfo& declaredSource = codeGen.typeMgr().get(storedSourceTypeRef);
+        const TypeInfo* sourcePayload  = declaredSource.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& sourceType     = sourcePayload ? *sourcePayload : declaredSource;
+        const TypeInfo& declaredResult = codeGen.typeMgr().get(castResultTypeRef);
+        const TypeInfo* resultPayload  = declaredResult.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& resultType     = resultPayload ? *resultPayload : declaredResult;
         if (!sourceType.isFloat() || !resultType.isFloat())
             return false;
 
@@ -279,12 +278,14 @@ namespace
         if (!operandPayload.isValue() || !operandPayload.typeRef.isValid() || operandPayload.typeRef == sourceTypeRef)
             return sourceTypeRef;
 
-        const TypeRef payloadTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), operandPayload.typeRef);
+        const TypeInfo& declaredPayload = codeGen.typeMgr().get(operandPayload.typeRef);
+        const TypeInfo* unwrappedType   = declaredPayload.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& payloadType     = unwrappedType ? *unwrappedType : declaredPayload;
+        const TypeRef   payloadTypeRef  = payloadType.typeRef();
         if (payloadTypeRef == sourceTypeRef)
             return sourceTypeRef;
 
-        const TypeInfo& sourceType  = codeGen.typeMgr().get(sourceTypeRef);
-        const TypeInfo& payloadType = codeGen.typeMgr().get(payloadTypeRef);
+        const TypeInfo& sourceType = codeGen.typeMgr().get(sourceTypeRef);
         if ((sourceType.isReference() || sourceType.isMoveReference()) &&
             !payloadType.isReference() &&
             !payloadType.isMoveReference())
@@ -303,9 +304,11 @@ namespace
             return;
 
         SWC_ASSERT(!srcType.isAlias() && !srcType.isEnum());
-        dstTypeRef                = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
-        const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
-        const MicroOpBits dstBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+        const TypeInfo&   declaredDst  = codeGen.typeMgr().get(dstTypeRef);
+        const TypeInfo*   unwrappedDst = declaredDst.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&   dstType      = unwrappedDst ? *unwrappedDst : declaredDst;
+        const MicroOpBits dstBits      = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+        dstTypeRef                     = dstType.typeRef();
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
 

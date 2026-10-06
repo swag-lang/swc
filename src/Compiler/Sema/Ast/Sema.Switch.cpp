@@ -20,22 +20,22 @@ SWC_BEGIN_NAMESPACE();
 
 bool SemaSwitch::isDynamicType(Sema& sema, const TypeInfo& originalType)
 {
-    const TypeRef   unwrappedTypeRef = originalType.isAlias() ? originalType.unwrap(sema.ctx(), originalType.typeRef(), TypeExpandE::Alias) : TypeRef::invalid();
-    const TypeInfo& type             = unwrappedTypeRef.isValid() ? sema.typeMgr().get(unwrappedTypeRef) : originalType;
+    const TypeInfo* unwrappedType = originalType.unwrapAliasType(sema.ctx());
+    const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
     if (type.isInterface() || type.isAny())
         return true;
     if (!type.isValuePointer())
         return false;
-    const TypeInfo& originalPointee = sema.typeMgr().get(type.payloadTypeRef());
-    const TypeRef   pointeeTypeRef  = originalPointee.isAlias() ? originalPointee.unwrap(sema.ctx(), originalPointee.typeRef(), TypeExpandE::Alias) : TypeRef::invalid();
-    const TypeInfo& pointee         = pointeeTypeRef.isValid() ? sema.typeMgr().get(pointeeTypeRef) : originalPointee;
+    const TypeInfo& originalPointee  = sema.typeMgr().get(type.payloadTypeRef());
+    const TypeInfo* unwrappedPointee = originalPointee.unwrapAliasType(sema.ctx());
+    const TypeInfo& pointee          = unwrappedPointee ? *unwrappedPointee : originalPointee;
     return pointee.isStruct() && pointee.payloadSymStruct().isDynamic();
 }
 
 const TypeInfo* SemaSwitch::enumType(Sema& sema, const TypeInfo& originalType)
 {
-    const TypeRef   enumTypeRef = originalType.isAlias() ? originalType.unwrap(sema.ctx(), originalType.typeRef(), TypeExpandE::Alias) : TypeRef::invalid();
-    const TypeInfo& type        = enumTypeRef.isValid() ? sema.typeMgr().get(enumTypeRef) : originalType;
+    const TypeInfo* unwrappedType = originalType.unwrapAliasType(sema.ctx());
+    const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
     return type.isEnum() ? &type : nullptr;
 }
 
@@ -73,9 +73,9 @@ namespace
         return Result::Continue;
     }
 
-    Result waitSwitchEnumCompletionIfNeeded(Sema& sema, TypeRef typeRef, AstNodeRef nodeRef)
+    Result waitSwitchEnumCompletionIfNeeded(Sema& sema, const TypeInfo& type, AstNodeRef nodeRef)
     {
-        const TypeInfo* enumType = SemaSwitch::enumType(sema, sema.typeMgr().get(typeRef));
+        const TypeInfo* enumType = SemaSwitch::enumType(sema, type);
         if (!enumType)
             return Result::Continue;
 
@@ -95,9 +95,9 @@ namespace
 
     Result attachSwitchExprRuntimeDependencies(Sema& sema, SwitchPayload& payload, TypeRef exprTypeRef, const SourceCodeRef& codeRef)
     {
-        SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, exprTypeRef, sema.curNodeRef()));
+        const TypeInfo& originalType = sema.typeMgr().get(exprTypeRef);
+        SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, originalType, sema.curNodeRef()));
 
-        const TypeInfo& originalType   = sema.typeMgr().get(exprTypeRef);
         const TypeInfo* underlyingType = originalType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& finalType      = underlyingType ? *underlyingType : originalType;
         if (finalType.isString())
@@ -318,7 +318,8 @@ namespace
 
         const TypeRef   switchTypeRef = dynamicStructSwitchExprTypeRef(sema, switchRef);
         const TypeRef   targetTypeRef = typeView.typeRef();
-        const TypeInfo& targetType    = sema.typeMgr().get(sema.typeMgr().unwrapAlias(sema.ctx(), targetTypeRef));
+        const TypeInfo* unwrappedType = typeView.type()->unwrapAliasType(sema.ctx());
+        const TypeInfo& targetType    = unwrappedType ? *unwrappedType : *typeView.type();
         const TypeInfo& sourceType    = sema.typeMgr().get(switchTypeRef);
         TypeInfoFlags   flags         = sourceType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero;
         TypeInfo        destination   = targetType.isInterface() ? targetType : TypeInfo::makeValuePointer(targetTypeRef, flags);
@@ -427,14 +428,16 @@ Result SemaSwitch::normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef,
 
 Result SemaSwitch::validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef)
 {
-    SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, exprTypeRef, exprRef));
+    const TypeInfo& originalType = sema.typeMgr().get(exprTypeRef);
+    SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, originalType, exprRef));
 
-    const TypeInfo& originalType   = sema.typeMgr().get(exprTypeRef);
     const TypeInfo* underlyingType = originalType.unwrapAliasEnumType(sema.ctx());
     const TypeInfo& finalType      = underlyingType ? *underlyingType : originalType;
     if (finalType.isValuePointer())
     {
-        const TypeInfo& pointee = sema.typeMgr().get(sema.typeMgr().unwrapAlias(sema.ctx(), finalType.payloadTypeRef()));
+        const TypeInfo& originalPointee  = sema.typeMgr().get(finalType.payloadTypeRef());
+        const TypeInfo* unwrappedPointee = originalPointee.unwrapAliasType(sema.ctx());
+        const TypeInfo& pointee          = unwrappedPointee ? *unwrappedPointee : originalPointee;
         // The dynamic marker belongs to the struct's attributes, which may still
         // be under analysis when a function first switches on its pointer.
         if (pointee.isStruct())
@@ -894,7 +897,9 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     const bool rangeCase     = sema.node(childRef).is(AstNodeId::RangeExpr);
     if (dynamicSwitch)
     {
-        const TypeInfo& switchType = sema.typeMgr().get(sema.typeMgr().unwrapAlias(sema.ctx(), switchTypeRef));
+        const TypeInfo& originalType  = sema.typeMgr().get(switchTypeRef);
+        const TypeInfo* unwrappedType = originalType.unwrapAliasType(sema.ctx());
+        const TypeInfo& switchType    = unwrappedType ? *unwrappedType : originalType;
         // Dynamic pointers keep ordinary pointer comparisons alongside type patterns.
         if (!switchType.isValuePointer() || sema.node(childRef).is(AstNodeId::AsCastExpr) || (!rangeCase && !sema.isValue(childRef)))
             return validateDynamicStructCaseExpr(sema, switchRef, sema.curNodeRef(), childRef);

@@ -196,16 +196,14 @@ namespace
         if (!castRequest.materializeConstantResult())
             return Result::Continue;
 
-        SmallVector<ConstantRef> srcValues;
-        SWC_RESULT(collectAggregateStructConstantFieldValues(sema, srcValues, castRequest.constantFoldingSrc(), srcType));
-        SWC_ASSERT(srcValues.size() == srcAggregate.types.size());
+        SmallVector<ConstantRef> values;
+        SWC_RESULT(collectAggregateStructConstantFieldValues(sema, values, castRequest.constantFoldingSrc(), srcType));
+        SWC_ASSERT(values.size() == srcAggregate.types.size());
 
-        SmallVector<ConstantRef> castedValues;
-        castedValues.reserve(srcValues.size());
-        for (size_t i = 0; i < srcValues.size(); ++i)
+        for (size_t i = 0; i < values.size(); ++i)
         {
             CastRequest elemRequest = castRequest.makeNested();
-            elemRequest.setConstantFoldingSrc(srcValues[i]);
+            elemRequest.setConstantFoldingSrc(values[i]);
             const Result res = Cast::castAllowed(sema, elemRequest, srcAggregate.types[i], dstAggregate.types[i]);
             if (res != Result::Continue)
             {
@@ -213,13 +211,12 @@ namespace
                 return res;
             }
 
-            ConstantRef castedRef = elemRequest.constantFoldingResult();
-            if (castedRef.isInvalid())
-                castedRef = srcValues[i];
-            castedValues.push_back(castedRef);
+            const ConstantRef castedRef = elemRequest.constantFoldingResult();
+            if (castedRef.isValid())
+                values[i] = castedRef;
         }
 
-        const ConstantValue result = ConstantValue::makeAggregateStruct(sema.ctx(), dstAggregate.names, castedValues);
+        const ConstantValue result = ConstantValue::makeAggregateStruct(sema.ctx(), dstAggregate.names, values);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), result));
         return Result::Continue;
     }

@@ -124,8 +124,9 @@ namespace
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeRef   dstStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
-        const TypeInfo& dstType           = sema.typeMgr().get(dstStorageTypeRef);
+        const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
+        const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
         if (!dstType.isSlice() && !dstType.isString())
             return TypeRef::invalid();
 
@@ -137,11 +138,14 @@ namespace
         if (!srcType.isAnyPointer() && !srcType.isReference() && !srcType.isMoveReference())
             return false;
 
-        const TypeRef objectTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcType.payloadTypeRef());
+        const TypeRef objectTypeRef = srcType.payloadTypeRef();
         if (!objectTypeRef.isValid())
             return false;
 
-        return sema.typeMgr().get(objectTypeRef).isStruct();
+        const TypeInfo& declaredObjectType = sema.typeMgr().get(objectTypeRef);
+        const TypeInfo* unwrappedObject    = declaredObjectType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& objectType         = unwrappedObject ? *unwrappedObject : declaredObjectType;
+        return objectType.isStruct();
     }
 
     bool isByValueAggregateType(const TypeInfo& typeInfo)
@@ -156,12 +160,12 @@ TypeRef Cast::indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, Typ
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TypeRef   srcResolvedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcTypeRef);
-    const TypeRef   dstResolvedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
-    const TypeRef   srcTypeToCheck     = srcResolvedTypeRef.isValid() ? srcResolvedTypeRef : srcTypeRef;
-    const TypeRef   dstTypeToCheck     = dstResolvedTypeRef.isValid() ? dstResolvedTypeRef : dstTypeRef;
-    const TypeInfo& srcType            = sema.typeMgr().get(srcTypeToCheck);
-    const TypeInfo& dstType            = sema.typeMgr().get(dstTypeToCheck);
+    const TypeInfo& declaredSrcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo* unwrappedSrc    = declaredSrcType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& srcType         = unwrappedSrc ? *unwrappedSrc : declaredSrcType;
+    const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
 
     TypeRef valueTypeRef;
     bool    sourceIsPointer = false;
@@ -183,12 +187,12 @@ TypeRef Cast::indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, Typ
     if (valueTypeRef == dstTypeRef)
         return valueTypeRef;
 
-    if (sema.typeMgr().get(dstTypeRef).isAlias())
+    if (declaredDstType.isAlias())
         return TypeRef::invalid();
 
     const TypeRef valueResolvedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), valueTypeRef);
     const TypeRef valueTypeToCheck     = valueResolvedTypeRef.isValid() ? valueResolvedTypeRef : valueTypeRef;
-    if (valueTypeToCheck == dstTypeToCheck)
+    if (valueTypeToCheck == dstType.typeRef())
         return valueTypeRef;
 
     return TypeRef::invalid();
@@ -199,10 +203,12 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TypeRef   srcStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcTypeRef);
-    const TypeRef   dstStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
-    const TypeInfo& srcType           = sema.typeMgr().get(srcStorageTypeRef);
-    const TypeInfo& dstType           = sema.typeMgr().get(dstStorageTypeRef);
+    const TypeInfo& declaredSrcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo* unwrappedSrc    = declaredSrcType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& srcType         = unwrappedSrc ? *unwrappedSrc : declaredSrcType;
+    const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
 
     if (srcConstRef.isValid())
     {
@@ -353,10 +359,12 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
         return Result::Continue;
 
-    const TypeRef   srcStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcTypeRef);
-    const TypeRef   dstStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
-    const TypeInfo& srcType           = sema.typeMgr().get(srcStorageTypeRef);
-    const TypeInfo& dstType           = sema.typeMgr().get(dstStorageTypeRef);
+    const TypeInfo& declaredSrcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo* unwrappedSrc    = declaredSrcType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& srcType         = unwrappedSrc ? *unwrappedSrc : declaredSrcType;
+    const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
+    const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
     const bool      needsRetarget =
         (srcType.isAggregateArray() && (dstType.isArray() || dstType.isSlice())) ||
         (srcType.isAggregateStruct() && dstType.isStruct());

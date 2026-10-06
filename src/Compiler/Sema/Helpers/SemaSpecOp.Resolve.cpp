@@ -543,12 +543,11 @@ namespace
     {
         outViable = false;
 
-        SmallVector<AstNodeRef> args;
-        args.push_back(node.nodeRightRef);
+        std::array args = {node.nodeRightRef};
 
         const SemaNodeView            calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
         Match::FunctionCandidateProbe probe;
-        SWC_RESULT(Match::probeFunctionCandidates(sema, calleeView, candidates, args.span(), node.nodeLeftRef, probe, true));
+        SWC_RESULT(Match::probeFunctionCandidates(sema, calleeView, candidates, args, node.nodeLeftRef, probe, true));
         outViable = probe.matched && probe.fn != nullptr;
         return Result::Continue;
     }
@@ -1188,12 +1187,11 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     if (tok.id == TokenId::SymEqual && node.modifierFlags.hasAny({AstModifierFlagsE::Relocate, AstModifierFlagsE::NoDrop}))
         return Result::Continue;
 
-    SmallVector<AstNodeRef> args;
-    args.push_back(node.nodeRightRef);
+    std::array args = {node.nodeRightRef};
 
     bool            matched  = false;
     SymbolFunction* calledFn = nullptr;
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeLeftRef, true, &matched, true, true, &calledFn));
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args, node.nodeLeftRef, true, &matched, true, true, &calledFn));
     if (!matched)
         return Result::Continue;
 
@@ -1227,15 +1225,14 @@ Result SemaSpecOp::tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstN
     if (candidates.empty())
         return Result::Continue;
 
-    SmallVector<AstNodeRef> args;
-    args.push_back(valueRef);
+    std::array args = {valueRef};
 
     Symbol*    savedSymbol = sema.curViewSymbol().sym();
     const bool savedLValue = sema.isLValue(sema.curNodeRef());
 
     bool            matched  = false;
     SymbolFunction* calledFn = nullptr;
-    SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args.span(), receiverRef, true, &matched, false, false, &calledFn));
+    SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args, receiverRef, true, &matched, false, false, &calledFn));
 
     if (savedSymbol)
         sema.setSymbol(sema.curNodeRef(), savedSymbol);
@@ -1409,9 +1406,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     const AstNodeRef lowerArgRef = makeSyntheticU64Arg(sema, node.codeRef(), lowerConst);
     const AstNodeRef upperArgRef = makeSyntheticU64Arg(sema, node.codeRef(), upperConst);
 
-    SmallVector<AstNodeRef> args;
-    args.push_back(lowerArgRef);
-    args.push_back(upperArgRef);
+    std::array args = {lowerArgRef, upperArgRef};
 
     SmallVector<ResolvedCallArgument> resolvedArgs;
     bool                              matched = false;
@@ -1423,7 +1418,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
 
         if (!mutableCandidates.empty())
         {
-            SWC_RESULT(matchSyntheticCall(sema, mutableCandidates.span(), args.span(), node.nodeExprRef, true, resolvedArgs, matched));
+            SWC_RESULT(matchSyntheticCall(sema, mutableCandidates.span(), args, node.nodeExprRef, true, resolvedArgs, matched));
             if (matched)
                 candidates = std::move(mutableCandidates);
             else if (!constCandidates.empty())
@@ -1432,7 +1427,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     }
 
     if (!matched)
-        SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args.span(), node.nodeExprRef, true, resolvedArgs, matched));
+        SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args, node.nodeExprRef, true, resolvedArgs, matched));
     if (!matched)
         return Result::Continue;
 
@@ -1651,9 +1646,8 @@ namespace
 
 Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)
 {
-    SmallVector<AstNodeRef> args;
-    args.push_back(node.nodeArgRef);
-    return tryResolveIndexWithArgs(sema, sema.curNodeRef(), node.nodeExprRef, node.codeRef(), args.span(), indexedView, outHandled);
+    const std::array args = {node.nodeArgRef};
+    return tryResolveIndexWithArgs(sema, sema.curNodeRef(), node.nodeExprRef, node.codeRef(), args, indexedView, outHandled);
 }
 
 Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexListExpr& node, const SemaNodeView& indexedView, bool& outHandled)
@@ -2077,10 +2071,9 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
 
     const AstNodeRef relRef = sema.curNodeRef();
 
-    SmallVector<AstNodeRef> args;
-    args.push_back(node.nodeRightRef);
+    std::array      args     = {node.nodeRightRef};
     SymbolFunction* calledFn = nullptr;
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeLeftRef, false, nullptr, true, true, &calledFn));
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args, node.nodeLeftRef, false, nullptr, true, true, &calledFn));
 
     auto* relationalPayload = sema.semaPayload<RelationalSpecOpPayload>(relRef);
     if (!relationalPayload)

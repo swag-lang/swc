@@ -1192,7 +1192,8 @@ namespace
             return info;
         }
 
-        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, operandRef));
+        const TypeRef operandTypeRef = operandSelfSubst ? sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef() : expressionTypeRef(sema, operandRef);
+        const TypeRef sourceTypeRef  = SemaHelpers::unwrapAliasRefType(sema.ctx(), operandTypeRef);
         if (resultTypeRef.isValid() &&
             sourceTypeRef.isValid() &&
             unwrapAliasEnumType(sema, resultTypeRef).isAny() &&

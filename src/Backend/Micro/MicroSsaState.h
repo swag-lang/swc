@@ -10,6 +10,10 @@ SWC_BEGIN_NAMESPACE();
 class MicroBuilder;
 class MicroControlFlowGraph;
 struct MicroPassContext;
+namespace MicroPassHelpers
+{
+    struct MicroDomTree;
+}
 
 class MicroSsaState
 {
@@ -87,7 +91,11 @@ public:
     bool                    defValue(MicroReg reg, MicroInstrRef instRef, uint32_t& outValueId) const;
     // Dominance from the first instruction, excluding unreachable components.
     // Uses this SSA snapshot even if a later pass has erased an instruction.
-    bool                       definitionDominates(uint32_t valueId, MicroInstrRef instRef) const;
+    bool definitionDominates(uint32_t valueId, MicroInstrRef instRef) const;
+    // Copy the rename walk's dominance intervals only when they describe this
+    // exact graph. Operand-only rewrites retain the graph; another function,
+    // changed control flow or an invalid SSA snapshot must use the CFG analysis.
+    bool                       copyInstructionDominators(MicroPassHelpers::MicroDomTree& out, const MicroControlFlowGraph& cfg) const;
     const ValueInfo*           valueInfo(uint32_t valueId) const;
     const PhiInfo*             phiInfo(uint32_t phiIndex) const;
     const PhiInfo*             phiInfoForValue(uint32_t valueId) const;

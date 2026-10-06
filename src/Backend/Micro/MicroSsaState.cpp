@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -476,6 +477,31 @@ bool MicroSsaState::definitionDominates(const uint32_t valueId, const MicroInstr
     const BlockInfo&    block      = blocks_[value.blockIndex];
     const MicroInstrRef definition = value.isPhi() ? instructionRefs_[block.instructionBegin] : value.instRef;
     return instrInfos_[definition.get()].renamePosition <= position && position < block.renameEnd;
+}
+
+bool MicroSsaState::copyInstructionDominators(MicroPassHelpers::MicroDomTree& out, const MicroControlFlowGraph& cfg) const
+{
+    if (!valid_ || !trackedDefCount_ || blocksCfg_ != &cfg || blocksCfgBuildId_ != cfg.buildId())
+        return false;
+
+    const size_t count = instructionRefs_.size();
+    out.subtreeBegin.resize(count);
+    out.subtreeEnd.resize(count);
+    for (size_t index = 0; index < count; ++index)
+    {
+        const uint32_t position = instrInfos_[instructionRefs_[index].get()].renamePosition;
+        // The remaining rename roots describe unreachable components, which
+        // the instruction graph's entry-rooted tree must leave unreachable.
+        if (position >= blocks_[0].renameEnd)
+        {
+            out.subtreeBegin[index] = MicroPassHelpers::MicroDomTree::K_INVALID_NODE;
+            out.subtreeEnd[index]   = MicroPassHelpers::MicroDomTree::K_INVALID_NODE;
+            continue;
+        }
+        out.subtreeBegin[index] = position;
+        out.subtreeEnd[index]   = blocks_[instructionToBlock_[index]].renameEnd;
+    }
+    return true;
 }
 
 const MicroSsaState::ValueInfo* MicroSsaState::valueInfo(const uint32_t valueId) const

@@ -333,7 +333,7 @@ namespace
         if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return false;
 
-        const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry, context.ssaState);
         std::unordered_map<uint32_t, NaturalLoop> loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
         if (loopsByHeader.empty())
             return false;

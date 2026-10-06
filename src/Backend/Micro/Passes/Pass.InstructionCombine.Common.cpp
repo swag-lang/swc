@@ -339,7 +339,7 @@ namespace InstructionCombine
                 {
                     if (cfg.hasLoop())
                     {
-                        const MicroPassHelpers::MicroDomTree dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+                        const MicroPassHelpers::MicroDomTree dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry, ssa);
                         const auto                           loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
                         const auto                           refs  = cfg.instructionRefs();
                         for (const auto& loop : loops | std::views::values)

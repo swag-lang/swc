@@ -97,6 +97,12 @@ public:
     StoredView      viewStored(const TaskContext& ctx, AstNodeRef nodeRef) const;
     ResolvedSymbols resolveSymbols(AstNodeRef nodeRef) const;
 
+    // The value a node named before a conversion retyped or folded it in place. Both replace
+    // the symbol payload, but the source text still names the symbol, so whoever republishes
+    // that text (an exported function body) must still see the dependency. Only symbols that
+    // an export can hide, those not public or owned by a type, are remembered.
+    const Symbol* foldedSourceSymbol(AstNodeRef nodeRef) const;
+
 protected:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
@@ -215,6 +221,7 @@ private:
 
     AstNodeRef                     followSubstituteChain(AstNodeRef nodeRef) const;
     std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
+    void                           recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& node);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
@@ -241,6 +248,7 @@ private:
         mutable std::shared_mutex                             inlineContextOverridesMutex;
         mutable std::shared_mutex                             semaPayloadsMutex;
         mutable std::shared_mutex                             constAssignSourceParametersMutex;
+        mutable std::shared_mutex                             foldedSourceSymbolsMutex;
         mutable std::shared_mutex                             resolvedCallArgsMutex;
         PagedStore                                            store;
         std::unordered_map<AstNodeRef, void*>                 loweringPayloads;
@@ -248,6 +256,7 @@ private:
         std::unordered_map<AstNodeRef, void*>                 inlineContextOverrides;
         std::unordered_map<AstNodeRef, void*>                 semaPayloads;
         std::unordered_map<AstNodeRef, const SymbolVariable*> constAssignSourceParameters;
+        std::unordered_map<AstNodeRef, const Symbol*>         foldedSourceSymbols;
 
         // Each side table above is read on the hot path and written almost never: inlining,
         // lowering, and const-assign tracking touch a handful of nodes out of the hundreds of
@@ -260,6 +269,7 @@ private:
         std::atomic<uint32_t> inlineContextOverridesCount{0};
         std::atomic<uint32_t> semaPayloadsCount{0};
         std::atomic<uint32_t> constAssignSourceParametersCount{0};
+        std::atomic<uint32_t> foldedSourceSymbolsCount{0};
         std::atomic<uint32_t> resolvedCallArgsCount{0};
 
         // Resolved call arguments are stored inline (not in `store`) so writing them only

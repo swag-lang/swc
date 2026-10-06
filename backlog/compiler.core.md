@@ -31,23 +31,6 @@ narrowing. Such a rewrite requires a separate semantic proof.
 
 **Related:** compiler.core.001, compiler.core.038.
 
-### compiler.core.077 — Preserve attributes when top-level compiler runs are deferred
-
-- Recorded: 2026-10-05 17:55
-- Evidence: `#[Swag.PrintMicro]` immediately before a benchmark's top-level `#run` produces
-  no microcode listing, while the same attribute prints ordinary functions and script `#main`.
-  This reproduces with both `84f461783` and the Oct 5 compiler. A file-global attribute also
-  prints the numeric functions without exposing the `#run` wrapper in the inspected input.
-- Lead: `Sema::deferTopLevelItem` saves only the node and kind; the later visit starts at that
-  node, and `AstCompilerFunc::semaPreNode` registers attributes from its then-current frame.
-  Confirm lost attribute context rather than assuming every attribute has the same symptom.
-- Next: reduce the example and exercise local print, optimization and safety attributes around
-  deferred runs. Preserve the necessary context without widening every ordinary function's
-  hot storage or repeating attribute evaluation and its compile-time effects.
-- Complete when: deferred runs observe their original attribute scope and selected microcode
-  output can inspect the actual run body, with declaration ordering and pause/resume preserved.
-- Related: compiler.core.040.
-
 ### compiler.core.040 — Select microcode output without a source attribute
 
 - Recorded: 2026-09-11 22:14
@@ -65,26 +48,6 @@ narrowing. Such a rewrite requires a separate semantic proof.
   their behavior, unmatched and ambiguous requests have a stated contract, and help and focused
   command tests describe the selector. The proposed spelling is `--print-micro=<pattern>:<stage>`.
 - Related: app.prism.004, app.prism.002
-
-### compiler.core.076 — Folded scalar references lose their module API dependency
-
-- Recorded: 2026-10-04 14:33
-- Evidence: with the DevMode compiler, a public `#[Swag.Inline]` function
-  `func exposed()->s32 => Hidden` and `private const Hidden = 42` passes module API
-  publication. The generated body still names `Hidden`, but the private declaration is
-  absent. A separate `#main` calling `exposed()` through `--import-api-file` fails with
-  `unknown symbol 'Hidden'`. A dynamically indexed private constant array retains its
-  symbol and is correctly rejected during publication.
-- Cause: semantic constant conversion replaces the identifier's symbol payload with a
-  constant payload. `validateGeneratedInlineBody` can no longer see that source dependency,
-  while the API generator copies the original source spelling. This predates the diagnostic
-  that replaced silently removing `Inline` for unavailable body dependencies.
-- Next: preserve source dependencies through constant folding, or materialize folded values
-  in published bodies. Decide this at the semantic/source-export boundary rather than
-  guessing bindings from identifier text. Cover qualified names and constants hidden by
-  opaque types, and verify calls from a separate importer.
-- Complete when: publication rejects every unavailable folded dependency with the inline
-  export diagnostic, or emits a self-contained equivalent body that the importer accepts.
 
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 

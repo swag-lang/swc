@@ -85,38 +85,29 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.046 — Promote mixed-width whole-copied locals after vectorization
+### compiler.optimization.035 — Improve spill choices after register and memory promotion
 
-- Recorded: 2026-09-23 19:51
-- Updated: 2026-10-06 15:34 — Retain packed promotion and narrow the remaining whole-copy barrier.
-- Area: compiler/backend, mem2reg, vectorization
-- Evidence: splitting whole-array copies before SLP previously destroyed packing
-  (52 vector operations to zero and a 2.1x ChaCha slowdown). Uniform B128 chunks
-  can instead promote after packing: three of ChaCha's four copied state chunks
-  now stay in XMM registers. Its fourth chunk combines full vector accesses and
-  a lane-3 scalar read, outside ordinary promotion and single-store lane splitting.
-- Next: extend packed promotion to supported narrow lane reads without splitting
-  the vector's writes. Coordinate with compiler.optimization.098; retain the
-  pre-SLP scalarization barrier and the existing object/overlap proofs.
-- Complete when: whole-copied packed locals with supported scalar lane reads
-  promote while vectorization and alias correctness remain intact.
-
-### compiler.optimization.098 — Keep the last mixed-width state chunk in registers
-
-- Recorded: 2026-09-29 08:04
-- Updated: 2026-10-06 15:34 — Promote three packed state chunks and isolate the remaining lane read.
-- Area: compiler/backend, SIMD dataflow and memory forwarding
-- Evidence: known SP-addressed locals now promote after SLP. ChaCha loses three
-  copy stores, three round-entry loads and three round-exit stores per encrypted
-  block. Main is 423 instructions / 109 memory operations; initialization changes
-  account for the smaller whole-function decrease. The last chunk at frame +0xF4
-  is written/read as B128 but also read as B32 at +0x100 (lane 3).
-- Next: preserve a vector register across full-width writes and extract a narrow
-  lane at its use. Existing single-store lane splitting rejects this loop-carried
-  chunk. Keep mixed-width writes and escaped objects as barriers.
-- Complete when: the fourth chunk is register-resident with matching checksums,
-  retained packed rounds and inspected register pressure.
-- Evidence artifact: [known-local promotion](../bench/results/generated-code/20261006-local-vector/README.md).
+- Recorded: 2026-09-12 11:40
+- Updated: 2026-10-06 16:03 — Isolate the remaining CSV setup allocation cost after packed promotion.
+- Area: compiler/backend, register allocation and live ranges
+- Evidence: after removing the permanent integer legalization reserve,
+  `Slice.parsePlaneResidualCabac` gained one memory operation and
+  `Slice.parsePlaneResidualCavlc` gained six plus thirteen instructions.
+  The full register pool remains available; the
+  [retained comparison](../bench/results/generated-code/20261006-legalize-reserve/README.md)
+  owns the exact baseline.
+- Additional case: promoting whole-copied locals with scalar lane reads removes
+  frame traffic in ChaCha, nbody and H.264. In CSV data generation, a copied region
+  string's pointer/length become GP values live across several multiplications.
+  The printed bodies gain 18 instructions / 11 memory operations, 14 explicit
+  RSP accesses and 64 frame bytes. The suffix from the first timing call remains
+  444 instructions / 151 memory operations, and the checksum remains 24828641.
+  [Allocation diff](../bench/results/generated-code/20261006-vector-lanes/csvagg-allocation.diff).
+- Next: inspect splitting and rematerialization around the implicit multiply
+  claims in CSV setup, and compare the two H.264 functions' interval choices.
+  Preserve the extra register and legal packed promotion while correcting these
+  local allocation costs. No elapsed-time regression is inferred.
+- Complete when: these local increases are removed or explained by a necessary tradeoff.
 
 ### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
 
@@ -135,7 +126,7 @@ new language syntax.
   together add four instructions and five memory operands; preserve the repair.
 - Complete when: shared facts cover those consumers, forwarding crosses a proven
   disjoint store in a real codec loop, and remaining local allocation costs are resolved.
-- Related: compiler.optimization.015, compiler.optimization.098.
+- Related: compiler.optimization.015.
 
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
@@ -311,27 +302,6 @@ new language syntax.
   Keep the late stage so array promotion/vectorization retain their input shape.
 - Complete when: the local allocation cost is resolved or explained and profitable shared
   address cases have a bounded all-use proof.
-
-### compiler.optimization.035 — Reduce local spill regressions after removing the legalization reserve
-
-- Recorded: 2026-09-12 11:40
-- Updated: 2026-10-06 08:54 — remove the permanent reserve and isolate two remaining spill regressions.
-- Area: compiler/backend
-- Resolved: the interval allocator no longer withholds an integer register. Late legalization
-  can borrow a concrete register through the existing frame save/restore, while protecting
-  hard operand exclusions, concrete uses and other scratch mappings. Release native tests
-  (3622), pixel/gui builds and 23 H.264 tests pass.
-- Evidence: the current 334-function H.264 cohort loses 196 instructions and 276 explicit
-  RSP memory operations; LZ77 and SHA-256 also lose frame traffic. The extra callee-saved
-  register adds 59 prologue pushes across the cohort. See the
-  [complete structural evidence](../bench/results/generated-code/20261006-legalize-reserve/README.md).
-- Remaining: `Slice.parsePlaneResidualCabac` gains one memory operation and
-  `Slice.parsePlaneResidualCavlc` gains six (plus thirteen instructions). The full-pool
-  allocation is retained; these are local allocation-quality problems, not a reason to
-  reserve a register globally. No runtime regression is inferred from these static counts.
-- Next: compare the two functions' live intervals and spill choices with the retained
-  full-pool allocator, and identify why the extra register changes their split decisions.
-- Complete when: these local increases are removed or explained by a necessary tradeoff.
 
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
@@ -724,8 +694,7 @@ new language syntax.
 - Complete when: eligible third-party aggregate round trips lose redundant copies/hidden return
   storage, external wrappers retain their ABI, and alias/lifecycle regressions prove value semantics.
   Report throughput, frame size, and code size.
-- Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.022,
-  compiler.optimization.046.
+- Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.022.
 
 ### compiler.optimization.115 — Eliminate proven temporary allocations across calls
 

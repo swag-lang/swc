@@ -280,6 +280,7 @@ namespace
         uint64_t    offset;
         MicroOpBits bits;
         bool        isFloat;
+        bool        hasLaneReads = false;
     };
 
     // The reads a field of a split word can serve: each has a register form
@@ -1595,7 +1596,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     }
 
     SmallVector<Promotion> filtered;
-    for (const Promotion& p : promotions)
+    for (Promotion& p : promotions)
     {
         const uint64_t pStart  = p.offset;
         const uint64_t pEnd    = p.offset + getNumBytes(p.bits);
@@ -1606,11 +1607,29 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
             // All accesses at this key share their start. The largest end
             // answers whether any of them overlaps, including rejected slots.
-            if (!(otherSlot.maxAccessEnd <= pStart || pEnd <= otherOffset))
+            if (otherSlot.maxAccessEnd <= pStart || pEnd <= otherOffset)
+                continue;
+
+            // Full-vector writes can share a register with aligned lane reads.
+            // Every other overlapping access, especially a partial write, must
+            // retain the ordinary overlap barrier.
+            bool laneReads = p.bits == MicroOpBits::B128 && otherOffset > pStart &&
+                             otherSlot.maxAccessEnd <= pEnd && !otherSlot.hasWrite && !otherSlot.stackPointerAccess;
+            for (const SlotAccess& acc : otherSlot.accesses)
+            {
+                if (!laneReads)
+                    break;
+                const MicroInstr* read = storage.ptr(acc.ref);
+                laneReads              = !acc.isWrite && (acc.bits == MicroOpBits::B32 || acc.bits == MicroOpBits::B64) &&
+                            (acc.offset - pStart) % getNumBytes(acc.bits) == 0 && read &&
+                            read->op == MicroInstrOpcode::LoadRegMem && read->ops(operands)[0].reg.isAnyInt();
+            }
+            if (!laneReads)
             {
                 overlap = true;
                 break;
             }
+            p.hasLaneReads = true;
         }
         if (!overlap)
             filtered.push_back(p);
@@ -1795,6 +1814,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 write = &acc;
             }
             if (!usable || !write || write->bits != MicroOpBits::B128)
+                continue;
+            if (std::ranges::any_of(promotions, [&](const Promotion& p) { return p.offset == offset; }))
                 continue;
             const MicroInstr* writeInst = storage.ptr(write->ref);
             if (!writeInst || (writeInst->op != MicroInstrOpcode::LoadMemReg && writeInst->op != MicroInstrOpcode::StoreVecMemReg) ||
@@ -2132,6 +2153,19 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
     }
 
+    const auto vectorLaneSource = [&](MicroReg vector, uint64_t at, MicroOpBits bits, MicroInstrRef before) {
+        if (!at)
+            return vector;
+        const MicroReg    lane = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);
+        MicroInstrOperand shuffleOps[4];
+        shuffleOps[0].reg      = lane;
+        shuffleOps[1].reg      = vector;
+        shuffleOps[2].opBits   = MicroOpBits::B128;
+        shuffleOps[3].valueU64 = bits == MicroOpBits::B64 ? 0xEE : at / 4;
+        storage.insertDerivedBefore(operands, before, MicroInstrOpcode::VecShuffleRegRegImm, shuffleOps);
+        return lane;
+    };
+
     // ---- Rewrite all accesses of the promoted slots to register ops. ----
     for (const Promotion& p : promotions)
     {
@@ -2140,6 +2174,18 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         for (const SlotAccess& acc : slots[p.offset].accesses)
             rewriteSlotAccess(storage, operands, acc, vreg);
+
+        if (!p.hasLaneReads)
+            continue;
+        for (const auto& [otherOffset, slot] : slots)
+        {
+            if (otherOffset <= p.offset || otherOffset >= p.offset + 16)
+                continue;
+            // Eligibility proved these are aligned, read-only scalar lanes.
+            // Extract at the use, after whichever vector write reaches it.
+            for (const SlotAccess& acc : slot.accesses)
+                rewriteSlotAccess(storage, operands, acc, vectorLaneSource(vreg, acc.offset - p.offset, acc.bits, acc.ref));
+        }
     }
 
     // ---- Split the word-sized objects read field by field. ----
@@ -2233,18 +2279,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             MicroReg&      lane = lanes[(at / 4) * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0)];
             if (!lane.isValid())
             {
-                MicroReg laneSource = vector;
-                if (at != 0)
-                {
-                    // Lane `at / 4` of the dwords, or the high quadword, down to lane zero.
-                    laneSource = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);
-                    MicroInstrOperand shuffleOps[4];
-                    shuffleOps[0].reg      = laneSource;
-                    shuffleOps[1].reg      = vector;
-                    shuffleOps[2].opBits   = MicroOpBits::B128;
-                    shuffleOps[3].valueU64 = acc.bits == MicroOpBits::B64 ? 0xEE : at / 4;
-                    storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::VecShuffleRegRegImm, shuffleOps);
-                }
+                const MicroReg laneSource = vectorLaneSource(vector, at, acc.bits, afterWrite);
 
                 lane = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
                 MicroInstrOperand moveOps[3];

@@ -582,13 +582,11 @@ namespace
         if (!receiverType.isReference())
             return false;
 
-        const TypeRef sourceTypeRef = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type).typeRef();
-        if (!sourceTypeRef.isValid())
+        const SemaNodeView sourceView = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type);
+        if (!sourceView.typeRef().isValid())
             return true;
 
-        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeRef resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
-        return !sema.typeMgr().get(resolvedSourceTypeRef).isPointerOrReference();
+        return !SemaHelpers::aliasEnumType(sema, sourceView).isPointerOrReference();
     }
 
     // The pointer-world receiver: a non-null value-pointer parameter binding a value
@@ -607,13 +605,11 @@ namespace
         if (!receiverType.isValuePointer() || receiverType.isNullable())
             return false;
 
-        const TypeRef sourceTypeRef = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type).typeRef();
-        if (!sourceTypeRef.isValid())
+        const SemaNodeView sourceView = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type);
+        if (!sourceView.typeRef().isValid())
             return true;
 
-        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeRef resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
-        return !sema.typeMgr().get(resolvedSourceTypeRef).isPointerOrReference();
+        return !SemaHelpers::aliasEnumType(sema, sourceView).isPointerOrReference();
     }
 
     Result buildStructOpCastResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, AstNodeRef sourceArgRef, const SymbolFunction& calledFn)

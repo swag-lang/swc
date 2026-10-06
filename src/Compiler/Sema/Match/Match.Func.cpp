@@ -83,9 +83,9 @@ namespace
         if (!sourceTypeRef.isValid())
             return pointeeTypeRef;
 
-        const TypeRef   unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
-        const TypeInfo& sourceType             = sema.typeMgr().get(resolvedSourceTypeRef);
+        const TypeInfo& declaredSourceType = sema.typeMgr().get(sourceTypeRef);
+        const TypeInfo* unwrappedSource    = declaredSourceType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& sourceType         = unwrappedSource ? *unwrappedSource : declaredSourceType;
 
         // A '#move' parameter accepts an UNSIZED literal: the argument is cast to the
         // pointee value and materialized into the call-site temporary like a plain

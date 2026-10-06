@@ -831,6 +831,169 @@ namespace
         }
     }
 
+    // Integer spill homes can use an otherwise unused caller-saved SIMD register
+    // even when the GP register changes roles between accesses. Keeping every
+    // read and write coherent also handles branch arms and distinct loop exits.
+    bool cacheCarriedSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop)
+    {
+        if (context.spillAreaLo >= context.spillAreaHi)
+            return false;
+        const CallConv& conv     = CallConv::get(context.callConvKind);
+        auto&           storage  = *context.instructions;
+        auto&           operands = *context.operands;
+        const auto      refs     = cfg.instructionRefs();
+
+        uint64_t unavailable = 0;
+        for (uint32_t index = 0; index < refs.size(); ++index)
+        {
+            if (!loop.inBody[index])
+                continue;
+            const auto& useDef = liveness.useDefs[index];
+            for (const MicroReg reg : useDef.uses)
+                if (reg.isFloat())
+                    unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
+            for (const MicroReg reg : useDef.defs)
+                if (reg.isFloat())
+                    unavailable |= 1ull << MicroPhysLiveness::bitOf(reg);
+        }
+        SmallVector<MicroReg, 6> available;
+        for (const MicroReg reg : conv.floatTransientRegs)
+            if (!(unavailable & (1ull << MicroPhysLiveness::bitOf(reg))) && !liveness.isLiveOut(loop.header - 1, reg))
+                available.push_back(reg);
+        if (available.empty())
+            return false;
+
+        struct Slot
+        {
+            FrameRef                      range;
+            SmallVector<MicroInstrRef, 4> accesses;
+            uint32_t                      reads    = 0;
+            uint32_t                      writes   = 0;
+            bool                          eligible = true;
+        };
+        SmallVector<Slot, 16>    slots;
+        SmallVector<uint32_t, 4> exits;
+        for (uint32_t index = 0; index < refs.size(); ++index)
+        {
+            if (!loop.inBody[index])
+                continue;
+            const auto& useDef = liveness.useDefs[index];
+            if (useDef.isCall || std::ranges::find(useDef.defs, conv.stackPointer) != useDef.defs.end())
+                return false;
+            const MicroInstr* inst = storage.ptr(refs[index]);
+            const auto*       ops  = inst ? inst->ops(operands) : nullptr;
+            if (!inst)
+                return false;
+            for (const uint32_t successor : cfg.successors(index))
+            {
+                if (successor >= refs.size())
+                    return false;
+                if (!loop.inBody[successor] && std::ranges::find(exits, successor) == exits.end())
+                    exits.push_back(successor);
+            }
+
+            // A derived stack address or indexed stack access needs a wider
+            // alias proof. Other fixed accesses only block overlapping slots.
+            if (std::ranges::find(useDef.uses, conv.stackPointer) == useDef.uses.end())
+                continue;
+            const bool                  load  = inst->op == MicroInstrOpcode::LoadRegMem;
+            const bool                  store = inst->op == MicroInstrOpcode::LoadMemReg;
+            const auto&                 info  = MicroInstr::info(inst->op);
+            MicroPassHelpers::AmcLayout layout;
+            if (!ops || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) ||
+                ops[info.memBaseOperandIndex].reg != conv.stackPointer ||
+                inst->op == MicroInstrOpcode::LoadAddrRegMem || MicroPassHelpers::amcLayoutFor(layout, inst->op))
+                return false;
+            const uint64_t offset = ops[info.memOffsetOperandIndex].valueU64;
+            uint64_t       width  = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0;
+            for (uint32_t operand = 0; operand < inst->numOperands; ++operand)
+                if (info.opBitsMask & (1u << operand))
+                    width = std::max<uint64_t>(width, getNumBytes(ops[operand].opBits));
+            if (!width)
+                return false;
+            if (offset + width < offset)
+                return false;
+            auto found = std::ranges::find_if(slots, [&](const Slot& slot) { return slot.range.lo == offset; });
+            if (found == slots.end())
+            {
+                slots.push_back({.range = {conv.stackPointer, offset, offset + width}});
+                found = slots.end() - 1;
+            }
+            found->eligible &= (load || store) && width == 8 && found->range.hi == offset + width && ops[load ? 0 : 1].reg.isInt();
+            found->range.hi = std::max(found->range.hi, offset + width);
+            found->accesses.push_back(refs[index]);
+            found->reads += load;
+            found->writes += store;
+        }
+        if (exits.empty())
+            return false;
+        SmallVector<MicroInstrRef, 4> writeBacks;
+        for (const uint32_t exit : exits)
+        {
+            for (const uint32_t predecessor : cfg.predecessors(exit))
+                if (predecessor >= refs.size() || !loop.inBody[predecessor])
+                    return false;
+            MicroInstrRef     before = refs[exit];
+            const MicroInstr* inst   = storage.ptr(before);
+            if (!inst)
+                return false;
+            if (inst->op == MicroInstrOpcode::Label)
+                before = storage.findNextInstructionRef(before);
+            if (!before.isValid())
+                return false;
+            writeBacks.push_back(before);
+        }
+
+        // Prefer the slots with the most traffic. Retain collection order for
+        // ties so register assignment does not depend on a hash table's order.
+        std::stable_sort(slots.begin(), slots.end(), [](const Slot& a, const Slot& b) { return a.accesses.size() > b.accesses.size(); });
+        uint32_t selected = 0;
+        for (const Slot& slot : slots)
+        {
+            if (selected == available.size())
+                break;
+            if (!slot.eligible || !slot.reads || !slot.writes ||
+                slot.range.lo < context.spillAreaLo || slot.range.hi > context.spillAreaHi || slot.range.hi < slot.range.lo)
+                continue;
+            bool overlap = false;
+            for (const Slot& other : slots)
+                if (&slot != &other && overlaps(slot.range, other.range))
+                    overlap = true;
+            if (overlap)
+                continue;
+
+            const MicroReg    cached  = available[selected++];
+            MicroInstrOperand seed[4] = {};
+            seed[0].reg               = cached;
+            seed[1].reg               = conv.stackPointer;
+            seed[2].opBits            = MicroOpBits::B64;
+            seed[3].valueU64          = slot.range.lo;
+            storage.insertDerivedBefore(operands, refs[loop.header], MicroInstrOpcode::LoadRegMem, seed);
+            MicroInstrOperand write[4] = {};
+            write[0].reg               = conv.stackPointer;
+            write[1].reg               = cached;
+            write[2].opBits            = MicroOpBits::B64;
+            write[3].valueU64          = slot.range.lo;
+            for (const MicroInstrRef before : writeBacks)
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadMemReg, write);
+            for (const MicroInstrRef ref : slot.accesses)
+            {
+                MicroInstr* inst = storage.ptr(ref);
+                auto*       ops  = inst->ops(operands);
+                if (inst->op == MicroInstrOpcode::LoadRegMem)
+                    ops[1].reg = cached;
+                else
+                    ops[0].reg = cached;
+                inst->op          = MicroInstrOpcode::LoadRegReg;
+                inst->numOperands = 3;
+            }
+        }
+        if (!selected)
+            return false;
+        context.builder->invalidateControlFlowGraph();
+        return true;
+    }
+
     bool hoistRound(MicroPassContext& context, const CallConv& conv, FrameReachability& framePrivacy)
     {
         MicroStorage&        storage  = *context.instructions;
@@ -902,6 +1065,10 @@ namespace
                 continue;
             if (prevFlags.has(MicroInstrFlagsE::JumpInstruction) &&
                 !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
+                continue;
+            // A conditional jump directly to the following header can skip
+            // instructions inserted before that label on its taken edge.
+            if (prevFlags.has(MicroInstrFlagsE::JumpInstruction) && cfg.successors(header - 1).size() == 1)
                 continue;
             loops.push_back(&loop);
         }
@@ -1188,7 +1355,14 @@ namespace
         }
 
         if (hoists.empty() && carried.empty() && sunkStores.empty() && cachedReloads.empty())
+        {
+            // Use the remaining register bank only after ordinary promotion has
+            // exhausted its opportunities. Mutate one loop, then refresh liveness.
+            for (const NaturalLoop* loop : loops)
+                if (cacheCarriedSpills(context, cfg, liveness, *loop))
+                    return true;
             return false;
+        }
 
         for (const CachedReload& reload : cachedReloads)
         {

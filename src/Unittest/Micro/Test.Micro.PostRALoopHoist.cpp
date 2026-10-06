@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRaLoopHoistPass(MicroBuilder& builder)
+    Result runPostRaLoopHoistPass(MicroBuilder& builder, uint64_t spillLo = 0, uint64_t spillHi = 0)
     {
         MicroPostRaLoopHoistPass pass;
         MicroPassManager         passManager;
@@ -23,6 +23,8 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
+        passContext.spillAreaLo  = spillLo;
+        passContext.spillAreaHi  = spillHi;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -651,6 +653,66 @@ SWC_TEST_BEGIN(PostRALoopHoist_IntegerReloadUsesUnusedFloatRegister)
             if (loads != (cached ? 1u : 2u) || transfers != (cached ? 2u : 0u))
                 return Result::Error;
         }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
+{
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+        const MicroReg  sp    = conv.stackPointer;
+        const MicroReg  value = conv.intTransientRegs[3];
+        const MicroReg  count = conv.intTransientRegs[4];
+        MicroBuilder    builder(ctx);
+        const auto      top        = builder.createLabel();
+        const auto      arm        = builder.createLabel();
+        const auto      latch      = builder.createLabel();
+        const auto      firstExit  = builder.createLabel();
+        const auto      secondExit = builder.createLabel();
+        if (variant == 2)
+            builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, secondExit);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        if (variant == 3)
+            builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, top);
+        builder.placeLabel(top);
+        builder.emitCmpRegImm(count, ApInt(20, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, firstExit);
+        builder.emitLoadRegMem(value, sp, 0x80, MicroOpBits::B64);
+        builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, arm);
+        builder.emitOpBinaryRegImm(value, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x80, value, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, latch);
+        builder.placeLabel(arm);
+        builder.emitLoadRegMem(value, sp, 0x80, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x80, value, MicroOpBits::B64);
+        builder.placeLabel(latch);
+        if (variant == 1)
+            builder.emitLoadMemReg(sp, 0x84, count, MicroOpBits::B32);
+        builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(count, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, secondExit);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        builder.placeLabel(firstExit);
+        builder.emitRet();
+        builder.placeLabel(secondExit);
+        builder.emitRet();
+        SWC_RESULT(runPostRaLoopHoistPass(builder, 0x80, 0x88));
+        const uint32_t loads  = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t copies = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
+        if (variant == 0)
+        {
+            SWC_ASSERT(loads == 1 && copies == 4);
+            SWC_ASSERT(Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) == 2);
+            SWC_ASSERT(Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem) <
+                       Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label));
+        }
+        else
+            SWC_ASSERT(loads == 2 && copies == 0);
     }
     return Result::Continue;
 }

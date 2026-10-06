@@ -127,15 +127,9 @@ namespace
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& typeInfo = ctx.typeMgr().get(symVar.typeRef());
         SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-        TypeRef storageTypeRef = symVar.typeRef();
-        if (typeInfo.isAlias())
-        {
-            const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, storageTypeRef, TypeExpandE::Alias);
-            if (unwrappedTypeRef.isValid())
-                storageTypeRef = unwrappedTypeRef;
-        }
-
-        const TypeInfo& storageTypeInfo = ctx.typeMgr().get(storageTypeRef);
+        const TypeInfo* unwrappedType   = typeInfo.unwrapAliasType(ctx);
+        const TypeInfo& storageTypeInfo = unwrappedType ? *unwrappedType : typeInfo;
+        const TypeRef   storageTypeRef  = storageTypeInfo.typeRef();
 
         const uint64_t sizeU64 = storageTypeInfo.sizeOf(ctx);
         if (!sizeU64)
@@ -850,17 +844,13 @@ namespace
         if (finalTypeRef.isInvalid())
             return Result::Continue;
 
-        const TypeInfo& finalType = sema.typeMgr().get(finalTypeRef);
-
-        TypeRef       storageTypeRef   = finalTypeRef;
-        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), storageTypeRef);
-        if (unwrappedTypeRef.isValid())
-            storageTypeRef = unwrappedTypeRef;
+        const TypeInfo& finalType      = sema.typeMgr().get(finalTypeRef);
+        const TypeInfo* unwrappedType  = finalType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& storageType    = unwrappedType ? *unwrappedType : finalType;
+        const TypeRef   storageTypeRef = storageType.typeRef();
 
         if (storageTypeRef == sema.typeMgr().typeVoid())
             return reportBadStorageType(sema, context, finalTypeRef);
-
-        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
 
         if (!isParameter)
             SWC_RESULT(SemaCheck::noMoveRefType(sema, storageTypeRef, finalTypeErrorRef(sema, context)));
@@ -1061,11 +1051,9 @@ namespace
                 return reportTypeRequiresInit(sema, context, finalTypeRef);
             if (requiresExplicitInit && supportsDefiniteInit)
             {
-                const TypeInfo& type           = sema.typeMgr().get(finalTypeRef);
-                TypeRef         storageTypeRef = finalTypeRef;
-                if (const TypeRef unwrapped = type.unwrap(sema.ctx(), finalTypeRef, TypeExpandE::Alias); unwrapped.isValid())
-                    storageTypeRef = unwrapped;
-                const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+                const TypeInfo& type          = sema.typeMgr().get(finalTypeRef);
+                const TypeInfo* unwrappedType = type.unwrapAliasType(sema.ctx());
+                const TypeInfo& storageType   = unwrappedType ? *unwrappedType : type;
                 // Definite assignment tracks a complete static array as one
                 // construction unit. Element/range coverage remains deliberately
                 // conservative, but a known whole-object construction such as
@@ -1219,11 +1207,10 @@ namespace
         SWC_RESULT(completeVar(sema, symbols, finalTypeRef));
         if (sema.isCurrentFunction() && !isParameter && context.nodeInitRef.isInvalid())
         {
-            const TypeInfo& type           = sema.typeMgr().get(finalTypeRef);
-            TypeRef         storageTypeRef = finalTypeRef;
-            if (const TypeRef unwrapped = type.unwrap(sema.ctx(), finalTypeRef, TypeExpandE::Alias); unwrapped.isValid())
-                storageTypeRef = unwrapped;
-            if (requiresExplicitInit || sema.typeMgr().get(storageTypeRef).isStruct())
+            const TypeInfo& type          = sema.typeMgr().get(finalTypeRef);
+            const TypeInfo* unwrappedType = type.unwrapAliasType(sema.ctx());
+            const TypeInfo& storageType   = unwrappedType ? *unwrappedType : type;
+            if (requiresExplicitInit || storageType.isStruct())
                 sema.noteInitFlowCandidate();
         }
         if (context.nodeInitRef.isValid() && !setInitInfo.handled)

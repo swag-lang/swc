@@ -127,13 +127,15 @@ namespace
         outSteps.clear();
         const TypeManager& typeMgr = codeGen.typeMgr();
 
-        srcStructTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), srcStructTypeRef);
-        dstStructTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstStructTypeRef);
         if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())
             return false;
 
-        const TypeInfo& srcStructType = typeMgr.get(srcStructTypeRef);
-        const TypeInfo& dstStructType = typeMgr.get(dstStructTypeRef);
+        const TypeInfo& declaredSrcType = typeMgr.get(srcStructTypeRef);
+        const TypeInfo& declaredDstType = typeMgr.get(dstStructTypeRef);
+        const TypeInfo* srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo* dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& srcStructType   = srcStorageType ? *srcStorageType : declaredSrcType;
+        const TypeInfo& dstStructType   = dstStorageType ? *dstStorageType : declaredDstType;
         if (!srcStructType.isStruct() || !dstStructType.isStruct())
             return false;
 
@@ -145,14 +147,16 @@ namespace
 
     bool resolveUsingPointerLikeCastPath(CodeGen& codeGen, TypeRef sourceTypeRef, TypeRef dstTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
     {
-        const TypeManager& typeMgr               = codeGen.typeMgr();
-        const TypeRef      resolvedSourceTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
-        const TypeRef      resolvedDstTypeRef    = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
-        if (!resolvedSourceTypeRef.isValid() || !resolvedDstTypeRef.isValid())
+        if (!sourceTypeRef.isValid() || !dstTypeRef.isValid())
             return false;
 
-        const TypeInfo& sourceType = typeMgr.get(resolvedSourceTypeRef);
-        const TypeInfo& dstType    = typeMgr.get(resolvedDstTypeRef);
+        const TypeManager& typeMgr         = codeGen.typeMgr();
+        const TypeInfo&    declaredSrcType = typeMgr.get(sourceTypeRef);
+        const TypeInfo&    declaredDstType = typeMgr.get(dstTypeRef);
+        const TypeInfo*    srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo*    dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
+        const TypeInfo&    dstType         = dstStorageType ? *dstStorageType : declaredDstType;
         if (!(sourceType.isAnyPointer() || sourceType.isReference() || sourceType.isMoveReference()))
             return false;
         if (!(dstType.isAnyPointer() || dstType.isReference() || dstType.isMoveReference()))
@@ -272,14 +276,16 @@ namespace
 
     bool tryEmitReferenceToPointerCast(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef sourceTypeRef, TypeRef dstTypeRef)
     {
-        const TypeManager& typeMgr               = codeGen.typeMgr();
-        const TypeRef      resolvedSourceTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
-        const TypeRef      resolvedDstTypeRef    = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
-        if (!resolvedSourceTypeRef.isValid() || !resolvedDstTypeRef.isValid())
+        if (!sourceTypeRef.isValid() || !dstTypeRef.isValid())
             return false;
 
-        const TypeInfo& sourceType = typeMgr.get(resolvedSourceTypeRef);
-        const TypeInfo& dstType    = typeMgr.get(resolvedDstTypeRef);
+        const TypeManager& typeMgr         = codeGen.typeMgr();
+        const TypeInfo&    declaredSrcType = typeMgr.get(sourceTypeRef);
+        const TypeInfo&    declaredDstType = typeMgr.get(dstTypeRef);
+        const TypeInfo*    srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo*    dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
+        const TypeInfo&    dstType         = dstStorageType ? *dstStorageType : declaredDstType;
         SWC_ASSERT(sourceType.isReference() && dstType.isAnyPointer());
 
         const TypeRef sourcePointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
@@ -365,22 +371,25 @@ namespace
 
     Result tryEmitReferenceScalarNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef, bool& outHandled)
     {
-        outHandled                            = false;
-        const TypeManager& typeMgr            = codeGen.typeMgr();
-        const TypeRef      resolvedSourceRef  = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
-        const TypeRef      resolvedDstTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
-        if (!resolvedSourceRef.isValid() || !resolvedDstTypeRef.isValid())
+        outHandled = false;
+        if (!sourceTypeRef.isValid() || !dstTypeRef.isValid())
             return Result::Continue;
 
-        const TypeInfo& sourceType = typeMgr.get(resolvedSourceRef);
-        const TypeInfo& dstType    = typeMgr.get(resolvedDstTypeRef);
+        const TypeManager& typeMgr         = codeGen.typeMgr();
+        const TypeInfo&    declaredSrcType = typeMgr.get(sourceTypeRef);
+        const TypeInfo&    declaredDstType = typeMgr.get(dstTypeRef);
+        const TypeInfo*    srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo*    dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
+        const TypeInfo&    dstType         = dstStorageType ? *dstStorageType : declaredDstType;
         SWC_ASSERT(sourceType.isReference() || sourceType.isMoveReference());
 
-        const TypeRef pointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
-        if (!pointeeTypeRef.isValid())
+        if (!sourceType.payloadTypeRef().isValid())
             return Result::Continue;
 
-        const TypeInfo& pointeeType = typeMgr.get(pointeeTypeRef);
+        const TypeInfo& declaredPointee = typeMgr.get(sourceType.payloadTypeRef());
+        const TypeInfo* pointeeStorage  = declaredPointee.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& pointeeType     = pointeeStorage ? *pointeeStorage : declaredPointee;
         if (!pointeeType.isScalarNumeric() || !dstType.isScalarNumeric())
             return Result::Continue;
 

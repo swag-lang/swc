@@ -203,7 +203,7 @@ namespace
         uint32_t lastSlot = 0;
     };
 
-    FramePrivacy analyzeFramePrivacy(MicroStorage& storage, MicroOperandStorage& operands, std::span<const MicroInstrRef> instrRefs, std::span<const MicroInstrUseDef> useDefs, MicroReg stackPointer, const std::unordered_map<MicroReg, RegDefinitionSummary>& definitions, const Encoder* encoder)
+    FramePrivacy analyzeFramePrivacy(MicroStorage& storage, MicroOperandStorage& operands, std::span<const MicroInstrRef> instrRefs, std::span<const MicroInstrUseDef> useDefs, MicroReg stackPointer, const std::unordered_map<MicroReg, RegDefinitionSummary>& definitions)
     {
         FramePrivacy   fp;
         const uint32_t n = static_cast<uint32_t>(instrRefs.size());
@@ -273,12 +273,17 @@ namespace
                 explainedBase = firstUseReg(*ud);
             }
 
-            MicroInstrRegOperandRefs regRefs;
-            inst->collectRegOperands(operands, regRefs, encoder);
-            for (const auto& rref : regRefs)
+            const MicroInstrOperand* ops = inst->ops(operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
+            for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
             {
-                SWC_ASSERT(rref.reg);
-                const MicroReg reg = *rref.reg;
+                if (modes[operandIndex] == MicroInstrRegMode::None)
+                    continue;
+                const MicroReg reg = ops[operandIndex].reg;
+                if (!reg.isValid() || reg.isNoBase())
+                    continue;
                 if (reg == stackPointer || !fp.frameDerived.contains(reg))
                     continue;
                 if (reg == explainedBase || reg == explainedSrc || reg == explainedDst)
@@ -484,7 +489,7 @@ namespace
         }
 
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
-        const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, definitions, context.encoder);
+        const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, definitions);
 
         // A value-handle parameter passed by reference is immutable to the
         // callee: no store and no call in a loop changes what a read through

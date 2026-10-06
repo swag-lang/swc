@@ -203,7 +203,6 @@ namespace
         const TypeInfo& storageType    = unaliasedType ? *unaliasedType : targetType;
         const TypeRef   storageTypeRef = storageType.typeRef();
 
-        const ConstantValue& defaultCst = codeGen.cstMgr().get(defaultCstRef);
         if (prefersAddressBackedCallConstantPayload(storageType))
         {
             const uint64_t rawSize = storageType.sizeOf(ctx);
@@ -221,6 +220,8 @@ namespace
 
             return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, materializedCstRef);
         }
+
+        const ConstantValue& defaultCst = codeGen.cstMgr().get(defaultCstRef);
 
         // A struct or array constant bound to a non-null value-pointer parameter (the
         // castless receiver) passes the address of its own static payload: a segment

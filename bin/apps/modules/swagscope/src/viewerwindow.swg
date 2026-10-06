@@ -3060,7 +3060,8 @@ impl ViewerWindow
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
-        .folderLabel.setText(.currentFile.isEmpty() ? appStrings().ui_Folder : (Path.fileName(Path.directoryName(.currentFile.toString())) orelse appStrings().ui_Folder))
+        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.currentFile.toString())
+        .folderLabel.setText(Path.fileName(folder) orelse folder orelse appStrings().ui_Folder)
         .filePanel.applyLayout()
         if .isFolderReading() and currentIndex != Swag.U32.Max do
             .folderList.ensureVisibleLine(currentIndex)

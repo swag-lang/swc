@@ -5,6 +5,42 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
+### app.scope.document.001 — The Markdown outline has no filtering or current-section tracking
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-06 20:56 — Attribute duplicate-heading coverage to the std/gui outline suite rather than the Scope test.
+- Evidence: `DocumentOutline` now presents Markdown headings with their hierarchy depth and
+  distinct source offsets. Opening the panel builds the heading list on a worker; pointer and
+  keyboard selection call `Markdown.View.revealHeading`, including headings outside the resident
+  window. `viewer.outline.test.swg` covers hierarchy depth, navigation and localized goldens;
+  distinct offsets for duplicate headings are covered by `Markdown.parseHeadings` in
+  `bin/std/modules/gui/src/tests/documentoutline.test.swg`.
+- Remaining: the panel has no heading filter, current-section tracking, breadcrumb path or
+  navigation history. It reads the complete source for its heading pass rather than maintaining
+  a bounded streaming index.
+- Next: extend the existing outline with a bounded heading index, filtering and a current-heading
+  signal from the document; retain source offsets as identity rather than deriving it from titles.
+- Complete when: filtering and keyboard navigation preserve distinct duplicate headings, the
+  visible section updates the selected heading/breadcrumb, and back/forward restores a reading
+  location without retaining the whole source.
+- Related: std.gui.markdown.005, app.scope.viewers.003
+
+### app.scope.document.013 — The PDF bookmark panel has no filtering or navigation history
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-06 20:56 — Attribute bookmark test coverage to the Scope and std/gui suites that actually hold it.
+- Evidence: `PdfViewer` loads `Reader.loadOutline`, fills the shared `DocumentOutline`, and
+  selects page-space positions through `PdfView.showPosition`. `viewer.outline.test.swg` navigates
+  the four-bookmark fixture; its cropped and rotated destination coordinates are covered by
+  `bin/std/modules/gui/src/tests/documentoutline.test.swg`.
+- Remaining: the outline has no filtering or back/forward state. Page-link annotations are not
+  exposed by the engine (std.gui.pdf.017), and there is no viewer interaction for those targets.
+- Next: add filtering and a bounded page/position/zoom history to the existing bookmark panel,
+  then route supported page links through the same navigation contract when the engine exposes them.
+- Complete when: bookmark filtering preserves hierarchy, back/forward restores page coordinates
+  and zoom, and supported local links share the same behavior while invalid targets remain visible.
+- Related: std.gui.pdf.017
+
 ### app.scope.document.010 — HTML has no reader-mode or page-level diagnostics
 
 - Recorded: 2026-08-29 08:36
@@ -18,39 +54,6 @@ integration around those engines.
 - Complete when: title, language, metadata, headings, landmarks, and warnings are inspectable;
   reader mode preserves links and text order; and switching modes retains the logical location.
 - Related: std.gui.html.017
-
-### app.scope.document.013 — The PDF bookmark panel has no filtering or navigation history
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-10-04 15:06 — Retain navigation refinements after bookmark loading and the outline panel shipped.
-- Evidence: `PdfViewer` loads `Reader.loadOutline`, fills the shared `DocumentOutline`, and
-  selects page-space positions through `PdfView.showPosition`. `viewer.outline.test.swg` covers
-  the four-bookmark fixture and cropped/rotated destinations.
-- Remaining: the outline has no filtering or back/forward state. Page-link annotations are not
-  exposed by the engine (std.gui.pdf.017), and there is no viewer interaction for those targets.
-- Next: add filtering and a bounded page/position/zoom history to the existing bookmark panel,
-  then route supported page links through the same navigation contract when the engine exposes them.
-- Complete when: bookmark filtering preserves hierarchy, back/forward restores page coordinates
-  and zoom, and supported local links share the same behavior while invalid targets remain visible.
-- Related: std.gui.pdf.017
-
-### app.scope.document.001 — The Markdown outline has no filtering or current-section tracking
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-10-04 15:06 — Retain filtering, tracking and bounded indexing after the heading outline shipped.
-- Evidence: `DocumentOutline` now presents Markdown headings with their hierarchy depth and
-  distinct source offsets. Opening the panel builds the heading list on a worker; pointer and
-  keyboard selection call `Markdown.View.revealHeading`, including headings outside the resident
-  window. `viewer.outline.test.swg` covers duplicate headings, navigation and localized goldens.
-- Remaining: the panel has no heading filter, current-section tracking, breadcrumb path or
-  navigation history. It reads the complete source for its heading pass rather than maintaining
-  a bounded streaming index.
-- Next: extend the existing outline with a bounded heading index, filtering and a current-heading
-  signal from the document; retain source offsets as identity rather than deriving it from titles.
-- Complete when: filtering and keyboard navigation preserve distinct duplicate headings, the
-  visible section updates the selected heading/breadcrumb, and back/forward restores a reading
-  location without retaining the whole source.
-- Related: std.gui.markdown.005, app.scope.viewers.003
 
 ### app.scope.document.016 — Image-only PDF pages do not explain why text search finds nothing
 

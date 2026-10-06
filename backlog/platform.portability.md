@@ -665,7 +665,6 @@ not depend on an installed driver.
 
 - Recorded: 2026-08-09 11:30
 - Updated: 2026-09-27 18:01 — define instrumented allocator-stress acceptance.
-- Historical provenance: moved from retired runtime.allocator.009.
 
 Run the allocator stress suite under Windows Application Verifier and page heap, and make the
 invocation reproducible without folding it into failure injection.
@@ -738,7 +737,6 @@ reporting and the receiving application's ownership of queued document opens.
 
 - Recorded: 2026-09-08 18:59
 - Updated: 2026-09-12 10:02 — Correct the current cast spelling and identify the dated reinterpretation census.
-- Historical provenance: moved from retired compiler.safety.022.
 - Area: `std/gui`, Windows OLE bindings
 - Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
   OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface

@@ -39,7 +39,7 @@ answers hover on links without restyling — a documented stance: a state pseudo
 need a per-frame restyle matches never, and the viewer lights the link while painting instead.
 
 A recorded comparison parsed the 8.15 MB rustdoc page
-of `src/tests/datas` into its 429 782 nodes, on the same machine and pinned to the performance
+`gui/src/tests/datas/html.rustdoc-large.html` into its 429 782 nodes, on the same machine and pinned to the performance
 cores: this engine **130 ms (63 MB/s)**, html5ever with its reference DOM 278 ms (28 MB/s), the
 same tokenizer with no tree at all 134 ms (58 MB/s), the `tl` crate — a zero-copy, deliberately
 non-conforming DOM — 64 ms (120 MB/s), and lol-html's tokenizer, which builds nothing, 51 ms
@@ -65,6 +65,24 @@ whole. The gaps are of two kinds: pages that lay out or paint as something other
 mean, and CSS surface that is read and silently dropped.
 
 ## Entries
+
+### std.gui.html.003 — A table has no column model
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-10-06 20:54 — Credit the pixel cell width that already feeds column sizing.
+- Intent: columns are sized from cell content. A definite pixel `width` on a cell replaces that
+  cell's content measure in `intrinsicWidths` (`controls/html/layout.swg`), and `layoutTable`
+  folds it into its column's minimum and maximum, so it is one input rather than a declared
+  column width. A percentage width, a `<col>` width, the HTML `width` attribute on a cell,
+  `table-layout: fixed`, `border-spacing`, `border-collapse` and `caption-side` are all unread
+  (`border-collapse` is not even a property the parser resolves). Every browser default separates
+  cell borders by 2px; here cells touch, and a bordered table draws doubled walls where a
+  collapsed one means single lines.
+- Complete when: an author-declared column width wins over content sizing, `table-layout: fixed`
+  sizes from the first row, border spacing separates and `border-collapse: collapse` merges
+  adjacent cell borders, and the tables fixture compares those against browser geometry,
+  including the pixel-width cell case already supported.
+- Related: std.gui.html.002, std.gui.html.014
 
 ### std.gui.html.012 — Dashed, dotted and double borders paint solid
 
@@ -254,20 +272,6 @@ mean, and CSS surface that is read and silently dropped.
   columns and rows, column min/max measurement distributes a spanning cell's width over the
   columns it covers, and `html.tables.html` gains span cases checked against a browser.
 - Related: std.gui.html.003
-
-### std.gui.html.003 — A table has no column model
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: columns are sized from cell content alone. A `width` on a cell or a `<col>`, a
-  percentage column, `table-layout: fixed`, `border-spacing`, `border-collapse` and
-  `caption-side` are all unread (`border-collapse` is not even a property the parser resolves).
-  Every browser default separates cell borders by 2px; here cells touch, and a bordered table
-  draws doubled walls where a collapsed one means single lines.
-- Complete when: an author-declared column width wins over content sizing, `table-layout: fixed`
-  sizes from the first row, border spacing separates and `border-collapse: collapse` merges
-  adjacent cell borders, and the tables fixture compares those against browser geometry.
-- Related: std.gui.html.002, std.gui.html.014
 
 ### std.gui.html.004 — A grid places items in source order only
 

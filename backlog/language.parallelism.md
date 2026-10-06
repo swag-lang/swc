@@ -30,6 +30,38 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.008 — A parallel loop cannot combine per-partition results
+
+- Recorded: 2026-09-08 20:14
+- Updated: 2026-10-06 20:59 — Restate the thread-local cost from the current lowering instead of a figure the allocator entry no longer carries.
+- Evidence: every partition of a `parallel for` receives the same captures. A loop that computes
+  one value -- a sum, a maximum, a count, a first match, an accumulated bounding box -- cannot
+  say that each partition needs its own accumulator and that the accumulators combine at the
+  join. Consumers write one of two workarounds: an atomic on the shared destination, which
+  serializes the loop's hot line and, with `AtomicValue.store` lowered to a locked exchange,
+  pays a full barrier per iteration; or an array indexed by a partition number the language does
+  not expose, which forces the body to know the partitioning it is explicitly told not to depend
+  on.
+- Evidence: the general escape, one accumulator per thread, is also expensive. Every access to a
+  `tls` global calls the runtime's `__tlsVarPtr`
+  (`CodeGenMemoryHelpers::emitGlobalVariableAddress`), which reads the global's slot identifier
+  with an atomic compare-exchange before the host thread-storage lookup; the direct slot load of
+  `2f353d606` serves only the runtime context. The per-thread block is released at thread exit
+  without running `opDrop`, so it can only hold a plain value.
+- Next: design the combining form as part of the statement, stating the identity, the
+  per-partition storage and the combining operation together, and combining at the join rather
+  than in the body. Settle whether the operation must be associative and commutative or only
+  associative -- floating-point addition is not associative -- and say what result the program is entitled
+  to when it is not. Decide whether the form is a clause of `parallel for` or a value the
+  statement produces.
+- Complete when: a parallel sum, a parallel maximum and a parallel bounding box are written
+  without an atomic on the hot line and without indexing a partition, and a single-worker run of
+  the same source produces the same value the loop promises.
+- Elsewhere: OpenMP has `reduction(+:x)` and user-declared reducers; Rayon, .NET PLINQ and Java
+  streams reduce through the iterator; Chapel writes `+ reduce`. All of them treat reduction as
+  the second data-parallel primitive after the map, not as a library afterthought.
+- Related: language.parallelism.001, language.parallelism.004, std.core.025
+
 ### language.parallelism.005 — Captures do not prove task lifetime or race freedom
 
 - Recorded: 2026-09-07 15:52
@@ -201,36 +233,6 @@ of simplicity when every useful helper needs an unchecked contract.
   clear affected caches when validating changed compiler behavior. Serialized effect summaries
   and runtime ABI changes must invalidate incompatible cached artifacts.
 
-### language.parallelism.008 — A parallel loop cannot combine per-partition results
-
-- Recorded: 2026-09-08 20:14
-- Updated: 2026-09-12 07:12 — State the floating-point associativity limitation precisely.
-- Evidence: every partition of a `parallel for` receives the same captures. A loop that computes
-  one value -- a sum, a maximum, a count, a first match, an accumulated bounding box -- cannot
-  say that each partition needs its own accumulator and that the accumulators combine at the
-  join. Consumers write one of two workarounds: an atomic on the shared destination, which
-  serializes the loop's hot line and, with `AtomicValue.store` lowered to a locked exchange,
-  pays a full barrier per iteration; or an array indexed by a partition number the language does
-  not expose, which forces the body to know the partitioning it is explicitly told not to depend
-  on.
-- Evidence: the general escape, one accumulator per thread, is also expensive. `tls` lowers a
-  thread-local global to a runtime call per access, measured at 4 ns against 1 ns for a plain
-  global read (runtime.allocator.002), and the per-thread block is released at thread exit
-  without running `opDrop`, so it can only hold a plain value.
-- Next: design the combining form as part of the statement, stating the identity, the
-  per-partition storage and the combining operation together, and combining at the join rather
-  than in the body. Settle whether the operation must be associative and commutative or only
-  associative -- floating-point addition is not associative -- and say what result the program is entitled
-  to when it is not. Decide whether the form is a clause of `parallel for` or a value the
-  statement produces.
-- Complete when: a parallel sum, a parallel maximum and a parallel bounding box are written
-  without an atomic on the hot line and without indexing a partition, and a single-worker run of
-  the same source produces the same value the loop promises.
-- Elsewhere: OpenMP has `reduction(+:x)` and user-declared reducers; Rayon, .NET PLINQ and Java
-  streams reduce through the iterator; Chapel writes `+ reduce`. All of them treat reduction as
-  the second data-parallel primitive after the map, not as a library afterthought.
-- Related: language.parallelism.001, language.parallelism.004, std.core.025
-
 ### language.parallelism.002 — No suspension, and no typed task result
 
 - Recorded: 2026-09-07 15:52
@@ -314,7 +316,6 @@ of simplicity when every useful helper needs an unchecked contract.
 
 - Recorded: 2026-08-09 11:30
 - Updated: 2026-09-10 19:32 — Move the runtime channel contract from the Core integration domain.
-- Historical provenance: moved from retired std.core.026.
 - Evidence: no typed channel defines transfer, capacity, close, cancellation, and selection
   together. A producer and a consumer that need one build it from `Swag.Mutex` and
   `Swag.Condition` by hand, which is what the Swag Scope video queue does.

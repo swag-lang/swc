@@ -31,6 +31,21 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.011 — Painter paths cannot use polygon boolean operations
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-10-06 20:57 — Count the self-union `clean` beside `intersect` among the exposed operations.
+- Evidence: `poly/` has boolean operations, but `LinePathList` callers have no supported conversion
+  with a shared tolerance, fill rule, scale, and failure contract. `LinePathList.clean` (a
+  self-union and normalization) and `LinePathList.intersect` (for the PDF decoder's nested clips,
+  taking a fill rule per list) are the only operations exposed; both take already-flattened lists
+  and answer a normalized polygonal list.
+- Next: define conversion in both directions and expose a two-operand union, difference, and xor
+  beside the intersection at the painter-path boundary.
+- Complete when: curved, holed, touching, self-intersecting, empty, and large-coordinate fixtures
+  state their approximation and fill behavior and no caller reimplements flattening.
+- Related: std.pixel.008, std.pixel.009
+
 ### std.pixel.025 — Extend the explicit OpenGL campaign to the portable rendering scenes
 
 - Recorded: 2026-09-07 11:24
@@ -257,20 +272,6 @@ output, path measurement and effects, and the modern renderer choice tracked by
 - Complete when: a representative worst-case fixture justifies and protects a change, or the
   current algorithm is retained with a documented bound for the supported workload.
 - Related: std.pixel.022, std.pixel.031
-
-### std.pixel.011 — Painter paths cannot use polygon boolean operations
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-03 09:34 — git: Cut PDF marks to the shape of their clip, and blend onto the window over an opaque backdrop
-- Evidence: `poly/` has boolean operations, but `LinePathList` callers have no supported conversion
-  with a shared tolerance, fill rule, scale, and failure contract. `LinePathList.intersect` is the
-  one operation exposed so far, for the PDF decoder's nested clips: it takes two already-flattened
-  lists and a fill rule for each, and answers a normalized polygonal list.
-- Next: define conversion in both directions and expose union, difference, and xor beside the
-  intersection at the painter-path boundary.
-- Complete when: curved, holed, touching, self-intersecting, empty, and large-coordinate fixtures
-  state their approximation and fill behavior and no caller reimplements flattening.
-- Related: std.pixel.008, std.pixel.009
 
 ### std.pixel.004 — Painter texture sampling stops at nearest and bilinear
 

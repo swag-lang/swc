@@ -6,6 +6,113 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.030 — Every executable lowers the runtime's functions again
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-10-06 20:59 — Executables and libraries now lower only what they reach; the runtime closure is still lowered per executable.
+
+**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
+
+**Evidence (2026-09-09, Release 0.1.422, twelve workers, minimum of ten interleaved runs).** The JIT half of this entry no longer costs a native build anything: replacing `const __buildCfg = #run …` with a plain variable in the prelude leaves a snippet build at 91 ms either way, with the same 448 tuned and 441 forged functions, because a native artifact lowers the runtime regardless. The lowering half is what remains, and it is now the largest term of a Swag Prism snippet compilation: the same probe takes 116 ms as a static library and 68 ms with `--artifact-kind export`, so lowering and linking the runtime is 48 ms of it, against 52 ms for the prelude's own semantic pass (compiler.core.006) and 16 ms of process start.
+
+**Evidence (2026-09-23, Release 0.1.1046).** This cost grew with the runtime, not with the compiler. `bin/runtime` went from 8 files and 5 260 lines on 2026-08-07 to 19 files and 8 629 lines on 2026-09-21 — +64 %, as the scheduler, tasks, parallelism, sync, TLS, atomics and symbol families landed — and the benchmark followed it: the Swag build series reads 106 ms on 2026-08-07 against 172 ms on 2026-09-20, and the campaign headline `build_edge`, how many times faster `swc` compiles than the other toolchains, fell from 4.08 to 2.65 over those eight campaigns. A hello world release rebuild now reports `checked 20 files • 42 719 tokens • 43 ms`, `tuned 176 functions • 76 ms`, `forged 314 functions • 91 ms`, for 153 ms of process time: the prelude and the runtime are the entire measurement, and every family added to `bin/runtime` is lowered again by every executable anyone compiles. None of it is a compiler regression; it is this entry and compiler.core.006 scaling with the runtime's surface.
+
+**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup. Prelude-state reuse belongs to compiler.core.006; this entry owns lowered runtime artifacts.
+
+**Evidence (2026-10-06).** `NativeBackendBuilder::prepare` no longer seeds lowering with every
+function the module completed. An executable starts from its roots (`12640f415`), so a hello
+world no longer lowers the 31 generated `opEquals` that were 19 % of its lowering on 2026-09-23,
+and a library starts from what it exports (`f6c3fb960`, `bad64df6f`). What those roots reach in
+the runtime — the allocator, panic and type-info paths among them — is still lowered again by
+every executable. The function cache of compiler.core.003 skips any function with a code
+relocation, which excludes most of that closure. The function counts and timings above predate
+this change.
+
+**Next.** Remeasure what a hello-world release rebuild lowers from the runtime now, then choose
+between a cache of lowered runtime code keyed like the module setup cache and relocation-aware
+function caching (compiler.core.003).
+
+**Complete when.**
+
+- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
+- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
+- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
+
+**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
+
+### compiler.core.039 — One module analysis resolves four and a half million substitutions
+
+- Recorded: 2026-09-09 17:44
+- Updated: 2026-10-06 20:59 — Added the missing completion condition.
+
+**Evidence.** Instrumented on 2026-09-09 (Release 0.1.426): analyzing one snippet module that imports `core` — 52 files, 155 000 tokens — enters `NodePayload::followSubstituteChain` **4 554 160 times**, walking 9 121 151 links. The same walk over a 22 800-line file with no import enters it 269 675 times. A chain is short: two links on average, three at most, so the traffic is not depth but the sheer number of times the pass asks what a node now stands for. A profile of that analysis puts the walk at 2.8 % of the compiler's own code and `SemaNodeView::computeInner`, which begins with that question, at 3.2 %.
+
+Handing the walk the payload state its caller had just read — so a two-link chain reads one node instead of two — was written and measured. Paired A/B on the 22 800-line file moved nothing either way, and the imported-module workload, which cannot be measured by alternating runs because two build numbers invalidate the standard library's artifacts between them, gave 92 %, 101 % and 110 % of the processor time across three block measurements. It was reverted: the walk is not where the time goes.
+
+**Taken (2026-10-06, build 1173).** Comparison lowering carries the result type already read
+by its dispatcher through the scalar, string, slice, type-info, aggregate, three-way and vector
+paths. Payload metadata merging receives the resolved node reference already held by all four
+call sites. These remove a result view per ordinary comparison and a substitute-chain query per
+metadata merge without retaining new state or changing substitution rules. The comparison change
+with concurrent SSA work passed 3,620 native Release tests; the metadata change passed 66 native inline tests and four JIT
+`defer.catch` tests. These are structural savings, with no timing or memory measurements.
+
+Do not merge separate type and constant views mechanically: a combined view can suppress a null
+constant when flow analysis narrows the type, while a constant-only view does not perform that
+narrowing. Such a rewrite requires a separate semantic proof.
+
+**Next.** Find out why a view is rebuilt so often, rather than making each rebuild cheaper. Count how many of those 4.5 million resolutions ask about a node another resolution already answered for in the same pass, and whether a resolved reference can be remembered on the node instead of re-derived. The answer decides whether this is a memoization or a call-site problem.
+
+**Complete when.** The resolutions are attributed either to repeated questions about nodes already
+resolved in the same pass or to call sites that rebuild a view they already hold, and the chosen
+change is retained with a paired timing on the imported-module workload or recorded as not worth
+its cost.
+
+**Related:** compiler.core.001, compiler.core.038.
+
+### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
+
+- Recorded: 2026-08-10 12:35
+- Updated: 2026-10-06 20:59 — Added a completion condition to the dormant corruption watch.
+- Area: compiler
+- Found while: rerunning `tools/tests.swgs dm --all-cfg` after an unrelated intermittent
+  semantic-completion assertion had passed on immediate focused rerun.
+- Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
+  and a hardware exception while type generation traversed a struct's declared methods. The same
+  compiler and sources had completed the full Release campaign immediately beforehand, and the
+  equality suites had already passed in all three build configurations, so the failure appears
+  scheduling-dependent rather than tied to one deterministic source construct.
+- Evidence: mimalloc reported a corrupted 32-byte free-list entry. The stack ran through
+  `appendImplFunctions` and `SymbolStruct::declaredMethods` in `Symbol.Struct.cpp`,
+  `findGeneratedImplicitMethod`, `findGeneratedLifecycleWrapper`, `initStruct`,
+  `TypeGen::processTypeInfo`, and then function-candidate implicit-conversion probing. The isolated
+  command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
+  leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
+  three configurations.
+- Current validation (2026-09-14): 100 Release 0.1.571 rebuilds of `core` completed with
+  byte-identical sets of 24 published API files. Another 20 Release and 20 DevMode rebuilds
+  of `ogl` completed without a crash. The current declared-method traversal copies impl and
+  interface lists under shared locks, and `SymbolMap::getAllSymbols` snapshots each map under
+  its corresponding lock. This session also fixed mutable attribute snapshots and lifecycle
+  pointer publication, with regression tests. These results establish non-recurrence under
+  those workloads; they do not identify the writer that caused the original free-list damage.
+- Next step: re-evaluate on the next occurrence only. The 2026-08-12 sanification pass eliminated
+  three writers able to corrupt or misread memory underneath a stack like this one: a struct
+  layout republished through transient zero and partially accumulated sizes on every post-node
+  resume (`SymbolStruct::computeLayout`, now computed into locals and published once, atomically);
+  imported native modules keeping `Swag.processInfos().args` slices into a destroyed compiler instance's
+  storage (`ensureProcessInfosRunArgs`, now interning into process-lifetime storage); and the call
+  matcher reading the signature type of a selected candidate before that type was published
+  (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
+  a `typeRef.isValid()` assertion under `finalizeAutoEnumArgs` while building the generated `ogl`
+  wrappers, one run in ~20; in Release that read returned an out-of-bounds `TypeInfo`). A mimalloc
+  report now appends the reporting thread's stack (`Allocator.cpp`), so a recurrence preserves its
+  detection stack; if one does recur, persist the failing module and stress parallel type
+  generation as originally planned.
+- Complete when: a recurrence is attributed through its captured stack and fixed with a
+  regression, or a parallel type-generation stress run over the whole standard library under both
+  compiler executables stays clean and the lead is retired.
+
 ### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
 
 - Recorded: 2026-08-12 18:01
@@ -106,31 +213,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
 - Related: compiler.core.069
 
-### compiler.core.039 — One module analysis resolves four and a half million substitutions
-
-- Recorded: 2026-09-09 17:44
-- Updated: 2026-10-06 08:06 — Removed repeated code-generation queries at their callers.
-
-**Evidence.** Instrumented on 2026-09-09 (Release 0.1.426): analyzing one snippet module that imports `core` — 52 files, 155 000 tokens — enters `NodePayload::followSubstituteChain` **4 554 160 times**, walking 9 121 151 links. The same walk over a 22 800-line file with no import enters it 269 675 times. A chain is short: two links on average, three at most, so the traffic is not depth but the sheer number of times the pass asks what a node now stands for. A profile of that analysis puts the walk at 2.8 % of the compiler's own code and `SemaNodeView::computeInner`, which begins with that question, at 3.2 %.
-
-Handing the walk the payload state its caller had just read — so a two-link chain reads one node instead of two — was written and measured. Paired A/B on the 22 800-line file moved nothing either way, and the imported-module workload, which cannot be measured by alternating runs because two build numbers invalidate the standard library's artifacts between them, gave 92 %, 101 % and 110 % of the processor time across three block measurements. It was reverted: the walk is not where the time goes.
-
-**Taken (2026-10-06, build 1173).** Comparison lowering carries the result type already read
-by its dispatcher through the scalar, string, slice, type-info, aggregate, three-way and vector
-paths. Payload metadata merging receives the resolved node reference already held by all four
-call sites. These remove a result view per ordinary comparison and a substitute-chain query per
-metadata merge without retaining new state or changing substitution rules. The comparison change
-with concurrent SSA work passed 3,620 native Release tests; the metadata change passed 66 native inline tests and four JIT
-`defer.catch` tests. These are structural savings, with no timing or memory measurements.
-
-Do not merge separate type and constant views mechanically: a combined view can suppress a null
-constant when flow analysis narrows the type, while a constant-only view does not perform that
-narrowing. Such a rewrite requires a separate semantic proof.
-
-**Next.** Find out why a view is rebuilt so often, rather than making each rebuild cheaper. Count how many of those 4.5 million resolutions ask about a node another resolution already answered for in the same pass, and whether a resolved reference can be remembered on the node instead of re-derived. The answer decides whether this is a memoization or a call-site problem.
-
-**Related:** compiler.core.001, compiler.core.038.
-
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 
 - Recorded: 2026-09-30 08:32
@@ -213,7 +295,6 @@ narrowing. Such a rewrite requires a separate semantic proof.
   size. Compare one-worker and parallel rebuilds on both modules under stable load.
 - Complete when: the partitioning improvement has concurrent read/write coverage
   and a measured compilation-time benefit with its memory cost explicitly bounded.
-
 
 ### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
 
@@ -473,32 +554,6 @@ the shared memory budget.
   defined twice in `HashTable`) reproduces under the same stress before attributing it here.
 - Complete when: a repeatable test fails without the post-node ownership check and passes with it.
 
-### compiler.core.030 — Every executable lowers the runtime's functions again
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-09-23 09:29 — Measured how far this cost has grown with the runtime, and what the benchmark saw.
-
-**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
-
-**Evidence (2026-09-09, Release 0.1.422, twelve workers, minimum of ten interleaved runs).** The JIT half of this entry no longer costs a native build anything: replacing `const __buildCfg = #run …` with a plain variable in the prelude leaves a snippet build at 91 ms either way, with the same 448 tuned and 441 forged functions, because a native artifact lowers the runtime regardless. The lowering half is what remains, and it is now the largest term of a Swag Prism snippet compilation: the same probe takes 116 ms as a static library and 68 ms with `--artifact-kind export`, so lowering and linking the runtime is 48 ms of it, against 52 ms for the prelude's own semantic pass (compiler.core.006) and 16 ms of process start.
-
-**Evidence (2026-09-23, Release 0.1.1046).** This cost grew with the runtime, not with the compiler. `bin/runtime` went from 8 files and 5 260 lines on 2026-08-07 to 19 files and 8 629 lines on 2026-09-21 — +64 %, as the scheduler, tasks, parallelism, sync, TLS, atomics and symbol families landed — and the benchmark followed it: the Swag build series reads 106 ms on 2026-08-07 against 172 ms on 2026-09-20, and the campaign headline `build_edge`, how many times faster `swc` compiles than the other toolchains, fell from 4.08 to 2.65 over those eight campaigns. A hello world release rebuild now reports `checked 20 files • 42 719 tokens • 43 ms`, `tuned 176 functions • 76 ms`, `forged 314 functions • 91 ms`, for 153 ms of process time: the prelude and the runtime are the entire measurement, and every family added to `bin/runtime` is lowered again by every executable anyone compiles. None of it is a compiler regression; it is this entry and compiler.core.006 scaling with the runtime's surface.
-
-**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup. Prelude-state reuse belongs to compiler.core.006; this entry owns lowered runtime artifacts.
-
-The 2026-09-28 prompt-4 continuation removed one Micro instruction lookup per emitted instruction:
-`MicroBuilder` now records its source on the pointer returned by allocation. This keeps the same
-source information for sanity diagnostics and debug tables. The Release `location` selection
-passed 18 native tests; timing and peak memory were not measured.
-
-**Complete when.**
-
-- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
-- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
-- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
-
 ### compiler.core.003 — Code-generation invalidation is module-wide
 
 - Recorded: 2026-08-09 11:30
@@ -682,46 +737,6 @@ cache is part of the normal DevMode and Release paths.
   for nothing beyond it, with a JIT case for each of the four forms in
   `bin/unittests/jit/flow/nullable_narrow.swg` and the negative controls in
   `bin/unittests/errors/sema/sema_err_notnull_already_proven.swg` still passing.
-
-### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
-
-- Recorded: 2026-08-10 12:35
-- Updated: 2026-09-14 10:43 — repeated the affected module builds after the publication fixes; the historical corruption remains unattributed
-- Area: compiler
-- Found while: rerunning `tools/tests.swgs dm --all-cfg` after an unrelated intermittent
-  semantic-completion assertion had passed on immediate focused rerun.
-- Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
-  and a hardware exception while type generation traversed a struct's declared methods. The same
-  compiler and sources had completed the full Release campaign immediately beforehand, and the
-  equality suites had already passed in all three build configurations, so the failure appears
-  scheduling-dependent rather than tied to one deterministic source construct.
-- Evidence: mimalloc reported a corrupted 32-byte free-list entry. The stack ran through
-  `appendImplFunctions` and `SymbolStruct::declaredMethods` in `Symbol.Struct.cpp`,
-  `findGeneratedImplicitMethod`, `findGeneratedLifecycleWrapper`, `initStruct`,
-  `TypeGen::processTypeInfo`, and then function-candidate implicit-conversion probing. The isolated
-  command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
-  leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
-  three configurations.
-- Current validation (2026-09-14): 100 Release 0.1.571 rebuilds of `core` completed with
-  byte-identical sets of 24 published API files. Another 20 Release and 20 DevMode rebuilds
-  of `ogl` completed without a crash. The current declared-method traversal copies impl and
-  interface lists under shared locks, and `SymbolMap::getAllSymbols` snapshots each map under
-  its corresponding lock. This session also fixed mutable attribute snapshots and lifecycle
-  pointer publication, with regression tests. These results establish non-recurrence under
-  those workloads; they do not identify the writer that caused the original free-list damage.
-- Next step: re-evaluate on the next occurrence only. The 2026-08-12 sanification pass eliminated
-  three writers able to corrupt or misread memory underneath a stack like this one: a struct
-  layout republished through transient zero and partially accumulated sizes on every post-node
-  resume (`SymbolStruct::computeLayout`, now computed into locals and published once, atomically);
-  imported native modules keeping `Swag.processInfos().args` slices into a destroyed compiler instance's
-  storage (`ensureProcessInfosRunArgs`, now interning into process-lifetime storage); and the call
-  matcher reading the signature type of a selected candidate before that type was published
-  (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
-  a `typeRef.isValid()` assertion under `finalizeAutoEnumArgs` while building the generated `ogl`
-  wrappers, one run in ~20; in Release that read returned an out-of-bounds `TypeInfo`). A mimalloc
-  report now appends the reporting thread's stack (`Allocator.cpp`), so a recurrence preserves its
-  detection stack; if one does recur, persist the failing module and stress parallel type
-  generation as originally planned.
 
 ### compiler.core.038 — Measure the remaining semantic frame construction cost
 

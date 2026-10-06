@@ -83,6 +83,41 @@ belongs to std.pixel.005 and must not create a second unrelated serializer.
 
 ## Entries
 
+### std.gui.pdf.029 — A render cannot be cancelled or bounded in time
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-10-06 20:54 — Attribute the 2.8 s worst page to its external document, not std.gui.pdf.025.
+- Intent: `RenderOptions` bounds the output dimensions and pixel count and nothing else. A page
+  with a pathological number of paths can take arbitrarily long. This concerns the headless
+  callers — a batch export, a thumbnailer, a test — and, since the viewer decodes pages on a
+  worker, the viewer itself: `PdfPageCache.abandonLoad` cannot stop a decode, only wait for it,
+  so closing a document while the worker is inside `Reader.loadPage` blocks the GUI thread for
+  what remains of that page. A historical measurement put the worst page of an external 90 MB,
+  95-page scanned document with 1 073 images at 2.8 s through `Reader.loadPage`; that file is not
+  in the stored corpus, and std.gui.pdf.025 carries no such figure.
+- Next: give `decodePage` and the render loop the same cancellation signal, checked between
+  content-stream operators and between items, and have `PdfPageCache` raise it instead of
+  waiting.
+- Complete when: a decode and a render both accept a cancellation signal and an optional work
+  budget, report an interrupted result distinctly from a failed one, and closing a document
+  never waits for a page.
+
+### std.gui.pdf.036 — One worker serializes visible-page decoding
+
+- Recorded: 2026-09-07 20:45
+- Updated: 2026-10-06 20:54 — Name the large fixture, which is not in the stored corpus.
+- Evidence: `PdfPageCache` owns one `Swag.Task`, one worker `Pdf.Reader` and one pending page.
+  Scrolling past a slow page leaves paper placeholders until that worker catches up. A Reader
+  is single-threaded; another worker needs its own mapping, object index and resource caches.
+- Next: compare a bounded two-worker cache with the current one on a named large scanned
+  fixture (the historical 90 MB, 95-page, 1 073-image document is external and not in the stored
+  corpus, whose largest file is 2.6 MB; a generated equivalent can be shared with
+  std.gui.pdf.031), measuring scroll-to-visible-page latency and the extra reader storage. Preserve
+  document-close and cancellation behavior while defining page priority and publication.
+- Complete when: the comparison establishes a bounded scheduling policy and improves visible-page
+  latency on the same fixture without unbounded queues or stale-page publication.
+- Related: std.gui.pdf.025, std.gui.pdf.029, std.gui.pdf.037
+
 ### std.gui.pdf.031 — Document parsing has no adversarial corpus or overall resource budget
 
 - Recorded: 2026-08-18 14:15
@@ -142,7 +177,7 @@ belongs to std.pixel.005 and must not create a second unrelated serializer.
 ### std.gui.pdf.040 — PdfView cannot move a text caret or extend selection from the keyboard
 
 - Recorded: 2026-09-12 06:10
-- Evidence: split from app.scope.document.016. The widget already supports pointer selection
+- Evidence: split from the earlier scope of app.scope.document.016. The widget already supports pointer selection
   across pages, double-click word selection, Ctrl+A and Ctrl+C. Arrow keys scroll; they do not
   move a text caret or extend a selection. `pdfview.test.swg` protects cross-page pointer copy.
 - Next: add keyboard movement and selection extension over the existing `PdfTextPosition` model,
@@ -154,7 +189,7 @@ belongs to std.pixel.005 and must not create a second unrelated serializer.
 ### std.gui.pdf.041 — PDF copy has no choice between logical and visual text order
 
 - Recorded: 2026-09-12 06:10
-- Evidence: split from app.scope.document.016. `PdfView.selectedText` joins each selected page's
+- Evidence: split from the earlier scope of app.scope.document.016. `PdfView.selectedText` joins each selected page's
   indexed text with line feeds. There is one extraction order and no caller-selected copy mode.
 - Next: define logical and visual copy orders against the retained glyph/source coordinates,
   including columns, bidirectional runs, and page boundaries, then expose the selected policy.
@@ -165,7 +200,7 @@ belongs to std.pixel.005 and must not create a second unrelated serializer.
 ### std.gui.pdf.042 — PdfView has no reflow reading mode
 
 - Recorded: 2026-09-12 06:10
-- Evidence: split from app.scope.document.016. `PdfView` paints positioned page items; zoom and
+- Evidence: split from the earlier scope of app.scope.document.016. `PdfView` paints positioned page items; zoom and
   page layout preserve the source geometry. Neither the widget nor its text index composes a
   reading surface whose lines wrap to the viewport width.
 - Next: define a reading-order contract and the supported text subset before composing a reflow
@@ -173,20 +208,6 @@ belongs to std.pixel.005 and must not create a second unrelated serializer.
 - Complete when: supported text reflows on resize without losing search or selection, unsupported
   structures have an explicit fallback, and multi-column fixtures protect the chosen order.
 - Related: std.gui.pdf.041
-
-### std.gui.pdf.036 — One worker serializes visible-page decoding
-
-- Recorded: 2026-09-07 20:45
-- Updated: 2026-09-11 22:34 — Separate decoding concurrency from resident-memory accounting.
-- Evidence: `PdfPageCache` owns one `Swag.Task`, one worker `Pdf.Reader` and one pending page.
-  Scrolling past a slow page leaves paper placeholders until that worker catches up. A Reader
-  is single-threaded; another worker needs its own mapping, object index and resource caches.
-- Next: compare a bounded two-worker cache with the current one on the recorded 90 MB corpus
-  document, measuring scroll-to-visible-page latency and the extra reader storage. Preserve
-  document-close and cancellation behavior while defining page priority and publication.
-- Complete when: the comparison establishes a bounded scheduling policy and improves visible-page
-  latency on the same fixture without unbounded queues or stale-page publication.
-- Related: std.gui.pdf.025, std.gui.pdf.029, std.gui.pdf.037
 
 ### std.gui.pdf.037 — Resident-page memory accounting omits retained resources
 
@@ -201,24 +222,6 @@ belongs to std.pixel.005 and must not create a second unrelated serializer.
 - Complete when: decode, first paint, text indexing and zoom update the documented accounting,
   evictions respect that budget, and a measured corpus comparison states the remaining error.
 - Related: std.pixel.027, std.gui.pdf.028, std.gui.pdf.036
-
-### std.gui.pdf.029 — A render cannot be cancelled or bounded in time
-
-- Recorded: 2026-08-18 14:15
-- Updated: 2026-09-07 20:45 — git: A decode that cannot be abandoned now blocks closing a document
-- Intent: `RenderOptions` bounds the output dimensions and pixel count and nothing else. A page
-  with a pathological number of paths can take arbitrarily long. This concerns the headless
-  callers — a batch export, a thumbnailer, a test — and, since the viewer decodes pages on a
-  worker, the viewer itself: `PdfPageCache.abandonLoad` cannot stop a decode, only wait for it,
-  so closing a document while the worker is inside `Reader.loadPage` blocks the GUI thread for
-  what remains of that page. The corpus measurement in std.gui.pdf.025 puts the worst page of a
-  90 MB scanned document at 2.8 s.
-- Next: give `decodePage` and the render loop the same cancellation signal, checked between
-  content-stream operators and between items, and have `PdfPageCache` raise it instead of
-  waiting.
-- Complete when: a decode and a render both accept a cancellation signal and an optional work
-  budget, report an interrupted result distinctly from a failed one, and closing a document
-  never waits for a page.
 
 ### std.gui.pdf.001 — Encrypted documents are refused, including the empty-password case
 

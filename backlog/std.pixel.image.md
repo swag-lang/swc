@@ -26,6 +26,21 @@ complete texture delivery, and format breadth and fidelity.
 
 ## Entries
 
+### std.pixel.image.038 — Codecs require one complete contiguous input buffer
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-10-06 20:57 — `Image.load` now maps the file instead of reading it, still as one slice.
+- Evidence: `IImageDecoder.decode` takes `const [..] u8`; `Image.load` maps the whole file and
+  hands one contiguous slice to the decoder (`image/decode/decode.swg`); the incremental logic inside individual codecs is not exposed through the format-neutral API.
+  Skia distinguishes incremental and scanline decode, while libvips loaders accept abstract
+  sources and sequential access.
+- Next: define a seekable/sequential image source contract and decoder lifecycle without making
+  every codec pretend it can seek or resume.
+- Complete when: a caller can probe and decode from file, memory, or a bounded sequential source;
+  incremental-capable codecs report incomplete input without losing state; codecs that require
+  random access state that requirement explicitly.
+- Related: std.pixel.image.037, std.pixel.image.039, std.pixel.019
+
 ### std.pixel.image.037 — Automatic codec selection trusts the filename extension
 
 - Recorded: 2026-09-01 08:20
@@ -196,21 +211,6 @@ complete texture delivery, and format breadth and fidelity.
 - Complete when: JPEG, PNG, WebP, and TIFF fixtures expose the same normalized property vocabulary,
   unknown metadata still round-trips where supported, and orientation is applied exactly once.
 - Related: std.pixel.001, std.pixel.image.019, std.pixel.image.037
-
-### std.pixel.image.038 — Codecs require one complete contiguous input buffer
-
-- Recorded: 2026-09-01 08:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: `IImageDecoder.decode` takes `const [..] u8`; `Image.load` first reads the whole file;
-  the incremental logic inside individual codecs is not exposed through the format-neutral API.
-  Skia distinguishes incremental and scanline decode, while libvips loaders accept abstract
-  sources and sequential access.
-- Next: define a seekable/sequential image source contract and decoder lifecycle without making
-  every codec pretend it can seek or resume.
-- Complete when: a caller can probe and decode from file, memory, or a bounded sequential source;
-  incremental-capable codecs report incomplete input without losing state; codecs that require
-  random access state that requirement explicitly.
-- Related: std.pixel.image.037, std.pixel.image.039, std.pixel.019
 
 ### std.pixel.image.010 — SVG masks are not parsed
 

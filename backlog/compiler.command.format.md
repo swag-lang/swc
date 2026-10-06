@@ -53,7 +53,7 @@ filesystem round trip.
 - Updated: 2026-09-27 17:45 — Define recovery acceptance for incomplete source.
 
 A file that fails to parse is counted and skipped
-([FormatJob.cpp:34](../src/Format/FormatJob.cpp#L34)). Define and implement the token-level recovery
+([FormatJob.cpp:36](../src/Format/FormatJob.cpp#L36)). Define and implement the token-level recovery
 contract needed for format-on-type, without making successful parsing a prerequisite.
 
 - Complete when: incomplete source can be formatted without dropping or reinterpreting its tokens,

@@ -9,6 +9,18 @@ also belongs here; rendered Markdown and HTML integration lives in
 The intended surface is read-only: navigation, comparison, structured inspection and bounded
 large-file work without editing, implicit network access, macros or source mutation.
 
+### app.scope.text.001 — Text and HTML zoom still lack persistence and Ctrl+wheel
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-06 20:55 — Note that a host reload already carries the zoom; persistence across opens remains
+- Evidence: basic text, code, and HTML expose percentage menus and Ctrl+plus/minus/reset
+  gestures, but Ctrl+wheel is not connected to them. `ViewerReadingState` carries their zoom
+  (and text wrapping) across a host reload of the same file only; opening another file or
+  restarting returns to 100%. Markdown already keeps its bounded scale in
+  `g_MarkdownViewerSettings`, accepts Ctrl+wheel, and keeps the visible block anchored.
+- Complete when: a shared zoom command and Ctrl+wheel gesture change text size in every basic and
+  format-specific text view, persist the choice, and leave streaming-window arithmetic correct.
+
 ### app.scope.text.002 — Text navigation has no line, column, byte-offset, or percentage jump
 
 - Recorded: 2026-08-29 08:36
@@ -21,16 +33,6 @@ large-file work without editing, implicit network access, macros or source mutat
   absolute byte offset, and percentage.
 - Complete when: jumps work before a full line index exists, report exact versus estimated
   positions, align to an encoding boundary, and keep line/column/offset visible for the caret.
-
-### app.scope.text.001 — Text and HTML zoom still lack persistence and Ctrl+wheel
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-09 13:55 — Markdown now persists its zoom and accepts keyboard and Ctrl+wheel gestures
-- Evidence: basic text, code, and HTML expose percentage menus and Ctrl+plus/minus/reset
-  gestures, but their values remain per-view and Ctrl+wheel is not connected to them. Markdown
-  now persists its bounded scale and keeps the visible block anchored during metric changes.
-- Complete when: a shared zoom command and Ctrl+wheel gesture change text size in every basic and
-  format-specific text view, persist the choice, and leave streaming-window arithmetic correct.
 
 ### app.scope.text.026 — Whole-file search has no inspectable result set or context projection
 

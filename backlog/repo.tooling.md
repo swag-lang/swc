@@ -5,6 +5,31 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.002 — A video differential harness must line pictures up by time, not by rank
+
+- Recorded: 2026-08-25 16:27
+- Updated: 2026-10-06 20:56 — no differential harness is checked in; the outcome is a reproducible one.
+- Found while: measuring the video library against FFmpeg.
+- Observation: FFmpeg numbers the pictures it emits densely, while this reader numbers them the
+  way the container does. The two disagree wherever a container holds a sample that produces no
+  picture — a plane that codes nothing, a leading picture a random access point says to skip, or
+  an access unit before the first one that can be reconstructed. Neither numbering is wrong: a
+  player seeks by the frame number its container states, while FFmpeg hands out packets and frames
+  with timestamps and drops samples that emit no frame.
+- Evidence: comparing picture `k` against FFmpeg's picture `k` reported defects for two files in
+  the measured library; both proved bit-exact once their pictures were lined up by presentation
+  time. That comparison was an ad-hoc script: no differential harness against an external
+  decoder exists in `tools/`, `bench/` or the video tests, and none was ever committed. The
+  video tests compare against checked-in reference planes such as
+  `bin/std/modules/video/src/tests/datas/ffmpeg-h264-baseline.yuv`, which avoids the ordinal
+  question only for the files they cover.
+- Next: check in an opt-in differential harness that decodes a media file with an external
+  reference decoder, records each reference picture's presentation time, and asks this reader for
+  the rank carrying that time before comparing decoded pixels.
+- Complete when: the checked-in harness pairs decoded pictures by presentation time rather
+  than ordinal, a reproducible case with a non-picture sample compares without manual alignment,
+  and a mismatched decoded picture still fails the comparison.
+
 ### repo.tooling.010 — Separate cross-language build scenarios from compiler throughput
 
 - Recorded: 2026-10-05 21:40
@@ -55,27 +80,6 @@ being compiled by it.
   delay externally, and profile the formatter's dominant passes before choosing another change.
 - Complete when: the campaign distinguishes input-opening cost from formatting CPU and a retained
   optimization has an order-alternated speed gain with identical output and measured memory.
-
-### repo.tooling.002 — A differential harness must line pictures up by time, not by rank
-
-- Recorded: 2026-08-25 16:27
-- Updated: 2026-09-27 17:50 — define a timestamp-aligned differential acceptance test.
-- Area: tooling
-- Found while: measuring the video library against FFmpeg.
-- Observation: FFmpeg numbers the pictures it emits densely, while this reader numbers them the
-  way the container does. The two disagree wherever a container holds a sample that produces no
-  picture — a plane that codes nothing, a leading picture a random access point says to skip, or
-  an access unit before the first one that can be reconstructed. Neither numbering is wrong: a
-  player seeks by the frame number its container states, while FFmpeg hands out packets and frames
-  with timestamps and drops samples that emit no frame.
-- Evidence: comparing picture `k` against FFmpeg's picture `k` reported defects for two files in
-  the measured library; both proved bit-exact once their pictures were lined up by presentation
-  time.
-- Next step: make the differential harness record the timestamp of each reference picture and ask
-  this reader for the rank that carries it before comparing decoded pixels.
-- Complete when: the differential harness pairs decoded pictures by presentation time rather
-  than ordinal, a reproducible case with a non-picture sample compares without manual alignment,
-  and a mismatched decoded picture still fails the comparison.
 
 ### repo.tooling.005 — An incremental Release build can mix two versions of the diagnostic table
 

@@ -85,6 +85,84 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
+
+- Recorded: 2026-09-25 11:15
+- Updated: 2026-10-06 20:59 — Private-global hoisting and value numbering landed after the last qsort dump; re-dump before further work.
+- Area: compiler/backend, loop-invariant code motion and call effects
+- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
+- Current evidence: the new loop-guided wrapper rule inlines both `less` calls in `qsort`. Its optimized body grows from 72 to 132 Micro instructions, while each unequal-count comparison now reads the retained `g_Idx` and `g_Cnt` pointers without a `less` call or a global reload. The tie path still calls `memcmp`, and the second comparator loop reloads both global pointers on entry. LDC also retains its pointers during the unequal-count loop and reloads after a call. Wordfreq's checksum is 130489; csvagg's selected function counts and checksum are unchanged. No timing sample informed the rule.
+- A value-numbering trial preserved mutable global loads across a direct `ReadOnly` call. It removed four instructions from `qsort` as a whole (132 to 128), including a repeated global pointer load after `memcmp`, and kept checksum 130489. The extra live value changed allocation in the first comparator loop: each increment path acquired a stack reload of the count pointer and an unconditional back-edge jump. That hot-path regression outweighed the colder tie-path saving, so the trial was reverted without timing it. A direct-call regression test for this trial was reverted with the rule.
+- Since that dump: LICM hoists a load of a private global (one no other module names and whose address no use binds) past pointer stores, but only out of an innermost loop (`ba4e255d4`, then `baedb50db` after a 22% wordfreq regression when the hoisted `g_Text` had to outlive nested loops), and value numbering reuses unmodified private globals across disjoint writes (`a172a3428`). `g_Idx` and `g_Cnt` are file-level `late var` globals in `bench/src/swag/wordfreq.swg`; no `qsort` dump has been taken since these changes.
+- Next: dump the current Release `qsort`. If the post-call and second-loop reloads are gone, retire the entry; otherwise compare the tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to decide whether the remaining reloads warrant a focused allocation change.
+- Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
+
+### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
+
+- Recorded: 2026-08-24 13:31
+- Updated: 2026-10-06 20:59 — Removed the pointer to the resolved Inflate cursor lead.
+- Area: compiler/backend
+- Found while: std.video.001, after mem2reg was taught the vector load and store and the memory traffic
+  of the motion-compensation path fell by a quarter.
+- Observation: promotion now reaches the vector temporaries, so the intermediate values of a
+  `#simd` expression stay in registers. What is still in memory is everything the local
+  allocator put there: `Video.H264.mcChroma` emits 635 instructions with 81 frame stores and 119
+  frame loads, and its interpolation loop reloads the two splat sources on every row. The loop of
+  `Video.H264.copyPlane` shows what the shape should be — after post-RA hoisting learned that a
+  private frame cannot be reached by a store through a program pointer, its sixteen-byte copy is
+  seven instructions with no frame access at all — and mcChroma does not get there because its
+  own locals escape into helpers, which keeps its frame from being private.
+- Evidence: 2026-08-24, release, `#[Swag.PrintMicro("post-emit")]`. mcChroma 707 -> 635
+  instructions and 108 -> 81 frame stores across this pass; copyPlane 111 -> 104 instructions,
+  its hot loop 10 -> 7 with 3 -> 0 frame accesses. The decode of one 2496x1440 picture went from
+  10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
+  is 44 percent of that picture.
+- **The same shape was measured in H.265 before the split allocator (2026-08-26, std.video.005).** Three hot routines dumped at pre-emit, all of them
+  already vectorized and already at their instruction budget on paper:
+  - `Hevc.Decoder.filterLumaEdge` emits 776 instructions with **87 frame stores and 84 frame
+    loads** — 22 percent of the function is stack traffic. It filters 101,633 four-line
+    segments a picture at about 575 cycles each, where the instructions a segment executes
+    predict something closer to a hundred.
+  - `Hevc.Decoder.interpolateLuma` keeps twelve vector spills and twelve reloads inside its
+    innermost body. One call filters about 800 samples in 1.73 microseconds, which is 8.6
+    cycles a sample against about three from the instruction count.
+  - Reading the filter taps once a block instead of once a pair removed fifteen table-pointer
+    loads and twenty multiplies from the same function and **changed the measured time by less
+    than one percent**, which is what says the loop is not bound by those instructions.
+- **What that is worth, measured against another compiler on the same algorithm (2026-08-26)**:
+  the loop filter of clause 8.7.2.5 was written twice, once in C and once in Swag, statement
+  for statement, over the same synthetic 3840x2076 plane with the same thresholds and the same
+  decision mix — 1,612 flat, 430,398 strong and 65,229 weak segments a picture in both. Per
+  picture, best of several runs on a quiet machine:
+  - clang 21 `-O2 -msse2`: **18.3 ms** (37 ns a filtered segment)
+  - clang 21 `-O2 -march=native -fno-vectorize -fno-slp-vectorize`: 18.7 ms
+  - clang 21 `-O2 -march=native`: 34.1 ms — **its own auto-vectorizer costs it 1.9x here**,
+    which is worth knowing before reading any clang figure as the answer sheet
+  - this compiler, release: **40.6 ms** (82 ns a segment)
+- In that historical comparison the backend was **2.2x behind clang's best on identical scalar code**, the
+  largest single factor in the 3x the H.265 decoder is behind FFmpeg — larger than the 256-bit
+  forms of cpu.simd.002, and larger than anything left in the decoder's own algorithms. The frame
+  traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
+  routine, against 61 in 443 for clang's build of the same function.
+- The per-object view shipped (2026-08-26): `Pass.PostRALoopHoist` now classifies escapes per
+  source object from the extents `SymbolFunction::localVariables()` carries, recognizes the
+  prologue's local-base register, and keeps the two address spaces apart — a value use of the
+  stack pointer (call staging) reaches sp-addressed slots, never the locals behind the base. A
+  slot inside no escaped object hoists even when the frame as a whole is handed out.
+- What that revealed: the pass fires only about twenty times across the whole `video` workspace,
+  and in none of the hot decoder functions. The binding constraint is not aliasing any more — it
+  is that a hoist needs the reload's destination register to have **no other definition in the
+  whole loop body**, and after allocation every register in a fat body is reused many times.
+  Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
+  belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
+- Next: rebaseline `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` with the now
+  shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
+  gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump
+  first shows an invariant value with a reusable destination.
+- Complete when: current dumps and alternating timings establish the remaining allocation cost
+  on both large kernels and identify a specific next change or retire this lead.
+- Related: compiler.optimization.024.
+
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Recorded: 2026-08-27 07:57
@@ -134,7 +212,6 @@ new language syntax.
   with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
   64-bit multi-access rewrite.
 - Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
-
 
 ### compiler.optimization.034 — Reuse the selected Dijkstra heap child across its comparison
 
@@ -1094,17 +1171,6 @@ new language syntax.
   Zig's executed path; focus on register and frame traffic rather than its absent collisions.
 - Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
-### compiler.optimization.097 — Keep a short loop step on the advancing edge beyond a cold-block size limit
-
-- Recorded: 2026-09-28 16:35
-- Updated: 2026-09-29 07:16 — Recorded the next accepted full campaign and its revised runtime winners.
-- Area: compiler/backend, post-allocation loop layout
-- Audit: `placeShortLoopStep` searched only 80 Micro instructions ahead for the step label. That distance did not participate in the branch or register proof; it excluded otherwise identical loops with a longer cold arm. A label-to-ordinal map now resolves the target in constant expected time and allows the same structural rewrite at any distance. The test covers a 96-instruction cold arm, the original short arm, and a non-unit step that must remain unchanged.
-- Evidence: the long-arm case removes one executed unconditional jump from its advancing path without adding an instruction there. All seven benchmark tasks retain their selected function counts and checksums, so this batch has no claimed benchmark gain. C++ (1,156), native Release (3,483), and JIT Release (1,500) pass.
-- Milestone: the full campaign `20260928-153255` was archived under `bench/results/rejected/`: every task and runtime passed its checksum, but the reference workload moved 101.8% between neighbouring probes (40% limit). Its build-control spread was 10.7%. No runtime conclusion comes from that run. The later `20260928-170009` campaign passed every checksum with 10.48% reference spread and 2.7% build-control spread. It is the latest accepted full campaign; its per-task winners are in `repo.prompts.md`.
-- Follow-up: a partial execution-only sweep of wordfreq and raytrace passed every runtime checksum and had 24.1% worst reference departure, but individual runtime samples varied by more than 900% in several cases. The partial sweep recorded nothing and cannot establish a runtime change.
-- Next: at the next full campaign milestone, inspect any larger ordinary loop newly reached by this layout rule and check its hot and cold branch balance before closing this lead.
-
 ### compiler.optimization.095 — Keep loop values off the stack on the common branch
 
 - Recorded: 2026-09-28 14:04
@@ -1149,17 +1215,6 @@ new language syntax.
 - The post-allocation loop-layout pass now proves the indexed byte's zero/nonzero state backward along every incoming edge of the two adjacent return labels. It stops at a memory write, an address-register definition, an unannotated call, an unsupported edge, or a cycle; direct `ReadOnly` calls preserve the fact. It also keeps a label when an indirect jump targets it, since that jump cannot be retargeted here. Proven direct incoming jumps go straight to the caller's empty or occupied arm, and the repeated compare and branch disappear. Both wordfreq token-finalization paths make this change: `main` falls from 451 to 443 instructions, and an occupied key found by `memcmp` now branches directly to the value increment. LDC's winning `main` also follows its successful `memcmp` with a collision branch and a direct value increment, without a second `used` comparison. Csvagg's corresponding row path falls from 996 to 993 instructions; Odin's winner similarly goes straight from successful `memcmp` to its occupied update. The collision loop has no extra hot-path instruction. Checksums remain 130489 and 24828641 with `--validate-micro`; the other five tasks retain their selected function counts and checksums. A C++ regression covers both branch directions, a writable call, an intervening memory write, an index change, a different cell, and an indirect incoming jump. All 1,149 C++, 3,483 native Release, and 1,500 JIT Release tests pass. No timing sample informed the change.
 - Next: recheck a full accepted benchmark campaign when the shared machine stays quiet.
 - Complete when: broad validation and a clean full campaign confirm the generated-code gain without a runtime regression; retire the entry if no further path gap remains.
-
-### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
-
-- Recorded: 2026-09-25 11:15
-- Updated: 2026-09-28 00:16 — Reject a call-aware value-numbering trial after hot-loop spill growth.
-- Area: compiler/backend, loop-invariant code motion and call effects
-- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
-- Current evidence: the new loop-guided wrapper rule inlines both `less` calls in `qsort`. Its optimized body grows from 72 to 132 Micro instructions, while each unequal-count comparison now reads the retained `g_Idx` and `g_Cnt` pointers without a `less` call or a global reload. The tie path still calls `memcmp`, and the second comparator loop reloads both global pointers on entry. LDC also retains its pointers during the unequal-count loop and reloads after a call. Wordfreq's checksum is 130489; csvagg's selected function counts and checksum are unchanged. No timing sample informed the rule.
-- A value-numbering trial preserved mutable global loads across a direct `ReadOnly` call. It removed four instructions from `qsort` as a whole (132 to 128), including a repeated global pointer load after `memcmp`, and kept checksum 130489. The extra live value changed allocation in the first comparator loop: each increment path acquired a stack reload of the count pointer and an unconditional back-edge jump. That hot-path regression outweighed the colder tie-path saving, so the trial was reverted without timing it. A direct-call regression test for this trial was reverted with the rule.
-- Next: compare the full tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to determine whether remaining reloads warrant a focused allocation change.
-- Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
 
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 
@@ -1409,71 +1464,3 @@ new language syntax.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
-
-### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
-
-- Recorded: 2026-08-24 13:31
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: compiler/backend
-- Found while: std.video.001, after mem2reg was taught the vector load and store and the memory traffic
-  of the motion-compensation path fell by a quarter.
-- Observation: promotion now reaches the vector temporaries, so the intermediate values of a
-  `#simd` expression stay in registers. What is still in memory is everything the local
-  allocator put there: `Video.H264.mcChroma` emits 635 instructions with 81 frame stores and 119
-  frame loads, and its interpolation loop reloads the two splat sources on every row. The loop of
-  `Video.H264.copyPlane` shows what the shape should be — after post-RA hoisting learned that a
-  private frame cannot be reached by a store through a program pointer, its sixteen-byte copy is
-  seven instructions with no frame access at all — and mcChroma does not get there because its
-  own locals escape into helpers, which keeps its frame from being private.
-- Evidence: 2026-08-24, release, `#[Swag.PrintMicro("post-emit")]`. mcChroma 707 -> 635
-  instructions and 108 -> 81 frame stores across this pass; copyPlane 111 -> 104 instructions,
-  its hot loop 10 -> 7 with 3 -> 0 frame accesses. The decode of one 2496x1440 picture went from
-  10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
-  is 44 percent of that picture.
-- **The same shape was measured in H.265 before the split allocator (2026-08-26, std.video.005).** Three hot routines dumped at pre-emit, all of them
-  already vectorized and already at their instruction budget on paper:
-  - `Hevc.Decoder.filterLumaEdge` emits 776 instructions with **87 frame stores and 84 frame
-    loads** — 22 percent of the function is stack traffic. It filters 101,633 four-line
-    segments a picture at about 575 cycles each, where the instructions a segment executes
-    predict something closer to a hundred.
-  - `Hevc.Decoder.interpolateLuma` keeps twelve vector spills and twelve reloads inside its
-    innermost body. One call filters about 800 samples in 1.73 microseconds, which is 8.6
-    cycles a sample against about three from the instruction count.
-  - Reading the filter taps once a block instead of once a pair removed fifteen table-pointer
-    loads and twenty multiplies from the same function and **changed the measured time by less
-    than one percent**, which is what says the loop is not bound by those instructions.
-- **What that is worth, measured against another compiler on the same algorithm (2026-08-26)**:
-  the loop filter of clause 8.7.2.5 was written twice, once in C and once in Swag, statement
-  for statement, over the same synthetic 3840x2076 plane with the same thresholds and the same
-  decision mix — 1,612 flat, 430,398 strong and 65,229 weak segments a picture in both. Per
-  picture, best of several runs on a quiet machine:
-  - clang 21 `-O2 -msse2`: **18.3 ms** (37 ns a filtered segment)
-  - clang 21 `-O2 -march=native -fno-vectorize -fno-slp-vectorize`: 18.7 ms
-  - clang 21 `-O2 -march=native`: 34.1 ms — **its own auto-vectorizer costs it 1.9x here**,
-    which is worth knowing before reading any clang figure as the answer sheet
-  - this compiler, release: **40.6 ms** (82 ns a segment)
-- In that historical comparison the backend was **2.2x behind clang's best on identical scalar code**, the
-  largest single factor in the 3x the H.265 decoder is behind FFmpeg — larger than the 256-bit
-  forms of cpu.simd.002, and larger than anything left in the decoder's own algorithms. The frame
-  traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
-  routine, against 61 in 443 for clang's build of the same function.
-- The per-object view shipped (2026-08-26): `Pass.PostRALoopHoist` now classifies escapes per
-  source object from the extents `SymbolFunction::localVariables()` carries, recognizes the
-  prologue's local-base register, and keeps the two address spaces apart — a value use of the
-  stack pointer (call staging) reaches sp-addressed slots, never the locals behind the base. A
-  slot inside no escaped object hoists even when the frame as a whole is handed out.
-- What that revealed: the pass fires only about twenty times across the whole `video` workspace,
-  and in none of the hot decoder functions. The binding constraint is not aliasing any more — it
-  is that a hoist needs the reload's destination register to have **no other definition in the
-  whole loop body**, and after allocation every register in a fat body is reused many times.
-  Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
-  belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
-  The remaining traffic is
-  [the resolved Inflate cursor](../bench/results/generated-code/20261006-private-write-through/README.md) again.
-- Next: rebaseline `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` with the now
-  shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
-  gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump
-  first shows an invariant value with a reusable destination.
-- Complete when: current dumps and alternating timings establish the remaining allocation cost
-  on both large kernels and identify a specific next change or retire this lead.
-- Related: compiler.optimization.024.

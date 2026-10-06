@@ -39,6 +39,36 @@ language.parallelism.001. The concurrency entries own Core integration, algorith
 migration against that native surface; they do not introduce Core-owned task or synchronization
 types.
 
+### std.core.018 — Rebaseline and reduce Deflate match-search cost
+
+- Recorded: 2026-08-23 22:36
+- Updated: 2026-10-06 20:54 — Drop the resolved backend stack-slot cause and its retired reference.
+- Intent: close the rest of the gap between `Compress.Deflate` and the compressors it competes
+  with. The 2026-08-23 profile attributed 97% of PNG encoding to Deflate; it is also what
+  `TagBin` and every future container pay.
+- Historical measurement (2026-08-23): the match finder used to hash the three bytes miniz hashes, and on filtered
+  image data one three-byte sequence repeats about twenty-six times inside a window, so the chain
+  was a list of genuine duplicates walked to the end. It now hashes four bytes multiplicatively
+  with a one-slot three-byte table beside it for the matches four bytes cannot hold. Search work
+  per byte fell 1.6-1.8x, level 6 measured 1.27-1.67x faster on image data with the compressed
+  size unchanged, and PNG encoding 1.31-1.52x faster with files 2-11% smaller.
+- Remaining lead: search accounted for about 85% of that profile. Level 6 walks up to 132 candidates per
+  position and comes back with a match three to six bytes long on filtered data, and level 1
+  compresses the same input 4x faster for 5% more bytes, which is the size of the prize.
+  The two untried levers are zlib's `nice_match` — stop the chain once a match is long enough,
+  128 at level 6 — and tuning the lazy-match rule miniz inherited. Both change which matches are
+  chosen, so each has to report compressed size beside time.
+- Backend: the stack-slot evidence behind the old "other half" was measured on the matching
+  Inflate loop, and that cursor issue was resolved in the compiler (`22f35b05c`, 2026-10-06).
+  Every timing above predates it; whether Deflate's own block loop still spills is part of the
+  rebaseline, and any remaining backend cause belongs in
+  [compiler.optimization.md](compiler.optimization.md), not here.
+- Next: remeasure the current compiler and match finder on the same PNG and `.scc` corpus, then compare each search-policy change against that recorded baseline.
+- Complete when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than that
+  baseline with no more than 1% growth in compressed size, and every `core` compression test still
+  round-trips.
+- Related: std.core.021, std.core.022
+
 ### std.core.001 — No blocking TCP sockets
 
 - Recorded: 2026-08-05 07:43
@@ -318,34 +348,6 @@ stuck at the boundary.
 - Complete when: the rewrite decodes every stream byte-for-byte as master's inflate does, a `core`
   test fails without the careful path's refill, and a measurement says what the rewrite buys.
 - Related area: [image decoding](std.pixel.image.md).
-
-### std.core.018 — Rebaseline and reduce Deflate match-search cost
-
-- Recorded: 2026-08-23 22:36
-- Updated: 2026-09-10 19:32 — Separate the historical compression profile from the next baseline.
-- Intent: close the rest of the gap between `Compress.Deflate` and the compressors it competes
-  with. The 2026-08-23 profile attributed 97% of PNG encoding to Deflate; it is also what
-  `TagBin` and every future container pay.
-- Historical measurement (2026-08-23): the match finder used to hash the three bytes miniz hashes, and on filtered
-  image data one three-byte sequence repeats about twenty-six times inside a window, so the chain
-  was a list of genuine duplicates walked to the end. It now hashes four bytes multiplicatively
-  with a one-slot three-byte table beside it for the matches four bytes cannot hold. Search work
-  per byte fell 1.6-1.8x, level 6 measured 1.27-1.67x faster on image data with the compressed
-  size unchanged, and PNG encoding 1.31-1.52x faster with files 2-11% smaller.
-- Remaining lead: search accounted for about 85% of that profile. Level 6 walks up to 132 candidates per
-  position and comes back with a match three to six bytes long on filtered data, and level 1
-  compresses the same input 4x faster for 5% more bytes, which is the size of the prize.
-  The two untried levers are zlib's `nice_match` — stop the chain once a match is long enough,
-  128 at level 6 — and tuning the lazy-match rule miniz inherited. Both change which matches are
-  chosen, so each has to report compressed size beside time.
-- The other half is not in this file: the block loop spends its time in stack slots rather than
-  registers, which [compiler.optimization.006](compiler.optimization.md) measured at 1.6x against clang for the
-  matching Inflate loop and is a backend problem, not a library one.
-- Next: remeasure the current compiler and match finder on the same PNG and `.scc` corpus, then compare each search-policy change against that recorded baseline.
-- Complete when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than that
-  baseline with no more than 1% growth in compressed size, and every `core` compression test still
-  round-trips.
-- Related: std.core.021, std.core.022
 
 ### std.core.022 — No reusable ZIP reader and writer
 

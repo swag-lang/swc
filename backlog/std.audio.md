@@ -33,6 +33,19 @@ and capture. Operating-system backend work lives in
 
 The native backend has channel-routing facilities, but the module has no portable pan contract.
 
+### std.audio.010 — Engine creation cost on the startup path
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-10-06 20:56 — Link the X3DAudio and backend entries that share this cost.
+- `XAudio2DriverNative.createXAudio2` does COM initialization, `XAudio2Create`, mastering-voice creation,
+  channel-mask query and `X3DAudioInitialize`. Engine creation was previously measured in the 500
+  to 950 millisecond range, which dominates the startup of the example scripts that call it —
+  `bin/examples/scripts/flappy.swgs`, `invaders.swgs` and `pacman.swgs`.
+- Re-measure before acting; then consider deferring device work off the calling thread so the
+  application can draw its first frame while the engine comes up.
+- Related: platform.portability.063 (the X3DAudio initialization it pays for is never used),
+  platform.portability.065; moving bring-up off the calling thread is backend-neutral.
+
 ### std.audio.001 — DTS Core advanced coding tools remain unsupported
 
 - Recorded: 2026-08-27 07:58
@@ -137,19 +150,6 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 
 - Related: platform.portability.064, std.audio.014
 
-### std.audio.010 — Engine creation cost on the startup path
-
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- `XAudio2DriverNative.createXAudio2` does COM initialization, `XAudio2Create`, mastering-voice creation,
-  channel-mask query and `X3DAudioInitialize`. Engine creation was previously measured in the 500
-  to 950 millisecond range, which dominates the startup of the example scripts that call it —
-  `bin/examples/scripts/flappy.swgs`, `invaders.swgs` and `pacman.swgs`.
-- Re-measure before acting; then consider deferring device work off the calling thread so the
-  application can draw its first frame while the engine comes up.
-- Related: no other backlog entry covers this. If measurement shows the cost is in XAudio2
-  rather than in this module, record it there instead.
-
 ### std.audio.011 — No audio capture input
 
 - Recorded: 2026-08-05 07:43
@@ -187,6 +187,7 @@ Expose desktop/output loopback as a distinct capture source when the backend sup
   DSP or node graph where an effect can be inserted on a bus.
 - Sequence this after platform.portability.064: a per-voice filter answers most of the need, and an effects graph is
   a much larger commitment. Do not build the graph to get the filter.
+- Related: platform.portability.064, std.audio.008, std.audio.009
 
 ---
 

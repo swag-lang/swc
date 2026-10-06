@@ -155,7 +155,9 @@ func isRooted(path: string?)->bool
 
 // Returns the directory part of `path`, or null when the path names no directory.
 //
-// A root such as `/` or `C:/` is not a directory part: `directoryName("/file")` is null.
+// A root has no directory part of its own, but it is the directory part of what sits directly
+// under it: `directoryName("C:/file")` is `C:/` and `directoryName("/file")` is `/`, while
+// `directoryName("C:/")` is null.
 #[ConstExpr]
 func directoryName(path: string?)->string?
 {
@@ -163,16 +165,10 @@ func directoryName(path: string?)->string?
         return null
     Swag.assert(isValidPathName(path))
 
-    for index in reversed(path.count) where isDirectorySeparator(path[index])
-    {
-        if index == 0 do
-            return null
-        if VolumeSeparator != 0 and index == 2 and path[1] == VolumeSeparator do
-            return null
+    let root = rootLength(path)
+    for index in reversed(path.count) where index >= root and isDirectorySeparator(path[index]) do
         return path[until index]
-    }
-
-    return null
+    return root != 0 and root < path.count ? path[until root] : null
 }
 
 // Returns the file name part of `path`, or null when the path ends with a separator.

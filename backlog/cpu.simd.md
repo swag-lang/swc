@@ -48,32 +48,10 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
-### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
-
-- Recorded: 2026-08-19 19:26
-- Updated: 2026-09-30 16:13 — Constant narrow lane reads and constant lane writes stay in registers; dynamic lanes and FMA remain.
-- Intent: complete dynamic lane insertion and extraction and evaluate fused multiply-add with an
-  explicit rounding contract. Immediate lane shuffles, horizontal reductions and SAD already lower
-  through dedicated operations; vector `mulAdd` currently emits a multiply followed by an add, so
-  replacing it with FMA must not silently change its rounding semantics.
-- Evidence: a constant lane read of a register-resident vector never touches the frame. A 32- or
-  64-bit lane is a `movd`/`movq`, through one `pshufd` past lane zero; an 8- or 16-bit lane slides
-  down by bytes (`psrldq`) and leaves through the same move, extended from its own width. A
-  constant lane written into a vector local is one `vpinsrb`/`vpinsrw`/`vpinsrd` where it was a
-  sixteen-byte spill, a narrow store and a wide reload stalled behind it. `native/simd/lanes.swg`
-  covers signed and unsigned narrow reads and the three insertion widths. What still goes through
-  the frame: a 64-bit lane write, and every dynamic index - `v[i]` spills the vector and reads
-  `[rsp + i * 4]`, `v[i] = x` spills, stores the lane and reloads sixteen bytes.
-- Next: give the 64-bit lane write its `vpinsrq`, lower a dynamic lane read through a byte shuffle
-  with a computed control where that beats the spill, and decide the FMA contract.
-- Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
-  kernel and end-to-end benchmarks show no regression on the fallback target.
-- Related: cpu.simd.010.
-
 ### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
 
 - Recorded: 2026-09-12 18:05
-- Updated: 2026-09-29 20:03 — Prefetch pays once inlined; 4x4 and 8x8 blocks stored transposed; the goal needs the entropy layer too.
+- Updated: 2026-10-06 20:59 — The luma six-tap byte rewrite is no longer blocked: its coefficients already load before the row loop.
 - Evidence: forcing FFmpeg's dispatch down one instruction set at a time on a 3840x2160 one-slice
   High/CABAC clip gives the ladder its assembly climbs, in millions of decode-thread cycles per
   picture: compiled code 179, with SSE2 111, with SSSE3 82. Its SSE2 step covers the deblocking
@@ -102,8 +80,9 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   instructions before and after, because the form it replaces already fuses the load and the widen
   into one instruction, and the two coefficient vectors it needs cost two loads a row and four more
   callee-saved vector registers. It halves the shuffle-port traffic, 12 operations to 6, which is
-  why it is worth returning to once compiler.optimization.037 lets the coefficients stay in
-  registers across the loop. The reference's own luma kernel widens too, and applies its
+  why it is worth returning to now that the filter's coefficient loads and broadcasts already
+  precede its row loop (checked against the H.264 dump when `dac5e4702` retired the old
+  rematerialization diagnosis). The reference's own luma kernel widens too, and applies its
   coefficients with a 16-bit multiply.
 - Done: `filterLumaWeakHorizontal`, the costliest deblocking kernel, now runs entirely on bytes.
   The two thresholds are compared with a saturating difference that stops at zero, the correction
@@ -185,14 +164,41 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   inlined prefetch, `addChromaResidual` 2.1, `mcChromaPair` 1.9, `addPlaneResidual` 1.8,
   `intraPredict8x8` 1.6, `interpolateChroma` 1.6, `addIdct8x8` 1.3, `copyPlane` 1.3,
   `interpolateLuma` 1.2. Take the chroma DC path of `addChromaResidual` to FFmpeg's
-  `chroma_dc_dequant_idct` shape; the luma six-tap byte rewrite waits on
-  compiler.optimization.037. Measure each by sampling the lane, not by timing it.
+  `chroma_dc_dequant_idct` shape, and retry the luma six-tap byte rewrite now that its
+  coefficients load before the row loop, keeping it only if `interpolateLuma`'s share falls.
+  Measure each by sampling the lane, not by timing it.
 - Complete when: the decode lane's prediction, residual, reconstruction and deblocking
   functions together take no more than 10 million cycles per picture on the same fixture (their
   share of lane samples times the lane's cycles, on a quiet machine), the budget FFmpeg's SSE2
   ladder leaves its own pixel layer, with unchanged decoded planes. Whole-decoder parity with
   FFmpeg's SSE2 figure also needs std.video.001.
 - Related: std.video.001, cpu.simd.023, cpu.simd.024
+
+### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
+
+- Recorded: 2026-08-19 19:26
+- Updated: 2026-10-06 20:59 — Scalar FMA contraction under `fpMathFma` exists; packed contraction, the 64-bit lane write and dynamic lanes remain.
+- Intent: complete dynamic lane insertion and extraction and extend fused multiply-add to packed
+  code. Immediate lane shuffles, horizontal reductions and SAD already lower through dedicated
+  operations. Scalar code already has the rounding contract: under the `fpMathFma` build setting
+  (on in `release`), a post-RA peephole contracts a scalar product accumulation into
+  `vfmadd231ss`/`sd` when every lane of the product is otherwise dead, while an explicit
+  `Swag.muladd` keeps its separate multiply and add rounding (`30feb4eb9`). Packed product
+  accumulations and vector `mulAdd` still emit a multiply followed by an add.
+- Evidence: a constant lane read of a register-resident vector never touches the frame. A 32- or
+  64-bit lane is a `movd`/`movq`, through one `pshufd` past lane zero; an 8- or 16-bit lane slides
+  down by bytes (`psrldq`) and leaves through the same move, extended from its own width. A
+  constant lane written into a vector local is one `vpinsrb`/`vpinsrw`/`vpinsrd` where it was a
+  sixteen-byte spill, a narrow store and a wide reload stalled behind it. `native/simd/lanes.swg`
+  covers signed and unsigned narrow reads and the three insertion widths. What still goes through
+  the frame: a 64-bit lane write, and every dynamic index - `v[i]` spills the vector and reads
+  `[rsp + i * 4]`, `v[i] = x` spills, stores the lane and reloads sixteen bytes.
+- Next: give the 64-bit lane write its `vpinsrq`, lower a dynamic lane read through a byte shuffle
+  with a computed control where that beats the spill, and extend the `fpMathFma` contraction to
+  packed product accumulations or state why packed code keeps separate rounding.
+- Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
+  kernel and end-to-end benchmarks show no regression on the fallback target.
+- Related: cpu.simd.010.
 
 ### cpu.simd.008 — Packed memory access has no alignment or cache policy
 

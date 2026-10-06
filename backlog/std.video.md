@@ -14,6 +14,33 @@ bounded sound windows.
 Motion JPEG decoding in AVI uses Pixel's JPEG decoder. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
+### std.video.008 — ISO-BMFF does not expose Layer III sound tracks
+
+- Recorded: 2026-09-06 07:51
+- Updated: 2026-10-06 20:56 — Layer III tracks are silently omitted, not rejected.
+- Evidence: `decode/mp4/mp4.swg` keeps an `mp4a` track only when its decoder-configuration
+  object type is `0x40` (`Mpeg4AudioObjectType`); `0x69` and `0x6B` Layer III tracks are silently
+  left out rather than rejected, although std/audio already decodes Layer III packets and the
+  Matroska reader exposes them.
+- Next: retain the object type while reading the audio descriptor and construct the existing
+  Layer III packet stream for supported variants. Add a redistributable multiplexed fixture.
+- Complete when: ISO-BMFF Layer III tracks enumerate, decode, seek, and retain their timestamps
+  through `Video.Reader`, with reference PCM comparisons and explicit rejection of unsupported
+  MPEG audio layers.
+- Related: std.audio.002
+
+### std.video.004 — An AVI larger than four gigabytes is refused
+
+- Recorded: 2026-08-17 18:40
+- Updated: 2026-10-06 20:56 — Credit the decoder's frame-walk fallback beside `idx1`.
+- Intent: every size in the AVI container is a 32-bit field, so the encoder refuses a stream that
+  would run past four gigabytes (`encode/avi/avi.swg`), and the decoder reads `idx1` or, when it is
+  missing or rejected, walks the first RIFF's `movi` list (`walkFrames`), ignoring OpenDML. OpenDML answers both
+  with 64-bit `indx` chunks and a `RIFF AVIX` continuation, which is what any capture longer than a
+  few minutes at a usable bitrate produces.
+- Complete when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
+  encoder emits them instead of failing once the stream approaches the limit.
+
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Recorded: 2026-08-19 13:23
@@ -226,19 +253,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Historical provenance: split from the retired `app.scope.video.014` playback capability entry.
 - Related: std.video.010, app.scope.binary.011
 
-### std.video.008 — ISO-BMFF does not expose Layer III sound tracks
-
-- Recorded: 2026-09-06 07:51
-- Evidence: `decode/mp4/mp4.swg` accepts only the MPEG-4 audio object type `0x40` in an
-  `mp4a` descriptor. The `0x69` and `0x6B` Layer III variants are rejected, although std/audio
-  already decodes Layer III packets and the Matroska reader exposes them.
-- Next: retain the object type while reading the audio descriptor and construct the existing
-  Layer III packet stream for supported variants. Add a redistributable multiplexed fixture.
-- Complete when: ISO-BMFF Layer III tracks enumerate, decode, seek, and retain their timestamps
-  through `Video.Reader`, with reference PCM comparisons and explicit rejection of unsupported
-  MPEG audio layers.
-- Related: std.audio.002
-
 ### std.video.006 — Interlaced H.264 is the last picture feature a real library asks for
 
 - Recorded: 2026-08-25 16:27
@@ -288,14 +302,3 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Complete when: window ownership makes the last consumer observable, several refreshes keep only
   the active and genuinely referenced windows, and a seek cannot read freed packet storage.
 - Related: std.video.002
-
-### std.video.004 — An AVI larger than four gigabytes is refused
-
-- Recorded: 2026-08-17 18:40
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: every size in the AVI container is a 32-bit field, so the encoder refuses a stream that
-  would run past four gigabytes and the decoder reads only the `idx1` table. OpenDML answers both
-  with 64-bit `indx` chunks and a `RIFF AVIX` continuation, which is what any capture longer than a
-  few minutes at a usable bitrate produces.
-- Complete when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
-  encoder emits them instead of failing once the stream approaches the limit.

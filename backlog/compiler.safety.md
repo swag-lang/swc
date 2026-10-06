@@ -43,6 +43,30 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.005 — A write through a pointer into a moved value is not reported
+
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-10-06 20:59 — Reads through a moved value's self-pointer are now diagnosed; only the write remains.
+- Area: compiler/backend, `Sanitizer`
+- Evidence: a struct holding a pointer into its own storage keeps that pointer after `#move`, and
+  the pointer then addresses the abandoned source. Reading through it is now a compile-time error:
+  `source.cursor = &source.values[0]; var target = #move source; return target.cursor![]` reports
+  `sanity_err_use_after_move` for whole, packed, first-field and indexed self-pointers
+  ([self_borrow_move.swg](../bin/unittests/sanity/self_borrow_move.swg),
+  [self_borrow_indexed_move.swg](../bin/unittests/sanity/self_borrow_indexed_move.swg), since
+  `d2672787e`), and an `opPostMove` hook can repair the pointer in its new storage.
+- What remains: a write through the same pointer, `target.cursor![] = 7`, still stores into the
+  abandoned source with no diagnostic. The check reports only loads from a moved range
+  (`UseAfterMoveCheck::run` calls `Sanitizer::reportLoadFromMovedRange`), and a store into moved
+  storage is also how a moved-from variable is legitimately reinitialized. The commented
+  `GAP compiler.safety.005` case in
+  [cwe672_use_after_move.swg](../bin/unittests/safety/corpus/cwe672_use_after_move.swg) is that write.
+- Next: separate a store through a pointer derived from the source before the move from a direct
+  reassignment of the moved-from variable, and report the first with the same diagnostic. If the
+  analysis cannot tell them apart, document the limit next to the move rules instead.
+- Complete when: the corpus write case is a fault case naming its diagnostic, or the reference
+  documents the limit; reassignment after a move and `opPostMove` repair stay accepted.
+
 ### compiler.safety.023 — Opaque results lack pointer-field provenance
 
 - Recorded: 2026-09-08 20:48
@@ -431,23 +455,6 @@ is the current scorecard.
   excludes it, in which build configurations, and by which mechanism — and every claim on it is
   backed by a test in `bin/unittests`.
 - Related: compiler.safety.006, compiler.safety.008.
-
-### compiler.safety.005 — A pointer into a value survives the move of that value
-
-- Recorded: 2026-09-04 17:05
-- Area: compiler/sema, `SemaEscape`
-- Evidence: a struct holding a pointer into its own storage keeps that pointer after `#move`, and it
-  then addresses the abandoned source. `a.head = &a.buf[0]; var b = #move a; b.head![] = 7` writes
-  into the dead `a`, and `b.buf[0]` is unchanged. Silent in every configuration.
-- Consequence: narrow but real, and it is the one place where Swag's byte-copy move has no
-  counterpart to the rule that protects it elsewhere. The analysis already tracks a borrow of a
-  local across a move (`let p = &a.x; var b = #move a; p[]` is caught); what it does not track is a
-  borrow stored *inside* the value being moved.
-- Next: decide whether this deserves a rule at all before building one. The honest first step is a
-  sweep: does any type in `bin/` hold a pointer into itself? If none does, record the answer and
-  reduce this entry to the documentation of a known limit.
-- Complete when: self-referential storage is either rejected at the move, or documented as
-  unsupported with the sweep result recorded.
 
 ### compiler.safety.007 — A foreign function is opaque to every safety analysis
 

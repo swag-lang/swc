@@ -502,19 +502,22 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
 
 bool TypeManager::isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeRef) const
 {
-    const TypeRef normalizedTypeRef = unwrapAliasEnum(ctx, typeRef);
-    if (!normalizedTypeRef.isValid())
+    if (!typeRef.isValid())
         return false;
 
-    const TypeInfo& normalizedType = get(normalizedTypeRef);
+    const TypeInfo& declaredType   = get(typeRef);
+    const TypeInfo* unwrappedType  = declaredType.unwrapAliasEnumType(ctx);
+    const TypeInfo& normalizedType = unwrappedType ? *unwrappedType : declaredType;
     if (!normalizedType.isAnyPointer())
         return false;
 
-    const TypeRef pointeeTypeRef = unwrapAliasEnum(ctx, normalizedType.payloadTypeRef());
+    const TypeRef pointeeTypeRef = normalizedType.payloadTypeRef();
     if (!pointeeTypeRef.isValid())
         return false;
 
-    const TypeInfo& pointeeType = get(pointeeTypeRef);
+    const TypeInfo& declaredPointee  = get(pointeeTypeRef);
+    const TypeInfo* unwrappedPointee = declaredPointee.unwrapAliasEnumType(ctx);
+    const TypeInfo& pointeeType      = unwrappedPointee ? *unwrappedPointee : declaredPointee;
     if (!pointeeType.isStruct())
         return false;
 

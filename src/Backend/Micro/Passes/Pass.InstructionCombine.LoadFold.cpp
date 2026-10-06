@@ -252,7 +252,7 @@ namespace InstructionCombine
 
         const auto lea = ctx.ssa->reachingDef(address, ref);
         if (!lea.valid() || lea.isPhi || !lea.inst || lea.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem || ctx.isClaimed(lea.instRef) ||
-            !valueHasSingleUse(*ctx.ssa, address, lea.instRef))
+            ctx.ssa->transitiveInstructionUseCount(lea.valueId, 2) != 1)
             return false;
         const MicroInstrOperand* leaOps = lea.inst->ops(*ctx.operands);
         if (!leaOps || leaOps[0].reg != address || leaOps[3].opBits != MicroOpBits::B64 || leaOps[4].opBits != MicroOpBits::B64 ||
@@ -337,7 +337,7 @@ namespace InstructionCombine
 
         const auto reaching = ctx.ssa->reachingDef(address, loadRef);
         if (!reaching.valid() || reaching.isPhi || !reaching.inst || reaching.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem ||
-            !valueHasSingleUse(*ctx.ssa, address, reaching.instRef))
+            ctx.ssa->transitiveInstructionUseCount(reaching.valueId, 2) != 1)
             return false;
 
         const MicroInstrOperand* addressOps = reaching.inst->ops(*ctx.operands);
@@ -1154,7 +1154,7 @@ namespace InstructionCombine
                     const bool                       rhsIsSingleUseMemoryLoad = rhsDef.valid() && !rhsDef.isPhi && rhsDef.inst &&
                                                           (rhsDef.inst->op == MicroInstrOpcode::LoadRegMem ||
                                                            rhsDef.inst->op == MicroInstrOpcode::LoadAmcRegMem) &&
-                                                          valueHasSingleUse(*ctx.ssa, rhs, rhsDef.instRef);
+                                                          ctx.ssa->transitiveInstructionUseCount(rhsDef.valueId, 2) == 1;
 
                     const MicroInstrRef cmpRef = walker.current;
                     if (cellReadAgainInStraightLine(ctx, loadRef, cmpRef, base, index, mulValue, addValue, cmpBits))

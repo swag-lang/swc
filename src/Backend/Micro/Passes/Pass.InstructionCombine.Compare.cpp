@@ -39,7 +39,7 @@ namespace InstructionCombine
         const auto* copy = def.inst->ops(*ctx.operands);
         if (!copy || copy[0].reg != copied || copy[2].opBits != MicroOpBits::B8 || !copy[1].reg.isVirtualInt() ||
             copy[1].reg == cmp[0].reg || copy[1].reg == cmp[1].reg ||
-            !valueHasSingleUse(*ctx.ssa, copied, def.instRef))
+            ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
             return false;
         if (!ctx.ssa->sameValueAt(copy[1].reg, def.instRef, cmpRef) ||
             !ctx.claimAll({cmpRef, def.instRef}))

@@ -167,7 +167,7 @@ namespace InstructionCombine
 
         const auto original = ctx.ssa->reachingDef(load[2].reg, ref);
         if (!original.valid() || original.isPhi || !original.inst || original.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem ||
-            !valueHasSingleUse(*ctx.ssa, load[2].reg, original.instRef))
+            ctx.ssa->transitiveInstructionUseCount(original.valueId, 2) != 1)
             return false;
         const MicroInstrOperand* address = original.inst->ops(*ctx.operands);
         if (!address || address[0].reg != load[2].reg || address[3].opBits != MicroOpBits::B64 ||
@@ -363,7 +363,7 @@ namespace InstructionCombine
             const MicroInstrOperand* copyOps = outDef.inst->ops(*ctx.operands);
             if (!copyOps || copyOps[2].opBits != MicroOpBits::B64 || !copyOps[1].reg.isVirtualInt())
                 return true;
-            if (!valueHasSingleUse(*ctx.ssa, copyOps[0].reg, outDef.instRef))
+            if (ctx.ssa->transitiveInstructionUseCount(outDef.valueId, 2) != 1)
                 return true;
 
             const MicroInstrRef copyRef = outDef.instRef;
@@ -405,7 +405,7 @@ namespace InstructionCombine
             const uint64_t shiftAmount = shiftOps[3].valueU64;
             if (shiftAmount < 1 || shiftAmount > 3)
                 return false;
-            if (!valueHasSingleUse(*ctx.ssa, shiftOps[0].reg, def.instRef))
+            if (ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                 return false;
 
             // The shift is two-address, so the value it scales arrives through its own copy.
@@ -416,7 +416,7 @@ namespace InstructionCombine
             const MicroInstrOperand* inOps = shifted.inst->ops(*ctx.operands);
             if (!inOps || inOps[2].opBits != MicroOpBits::B64 || !inOps[1].reg.isVirtualInt())
                 return false;
-            if (!valueHasSingleUse(*ctx.ssa, inOps[0].reg, shifted.instRef))
+            if (ctx.ssa->transitiveInstructionUseCount(shifted.valueId, 2) != 1)
                 return false;
             if (!ctx.ssa->sameValueAt(inOps[1].reg, shifted.instRef, atRef))
                 return false;
@@ -540,7 +540,7 @@ namespace InstructionCombine
                 continue;
 
             const MicroReg product = mulOps[0].reg;
-            if (!product.isVirtualInt() || product == baseReg || !valueHasSingleUse(*ctx.ssa, product, def.instRef))
+            if (!product.isVirtualInt() || product == baseReg || ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                 continue;
             // Removing the copy makes the address read the product directly.
             // Its register must still hold that definition at the add.
@@ -736,7 +736,7 @@ namespace InstructionCombine
             return false;
 
         const auto shift = ctx.ssa->reachingDef(scaled, ref);
-        if (!shift.valid() || shift.isPhi || !shift.inst || ctx.isClaimed(shift.instRef) || !valueHasSingleUse(*ctx.ssa, scaled, shift.instRef))
+        if (!shift.valid() || shift.isPhi || !shift.inst || ctx.isClaimed(shift.instRef) || ctx.ssa->transitiveInstructionUseCount(shift.valueId, 2) != 1)
             return false;
 
         // The shift of a small scale is often already an address, `X = &[I + I]` or
@@ -859,7 +859,7 @@ namespace InstructionCombine
 
             const auto def = ctx.ssa->reachingDef(reg, ref);
             if (!def.valid() || def.isPhi || !def.inst || ctx.isClaimed(def.instRef) || def.inst->numOperands > Action::K_MAX_OPS ||
-                !valueHasSingleUse(*ctx.ssa, reg, def.instRef))
+                ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                 continue;
             const MicroInstrOperand* defOps = def.inst->ops(*ctx.operands);
             if (!defOps || defOps[0].reg != reg)

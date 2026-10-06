@@ -487,6 +487,53 @@ SWC_TEST_BEGIN(InstCombine_ForwardingCacheKeepsClaimedLoadsOut)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_ForwardsPackedMemoryWithScalarAliasBarriers)
+{
+    const MicroReg base   = MicroReg::intReg(8);
+    const MicroReg other  = MicroReg::intReg(9);
+    const MicroReg source = MicroReg::floatReg(0);
+    const MicroReg target = MicroReg::virtualFloatReg(1);
+    for (uint32_t variant = 0; variant < 10; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        if (variant == 1)
+            builder.emitLoadMemReg(base, 0, source, MicroOpBits::B128);
+        else if (variant == 9)
+            builder.emitLoadVecRegMem(source, base, 0, MicroOpBits::B128);
+        else
+            builder.emitStoreVecMemReg(base, 0, source, MicroOpBits::B128);
+        const MicroInstrRef producer = builder.instructions().lastInstructionRef();
+        if (variant == 3 || variant == 4 || variant == 6)
+            builder.emitLoadMemReg(variant == 4 ? other : base, variant == 6 ? 16 : 4, MicroReg::intReg(10), MicroOpBits::B32);
+        if (variant == 5)
+            builder.emitClearReg(source, MicroOpBits::B128);
+        if (variant == 2)
+            builder.emitLoadRegMem(target, base, 0, MicroOpBits::B128);
+        else
+            builder.emitLoadVecRegMem(target, base, variant == 7 ? 4 : 0, MicroOpBits::B128);
+        const MicroInstrRef load = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+
+        MicroSsaState ssa;
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        InstructionCombine::Context context;
+        context.builder  = &builder;
+        context.storage  = &builder.instructions();
+        context.operands = &builder.operands();
+        context.ssa      = &ssa;
+        if (variant == 8 && !context.claimAll({producer}))
+            return Result::Error;
+        InstructionCombine::runStoreToLoadForwarding(context);
+        const bool forwards = variant <= 2 || variant == 6 || variant == 9;
+        if (context.actions.size() != (forwards ? 1 : 0))
+            return Result::Error;
+        if (forwards && (context.actions[0].ref != load || context.actions[0].newOp != MicroInstrOpcode::LoadRegReg || context.actions[0].ops[1].reg != source))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_ForwardingCacheKeepsSurvivingProducers)
 {
     constexpr MicroReg base   = MicroReg::intReg(8);

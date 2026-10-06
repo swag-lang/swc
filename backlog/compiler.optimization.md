@@ -85,23 +85,22 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.098 — Feed packed output directly from the round vectors
+### compiler.optimization.098 — Remove the remaining packed state stores
 
 - Recorded: 2026-09-29 08:04
-- Updated: 2026-10-06 14:54 — Narrow the remaining work to the state-vector round trip.
+- Updated: 2026-10-06 15:13 — Forward the four state-vector reloads and retain dead-store work.
 - Area: compiler/backend, SIMD dataflow and memory forwarding
-- Evidence: indexed RMW SLP now packs ChaCha's 16 output updates. Main changes from
-  446 instructions / 143 memory operations to 425 / 113 with matching checksum.
-  Four vector stores at the round-loop exit are still followed by four loads of
-  those exact state chunks for the output additions. The initial-array reads and
-  destination reads/writes are necessary; the state round trip is the next target.
-- Next: forward the loop's final vector values into the output plan before allocation,
-  then remove a state store only if no later or aliased access needs it. Inspect
-  source and destination lifetimes together so forwarding does not create spills.
-  Keep mixed-width and escaped-frame reads as barriers.
-- Complete when: this round trip disappears with unchanged checksum and no new
-  spill traffic, or the remaining lifetime cost is established from emitted code.
-- Evidence artifact: [indexed SLP](../bench/results/generated-code/20261006-indexed-slp/README.md).
+- Evidence: indexed RMW SLP packs ChaCha's 16 output updates. Packed store/load
+  forwarding now carries its four final round vectors directly into the output
+  additions. Main is 423 instructions / 111 memory operations, against 446 / 143
+  before the two batches. One extra XMM save/restore offsets two of the four
+  reloads removed from the repeated output path.
+- Next: remove the four exit stores only after proving every later read is
+  forwarded or preceded by an overwrite. Mixed-width and escaped-frame reads
+  remain barriers. Inspect vector lifetimes and spills before keeping the rule.
+- Complete when: the dead stores disappear with unchanged checksum and no new
+  hot-loop spill traffic, or their remaining observable use is established.
+- Evidence artifact: [vector forwarding](../bench/results/generated-code/20261006-vector-forward/README.md).
 
 ### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
 

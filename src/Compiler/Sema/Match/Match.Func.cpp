@@ -1958,8 +1958,9 @@ namespace
             // constraint), leaving only the move variant.
             if (params[i]->hasExtraFlag(SymbolVariableFlagsE::FwdCopy))
             {
-                const TypeRef   fwdTypeRef = unwrapAliasEnumOrSelf(sema, paramTy);
-                const TypeInfo& fwdType    = sema.typeMgr().get(fwdTypeRef);
+                const TypeInfo* unwrappedParam = param.unwrapAliasEnumType(sema.ctx());
+                const TypeInfo& fwdType        = unwrappedParam ? *unwrappedParam : param;
+                const TypeRef   fwdTypeRef     = fwdType.typeRef();
                 if (fwdType.isStruct())
                 {
                     SWC_RESULT(sema.waitSemaCompleted(&fwdType, argRef));
@@ -1981,7 +1982,8 @@ namespace
             const bool argIsExplicitMove = isExplicitMoveArgumentNode(sema, argRef);
             if (argIsExplicitMove)
             {
-                const TypeInfo& paramCheck = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTy));
+                const TypeInfo* unwrappedParam = param.unwrapAliasEnumType(sema.ctx());
+                const TypeInfo& paramCheck     = unwrappedParam ? *unwrappedParam : param;
                 if (!paramCheck.isMoveReference() && paramCheck.isPointerOrReference())
                 {
                     CastFailure cf{};
@@ -2579,7 +2581,8 @@ namespace
             if (argRef.isInvalid())
                 continue;
 
-            if (params[i]->type(sema.ctx()).isCodeBlock())
+            const TypeInfo& paramType = params[i]->type(sema.ctx());
+            if (paramType.isCodeBlock())
                 continue;
 
             const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
@@ -2599,7 +2602,8 @@ namespace
             // parameter, never a reference/pointer one (the transfer would be ignored).
             if (isExplicitMoveArgumentNode(sema, argRef))
             {
-                const TypeInfo& paramCheck = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTypeRef));
+                const TypeInfo* unwrappedParam = paramType.unwrapAliasEnumType(sema.ctx());
+                const TypeInfo& paramCheck     = unwrappedParam ? *unwrappedParam : paramType;
                 if (!paramCheck.isMoveReference() && paramCheck.isPointerOrReference())
                     return SemaError::raise(sema, DiagnosticId::sema_err_move_arg_param_not_move, argValueRef);
             }
@@ -2609,7 +2613,7 @@ namespace
             // its address as the move reference. When a value conversion is pending (an
             // untyped literal binding the pointee), the cast below must still run.
             if (castTypeRef == paramTypeRef &&
-                sema.typeMgr().get(paramTypeRef).isMoveReference() &&
+                paramType.isMoveReference() &&
                 argView.type() && !argView.type()->isMoveReference() &&
                 bindsReferenceToValue(sema, paramTypeRef, argValueRef))
                 continue;
@@ -2638,8 +2642,8 @@ namespace
             const TypeRef preCastSrcTypeRef = argView.typeRef();
             if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid())
             {
-                const TypeRef   preCastSrcCheckRef     = unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef);
-                const TypeInfo& preCastSrcType         = sema.typeMgr().get(preCastSrcCheckRef);
+                const TypeInfo& preCastSrcType         = SemaHelpers::aliasEnumType(sema, argView);
+                const TypeRef   preCastSrcCheckRef     = preCastSrcType.typeRef();
                 const TypeRef   castPointeeTypeRef     = sema.typeMgr().get(castTypeRef).payloadTypeRef();
                 const TypeRef   resolvedPointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), castPointeeTypeRef);
                 const TypeRef   pointeeCheckRef        = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : castPointeeTypeRef;
@@ -2921,16 +2925,12 @@ namespace
         if (!paramType.isReference())
             return TypeRef::invalid();
 
-        const AstNodeRef sourceRef     = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
-        const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
-        if (!sourceTypeRef.isValid())
+        const AstNodeRef   sourceRef  = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
+        const SemaNodeView sourceView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type);
+        if (!sourceView.typeRef().isValid())
             return paramType.payloadTypeRef();
 
-        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (unwrappedSourceTypeRef.isValid())
-            return unwrappedSourceTypeRef;
-
-        return sourceTypeRef;
+        return SemaHelpers::aliasEnumType(sema, sourceView).typeRef();
     }
 
     Result attachReferenceBindingRuntimeStorageIfNeeded(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)

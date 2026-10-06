@@ -660,7 +660,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
 {
-    for (uint32_t variant = 0; variant < 4; ++variant)
+    for (uint32_t variant = 0; variant < 5; ++variant)
     {
         const CallConv& conv  = CallConv::get(CallConvKind::Swag);
         const MicroReg  sp    = conv.stackPointer;
@@ -672,7 +672,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
         const auto      latch      = builder.createLabel();
         const auto      firstExit  = builder.createLabel();
         const auto      secondExit = builder.createLabel();
-        if (variant == 2)
+        if (variant == 2 || variant == 4)
             builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, secondExit);
         builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
         if (variant == 3)
@@ -680,14 +680,16 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
         builder.placeLabel(top);
         builder.emitCmpRegImm(count, ApInt(20, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, firstExit);
-        builder.emitLoadRegMem(value, sp, 0x80, MicroOpBits::B64);
+        if (variant != 4)
+            builder.emitLoadRegMem(value, sp, 0x80, MicroOpBits::B64);
         builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, arm);
         builder.emitOpBinaryRegImm(value, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitLoadMemReg(sp, 0x80, value, MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, latch);
         builder.placeLabel(arm);
-        builder.emitLoadRegMem(value, sp, 0x80, MicroOpBits::B64);
+        if (variant != 4)
+            builder.emitLoadRegMem(value, sp, 0x80, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitLoadMemReg(sp, 0x80, value, MicroOpBits::B64);
         builder.placeLabel(latch);
@@ -704,7 +706,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
         SWC_RESULT(runPostRaLoopHoistPass(builder, 0x80, 0x88));
         const uint32_t loads  = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem);
         const uint32_t copies = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
-        if (variant == 0 || variant == 3)
+        if (variant == 0 || variant == 2 || variant == 3)
         {
             SWC_ASSERT(loads == 1 && copies == 4);
             SWC_ASSERT(Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) == 2);
@@ -712,7 +714,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSpillCacheAcrossArmsAndExits)
                        Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label));
         }
         else
-            SWC_ASSERT(loads == 2 && copies == 0);
+            SWC_ASSERT(loads == (variant == 4 ? 0 : 2) && copies == 0);
     }
     return Result::Continue;
 }

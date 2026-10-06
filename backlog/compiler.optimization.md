@@ -85,6 +85,49 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
+
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-10-06 16:48 — Extend coherent caches to call-free loops with shared exits.
+- Area: compiler/backend
+- Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
+  in a caller-saved XMM register free across a call-free loop. Every matching load/store
+  becomes a register transfer; one seed precedes the header and each distinct exclusive
+  exit writes the current value back. Mixed/overlapping accesses, indexed or derived stack
+  addresses and changing stack pointers remain conservative barriers.
+- Evidence: across 334 H.264 bodies, explicit RSP accesses fall from 2,249 to 2,213 and
+  memory operations from 9,995 to 9,959, with seven extra instructions overall and no extra
+  pushes. Five residualCabac instances lose 13 memory operations with unchanged instruction
+  count. The 282 native optimizer, 23 H.264 and nine HEVC decoder tests pass in Release
+  (JIT and native). The [rewrite and per-function tradeoffs](../bench/results/generated-code/20261006-carried-spill-cache/README.md)
+  retain the structural evidence; no runtime speedup was measured.
+- Extended boundary: write-only private 64-bit homes use the same cache and exit write-back
+  proof. This removes the per-two-round SHA spill introduced by partial unrolling; see the
+  [retained evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md).
+- Read-only homes now cross conditional calls, multiple outside entries and shared exits:
+  seed every entry and restore only clobbered caches after calls. A static reuse check bounds
+  the added reads. Writable homes can now cross those calls and shared exits by retaining
+  their stores and updating the cache at each write. The literal-path Inflate latch loses
+  its final frame reload; H.264 loses three more memory operations. The full 3,634 native,
+  21 compression and 23 H.264 tests pass in Release; see the
+  [write-through evidence](../bench/results/generated-code/20261006-private-write-through/README.md).
+- Call-free loops with shared exits now retain coherent stores instead of being
+  rejected. H.264 halfHorizontalAvg, halfCenter and buildImplicitWeights each lose
+  three memory operations, with unchanged instruction and push counts. Later
+  cleanup removes unobserved stores too. The other 331 bodies and CSV are unchanged;
+  [comparison](../bench/results/generated-code/20261006-shared-exit-cache/README.md).
+- Next: inspect hot source-object slots and mixed-width spills. Prefer a free integer
+  register when its live range and ABI preservation permit it. Removing retained stores
+  from called loops needs an exit-liveness proof or edge-specific write-backs.
+  Loops without a call-free back-edge route are still excluded, even if a home is read
+  several times between calls. Any extension should prove reuse within each call-delimited
+  path; counting reads on mutually exclusive arms can overstate the avoided work.
+- Complete when: current codec dumps identify and resolve the remaining promotion boundary
+  with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
+  64-bit multi-access rewrite.
+- Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
+
+
 ### compiler.optimization.034 — Reuse the selected Dijkstra heap child across its comparison
 
 - Recorded: 2026-09-07 10:46
@@ -147,43 +190,6 @@ new language syntax.
 - Complete when: shared facts cover those consumers, forwarding crosses a proven
   disjoint store in a real codec loop, and remaining local allocation costs are resolved.
 - Related: compiler.optimization.015.
-
-### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
-
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 11:58 — Record the remaining mandatory-call and mixed-width boundaries.
-- Area: compiler/backend
-- Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
-  in a caller-saved XMM register free across a call-free loop. Every matching load/store
-  becomes a register transfer; one seed precedes the header and each distinct exclusive
-  exit writes the current value back. Mixed/overlapping accesses, indexed or derived stack
-  addresses, changing stack pointers and shared exit entries remain conservative barriers.
-- Evidence: across 334 H.264 bodies, explicit RSP accesses fall from 2,249 to 2,213 and
-  memory operations from 9,995 to 9,959, with seven extra instructions overall and no extra
-  pushes. Five residualCabac instances lose 13 memory operations with unchanged instruction
-  count. The 282 native optimizer, 23 H.264 and nine HEVC decoder tests pass in Release
-  (JIT and native). The [rewrite and per-function tradeoffs](../bench/results/generated-code/20261006-carried-spill-cache/README.md)
-  retain the structural evidence; no runtime speedup was measured.
-- Extended boundary: write-only private 64-bit homes use the same cache and exit write-back
-  proof. This removes the per-two-round SHA spill introduced by partial unrolling; see the
-  [retained evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md).
-- Read-only homes now cross conditional calls, multiple outside entries and shared exits:
-  seed every entry and restore only clobbered caches after calls. A static reuse check bounds
-  the added reads. Writable homes can now cross those calls and shared exits by retaining
-  their stores and updating the cache at each write. The literal-path Inflate latch loses
-  its final frame reload; H.264 loses three more memory operations. The full 3,634 native,
-  21 compression and 23 H.264 tests pass in Release; see the
-  [write-through evidence](../bench/results/generated-code/20261006-private-write-through/README.md).
-- Next: inspect hot source-object slots and mixed-width spills. Prefer a free integer
-  register when its live range and ABI preservation permit it. Removing retained stores
-  from called loops needs an exit-liveness proof or edge-specific write-backs.
-  Loops without a call-free back-edge route are still excluded, even if a home is read
-  several times between calls. Any extension should prove reuse within each call-delimited
-  path; counting reads on mutually exclusive arms can overstate the avoided work.
-- Complete when: current codec dumps identify and resolve the remaining promotion boundary
-  with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
-  64-bit multi-access rewrite.
-- Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
 
 ### compiler.optimization.032 — Control register pressure in wider partial unrolling
 

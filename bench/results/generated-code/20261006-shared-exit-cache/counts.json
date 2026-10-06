@@ -1,0 +1,47 @@
+[
+  {
+    "function": "Video.H264.halfHorizontalAvg",
+    "baseline": {
+      "instructions": 183,
+      "memory": 40,
+      "rsp": 3,
+      "push": 7
+    },
+    "candidate": {
+      "instructions": 183,
+      "memory": 37,
+      "rsp": 0,
+      "push": 7
+    }
+  },
+  {
+    "function": "Video.H264.halfCenter",
+    "baseline": {
+      "instructions": 190,
+      "memory": 22,
+      "rsp": 7,
+      "push": 7
+    },
+    "candidate": {
+      "instructions": 190,
+      "memory": 19,
+      "rsp": 4,
+      "push": 7
+    }
+  },
+  {
+    "function": "Slice.buildImplicitWeights",
+    "baseline": {
+      "instructions": 118,
+      "memory": 19,
+      "rsp": 11,
+      "push": 7
+    },
+    "candidate": {
+      "instructions": 118,
+      "memory": 16,
+      "rsp": 8,
+      "push": 7
+    }
+  }
+]

@@ -1,6 +1,6 @@
 # Optimization session, 2026-10-06
 
-Eighteen code batches were validated and merged into local master in sequence,
+Nineteen code batches were validated and merged into local master in sequence,
 from the separate perf/optimization-boundaries-20261006 worktree (the initial
 VEX batch also used perf/optimization-until-noon-20261006). No remote push was
 requested. SWC_BUILD_NUM remains 1173. The compiler and optimized programs used
@@ -27,6 +27,7 @@ default devmode configuration, which is not a performance measurement.
 | 16 | Promote known stack-pointer-addressed local vectors | [Local vectors](../20261006-local-vector/README.md) |
 | 17 | Keep packed locals in registers despite scalar lane reads | [Vector lanes](../20261006-vector-lanes/README.md) |
 | 18 | Reuse unmodified private-global loads across disjoint stores and branches | [Heap values](../20261006-heap-values/README.md) |
+| 19 | Cache mutable private spills across shared loop exits | [Shared exits](../20261006-shared-exit-cache/README.md) |
 
 Representative structural outcomes:
 
@@ -38,8 +39,8 @@ Representative structural outcomes:
 - Inflate's literal-path latch goes from four frame reloads to zero across the
   two call-aware cache batches. Whole-function growth is documented separately.
 - The same 334 H.264 bodies go from 44,274 instructions / 10,296 memory operations /
-  2,538 explicit RSP accesses before reserve removal to 43,998 / 9,925 / 2,191 after
-  batch 17. This endpoint comparison includes concurrent master updates;
+  2,538 explicit RSP accesses before reserve removal to 43,998 / 9,916 / 2,182 after
+  batch 19. This endpoint comparison includes concurrent master updates;
   individual batch records provide closer attribution. It is not a runtime result.
 
 The latest complete native Release run passes 3,639 tests in JIT and native

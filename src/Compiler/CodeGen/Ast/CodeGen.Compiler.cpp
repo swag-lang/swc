@@ -388,12 +388,12 @@ Result AstCompilerScope::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
 Result AstCompilerScope::codeGenPostNode(CodeGen& codeGen)
 {
-    const CompilerScopeCodeGenPayload* scopeState = codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(codeGen.curNodeRef());
+    CompilerScopeCodeGenPayload* scopeState = codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(scopeState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(scopeState->doneLabel);
-    codeGen.resetNodePayload<CompilerScopeCodeGenPayload>(codeGen.curNodeRef());
+    *scopeState = {};
     return Result::Continue;
 }
 

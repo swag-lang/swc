@@ -644,13 +644,6 @@ namespace
             const CodeGenNodePayload symbolPayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
 
             const auto* initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
-            if ((!initNodePayload || !initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload)) && initRef.isValid())
-            {
-                const AstNodeRef resolvedInitRef = codeGen.viewZero(initRef).nodeRef();
-                if (resolvedInitRef.isValid() && resolvedInitRef != initRef)
-                    initNodePayload = codeGen.safeNodePayload<CodeGenNodePayload>(resolvedInitRef);
-            }
-
             if (initNodePayload && initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload))
                 return Result::Continue;
 
@@ -678,13 +671,6 @@ namespace
             SWC_ASSERT(localSize > 0);
             const CodeGenNodePayload symbolPayload   = codeGen.resolveLocalStackPayload(symVar);
             const auto*              initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
-            if ((!initNodePayload || !initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload)) && initRef.isValid())
-            {
-                const AstNodeRef resolvedInitRef = codeGen.viewZero(initRef).nodeRef();
-                if (resolvedInitRef.isValid() && resolvedInitRef != initRef)
-                    initNodePayload = codeGen.safeNodePayload<CodeGenNodePayload>(resolvedInitRef);
-            }
-
             if (initNodePayload && initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload))
                 return Result::Continue;
 

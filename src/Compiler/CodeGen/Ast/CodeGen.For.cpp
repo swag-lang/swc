@@ -405,12 +405,12 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
 Result AstForCStyleStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const ForCStyleStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(codeGen.curNodeRef());
+    ForCStyleStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    codeGen.resetNodePayload<ForCStyleStmtCodeGenPayload>(codeGen.curNodeRef());
+    *loopState = {};
     return Result::Continue;
 }
 
@@ -515,12 +515,12 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
 
 Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const ForStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForStmtCodeGenPayload>(codeGen.curNodeRef());
+    ForStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    codeGen.resetNodePayload<ForStmtCodeGenPayload>(codeGen.curNodeRef());
+    *loopState = {};
     return Result::Continue;
 }
 

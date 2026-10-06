@@ -147,12 +147,12 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
 Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const LoopStmtCodeGenPayload* loopState = codeGen.safeNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
+    LoopStmtCodeGenPayload* loopState = codeGen.safeNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    codeGen.resetNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
+    *loopState = {};
     return Result::Continue;
 }
 
@@ -201,12 +201,12 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
 
 Result AstInfiniteLoopStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const LoopStmtCodeGenPayload* loopState = codeGen.safeNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
+    LoopStmtCodeGenPayload* loopState = codeGen.safeNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    codeGen.resetNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
+    *loopState = {};
     return Result::Continue;
 }
 

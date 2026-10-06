@@ -584,12 +584,12 @@ Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen)
         return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), payload->visitFn);
     }
 
-    const ForeachStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(codeGen.curNodeRef());
+    ForeachStmtCodeGenPayload* loopState = codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(loopState->doneLabel);
-    codeGen.resetNodePayload<ForeachStmtCodeGenPayload>(codeGen.curNodeRef());
+    *loopState = {};
     return Result::Continue;
 }
 

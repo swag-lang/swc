@@ -1338,7 +1338,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
 
 Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const SwitchStmtCodeGenPayload* switchState = codeGen.safeNodePayload<SwitchStmtCodeGenPayload>(codeGen.curNodeRef());
+    SwitchStmtCodeGenPayload* switchState = codeGen.safeNodePayload<SwitchStmtCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(switchState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
@@ -1356,7 +1356,7 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
 
     builder.placeLabel(switchState->doneLabel);
     codeGen.popFrame();
-    codeGen.resetNodePayload<SwitchStmtCodeGenPayload>(codeGen.curNodeRef());
+    *switchState = {};
     return Result::Continue;
 }
 

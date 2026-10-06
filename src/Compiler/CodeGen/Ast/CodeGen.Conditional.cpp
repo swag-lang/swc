@@ -36,14 +36,10 @@ namespace
     };
 
     template<typename T>
-    inline void resetConditionalLabels(CodeGen& codeGen, AstNodeRef nodeRef)
+    inline void resetConditionalLabels(T& payload)
     {
-        T* payload = codeGen.safeNodePayload<T>(nodeRef);
-        if (payload)
-        {
-            payload->falseLabel = MicroLabelRef::invalid();
-            payload->doneLabel  = MicroLabelRef::invalid();
-        }
+        payload.falseLabel = MicroLabelRef::invalid();
+        payload.doneLabel  = MicroLabelRef::invalid();
     }
 
     bool usesAddressBackedSelection(CodeGen& codeGen, const TypeInfo& typeInfo)
@@ -130,7 +126,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         else
         {
             builder.placeLabel(state->doneLabel);
-            resetConditionalLabels<ConditionalExprCodeGenPayload>(codeGen, codeGen.curNodeRef());
+            resetConditionalLabels(*state);
         }
         return Result::Continue;
     }
@@ -179,7 +175,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         }
 
         builder.placeLabel(state->doneLabel);
-        resetConditionalLabels<ConditionalExprCodeGenPayload>(codeGen, codeGen.curNodeRef());
+        resetConditionalLabels(*state);
     }
 
     return Result::Continue;
@@ -187,7 +183,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
 
 Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen)
 {
-    resetConditionalLabels<ConditionalExprCodeGenPayload>(codeGen, codeGen.curNodeRef());
+    if (auto* state = codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef()))
+        resetConditionalLabels(*state);
     const auto*   lowering = codeGen.loweringPayload(codeGen.curNodeRef());
     const TypeRef typeRef  = codeGen.transparentPayloadTypeRef();
     if (lowering && lowering->ownsValue && lowering->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) &&
@@ -232,11 +229,11 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     SWC_ASSERT(resolvedChildRef.isValid());
 
     // Same stored-type rule as the conditional expression above.
-    const TypeRef                       resultTypeRef = codeGen.transparentPayloadTypeRef();
-    const TypeInfo&                     resultType    = codeGen.typeMgr().get(resultTypeRef);
-    const bool                          addressBacked = usesAddressBackedSelection(codeGen, resultType);
-    MicroBuilder&                       builder       = codeGen.builder();
-    const NullCoalescingCodeGenPayload* state         = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
+    const TypeRef                 resultTypeRef = codeGen.transparentPayloadTypeRef();
+    const TypeInfo&               resultType    = codeGen.typeMgr().get(resultTypeRef);
+    const bool                    addressBacked = usesAddressBackedSelection(codeGen, resultType);
+    MicroBuilder&                 builder       = codeGen.builder();
+    NullCoalescingCodeGenPayload* state         = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
 
     // Qualification casts can also rewrite either coalescing operand. The first direct
     // callback is the lhs; an active join label identifies the rhs callback. The payload
@@ -296,7 +293,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         }
 
         builder.placeLabel(state->doneLabel);
-        resetConditionalLabels<NullCoalescingCodeGenPayload>(codeGen, codeGen.curNodeRef());
+        resetConditionalLabels(*state);
     }
 
     return Result::Continue;
@@ -376,8 +373,6 @@ Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
     }
 
     // The chain owns its own join; nothing is left for a parent to adopt.
-    state = codeGen.safeNodePayload<OptionalChainCodeGenPayload>(codeGen.curNodeRef());
-    SWC_ASSERT(state != nullptr);
     state->falseLabel = MicroLabelRef::invalid();
     state->doneLabel  = MicroLabelRef::invalid();
     return Result::Continue;

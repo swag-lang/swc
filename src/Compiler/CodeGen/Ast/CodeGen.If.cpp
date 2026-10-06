@@ -48,7 +48,7 @@ namespace
         if (!isIfBlockChild && !isElseBlockChild)
             return Result::Continue;
 
-        const IfStmtCodeGenPayload* state = codeGen.safeNodePayload<IfStmtCodeGenPayload>(ifRef);
+        IfStmtCodeGenPayload* state = codeGen.safeNodePayload<IfStmtCodeGenPayload>(ifRef);
         SWC_ASSERT(state != nullptr);
 
         MicroBuilder& builder = codeGen.builder();
@@ -61,13 +61,13 @@ namespace
             builder.placeLabel(state->falseLabel);
 
             if (!state->hasElseBlock)
-                codeGen.resetNodePayload<IfStmtCodeGenPayload>(ifRef);
+                *state = {};
 
             return Result::Continue;
         }
 
         builder.placeLabel(state->doneLabel);
-        codeGen.resetNodePayload<IfStmtCodeGenPayload>(ifRef);
+        *state = {};
         return Result::Continue;
     }
 }

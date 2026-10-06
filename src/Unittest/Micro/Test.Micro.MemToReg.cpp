@@ -17,15 +17,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runMemToRegPass(MicroBuilder& builder, const SymbolFunction* function = nullptr)
+    // `frameBase` is the register the code generator names for its locals, as
+    // MachineCode::emit passes it. Without it the pass can only infer the base
+    // from the scalar accesses it serves.
+    Result runMemToRegPass(MicroBuilder& builder, const SymbolFunction* function = nullptr, MicroReg frameBase = MicroReg::invalid())
     {
         MicroMemToRegPass pass;
         MicroPassManager  passManager;
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind      = CallConvKind::Swag;
-        passContext.sanitizerFunction = function;
+        passContext.callConvKind             = CallConvKind::Swag;
+        passContext.sanitizerFunction        = function;
+        passContext.debugStackBaseVirtualReg = frameBase;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -114,8 +118,9 @@ SWC_TEST_BEGIN(MemToReg_CapturedStackAddressRespectsObjectExtent)
         local.setTypeRef(ctx.typeMgr().typeU64());
         local.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
         local.setCodeGenLocalSize(16);
-        local.setOffset(0x20);
+        // Registration lays the local out; place it afterwards.
         function.addLocalVariable(ctx, &local);
+        local.setOffset(0x20);
 
         const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
         constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
@@ -140,7 +145,8 @@ SWC_TEST_BEGIN(MemToReg_CapturedStackAddressRespectsObjectExtent)
         const MicroInstrRef load = builder.instructions().lastInstructionRef();
         builder.emitRet();
 
-        SWC_RESULT(runMemToRegPass(builder, &function));
+        // No scalar access names the frame base here, so it must come from codegen.
+        SWC_RESULT(runMemToRegPass(builder, &function, frame));
         const bool promote = variant < 2;
         if (builder.instructions().ptr(store)->op != (promote ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::StoreVecMemReg))
             return Result::Error;

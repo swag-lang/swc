@@ -1458,7 +1458,7 @@ new language syntax.
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 
 - Recorded: 2026-08-28 15:42
-- Updated: 2026-09-14 06:25 — Identify the remaining indexed and foreach aggregate home requirement.
+- Updated: 2026-10-06 10:45 — Retain pure leaf array borrowing; broader bodies remain.
 - Area: compiler/sema
 - Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
 - Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already

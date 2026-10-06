@@ -85,6 +85,39 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
+
+- Recorded: 2026-08-07 08:30
+- Updated: 2026-10-06 09:47 — carry both Levenshtein row values and isolate outer-loop frame costs.
+- Area: compiler/backend
+- Found while: the same campaign, asking why the identical loop compiles differently in two places
+- Observation: loop-invariant reloads and a single read/write carried slot are promoted, but the
+  pass refuses a group of mutually dependent carried slots and a carried slot whose register is
+  reused between its load and store. Those are the shapes left in the hottest benchmark loops.
+- Historical evidence, before the current split allocator: sha256's `a`..`h` were eight
+  slots at once and each one's register IS reused between its load and store, so the
+  carries-nothing-else test fails on all eight. Leven's DP loop writes `row1[y+1]` through a
+  program pointer, which makes the body opaque to the aliasing model: any non-frame write may alias
+  any frame slot.
+- Current Levenshtein evidence (October 6, Release): both adjacent row values are carried
+  between iterations. The inner loop has 19 instructions and three memory operations,
+  with no frame access (previously 18 / five). The whole main function gains seven
+  instructions and four explicit RSP accesses outside that inner loop. See the
+  [retained code and validation](../bench/results/generated-code/20261006-loop-load-forward/README.md).
+  The adjacent-element forwarding task is complete; these outer-region allocation costs remain.
+- Current sha256 evidence (`d4cc0a0cd`, same configuration): the compression round has 74
+  instructions and five memory operations. Two loads read `KTAB[i]` and `w[i]`; one frame load and
+  one frame store carry `d` through `[rsp + 0x438]`, while another store writes the new `e` to
+  `[rsp + 0x440]`. The other carried state is already in registers. The historical eight-slot
+  diagnosis no longer describes this loop.
+- Next: trace the remaining `d` carry and the stored copy of `e` through pre/post allocation,
+  then trace the four added Levenshtein frame accesses outside its inner loop. `promoteCarriedSlots`
+  still requires one load/store pair, an unredefined register and one converged exit; if these
+  restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
+  distinguish allocator spill storage from addressable program objects before refining aliasing.
+- Complete when: current loop dumps either retire this lead or identify a measured promotion or
+  residency improvement with aliasing and multi-slot regression coverage.
+
 ### compiler.optimization.036 — Finish shared address folding and isolate its remaining allocation cost
 
 - Recorded: 2026-09-12 13:05
@@ -800,29 +833,6 @@ new language syntax.
 - Related: compiler.optimization.005, compiler.optimization.016.
 
 
-### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
-
-- Recorded: 2026-09-06 14:23
-- Updated: 2026-10-03 15:48 — A store-to-load forwarding pass across the latch was built and measured without a gain.
-- Area: compiler/backend
-- Found while: comparing the unchanged Leven benchmark with clang-cl and MSVC, 2026-09-06.
-- Evidence: after the boolean-select fold, Swag's inner DP loop has 22 instructions / five memory
-  operations; clang-cl has 16 / three and MSVC 18 / five. Swag's five accesses name the input byte
-  and DP rows, not allocator spill slots. Clang carries the already loaded `row0[y+1]` forward as
-  the next `row0[y]`, and the just-stored `row1[y+1]` forward as the next `row1[y]`.
-- October 3: a pre-RA pass modelled on LLVM's LoopLoadElimination (single-block rotated loop,
-  index stepped by a constant, every other store proven disjoint by root, index and offset)
-  carries the just-stored `row1[y + 1]` into the next trip's `row1[y]`: memory operations 5 to
-  4, but 20 instructions after allocation instead of 18. It fires once in the 12 tasks and
-  never in std core, pixel or video. Paired leven medians 0.984, 1.033, 0.990 and 0.992 on a
-  loaded machine establish no gain, so it stays on `perf/prompt2-float-20261003`
-  (`dc9290f89`) with its C++ and native tests. The inner loop runs 4 to 10 trips, where its
-  exit and setup cost more than the removed store-to-load latency. Also carrying the loaded
-  `row0[y + 1]` spilled the row value inside the loop (median 1.016).
-- Next: measure the pending pass on a quiet machine with an unchanged-binary control; carry
-  the loaded row value only with a register-pressure estimate that avoids the spill.
-- Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
-  current experiment identifies the specific missing proof or register-pressure cost.
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
@@ -1532,36 +1542,6 @@ new language syntax.
   remains, with any surviving cause reduced to one actionable change.
 - Related: compiler.optimization.005, compiler.optimization.024.
 
-### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
-
-- Recorded: 2026-08-07 08:30
-- Updated: 2026-09-06 14:45 — git: Narrow the remaining SHA-256 frame-residency lead
-- Area: compiler/backend
-- Found while: the same campaign, asking why the identical loop compiles differently in two places
-- Observation: loop-invariant reloads and a single read/write carried slot are promoted, but the
-  pass refuses a group of mutually dependent carried slots and a carried slot whose register is
-  reused between its load and store. Those are the shapes left in the hottest benchmark loops.
-- Historical evidence, before the current split allocator: sha256's `a`..`h` were eight
-  slots at once and each one's register IS reused between its load and store, so the
-  carries-nothing-else test fails on all eight. Leven's DP loop writes `row1[y+1]` through a
-  program pointer, which makes the body opaque to the aliasing model: any non-frame write may alias
-  any frame slot.
-- Current evidence (2026-09-06, release, `6ac854243`): Leven's inner DP loop has 22 instructions
-  and five memory operations, all through program arrays, with no allocator spill. Its enclosing
-  loops still access the frame; do not infer an inner-loop promotion opportunity from their
-  inclusive spans. The separate adjacent-element reuse opportunity is compiler.optimization.030.
-- Current sha256 evidence (`d4cc0a0cd`, same configuration): the compression round has 74
-  instructions and five memory operations. Two loads read `KTAB[i]` and `w[i]`; one frame load and
-  one frame store carry `d` through `[rsp + 0x438]`, while another store writes the new `e` to
-  `[rsp + 0x440]`. The other carried state is already in registers. The historical eight-slot
-  diagnosis no longer describes this loop.
-- Next: trace the remaining `d` carry and the stored copy of `e` through pre/post allocation,
-  then inspect Leven's enclosing loops before selecting a change. `promoteCarriedSlots`
-  still requires one load/store pair, an unredefined register and one converged exit; if these
-  restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
-  distinguish allocator spill storage from addressable program objects before refining aliasing.
-- Complete when: current loop dumps either retire this lead or identify a measured promotion or
-  residency improvement with aliasing and multi-slot regression coverage.
 
 ### compiler.optimization.015 — Carried-slot promotion still rejects multiple accesses or distinct exits
 

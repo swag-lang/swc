@@ -1,0 +1,142 @@
+{
+  "baseline_source": "cd799b15d plus 1b38ffc29 compiler changes",
+  "candidate_base": "a86c11df9",
+  "compilers": {
+    "baseline": {
+      "bytes": 7636992,
+      "sha256": "27d7f1465a03315b9ed95dd7f15f4bd3306194759cabc1484733bbed7000d74d",
+      "sections": {
+        ".text": {
+          "virtual_size": 6488631,
+          "raw_size": 6489088
+        },
+        ".rdata": {
+          "virtual_size": 913682,
+          "raw_size": 913920
+        },
+        ".data": {
+          "virtual_size": 102384,
+          "raw_size": 32256
+        },
+        ".pdata": {
+          "virtual_size": 187020,
+          "raw_size": 187392
+        },
+        ".rsrc": {
+          "virtual_size": 752,
+          "raw_size": 1024
+        },
+        ".reloc": {
+          "virtual_size": 12028,
+          "raw_size": 12288
+        }
+      },
+      "path": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-optimization-20261006\\carry-baseline\\swc.exe"
+    },
+    "candidate": {
+      "bytes": 7658496,
+      "sha256": "3183b53f8e3dc423c33a05d7f15e29f7c1284f5de97dd48710193ba9a00c5934",
+      "sections": {
+        ".text": {
+          "virtual_size": 6507831,
+          "raw_size": 6508032
+        },
+        ".rdata": {
+          "virtual_size": 915930,
+          "raw_size": 915968
+        },
+        ".data": {
+          "virtual_size": 102384,
+          "raw_size": 32256
+        },
+        ".pdata": {
+          "virtual_size": 187728,
+          "raw_size": 187904
+        },
+        ".rsrc": {
+          "virtual_size": 752,
+          "raw_size": 1024
+        },
+        ".reloc": {
+          "virtual_size": 12044,
+          "raw_size": 12288
+        }
+      },
+      "path": "C:\\Perso\\swag-lang\\swc-optimization-20261006\\bin\\swc.exe"
+    }
+  },
+  "checksums": {
+    "baseline/leven": "67441",
+    "candidate/leven": "67441",
+    "baseline/sha256": "2503168387",
+    "candidate/sha256": "2503168387",
+    "baseline/lz77": "622942003053",
+    "candidate/lz77": "622942003053"
+  },
+  "leven": {
+    "kernel": {
+      "baseline": [
+        "cmp_amc_reg [r14 + rdi], rsi, b8",
+        "set_cond_reg r15, ne",
+        "load_amc_reg_mem r13, [rax + rdi * 0x8], b64",
+        "load_zero_ext_reg_reg r15, r15, b64 <- b8",
+        "op_binary_reg_reg add, r13, r15, b64",
+        "load_reg_reg r15, r13, b64",
+        "load_amc_reg_mem r8, [rax + rdi * 0x8 + 0x8], b64",
+        "op_binary_reg_imm add, r8, 0x1, b64",
+        "cmp_reg_reg r8, r13, b64",
+        "load_cond_reg_reg r15, r8, b, b64",
+        "load_amc_reg_mem r8, [rcx + rdi * 0x8], b64",
+        "op_binary_reg_imm add, r8, 0x1, b64",
+        "cmp_reg_reg r8, r15, b64",
+        "load_cond_reg_reg r15, r8, b, b64",
+        "load_amc_mem_reg [rcx + rdi * 0x8 + 0x8], r15, b64 <- b64",
+        "op_binary_reg_imm add, rdi, 0x1, b64",
+        "cmp_reg_reg rdi, r9, b64",
+        "jump_cond b, b32 684"
+      ],
+      "candidate": [
+        "clear_reg r8, b32",
+        "cmp_amc_reg [r14 + rdi], rsi, b8",
+        "set_cond_reg r8, ne",
+        "op_binary_reg_reg add, r15, r8, b64",
+        "load_reg_reg r8, r15, b64",
+        "load_amc_reg_mem r10, [rax + rdi * 0x8 + 0x8], b64",
+        "load_reg_reg r12, r15, b64",
+        "load_reg_reg r15, r10, b64",
+        "op_binary_reg_imm add, r10, 0x1, b64",
+        "cmp_reg_reg r10, r12, b64",
+        "load_cond_reg_reg r8, r10, b, b64",
+        "load_addr_reg_mem r10, [r13 + 0x1], b64",
+        "cmp_reg_reg r10, r8, b64",
+        "load_cond_reg_reg r8, r10, b, b64",
+        "load_amc_mem_reg [rcx + rdi * 0x8 + 0x8], r8, b64 <- b64",
+        "load_reg_reg r13, r8, b64",
+        "op_binary_reg_imm add, rdi, 0x1, b64",
+        "cmp_reg_reg rdi, r9, b64",
+        "jump_cond b, b32 684"
+      ]
+    },
+    "whole_function": {
+      "baseline": {
+        "name": "Leven.__main_0",
+        "instructions": 438,
+        "memory": 112,
+        "rsp": 31,
+        "push": 8
+      },
+      "candidate": {
+        "name": "Leven.__main_0",
+        "instructions": 445,
+        "memory": 115,
+        "rsp": 35,
+        "push": 8
+      }
+    }
+  },
+  "h264": {
+    "records": 334,
+    "identical_normalized_bodies": true,
+    "normalization": "Only printed <0x...> relocation addresses, generated expression suffixes and record order are ignored."
+  }
+}

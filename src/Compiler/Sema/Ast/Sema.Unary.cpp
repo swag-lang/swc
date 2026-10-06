@@ -25,21 +25,25 @@ namespace
     // reference layers are looked through and the nullability of the slot is the nullability
     // of the dereference. A reference to anything else keeps its own type: it already IS the
     // value, and dereferencing it stays an operand-type error rather than a second indirection.
-    TypeRef derefOperandTypeRef(Sema& sema, const SemaNodeView& view)
+    const TypeInfo& derefOperandType(Sema& sema, const SemaNodeView& view)
     {
-        TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        SWC_ASSERT(typeRef.isValid());
+        const TypeInfo* type = &SemaHelpers::aliasEnumType(sema, view);
 
-        while (sema.typeMgr().get(typeRef).isReference())
+        while (type->isReference())
         {
-            const TypeRef pointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sema.typeMgr().get(typeRef).payloadTypeRef());
-            if (pointeeTypeRef.isInvalid() || !sema.typeMgr().get(pointeeTypeRef).isPointerOrReference())
+            const TypeRef pointeeTypeRef = type->payloadTypeRef();
+            if (pointeeTypeRef.isInvalid())
+                break;
+            const TypeInfo* pointeeType = &sema.typeMgr().get(pointeeTypeRef);
+            if (const TypeInfo* unwrappedType = pointeeType->unwrapAliasEnumType(sema.ctx()))
+                pointeeType = unwrappedType;
+            if (!pointeeType->isPointerOrReference())
                 break;
 
-            typeRef = pointeeTypeRef;
+            type = pointeeType;
         }
 
-        return typeRef;
+        return *type;
     }
 
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
@@ -473,7 +477,7 @@ namespace
 
     Result checkDeref(Sema& sema, const SemaNodeView& view)
     {
-        const TypeInfo& type = sema.typeMgr().get(derefOperandTypeRef(sema, view));
+        const TypeInfo& type = derefOperandType(sema, view);
         if (!type.isAnyPointer())
             return SemaError::raiseDerefOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
 
@@ -487,7 +491,7 @@ namespace
 
     Result semaDeref(Sema& sema, AstUnaryExpr& node, const SemaNodeView& view)
     {
-        const TypeInfo& type          = sema.typeMgr().get(derefOperandTypeRef(sema, view));
+        const TypeInfo& type          = derefOperandType(sema, view);
         const TypeRef   resultTypeRef = type.dereferenceTypeRef(sema.ctx());
 
         SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeExprRef));

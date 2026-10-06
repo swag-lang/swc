@@ -249,8 +249,8 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     const SemaNodeView view = sema.viewType(nodeTypeRef);
     SWC_ASSERT(view.type());
 
-    const TypeRef   qualifiedTypeRef = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
-    const TypeInfo& qualifiedType    = sema.typeMgr().get(qualifiedTypeRef);
+    const TypeInfo* unwrappedType = view.type()->unwrapAliasType(sema.ctx());
+    const TypeInfo& qualifiedType = unwrappedType ? *unwrappedType : *view.type();
 
     TypeInfoFlags typeFlags = qualifiedType.flags();
     if (this->hasFlag(AstQualifiedTypeFlagsE::Const))
@@ -298,13 +298,8 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     switch (qualifiedType.kind())
     {
         case TypeInfoKind::Array:
-        {
-            SmallVector<uint64_t> dims;
-            for (const auto dim : qualifiedType.payloadArrayDims())
-                dims.push_back(dim);
-            typeRef = typeMgr.addType(TypeInfo::makeArray(dims, qualifiedType.payloadArrayElemTypeRef(), typeFlags, qualifiedType.payloadArrayIndexTypeRefs()));
+            typeRef = typeMgr.addType(TypeInfo::makeArray(qualifiedType.payloadArrayDims(), qualifiedType.payloadArrayElemTypeRef(), typeFlags, qualifiedType.payloadArrayIndexTypeRefs()));
             break;
-        }
         case TypeInfoKind::ValuePointer:
             typeRef = typeMgr.addType(TypeInfo::makeValuePointer(qualifiedType.payloadTypeRef(), typeFlags));
             break;

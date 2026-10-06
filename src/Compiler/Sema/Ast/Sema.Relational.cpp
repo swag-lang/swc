@@ -74,23 +74,17 @@ namespace
         return leftTypeInfo->crc == rightTypeInfo->crc;
     }
 
-    TypeRef scalarReferencePayloadTypeRef(Sema& sema, TypeRef typeRef)
+    const TypeInfo* scalarReferencePayloadType(Sema& sema, const SemaNodeView& view)
     {
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (!normalizedTypeRef.isValid())
-            return TypeRef::invalid();
+        if (!view.type())
+            return nullptr;
 
-        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        const TypeInfo& normalizedType = SemaHelpers::aliasEnumType(sema, view);
         if (!normalizedType.isReference())
-            return TypeRef::invalid();
+            return nullptr;
 
-        const TypeRef payloadTypeRef = normalizedType.payloadTypeRef();
-        return sema.typeMgr().get(payloadTypeRef).isScalarNumeric() ? payloadTypeRef : TypeRef::invalid();
-    }
-
-    bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
-    {
-        return scalarReferencePayloadTypeRef(sema, typeRef).isValid();
+        const TypeInfo& payloadType = sema.typeMgr().get(normalizedType.payloadTypeRef());
+        return payloadType.isScalarNumeric() ? &payloadType : nullptr;
     }
 
     ConstantRef readScalarReferenceConstant(Sema& sema, ConstantRef cstRef, TypeRef payloadTypeRef)
@@ -109,14 +103,15 @@ namespace
 
     SemaNodeView scalarReadView(Sema& sema, const SemaNodeView& view)
     {
-        const TypeRef payloadTypeRef = scalarReferencePayloadTypeRef(sema, view.typeRef());
-        if (!payloadTypeRef.isValid())
+        const TypeInfo* payloadType = scalarReferencePayloadType(sema, view);
+        if (!payloadType)
             return view;
 
-        SemaNodeView result            = view;
-        result.typeRef()               = payloadTypeRef;
-        result.type()                  = &sema.typeMgr().get(payloadTypeRef);
-        const ConstantRef scalarCstRef = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);
+        const TypeRef     payloadTypeRef = payloadType->typeRef();
+        SemaNodeView      result         = view;
+        result.typeRef()                 = payloadTypeRef;
+        result.type()                    = payloadType;
+        const ConstantRef scalarCstRef   = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);
         if (scalarCstRef.isValid())
         {
             result.cstRef() = scalarCstRef;
@@ -137,20 +132,21 @@ namespace
         if (!view.type())
             return nullptr;
 
-        TypeRef         typeRef   = view.typeRef();
-        const TypeInfo& valueType = sema.typeMgr().get(typeRef);
-        if (valueType.isReference())
-            typeRef = valueType.payloadTypeRef();
+        const TypeInfo* type = view.type();
+        if (type->isReference())
+        {
+            const TypeRef typeRef = type->payloadTypeRef();
+            if (!typeRef.isValid())
+                return nullptr;
+            type = &sema.typeMgr().get(typeRef);
+        }
 
-        typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (!typeRef.isValid())
+        if (const TypeInfo* unwrappedType = type->unwrapAliasEnumType(sema.ctx()))
+            type = unwrappedType;
+        if (!type->isStruct())
             return nullptr;
 
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (!type.isStruct())
-            return nullptr;
-
-        return &type.payloadSymStruct();
+        return &type->payloadSymStruct();
     }
 
     void addMissingRelationalSpecOpHelp(Sema& sema, Diagnostic& diag, const SemaNodeView& leftView, SpecOpKind kind)
@@ -165,24 +161,21 @@ namespace
         if (!nodeLeftView.type() || !nodeRightView.type())
             return false;
 
-        const TypeRef   leftTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
-        const TypeRef   rightTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeRightView.typeRef());
-        const TypeInfo& leftType     = sema.typeMgr().get(leftTypeRef);
-        const TypeInfo& rightType    = sema.typeMgr().get(rightTypeRef);
+        const TypeInfo& leftType  = SemaHelpers::aliasEnumType(sema, nodeLeftView);
+        const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, nodeRightView);
         return leftType.isString() && rightType.isString();
     }
 
     // An aggregate is compared part by part, and a 'string' or a slice among those parts asks
     // '__sliceCmp' the same question a bare slice does. The helper has to be a dependency of this
     // function before lowering can call it.
-    Result attachAggregateContentCompareHelper(Sema& sema, TypeRef compareTypeRef, const SourceCodeRef& codeRef)
+    Result attachAggregateContentCompareHelper(Sema& sema, const TypeInfo& compareType, const SourceCodeRef& codeRef)
     {
-        const TypeInfo& compareType = sema.typeMgr().get(compareTypeRef);
         if (!compareType.isStruct() && !compareType.isArray() && !compareType.isAggregate())
             return Result::Continue;
 
         bool needsContentHelper = false;
-        SWC_RESULT(SemaSpecOp::typeCompareNeedsContentHelper(sema, needsContentHelper, compareTypeRef));
+        SWC_RESULT(SemaSpecOp::typeCompareNeedsContentHelper(sema, needsContentHelper, compareType.typeRef()));
         if (!needsContentHelper)
             return Result::Continue;
 
@@ -638,28 +631,14 @@ namespace
             return Result::Continue;
         }
 
-        TypeRef normalizedEqualityTypeRef(Sema& sema, TypeRef typeRef)
-        {
-            if (!typeRef.isValid())
-                return TypeRef::invalid();
-
-            const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-            return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-        }
-
         Result equalityPointerTargetTypeRef(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& pointerView, const SemaNodeView& referenceView)
         {
             outTypeRef = TypeRef::invalid();
             if (!pointerView.type() || !referenceView.type())
                 return Result::Continue;
 
-            const TypeRef pointerTypeRef   = normalizedEqualityTypeRef(sema, pointerView.typeRef());
-            const TypeRef referenceTypeRef = normalizedEqualityTypeRef(sema, referenceView.typeRef());
-            if (!pointerTypeRef.isValid() || !referenceTypeRef.isValid())
-                return Result::Continue;
-
-            const TypeInfo& pointerType   = sema.typeMgr().get(pointerTypeRef);
-            const TypeInfo& referenceType = sema.typeMgr().get(referenceTypeRef);
+            const TypeInfo& pointerType   = SemaHelpers::aliasEnumType(sema, pointerView);
+            const TypeInfo& referenceType = SemaHelpers::aliasEnumType(sema, referenceView);
             if (!pointerType.isAnyPointer() || !referenceType.isReference())
                 return Result::Continue;
 
@@ -702,17 +681,11 @@ namespace
     // the regular promotion unify the base types.
     Result widenNullableCompareOperand(Sema& sema, SemaNodeView& bareView, const SemaNodeView& nullableView)
     {
-        TypeRef bareTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), bareView.typeRef());
-        if (bareTypeRef.isInvalid())
-            bareTypeRef = bareView.typeRef();
-        TypeRef otherTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nullableView.typeRef());
-        if (otherTypeRef.isInvalid())
-            otherTypeRef = nullableView.typeRef();
-        if (bareTypeRef.isInvalid() || otherTypeRef.isInvalid())
+        if (!bareView.type() || !nullableView.type())
             return Result::Continue;
 
-        const TypeInfo& bareType  = sema.typeMgr().get(bareTypeRef);
-        const TypeInfo& otherType = sema.typeMgr().get(otherTypeRef);
+        const TypeInfo& bareType  = SemaHelpers::aliasEnumType(sema, bareView);
+        const TypeInfo& otherType = SemaHelpers::aliasEnumType(sema, nullableView);
         if (!otherType.isNullable() || !bareType.isNonNullable())
             return Result::Continue;
 
@@ -734,8 +707,8 @@ namespace
                                     op == TokenId::SymGreaterEqual ||
                                     op == TokenId::SymLessEqualGreater;
         const bool readScalarReference = orderedCompare &&
-                                         (shouldReadScalarReference(sema, nodeLeftView.typeRef()) ||
-                                          shouldReadScalarReference(sema, nodeRightView.typeRef()));
+                                         (scalarReferencePayloadType(sema, nodeLeftView) ||
+                                          scalarReferencePayloadType(sema, nodeRightView));
         if (!readScalarReference)
             SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
 
@@ -892,22 +865,23 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
         (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual) &&
         !hasNullComparableOperandConstant(sema, nodeLeftView, nodeRightView))
     {
-        const TypeRef compareLeftTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
         if (nodeLeftView.type() && nodeRightView.type())
         {
-            const TypeRef   compareRightTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeRightView.typeRef());
-            const TypeInfo& compareLeftType     = sema.typeMgr().get(compareLeftTypeRef);
-            const TypeInfo& compareRightType    = sema.typeMgr().get(compareRightTypeRef);
+            const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, nodeLeftView);
+            const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, nodeRightView);
             // Type checking has already unified slice element types and sizes.
             if (compareLeftType.isString() && compareRightType.isString())
                 SWC_RESULT(SemaHelpers::attachRuntimeStringCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));
-            else if (compareLeftTypeRef.isValid() && compareRightTypeRef.isValid() && compareLeftType.isSlice() && compareRightType.isSlice())
+            else if (compareLeftType.isSlice() && compareRightType.isSlice())
                 SWC_RESULT(SemaHelpers::attachRuntimeSliceCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));
             else
-                SWC_RESULT(attachAggregateContentCompareHelper(sema, compareLeftTypeRef, codeRef()));
+                SWC_RESULT(attachAggregateContentCompareHelper(sema, compareLeftType, codeRef()));
         }
         else
-            SWC_RESULT(attachAggregateContentCompareHelper(sema, compareLeftTypeRef, codeRef()));
+        {
+            const TypeRef compareLeftTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
+            SWC_RESULT(attachAggregateContentCompareHelper(sema, sema.typeMgr().get(compareLeftTypeRef), codeRef()));
+        }
     }
 
     return Result::Continue;

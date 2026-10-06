@@ -821,7 +821,7 @@ namespace
         const CodeGenNodePayload source     = sourcePayloadForCast(codeGen, node.nodeExprRef);
         const MicroReg           resultReg  = codeGen.nextVirtualIntRegister();
         MicroReg                 storageReg = MicroReg::invalid();
-        const TypeRef            resultType = codeGen.curViewType().typeRef();
+        const SemaNodeView       resultView = codeGen.curViewType();
         SWC_ASSERT(lowering.runtimeFunctionSymbol);
         if (lowering.runtimeTypeCast)
         {
@@ -834,7 +834,7 @@ namespace
             SWC_ASSERT(source.isAddress());
             storageReg                 = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
             const MicroReg readOnlyReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegImm(readOnlyReg, ApInt(codeGen.typeMgr().get(resultType).isConst() ? 1 : 0, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(readOnlyReg, ApInt(resultView.type()->isConst() ? 1 : 0, 64), MicroOpBits::B64);
             const MicroReg args[] = {targetReg, source.reg, storageReg, readOnlyReg};
             SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *lowering.runtimeFunctionSymbol, args, resultReg));
         }
@@ -848,9 +848,9 @@ namespace
             builder.placeLabel(valid);
         }
         if (lowering.runtimeTypeCast)
-            codeGen.setPayloadValue(codeGen.curNodeRef(), resultType).reg = resultReg;
+            codeGen.setPayloadValue(codeGen.curNodeRef(), resultView.typeRef()).reg = resultReg;
         else
-            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), storageReg, resultType);
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), storageReg, resultView.typeRef());
         return Result::Continue;
     }
 
@@ -863,8 +863,9 @@ namespace
         {
             if (!field->isUsingField())
                 continue;
-            const TypeRef   fieldTypeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, field->typeRef());
-            const TypeInfo& fieldType    = ctx.typeMgr().get(fieldTypeRef);
+            const TypeInfo& declaredType  = ctx.typeMgr().get(field->typeRef());
+            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
+            const TypeInfo& fieldType     = unwrappedType ? *unwrappedType : declaredType;
             if (!fieldType.isStruct())
                 continue;
             count += countFixedUsingPaths(ctx, fieldType.payloadSymStruct(), target);
@@ -920,7 +921,9 @@ namespace
             // its fixed address adjustment when the dynamic guard is disabled.
             if (lowering->assumedDynamicCast && !lowering->hasRuntimeSafety(Runtime::SafetyWhat::DynCast) && resultType.isValuePointer())
             {
-                const TypeInfo& targetType = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), targetTypeRef));
+                const TypeInfo& declaredType  = codeGen.typeMgr().get(targetTypeRef);
+                const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
+                const TypeInfo& targetType    = unwrappedType ? *unwrappedType : declaredType;
                 if (targetType.isStruct())
                 {
                     const SymbolStruct&                    sourceStruct = codeGen.typeMgr().get(sourceInfo.structTypeRef).payloadSymStruct();
@@ -1205,16 +1208,17 @@ namespace
 
         const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
         SWC_ASSERT(srcView.type());
-        const TypeRef   resolvedSrcTypeRef = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), srcView.typeRef());
-        const TypeInfo& resolvedSrcType    = codeGen.typeMgr().get(resolvedSrcTypeRef);
+        const TypeInfo* srcStorageType  = srcView.type()->unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& resolvedSrcType = srcStorageType ? *srcStorageType : *srcView.type();
         if (!resolvedSrcType.isAny())
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
             return Result::Continue;
         }
 
-        const TypeRef   resolvedDstTypeRef = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
-        const TypeInfo& dstType            = codeGen.typeMgr().get(resolvedDstTypeRef);
+        const TypeInfo& declaredDstType = codeGen.typeMgr().get(dstTypeRef);
+        const TypeInfo* dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& dstType         = dstStorageType ? *dstStorageType : declaredDstType;
         if (dstType.isAny())
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
@@ -1440,10 +1444,14 @@ namespace
 
         TypeManager& typeMgr = codeGen.typeMgr();
 
-        const TypeRef   resolvedSrcTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
-        const TypeRef   resolvedDstTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
-        const TypeInfo& resolvedSrcType    = typeMgr.get(resolvedSrcTypeRef);
-        const TypeInfo& resolvedDstType    = typeMgr.get(resolvedDstTypeRef);
+        const TypeInfo& srcType            = typeMgr.get(sourceTypeRef);
+        const TypeInfo& dstType            = typeMgr.get(dstTypeRef);
+        const TypeInfo* srcStorageType     = srcType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo* dstStorageType     = dstType.unwrapAliasEnumType(codeGen.ctx());
+        const TypeInfo& resolvedSrcType    = srcStorageType ? *srcStorageType : srcType;
+        const TypeInfo& resolvedDstType    = dstStorageType ? *dstStorageType : dstType;
+        const TypeRef   resolvedSrcTypeRef = resolvedSrcType.typeRef();
+        const TypeRef   resolvedDstTypeRef = resolvedDstType.typeRef();
         if (resolvedSrcType.isAny())
         {
             // A bool conversion inserted by a condition or an 'is' pattern tests presence.
@@ -1454,8 +1462,6 @@ namespace
                 return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
         }
 
-        const TypeInfo& srcType = typeMgr.get(sourceTypeRef);
-        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
         if (resolvedSrcType.isInterface() && resolvedDstType.isAnyPointer())

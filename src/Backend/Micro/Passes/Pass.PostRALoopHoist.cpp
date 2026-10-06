@@ -1006,7 +1006,7 @@ namespace
                 break;
             // A write-only home is observable after the loop, so it benefits
             // too: the last bank transfer replaces repeated spill stores.
-            if (!slot.eligible || (slot.writes && (!calls.empty() || !exclusiveExits)) ||
+            if (!slot.eligible ||
                 slot.range.lo < context.spillAreaLo || slot.range.hi > context.spillAreaHi || slot.range.hi < slot.range.lo)
                 continue;
             bool overlap = false;
@@ -1016,6 +1016,13 @@ namespace
             if (overlap)
                 continue;
 
+            // Keep a called loop's writes coherent in memory. This needs no
+            // extra call flush or exit store, including at a shared exit.
+            const bool writeThrough   = slot.writes && !calls.empty();
+            const bool needsWriteBack = slot.writes && !writeThrough;
+            if (needsWriteBack && !exclusiveExits)
+                continue;
+
             const MicroReg cached       = available[selected];
             const auto     needsRestore = [&](const uint32_t call) {
                 return call + 1 < refs.size() && loop.inBody[call + 1] &&
@@ -1023,7 +1030,9 @@ namespace
             };
             // A called loop must reuse the home enough to repay its explicit
             // entry/restore reads. Otherwise the cold arms grow memory traffic.
-            if (!calls.empty() && slot.accesses.size() <= seeds.size() + std::ranges::count_if(calls, needsRestore))
+            const auto restores     = std::ranges::count_if(calls, needsRestore);
+            const auto readsRemoved = slot.accesses.size() - (writeThrough ? slot.writes : 0);
+            if (!calls.empty() && readsRemoved <= seeds.size() + restores)
                 continue;
             ++selected;
             MicroInstrOperand seed[4] = {};
@@ -1033,7 +1042,7 @@ namespace
             seed[3].valueU64          = slot.range.lo;
             for (const MicroInstrRef before : seeds)
                 storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadRegMem, seed);
-            // Read-only private homes cannot be changed by a callee. Restore
+            // Private spill homes cannot be changed by a callee. Restore
             // only clobbered caches, on the call's fallthrough edge inside the loop.
             for (const uint32_t call : calls)
             {
@@ -1045,13 +1054,22 @@ namespace
             write[1].reg               = cached;
             write[2].opBits            = MicroOpBits::B64;
             write[3].valueU64          = slot.range.lo;
-            if (slot.writes)
+            if (needsWriteBack)
                 for (const MicroInstrRef before : writeBacks)
                     storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadMemReg, write);
             for (const MicroInstrRef ref : slot.accesses)
             {
                 MicroInstr* inst = storage.ptr(ref);
                 auto*       ops  = inst->ops(operands);
+                if (writeThrough && inst->op == MicroInstrOpcode::LoadMemReg)
+                {
+                    MicroInstrOperand copy[3] = {};
+                    copy[0].reg               = cached;
+                    copy[1].reg               = ops[1].reg;
+                    copy[2].opBits            = MicroOpBits::B64;
+                    storage.insertDerivedBefore(operands, ref, MicroInstrOpcode::LoadRegReg, copy);
+                    continue;
+                }
                 if (inst->op == MicroInstrOpcode::LoadRegMem)
                     ops[1].reg = cached;
                 else

@@ -35,7 +35,8 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-06 11:28 |
+| [std.video.md](std.video.md) | `std/video` | 2026-10-06 11:54 |
+| [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-06 11:49 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-06 09:49 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-10-06 09:07 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-05 21:40 |
@@ -52,7 +53,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-10-04 14:54 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-30 16:13 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-30 10:20 |
-| [std.video.md](std.video.md) | `std/video` | 2026-09-29 18:46 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-27 18:13 |
 | [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-27 18:11 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-27 18:09 |

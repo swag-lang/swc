@@ -1471,13 +1471,18 @@ new language syntax.
   keep a direct binding; an indexed or foreach by-value aggregate still requires a home through
   `use.indexOrFor`, even if those uses only read. Read-only syntax alone does not establish that
   the caller's storage remains unchanged while the inlined body executes.
-- Next: in `SemaInline`, measure the homes still required by indexed/foreach aggregate uses.
-  Elide a copy only when the caller's storage remains unchanged through all reads, including
-  indirect calls and alias writes, and when copy/drop hooks and argument evaluation retain their
-  semantics. Absence of a direct assignment to the parameter is not sufficient.
-- Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
-  after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
-  one on the video corpus.
+- Retained boundary: completed pure leaf inlines borrow a plain array from a stable caller
+  variable when every argument is a same-type bare variable or constant. Parameter writes,
+  addresses/buffers, captures, calls, generated source and nontrivial copy/drop types retain
+  snapshots. A Release selector wrapper drops from 36 to 24 instructions and 22 to 18 memory
+  operations. The [code evidence and validation](../bench/results/generated-code/20261006-inline-array-borrow/README.md)
+  include alias, later-argument, callback and element-copy counterexamples; 3,631 native tests
+  pass in JIT and native execution. No timing improvement is claimed.
+- Next: extend the stability proof to larger/non-leaf bodies and argument evaluations that
+  currently fail the conservative leaf/constant-or-variable boundary. Revisit the SIMD
+  transpose with evidence from its actual caller, preserving copy/drop and alias semantics.
+- Complete when: the value-returning block transform is as cheap as its in-place shape on
+  the video corpus, including bodies outside the retained pure-leaf boundary.
 
 ### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
 

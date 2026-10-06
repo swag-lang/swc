@@ -1589,7 +1589,11 @@ namespace
             !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Discardable) &&
             isCallResultIgnored(sema))
         {
-            return SemaError::raise(sema, DiagnosticId::sema_err_return_value_must_be_used, sema.curNodeRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_must_be_used, sema.curNodeRef());
+            if (calledFn.name(sema.ctx()).empty())
+                diag.removeArgument(Diagnostic::ARG_SYM);
+            diag.report(sema.ctx());
+            return Result::Error;
         }
 
         if (tryIntrinsicFold)

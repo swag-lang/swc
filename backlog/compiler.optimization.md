@@ -85,6 +85,26 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.034 — Reuse the selected Dijkstra heap child across its comparison
+
+- Recorded: 2026-09-07 10:46
+- Updated: 2026-10-06 16:37 — Close redundant private-global reads and isolate the selected-child reload.
+- Area: compiler/backend, memory optimization
+- Current evidence: the Release sift-up loop already retains its private heap
+  pointers and uses eight heap memory operations on a swapping iteration.
+  Function-wide value numbering now also removes redundant entry reads across
+  disjoint writes: whole `push` changes from 27 instructions / 16 memory operations
+  to 25 / 14, and `pop` from 43 / 28 to 39 / 24. Neither function needs a frame
+  access or saved register. [Comparison](../bench/results/generated-code/20261006-heap-values/README.md).
+- Remaining gap: `pop` compares both child values, selects the child index, then
+  reloads the selected value. The left value is not loaded on the path where the
+  right child is out of bounds, so plain forwarding is insufficient.
+- Next: carry the available child value through the selection while preserving
+  the one-child path, bounds, intervening alias writes and register pressure.
+  The historical private-global pointer-reload diagnosis is closed.
+- Complete when: the selected-child reload disappears with sound path availability,
+  or a focused experiment identifies the register-residency constraint.
+
 ### compiler.optimization.035 — Improve spill choices after register and memory promotion
 
 - Recorded: 2026-09-12 11:40
@@ -859,46 +879,6 @@ new language syntax.
   Speculative transformations must not become default behavior without that evidence.
 - Related: compiler.optimization.110, compiler.optimization.114, compiler.optimization.115,
   compiler.optimization.119.
-
-### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
-
-- Recorded: 2026-09-07 10:46
-- Updated: 2026-10-04 15:02 — Account for private-global alias proofs and rebaseline the remaining heap-element gap.
-- Area: compiler/backend, memory optimization
-- Found while: the generated-code campaign, comparing Dijkstra's heap loops with current
-  clang-cl and MSVC output at `8d3f0498b` on 2026-09-07.
-- Evidence: after local identical-target load forwarding, Swag release's sift-up loop has
-  26 instructions / 15 explicit memory operations, against clang-cl's 16 / eight and MSVC's
-  15 / eight. Five Swag accesses reload global pointer cells; ten access heap elements,
-  including the values read again after the comparison branch. These are program-memory
-  accesses, not allocator spill slots. The sift-down loop still has 39 / 20.
-- September 29 static comparison: in the Release `push` sift-up loop, Swag executes 19 Micro
-  instructions and 12 explicit memory operations on a swapping iteration, versus 15 instructions
-  and eight memory operations in the accepted winner's MSVC object. Swag reloads `g_HeapD` and
-  `g_HeapN` after stores through those pointers; MSVC retains both pointer values in registers.
-  Swag's `pop` and its inlined copy now place their address calculation and relocated heap-size
-  load at the back edge, removing one executed unconditional jump per sift-down step. These
-  counts supersede the September 7 loop counts above; they are static code evidence,
-  not a timing claim. The Dijkstra checksum remains `4431000`.
-- A scratch source copy loads `g_HeapD` and `g_HeapN` once into local pointers at `push` entry.
-  Its Release `push` shrinks from 32 to 28 Micro instructions, and the inlined `main` from
-  439 to 435. A swapping sift-up step then executes 15 instructions and eight memory operations,
-  matching MSVC's counts; `CHECK=4431000` remains exact. This is an upper bound for a compiler
-  rule, since caching a raw global pointer would change a program whose pointee aliases the
-  pointer's global cell. `benchAlloc` returns fresh allocator storage for this task, but Micro
-  then had no provenance proof from that return through the global assignment and call to `push`.
-- Current boundary: `MicroRelocation::privateGlobal` now records a global whose address
-  does not escape, and LICM retains its load across pointer stores in an innermost loop.
-  Direct writes, escaped addresses, materialized private-global bases, and calls that may
-  write remain barriers. `native/optimizer/private_global_loads.swg` covers private-pointer
-  loads and those negative cases. This proves global-cell disjointness without needing a
-  fresh-allocation summary from `benchAlloc`; the older counts above predate that rule.
-- Next: rebaseline `push`, `pop`, and their inlined copies with this private-global rule.
-  Remove the pointer-reload part of this lead if the current dump closes it. For any remaining
-  repeated heap-element reads, follow availability across the comparison branch while preserving
-  intervening alias writes, both branch outcomes, calls, zero-trip behavior, and register pressure.
-- Complete when: the remaining repeated pointer/element reads disappear with sound alias and
-  control-flow proofs, or a focused experiment identifies the register-residency constraint.
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 

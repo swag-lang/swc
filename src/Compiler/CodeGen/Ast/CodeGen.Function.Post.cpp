@@ -70,7 +70,7 @@ namespace
 
     AstNodeRef resolvedCallableDeclRef(CodeGen& codeGen, AstNodeRef nodeRef, AstNodeId nodeId)
     {
-        const AstNodeRef resolvedRef = codeGen.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
         if (resolvedRef.isValid() && codeGen.node(resolvedRef).is(nodeId))
             return resolvedRef;
         return nodeRef;
@@ -85,7 +85,7 @@ namespace
         if (node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
             return resolvedCallableDeclRef(codeGen, nodeRef, node.id());
 
-        const AstNodeRef resolvedRef = codeGen.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
         return resolvedRef.isValid() ? resolvedRef : nodeRef;
     }
 
@@ -144,7 +144,7 @@ namespace
 
         // A contextual conversion substitutes the wrapper's result, but the raw catch or
         // expect still owns the handler while its operand is being evaluated.
-        const AstNodeRef resolvedNodeRef = isFallibleWrapperOwnerNode(codeGen.node(nodeRef).id()) ? nodeRef : codeGen.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedNodeRef = isFallibleWrapperOwnerNode(codeGen.node(nodeRef).id()) ? nodeRef : codeGen.resolvedNodeRef(nodeRef);
         if (!resolvedNodeRef.isValid())
             return nullptr;
 
@@ -162,7 +162,7 @@ namespace
         if (!nodeRef.isValid())
             return nullptr;
 
-        const AstNodeRef resolvedNodeRef = isFallibleWrapperBreadcrumbNode(codeGen.node(nodeRef).id()) ? nodeRef : codeGen.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedNodeRef = isFallibleWrapperBreadcrumbNode(codeGen.node(nodeRef).id()) ? nodeRef : codeGen.resolvedNodeRef(nodeRef);
         if (!resolvedNodeRef.isValid())
             return nullptr;
 
@@ -227,7 +227,7 @@ namespace
 
         AstNodeRef ownerRef = breadcrumbPayload->fallibleWrapperOwnerRef;
         if (!ownerRef.isValid())
-            ownerRef = codeGen.viewZero(candidateRef).nodeRef();
+            ownerRef = codeGen.resolvedNodeRef(candidateRef);
 
         const CodeGenNodePayload* ownerPayload = fallibleWrapperOwnerPayload(codeGen, ownerRef);
         if (!ownerPayload || !ownerPayload->fallibleFailLabel.isValid())
@@ -235,7 +235,7 @@ namespace
 
         outTarget = {
             .kind      = FallibleTarget::Kind::Handler,
-            .scopeRef  = codeGen.viewZero(ownerRef).nodeRef(),
+            .scopeRef  = codeGen.resolvedNodeRef(ownerRef),
             .failLabel = ownerPayload->fallibleFailLabel,
         };
         return true;
@@ -299,7 +299,7 @@ namespace
 
     bool hasExpectRuntimeSafety(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedNodeRef = codeGen.resolvedNodeRef(nodeRef);
         if (!resolvedNodeRef.isValid())
             return false;
 
@@ -309,7 +309,7 @@ namespace
 
     bool hasNotNullRuntimeSafety(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedNodeRef = codeGen.resolvedNodeRef(nodeRef);
         if (!resolvedNodeRef.isValid())
             return false;
 
@@ -321,16 +321,16 @@ namespace
     {
         if (preferredNodeRef.isValid())
         {
-            preferredNodeRef = codeGen.viewZero(preferredNodeRef).nodeRef();
+            preferredNodeRef = codeGen.resolvedNodeRef(preferredNodeRef);
             if (preferredNodeRef.isValid())
                 return preferredNodeRef;
         }
 
-        const AstNodeRef currentNodeRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+        const AstNodeRef currentNodeRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
         if (currentNodeRef.isValid())
             return currentNodeRef;
 
-        const AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        const AstNodeRef functionDeclRef = codeGen.resolvedNodeRef(codeGen.function().declNodeRef());
         SWC_ASSERT(functionDeclRef.isValid());
         return functionDeclRef;
     }
@@ -625,7 +625,7 @@ namespace
         if (exprRef.isInvalid())
             return false;
 
-        const AstNodeRef resolvedExprRef = codeGen.viewZero(exprRef).nodeRef();
+        const AstNodeRef resolvedExprRef = codeGen.resolvedNodeRef(exprRef);
         if (!resolvedExprRef.isValid())
             return false;
 
@@ -660,7 +660,7 @@ namespace
         if (tryEmitInlineDirectCallResultStore(codeGen, inlinePayload, exprRef))
             return Result::Continue;
 
-        AstNodeRef payloadExprRef = codeGen.viewZero(exprRef).nodeRef();
+        AstNodeRef payloadExprRef = codeGen.resolvedNodeRef(exprRef);
         if (payloadExprRef.isInvalid())
             payloadExprRef = exprRef;
 
@@ -1183,7 +1183,7 @@ namespace
                 return handlerTarget;
         }
 
-        const AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        const AstNodeRef functionDeclRef = codeGen.resolvedNodeRef(codeGen.function().declNodeRef());
         SWC_ASSERT(functionDeclRef.isValid());
         CodeGenNodePayload& payload = ensureFallibleFunctionPayload(codeGen, functionDeclRef);
         if (!payload.fallibleFunctionFailLabel.isValid())
@@ -1661,8 +1661,8 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstErrorManagementExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
-    const AstNodeRef managedExprRef   = codeGen.viewZero(nodeExprRef).nodeRef();
+    const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
+    const AstNodeRef managedExprRef   = codeGen.resolvedNodeRef(nodeExprRef);
     if (resolvedChildRef == managedExprRef)
         SWC_RESULT(CodeGenFunctionHelpers::emitFallibleWrapperPreNode(codeGen, codeGen.curNodeRef()));
 
@@ -1683,8 +1683,8 @@ Result AstErrorManagementStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNo
     if (nodeHandlerRef.isValid() && childRef == nodeHandlerRef)
         return Result::SkipChildren;
 
-    const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
-    const AstNodeRef managedBodyRef   = codeGen.viewZero(nodeBodyRef).nodeRef();
+    const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
+    const AstNodeRef managedBodyRef   = codeGen.resolvedNodeRef(nodeBodyRef);
     if (resolvedChildRef == managedBodyRef)
         SWC_RESULT(CodeGenFunctionHelpers::emitFallibleWrapperPreNode(codeGen, codeGen.curNodeRef()));
 

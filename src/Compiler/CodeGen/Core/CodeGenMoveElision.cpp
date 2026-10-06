@@ -169,7 +169,7 @@ namespace
         SmallVector<AstNodeRef> blockRefs;
         int                     escapeDepth = 0;
         walker.setMode(AstVisitMode::ResolveBeforeCallbacks);
-        walker.setNodeRefResolver([&codeGen](const AstNodeRef nodeRef) { return codeGen.sema().viewZero(nodeRef).nodeRef(); });
+        walker.setNodeRefResolver([&codeGen](const AstNodeRef nodeRef) { return codeGen.resolvedNodeRef(nodeRef); });
         walker.setPreNodeVisitor([&codeGen, &walker, &blockRefs, &escapeDepth](const AstNode& node) {
             if (isEscapeContext(node.id()))
                 escapeDepth++;
@@ -233,11 +233,11 @@ const SymbolVariable* CodeGenMoveElision::directStructVariable(CodeGen& codeGen,
     if (nodeRef.isInvalid())
         return nullptr;
 
-    AstNodeRef resolvedRef = codeGen.sema().viewZero(nodeRef).nodeRef();
+    AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
     if (resolvedRef.isValid())
     {
         if (const auto* initExpr = codeGen.node(resolvedRef).safeCast<AstInitializerExpr>())
-            resolvedRef = codeGen.sema().viewZero(initExpr->nodeExprRef).nodeRef();
+            resolvedRef = codeGen.resolvedNodeRef(initExpr->nodeExprRef);
     }
 
     if (resolvedRef.isInvalid())

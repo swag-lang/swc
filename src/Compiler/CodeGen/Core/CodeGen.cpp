@@ -1806,7 +1806,7 @@ bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
 
         // The root is the function being emitted. Its value can be wrapped in a conversion at
         // the enclosing call site; following that substitution would hide its body and defers.
-        const AstNodeRef currentRef = rawRef == nodeRef ? rawRef : sema().viewZero(rawRef).nodeRef();
+        const AstNodeRef currentRef = rawRef == nodeRef ? rawRef : sema().resolvedNodeRef(rawRef);
         if (currentRef.isInvalid())
             continue;
         if (!visited.insert(currentRef))
@@ -1955,7 +1955,7 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& ty
 void CodeGen::setVisitors()
 {
     visit_.setMode(AstVisitMode::ResolveBeforeCallbacks);
-    visit_.setNodeRefResolver([this](const AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); });
+    visit_.setNodeRefResolver([this](const AstNodeRef nodeRef) { return sema().resolvedNodeRef(nodeRef); });
     visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
     visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
     visit_.setPostChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return postNodeChild(node, childRef); });

@@ -87,8 +87,8 @@ namespace
 
     bool isActiveCompilerRunRoot(CodeGen& codeGen)
     {
-        const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
-        const AstNodeRef activeDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        const AstNodeRef currentDeclRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
+        const AstNodeRef activeDeclRef  = codeGen.resolvedNodeRef(codeGen.function().declNodeRef());
         return currentDeclRef.isValid() && currentDeclRef == activeDeclRef;
     }
 

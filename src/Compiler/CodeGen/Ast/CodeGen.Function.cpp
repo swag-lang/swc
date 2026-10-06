@@ -433,8 +433,8 @@ namespace
 
     bool isActiveFunctionRoot(CodeGen& codeGen, AstNodeRef declRef)
     {
-        const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
-        const AstNodeRef activeDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        const AstNodeRef currentDeclRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
+        const AstNodeRef activeDeclRef  = codeGen.resolvedNodeRef(codeGen.function().declNodeRef());
         return currentDeclRef == declRef && activeDeclRef == declRef;
     }
 
@@ -446,12 +446,12 @@ namespace
 
     Result codeGenFunctionLikePreBody(CodeGen& codeGen, AstNodeRef declRef, AstNodeRef childRef, AstNodeRef bodyRef)
     {
-        declRef = codeGen.viewZero(declRef).nodeRef();
+        declRef = codeGen.resolvedNodeRef(declRef);
         if (!isActiveFunctionRoot(codeGen, declRef))
             return Result::SkipChildren;
 
-        const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
-        const AstNodeRef resolvedBodyRef  = codeGen.viewZero(bodyRef).nodeRef();
+        const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
+        const AstNodeRef resolvedBodyRef  = codeGen.resolvedNodeRef(bodyRef);
         if (resolvedChildRef != resolvedBodyRef)
             return Result::SkipChildren;
 
@@ -535,10 +535,10 @@ Result AstFunctionExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstClosureExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const AstNodeRef declRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+    const AstNodeRef declRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
     if (!isActiveFunctionRoot(codeGen, declRef))
     {
-        const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
+        const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
         if (resolvedChildRef.isValid() && codeGen.node(resolvedChildRef).is(AstNodeId::ClosureArgument))
             return Result::Continue;
     }

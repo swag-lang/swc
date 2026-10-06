@@ -782,7 +782,7 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
     const TypeRef             originalRightTypeRef = rightView.typeRef();
     TypeRef                   rightTypeRef         = originalRightTypeRef;
     rightPayload                                   = normalizeMoveAssignPayload(codeGen, rightPayload, rightTypeRef, modifierFlags);
-    const AstNodeRef leftRef                       = codeGen.viewZero(nodeLeftRef).nodeRef();
+    const AstNodeRef leftRef                       = codeGen.resolvedNodeRef(nodeLeftRef);
 
     if (leftRef.isValid() && codeGen.node(leftRef).is(AstNodeId::AssignList))
     {

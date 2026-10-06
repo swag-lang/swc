@@ -1044,7 +1044,7 @@ namespace
         if (payload && payload->reg.isValid())
             return payload;
 
-        const AstNodeRef resolvedRef = codeGen.viewZero(calleeRef).nodeRef();
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(calleeRef);
         if (resolvedRef.isValid() && resolvedRef != calleeRef)
         {
             const CodeGenNodePayload* resolvedPayload = codeGen.safePayload(resolvedRef);

@@ -339,6 +339,9 @@ public:
     SymbolNamespace&       fileNamespace() { return nodePayloadContext().fileNamespace(); }
     void                   setFileNamespace(SymbolNamespace& ns) { nodePayloadContext().setFileNamespace(ns); }
 
+    // Resolve only the node identity when no semantic view data is needed.
+    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) const { return nodePayloadContext().getSubstituteRef(nodeRef); }
+
     SemaNodeView view(AstNodeRef nodeRef);
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
     SemaNodeView viewStored(AstNodeRef nodeRef) { return viewStored(nodeRef, SemaNodeViewPartE::All); }
@@ -613,7 +616,6 @@ private:
     friend void SemaGeneric::prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs);
 
     bool                         hasActiveLookupScopeOverride() const;
-    AstNodeRef                   resolvedNodeRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
     TypeRef                      typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
     ConstantRef                  constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }
     TypeRef                      typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }

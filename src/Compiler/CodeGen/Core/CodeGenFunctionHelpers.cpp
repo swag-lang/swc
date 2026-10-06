@@ -1308,7 +1308,7 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
     outStorageReg = MicroReg::invalid();
     outStorageSym = nullptr;
 
-    const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+    const AstNodeRef resolvedNodeRef = codeGen.resolvedNodeRef(nodeRef);
     if (!resolvedNodeRef.isValid() || !typeRef.isValid())
         return false;
 
@@ -1400,7 +1400,7 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
     if (typeRef != returnTypeRef && codeGen.typeMgr().unwrapAlias(codeGen.ctx(), typeRef) != codeGen.typeMgr().unwrapAlias(codeGen.ctx(), returnTypeRef))
         return false;
 
-    AstNodeRef directExprRef = codeGen.viewZero(nodeRef).nodeRef();
+    AstNodeRef directExprRef = codeGen.resolvedNodeRef(nodeRef);
     if (!directExprRef.isValid())
         return false;
 
@@ -1417,11 +1417,11 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
         if (parent.is(AstNodeId::ErrorManagementExpr))
         {
             const auto&      errorManagement    = parent.cast<AstErrorManagementExpr>();
-            const AstNodeRef resolvedManagedRef = codeGen.viewZero(errorManagement.nodeExprRef).nodeRef();
+            const AstNodeRef resolvedManagedRef = codeGen.resolvedNodeRef(errorManagement.nodeExprRef);
             if (resolvedManagedRef != directExprRef)
                 return false;
 
-            directExprRef = codeGen.viewZero(parentRef).nodeRef();
+            directExprRef = codeGen.resolvedNodeRef(parentRef);
             continue;
         }
 
@@ -1429,7 +1429,7 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
             return false;
 
         const auto&      returnNode        = parent.cast<AstReturnStmt>();
-        const AstNodeRef resolvedReturnRef = codeGen.viewZero(returnNode.nodeExprRef).nodeRef();
+        const AstNodeRef resolvedReturnRef = codeGen.resolvedNodeRef(returnNode.nodeExprRef);
         if (resolvedReturnRef != directExprRef)
             return false;
 
@@ -1479,9 +1479,9 @@ bool CodeGenFunctionHelpers::isFreshAggregateLiteral(CodeGen& codeGen, AstNodeRe
 // exception: its address is a borrowed referee.
 bool CodeGenFunctionHelpers::isOwnedCallResult(CodeGen& codeGen, AstNodeRef nodeRef)
 {
-    AstNodeRef resolvedRef = codeGen.viewZero(nodeRef).nodeRef();
+    AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
     while (resolvedRef.isValid() && codeGen.node(resolvedRef).is(AstNodeId::ErrorManagementExpr))
-        resolvedRef = codeGen.viewZero(codeGen.node(resolvedRef).cast<AstErrorManagementExpr>().nodeExprRef).nodeRef();
+        resolvedRef = codeGen.resolvedNodeRef(codeGen.node(resolvedRef).cast<AstErrorManagementExpr>().nodeExprRef);
     if (resolvedRef.isInvalid())
         return false;
 
@@ -1515,13 +1515,13 @@ bool CodeGenFunctionHelpers::tryUseShortBodyReturnStorage(CodeGen& codeGen, AstN
     AstNodeRef parentRef   = codeGen.visit().parentNodeRef(parentIndex);
     while (parentRef.isValid() && (codeGen.node(parentRef).is(AstNodeId::CastExpr) || codeGen.node(parentRef).is(AstNodeId::ParenExpr)))
         parentRef = codeGen.visit().parentNodeRef(++parentIndex);
-    if (parentRef.isInvalid() || parentRef != codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef())
+    if (parentRef.isInvalid() || parentRef != codeGen.resolvedNodeRef(codeGen.function().declNodeRef()))
         return false;
 
     const auto* functionDecl = codeGen.node(parentRef).safeCast<AstFunctionDecl>();
     if (!functionDecl || !functionDecl->hasFlag(AstFunctionFlagsE::Short))
         return false;
-    if (codeGen.viewZero(functionDecl->nodeBodyRef).nodeRef() != codeGen.viewZero(nodeRef).nodeRef())
+    if (codeGen.resolvedNodeRef(functionDecl->nodeBodyRef) != codeGen.resolvedNodeRef(nodeRef))
         return false;
 
     const TypeRef returnTypeRef = codeGen.function().returnTypeRef();

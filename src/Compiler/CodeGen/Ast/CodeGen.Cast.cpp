@@ -1439,7 +1439,7 @@ namespace
             setPayload->calledFn != nullptr)
             return emitStructSetCast(codeGen, srcNodeRef, dstTypeRef, *setPayload);
 
-        const AstNodeRef resolvedSrcNodeRef = codeGen.viewZero(srcNodeRef).nodeRef();
+        const AstNodeRef resolvedSrcNodeRef = codeGen.resolvedNodeRef(srcNodeRef);
         const AstNode&   srcNode            = codeGen.node(resolvedSrcNodeRef);
         if (!needsRuntimeStorage &&
             (srcNode.is(AstNodeId::CastExpr) || srcNode.is(AstNodeId::AutoCastExpr)) &&

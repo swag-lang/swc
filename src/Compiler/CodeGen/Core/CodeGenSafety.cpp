@@ -329,11 +329,11 @@ Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg a
     if (sourceRef.isInvalid() || !codeGen.localStackBaseReg().isValid())
         return Result::Continue;
 
-    AstNodeRef resolvedRef = codeGen.viewZero(sourceRef).nodeRef();
+    AstNodeRef resolvedRef = codeGen.resolvedNodeRef(sourceRef);
     if (resolvedRef.isValid())
     {
         if (const auto* initExpr = codeGen.node(resolvedRef).safeCast<AstInitializerExpr>())
-            resolvedRef = codeGen.viewZero(initExpr->nodeExprRef).nodeRef();
+            resolvedRef = codeGen.resolvedNodeRef(initExpr->nodeExprRef);
     }
 
     if (resolvedRef.isInvalid())

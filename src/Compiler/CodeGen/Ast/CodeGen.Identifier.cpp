@@ -443,7 +443,7 @@ namespace
     // whose fields move out.
     bool destructuringSourceIsLValue(CodeGen& codeGen, AstNodeRef initRef)
     {
-        const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
+        const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.resolvedNodeRef(initRef) : AstNodeRef::invalid();
         if (resolvedInitRef.isInvalid())
             return false;
         if (codeGen.sema().isLValue(resolvedInitRef))
@@ -487,7 +487,7 @@ namespace
 
     bool varInitNeedsPostCopy(CodeGen& codeGen, AstNodeRef initRef, const CodeGenNodePayload& initPayload)
     {
-        const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
+        const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.resolvedNodeRef(initRef) : AstNodeRef::invalid();
         if (resolvedInitRef.isValid())
         {
             if (codeGen.sema().isLValue(resolvedInitRef))
@@ -586,7 +586,7 @@ namespace
 
         if (isMove && initPayload.isAddress())
         {
-            const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
+            const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.resolvedNodeRef(initRef) : AstNodeRef::invalid();
             const AstNodeRef referenceRef    = varInitMoveReferenceSource(codeGen, initRef);
             if (referenceRef.isValid())
             {

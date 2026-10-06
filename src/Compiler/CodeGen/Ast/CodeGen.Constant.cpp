@@ -50,11 +50,11 @@ namespace
 
     AstNodeRef codeGenErrorNodeRef(CodeGen& codeGen)
     {
-        const AstNodeRef currentNodeRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+        const AstNodeRef currentNodeRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
         if (currentNodeRef.isValid())
             return currentNodeRef;
 
-        const AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        const AstNodeRef functionDeclRef = codeGen.resolvedNodeRef(codeGen.function().declNodeRef());
         SWC_ASSERT(functionDeclRef.isValid());
         return functionDeclRef;
     }
@@ -820,7 +820,7 @@ namespace
             // A nested literal was built in a temporary of its own and has just been moved out
             // of it, whether or not its fields own anything: a value that points into itself
             // still points into that temporary until its 'opPostMove' runs.
-            const AstNodeRef sourceRef       = codeGen.viewZero(entry.valueRef).nodeRef();
+            const AstNodeRef sourceRef       = codeGen.resolvedNodeRef(entry.valueRef);
             const bool       sourceIsLValue  = sourceRef.isValid() && codeGen.sema().isLValueStored(sourceRef);
             const bool       adoptsTemporary = canDropFields && !sourceIsLValue && elementPayload.runtimeStorageSym && codeGen.hasTemporaryDrop(*elementPayload.runtimeStorageSym);
             const bool       adoptsCall      = elementPayload.isAddress() && !codeGen.viewConstant(entry.valueRef).hasConstant() && CodeGenFunctionHelpers::isOwnedCallResult(codeGen, entry.valueRef);

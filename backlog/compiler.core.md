@@ -6,6 +6,54 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
+
+- Recorded: 2026-09-15 12:47
+- Updated: 2026-10-06 09:49 — Measured what recording nothing from an assertion argument would touch.
+- Found while: the same change, on `bin/unittests/sanity/self_borrow_move.swg`.
+- Evidence: `Swag.assert(target.cursor![] == 13)` records the non-null proof for the rest of the
+  block, but `Swag.Safety(.Assert, false)` and the `release` preset drop the whole assertion,
+  including the `!` inside its argument. The proof survives compilation; the runtime guard does
+  not. `Swag.assert(p != null)` has the same property and the reference documents it as the
+  precondition form, which is why it reads as deliberate there; a `!` inside an argument does not
+  read as a precondition at all.
+- Cost: no unsoundness in `release`, where every guard is already off. In `devmode` with an
+  explicit safety override, a path can be used unguarded because of an assertion that was
+  compiled out.
+- Blast radius (2026-10-06): recording nothing from inside a `Swag.assert` argument is a
+  one-line change to `notNullRunsUnconditionally` (an `AstIntrinsicCallExpr` parent with
+  `IntrinsicAssert` returns false). `bin/` holds 89 assertions with a postfix `!` in an
+  argument, most of them in application and module tests, so any code after them that relies on
+  the proof would stop compiling; that needs every `bin/` test source compiled before it lands.
+  Recording the proof only where `Assert` safety is on would make the same source compile in one
+  configuration and not in another, which is worse.
+- Next: decide whether a proof recorded inside an argument of a removable intrinsic should be
+  kept. Either record nothing from inside a `Swag.assert` argument and compile every `bin/` test
+  source, or state the rule in `bin/reference/modules/language/src/004_007_pointers.swg` next to
+  the existing `Swag.assert` paragraph.
+- Complete when: the chosen rule is implemented or documented, with a case showing what
+  `Swag.Safety(.Assert, false)` does to the proof.
+
+### compiler.core.072 — Link preparation resolves and places the native image on one thread
+
+- Recorded: 2026-10-01 14:25
+- Updated: 2026-10-06 09:49 — Description sections are now built in parallel; placement and resolution remain serial.
+- Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
+  jobs. On 2026-10-01, probed phases in a 16-worker DevMode `gui` rebuild gave image lowering
+  about 0.6 s and resolution 0.2 s of wall time over the five native modules. Since 2026-10-06,
+  `buildNativeImage` builds each object description's text bytes, code relocations and unwind
+  sections as an indexed parallel loop, then places them in description order on the driver; an
+  in-process comparison against the sequential order produced identical sections, relocations
+  and symbols for `core`, `ogl`, `truetype`, `pixel`, `gui` and `gui2`. A module has only six
+  descriptions, so that loop is at most six-way. Placement (`placeNativeSection`, the symbol and
+  relocation tables), `resolveSymbols`, `appendSymbolTable`, and `finishImage` are still serial.
+- Next: measure `link prepare` in a 16-worker `gui` rebuild with `--dev-sched-stats` and decide
+  whether the remaining serial time justifies splitting descriptions further or resolving
+  archive members in parallel.
+- Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
+  linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
+- Related: compiler.core.069
+
 ### compiler.core.056 — A library lowers the equality operator no program calls
 
 - Recorded: 2026-09-23 14:11
@@ -149,25 +197,6 @@ narrowing. Such a rewrite requires a separate semantic proof.
 - Complete when: the partitioning improvement has concurrent read/write coverage
   and a measured compilation-time benefit with its memory cost explicitly bounded.
 
-
-### compiler.core.072 — Link preparation lowers the native image on one thread
-
-- Recorded: 2026-10-01 14:25
-- Updated: 2026-10-01 15:41 — per-object jobs replaced by indexed loops; narrow to the image lowering
-- Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
-  jobs, but `buildNativeImage` lowers every object description into the image on the driver
-  thread, and `resolveSymbols`, `appendSymbolTable`, and `finishImage` follow serially. Probed
-  phases in a 16-worker DevMode `gui` rebuild: image lowering about 0.6 s and resolution 0.2 s of
-  wall time over the five native modules. The side static archive of each shared library used to
-  enqueue one job per object and per archive member (about 117 000 of each); both now run as
-  indexed parallel loops, which halved the `link prepare` phase and removed its starvation.
-  Each description's text bytes, code relocations, and unwind sections (`DebugInfo::buildObject`)
-  are independent; only their placement in the image is ordered.
-- Next: build each description's sections in parallel, then place them in description order on
-  the driver, and check that the produced images are byte-identical apart from the timestamp.
-- Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
-  linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
-- Related: compiler.core.069
 
 ### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
 
@@ -657,26 +686,6 @@ cache is part of the normal DevMode and Release paths.
   for nothing beyond it, with a JIT case for each of the four forms in
   `bin/unittests/jit/flow/nullable_narrow.swg` and the negative controls in
   `bin/unittests/errors/sema/sema_err_notnull_already_proven.swg` still passing.
-
-### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
-
-- Recorded: 2026-09-15 12:47
-- Found while: the same change, on `bin/unittests/sanity/self_borrow_move.swg`.
-- Evidence: `Swag.assert(target.cursor![] == 13)` records the non-null proof for the rest of the
-  block, but `Swag.Safety(.Assert, false)` and the `release` preset drop the whole assertion,
-  including the `!` inside its argument. The proof survives compilation; the runtime guard does
-  not. `Swag.assert(p != null)` has the same property and the reference documents it as the
-  precondition form, which is why it reads as deliberate there; a `!` inside an argument does not
-  read as a precondition at all.
-- Cost: no unsoundness in `release`, where every guard is already off. In `devmode` with an
-  explicit safety override, a path can be used unguarded because of an assertion that was
-  compiled out.
-- Next: decide whether a proof recorded inside an argument of a removable intrinsic should be
-  kept. Either record nothing from inside a `Swag.assert` argument, or state the rule in
-  `bin/reference/modules/language/src/004_007_pointers.swg` next to the existing `Swag.assert`
-  paragraph.
-- Complete when: the chosen rule is implemented or documented, with a case showing what
-  `Swag.Safety(.Assert, false)` does to the proof.
 
 ### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
 

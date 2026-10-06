@@ -108,8 +108,8 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (sizeOf != payload.size())
         return ConstantRef::invalid();
 
-    const TypeRef   storageTypeRef = typeInfo.isAlias() || typeInfo.isEnum() ? typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum) : typeRef;
-    const TypeInfo& storageType    = storageTypeRef == typeRef ? typeInfo : ctx.typeMgr().get(storageTypeRef);
+    const TypeInfo* unwrappedType = typeInfo.unwrapAliasEnumType(ctx);
+    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : typeInfo;
     if (storageType.isStruct() && storageType.payloadSymStruct().isUnion())
         return codeGen.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeRef, payload));
 
@@ -118,7 +118,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (!ConstantHelpers::resolveStaticPayloadRequiredShardIndex(codeGen.sema(), shardIndex, hasRequiredShard, typeInfo, payload))
         return ConstantRef::invalid();
 
-    const uint32_t placementShardIndex = ConstantHelpers::staticPayloadPlacementShardIndex(ctx, typeInfo, payload, hasRequiredShard, shardIndex);
+    const uint32_t placementShardIndex = ConstantHelpers::staticPayloadPlacementShardIndex(ctx, typeInfo, storageType, payload, hasRequiredShard, shardIndex);
     DataSegment&   segment             = codeGen.cstMgr().shardDataSegment(placementShardIndex);
     uint32_t       offset              = INVALID_REF;
     if (ConstantLower::materializeStaticPayload(codeGen.sema(), offset, segment, typeInfo, payload) != Result::Continue)

@@ -858,7 +858,7 @@ namespace
         const uint32_t               entry = MicroPassHelpers::findSingleCfgEntry(cfg);
         if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return false;
-        const MicroPassHelpers::MicroDomTree dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        const MicroPassHelpers::MicroDomTree dom = MicroPassHelpers::computeInstructionDominators(cfg, entry, ssa);
 
         std::vector<SignTest> tests;
         collectSignTests(tests, *ssa, cfg, storage, operands);

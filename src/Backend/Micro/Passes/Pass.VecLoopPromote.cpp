@@ -614,7 +614,7 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
     if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
         return Result::Continue;
 
-    const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+    const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry, context.ssaState);
     std::unordered_map<uint32_t, NaturalLoop> loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
     if (loopsByHeader.empty())
         return Result::Continue;

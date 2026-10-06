@@ -10,6 +10,7 @@ SWC_BEGIN_NAMESPACE();
 struct MicroPassContext;
 class MicroControlFlowGraph;
 class MicroBuilder;
+class MicroSsaState;
 
 namespace MicroPassHelpers
 {
@@ -122,7 +123,10 @@ namespace MicroPassHelpers
         }
     };
 
-    MicroDomTree computeInstructionDominators(const MicroControlFlowGraph& cfg, uint32_t entry);
+    // A current SSA snapshot already has the entry-rooted dominance intervals.
+    // Use it when available; standalone, stale and nonzero-entry callers keep
+    // the same graph analysis without constructing SSA for this query.
+    MicroDomTree computeInstructionDominators(const MicroControlFlowGraph& cfg, uint32_t entry, const MicroSsaState* ssa = nullptr);
 
     // Exact flag-level complement. Sign has no complement in MicroCond.
     bool invertCondition(MicroCond& outCondition, MicroCond condition);

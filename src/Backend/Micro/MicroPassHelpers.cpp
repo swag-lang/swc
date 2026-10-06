@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroSsaState.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1041,8 +1042,12 @@ std::unordered_map<uint32_t, MicroPassHelpers::NaturalLoop> MicroPassHelpers::fi
     return loopsByHeader;
 }
 
-MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(const MicroControlFlowGraph& cfg, const uint32_t entry)
+MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(const MicroControlFlowGraph& cfg, const uint32_t entry, const MicroSsaState* ssa)
 {
+    MicroDomTree reused;
+    if (entry == 0 && ssa && ssa->copyInstructionDominators(reused, cfg))
+        return reused;
+
     const uint32_t n = cfg.instructionCount();
     if (entry >= n)
         return {};

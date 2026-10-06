@@ -1097,9 +1097,21 @@ SWC_TEST_BEGIN(MicroSsa_DefinitionDominanceMatchesInstructionGraph)
         for (uint32_t rebuild = 0; rebuild < 2; ++rebuild)
         {
             ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
-            const auto& cfg  = builder.controlFlowGraph();
-            const auto  dom  = MicroPassHelpers::computeInstructionDominators(cfg, 0);
-            const auto  refs = cfg.instructionRefs();
+            const auto&                    cfg  = builder.controlFlowGraph();
+            const auto                     dom  = MicroPassHelpers::computeInstructionDominators(cfg, 0);
+            const auto                     refs = cfg.instructionRefs();
+            MicroPassHelpers::MicroDomTree copied;
+            SWC_ASSERT(ssa.copyInstructionDominators(copied, cfg));
+            const auto reused = MicroPassHelpers::computeInstructionDominators(cfg, 0, &ssa);
+            for (uint32_t source = 0; source < refs.size(); ++source)
+            {
+                SWC_ASSERT(copied.reachable(source) == dom.reachable(source));
+                for (uint32_t target = 0; target < refs.size(); ++target)
+                {
+                    SWC_ASSERT(copied.dominates(source, target) == dom.dominates(source, target));
+                    SWC_ASSERT(reused.dominates(source, target) == dom.dominates(source, target));
+                }
+            }
             for (const auto definition : definitions)
             {
                 uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
@@ -1114,6 +1126,42 @@ SWC_TEST_BEGIN(MicroSsa_DefinitionDominanceMatchesInstructionGraph)
             }
         }
     }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSsa_DominatorReuseRejectsMissingOrStaleRename)
+{
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegImm(MicroReg::virtualIntReg(1), ApInt(1, 64), MicroOpBits::B64);
+    const MicroInstrRef definition = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    MicroPassHelpers::MicroDomTree copied;
+    SWC_ASSERT(ssa.copyInstructionDominators(copied, builder.controlFlowGraph()));
+
+    const auto nonzero = MicroPassHelpers::computeInstructionDominators(builder.controlFlowGraph(), 1, &ssa);
+    SWC_ASSERT(!nonzero.reachable(0) && nonzero.reachable(1));
+    MicroBuilder other(ctx);
+    other.emitRet();
+    SWC_ASSERT(!ssa.copyInstructionDominators(copied, other.controlFlowGraph()));
+    ssa.invalidate();
+    SWC_ASSERT(!ssa.copyInstructionDominators(copied, builder.controlFlowGraph()));
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    builder.emitRet();
+    builder.invalidateControlFlowGraph();
+    SWC_ASSERT(!ssa.copyInstructionDominators(copied, builder.controlFlowGraph()));
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+
+    // Removing the final virtual definition can keep the graph while skipping
+    // rename construction. The previous tree must not be exported in that case.
+    builder.instructions().ptr(definition)->ops(builder.operands())[0].reg = MicroReg::intReg(0);
+    ssa.invalidate();
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    SWC_ASSERT(!ssa.copyInstructionDominators(copied, builder.controlFlowGraph()));
+    const auto fallback = MicroPassHelpers::computeInstructionDominators(builder.controlFlowGraph(), 0, &ssa);
+    SWC_ASSERT(fallback.reachable(0));
     return Result::Continue;
 }
 SWC_TEST_END()

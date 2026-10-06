@@ -85,6 +85,45 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-10-06 10:00 — reuse SSA dominance intervals in five optimization analyses.
+- Area: compiler/backend, compilation time
+- Evidence: the Sep 23 Release profile measured 300,712 SSA builds over 33,062 functions,
+  about nine per function, and 7.05% of busy CPU in SSA construction. These counts predate
+  current caching and convergence changes; they are a lead, not a current performance claim.
+- Resolved scope: CFG identity already preserves blocks, dominators and frontiers. Operand
+  refresh now also retains values, phi inputs and reaching definitions when the register
+  definitions stay identical and reads only disappear. It filters each affected use list once,
+  retaining operand multiplicity and visit order. Added reads, changed definitions and changed
+  control flow still take the full rebuild. Comparison against freshly rebuilt SSA covers
+  loops, phis, duplicate reads and fallback after a partially inspected prefix. The 1,293
+  internal C++ tests and 275 native optimizer tests in Release pass. Compiler time and peak
+  memory were not measured in this iteration.
+- Dominance reuse: induction analysis, LICM, loop vector promotion, signed-strength reduction
+  and InstructionCombine now reuse a current SSA rename tree instead of reconstructing an
+  instruction-level dominator tree. CFG identity/build id and an existing rename walk are
+  required; invalid states, nonzero entries and graphs without virtual definitions fall back.
+  The two output interval arrays are still copied, with no additional persistent instruction
+  storage. This removes graph traversal and iterative dominance construction from eligible
+  queries; no compiler timing gain is claimed. The remaining definition-changing rebuilds
+  described below are unchanged. The 281 native optimizer tests in Release pass, and
+  [five Inflate bodies stay identical](../bench/results/compiler-work/20261006-ssa-dominance/README.md).
+- Next: recheck the remaining rebuild callers at a measurement milestone. Copy elimination
+  still rebuilds internally after redirecting operands, and other rewrites change definitions.
+  Any further mutation contract must preserve reaching-value identities, phi edges, duplicate
+  uses, and their order, including fallback when a later instruction invalidates the contract.
+- Rejected evidence to retain: the Sep 16 copy-elimination alternatives replaced its internal
+  rebuild with reaching-use scans or adjusted use counts plus backward phi propagation. Both
+  passed focused tests, but alternating Release gui builds did not resolve a gain; both were
+  discarded. Revisit with the SSA rename work, not another pass-local liveness substitute.
+  Likewise, queue-time visit marking was withdrawn on Oct 4: changing depth-first priority
+  can delay early exits. Keep visit order when removing duplicate work.
+- Complete when: the remaining rebuild reduction preserves generated code and a repeatable
+  compiler gain is resolved against the measurement floor at a later milestone.
+- Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
+
 ### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
 
 - Recorded: 2026-08-07 08:30
@@ -244,36 +283,6 @@ new language syntax.
 - Complete when: each removable sign correction has a sound range proof, exact
   checksums and unrelated positive/negative coverage, with the candidate and byte
   loops retaining their instruction and memory counts without a loss elsewhere.
-
-### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-10-06 07:59 — retain SSA when a rewrite only removes register reads.
-- Area: compiler/backend, compilation time
-- Evidence: the Sep 23 Release profile measured 300,712 SSA builds over 33,062 functions,
-  about nine per function, and 7.05% of busy CPU in SSA construction. These counts predate
-  current caching and convergence changes; they are a lead, not a current performance claim.
-- Resolved scope: CFG identity already preserves blocks, dominators and frontiers. Operand
-  refresh now also retains values, phi inputs and reaching definitions when the register
-  definitions stay identical and reads only disappear. It filters each affected use list once,
-  retaining operand multiplicity and visit order. Added reads, changed definitions and changed
-  control flow still take the full rebuild. Comparison against freshly rebuilt SSA covers
-  loops, phis, duplicate reads and fallback after a partially inspected prefix. The 1,293
-  internal C++ tests and 275 native optimizer tests in Release pass. Compiler time and peak
-  memory were not measured in this iteration.
-- Next: recheck the remaining rebuild callers at a measurement milestone. Copy elimination
-  still rebuilds internally after redirecting operands, and other rewrites change definitions.
-  Any further mutation contract must preserve reaching-value identities, phi edges, duplicate
-  uses, and their order, including fallback when a later instruction invalidates the contract.
-- Rejected evidence to retain: the Sep 16 copy-elimination alternatives replaced its internal
-  rebuild with reaching-use scans or adjusted use counts plus backward phi propagation. Both
-  passed focused tests, but alternating Release gui builds did not resolve a gain; both were
-  discarded. Revisit with the SSA rename work, not another pass-local liveness substitute.
-  Likewise, queue-time visit marking was withdrawn on Oct 4: changing depth-first priority
-  can delay early exits. Keep visit order when removing duplicate work.
-- Complete when: the remaining rebuild reduction preserves generated code and a repeatable
-  compiler gain is resolved against the measurement floor at a later milestone.
-- Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
 
 ### compiler.optimization.039 — Locate the remaining optimization sweep-budget outliers
 

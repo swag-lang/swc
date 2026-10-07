@@ -682,6 +682,7 @@ impl SoundViewer
             catch .voice.setVolume(.muted ? 0 : .volume)
             return true
         }
+
         return false
     }
 

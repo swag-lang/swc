@@ -166,9 +166,9 @@ public impl Face
     // Loads a TrueType face from an in-memory font file.
     //
     // The face owns a private copy of `bytes`, so the input may be released after
-    // this call. Success returns a non-null face. Release the returned pointer with [[TrueType.Face.destroy]]. When
-    // `allocator` is null, the allocator active at the start of the call owns the
-    // face allocation.
+    // this call. Success returns a non-null face. Release the returned pointer with
+    // [[TrueType.Face.destroy]]. When `allocator` is null, the allocator active at the
+    // start of the call owns the face allocation.
     //
     // `bytes` may be a TrueType or OpenType file, a bare CFF or Type 1 font program,
     // or a `ttcf` collection, of which the first face is taken; use

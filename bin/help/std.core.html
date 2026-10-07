@@ -2414,7 +2414,7 @@ options.recurse = <span class="SKwd">true</span>
 
 <span class="SKwd">let</span> source: <span class="SCst"><a href="#Core_String">String</a></span> = <span class="SItr">#raw</span> <span class="SStr">""</span><span class="SStr">"{"</span>futureOption<span class="SStr">":true,"</span>title<span class="SStr">":"</span><span class="SCst">Workbench</span><span class="SStr">"}"</span><span class="SStr">""</span>
 <span class="SKwd">var</span> decoder: <span class="SCst"><a href="#namespace_Core_Serialization">Serialization</a></span>.<span class="SFct">Decoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization">Serialization</a></span>.<span class="SCst"><a href="#namespace_Core_Serialization_Read">Read</a></span>.<span class="SCst">Json</span>
-<span class="SKwd">let</span> settings = <span class="SKwd">try</span> decoder.<span class="SFct">readAll</span>'<span class="SFct">Settings</span>(source.<span class="SFct">toSlice</span>())!
+<span class="SKwd">let</span> settings = <span class="SKwd">try</span> decoder.<span class="SFct">readAll</span>'<span class="SFct">Settings</span>(source.<span class="SFct">toSlice</span>())
 <span class="SLgc">defer</span> <span class="SCst"><a href="#namespace_Core_Memory">Memory</a></span>.<span class="SFct">delete</span>(settings)
 
 <span class="SKwd">var</span> encoder: <span class="SCst"><a href="#namespace_Core_Serialization">Serialization</a></span>.<span class="SFct">Encoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization">Serialization</a></span>.<span class="SCst"><a href="#namespace_Core_Serialization_Write">Write</a></span>.<span class="SCst">Json</span>
@@ -13942,7 +13942,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <p><a href="#Core_Serialization_Decoder_readAll">Core.Serialization.Decoder.readAll</a> returns a new value that the caller releases:</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes   = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(fileName)
 <span class="SKwd">var</span> decoder: <span class="SFct">Decoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization_Read">Read</a></span>.<span class="SCst">TagBin</span>
-<span class="SKwd">let</span> value   = <span class="SKwd">try</span> decoder.<span class="SFct">readAll</span>'<span class="SFct">MyStruct</span>(bytes.<span class="SFct">toSlice</span>())!
+<span class="SKwd">let</span> value   = <span class="SKwd">try</span> decoder.<span class="SFct">readAll</span>'<span class="SFct">MyStruct</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">defer</span> <span class="SCst"><a href="#namespace_Core_Memory">Memory</a></span>.<span class="SFct">delete</span>(value)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#Core_Serialization_Decoder">Decoder</a></span></span></div>
 </section>
@@ -19028,8 +19028,8 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Serialization_Decoder_readAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.readAll</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_readAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L353">src</a></div>
 <p>Reads a whole document whose root is a <span class="code-inline">TR</span> struct and returns it in a new allocation.</p>
-<p>The caller owns the result and releases it with <a href="#Core_Memory_delete">Core.Memory.delete</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">TR</span>) <span class="SFct">readAll</span>(input: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;*<span class="SCst">TR</span>? <span class="SKwd">fail</span></span></div>
+<p>Success returns a non-null pointer. The caller owns it and releases it with <a href="#Core_Memory_delete">Core.Memory.delete</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">TR</span>) <span class="SFct">readAll</span>(input: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;*<span class="SCst">TR</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Serialization_Decoder_readTypedContent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.readTypedContent</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_readTypedContent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L122">src</a></div>
@@ -24974,7 +24974,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="api-item api-item-func"><span id="Core_StrConv_parseIdentifier" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.parseIdentifier</span> <a class="api-item-permalink" href="#Core_StrConv_parseIdentifier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L377">src</a></div>
 <p>Returns the identifier at the start of <span class="code-inline">str</span>.</p>
 <p>An identifier starts with <span class="code-inline">_</span> or a letter and continues with <span class="code-inline">_</span>, letters and digits, each byte classified by <a href="#Core_Latin1_isLetter">Core.Latin1.isLetter</a> and <a href="#Core_Latin1_isLetterOrDigit">Core.Latin1.isLetterOrDigit</a>. Fails with <a href="#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a> when <span class="code-inline">str</span> does not start with one.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseIdentifier</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span>? <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseIdentifier</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_StrConv_parseRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.parseRune</span> <a class="api-item-permalink" href="#Core_StrConv_parseRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L364">src</a></div>
@@ -25051,7 +25051,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <li>a struct, as a brace-enclosed list of field values in declaration order, such as <span class="code-inline">{{1 29 27 27} 0}</span>: a <span class="code-inline">}</span> before the last field leaves the remaining fields untouched, and <span class="code-inline">,</span> between two values is accepted.</li>
 </ul>
 <p>When <span class="code-inline">type</span> is a static array or a <a href="#Core_Array">Core.Array</a> of those types, <span class="code-inline">buf</span> holds several values separated with blanks, up to its end or a <span class="code-inline">#</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseValue</span>(addr: *<span class="STpe">void</span>, type: <span class="STpe">typeinfo</span>, buf: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span>? <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseValue</span>(addr: *<span class="STpe">void</span>, type: <span class="STpe">typeinfo</span>, buf: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_StrConv_parseX64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.parseX64</span> <a class="api-item-permalink" href="#Core_StrConv_parseX64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L11">src</a></div>

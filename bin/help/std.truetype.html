@@ -125,7 +125,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>
 
 <span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
-<span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
+<span class="SKwd">let</span> face  = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 
 <span class="SKwd">try</span> face.<span class="SFct">setPixelSize</span>(<span class="SNum">0</span>, <span class="SNum">32</span>)
@@ -141,12 +141,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>
 
 <span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
-<span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
+<span class="SKwd">let</span> face  = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
 <p>The input can be a TrueType font with <span class="code-inline">glyf</span> outlines, an OpenType font with CFF outlines (<span class="code-inline">OTTO</span>), or a bare CFF or Type 1 program. WOFF and WOFF2 containers are recognized and reported as unsupported, so a failure names the container.</p>
 <h3 id="guide_Loading_fonts_and_glyphs_Rendering-only_subsets">Rendering-only subsets</h3>
 <p>PDF and similar document formats may embed a TrueType subset without the <span class="code-inline">name</span>, <span class="code-inline">post</span>, or <span class="code-inline">cmap</span> metadata required of an installable font. Use <a href="#TrueType_Face_loadSubset">TrueType.Face.loadSubset</a> for those programs and provide the family identity from the document's font descriptor. The outline, location, and horizontal-metric tables are still validated normally. Without a character map, address glyphs by index or through the document's own encoding.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadSubset</span>(embeddedBytes, <span class="SStr">"DocumentSans"</span>))!
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> face = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadSubset</span>(embeddedBytes, <span class="SStr">"DocumentSans"</span>)
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
 <p>Keep <a href="#TrueType_Face_load">TrueType.Face.load</a> for standalone font files; it deliberately remains strict about their required metadata.</p>
 <h3 id="guide_Loading_fonts_and_glyphs_Font_collections">Font collections</h3>
@@ -159,7 +159,7 @@
     <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), index)) != <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
         <span class="SLgc">continue</span>
 
-    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), index))!
+    <span class="SKwd">let</span> face = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), index)
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
     <span class="SLgc">break</span>
 }</span></div>
@@ -933,7 +933,7 @@
 <div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexByName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexByName</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexByName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L357">src</a></div>
 <p>Resolves a PostScript glyph name to a glyph index.</p>
 <p>A CFF or Type 1 program keys its outlines by name, which is how a document format addresses them: the encoding of such a font is a table of names, not of characters, and resolving it through Unicode would go through a mapping the font never declared. Zero is returned for a face with no name table of its own, which every TrueType face is, and for a name it does not carry.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes))!
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> face  = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes)
 <span class="SKwd">let</span> glyph = face.<span class="SFct">glyphIndexByName</span>(<span class="SStr">"fi"</span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndexByName</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
@@ -984,12 +984,12 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.load</span> <a class="api-item-permalink" href="#TrueType_Face_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L183">src</a></div>
 <p>Loads a TrueType face from an in-memory font file.</p>
-<p>The face owns a private copy of <span class="code-inline">bytes</span>, so the input may be released after this call. Release the returned pointer with <a href="#TrueType_Face_destroy">TrueType.Face.destroy</a>. When <span class="code-inline">allocator</span> is null, the allocator active at the start of the call owns the face allocation.</p>
+<p>The face owns a private copy of <span class="code-inline">bytes</span>, so the input may be released after this call. Success returns a non-null face. Release the returned pointer with <a href="#TrueType_Face_destroy">TrueType.Face.destroy</a>. When <span class="code-inline">allocator</span> is null, the allocator active at the start of the call owns the face allocation.</p>
 <p><span class="code-inline">bytes</span> may be a TrueType or OpenType file, a bare CFF or Type 1 font program, or a <span class="code-inline">ttcf</span> collection, of which the first face is taken; use <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> to reach the others. WOFF containers are reported as unsupported rather than as an unknown format.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
-<span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
+<span class="SKwd">let</span> face  = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span>? <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_loadAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadAt</span> <a class="api-item-permalink" href="#TrueType_Face_loadAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L220">src</a></div>
@@ -999,10 +999,10 @@
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">for</span> index <span class="SLgc">in</span> count
 {
-    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), index))!
+    <span class="SKwd">let</span> face = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), index)
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 }</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span>? <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_loadChar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadChar</span> <a class="api-item-permalink" href="#TrueType_Face_loadChar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L436">src</a></div>
@@ -1021,7 +1021,7 @@
 <p>Loads a rendering-only TrueType subset from an in-memory font program.</p>
 <p>Document formats such as PDF may legally omit the <span class="code-inline">name</span>, <span class="code-inline">post</span> and <span class="code-inline">cmap</span> tables that an installable OpenType font requires: the document addresses such a font by glyph index or through its own encoding, never by asking the font what character a glyph stands for. <span class="code-inline">familyName</span> supplies the missing family identity; absent style and underline metadata use <span class="code-inline">Regular</span> and zero, and a face with no character map answers no character lookup. All outline, location, and horizontal-metric tables remain mandatory. Use <a href="#TrueType_Face_load">TrueType.Face.load</a> for standalone font files, where missing metadata is an error.</p>
 <p>Ownership and cleanup match <a href="#TrueType_Face_load">TrueType.Face.load</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadSubset</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, familyName: <span class="STpe">string</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span>? <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadSubset</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, familyName: <span class="STpe">string</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_renderGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L447">src</a></div>

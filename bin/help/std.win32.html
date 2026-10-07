@@ -219,7 +219,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Constants</span><span class="toc-count">1218</span></summary>
+<summary><span class="toc-label">Constants</span><span class="toc-count">1220</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
 <li><a href="#Win32_AC_SRC_ALPHA">Win32.AC_SRC_ALPHA</a></li>
@@ -380,6 +380,8 @@
 <li><a href="#Win32_DWM_BB_BLURREGION">Win32.DWM_BB_BLURREGION</a></li>
 <li><a href="#Win32_DWM_BB_ENABLE">Win32.DWM_BB_ENABLE</a></li>
 <li><a href="#Win32_DWMWA_BORDER_COLOR">Win32.DWMWA_BORDER_COLOR</a></li>
+<li><a href="#Win32_DWMWA_CLOAK">Win32.DWMWA_CLOAK</a></li>
+<li><a href="#Win32_DWMWA_CLOAKED">Win32.DWMWA_CLOAKED</a></li>
 <li><a href="#Win32_DWMWA_COLOR_NONE">Win32.DWMWA_COLOR_NONE</a></li>
 <li><a href="#Win32_DWMWA_TRANSITIONS_FORCEDISABLED">Win32.DWMWA_TRANSITIONS_FORCEDISABLED</a></li>
 <li><a href="#Win32_DWMWA_WINDOW_CORNER_PREFERENCE">Win32.DWMWA_WINDOW_CORNER_PREFERENCE</a></li>
@@ -1443,7 +1445,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">347</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">348</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Win32_AcquireSRWLockExclusive">Win32.AcquireSRWLockExclusive</a></li>
@@ -1514,6 +1516,7 @@
 <li><a href="#Win32_DuplicateHandle">Win32.DuplicateHandle</a></li>
 <li><a href="#Win32_DwmEnableBlurBehindWindow">Win32.DwmEnableBlurBehindWindow</a></li>
 <li><a href="#Win32_DwmFlush">Win32.DwmFlush</a></li>
+<li><a href="#Win32_DwmGetWindowAttribute">Win32.DwmGetWindowAttribute</a></li>
 <li><a href="#Win32_DwmSetWindowAttribute">Win32.DwmSetWindowAttribute</a></li>
 <li><a href="#Win32_EmptyClipboard">Win32.EmptyClipboard</a></li>
 <li><a href="#Win32_EnableWindow">Win32.EnableWindow</a></li>
@@ -2219,6 +2222,8 @@
 <tr><td class="code-type"><a href="#Win32_DWM_BB_BLURREGION">Win32.DWM_BB_BLURREGION</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWM_BB_ENABLE">Win32.DWM_BB_ENABLE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWMWA_BORDER_COLOR">Win32.DWMWA_BORDER_COLOR</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Win32_DWMWA_CLOAK">Win32.DWMWA_CLOAK</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Win32_DWMWA_CLOAKED">Win32.DWMWA_CLOAKED</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWMWA_COLOR_NONE">Win32.DWMWA_COLOR_NONE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWMWA_TRANSITIONS_FORCEDISABLED">Win32.DWMWA_TRANSITIONS_FORCEDISABLED</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWMWA_WINDOW_CORNER_PREFERENCE">Win32.DWMWA_WINDOW_CORNER_PREFERENCE</a></td><td></td></tr>
@@ -3388,6 +3393,7 @@
 <tr><td class="code-type"><a href="#Win32_DuplicateHandle">Win32.DuplicateHandle</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DwmEnableBlurBehindWindow">Win32.DwmEnableBlurBehindWindow</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DwmFlush">Win32.DwmFlush</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Win32_DwmGetWindowAttribute">Win32.DwmGetWindowAttribute</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DwmSetWindowAttribute">Win32.DwmSetWindowAttribute</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_EmptyClipboard">Win32.EmptyClipboard</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_EnableWindow">Win32.EnableWindow</a></td><td></td></tr>
@@ -4104,6 +4110,8 @@
 <tr><td class="code-type"><a href="#Win32_DWM_BB_BLURREGION">Win32.DWM_BB_BLURREGION</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWM_BB_ENABLE">Win32.DWM_BB_ENABLE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWMWA_BORDER_COLOR">Win32.DWMWA_BORDER_COLOR</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Win32_DWMWA_CLOAK">Win32.DWMWA_CLOAK</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Win32_DWMWA_CLOAKED">Win32.DWMWA_CLOAKED</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWMWA_COLOR_NONE">Win32.DWMWA_COLOR_NONE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWMWA_TRANSITIONS_FORCEDISABLED">Win32.DWMWA_TRANSITIONS_FORCEDISABLED</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DWMWA_WINDOW_CORNER_PREFERENCE">Win32.DWMWA_WINDOW_CORNER_PREFERENCE</a></td><td></td></tr>
@@ -5273,6 +5281,7 @@
 <tr><td class="code-type"><a href="#Win32_DuplicateHandle">Win32.DuplicateHandle</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DwmEnableBlurBehindWindow">Win32.DwmEnableBlurBehindWindow</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DwmFlush">Win32.DwmFlush</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Win32_DwmGetWindowAttribute">Win32.DwmGetWindowAttribute</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_DwmSetWindowAttribute">Win32.DwmSetWindowAttribute</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_EmptyClipboard">Win32.EmptyClipboard</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_EnableWindow">Win32.EnableWindow</a></td><td></td></tr>
@@ -5743,7 +5752,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_DWM_BLURBEHIND" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.DWM_BLURBEHIND</span> <a class="api-item-permalink" href="#Win32_DWM_BLURBEHIND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L14">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_DWM_BLURBEHIND" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.DWM_BLURBEHIND</span> <a class="api-item-permalink" href="#Win32_DWM_BLURBEHIND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L16">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_DWM_BLURBEHIND">DWM_BLURBEHIND</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -8124,11 +8133,19 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWM_BB_ENABLE">DWM_BB_ENABLE</a></span>                   = <span class="SNum">0x00000001</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_DWMWA_BORDER_COLOR" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWA_BORDER_COLOR</span> <a class="api-item-permalink" href="#Win32_DWMWA_BORDER_COLOR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L9">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_DWMWA_BORDER_COLOR" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWA_BORDER_COLOR</span> <a class="api-item-permalink" href="#Win32_DWMWA_BORDER_COLOR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L11">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWMWA_BORDER_COLOR">DWMWA_BORDER_COLOR</a></span>              = <span class="SNum">34</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_DWMWA_COLOR_NONE" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWA_COLOR_NONE</span> <a class="api-item-permalink" href="#Win32_DWMWA_COLOR_NONE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L10">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_DWMWA_CLOAK" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWA_CLOAK</span> <a class="api-item-permalink" href="#Win32_DWMWA_CLOAK" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L8">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWMWA_CLOAK">DWMWA_CLOAK</a></span>                     = <span class="SNum">13</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Win32_DWMWA_CLOAKED" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWA_CLOAKED</span> <a class="api-item-permalink" href="#Win32_DWMWA_CLOAKED" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L9">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWMWA_CLOAKED">DWMWA_CLOAKED</a></span>                   = <span class="SNum">14</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Win32_DWMWA_COLOR_NONE" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWA_COLOR_NONE</span> <a class="api-item-permalink" href="#Win32_DWMWA_COLOR_NONE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L12">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWMWA_COLOR_NONE">DWMWA_COLOR_NONE</a></span>                = <span class="SNum">0xFFFFFFFE</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -8136,15 +8153,15 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWMWA_TRANSITIONS_FORCEDISABLED">DWMWA_TRANSITIONS_FORCEDISABLED</a></span> = <span class="SNum">3</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_DWMWA_WINDOW_CORNER_PREFERENCE" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWA_WINDOW_CORNER_PREFERENCE</span> <a class="api-item-permalink" href="#Win32_DWMWA_WINDOW_CORNER_PREFERENCE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L8">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_DWMWA_WINDOW_CORNER_PREFERENCE" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWA_WINDOW_CORNER_PREFERENCE</span> <a class="api-item-permalink" href="#Win32_DWMWA_WINDOW_CORNER_PREFERENCE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L10">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWMWA_WINDOW_CORNER_PREFERENCE">DWMWA_WINDOW_CORNER_PREFERENCE</a></span>  = <span class="SNum">33</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_DWMWCP_DONOTROUND" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWCP_DONOTROUND</span> <a class="api-item-permalink" href="#Win32_DWMWCP_DONOTROUND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L11">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_DWMWCP_DONOTROUND" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWCP_DONOTROUND</span> <a class="api-item-permalink" href="#Win32_DWMWCP_DONOTROUND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L13">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWMWCP_DONOTROUND">DWMWCP_DONOTROUND</a></span>               = <span class="SNum">1</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_DWMWCP_ROUND" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWCP_ROUND</span> <a class="api-item-permalink" href="#Win32_DWMWCP_ROUND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L12">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_DWMWCP_ROUND" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.DWMWCP_ROUND</span> <a class="api-item-permalink" href="#Win32_DWMWCP_ROUND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L14">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_DWMWCP_ROUND">DWMWCP_ROUND</a></span>                    = <span class="SNum">2</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -12668,15 +12685,19 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DuplicateHandle</span>(hSourceProcessHandle: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, hSourceHandle: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, hTargetProcessHandle: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpTargetHandle: *<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, dwDesiredAccess: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, bInheritHandle: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, dwOptions: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_DwmEnableBlurBehindWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DwmEnableBlurBehindWindow</span> <a class="api-item-permalink" href="#Win32_DwmEnableBlurBehindWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L29">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_DwmEnableBlurBehindWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DwmEnableBlurBehindWindow</span> <a class="api-item-permalink" href="#Win32_DwmEnableBlurBehindWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L32">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DwmEnableBlurBehindWindow</span>(hWnd: <span class="SCst"><a href="#Win32_HWND">HWND</a></span>, pBlurBehind: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_DWM_BLURBEHIND">DWM_BLURBEHIND</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_DwmFlush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DwmFlush</span> <a class="api-item-permalink" href="#Win32_DwmFlush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L27">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_DwmFlush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DwmFlush</span> <a class="api-item-permalink" href="#Win32_DwmFlush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L29">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DwmFlush</span>()-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_DwmSetWindowAttribute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DwmSetWindowAttribute</span> <a class="api-item-permalink" href="#Win32_DwmSetWindowAttribute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L28">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_DwmGetWindowAttribute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DwmGetWindowAttribute</span> <a class="api-item-permalink" href="#Win32_DwmGetWindowAttribute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L30">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DwmGetWindowAttribute</span>(hwnd: <span class="SCst"><a href="#Win32_HWND">HWND</a></span>, dwAttribute: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, pvAttribute: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, cbAttribute: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Win32_DwmSetWindowAttribute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DwmSetWindowAttribute</span> <a class="api-item-permalink" href="#Win32_DwmSetWindowAttribute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/dwmapi.swg#L31">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DwmSetWindowAttribute</span>(hwnd: <span class="SCst"><a href="#Win32_HWND">HWND</a></span>, dwAttribute: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, pvAttribute: <span class="SCst"><a href="#Win32_LPCVOID">LPCVOID</a></span>, cbAttribute: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -14907,6 +14928,8 @@
 "c|Win32.DWM_BB_BLURREGION|Win32_DWM_BB_BLURREGION|",
 "c|Win32.DWM_BB_ENABLE|Win32_DWM_BB_ENABLE|",
 "c|Win32.DWMWA_BORDER_COLOR|Win32_DWMWA_BORDER_COLOR|",
+"c|Win32.DWMWA_CLOAK|Win32_DWMWA_CLOAK|",
+"c|Win32.DWMWA_CLOAKED|Win32_DWMWA_CLOAKED|",
 "c|Win32.DWMWA_COLOR_NONE|Win32_DWMWA_COLOR_NONE|",
 "c|Win32.DWMWA_TRANSITIONS_FORCEDISABLED|Win32_DWMWA_TRANSITIONS_FORCEDISABLED|",
 "c|Win32.DWMWA_WINDOW_CORNER_PREFERENCE|Win32_DWMWA_WINDOW_CORNER_PREFERENCE|",
@@ -16116,6 +16139,7 @@
 "f|Win32.DuplicateHandle|Win32_DuplicateHandle|",
 "f|Win32.DwmEnableBlurBehindWindow|Win32_DwmEnableBlurBehindWindow|",
 "f|Win32.DwmFlush|Win32_DwmFlush|",
+"f|Win32.DwmGetWindowAttribute|Win32_DwmGetWindowAttribute|",
 "f|Win32.DwmSetWindowAttribute|Win32_DwmSetWindowAttribute|",
 "f|Win32.EmptyClipboard|Win32_EmptyClipboard|",
 "f|Win32.EnableWindow|Win32_EnableWindow|",

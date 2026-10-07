@@ -1783,6 +1783,36 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             }
         }
 
+        // A callee releasing the pointer STORED in the box it is handed leaves the box to
+        // the callee, which may refill it: what is proven released is every other copy
+        // of the pointer the box held - the frame slots and the virtual register proven
+        // to hold the same value.
+        const uint64_t freesIndirectMask = calleeFn ? calleeFn->freesIndirectParamsMask() : 0;
+        if (freesIndirectMask && ops)
+        {
+            for (uint64_t remaining = freesIndirectMask; remaining; remaining &= remaining - 1)
+            {
+                const size_t i = std::countr_zero(remaining);
+                MicroReg     argReg;
+                if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, i))
+                    continue;
+                const SanitizerValue box = getReg(state, argReg);
+                if (!box.isStackAddr())
+                    continue;
+
+                SmallVector<int64_t> copies;
+                appendAliasClass(copies, state, box.stackOffset);
+                for (const int64_t slot : copies)
+                {
+                    if (slot != box.stackOffset)
+                        newlyFreed.push_back(slot);
+                    const auto reg = state.aliasPtrRegs.find(slot);
+                    if (reg != state.aliasPtrRegs.end())
+                        newlyFreedRegs.push_back(reg->second);
+                }
+            }
+        }
+
         // Calls clobber caller-saved registers and may mutate escaped locals. A callee
         // reaches a frame slot only through a pointer to it, so what it cannot address it
         // cannot reassign: a release proven before an ordinary call still holds after it,

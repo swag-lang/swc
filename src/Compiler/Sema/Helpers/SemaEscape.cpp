@@ -1347,6 +1347,30 @@ namespace
         return storageBorrowInfo(sema, indexedRef, resultTypeRef);
     }
 
+    // 'p[]' reads the value stored in the box a parameter designates. That value still
+    // carries the caller's storage for every escape rule, but it is not the box: a
+    // callee releasing it releases what the box holds, and the caller's box - a field,
+    // a local - stays alive. Only a read through the parameter itself names that value
+    // exactly; an address derived from the parameter reaches a value at some other
+    // offset of the pointee, which no caller can name.
+    void parameterPointeeBorrowInfo(Sema& sema, SemaEscapeInfo& ioInfo, AstNodeRef derefRef, AstNodeRef pointerRef)
+    {
+        if (ioInfo.kind != SemaEscapeKind::Parameter || ioInfo.viaOwnedPayload || ioInfo.viaStoredField)
+            return;
+
+        const bool            freshDirect = ioInfo.parameterOriginsMask && !ioInfo.parameterIndirectOriginsMask;
+        const SymbolVariable* pointerVar  = identifierVariable(sema, sema.resolvedNodeRef(pointerRef));
+        const TypeRef         valueType   = expressionTypeRef(sema, derefRef);
+        if (freshDirect && pointerVar && pointerVar == ioInfo.sourceVar && pointerVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
+            valueType.isValid() && unwrapAliasEnumType(sema, valueType).isAnyPointer())
+        {
+            ioInfo.parameterIndirectOriginsMask = ioInfo.parameterOriginsMask;
+            ioInfo.viaParameterPointee          = true;
+        }
+
+        ioInfo.markStoredFieldBorrow();
+    }
+
     SemaEscapeInfo unaryEscapeInfo(Sema& sema, AstNodeRef unaryRef, const AstUnaryExpr& unary, uint32_t& budget)
     {
         const Token& tok = sema.token(sema.node(unaryRef).codeRef());
@@ -1394,6 +1418,8 @@ namespace
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, unary.nodeExprRef, budget);
         if (Token::isDeref(tok.id) && structuralBorrowCarrierType(sema, expressionTypeRef(sema, unaryRef)) && !info.viaErasedPayload)
             return aggregatePointeeBorrowInfo(sema, unary.nodeExprRef, expressionTypeRef(sema, unaryRef), budget);
+        if (Token::isDeref(tok.id))
+            parameterPointeeBorrowInfo(sema, info, unaryRef, unary.nodeExprRef);
         if (info.hasBorrow())
             info.typeRef = expressionTypeRef(sema, unaryRef);
         return info;
@@ -1782,13 +1808,18 @@ namespace
         }
     }
 
+    // A value that stands for the parameter's storage frees the parameter. One read out
+    // of the box the parameter designates frees only what that box holds.
     void addFreedBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
     {
-        const uint64_t origins = directParameterOriginsMask(fn, info);
+        const bool     indirect = info.viaParameterPointee;
+        const uint64_t origins  = indirect ? info.parameterIndirectOriginsMask : directParameterOriginsMask(fn, info);
+        if (!indirect && info.viaStoredField)
+            return;
         for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
         {
             const size_t i = std::countr_zero(remainingOrigins);
-            fn.addFreesParam(i);
+            fn.addFreesParam(i, indirect);
         }
     }
 
@@ -2121,7 +2152,7 @@ namespace
                             }
                         }
                     }
-                    else if (carried.kind == SemaEscapeKind::Parameter && !carried.viaStoredField)
+                    else if (carried.kind == SemaEscapeKind::Parameter)
                     {
                         SymbolFunction* callerFn = sema.currentFunction();
                         if (callerFn)
@@ -2180,6 +2211,7 @@ namespace
                             edge.calleeIndirect        = indirect;
                             edge.viaOwnedPayload       = info.viaOwnedPayload || info.detachedOwnedPayload;
                             edge.viaStoredField        = info.viaStoredField;
+                            edge.viaParameterPointee   = callerIndirect && info.viaParameterPointee;
                             edge.callerProjectionField = callerField;
                             outCapture.edges.push_back(edge);
                             parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(thisParam), callerIndirect, indirect});
@@ -5466,9 +5498,10 @@ namespace SemaEscape
                         if (!(edge.callee->freesParamsMask() & calleeBit))
                             continue;
 
-                        if (!(edge.caller->freesParamsMask() & callerBit))
+                        const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
+                        if (!(callerMask & callerBit))
                         {
-                            edge.caller->addFreesParam(edge.callerParamIndex);
+                            edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
                             changed = true;
                         }
 
@@ -5489,6 +5522,7 @@ namespace SemaEscape
             const SymbolFunction* callee           = nullptr;
             uint32_t              callerParamIndex = 0;
             uint32_t              calleeParamIndex = 0;
+            bool                  callerIndirect   = false;
         };
 
         std::vector<ForwardingEdge> forwardings;
@@ -5611,7 +5645,7 @@ namespace SemaEscape
                 return !(source->second.borrows & bit) || !(source->second.storage & bit) || (source->second.payload & bit);
             });
             if (!ineligible)
-                forwardings.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex});
+                forwardings.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect});
         });
 
         bool changed = !forwardings.empty();
@@ -5625,11 +5659,12 @@ namespace SemaEscape
                 if (!edge.caller->isSemaCompleted() || !edge.callee->isSemaCompleted())
                     continue;
 
-                const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
-                const uint64_t callerBit = 1ULL << edge.callerParamIndex;
-                if ((edge.callee->freesParamsMask() & calleeBit) && !(edge.caller->freesParamsMask() & callerBit))
+                const uint64_t calleeBit  = 1ULL << edge.calleeParamIndex;
+                const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
+                const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
+                if ((edge.callee->freesParamsMask() & calleeBit) && !(callerMask & callerBit))
                 {
-                    edge.caller->addFreesParam(edge.callerParamIndex);
+                    edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
                     changed = true;
                 }
             }
@@ -5817,6 +5852,15 @@ namespace SemaEscape
                                     edge.caller->addFreesParam(edge.callerParamIndex);
                                     changed = true;
                                 }
+                            }
+
+                            // A value read out of the parameter's box and handed to a freeing
+                            // callee releases what the box holds, never the box.
+                            if (edge.callerIndirect && edge.viaParameterPointee && !edge.calleeIndirect && !edge.viaOwnedPayload && summaryGuardsMatch(edge, true) &&
+                                (edge.callee->freesParamsMask() & calleeBit) && !(edge.caller->freesIndirectParamsMask() & callerBit))
+                            {
+                                edge.caller->addFreesParam(edge.callerParamIndex, true);
+                                changed = true;
                             }
 
                             // A method that hands its receiver to one that reallocates the

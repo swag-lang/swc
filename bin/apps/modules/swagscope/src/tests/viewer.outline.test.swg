@@ -14,7 +14,7 @@ using Core, Pixel, Gui, Gui.Testing
     host.setup(640, 360)
     defer host.shutdown()
     var session = openTestViewer(markdownViewerPlugin(), &host.root, fileName)
-    let zoom    = assume cast (*MarkdownZoomButton, session.info!.children[0])
+    let zoom    = assume cast(*MarkdownZoomButton, session.info!.children[0])
     let outline = zoom.outline!
     outline.startMarkdown()
     completeViewerBackgroundLoad(&host, &outline.load, outline.loadTimer)
@@ -37,13 +37,13 @@ using Core, Pixel, Gui, Gui.Testing
     host.setup(640, 360)
     defer host.shutdown()
     var session = openTestViewer(htmlViewerPlugin(), &host.root, fileName)
-    let view    = assume cast (*HtmlViewer, session.view)
+    let view    = assume cast(*HtmlViewer, session.view)
     for 128 where session.isLoading!() do
         host.fireTimers()
     let outline = assume cast(*DocumentOutline, session.sidePanel!.children[0])
     Swag.assert(outline.rows.count == 2)
     outline.list.selectLine(1)
-    let scroll = assume cast (*ScrollWnd, view.view.children[0])
+    let scroll = assume cast(*ScrollWnd, view.view.children[0])
     Swag.assert(scroll.scrollPosition().y > 700)
     view.setZoom(150)
     Swag.assert(outline.rows.count == 2 and outline.list.selectedLine() == outline.rows[1])
@@ -69,7 +69,7 @@ using Core, Pixel, Gui, Gui.Testing
         host.setup(640, 360)
         defer host.shutdown()
         var session = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName)
-        let view    = assume cast (*OpenDocumentViewer, session.view)
+        let view    = assume cast(*OpenDocumentViewer, session.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         Swag.assert(view.failureReason.isEmpty())
         let outline = view.outline!
@@ -110,7 +110,7 @@ using Core, Pixel, Gui, Gui.Testing
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let zoom    = assume cast (*MarkdownZoomButton, window.currentInfo!.children[0])
+    let zoom    = assume cast(*MarkdownZoomButton, window.currentInfo!.children[0])
     let outline = zoom.outline!
     Swag.assert(not outline.load.started)
     outline.toggle.setChecked(true)
@@ -137,16 +137,16 @@ using Core, Pixel, Gui, Gui.Testing
     host.click(outline.list.listView.localToSurface(cell.center()))
     discard host.render(window)
     Swag.assert(outline.list.selectedLine() == outline.rows[5])
-    Swag.assert(assume cast (*ScrollWnd, window.currentView.children[0]).scrollPosition().y > previousScroll)
+    Swag.assert(assume cast(*ScrollWnd, window.currentView.children[0]).scrollPosition().y > previousScroll)
     outline.list.selectLine(0)
     host.settleAnimations(window, 6)
-    let scroll = assume cast (*ScrollWnd, window.currentView.children[0])
+    let scroll = assume cast(*ScrollWnd, window.currentView.children[0])
     scroll.setScrollPos(0, 150)
     let firstCell = outline.list.cellTextRect(0, 0)
     host.click(outline.list.listView.localToSurface(firstCell.center()))
     host.settleAnimations(window, 6)
     let firstHeading = scroll.view.children[0]
-    let inset        = assume cast (*Markdown.View, window.currentView).documentStyle.topInset
+    let inset        = assume cast(*Markdown.View, window.currentView).documentStyle.topInset
     Swag.assert(Math.abs(firstHeading.surfaceRect().y - scroll.surfaceRect().y - inset) < 2)
     var image = host.render(window)
     image.crop(outline.surfaceRect())
@@ -174,7 +174,7 @@ using Core, Pixel, Gui, Gui.Testing
     defer host.shutdown()
     let path    = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/document-outline.pdf")
     var session = openTestViewer(pdfViewerPlugin(), &host.root, path)
-    let view    = assume cast (*PdfViewer, session.view)
+    let view    = assume cast(*PdfViewer, session.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     let outline = view.outline!
     Swag.assert(outline.rows.count == 4 and outline.rows[1].level == 1 and not outline.rows[0].canExpand())

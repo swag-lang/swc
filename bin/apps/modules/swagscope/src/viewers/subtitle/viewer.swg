@@ -147,10 +147,10 @@ private impl SubtitleViewer
         if .cueText.isEmpty() do
             return
         let message = Format.toString(subtitleStrings().ui_CueRange, .cueText.count)
-        let dialog  = EditDlg.createSingleLine(.surface!, {title: subtitleStrings().ui_GoToCue, message: message.toString(), text: "1"})
+        let dialog  = EditDlg.createSingleLine(.surface!, {title: subtitleStrings().ui_GoToCue, message: message, text: "1"})
         if dialog.doModal() != Dialog.BtnOk do
             return
-        let cue = catch StrConv.toU64(dialog.text().toString()) as parseError
+        let cue = catch StrConv.toU64(dialog.text()) as parseError
         if parseError == null and cue and cue <= .cueText.count do
             discard .revealCue(cue - 1)
     }
@@ -164,7 +164,7 @@ private impl SubtitleViewer
             return
 
         var seconds: f64
-        if not subtitleTimeSeconds(dialog.text().toString(), &seconds) do
+        if not subtitleTimeSeconds(dialog.text(), &seconds) do
             return
         for index in .track!.cueCount() where .track.cueEndTime(index) >= seconds
         {
@@ -193,10 +193,7 @@ private impl SubtitleViewer
             .setText(Viewer.durationText(result.duration))
             .setForm(.Rectangle)
             .toolTip    = subtitleStrings().ui_GoToTime
-            .sigPressed += func|view = result|(?)
-            {
-                view.promptGoToTime()
-            }
+            .sigPressed += func|view = result|(?) { view.promptGoToTime() }
         }
 
         with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
@@ -205,10 +202,7 @@ private impl SubtitleViewer
             .setText(subtitleCueCountText(result.track!.cueCount()).toString())
             .setForm(.Rectangle)
             .toolTip    = subtitleStrings().ui_GoToCue
-            .sigPressed += func|view = result|(?)
-            {
-                view.promptGoToCue()
-            }
+            .sigPressed += func|view = result|(?) { view.promptGoToCue() }
         }
 
         with result.editor = RichEditCtrl.create(result)
@@ -218,7 +212,7 @@ private impl SubtitleViewer
             .marginRight = 20
             .style.setFont(result.theme().createDefaultFontFs(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setFlags(.ReadOnly | .WordWrap)
-            .setText(result.transcript.toString())
+            .setText(result.transcript)
         }
 
         result.applyLayout()

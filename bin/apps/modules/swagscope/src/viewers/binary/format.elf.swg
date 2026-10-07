@@ -245,7 +245,7 @@ private func reportElfSegments(image: *BinaryImage, report: *BinaryReport, at, e
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.elf_Programs, total.toString(), s.elf_ProgramsDesc, offset: at, length: count * entrySize, open: true)
+    report.beginGroup(s.elf_Programs, total, s.elf_ProgramsDesc, offset: at, length: count * entrySize, open: true)
 
     for index in shown
     {
@@ -258,9 +258,9 @@ private func reportElfSegments(image: *BinaryImage, report: *BinaryReport, at, e
         let address  = hexText(image.scalarAt(valuesAt + wide, wide), is64 ? 16 : 8)
         let mapped   = elfSegmentFlagsText(flags)
 
-        report.beginGroup(elfSegmentName(kind), address.toString(), mapped.toString(), offset: image.scalarAt(valuesAt, wide), length: fileSize)
+        report.beginGroup(elfSegmentName(kind), address, mapped, offset: image.scalarAt(valuesAt, wide), length: fileSize)
         report.hexField(entryAt, 4, "p_type", cast(u64, kind), elfSegmentName(kind))
-        report.hexField(is64 ? entryAt + 4 : entryAt + 24, 4, "p_flags", cast(u64, flags), mapped.toString())
+        report.hexField(is64 ? entryAt + 4 : entryAt + 24, 4, "p_flags", cast(u64, flags), mapped)
         report.hexField(valuesAt, wide, "p_offset", image.scalarAt(valuesAt, wide))
         report.hexField(valuesAt + wide, wide, "p_vaddr", image.scalarAt(valuesAt + wide, wide))
         report.hexField(valuesAt + wide * 2, wide, "p_paddr", image.scalarAt(valuesAt + wide * 2, wide))
@@ -340,7 +340,7 @@ private func reportElfSections(image: *BinaryImage, report: *BinaryReport, secti
 
     let wide  = is64 ? 8'u64 : 4
     let total = countText(sections.count, s.word_Section, s.word_Sections)
-    report.beginGroup(s.shr_Sections, total.toString(), s.elf_SectionsDesc, offset: at, length: sections.count * entrySize, open: true)
+    report.beginGroup(s.shr_Sections, total, s.elf_SectionsDesc, offset: at, length: sections.count * entrySize, open: true)
 
     for section, index in sections
     {
@@ -354,9 +354,9 @@ private func reportElfSections(image: *BinaryImage, report: *BinaryReport, secti
         // A `SHT_NOBITS` section is reserved in memory and stored nowhere, so it is given no range:
         // a search hit can never be inside bytes the file does not carry.
         let holds = section.kind != 8
-        report.beginGroup(label.toString(), elfSectionKindName(section.kind), stored.toString(), offset: holds ? section.offset : Swag.U64.Max, length: holds ? section.size : 0)
+        report.beginGroup(label, elfSectionKindName(section.kind), stored, offset: holds ? section.offset : Swag.U64.Max, length: holds ? section.size : 0)
         report.hexField(entryAt + 4, 4, "sh_type", cast(u64, section.kind), elfSectionKindName(section.kind))
-        report.hexField(entryAt + 8, wide, "sh_flags", section.flags, names.toString())
+        report.hexField(entryAt + 8, wide, "sh_flags", section.flags, names)
         report.hexField(entryAt + 8 + wide, wide, "sh_addr", section.address)
         report.hexField(entryAt + 8 + wide * 2, wide, "sh_offset", section.offset)
         report.sizeField(entryAt + 8 + wide * 3, wide, "sh_size", section.size)
@@ -403,7 +403,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
     }
 
     let total = countText(entries.count, s.word_Entry, s.word_Entries)
-    report.beginGroup(s.elf_Dynamic, total.toString(), s.elf_DynamicDesc, offset: at, length: dynamic.size, open: true)
+    report.beginGroup(s.elf_Dynamic, total, s.elf_DynamicDesc, offset: at, length: dynamic.size, open: true)
 
     for entryAt in entries
     {
@@ -415,7 +415,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
         if stringsAt and (tag == 1 or tag == 14 or tag == 15 or tag == 29)
         {
             let text = image.cstringAt(stringsAt + value, 512)
-            report.field(entryAt, wide * 2, elfDynamicTagName(tag), text.toString())
+            report.field(entryAt, wide * 2, elfDynamicTagName(tag), text)
             if tag == 1 do
                 needed.add(text)
             continue
@@ -429,7 +429,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
     if not needed.isEmpty()
     {
         let count = countText(needed.count, s.word_Library, s.word_Libraries)
-        report.beginGroup(s.shr_Libraries, count.toString(), "", open: true)
+        report.beginGroup(s.shr_Libraries, count, "", open: true)
         for one in needed do
             report.derived(one.toString(), "")
         report.endGroup()
@@ -445,7 +445,7 @@ private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections
         if section.name == ".interp"
         {
             let path = image.cstringAt(section.offset, 512)
-            report.field(section.offset, section.size, s.shr_Interpreter, path.toString())
+            report.field(section.offset, section.size, s.shr_Interpreter, path)
             continue
         }
 
@@ -461,7 +461,7 @@ private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections
         for index in Math.min(payloadSize, 64'u64)
         {
             let value  = image.u8At(payloadAt + index)
-            let digits = [cast(u8, (value >> 4)), value & 0xF]
+            let digits = [cast(u8, value >> 4), value & 0xF]
             for nibble in digits do
                 text.add(nibble < 10 ? '0'u8 + nibble : 'a'u8 + nibble - 10)
         }

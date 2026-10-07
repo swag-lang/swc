@@ -33,7 +33,7 @@ func observeViewerPlacement(app: *Application)
     var fileName = Env.variable("SWAG_SCOPE_PLACEMENT_DOCUMENT")
     if fileName.isEmpty() do
         fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
-    window.openFile(fileName.toString(), remember: false)
+    window.openFile(fileName, remember: false)
     surface.show()
 
     var watch: Time.Stopwatch

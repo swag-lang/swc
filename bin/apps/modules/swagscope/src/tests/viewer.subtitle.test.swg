@@ -36,12 +36,12 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     }
 
     let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root, infoParent: &host.root)
+    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.info != null)
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     Swag.assert(result.details == "SubRip")
 
-    let view = assume cast (*SubtitleViewer, result.view)
+    let view = assume cast(*SubtitleViewer, result.view)
     Swag.assert(view.track!.cueCount() == 2)
     Swag.assert(view.cueButton.text() == "2 cues" and view.durationButton.text().count)
     Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
@@ -84,12 +84,15 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Top
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Top
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
+
     let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root, infoParent: infoBar)
+    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
     Swag.assert(result.view != null)
     infoBar.centerGroup    = result.info
     result.info!.dockStyle = .None

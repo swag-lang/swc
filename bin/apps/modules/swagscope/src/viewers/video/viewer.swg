@@ -145,7 +145,7 @@ private impl IWnd for VideoSubtitleOverlay
             return
 
         let lineGap = 4'f32
-        let height  = cast(f32, lines.count) * font.height + cast(f32, (lines.count - 1)) * lineGap
+        let height  = cast(f32, lines.count) * font.height + cast(f32, lines.count - 1) * lineGap
         let inset   = Math.max(24'f32, rect.height * 0.06)
         var y: f32
         switch g_VideoSubtitleSettings.position
@@ -461,22 +461,22 @@ private func loadVideoSidecars(fileName: string, result: *Array'*Subtitle.Track)
         return
 
     var candidates: Array'String
-    for file in files where not file.isDirectory() and hasSubtitleExtension(file.fullName.toString())
+    for file in files where not file.isDirectory() and hasSubtitleExtension(file.fullName)
     {
-        let candidate = Path.fileNameWithoutExtension(file.fullName.toString())
+        let candidate = Path.fileNameWithoutExtension(file.fullName)
         if not candidate or not Utf8.startsWith(candidate, stem, .Latin1NoCase) do
             continue
         let exactName = Latin1.compare(candidate, stem, ignoreCase: true) == 0
         if not exactName and (candidate.count <= stem.count or candidate[stem.count] != '.') do
             continue
 
-        candidates.add(String.from(file.fullName.toString()))
+        candidates.add(String.from(file.fullName))
     }
 
     // Sort paths before loading: subtitle tracks own their decoded cues and are moved only once.
     // The exact stem compares before every dotted qualifier, matching VLC's preferred sidecar
     // while keeping the language variants deterministic.
-    candidates.sort(func(a, b) => Utf8.compare(a.toString(), b.toString(), .Latin1NoCase))
+    candidates.sort(func(a, b) => Utf8.compare(a, b, .Latin1NoCase))
     for candidate in candidates do
         discard catch addVideoSidecar(candidate.toString(), result)
 }
@@ -1063,7 +1063,7 @@ impl VideoViewer
         var text: String
         .subtitleLastSeconds = seconds
         .subtitleNextChange  = videoSubtitlePresentationAt(track, seconds, &text)
-        .subtitleOverlay.setSubtitle(text.toString())
+        .subtitleOverlay.setSubtitle(text)
     }
 
     mtd subtitleSettingsChanged()
@@ -1399,7 +1399,7 @@ impl VideoViewer
             .awaitingFrame = false
             .clock.reset()
             if .reportFailure do
-                .reportFailure(me, failure.toString())
+                .reportFailure(me, failure)
             return false
         }
 
@@ -1844,9 +1844,9 @@ private impl VideoViewer
                 continue
             data.add(.Subtitles, Format.toString("%", index + 1).toString(), group: true)
             if not track.name.isEmpty() do
-                data.add(.Name, track.name.toString())
+                data.add(.Name, track.name)
             if not track.language.isEmpty() do
-                data.add(.Language, track.language.toString())
+                data.add(.Language, track.language)
             data.add(.Format, Format.toString("%", track.format).toString())
         }
 
@@ -1982,10 +1982,7 @@ private impl VideoViewer
             .dockStyle = .Left
             .toolTip   = videoStrings().ui_TipPlay
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                view.togglePlayback()
-            }
+            .sigPressed += func|view = me|(?) { view.togglePlayback() }
         }
 
         with .stopButton = IconButton.create(.commands, .theme().icon(.Stop, iconSize), {0, 0, buttonSize, buttonSize})
@@ -1994,10 +1991,7 @@ private impl VideoViewer
             .margin.x  = 4
             .toolTip   = videoStrings().ui_TipStop
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                view.stopPlayback()
-            }
+            .sigPressed += func|view = me|(?) { view.stopPlayback() }
         }
 
         with .backwardButton = IconButton.create(.commands, .theme().icon(.SeekBackward, iconSize), {0, 0, buttonSize, buttonSize})
@@ -2008,10 +2002,7 @@ private impl VideoViewer
             // one block of air between them.
             .margin.x   = 16
             .toolTip    = videoStrings().ui_TipBackward
-            .sigPressed += func|view = me|(?)
-            {
-                view.seekRelative(-VideoSeekSeconds)
-            }
+            .sigPressed += func|view = me|(?) { view.seekRelative(-VideoSeekSeconds) }
         }
 
         with .forwardButton = IconButton.create(.commands, .theme().icon(.SeekForward, iconSize), {0, 0, buttonSize, buttonSize})
@@ -2019,10 +2010,7 @@ private impl VideoViewer
             .dockStyle  = .Left
             .margin.x   = 4
             .toolTip    = videoStrings().ui_TipForward
-            .sigPressed += func|view = me|(?)
-            {
-                view.seekRelative(VideoSeekSeconds)
-            }
+            .sigPressed += func|view = me|(?) { view.seekRelative(VideoSeekSeconds) }
         }
 
         with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
@@ -2038,10 +2026,7 @@ private impl VideoViewer
             .margin.x  = 4
             .toolTip   = videoStrings().ui_TipPlaybackSpeed
             .setArrowPosition(.RightUpward)
-            .sigPressed += func|view = me|(?)
-            {
-                view.showPlaybackSpeedMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showPlaybackSpeedMenu() }
         }
 
         with .playModeButton = Viewer.PlaybackButton.create(.commands, me, playback)
@@ -2056,10 +2041,7 @@ private impl VideoViewer
             .toolTip   = videoStrings().ui_TipAudio
             .setArrowPosition(.RightUpward)
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                view.showAudioTrackMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showAudioTrackMenu() }
         }
 
         with .subtitleButton = IconButton.create(.commands, {}, {0, 0, dropDownWidth, buttonSize}, flags: .CenterContent)
@@ -2071,10 +2053,7 @@ private impl VideoViewer
             .setArrowPosition(.RightUpward)
             .style.setFont(me.theme().createDefaultFont(10, .Bold), .Regular)
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                view.showSubtitleMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showSubtitleMenu() }
         }
 
         with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
@@ -2085,10 +2064,7 @@ private impl VideoViewer
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
             .enable(false)
-            .sigChanged += func|view = me|(slider)
-            {
-                view.setVolume(slider.value())
-            }
+            .sigChanged += func|view = me|(slider) { view.setVolume(slider.value()) }
         }
 
         with .muteButton = IconButton.create(.commands, .theme().icon(.Volume, iconSize), {0, 0, buttonSize, buttonSize}, flags: .Toggle)
@@ -2098,10 +2074,7 @@ private impl VideoViewer
             .toolTip   = videoStrings().ui_TipMute
             .setCheckIndicator(.Frame)
             .enable(false)
-            .sigCheckedChanged += func|view = me|(button)
-            {
-                view.setMuted(button.isChecked)
-            }
+            .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
         }
 
         with .timeline = Slider.create(.commands, {0, 0, 0, 36})
@@ -2128,7 +2101,8 @@ private impl VideoViewer
 
     func create(host: Viewer.Host)->*VideoViewer fail
     {
-        let services    = host.services()
+        let services = host.services()
+
         with let result = Wnd.create'VideoViewer(host.contentParent(), "scope.video")
         {
             .backgroundStyle      = .View
@@ -2170,7 +2144,7 @@ private impl VideoViewer
 private func runVideoViewerDecode(thread: Threading.Thread)
 {
     let view  = cast(*VideoViewer, thread.userParam!)
-    var video = catch Reader.open(view.openFileName.toString()) as openError
+    var video = catch Reader.open(view.openFileName) as openError
     if openError != null
     {
         view.openFailure = Errors.message(openError)
@@ -2210,7 +2184,7 @@ func createVideoViewer(host: Viewer.Host)
     {
         let view = try VideoViewer.create(host)
         host.attachView(view)
-        host.setDetails(view.details.toString())
+        host.setDetails(view.details)
 
         with var lifecycle: Viewer.LifecycleApi
         {

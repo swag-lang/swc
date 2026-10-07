@@ -27,31 +27,31 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     for 12_000 do
         source += "A paragraph of the manuscript remains at the same reading position.\n\n"
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("scope-reload-%.md", Guid64.random()).toString())
-    writeReloadFile(fileName.toString(), source.toString())
-    defer discard catch File.delete(fileName.toString())
+    writeReloadFile(fileName, source)
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    window.openFile(fileName.toString(), remember: false)
+    window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     window.searchBox.setText("manuscript")
     for 64 where window.searchTimer != null do
         host.fireTimer(window.searchTimer)
-    let zoom = assume cast (*MarkdownZoomButton, window.currentInfo!.children[0])
+    let zoom = assume cast(*MarkdownZoomButton, window.currentInfo!.children[0])
     zoom.applyZoom(150)
     let view = assume cast(*Markdown.View, window.currentView)
     for 64 where view.isLoading() do
         host.fireTimers()
-    assume cast (*ScrollWnd, view.children[0]).setScrollPos(0, 700)
+    assume cast(*ScrollWnd, view.children[0]).setScrollPos(0, 700)
     for 64 where view.isLoading() do
         host.fireTimers()
-    let position = assume cast (*ScrollWnd, view.children[0]).scrollPosition()
+    let position = assume cast(*ScrollWnd, view.children[0]).scrollPosition()
     Swag.assert(position.y > 0)
 
     source += "The file now contains another paragraph.\n"
-    writeReloadFile(fileName.toString(), source.toString())
+    writeReloadFile(fileName, source)
     pollFileWatch(&host, window)
     Swag.assert(window.pendingFile.isEmpty())
     for 8 where window.pendingFile.isEmpty() do
@@ -67,21 +67,21 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.assert(not window.readingState.restoring)
     Swag.assert(window.choices[window.activeChoiceIndex].key == "markdown")
     Swag.assert(window.searchBox.text() == "manuscript")
-    Swag.assert(assume cast (*MarkdownZoomButton, window.currentInfo.children[0]).zoomPercent == 150)
-    Swag.assert(assume cast (*ScrollWnd, window.currentView!.children[0]).scrollPosition() == position)
+    Swag.assert(assume cast(*MarkdownZoomButton, window.currentInfo.children[0]).zoomPercent == 150)
+    Swag.assert(assume cast(*ScrollWnd, window.currentView!.children[0]).scrollPosition() == position)
     pollFileWatch(&host, window)
     Swag.assert(window.pendingFile.isEmpty())
 
     // A temporarily missing path leaves the current viewer readable; its return is observed.
-    discard expect File.delete(fileName.toString())
+    discard expect File.delete(fileName)
     pollFileWatch(&host, window)
     Swag.assert(window.currentView != null and window.pendingFile.isEmpty())
-    writeReloadFile(fileName.toString(), "Short document.\n")
+    writeReloadFile(fileName, "Short document.\n")
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
     completeQueuedViewerFile(&host, window)
     host.fireTimer(window.fileWatchTimer)
-    Swag.assert(assume cast (*ScrollWnd, window.currentView.children[0]).scrollPosition().y == 0)
+    Swag.assert(assume cast(*ScrollWnd, window.currentView.children[0]).scrollPosition().y == 0)
 }
 
 // Idle document streams permit exclusive saves before all their content has been consumed.
@@ -104,7 +104,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         completeViewerWindowClassification(&host, window)
         Swag.drainWork()
         if extension == ".txt" do
-            assume cast (*TextViewer, window.currentView).statisticsThread.wait()
+            assume cast(*TextViewer, window.currentView).statisticsThread.wait()
         let key = String.from(window.choices[window.activeChoiceIndex].key.toString())
 
         // Truncate while the progressive viewer still exists, then let the watcher reload it.
@@ -152,10 +152,13 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let view = assume cast (*PdfViewer, window.currentView).pdfView
-    view.setPageLayout(.Single)
-    view.setZoom(1.5)
-    view.showPage(1)
+    with let view = assume cast(*PdfViewer, window.currentView).pdfView
+    {
+        .setPageLayout(.Single)
+        .setZoom(1.5)
+        .showPage(1)
+    }
+
     let zoomMode = view.zoomMode
     var page     = Pdf.Page.create(320, 220)
     document.addPage(#move page)
@@ -167,7 +170,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     completeQueuedViewerFile(&host, window)
     for 64 where window.readingState.restoring do
         host.fireTimer(window.fileWatchTimer)
-    let replacement = assume cast (*PdfViewer, window.currentView).pdfView
+    let replacement = assume cast(*PdfViewer, window.currentView).pdfView
     Swag.assert(replacement.pageCount() == 3 and replacement.pageIndex == 1)
     Swag.assert(replacement.zoom == 1.5 and replacement.zoomMode == zoomMode)
     Swag.assert(replacement.pageLayout == .Single)
@@ -190,7 +193,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let view = assume cast(*Markdown.View, window.currentView)
-    let originalScroll = assume cast (*ScrollWnd, view.children[0])
+    let originalScroll = assume cast(*ScrollWnd, view.children[0])
     originalScroll.setScrollPos(0, originalScroll.scrollableClientRect().height * 0.75)
     discard host.render(view)
     for 128 where view.isLoading() do
@@ -212,9 +215,9 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         host.advanceAnimations(0.1)
     }
 
-    let replacement = assume cast (*Markdown.View, window.currentView)
+    let replacement = assume cast(*Markdown.View, window.currentView)
     Swag.assert(not window.readingState.restoring and not replacement.isLoading())
-    let scroll   = assume cast (*ScrollWnd, replacement.children[0])
+    let scroll   = assume cast(*ScrollWnd, replacement.children[0])
     let position = scroll.scrollPosition()
     for 32
     {
@@ -247,18 +250,21 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     defer host.shutdown()
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/title.png")
-    window.openFile(fileName.toString(), remember: false)
+    window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let view = assume cast (*ImageViewer, window.currentView).imageView
-    view.setZoom(2)
-    view.mirrorHorizontally()
-    view.rotateClockwise()
-    view.setPanOffset({31, -47})
+    with let view = assume cast(*ImageViewer, window.currentView).imageView
+    {
+        .setZoom(2)
+        .mirrorHorizontally()
+        .rotateClockwise()
+        .setPanOffset({31, -47})
+    }
+
     let pan = view.panOffset
     window.reloadCurrentFile()
     completeQueuedViewerFile(&host, window)
     host.fireTimer(window.fileWatchTimer)
-    let replacement = assume cast (*ImageViewer, window.currentView).imageView
+    let replacement = assume cast(*ImageViewer, window.currentView).imageView
     Swag.assert(not replacement.isFitted and replacement.zoom == 2)
     Swag.assert(replacement.rotationQuarterTurns == 1 and replacement.isMirrored)
     Swag.assert(replacement.panOffset == pan)

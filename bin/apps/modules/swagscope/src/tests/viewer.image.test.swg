@@ -72,7 +72,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
         var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName)
         Swag.assert(session.view != null)
-        let view = assume cast (*ImageViewer, session.view)
+        let view = assume cast(*ImageViewer, session.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         view.imageView.setPaused(true)
         if view.imageView.movie.frameCount > 1 do
@@ -114,21 +114,26 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let actionBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    actionBar.dockStyle       = .Bottom
-    actionBar.backgroundStyle = .Window
-    actionBar.padding         = {16, 8, 16, 8}
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Bottom
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let actionBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
+
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
 
     var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: actionBar, actionParent: &host.root, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
     Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
     actionBar.centerGroup = result.commands
     infoBar.centerGroup   = result.info
 
-    let view = assume cast (*ImageViewer, result.view)
+    let view = assume cast(*ImageViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * ViewerInfoControlInset)
     var navigation: s32
@@ -191,7 +196,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
-    let view = assume cast (*ImageViewer, result.view)
+    let view = assume cast(*ImageViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -234,7 +239,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")
     var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
     Swag.assert(session.view != null)
-    let view = assume cast (*ImageViewer, session.view)
+    let view = assume cast(*ImageViewer, session.view)
     var reports: ImageReports
     view.userData = &reports
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -256,7 +261,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
             let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
             var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
             Swag.assert(session.view != null)
-            let view    = assume cast (*ImageViewer, session.view)
+            let view    = assume cast(*ImageViewer, session.view)
             var reports = ImageReports{answer: answer}
             view.userData = &reports
             completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)

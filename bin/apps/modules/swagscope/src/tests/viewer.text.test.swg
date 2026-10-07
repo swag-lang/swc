@@ -33,11 +33,11 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     }
 
     let fileName = textViewerFixturePath()
-    var result   = openTestViewer(textViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root, infoParent: &host.root)
+    var result   = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null and result.retire != null)
 
-    let view = assume cast (*TextViewer, result.view)
+    let view = assume cast(*TextViewer, result.view)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     finishTextStatistics(&host, view)
@@ -75,20 +75,25 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Top
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
 
-    var result = openTestViewer(textViewerPlugin(), &host.root, textViewerFixturePath().toString(), commandParent: commandBar, infoParent: infoBar)
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Top
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
+
+    var result = openTestViewer(textViewerPlugin(), &host.root, textViewerFixturePath(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
-    let view = assume cast (*TextViewer, result.view)
+    let view = assume cast(*TextViewer, result.view)
     finishTextStatistics(&host, view)
     view.dockStyle          = .Center
     view.commands.dockStyle = .None
@@ -110,14 +115,18 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     var source: String
     for 40_000 do
         source += "Plain text stays responsive while changing its encoding.\n"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
     var session = openTestViewer(textViewerPlugin(), &host.root, fileName, waitForText: false)
-    let view    = assume cast (*TextViewer, session.view)
-    view.resize(640, 360)
-    view.applyLayout()
+
+    with let view = assume cast(*TextViewer, session.view)
+    {
+        .resize(640, 360)
+        .applyLayout()
+    }
+
     Swag.assert(view.read.started and view.editor.text().isEmpty())
     view.applyEncoding(.Windows1252)
     view.applyEncoding(.Utf8)
@@ -162,7 +171,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     host.setup(640, 360)
     defer host.shutdown()
     var session = openTestViewer(textViewerPlugin(), &host.root, fileName)
-    let view    = assume cast (*TextViewer, session.view)
+    let view    = assume cast(*TextViewer, session.view)
     Swag.assert(view.revealOffset(15, "needle"))
     Swag.assert(not view.read.started and not view.pendingSeek)
     Swag.assert(view.editor.selectedText() == "needle")

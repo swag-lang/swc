@@ -173,10 +173,10 @@ impl BinaryViewer
         let row = &.doc.report.rows[rowIndex]
         switch #complete cast(BinaryColumn, column)
         {
-        case .Field:  return String.from(row.label.toString())
-        case .Value:  return String.from(row.value.toString())
+        case .Field:  return String.from(row.label)
+        case .Value:  return String.from(row.value)
         case .Offset: return row.offset == Swag.U64.Max ? String.from("") : hexText(row.offset, 8)
-        case .Detail: return String.from(row.detail.toString())
+        case .Detail: return String.from(row.detail)
         }
     }
 
@@ -228,15 +228,17 @@ impl BinaryViewer
             if depth and depth <= .fillParents.count do
                 parent = .fillParents[depth - 1]
 
-            let line = .list.createLine(parent)
-            line.setItem(cast(u32, BinaryColumn.Field), row.label.toString())
-            line.setItem(cast(u32, BinaryColumn.Value), row.value.toString())
-            line.setItem(cast(u32, BinaryColumn.Detail), row.detail.toString())
+            with let line = .list.createLine(parent)
+            {
+                .setItem(cast(u32, BinaryColumn.Field), row.label)
+                .setItem(cast(u32, BinaryColumn.Value), row.value)
+                .setItem(cast(u32, BinaryColumn.Detail), row.detail)
+            }
 
             if row.offset != Swag.U64.Max
             {
                 let position = hexText(row.offset, 8)
-                line.setItem(cast(u32, BinaryColumn.Offset), position.toString())
+                line.setItem(cast(u32, BinaryColumn.Offset), position)
             }
             else
             {
@@ -418,15 +420,15 @@ impl BinaryViewer
         {
             if not .filterIncluded.isEmpty() and not .filterIncluded[rowIndex] do
                 continue
-            Viewer.collectTextMatches(row.label.toString(), text, options, rowIndex, cast(u64, BinaryColumn.Field), 0, result)
-            Viewer.collectTextMatches(row.value.toString(), text, options, rowIndex, cast(u64, BinaryColumn.Value), 0, result)
+            Viewer.collectTextMatches(row.label, text, options, rowIndex, cast(u64, BinaryColumn.Field), 0, result)
+            Viewer.collectTextMatches(row.value, text, options, rowIndex, cast(u64, BinaryColumn.Value), 0, result)
             if row.offset != Swag.U64.Max
             {
                 let offset = hexText(row.offset, 8)
-                Viewer.collectTextMatches(offset.toString(), text, options, rowIndex, cast(u64, BinaryColumn.Offset), 0, result)
+                Viewer.collectTextMatches(offset, text, options, rowIndex, cast(u64, BinaryColumn.Offset), 0, result)
             }
 
-            Viewer.collectTextMatches(row.detail.toString(), text, options, rowIndex, cast(u64, BinaryColumn.Detail), 0, result)
+            Viewer.collectTextMatches(row.detail, text, options, rowIndex, cast(u64, BinaryColumn.Detail), 0, result)
         }
     }
 
@@ -457,7 +459,7 @@ impl BinaryViewer
         if .searchVisibleIndex == Swag.U32.Max or .searchRow >= .rowLines.count or not .rowLines[.searchRow] do
             return false
         let source = .cellText(.searchRow, .searchColumn)
-        return Viewer.listCellMatchBounds(.list, .searchVisibleIndex, cast(u32, .searchColumn), source.toString(), .searchOffset, .searchLength, result)
+        return Viewer.listCellMatchBounds(.list, .searchVisibleIndex, cast(u32, .searchColumn), source, .searchOffset, .searchLength, result)
     }
 
     // Removes the outline and the selection a search left behind.
@@ -482,13 +484,13 @@ impl BinaryViewer
         let query = .filterQuery.toString()
         let row   = &.doc.report.rows[rowIndex]
         var matches: Array'Viewer.SearchMatch
-        Viewer.collectTextMatches(row.label.toString(), query, options, 0, 0, 0, &matches)
-        Viewer.collectTextMatches(row.value.toString(), query, options, 0, 0, 0, &matches)
-        Viewer.collectTextMatches(row.detail.toString(), query, options, 0, 0, 0, &matches)
+        Viewer.collectTextMatches(row.label, query, options, 0, 0, 0, &matches)
+        Viewer.collectTextMatches(row.value, query, options, 0, 0, 0, &matches)
+        Viewer.collectTextMatches(row.detail, query, options, 0, 0, 0, &matches)
         if row.offset != Swag.U64.Max
         {
             let offset = hexText(row.offset, 8)
-            Viewer.collectTextMatches(offset.toString(), query, options, 0, 0, 0, &matches)
+            Viewer.collectTextMatches(offset, query, options, 0, 0, 0, &matches)
         }
 
         return not matches.isEmpty()
@@ -594,7 +596,7 @@ impl BinaryViewer
     mtd copyReport()
     {
         let text = .doc.report.toText()
-        Clipboard.addString(text.toString())
+        Clipboard.addString(text)
     }
 
     // Puts the visible cells of the selected row on the clipboard.
@@ -612,10 +614,10 @@ impl BinaryViewer
                 continue
             if not text.isEmpty() do
                 text += "  "
-            text += RichString.plainText(item.name.raw.toString())
+            text += RichString.plainText(item.name.raw)
         }
 
-        Clipboard.addString(text.toString())
+        Clipboard.addString(text)
     }
 
     // Returns the file offset of the selected row, or zero when no selected row has one.
@@ -646,6 +648,7 @@ impl BinaryViewer
             return
 
         let currentText = hexText(.selectedOffset(), 8)
+
         with var options: EditDlgOptions
         {
             .title   = binaryStrings().ui_MenuGoTo
@@ -657,7 +660,7 @@ impl BinaryViewer
         if dialog.doModal() != Dialog.BtnOk do
             return
         let typed = dialog.text()
-        discard .goToTypedOffset(typed.toString())
+        discard .goToTypedOffset(typed)
     }
 
     // Creates the popup menu that offers every command of the viewer.
@@ -740,7 +743,7 @@ impl BinaryViewer
                 .setImage(preview.image)
             }
 
-            with let label = Label.create(tile, preview.label.toString(), {0, 0, 160, 24}, null, .SecondaryText | .Ellipsis)
+            with let label = Label.create(tile, preview.label, {0, 0, 160, 24}, null, .SecondaryText | .Ellipsis)
             {
                 .setTextAlignment(.Center, .Center)
             }
@@ -759,7 +762,7 @@ impl BinaryViewer
         let count = band.children.count
         if not count do
             return
-        let room = Math.max(band.paddedClientRect().width - cast(f32, (count - 1)) * band.spacing, 1)
+        let room = Math.max(band.paddedClientRect().width - cast(f32, count - 1) * band.spacing, 1)
 
         // Leave one logical pixel per card for device-pixel rounding at fractional DPI scales.
         let width = Math.min(160.0, (room - cast(f32, count)) / cast(f32, count))
@@ -788,7 +791,7 @@ impl IActionUI for ActionBinary
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let view  = assume cast (*BinaryViewer, cxt.wnd)
+        let view  = assume cast(*BinaryViewer, cxt.wnd)
         let s     = binaryStrings()
         let theme = view.theme()
 
@@ -844,7 +847,7 @@ impl IActionUI for ActionBinary
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let view = assume cast (*BinaryViewer, cxt.wnd)
+        let view = assume cast(*BinaryViewer, cxt.wnd)
         switch cxt.id
         {
         case ActionBinary.CopyAll:     view.copyReport()
@@ -1113,10 +1116,7 @@ impl BinaryViewer
             .dockStyle = .Left
             .toolTip   = s.ui_MenuBack
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                discard view.navigateHistory(-1)
-            }
+            .sigPressed += func|view = me|(?) { discard view.navigateHistory(-1) }
         }
 
         with .forwardButton = IconButton.create(.commands, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
@@ -1124,10 +1124,7 @@ impl BinaryViewer
             .dockStyle = .Left
             .toolTip   = s.ui_MenuForward
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                discard view.navigateHistory(1)
-            }
+            .sigPressed += func|view = me|(?) { discard view.navigateHistory(1) }
         }
     }
 
@@ -1149,22 +1146,16 @@ impl BinaryViewer
             .addColumn(s.ui_ColValue, 200)
             .addColumn(s.ui_ColOffset, BinaryOffsetWidth)
             .addColumn(s.ui_ColDetail, 320)
-            .sigRightClicked += func|view = me|(?, position)
-            {
-                view.showContextMenu(view.list.listView.localToSurface(position))
-            }
-
-            .sigSelectionChanged += func|view = me|(list)
-            {
-                view.recordHistory(view.reportIndexOf(list.selectedLine()))
-            }
+            .sigRightClicked     += func|view = me|(?, position) { view.showContextMenu(view.list.listView.localToSurface(position)) }
+            .sigSelectionChanged += func|view = me|(list) { view.recordHistory(view.reportIndexOf(list.selectedLine())) }
         }
     }
 
     // Creates the viewer of the file `host` opens, and starts reading that file in the background.
     func create(host: Viewer.Host)->*BinaryViewer fail
     {
-        let services    = host.services()
+        let services = host.services()
+
         with let result = Wnd.create'BinaryViewer(host.contentParent(), "scope.binary")
         {
             .backgroundStyle = .View
@@ -1198,7 +1189,7 @@ private func runBinaryViewerLoad(thread: Threading.Thread)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
     setBinaryStringsOverride(&view.loadStrings)
-    let opened = view.pendingDoc.open(view.loadFileName.toString())
+    let opened = view.pendingDoc.open(view.loadFileName)
     setBinaryStringsOverride(null)
     Atomic.exchange(&view.loadState, opened ? 1 : 2)
 }
@@ -1210,7 +1201,7 @@ func createBinaryViewer(host: Viewer.Host)
     {
         let view = try BinaryViewer.create(host)
         host.attachView(view)
-        host.setDetails(view.details.toString())
+        host.setDetails(view.details)
 
         with var search: Viewer.SearchApi
         {

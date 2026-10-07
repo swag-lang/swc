@@ -65,12 +65,15 @@ private impl HtmlViewer
 
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("75%", "scope.html.zoom75")
-        menu.addItem("100%", "scope.html.zoom100")
-        menu.addItem("125%", "scope.html.zoom125")
-        menu.addItem("150%", "scope.html.zoom150")
-        menu.addItem("200%", "scope.html.zoom200")
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem("75%", "scope.html.zoom75")
+            .addItem("100%", "scope.html.zoom100")
+            .addItem("125%", "scope.html.zoom125")
+            .addItem("150%", "scope.html.zoom150")
+            .addItem("200%", "scope.html.zoom200")
+        }
+
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.html.zoom75":  .setZoom(75)
@@ -93,10 +96,7 @@ private impl HtmlViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = htmlStrings().ui_ZoomMenu
-            .sigPressed += func|viewer = me|(?)
-            {
-                viewer.showZoomMenu()
-            }
+            .sigPressed += func|viewer = me|(?) { viewer.showZoomMenu() }
         }
     }
 
@@ -138,7 +138,7 @@ func createHtmlViewer(host: Viewer.Host)
 
     if not result.view.failureReason.isEmpty()
     {
-        host.reject(result.view.failureReason.toString())
+        host.reject(result.view.failureReason)
         result.destroy()
         return
     }
@@ -150,10 +150,7 @@ func createHtmlViewer(host: Viewer.Host)
     if services.reportFailure
     {
         let reportFailure: Viewer.ReportFailure = services.reportFailure
-        result.view.sigLoadFailed += func|reportFailure, result|(?, reason)
-        {
-            reportFailure(result, reason)
-        }
+        result.view.sigLoadFailed += func|reportFailure, result|(?, reason) { reportFailure(result, reason) }
     }
 
     result.applyLayout()

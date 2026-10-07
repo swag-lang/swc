@@ -42,9 +42,9 @@ private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.font_Collection, total.toString(), "", offset: 0, length: 12 + count * 4, open: true)
+    report.beginGroup(s.font_Collection, total, "", offset: 0, length: 12 + count * 4, open: true)
     let version = Format.toString("%.%", image.u16At(4), image.u16At(6))
-    report.field(4, 4, "Version", version.toString())
+    report.field(4, 4, "Version", version)
     report.numField(8, 4, "numFonts", count)
 
     for index in shown
@@ -72,7 +72,7 @@ private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u6
     var maxpAt = Swag.U64.Max
     var nameAt = Swag.U64.Max
 
-    report.beginGroup(s.font_Tables, total.toString(), s.font_TablesDesc, offset: at, length: 12 + count * FontRecordSize, open: open)
+    report.beginGroup(s.font_Tables, total, s.font_TablesDesc, offset: at, length: 12 + count * FontRecordSize, open: open)
 
     for index in shown
     {
@@ -89,7 +89,7 @@ private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u6
         elif tag == "name" do
             nameAt = tableAt
 
-        report.beginGroup(tag.toString(), stored.toString(), "", offset: tableAt, length: size)
+        report.beginGroup(tag, stored, "", offset: tableAt, length: size)
         report.hexField(entryAt + 4, 4, "checkSum", cast(u64, image.u32At(entryAt + 4)))
         report.hexField(entryAt + 8, 4, "offset", tableAt)
         report.sizeField(entryAt + 12, 4, "length", size)
@@ -124,7 +124,7 @@ private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64
     let shown     = Math.min(count, BinaryListLimit)
     let total     = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.font_Names, total.toString(), "", offset: at, length: 6 + count * 12, open: open)
+    report.beginGroup(s.font_Names, total, "", offset: at, length: 6 + count * 12, open: open)
 
     for index in shown
     {
@@ -144,7 +144,7 @@ private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64
         if text.isEmpty() do
             continue
 
-        report.field(valueAt, length, label, text.toString())
+        report.field(valueAt, length, label, text)
         if nameId == 1 and result.isEmpty() do
             result = text
     }

@@ -229,7 +229,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
             if hasPrevious
             {
                 let pairOffset = offset - 1
-                let parity     = cast(u64, (pairOffset & 1))
+                let parity     = cast(u64, pairOffset & 1)
                 result.scanPair(&little[parity], &big[parity], previous, value, pairOffset)
             }
 
@@ -277,7 +277,7 @@ impl HexAnalysisOperation
 
         .task.submit(func|operation = me|()
         {
-            operation.result = analyzeHexRange(operation.fileName.toString(), operation.range, &operation.cancelRequested, &operation.processed)
+            operation.result = analyzeHexRange(operation.fileName, operation.range, &operation.cancelRequested, &operation.processed)
         })
     }
 

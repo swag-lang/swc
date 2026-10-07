@@ -72,8 +72,8 @@ private func loadTableDocument(fileName: string)->TableDocument fail
         fail UnsupportedFormatError{Errors.mkString(tableStrings().err_TooLarge)}
 
     let source    = try File.readAllText(fileName)
-    let delimiter = detectTableDelimiter(fileName, source.toString())
-    return try parseTableDocument(source.toString(), delimiter)
+    let delimiter = detectTableDelimiter(fileName, source)
+    return try parseTableDocument(source, delimiter)
 }
 
 // Bounds the text handed to the single-line rich-text renderer. A table keeps the complete cell
@@ -380,7 +380,7 @@ private impl TableViewer
         let columns = tableCountText(.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
         let kind    = .document.delimiter == '\t' ? "TSV" : "CSV"
         if .reportDetails do
-            .reportDetails(me, Format.toString(tableStrings().ui_Details, kind, rows.toString(), columns.toString()).toString())
+            .reportDetails(me, Format.toString(tableStrings().ui_Details, kind, rows, columns).toString())
     }
 
     mtd retire()->bool
@@ -506,7 +506,7 @@ impl TableViewer
             shown += "\u2026"
         let lead = shown.length
         shown += value[range.start until range.end]
-        return Viewer.listCellMatchBounds(.list, cast(u32, .searchRow), cast(u32, .searchColumn), shown.toString(), lead + markedStart - range.start, markedEnd - markedStart, result)
+        return Viewer.listCellMatchBounds(.list, cast(u32, .searchRow), cast(u32, .searchColumn), shown, lead + markedStart - range.start, markedEnd - markedStart, result)
     }
 
     mtd clearSearch()
@@ -550,7 +550,7 @@ private func fillTableVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line == null do
         return
-    assume cast (*TableViewer, list.parent).fillLine(line, index)
+    assume cast(*TableViewer, list.parent).fillLine(line, index)
 }
 
 // Creates the integrated CSV/TSV table view.

@@ -144,7 +144,7 @@ private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
             return result
         let value = bytes[result.next]
         result.next  += 1
-        result.value = (result.value << 7) | cast(u64, (value & 0x7F))
+        result.value = (result.value << 7) | cast(u64, value & 0x7F)
         if not (value & 0x80)
         {
             result.valid = true
@@ -316,9 +316,9 @@ private func computeMidiDuration(document: *MidiDocument)
 
     if document.division & 0x8000
     {
-        let encoded = cast(u8, (document.division >> 8))
-        let frames  = encoded == 0xE3 ? 29.97 : cast(f64, (256'u32 - encoded))
-        let ticks   = cast(f64, (document.division & 0xFF))
+        let encoded = cast(u8, document.division >> 8)
+        let frames  = encoded == 0xE3 ? 29.97 : cast(f64, 256'u32 - encoded)
+        let ticks   = cast(f64, document.division & 0xFF)
         if frames > 0 and ticks > 0 do
             document.durationSeconds = cast(f64, document.durationTicks) / (frames * ticks)
         return
@@ -332,12 +332,12 @@ private func computeMidiDuration(document: *MidiDocument)
     var micros = 500_000'u64
     for tempo in document.tempos where tempo.tick <= document.durationTicks
     {
-        document.durationSeconds += cast(f64, (tempo.tick - previous)) * cast(f64, micros) / (cast(f64, quarter) * 1_000_000)
+        document.durationSeconds += cast(f64, tempo.tick - previous) * cast(f64, micros) / (cast(f64, quarter) * 1_000_000)
         previous = tempo.tick
         micros   = tempo.microsPerQuarter
     }
 
-    document.durationSeconds += cast(f64, (document.durationTicks - previous)) * cast(f64, micros) / (cast(f64, quarter) * 1_000_000)
+    document.durationSeconds += cast(f64, document.durationTicks - previous) * cast(f64, micros) / (cast(f64, quarter) * 1_000_000)
 }
 
 // Loads and parses a Standard MIDI File.

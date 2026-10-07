@@ -53,7 +53,7 @@ impl PeLayout
 
             // A section can declare more memory than it stores, and the excess is zero-filled at
             // load time. There is no byte in the file to point at, so the caller is told.
-            let delta = cast(u64, (rva - section.virtualAddr))
+            let delta = cast(u64, rva - section.virtualAddr)
             if delta >= cast(u64, section.rawSize) do
                 return Swag.U64.Max
             return cast(u64, section.rawOffset) + delta
@@ -379,7 +379,7 @@ private func reportPeDosHeader(image: *BinaryImage, report: *BinaryReport, peOff
     let s     = binaryStrings()
     let magic = image.fixedTextAt(0, 2)
 
-    report.beginGroup(s.pe_DosHeader, magic.toString(), s.pe_DosSignature, offset: 0, length: 64, open: true)
+    report.beginGroup(s.pe_DosHeader, magic, s.pe_DosSignature, offset: 0, length: 64, open: true)
     report.numField(2, 2, "e_cblp", cast(u64, image.u16At(2)))
     report.numField(4, 2, "e_cp", cast(u64, image.u16At(4)))
     report.numField(6, 2, "e_crlc", cast(u64, image.u16At(6)))
@@ -388,11 +388,11 @@ private func reportPeDosHeader(image: *BinaryImage, report: *BinaryReport, peOff
     report.hexField(12, 2, "e_maxalloc", cast(u64, image.u16At(12)))
 
     let stack = Format.toString("%:%", hexText(cast(u64, image.u16At(14)), 4), hexText(cast(u64, image.u16At(16)), 4))
-    report.field(14, 4, "e_ss:e_sp", stack.toString())
+    report.field(14, 4, "e_ss:e_sp", stack)
     report.hexField(18, 2, "e_csum", cast(u64, image.u16At(18)))
 
     let entry = Format.toString("%:%", hexText(cast(u64, image.u16At(22)), 4), hexText(cast(u64, image.u16At(20)), 4))
-    report.field(20, 4, "e_cs:e_ip", entry.toString())
+    report.field(20, 4, "e_cs:e_ip", entry)
     report.hexField(24, 2, "e_lfarlc", cast(u64, image.u16At(24)))
     report.numField(26, 2, "e_ovno", cast(u64, image.u16At(26)))
     report.hexField(36, 2, "e_oemid", cast(u64, image.u16At(36)))
@@ -403,7 +403,7 @@ private func reportPeDosHeader(image: *BinaryImage, report: *BinaryReport, peOff
     // print one sentence. That sentence is the readable part, so it is what the report shows.
     let stub = peDosStubText(image, peOffset)
     if not stub.isEmpty() do
-        report.field(64, peOffset > 64 ? peOffset - 64 : 0, s.pe_DosStub, stub.toString(), s.pe_DosStubDesc)
+        report.field(64, peOffset > 64 ? peOffset - 64 : 0, s.pe_DosStub, stub, s.pe_DosStubDesc)
     report.endGroup()
 }
 
@@ -491,7 +491,7 @@ private func reportPeRichHeader(image: *BinaryImage, report: *BinaryReport, peOf
     let count = first < richAt ? (richAt - first) / 8 : 0
     let tools = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.pe_Rich, tools.toString(), s.pe_RichDesc, offset: startAt, length: richAt + 8 - startAt)
+    report.beginGroup(s.pe_Rich, tools, s.pe_RichDesc, offset: startAt, length: richAt + 8 - startAt)
     report.hexField(richAt + 4, 4, "checksum", cast(u64, key), s.pe_RichKey)
 
     let shown = Math.min(count, BinaryListLimit)
@@ -502,7 +502,7 @@ private func reportPeRichHeader(image: *BinaryImage, report: *BinaryReport, peOf
         let uses    = image.u32At(at + 4) ^ key
         let label   = Format.toString(s.pe_RichTool, comp >> 16, comp & 0xFFFF)
         let objects = countText(cast(u64, uses), s.word_Object, s.word_Objects)
-        report.field(at, 8, label.toString(), objects.toString())
+        report.field(at, 8, label, objects)
     }
 
     report.listCut(shown, count)
@@ -528,11 +528,11 @@ private func reportPeFileHeader(image: *BinaryImage, report: *BinaryReport, at: 
     report.beginGroup(s.pe_FileHeader, "", "", offset: at, length: PeFileHeaderSize, open: true)
     report.hexField(at, 2, "Machine", cast(u64, result.machine), peMachineName(result.machine))
     report.numField(at + 2, 2, "NumberOfSections", cast(u64, result.sectionCount))
-    report.hexField(at + 4, 4, "TimeDateStamp", cast(u64, image.u32At(at + 4)), stamp.toString())
+    report.hexField(at + 4, 4, "TimeDateStamp", cast(u64, image.u32At(at + 4)), stamp)
     report.hexField(at + 8, 4, "PointerToSymbolTable", result.symbolTable)
     report.numField(at + 12, 4, "NumberOfSymbols", result.symbolCount)
     report.numField(at + 16, 2, "SizeOfOptionalHeader", result.optionalSize)
-    report.hexField(at + 18, 2, "Characteristics", cast(u64, result.characteristics), flags.toString())
+    report.hexField(at + 18, 2, "Characteristics", cast(u64, result.characteristics), flags)
     report.endGroup()
     return result
 }
@@ -553,7 +553,7 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *BinaryReport, 
     report.hexField(at, 2, "Magic", cast(u64, magic), magic == 0x20B ? s.pe_Image64 : (magic == 0x10B ? s.pe_Image32 : s.pe_ImageRom))
 
     let linker = Format.toString("%.%", image.u8At(at + 2), image.u8At(at + 3))
-    report.field(at + 2, 2, "LinkerVersion", linker.toString())
+    report.field(at + 2, 2, "LinkerVersion", linker)
     report.sizeField(at + 4, 4, "SizeOfCode", cast(u64, image.u32At(at + 4)))
     report.sizeField(at + 8, 4, "SizeOfInitializedData", cast(u64, image.u32At(at + 8)))
     report.sizeField(at + 12, 4, "SizeOfUninitializedData", cast(u64, image.u32At(at + 12)))
@@ -580,11 +580,11 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *BinaryReport, 
     report.sizeField(windowsAt + 4, 4, "FileAlignment", cast(u64, image.u32At(windowsAt + 4)), s.pe_OnDisk)
 
     let osVersion = Format.toString("%.%", image.u16At(windowsAt + 8), image.u16At(windowsAt + 10))
-    report.field(windowsAt + 8, 4, "OperatingSystemVersion", osVersion.toString())
+    report.field(windowsAt + 8, 4, "OperatingSystemVersion", osVersion)
     let imageVersion = Format.toString("%.%", image.u16At(windowsAt + 12), image.u16At(windowsAt + 14))
-    report.field(windowsAt + 12, 4, "ImageVersion", imageVersion.toString())
+    report.field(windowsAt + 12, 4, "ImageVersion", imageVersion)
     let subsystemVersion = Format.toString("%.%", image.u16At(windowsAt + 16), image.u16At(windowsAt + 18))
-    report.field(windowsAt + 16, 4, "SubsystemVersion", subsystemVersion.toString())
+    report.field(windowsAt + 16, 4, "SubsystemVersion", subsystemVersion)
     report.hexField(windowsAt + 20, 4, "Win32VersionValue", cast(u64, image.u32At(windowsAt + 20)))
 
     layout.sizeOfHeaders = image.u32At(windowsAt + 28)
@@ -598,7 +598,7 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *BinaryReport, 
     let dllFlags  = image.u16At(windowsAt + 38)
     let dllText   = peDllCharacteristicsText(dllFlags)
     report.numField(windowsAt + 36, 2, "Subsystem", cast(u64, subsystem), peSubsystemName(subsystem))
-    report.hexField(windowsAt + 38, 2, "DllCharacteristics", cast(u64, dllFlags), dllText.toString())
+    report.hexField(windowsAt + 38, 2, "DllCharacteristics", cast(u64, dllFlags), dllText)
 
     let wide    = layout.pointerSize()
     let stackAt = windowsAt + 40
@@ -622,7 +622,7 @@ private func reportPeDirectories(image: *BinaryImage, report: *BinaryReport, at,
     let shown   = Math.min(count, 16'u64)
     let entries = countText(shown, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.pe_Directories, entries.toString(), "", offset: at, length: shown * 8)
+    report.beginGroup(s.pe_Directories, entries, "", offset: at, length: shown * 8)
 
     for index in shown
     {
@@ -630,7 +630,7 @@ private func reportPeDirectories(image: *BinaryImage, report: *BinaryReport, at,
         let rva     = image.u32At(entryAt)
         let size    = image.u32At(entryAt + 4)
         let value   = rva ? Format.toString("% · %", hexText(cast(u64, rva), 8), StrConv.toDisplaySize(cast(u64, size))) : String.from(s.pe_DirEmpty)
-        report.field(entryAt, 8, peDirectoryName(index), value.toString(), rva ? layout.sectionNameOf(rva) : "")
+        report.field(entryAt, 8, peDirectoryName(index), value, rva ? layout.sectionNameOf(rva) : "")
     }
 
     report.endGroup()
@@ -642,7 +642,7 @@ private func reportPeSections(image: *BinaryImage, report: *BinaryReport, at: u6
     let total    = Math.min(cast(u64, count), BinaryListLimit)
     let sections = countText(cast(u64, count), s.word_Section, s.word_Sections)
 
-    report.beginGroup(s.shr_Sections, sections.toString(), "", offset: at, length: total * PeSectionHeaderSize, open: true)
+    report.beginGroup(s.shr_Sections, sections, "", offset: at, length: total * PeSectionHeaderSize, open: true)
 
     for index in total
     {
@@ -664,7 +664,7 @@ private func reportPeSections(image: *BinaryImage, report: *BinaryReport, at: u6
 
         // The group covers the bytes the section stores rather than its header, so a search hit
         // anywhere inside a payload lands on the section that owns it.
-        report.beginGroup(section.name.toString(), address.toString(), stored.toString(), offset: cast(u64, section.rawOffset), length: cast(u64, section.rawSize))
+        report.beginGroup(section.name, address, stored, offset: cast(u64, section.rawOffset), length: cast(u64, section.rawSize))
         report.sizeField(entryAt + 8, 4, "VirtualSize", cast(u64, section.virtualSize))
         report.hexField(entryAt + 12, 4, "VirtualAddress", cast(u64, section.virtualAddr))
         report.sizeField(entryAt + 16, 4, "SizeOfRawData", cast(u64, section.rawSize))
@@ -673,7 +673,7 @@ private func reportPeSections(image: *BinaryImage, report: *BinaryReport, at: u6
         report.hexField(entryAt + 28, 4, "PointerToLinenumbers", cast(u64, image.u32At(entryAt + 28)))
         report.numField(entryAt + 32, 2, "NumberOfRelocations", cast(u64, image.u16At(entryAt + 32)))
         report.numField(entryAt + 34, 2, "NumberOfLinenumbers", cast(u64, image.u16At(entryAt + 34)))
-        report.hexField(entryAt + 36, 4, "Characteristics", cast(u64, flags), names.toString())
+        report.hexField(entryAt + 36, 4, "Characteristics", cast(u64, flags), names)
         report.endGroup()
 
         layout.sections.add(#move section)
@@ -723,11 +723,11 @@ private func reportPeExports(image: *BinaryImage, report: *BinaryReport, layout:
     let stamp      = epochText(cast(u64, image.u32At(at + 4)))
     let version    = Format.toString("%.%", image.u16At(at + 8), image.u16At(at + 10))
 
-    report.beginGroup(s.shr_Exports, moduleName.toString(), entries.toString(), offset: at, length: cast(u64, size), open: true)
+    report.beginGroup(s.shr_Exports, moduleName, entries, offset: at, length: cast(u64, size), open: true)
     report.hexField(at, 4, "Characteristics", cast(u64, image.u32At(at)))
-    report.field(at + 4, 4, "TimeDateStamp", stamp.toString())
-    report.field(at + 8, 4, "Version", version.toString())
-    report.field(at + 12, 4, "Name", moduleName.toString(), s.pe_ExportName)
+    report.field(at + 4, 4, "TimeDateStamp", stamp)
+    report.field(at + 8, 4, "Version", version)
+    report.field(at + 12, 4, "Name", moduleName, s.pe_ExportName)
     report.numField(at + 16, 4, "Base", base, s.pe_ExportBase)
     report.numField(at + 20, 4, "NumberOfFunctions", funcCount)
     report.numField(at + 24, 4, "NumberOfNames", nameCount)
@@ -746,7 +746,7 @@ private func reportPeExports(image: *BinaryImage, report: *BinaryReport, layout:
     if nameAt != Swag.U64.Max and ordinalAt != Swag.U64.Max
     {
         let symbols = countText(nameCount, s.word_Symbol, s.word_Symbols)
-        report.beginGroup(s.pe_ByName, symbols.toString(), "", offset: nameAt, length: nameCount * 4, open: true)
+        report.beginGroup(s.pe_ByName, symbols, "", offset: nameAt, length: nameCount * 4, open: true)
 
         for index in shown
         {
@@ -755,7 +755,7 @@ private func reportPeExports(image: *BinaryImage, report: *BinaryReport, layout:
             let symbol = peStringAt(image, layout, image.u32At(nameAt + index * 4))
             let target = peExportTarget(image, layout, image.u32At(funcAt + cast(u64, ordinal) * 4), rva, size)
             let value  = Format.toString(s.pe_Ordinal, cast(u64, ordinal) + base)
-            report.field(nameAt + index * 4, 4, symbol.toString(), value.toString(), target.toString())
+            report.field(nameAt + index * 4, 4, symbol, value, target)
         }
 
         report.listCut(shown, nameCount)
@@ -775,7 +775,7 @@ private func reportPeExports(image: *BinaryImage, report: *BinaryReport, layout:
         let label  = Format.toString(s.pe_Ordinal, index + base)
         let value  = hexText(cast(u64, address), 8)
         let target = peExportTarget(image, layout, address, rva, size)
-        report.field(funcAt + index * 4, 4, label.toString(), value.toString(), target.toString())
+        report.field(funcAt + index * 4, 4, label, value, target)
     }
 
     if anonymous do
@@ -829,7 +829,7 @@ private func reportPeImports(image: *BinaryImage, report: *BinaryReport, layout:
     }
 
     let modules = countText(entries.count, s.word_Module, s.word_Modules)
-    report.beginGroup(s.shr_Imports, modules.toString(), "", offset: at, length: cast(u64, size), open: true)
+    report.beginGroup(s.shr_Imports, modules, "", offset: at, length: cast(u64, size), open: true)
 
     var symbols = 0'u64
     for entryAt in entries
@@ -841,11 +841,11 @@ private func reportPeImports(image: *BinaryImage, report: *BinaryReport, layout:
         // A bound image drops its lookup table and keeps only the address table, so the names are
         // read from whichever of the two the image still carries.
         let table = lookup ? lookup : thunks
-        symbols += reportPeThunks(image, report, layout, cast(u32, table), name.toString(), entryAt, thunks)
+        symbols += reportPeThunks(image, report, layout, cast(u32, table), name, entryAt, thunks)
     }
 
     let total = Format.toString("% %", symbols, s.pe_ImportSymbols)
-    report.derived(s.pe_ImportTotal, total.toString())
+    report.derived(s.pe_ImportTotal, total)
     report.endGroup()
 }
 
@@ -867,7 +867,7 @@ private func reportPeThunks(image: *BinaryImage, report: *BinaryReport, layout: 
     let stamp   = image.u32At(entryAt + 4)
     let symbols = countText(count, s.word_Symbol, s.word_Symbols)
 
-    report.beginGroup(moduleName, symbols.toString(), "", offset: entryAt, length: 20)
+    report.beginGroup(moduleName, symbols, "", offset: entryAt, length: 20)
     report.hexField(entryAt, 4, "OriginalFirstThunk", cast(u64, image.u32At(entryAt)), s.pe_ImportLookup)
     report.hexField(entryAt + 4, 4, "TimeDateStamp", cast(u64, stamp), stamp ? s.pe_Bound : s.pe_Unbound)
     report.hexField(entryAt + 8, 4, "ForwarderChain", cast(u64, image.u32At(entryAt + 8)))
@@ -887,7 +887,7 @@ private func reportPeThunks(image: *BinaryImage, report: *BinaryReport, layout: 
         if value & ordinal
         {
             let label = Format.toString(s.pe_Ordinal, value & 0xFFFF)
-            report.field(thunkAt, wide, label.toString(), "", s.pe_ByOrdinalBind)
+            report.field(thunkAt, wide, label, "", s.pe_ByOrdinalBind)
             continue
         }
 
@@ -895,13 +895,13 @@ private func reportPeThunks(image: *BinaryImage, report: *BinaryReport, layout: 
         if hintAt == Swag.U64.Max
         {
             let label = hexText(value, 8)
-            report.field(thunkAt, wide, label.toString(), "", s.pe_Outside)
+            report.field(thunkAt, wide, label, "", s.pe_Outside)
             continue
         }
 
         let symbol = image.cstringAt(hintAt + 2)
         let hint   = Format.toString(s.pe_Hint, image.u16At(hintAt))
-        report.field(thunkAt, wide, symbol.toString(), "", hint.toString())
+        report.field(thunkAt, wide, symbol, "", hint)
     }
 
     report.endGroup()
@@ -936,12 +936,12 @@ private func reportPeDelayImports(image: *BinaryImage, report: *BinaryReport, la
         let name     = peStringAt(image, layout, cast(u32, nameRva))
         let stamp    = epochText(cast(u64, image.u32At(entryAt + 28)))
 
-        report.beginGroup(name.toString(), "", "", offset: entryAt, length: 32)
+        report.beginGroup(name, "", "", offset: entryAt, length: 32)
         report.hexField(entryAt, 4, "Attributes", cast(u64, image.u32At(entryAt)), relative ? s.pe_DelayRelative : s.pe_DelayAbsolute)
         report.hexField(entryAt + 8, 4, "ModuleHandle", cast(u64, image.u32At(entryAt + 8)))
         report.hexField(entryAt + 12, 4, "ImportAddressTable", cast(u64, image.u32At(entryAt + 12)))
         report.hexField(entryAt + 16, 4, "ImportNameTable", cast(u64, image.u32At(entryAt + 16)))
-        report.field(entryAt + 28, 4, "TimeDateStamp", stamp.toString())
+        report.field(entryAt + 28, 4, "TimeDateStamp", stamp)
         report.endGroup()
         modules += 1
     }
@@ -988,8 +988,8 @@ private func reportPeResourceLevel(image: *BinaryImage, report: *BinaryReport, l
 
         if child & 0x80000000
         {
-            report.beginGroup(label.toString(), "", "", offset: entryAt, length: 8)
-            reportPeResourceLevel(image, report, layout, base, base + cast(u64, (child & 0x7FFFFFFF)), depth + 1)
+            report.beginGroup(label, "", "", offset: entryAt, length: 8)
+            reportPeResourceLevel(image, report, layout, base, base + cast(u64, child & 0x7FFFFFFF), depth + 1)
             report.endGroup()
             continue
         }
@@ -1002,7 +1002,7 @@ private func reportPeResourceLevel(image: *BinaryImage, report: *BinaryReport, l
         let dataLen = cast(u64, image.u32At(leafAt + 4))
         let value   = StrConv.toDisplaySize(dataLen)
         let detail  = Format.toString(s.pe_ResourceWhere, image.u32At(leafAt + 8), hexText(cast(u64, dataRva), 8))
-        report.field(dataAt == Swag.U64.Max ? leafAt : dataAt, dataAt == Swag.U64.Max ? 16 : dataLen, label.toString(), value.toString(), detail.toString())
+        report.field(dataAt == Swag.U64.Max ? leafAt : dataAt, dataAt == Swag.U64.Max ? 16 : dataLen, label, value, detail)
     }
 
     report.listCut(total, declared)
@@ -1014,7 +1014,7 @@ private func peResourceLabel(image: *BinaryImage, base: u64, nameId: u32, depth:
     let s = binaryStrings()
     if nameId & 0x80000000
     {
-        let stringAt = base + cast(u64, (nameId & 0x7FFFFFFF))
+        let stringAt = base + cast(u64, nameId & 0x7FFFFFFF)
         let length   = cast(u64, image.u16At(stringAt))
         var text     = image.wideTextAt(stringAt + 2, Math.min(length, 128'u64))
         if text.isEmpty() do
@@ -1063,9 +1063,9 @@ private func reportPeVersionResource(image: *BinaryImage, report: *BinaryReport,
     let fileType       = image.u32At(fixedAt + 36)
 
     report.beginGroup(s.pe_Version, "", s.pe_VersionDesc, offset: dataAt, length: cast(u64, image.u16At(dataAt)), open: true)
-    report.field(fixedAt + 8, 8, "FileVersion", fileVersion.toString())
-    report.field(fixedAt + 16, 8, "ProductVersion", productVersion.toString())
-    report.hexField(fixedAt + 28, 4, "FileFlags", cast(u64, flags), names.toString())
+    report.field(fixedAt + 8, 8, "FileVersion", fileVersion)
+    report.field(fixedAt + 16, 8, "ProductVersion", productVersion)
+    report.hexField(fixedAt + 28, 4, "FileFlags", cast(u64, flags), names)
     report.hexField(fixedAt + 32, 4, "FileOS", cast(u64, image.u32At(fixedAt + 32)))
     report.numField(fixedAt + 36, 4, "FileType", cast(u64, fileType), peVersionFileTypeName(fileType))
     reportPeVersionStrings(image, report, dataAt, fixedAt + 52)
@@ -1109,7 +1109,7 @@ private func reportPeVersionStrings(image: *BinaryImage, report: *BinaryReport, 
                     let value   = image.wideTextAt(valueAt, Math.min(cast(u64, image.u16At(pairAt + 2)), 512'u64))
                     if not name.isEmpty()
                     {
-                        report.field(pairAt, pairLength, name.toString(), value.toString(), language.toString())
+                        report.field(pairAt, pairLength, name, value, language)
                         written += 1
                     }
 
@@ -1172,7 +1172,7 @@ private func peFindResourceData(image: *BinaryImage, layout: *PeLayout, base: u6
         if not (nameDir & 0x80000000) do
             return Swag.U64.Max
 
-        let nameAt = base + cast(u64, (nameDir & 0x7FFFFFFF))
+        let nameAt = base + cast(u64, nameDir & 0x7FFFFFFF)
         if not image.has(nameAt, 24) do
             return Swag.U64.Max
 
@@ -1180,7 +1180,7 @@ private func peFindResourceData(image: *BinaryImage, layout: *PeLayout, base: u6
         if not (langDir & 0x80000000) do
             return Swag.U64.Max
 
-        let langAt = base + cast(u64, (langDir & 0x7FFFFFFF))
+        let langAt = base + cast(u64, langDir & 0x7FFFFFFF)
         if not image.has(langAt, 24) do
             return Swag.U64.Max
 
@@ -1205,7 +1205,7 @@ private func reportPeDebug(image: *BinaryImage, report: *BinaryReport, layout: *
     let count   = Math.min(cast(u64, size) / 28, BinaryListLimit)
     let entries = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.pe_Debug, entries.toString(), "", offset: at, length: cast(u64, size), open: true)
+    report.beginGroup(s.pe_Debug, entries, "", offset: at, length: cast(u64, size), open: true)
 
     for index in count
     {
@@ -1218,10 +1218,10 @@ private func reportPeDebug(image: *BinaryImage, report: *BinaryReport, layout: *
         let stored  = StrConv.toDisplaySize(dataLen)
 
         report.beginGroup(peDebugTypeName(kind), "", "", offset: entryAt, length: 28, open: kind == 2)
-        report.field(entryAt + 4, 4, "TimeDateStamp", stamp.toString())
-        report.field(entryAt + 8, 4, "Version", version.toString())
+        report.field(entryAt + 4, 4, "TimeDateStamp", stamp)
+        report.field(entryAt + 8, 4, "Version", version)
         report.numField(entryAt + 12, 4, "Type", cast(u64, kind), peDebugTypeName(kind))
-        report.field(entryAt + 16, 4, "SizeOfData", stored.toString())
+        report.field(entryAt + 16, 4, "SizeOfData", stored)
         report.hexField(entryAt + 20, 4, "AddressOfRawData", cast(u64, image.u32At(entryAt + 20)))
         report.hexField(entryAt + 24, 4, "PointerToRawData", dataAt)
 
@@ -1231,9 +1231,9 @@ private func reportPeDebug(image: *BinaryImage, report: *BinaryReport, layout: *
         {
             let identity = image.guidTextAt(dataAt + 4)
             let path     = image.cstringAt(dataAt + 24)
-            report.field(dataAt + 4, 16, "GUID", identity.toString(), s.pe_DebugIdentity)
+            report.field(dataAt + 4, 16, "GUID", identity, s.pe_DebugIdentity)
             report.numField(dataAt + 20, 4, "Age", cast(u64, image.u32At(dataAt + 20)))
-            report.field(dataAt + 24, dataLen > 24 ? dataLen - 24 : 0, "PDB", path.toString())
+            report.field(dataAt + 24, dataLen > 24 ? dataLen - 24 : 0, "PDB", path)
         }
 
         report.endGroup()
@@ -1256,9 +1256,9 @@ private func reportPeExceptions(image: *BinaryImage, report: *BinaryReport, layo
     let s       = binaryStrings()
     let records = countText(cast(u64, size) / 12, s.word_Record, s.word_Records)
 
-    report.beginGroup(s.pe_Exception, records.toString(), "", offset: at, length: cast(u64, size))
+    report.beginGroup(s.pe_Exception, records, "", offset: at, length: cast(u64, size))
     report.hexField(at, 4, "Address", cast(u64, rva), layout.sectionNameOf(rva))
-    report.derived(s.pe_Coverage, records.toString(), s.pe_ExceptionDesc)
+    report.derived(s.pe_Coverage, records, s.pe_ExceptionDesc)
     report.endGroup()
 }
 
@@ -1291,10 +1291,10 @@ private func reportPeRelocations(image: *BinaryImage, report: *BinaryReport, lay
     let pages   = countText(blocks, s.word_Page, s.word_Pages)
     let entries = countText(fixups, s.word_Fixup, s.word_Fixups)
 
-    report.beginGroup(s.pe_Relocations, pages.toString(), entries.toString(), offset: at, length: cast(u64, size))
+    report.beginGroup(s.pe_Relocations, pages, entries, offset: at, length: cast(u64, size))
     report.hexField(at, 4, "Address", cast(u64, rva), layout.sectionNameOf(rva))
-    report.derived(s.pe_Pages, pages.toString())
-    report.derived(s.pe_Fixups, entries.toString())
+    report.derived(s.pe_Pages, pages)
+    report.derived(s.pe_Fixups, entries)
     report.endGroup()
 }
 
@@ -1338,10 +1338,10 @@ private func reportPeLoadConfig(image: *BinaryImage, report: *BinaryReport, layo
     let version  = Format.toString("%.%", image.u16At(at + 8), image.u16At(at + 10))
     let stored   = StrConv.toDisplaySize(declared)
 
-    report.beginGroup(s.pe_LoadConfig, stored.toString(), "", offset: at, length: Math.max(declared, cast(u64, size)))
+    report.beginGroup(s.pe_LoadConfig, stored, "", offset: at, length: Math.max(declared, cast(u64, size)))
     report.numField(at, 4, "Size", declared)
-    report.field(at + 4, 4, "TimeDateStamp", stamp.toString())
-    report.field(at + 8, 4, "Version", version.toString())
+    report.field(at + 4, 4, "TimeDateStamp", stamp)
+    report.field(at + 8, 4, "Version", version)
     report.hexField(at + 12, 4, "GlobalFlagsClear", cast(u64, image.u32At(at + 12)))
     report.hexField(at + 16, 4, "GlobalFlagsSet", cast(u64, image.u32At(at + 16)))
 
@@ -1352,7 +1352,7 @@ private func reportPeLoadConfig(image: *BinaryImage, report: *BinaryReport, layo
     {
         let guard = image.u32At(guardAt)
         let names = peGuardFlagsText(guard)
-        report.hexField(guardAt, 4, "GuardFlags", cast(u64, guard), names.toString())
+        report.hexField(guardAt, 4, "GuardFlags", cast(u64, guard), names)
     }
 
     report.endGroup()
@@ -1394,16 +1394,16 @@ private func reportPeClr(image: *BinaryImage, report: *BinaryReport, layout: *Pe
     let names   = peClrFlagsText(flags)
 
     report.beginGroup(s.pe_Clr, s.pe_ClrManaged, "", offset: at, length: cast(u64, size), open: true)
-    report.field(at + 4, 4, "RuntimeVersion", runtime.toString())
-    report.field(at + 8, 8, "MetaData", meta.toString())
-    report.hexField(at + 16, 4, "Flags", cast(u64, flags), names.toString())
+    report.field(at + 4, 4, "RuntimeVersion", runtime)
+    report.field(at + 8, 8, "MetaData", meta)
+    report.hexField(at + 16, 4, "Flags", cast(u64, flags), names)
     report.hexField(at + 20, 4, "EntryPointToken", cast(u64, image.u32At(at + 20)))
 
     // The metadata root records which runtime built the assembly, in a length-prefixed name.
     if metaAt != Swag.U64.Max and image.matches(metaAt, "BSJB")
     {
         let target = image.cstringAt(metaAt + 16, 64)
-        report.field(metaAt + 16, cast(u64, image.u32At(metaAt + 12)), "Version", target.toString(), s.pe_ClrRuntime)
+        report.field(metaAt + 16, cast(u64, image.u32At(metaAt + 12)), "Version", target, s.pe_ClrRuntime)
     }
 
     report.endGroup()
@@ -1436,7 +1436,7 @@ private func reportPeCertificates(image: *BinaryImage, report: *BinaryReport, la
     var scan   = at
     var count  = 0'u64
 
-    report.beginGroup(s.pe_Certificates, stored.toString(), s.pe_CertificateAt, offset: at, length: cast(u64, size))
+    report.beginGroup(s.pe_Certificates, stored, s.pe_CertificateAt, offset: at, length: cast(u64, size))
 
     while scan + 8 <= end and count < BinaryListLimit
     {
@@ -1446,7 +1446,7 @@ private func reportPeCertificates(image: *BinaryImage, report: *BinaryReport, la
 
         let label = Format.toString(s.pe_Certificate, count)
         let value = StrConv.toDisplaySize(length)
-        report.field(scan, length, label.toString(), value.toString(), peCertificateTypeName(image.u16At(scan + 6)))
+        report.field(scan, length, label, value, peCertificateTypeName(image.u16At(scan + 6)))
         count += 1
         scan  += (length + 7) & ~7'u64
     }
@@ -1491,8 +1491,8 @@ private func reportCoffSymbols(image: *BinaryImage, report: *BinaryReport, at, c
     let symbols   = countText(count, s.word_Symbol, s.word_Symbols)
     let strings   = StrConv.toDisplaySize(cast(u64, image.u32At(stringsAt)))
 
-    report.beginGroup(s.pe_Symbols, symbols.toString(), "", offset: at, length: count * PeSymbolSize)
-    report.field(stringsAt, 4, s.pe_StringTable, strings.toString())
+    report.beginGroup(s.pe_Symbols, symbols, "", offset: at, length: count * PeSymbolSize)
+    report.field(stringsAt, 4, s.pe_StringTable, strings)
 
     var index = 0'u64
     while index < shown
@@ -1505,7 +1505,7 @@ private func reportCoffSymbols(image: *BinaryImage, report: *BinaryReport, at, c
         let section = cast #bit (s16, image.u16At(entryAt + 12))
         let value   = hexText(cast(u64, image.u32At(entryAt + 8)), 8)
         let detail  = Format.toString(s.pe_SymbolWhere, coffStorageClassName(image.u8At(entryAt + 16)), section)
-        report.field(entryAt, PeSymbolSize, name.toString(), value.toString(), detail.toString())
+        report.field(entryAt, PeSymbolSize, name, value, detail)
 
         // Auxiliary records belong to the symbol before them and carry no name of their own.
         index += 1 + cast(u64, image.u8At(entryAt + 17))

@@ -21,10 +21,13 @@ impl ViewerActionBar
 {
     func create(parent: *Wnd)->*ViewerActionBar
     {
-        let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerActionBarHeight})
-        result.dockStyle       = .Top
-        result.backgroundStyle = .ToolBar
-        result.padding         = {12, 6, 12, 0}
+        with let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerActionBarHeight})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .ToolBar
+            .padding         = {12, 6, 12, 0}
+        }
+
         return result
     }
 
@@ -222,7 +225,7 @@ impl IWnd for ViewerSearchOverlay
         let glow         = colors.searchMatch_Glow.withAlpha(cast(u8, (cast(f32, colors.searchMatch_Glow.a) * glowStrength)))
         for step in ViewerSearchGlowSteps
         {
-            let reach = ViewerSearchGlowReach * cast(f32, (ViewerSearchGlowSteps - step)) / cast(f32, ViewerSearchGlowSteps)
+            let reach = ViewerSearchGlowReach * cast(f32, ViewerSearchGlowSteps - step) / cast(f32, ViewerSearchGlowSteps)
             var ring  = mark
             ring.inflate(reach)
             painter.fillRoundRect(ring, ViewerSearchMarkRadius + reach, ViewerSearchMarkRadius + reach, glow)
@@ -240,10 +243,13 @@ impl ViewerSearchOverlay
 {
     func create(parent: *Wnd)->*ViewerSearchOverlay
     {
-        let result = Wnd.create'ViewerSearchOverlay(parent, "scope.search.highlight")
-        result.wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
-        result.backgroundStyle = .Transparent
-        result.hide()
+        with let result = Wnd.create'ViewerSearchOverlay(parent, "scope.search.highlight")
+        {
+            .wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
+            .backgroundStyle = .Transparent
+            .hide()
+        }
+
         return result
     }
 

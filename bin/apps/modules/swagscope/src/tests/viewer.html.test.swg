@@ -31,12 +31,12 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
         host.shutdown()
     }
 
-    var result = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
+    var result = openTestViewer(htmlViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
     Swag.assert(result.commands == null and result.info != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
     Swag.assert(result.isLoading())
-    Swag.assert(Utf8.contains(result.details.toString(), "HTML"))
-    let view = assume cast (*HtmlViewer, result.view)
+    Swag.assert(Utf8.contains(result.details, "HTML"))
+    let view = assume cast(*HtmlViewer, result.view)
     finishHtmlViewer(&host, &result)
     Swag.assert(result.view != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
@@ -46,7 +46,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent(view.view, &resetZoom) and view.zoomPercent == 100)
 
-    let source = expect File.readAllText(fileName.toString())
+    let source = expect File.readAllText(fileName)
     let offset = source.indexOf("immutable")
     Swag.assert(offset != Swag.U64.Max)
     let match    = Viewer.SearchMatch{offset: offset, length: "immutable".count}
@@ -78,14 +78,17 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Top
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
-    var result = openTestViewer(htmlViewerPlugin(), &host.root, htmlViewerFixturePath().toString(), infoParent: infoBar)
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Top
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
+
+    var result = openTestViewer(htmlViewerPlugin(), &host.root, htmlViewerFixturePath(), infoParent: infoBar)
     Swag.assert(result.view != null and result.info != null)
     infoBar.centerGroup = result.info
-    let view = assume cast (*HtmlViewer, result.view)
+    let view = assume cast(*HtmlViewer, result.view)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     finishHtmlViewer(&host, &result)
@@ -108,7 +111,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     defer host.shutdown()
 
     let fileName = Gui.Testing.tempFilePath("scope-html-missing-", ".html")
-    var result   = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
+    var result   = openTestViewer(htmlViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
     Swag.assert(not result.failureReason.isEmpty())
 }

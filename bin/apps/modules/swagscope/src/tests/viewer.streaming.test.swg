@@ -12,15 +12,19 @@ using Core, Pixel, Gui
     var source: String
     for index in 12_000 do
         source += Format.toString("// Line % keeps the viewport covered during a resident transition.\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var session  = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view     = assume cast (*TextViewer, session.view)
-    view.resize(640, 360)
-    view.applyLayout()
+
+    with let view = assume cast(*TextViewer, session.view)
+    {
+        .resize(640, 360)
+        .applyLayout()
+    }
+
     completeTextReads(&host, view)
 
     view.editor.setScrollPosition({0, view.virtualHeight * 0.8})
@@ -58,13 +62,16 @@ using Core, Pixel, Gui
     var source: String
     for index in 12_000 do
         source += Format.toString("// Line % keeps the viewport covered during a resident transition.\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    let view = CodeViewer.create(&host.root, fileName)
-    view.resize(640, 360)
-    view.applyLayout()
+    with let view = CodeViewer.create(&host.root, fileName)
+    {
+        .resize(640, 360)
+        .applyLayout()
+    }
+
     discard host.render(view)
     view.updateEstimatedHeight()
     Swag.assert(view.revealOffset(source.length / 2, ""))

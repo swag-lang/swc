@@ -397,7 +397,7 @@ impl HexGridView
     mtd hexCellX(column: u64)->f32
     {
         if .grouping == .Bytes do
-            return HexViewInset + .gutterWidth() + cast(f32, (column * 3 + column / HexDefaultGroupSize)) * .charWidth
+            return HexViewInset + .gutterWidth() + cast(f32, column * 3 + column / HexDefaultGroupSize) * .charWidth
         return HexViewInset + .gutterWidth() + cast(f32, (column / .valueSize() * (.valueCellChars() + 1))) * .charWidth
     }
 
@@ -406,7 +406,7 @@ impl HexGridView
         if .grouping == .Bytes
         {
             let last = bytesPerRow ? bytesPerRow - 1 : 0
-            return cast(f32, (last * 3 + last / HexDefaultGroupSize + 2)) * .charWidth
+            return cast(f32, last * 3 + last / HexDefaultGroupSize + 2) * .charWidth
         }
 
         let values = bytesPerRow ? (bytesPerRow + .valueSize() - 1) / .valueSize() : 0
@@ -494,12 +494,12 @@ impl HexGridView
         if firstRow == lastRow
         {
             let column = first % .bytesPerRow
-            local = {.textCellX(column) - .scrollPos.x, .rowTop(firstRow), cast(f32, (last - first + 1)) * .charWidth, .rowHeight}
+            local = {.textCellX(column) - .scrollPos.x, .rowTop(firstRow), cast(f32, last - first + 1) * .charWidth, .rowHeight}
         }
         else
         {
             local = {.textColumnLeft() - .scrollPos.x, .rowTop(firstRow), cast(f32, .bytesPerRow) * .charWidth,
-                     cast(f32, (lastRow - firstRow + 1)) * .rowHeight}
+                     cast(f32, lastRow - firstRow + 1) * .rowHeight}
         }
 
         result[] = .localToSurface(local)
@@ -903,6 +903,7 @@ impl HexGridView
             return
 
         let current = formatHexDigits(.caret, .offsetDigits)
+
         with var options: EditDlgOptions
         {
             .title   = hexStrings().ui_GoTo
@@ -915,7 +916,7 @@ impl HexGridView
             return
 
         let typed = dialog.text()
-        discard .goToTypedOffset(typed.toString())
+        discard .goToTypedOffset(typed)
     }
 
     // Moves the caret to the offset `text` names, and reports whether `text` names one.
@@ -999,9 +1000,11 @@ impl HexGridView
                 let value = .doc.byteAt(offset)
                 let faint = value == 0
                 appendHexDigits(faint ? &.rowHexFaint : &.rowHexStrong, value, 2)
-                let other = faint ? &.rowHexStrong : &.rowHexFaint
-                other.add(' 'u8)
-                other.add(' 'u8)
+                with let other = faint ? &.rowHexStrong : &.rowHexFaint
+                {
+                    .add(' 'u8)
+                    .add(' 'u8)
+                }
 
                 .rowHexStrong.add(' 'u8)
                 .rowHexFaint.add(' 'u8)
@@ -1073,7 +1076,7 @@ impl HexGridView
         painter.fillRect(hexLeft - 1, y, hexRight - hexLeft + 2, .rowHeight, color)
 
         let textLeft = originX + .textCellX(firstColumn)
-        painter.fillRect(textLeft, y, cast(f32, (lastColumn - firstColumn + 1)) * .charWidth, .rowHeight, color)
+        painter.fillRect(textLeft, y, cast(f32, lastColumn - firstColumn + 1) * .charWidth, .rowHeight, color)
     }
 }
 
@@ -1413,7 +1416,7 @@ impl IWnd for HexGridView
                 let complete    = valueOffset + .valueSize() <= .doc.fileSize
                 let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatHexScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
                 painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32, .valueCellChars()) * .charWidth + 2, .rowHeight, caretBk)
-                painter.drawString(originX + .hexCellX(column), y, text.toString(), font, caretInk)
+                painter.drawString(originX + .hexCellX(column), y, text, font, caretInk)
                 painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)
             }
         }
@@ -1440,10 +1443,7 @@ impl HexGridView
             .style.setFont(.theme().createDefaultFontFs(.fontSize), .Regular)
         }
 
-        scroll.sigScrollPositionChanged += func|view = result|(?, ?, newPosition)
-        {
-            view.adoptScrollPosition(newPosition.y)
-        }
+        scroll.sigScrollPositionChanged += func|view = result|(?, ?, newPosition) { view.adoptScrollPosition(newPosition.y) }
 
         result.refreshLayout()
         return result

@@ -15,9 +15,9 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let folder        = Path.combine(tempDirectory.toString(), Format.toString("scope_classification_%", Guid64.random()).toString())
-    expect Directory.create(folder.toString())
-    defer discard catch Directory.delete(folder.toString(), recurse: true)
+    let folder        = Path.combine(tempDirectory, Format.toString("scope_classification_%", Guid64.random()).toString())
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
 
     var host: Testing.HeadlessHost
     host.setup(64, 64)
@@ -26,8 +26,8 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     var names: Array'String
     for i in 3'u32
     {
-        let fileName = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
-        discard expect File.writeAllText(fileName.toString(), "a readable line\n")
+        let fileName = Path.combine(folder, Format.toString("file%.txt", i).toString())
+        discard expect File.writeAllText(fileName, "a readable line\n")
         names.add(fileName)
     }
 
@@ -55,9 +55,12 @@ struct ClassificationRetirementGate
 
 func holdClassificationStatistics(thread: Threading.Thread)
 {
-    let gate = cast(*ClassificationRetirementGate, thread.userParam!)
-    gate.entered.signal()
-    gate.release.wait()
+    with let gate = cast(*ClassificationRetirementGate, thread.userParam!)
+    {
+        .entered.signal()
+        .release.wait()
+    }
+
     Atomic.exchange(&gate.finished, 1)
 }
 
@@ -66,12 +69,12 @@ func holdClassificationStatistics(thread: Threading.Thread)
 #test
 {
     let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("scope_retirement_%", Guid64.random()).toString())
-    expect Directory.create(folder.toString())
-    defer discard catch Directory.delete(folder.toString(), recurse: true)
-    let first = Path.combine(folder.toString(), "first.txt")
-    let next  = Path.combine(folder.toString(), "next.txt")
-    discard expect File.writeAllText(first.toString(), "The first document.\n")
-    discard expect File.writeAllText(next.toString(), "The next document.\n")
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
+    let first = Path.combine(folder, "first.txt")
+    let next  = Path.combine(folder, "next.txt")
+    discard expect File.writeAllText(first, "The first document.\n")
+    discard expect File.writeAllText(next, "The next document.\n")
 
     // The gate outlives the GUI owner, including cleanup after an assertion failure.
     var gate: ClassificationRetirementGate
@@ -80,13 +83,16 @@ func holdClassificationStatistics(thread: Threading.Thread)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    window.resize(960, 680)
-    window.openFile(first.toString(), remember: false)
+    with let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    {
+        .resize(960, 680)
+        .openFile(first, remember: false)
+    }
+
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.choices[window.activeChoiceIndex].key == TextViewerKey)
     let previousView = window.currentView!
-    let previous     = assume cast (*TextViewer, previousView)
+    let previous     = assume cast(*TextViewer, previousView)
     Swag.assert(previous.loadTimer == null)
 
     // Replace completed statistics with a worker whose lifetime is controlled by this test.
@@ -106,7 +112,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
     gate.entered.wait()
     Swag.assert(not previous.statisticsThread.isDone())
 
-    window.openFile(next.toString(), remember: false)
+    window.openFile(next, remember: false)
     Swag.assert(window.startupTimer != null)
     host.fireTimer(window.startupTimer)
     Swag.assert(window.choiceLoad.started)

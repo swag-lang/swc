@@ -29,26 +29,30 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
     var result: retval
     if plugin.attach do
         plugin.attach(contentParent.app())
-    var pluginHost = ViewerPluginHost{
-        session: &result,
-        documentParent: contentParent,
-        sidePanelParent: contentParent,
-        actionParent: actionParent orelse contentParent,
-        infoParent: infoParent orelse contentParent,
-        commandParent: commandParent orelse contentParent,
-        sourceFileName: fileName,
-        pluginIcon: icon,
-        window: null,
-        hostServices: services}
+
+    with var pluginHost: ViewerPluginHost
+    {
+        .session         = &result
+        .documentParent  = contentParent
+        .sidePanelParent = contentParent
+        .actionParent    = actionParent orelse contentParent
+        .infoParent      = infoParent orelse contentParent
+        .commandParent   = commandParent orelse contentParent
+        .sourceFileName  = fileName
+        .pluginIcon      = icon
+        .hostServices    = services
+        .window          = null
+    }
+
     let host: Viewer.Host = &pluginHost
     plugin.create(host)
     if waitForText and plugin.key == TextViewerKey and result.view
     {
-        let view = assume cast (*TextViewer, result.view)
+        let view = assume cast(*TextViewer, result.view)
         if view.read.started
         {
             view.read.task.wait()
-            Swag.assert(not view.read.failed, view.read.error.toString())
+            Swag.assert(not view.read.failed, view.read.error)
             view.loadNextChunk()
         }
     }
@@ -110,7 +114,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
             let instance = &window.instances[index]
             if instance.view and window.choices[index].key == TextViewerKey
             {
-                let view = assume cast (*TextViewer, instance.view)
+                let view = assume cast(*TextViewer, instance.view)
                 if view.statisticsThread.isValid() and view.statisticsThread.requestEnd do
                     view.statisticsThread.wait()
             }
@@ -137,7 +141,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
             break
         if window.choices[window.activeChoiceIndex].key == TextViewerKey
         {
-            let view = assume cast (*TextViewer, instance.view)
+            let view = assume cast(*TextViewer, instance.view)
             completeTextReads(host, view)
             host.fireTimer(view.loadTimer)
         }

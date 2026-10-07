@@ -33,10 +33,10 @@ private func createPdfFixture()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
+    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.info != null)
 
-    let view = assume cast (*PdfViewer, result.view)
+    let view = assume cast(*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(view.details == "PDF")
@@ -107,20 +107,25 @@ private func createPdfFixture()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Top
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
 
-    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar, infoParent: infoBar)
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Top
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
+
+    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands == null and result.info != null)
     infoBar.centerGroup = result.info
 
-    let view = assume cast (*PdfViewer, result.view)
+    let view = assume cast(*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle        = .Center
     result.info.dockStyle = .None
@@ -151,9 +156,11 @@ private func createPdfFixture()->String
 
     let document = Wnd.create'Wnd(&host.root)
     document.hide()
-    let layout = Wnd.create'ViewerInfoLayout(&host.root)
-    layout.dockStyle       = .Center
-    layout.backgroundStyle = .Transparent
+    with let layout = Wnd.create'ViewerInfoLayout(&host.root)
+    {
+        .dockStyle       = .Center
+        .backgroundStyle = .Transparent
+    }
 
     let actionSize = themeActionButtonSize(layout.themeMetrics())
     layout.filesButton = IconButton.create(layout, layout.theme().icon(.History, themeActionIconSize(layout.themeMetrics())), {0, 0, actionSize, actionSize})
@@ -163,9 +170,9 @@ private func createPdfFixture()->String
     name.preferredSize.x = Math.ceil(name.itf.measureContent({}).x)
     layout.generalLabel  = Label.create(layout, "PDF", {0, 0, 0, 36}, null, .SecondaryText)
 
-    var result = openTestViewer(pdfViewerPlugin(), document, fileName.toString(), commandParent: document, infoParent: layout)
+    var result = openTestViewer(pdfViewerPlugin(), document, fileName, commandParent: document, infoParent: layout)
     Swag.assert(result.view != null and result.info != null)
-    let view = assume cast (*PdfViewer, result.view)
+    let view = assume cast(*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     host.root.applyLayout()
     layout.computeLayout()
@@ -190,7 +197,7 @@ private func createPdfFixture()->String
     defer host.shutdown()
     var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null)
-    let view = assume cast (*PdfViewer, result.view)
+    let view = assume cast(*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -206,10 +213,10 @@ private func createPdfFixture()->String
     host.setup(640, 450)
     defer host.shutdown()
 
-    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
+    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
-    let view = assume cast (*PdfViewer, result.view)
+    let view = assume cast(*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.resize(640, 420)
     view.applyLayout()

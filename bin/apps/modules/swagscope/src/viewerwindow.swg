@@ -315,9 +315,30 @@ func writeViewerPlayback(view: *Wnd, settings: Viewer.PlaybackSettings)
 // Lets a viewer wake the generic wait presentation when work starts again after being idle.
 func reportViewerLoadingChanged(view: *Wnd)
 {
-    let window = viewerWindowFor(view)
-    window.commitViewerTransition(view)
-    window.updateLoadingIndicator()
+    with let window = viewerWindowFor(view)
+    {
+        .commitViewerTransition(view)
+        .updateLoadingIndicator()
+    }
+}
+
+// Returns the services a viewer of the main window reaches its host through.
+func viewerHostServices()->Viewer.HostServices
+{
+    with var result: retval
+    {
+        .reportFailure          = &reportViewerFailure
+        .reportDetails          = &reportViewerDetails
+        .reportChromeChanged    = &reportViewerChromeChanged
+        .reportLoadingChanged   = &reportViewerLoadingChanged
+        .navigateFile           = &navigateViewerFile
+        .reportFinished         = &reportViewerFinished
+        .reportShown            = &reportViewerShown
+        .playback.readSettings  = &readViewerPlayback
+        .playback.writeSettings = &writeViewerPlayback
+    }
+
+    return result
 }
 
 impl IWnd for ViewerWindow
@@ -488,7 +509,7 @@ impl IWnd for ViewerWindow
         elif not .pendingEmpty.isEmpty()
         {
             let message = #move .pendingEmpty
-            .showEmpty(message.toString())
+            .showEmpty(message)
         }
     }
 
@@ -826,52 +847,41 @@ impl ViewerWindow
     private mtd createCommandBar()
     {
         .commandBar = ViewerActionBar.create(me)
+        let iconSize              = themeActionIconSize(.themeMetrics())
         let actionSize            = themeActionButtonSize(.themeMetrics())
         let dropDownWidth         = themeDropDownButtonWidth(.themeMetrics())
         let searchNavigationWidth = 2 * actionSize + ViewerSearchCountWidth + 8
         let searchBarWidth        = dropDownWidth + ViewerSearchFieldWidth + searchNavigationWidth + 2 * ViewerSearchGroupSpacing
 
-        with .commandButtons = IconBar.create(.commandBar, themeActionIconSize(.themeMetrics()), itemPadding: .themeMetrics().btnIcon_Padding)
+        with .commandButtons = IconBar.create(.commandBar, iconSize, itemPadding: .themeMetrics().btnIcon_Padding)
         {
             .dockStyle = .Left
         }
 
-        with .openButton = .commandButtons.addButton(.theme().icon(.OpenFile, themeActionIconSize(.themeMetrics())))
+        with .openButton = .commandButtons.addButton(.theme().icon(.OpenFile, iconSize))
         {
             .toolTip    = appStrings().ui_Open
-            .sigPressed += func|window = me|(?)
-            {
-                window.chooseFile()
-            }
+            .sigPressed += func|window = me|(?) { window.chooseFile() }
         }
 
-        with .openDefaultButton = .commandButtons.addButton(.theme().icon(.OpenExternal, themeActionIconSize(.themeMetrics())))
+        with .openDefaultButton = .commandButtons.addButton(.theme().icon(.OpenExternal, iconSize))
         {
             .toolTip = appStrings().ui_OpenDefault
             .enable(false)
-            .sigPressed += func|window = me|(?)
-            {
-                window.openCurrentFileDefault()
-            }
+            .sigPressed += func|window = me|(?) { window.openCurrentFileDefault() }
         }
 
-        with .closeButton = .commandButtons.addButton(.theme().icon(.WndClose, themeActionIconSize(.themeMetrics())))
+        with .closeButton = .commandButtons.addButton(.theme().icon(.WndClose, iconSize))
         {
             .toolTip = appStrings().ui_CloseFile
             .enable(false)
-            .sigPressed += func|window = me|(?)
-            {
-                window.closeFile()
-            }
+            .sigPressed += func|window = me|(?) { window.closeFile() }
         }
 
-        with .fullScreenButton = .commandButtons.addToggleButton(.theme().icon(.FullScreen, themeActionIconSize(.themeMetrics())))
+        with .fullScreenButton = .commandButtons.addToggleButton(.theme().icon(.FullScreen, iconSize))
         {
             .toolTip = appStrings().ui_FullScreen
-            .sigCheckedChanged += func|window = me|(button)
-            {
-                window.setFullScreen(button.isChecked)
-            }
+            .sigCheckedChanged += func|window = me|(button) { window.setFullScreen(button.isChecked) }
         }
 
         with .searchGroup = StackLayoutCtrl.create(.commandBar, .Center, {0, 0, searchBarWidth, actionSize})
@@ -888,32 +898,17 @@ impl ViewerWindow
             .layoutSpec.alignY = .Center
             .toolTip = appStrings().ui_SearchOptions
             .setArrowPosition(.RightDownward)
-            .sigPressed += func|window = me|(?)
-            {
-                window.showSearchOptionsMenu()
-            }
+            .sigPressed += func|window = me|(?) { window.showSearchOptionsMenu() }
         }
 
         with .searchBox = EditBox.create(.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
         {
-            .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
+            .setIcon(me.theme().icon(.Search, iconSize))
             .setPlaceholder(appStrings().ui_Search)
             .setValidator(func|window = me|(edit)->EditBoxCheckResult => window.validateSearchEdit(edit))
-            .sigTextChanged += func|window = me|(?)
-            {
-                window.restartSearch()
-            }
-
-            .sigSubmitted += func|window = me|(?)
-            {
-                window.findNext()
-            }
-
-            .sigCancelled += func|window = me|(?)
-            {
-                window.hideSearch()
-            }
-
+            .sigTextChanged += func|window = me|(?) { window.restartSearch() }
+            .sigSubmitted   += func|window = me|(?) { window.findNext() }
+            .sigCancelled   += func|window = me|(?) { window.hideSearch() }
             .enable(false)
         }
 
@@ -927,11 +922,7 @@ impl ViewerWindow
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchPrevious
-            .sigPressed        += func|window = me|(?)
-            {
-                window.findPrevious()
-            }
-
+            .sigPressed        += func|window = me|(?) { window.findPrevious() }
             .enable(false)
         }
 
@@ -939,11 +930,7 @@ impl ViewerWindow
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchNext
-            .sigPressed        += func|window = me|(?)
-            {
-                window.findNext()
-            }
-
+            .sigPressed        += func|window = me|(?) { window.findNext() }
             .enable(false)
         }
 
@@ -963,10 +950,7 @@ impl ViewerWindow
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
             .hide()
-            .sigChanged += func|window = me|(?, index)
-            {
-                window.selectViewer(index)
-            }
+            .sigChanged += func|window = me|(?, index) { window.selectViewer(index) }
         }
     }
 
@@ -1058,6 +1042,9 @@ impl ViewerWindow
 
     private mtd createFilePanel(panelGutter: f32)
     {
+        let compactSize = themeCompactButtonSize(.themeMetrics())
+        let rowIconSize = themeRowIconSize(.themeMetrics())
+
         // The toolbar-colored lane is the static seam shared with the application chrome. The
         // rounded structural panel sits inside it, so the lists read as one integrated surface
         // instead of a square block divided from the document by an unrelated rule.
@@ -1086,24 +1073,21 @@ impl ViewerWindow
             .padding         = {0, 8, 0, 8}
         }
 
-        with let recentHeader = Wnd.create'Wnd(.recentPane, {0, 0, 0, themeCompactButtonSize(.themeMetrics())})
+        with let recentHeader = Wnd.create'Wnd(.recentPane, {0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
         }
 
-        with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, themeRowIconSize(.themeMetrics())), {0, 0, themeCompactButtonSize(.themeMetrics()), themeCompactButtonSize(.themeMetrics())})
+        with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, rowIconSize), {0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
-            .sigPressed += func|window = me|(?)
-            {
-                window.confirmClearRecent()
-            }
+            .sigPressed += func|window = me|(?) { window.confirmClearRecent() }
         }
 
-        with .recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, themeCompactButtonSize(.themeMetrics())}, null, .SecondaryText)
+        with .recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, compactSize}, null, .SecondaryText)
         {
             .dockStyle = .Center
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
@@ -1113,21 +1097,14 @@ impl ViewerWindow
         with .recentList = ListCtrl.createSimple(.recentPane)
         {
             .dockStyle = .Center
-            .setIconSize(themeRowIconSize(me.themeMetrics()))
+            .setIconSize(rowIconSize)
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.padding.x = 0
             .scrollWnd.padding.z = 0
             .scrollWnd.updateFlags(.DisableHorizontal)
-            .sigSelectionChanged += func|window = me|(list)
-            {
-                window.openListSelection(list, window.recent.toSlice())
-            }
-
-            .sigRightClicked += func|window = me|(list, position)
-            {
-                window.showFileMenu(list, window.recent.toSlice(), list.listView.localToSurface(position))
-            }
+            .sigSelectionChanged += func|window = me|(list) { window.openListSelection(list, window.recent.toSlice()) }
+            .sigRightClicked     += func|window = me|(list, position) { window.showFileMenu(list, window.recent.toSlice(), list.listView.localToSurface(position)) }
         }
 
         with .folderPane = Wnd.create'Wnd(.filePanel)
@@ -1138,38 +1115,32 @@ impl ViewerWindow
 
         // The header carries the filter beside the folder name: the toggle changes what this
         // list holds, and the next/previous arrows walk the same list.
-        with let folderHeader = Wnd.create'Wnd(.folderPane, {0, 0, 0, themeCompactButtonSize(.themeMetrics())})
+        with let folderHeader = Wnd.create'Wnd(.folderPane, {0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
         }
 
-        with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, themeRowIconSize(.themeMetrics())), {0, 0, themeCompactButtonSize(.themeMetrics()), themeCompactButtonSize(.themeMetrics())}, flags: .Toggle)
+        with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, rowIconSize), {0, 0, compactSize, compactSize}, flags: .Toggle)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_SameKind
             .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = me|(button)
-            {
-                window.setFolderSameKind(button.isChecked)
-            }
+            .sigCheckedChanged += func|window = me|(button) { window.setFolderSameKind(button.isChecked) }
         }
 
-        with .folderHistoryButton = IconButton.create(folderHeader, .theme().icon(.History, themeRowIconSize(.themeMetrics())), {0, 0, themeDropDownButtonWidth(.themeMetrics()), themeCompactButtonSize(.themeMetrics())}, flags: .CenterContent)
+        with .folderHistoryButton = IconButton.create(folderHeader, .theme().icon(.History, rowIconSize), {0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize}, flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.z  = 8
             .toolTip   = appStrings().ui_FolderHistory
             .setArrowPosition(.RightDownward)
             .enable(false)
-            .sigPressed += func|window = me|(?)
-            {
-                window.showFolderHistory()
-            }
+            .sigPressed += func|window = me|(?) { window.showFolderHistory() }
         }
 
-        with .folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, themeCompactButtonSize(.themeMetrics())}, null, .SecondaryText | .Ellipsis)
+        with .folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, compactSize}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
@@ -1179,21 +1150,14 @@ impl ViewerWindow
         with .folderList = ListCtrl.createSimple(.folderPane)
         {
             .dockStyle = .Center
-            .setIconSize(themeRowIconSize(me.themeMetrics()))
+            .setIconSize(rowIconSize)
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.padding.x = 0
             .scrollWnd.padding.z = 0
             .scrollWnd.updateFlags(.DisableHorizontal)
-            .sigSelectionChanged += func|window = me|(list)
-            {
-                window.openListSelection(list, window.siblings.toSlice())
-            }
-
-            .sigRightClicked += func|window = me|(list, position)
-            {
-                window.showFileMenu(list, window.siblings.toSlice(), list.listView.localToSurface(position))
-            }
+            .sigSelectionChanged += func|window = me|(list) { window.openListSelection(list, window.siblings.toSlice()) }
+            .sigRightClicked     += func|window = me|(list, position) { window.showFileMenu(list, window.siblings.toSlice(), list.listView.localToSurface(position)) }
         }
 
         with let recentItem = .filePanel.addPane(.recentPane, ViewerRecentHeight)
@@ -1298,18 +1262,21 @@ impl ViewerWindow
     mtd createAboutDialog(buildDate: Time.DateTime, version: string? = null)->*AboutDlg
     {
         let liveVersion = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
-        let dlg         = AboutDlg.createApplication(.surface!, {
-            productName: ProductName,
-            version: version orelse liveVersion.toString(),
-            buildDate: buildDate,
-            sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagscope",
-            copyrightHolder: "Christophe Beaudet"})
+
+        with var about: ApplicationAboutDlgParams
+        {
+            .productName     = ProductName
+            .version         = version orelse liveVersion.toString()
+            .buildDate       = buildDate
+            .sourceUrl       = "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagscope"
+            .copyrightHolder = "Christophe Beaudet"
+        }
 
         // The registry remains the source of the compact capability line, but extension details
         // stay out of the identity box: the viewer names communicate the supported content
         // families without turning About into a file-association inventory.
-        let viewers = .aboutViewerList()
-        dlg.addSection(appStrings().ui_AboutViewers, viewers.toString())
+        let dlg = AboutDlg.createApplication(.surface!, about)
+        dlg.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
         return dlg
     }
 
@@ -1497,7 +1464,7 @@ impl ViewerWindow
         let key     = plugin.key
         let fixture = plugin.smokeFixture
 
-        let fileName = Path.combine(.smokeDirectory.toString(), fixture.toString())
+        let fileName = Path.combine(.smokeDirectory.toString(), fixture)
         if not File.exists(fileName)
         {
             .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture is missing: %", fileName).toString())
@@ -1514,13 +1481,13 @@ impl ViewerWindow
         if not .smokeOpened
         {
             .smokeOpened = true
-            .queueFile(absolute.toString(), remember: false)
+            .queueFile(absolute, remember: false)
             return
         }
 
         if .currentFile != absolute
         {
-            .waitForSmokeViewer(key.toString(), fileName.toString())
+            .waitForSmokeViewer(key, fileName)
             return
         }
 
@@ -1541,7 +1508,7 @@ impl ViewerWindow
 
             if not .activateChoice(selected)
             {
-                .waitForSmokeViewer(key.toString(), fileName.toString())
+                .waitForSmokeViewer(key, fileName)
                 return
             }
 
@@ -1551,7 +1518,7 @@ impl ViewerWindow
 
         if .activeChoiceIndex >= .instances.count
         {
-            .waitForSmokeViewer(key.toString(), fileName.toString())
+            .waitForSmokeViewer(key, fileName)
             return
         }
 
@@ -1571,7 +1538,7 @@ impl ViewerWindow
         // review until ready.
         if .smokeWaitSteps < ViewerSmokeMinimumSteps or (loading and (blocking or .smokeWaitSteps < ViewerSmokeExposureSteps))
         {
-            .waitForSmokeViewer(key.toString(), fileName.toString())
+            .waitForSmokeViewer(key, fileName)
             return
         }
 
@@ -1723,6 +1690,23 @@ impl ViewerWindow
         return true
     }
 
+    // Makes the windows of `session` the presentation of the window, hiding the previous ones.
+    //
+    // Showing the new windows is left to the caller: a staged transition keeps them behind the
+    // outgoing viewer until it has something to show.
+    private mtd adoptSession(session: *ViewerSession)
+    {
+        .currentActions?.hide()
+        .currentInfo?.hide()
+        .currentCommands?.hide()
+        .currentView?.hide()
+        .currentView     = session.view
+        .currentActions  = session.actions
+        .currentInfo     = session.info
+        .currentCommands = session.commands
+        .setCurrentSidePanel(session.sidePanelHost, session.sidePanelButton)
+    }
+
     // Moves the host-owned panel action with the viewer it belongs to. The action remains on the
     // information edge while its panel occupies the matching right-side lane.
     private mtd setCurrentSidePanel(panel: *Wnd?, button: *IconButton?)
@@ -1789,11 +1773,7 @@ impl ViewerWindow
             return
 
         .discardOutgoingViewer()
-        .currentView     = instance.view
-        .currentActions  = instance.actions
-        .currentInfo     = instance.info
-        .currentCommands = instance.commands
-        .setCurrentSidePanel(instance.sidePanelHost, instance.sidePanelButton)
+        .adoptSession(instance)
         .armSlide()
         .currentView!.dockStyle = .Center
         if .currentCommands do
@@ -1802,7 +1782,7 @@ impl ViewerWindow
         .currentInfo?.show()
         .currentCommands?.show()
         .updateViewerBar()
-        .updateFileInfo(instance.details.toString())
+        .updateFileInfo(instance.details)
         .updateSearchAvailability()
         .applyLayout()
         .invalidate()
@@ -1822,7 +1802,7 @@ impl ViewerWindow
             instance.destroyWindows()
             instance[] = {}
 
-            let errorView = ViewerErrorView.create(.documentPanel, message.toString())
+            let errorView = ViewerErrorView.create(.documentPanel, message)
             errorView.dockStyle    = .Center
             instance.view          = errorView
             instance.failureReason = #move message
@@ -1968,22 +1948,14 @@ impl ViewerWindow
         {
             if not .retireActiveLoadingChoice(index) do
                 return false
-            .currentActions?.hide()
-            .currentInfo?.hide()
-            .currentCommands?.hide()
-            .currentView?.hide()
-            .currentView     = instance.view
-            .currentActions  = instance.actions
-            .currentInfo     = instance.info
-            .currentCommands = instance.commands
-            .setCurrentSidePanel(instance.sidePanelHost, instance.sidePanelButton)
+            .adoptSession(instance)
             .currentView!.show()
             .currentInfo?.show()
             .currentCommands?.show()
             .updateViewerBar()
             .activeChoiceIndex = index
             .viewerCombo.setSelectedIndex(index, notify: false)
-            .updateFileInfo(instance.details.toString())
+            .updateFileInfo(instance.details)
             .updateSearchAvailability()
             .applyLayout()
             .updateLoadingIndicator()
@@ -1995,27 +1967,21 @@ impl ViewerWindow
             return false
 
         var next: ViewerSession
-        let plugin     = &.index.plugins[choice.pluginIndex]
-        let actionIcon = .pluginIcon(plugin, themeActionIconSize(.themeMetrics()))
-        var pluginHost = ViewerPluginHost{
-            session: &next,
-            documentParent: .documentPanel,
-            sidePanelParent: me,
-            actionParent: .commandBar,
-            infoParent: .infoContentGroup,
-            commandParent: .viewerBar,
-            sourceFileName: .currentFile.toString(),
-            pluginIcon: actionIcon,
-            window: me,
-            hostServices: {
-                reportFailure: &reportViewerFailure,
-                reportDetails: &reportViewerDetails,
-                reportChromeChanged: &reportViewerChromeChanged,
-                reportLoadingChanged: &reportViewerLoadingChanged,
-                navigateFile: &navigateViewerFile,
-                reportFinished: &reportViewerFinished,
-                reportShown: &reportViewerShown,
-                playback: {readSettings: &readViewerPlayback, writeSettings: &writeViewerPlayback}}}
+        let plugin = &.index.plugins[choice.pluginIndex]
+        with var pluginHost: ViewerPluginHost
+        {
+            .session         = &next
+            .documentParent  = me.documentPanel
+            .sidePanelParent = me
+            .actionParent    = me.commandBar
+            .infoParent      = me.infoContentGroup
+            .commandParent   = me.viewerBar
+            .sourceFileName  = me.currentFile
+            .pluginIcon      = me.pluginIcon(plugin, themeActionIconSize(me.themeMetrics()))
+            .window          = me
+            .hostServices    = viewerHostServices()
+        }
+
         let host: Viewer.Host = &pluginHost
         catch next.create(plugin, host) as viewerError
         if viewerError != null
@@ -2031,11 +1997,7 @@ impl ViewerWindow
         {
             if next.view and next.retire do
                 discard next.retire()
-            let reason = #move next.failureReason
-            next.destroyWindows()
-            next      = {}
-            next.failureReason = #move reason
-            next.view = ViewerErrorView.create(.documentPanel, next.failureReason.toString())
+            next.replaceWithFailure(.documentPanel)
         }
 
         if not next.view
@@ -2075,26 +2037,18 @@ impl ViewerWindow
         }
         else
         {
-            .currentActions?.hide()
-            .currentInfo?.hide()
-            .currentCommands?.hide()
-            .currentView?.hide()
-            .currentView     = next.view
-            .currentActions  = next.actions
-            .currentInfo     = next.info
-            .currentCommands = next.commands
-            .setCurrentSidePanel(next.sidePanelHost, next.sidePanelButton)
-            .currentInfo?.show()
             next.view.dockStyle = .Center
             if next.commands do
                 next.commands.dockStyle = .None
+            .adoptSession(&next)
+            .currentInfo?.show()
             .updateViewerBar()
         }
 
         .activeChoiceIndex = index
         instance[]         = #move next
         .viewerCombo.setSelectedIndex(index, notify: false)
-        .updateFileInfo(instance.details.toString())
+        .updateFileInfo(instance.details)
         .updateSearchAvailability()
         if stage do
             .commitViewerTransition(instance.view)
@@ -2210,12 +2164,12 @@ impl ViewerWindow
         if .searchFilterMode
         {
             .searchToolTip = #move presentation.filterToolTip
-            .searchBox.setPlaceholder(presentation.filterPlaceholder.toString())
+            .searchBox.setPlaceholder(presentation.filterPlaceholder)
         }
         else
         {
             .searchToolTip = #move presentation.toolTip
-            .searchBox.setPlaceholder(presentation.placeholder.toString())
+            .searchBox.setPlaceholder(presentation.placeholder)
         }
 
         .searchBox.toolTip = .searchToolTip
@@ -3087,7 +3041,7 @@ impl ViewerWindow
 
         // Only the history is a list the reader owns. The folder list is what the folder holds,
         // and an entry leaves it by leaving the disk.
-        .showFileActions(fileName.toString(), position, history: list == .recentList)
+        .showFileActions(fileName, position, history: list == .recentList)
     }
 
     // Shows what the open file offers, from the band that names it.
@@ -3112,14 +3066,14 @@ impl ViewerWindow
     mtd showFolderHistory()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        for one in .folderHistory where Directory.exists(one.folder.toString()) and File.exists(one.file.toString())
+        for one in .folderHistory where Directory.exists(one.folder) and File.exists(one.file)
         {
-            var name = Path.fileName(one.folder.toString()) orelse one.folder.toString()
+            var name = Path.fileName(one.folder) orelse one.folder.toString()
             if not name.count do
                 name = one.folder.toString()
-            var icon = .app().directoryIcon(one.folder.toString(), true)
+            var icon = .app().directoryIcon(one.folder, true)
             icon.color = .themeColors().label_Text
-            discard menu.addItem(name, one.folder.toString(), icon)
+            discard menu.addItem(name, one.folder, icon)
         }
 
         if menu.items.isEmpty()
@@ -3133,7 +3087,7 @@ impl ViewerWindow
             return
         for one in .folderHistory where one.folder == folder
         {
-            .queueFile(one.file.toString())
+            .queueFile(one.file)
             return
         }
     }
@@ -3348,7 +3302,7 @@ impl ViewerWindow
             next = .pickShuffled(files.toSlice())
         }
 
-        .queueFile(next.toString(), remember: false)
+        .queueFile(next, remember: false)
         return true
     }
 

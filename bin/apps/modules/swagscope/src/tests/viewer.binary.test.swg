@@ -167,7 +167,7 @@ func buildPeFixture()->Array'u8
     let codeViewAt = FixtureDataAt + 0x1A0
     pokeText(&bytes, codeViewAt, "RSDS")
     for index in 16 do
-        bytes[codeViewAt + 4 + index] = cast(u8, (index + 1))
+        bytes[codeViewAt + 4 + index] = cast(u8, index + 1)
     poke(&bytes, codeViewAt + 20, 1, 4)     // Age.
     pokeText(&bytes, codeViewAt + 24, "fixture.pdb")
 
@@ -178,8 +178,8 @@ func buildPeFixture()->Array'u8
 func writeFixture(name: string, bytes: const [..] u8)->String
 {
     let prefix   = Format.toString("viewer_binary_%_", name)
-    let fileName = Testing.tempFilePath(prefix.toString(), ".bin")
-    discard expect File.writeAllBytes(fileName.toString(), bytes)
+    let fileName = Testing.tempFilePath(prefix, ".bin")
+    discard expect File.writeAllBytes(fileName, bytes)
     return fileName
 }
 
@@ -210,10 +210,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .PeImage)
     Swag.assert(doc.report.formatName == "PE32+")
@@ -264,7 +264,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = binaryFixturePath("appicon.ico")
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Icon)
     Swag.assert(doc.previews.count > 1)
@@ -275,8 +275,8 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     host.setup(860, 520)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
-    var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName.toString(), actionParent: commands)
-    let view          = assume cast (*BinaryViewer, viewerSession.view)
+    var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName, actionParent: commands)
+    let view          = assume cast(*BinaryViewer, viewerSession.view)
     finishBinaryViewer(&host, view)
     view.resize(860, 520)
     view.applyLayout()
@@ -291,10 +291,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 #test
 {
     let pngPath = binaryFixturePath("appicon.png")
-    let png     = expect File.readAllBytes(pngPath.toString())
+    let png     = expect File.readAllBytes(pngPath)
 
     let fileName = Testing.tempFilePath("viewer_binary_capture_", ".scc")
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var writer: Scc.Writer
     writer.initialize(fixtureGuid("4a67acc2-5930-4e81-81dc-d12675bc6deb"))
@@ -302,10 +302,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     options.roleId  = fixtureGuid("9b5e375d-e615-4a80-8680-6c7c37f94ceb")
     options.codecId = Scc.deflateCodecId()
     discard expect writer.addChunk(png.toSlice(), options)
-    expect writer.saveAtomic(fileName.toString())
+    expect writer.saveAtomic(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Scc and doc.previews.count == 1)
     Swag.assert(doc.previews[0].label == "Preview" and doc.previews[0].image.isValid())
@@ -316,10 +316,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_map", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
 
     // A hit inside a section's payload lands on that section even though no field was decoded
@@ -341,10 +341,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_text", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
 
     let text = doc.report.toText()
@@ -368,10 +368,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     poke(&bytes, 0x60 + 16, 2, 1)     // Storage class: external.
 
     let fileName = writeFixture("obj", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .CoffObject)
     Swag.assert(doc.report.formatName == "COFF")
@@ -400,10 +400,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     bytes.resize(8 + 60 + 16)
 
     let fileName = writeFixture("lib", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Archive)
 
@@ -417,7 +417,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 #test
 {
     let fileName = Testing.tempFilePath("viewer_binary_scc_", ".scc")
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var writer: Scc.Writer
     writer.initialize(Guid128.random())
@@ -426,10 +426,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     let payload = [1'u8, 2, 3, 4, 5, 6, 7, 8]
     discard expect writer.addChunk(payload, {})
-    expect writer.saveAtomic(fileName.toString())
+    expect writer.saveAtomic(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Scc)
     Swag.assert(doc.report.formatName == "SCC")
@@ -482,10 +482,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     pokeText(&bytes, dylibAt + 24, "/usr/lib/libSystem.B.dylib")
 
     let fileName = writeFixture("macho", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .MachO)
     Swag.assert(doc.report.formatName == "Mach-O 64")
@@ -539,10 +539,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     poke(&bytes, endAt + 16, entryAt, 4)     // DirectoryOffset.
 
     let fileName = writeFixture("zip", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Zip)
     Swag.assert(doc.report.formatName == "ZIP")
@@ -586,10 +586,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     bytes.resize(34)
 
     let fileName = writeFixture("wasm", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Wasm)
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "2 sections"))
@@ -628,10 +628,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     poke(&bytes, 40, 8, 4)
 
     let fileName = writeFixture("riff", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Riff)
     Swag.assert(doc.report.formatName == "RIFF WAVE")
@@ -671,10 +671,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     bytes.add(Track)
 
     let fileName = writeFixture("midi", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Midi)
     Swag.assert(doc.report.formatName == binaryStrings().midi_File)
@@ -722,10 +722,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     pokeText(&bytes, nameAt + 18, "Fixtura")
 
     let fileName = writeFixture("font", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Font)
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "Fixtura"))
@@ -745,10 +745,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     pokeText(&bytes, 0, "\x89PNG\r\n\x1A\n")
 
     let fileName = writeFixture("png", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: BinaryDocument
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Unknown)
     Swag.assert(doc.report.formatName == "PNG image")
@@ -774,7 +774,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     defer host.shutdown()
     var result = openTestViewer(binaryViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.commands != null and result.collectMatches != null and result.isLoading != null)
-    let view = assume cast (*BinaryViewer, result.view)
+    let view = assume cast(*BinaryViewer, result.view)
     finishBinaryViewer(&host, view)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -782,7 +782,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
     var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName)
-    let view = assume cast (*BinaryViewer, viewerSession.view)
+    let view = assume cast(*BinaryViewer, viewerSession.view)
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -799,13 +799,13 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_view", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    let view = createTestViewer(&host, fileName, 1100, 600)
     Swag.assert(view.rowLines.count == view.doc.report.rows.count)
     Swag.assert(not view.list.iconMarginFirstCol)
     Swag.assert(Utf8.contains(view.details.toSlice(), "PE32+"))
@@ -850,13 +850,13 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_copy", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    let view = createTestViewer(&host, fileName, 1100, 600)
     view.copyReport()
     let all = Clipboard.getString()
     Swag.assert(Utf8.contains(all.toSlice(), "swagExport"))
@@ -875,13 +875,13 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_search", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    let view = createTestViewer(&host, fileName, 1100, 600)
     var matches: Array'Viewer.SearchMatch
     view.collectMatches("file offset of the PE signature", {}, &matches)
     Swag.assert(matches.count == 1)
@@ -910,13 +910,13 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_filter", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    let view = createTestViewer(&host, fileName, 1100, 600)
     view.applyFilter("file offset of the PE signature", {})
     while view.filterTimer do
         host.pump()
@@ -946,16 +946,20 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_window", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
-    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.resize(960, 680)
-    window.openFile(fileName.toString())
+    let index = createViewerPluginRegistry()
+
+    with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    {
+        .resize(960, 680)
+        .openFile(fileName)
+    }
+
     completeBinaryViewerWindow(&host, window)
 
     Swag.assert(window.currentActions == null)
@@ -975,7 +979,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     window.searchFilterMode = true
     window.updateSearchAvailability()
     window.searchBox.setText("header")
-    while assume cast (*BinaryViewer, window.currentView).filterTimer do
+    while assume cast(*BinaryViewer, window.currentView).filterTimer do
         host.pump()
     host.settleAnimations(window.commandBar, 4)
     image = host.render(window.commandBar)
@@ -988,7 +992,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_language", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
@@ -998,7 +1002,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
         host.shutdown()
     }
 
-    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    let view = createTestViewer(&host, fileName, 1100, 600)
     Swag.assert(findRow(&view.doc.report, "File") != null)
     let revealed = view.revealOffset(FixtureTextAt)
     Swag.assert(revealed)
@@ -1019,13 +1023,13 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 {
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_navigation", bytes.toSlice())
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
     defer host.shutdown()
 
-    let view    = createTestViewer(&host, fileName.toString(), 1100, 600)
+    let view    = createTestViewer(&host, fileName, 1100, 600)
     var reached = view.goToTypedOffset("400")
     Swag.assert(reached)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")

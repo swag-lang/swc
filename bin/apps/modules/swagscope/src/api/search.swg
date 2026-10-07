@@ -160,7 +160,7 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
             // for a viewer to outline or select.
             if not value.count do
                 continue
-            let found = cast(u64, cast(s64, (value.buffer - sourceData)))
+            let found = cast(u64, cast(s64, value.buffer - sourceData))
             if not options.wholeWord or isWholeWordMatch(source, found, value.count) do
                 result.add({major, minor, baseOffset + found, value.count})
         }

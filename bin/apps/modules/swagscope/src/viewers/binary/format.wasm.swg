@@ -84,7 +84,7 @@ func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
         }
 
         let stored = StrConv.toDisplaySize(size)
-        report.beginGroup(wasmSectionName(kind), stored.toString(), "", offset: bodyAt, length: size)
+        report.beginGroup(wasmSectionName(kind), stored, "", offset: bodyAt, length: size)
         report.numField(scan, 1, "id", cast(u64, kind), wasmSectionName(kind))
         report.sizeField(scan + 1, bodyAt - scan - 1, "size", size)
 
@@ -92,7 +92,7 @@ func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
         {
         case 0:
             let name = wasmName(image, bodyAt)
-            report.field(name.at, name.length, s.wasm_Custom, name.text.toString())
+            report.field(name.at, name.length, s.wasm_Custom, name.text)
 
         case 2:
             imports = reportWasmImports(image, report, bodyAt)
@@ -128,7 +128,7 @@ private func reportWasmImports(image: *BinaryImage, report: *BinaryReport, at: u
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.shr_Imports, total.toString(), "", offset: at, length: 0, open: true)
+    report.beginGroup(s.shr_Imports, total, "", offset: at, length: 0, open: true)
 
     var scan = header.next
     for shown
@@ -139,7 +139,7 @@ private func reportWasmImports(image: *BinaryImage, report: *BinaryReport, at: u
         let field = wasmName(image, module.at + module.length)
         let kind  = image.u8At(field.at + field.length)
         let label = Format.toString("%.%", module.text, field.text)
-        report.field(scan, field.at + field.length - scan + 1, label.toString(), "", wasmKindName(kind))
+        report.field(scan, field.at + field.length - scan + 1, label, "", wasmKindName(kind))
         scan = wasmSkipDescriptor(image, field.at + field.length + 1, kind)
     }
 
@@ -159,7 +159,7 @@ private func reportWasmExports(image: *BinaryImage, report: *BinaryReport, at: u
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.shr_Exports, total.toString(), "", offset: at, length: 0, open: true)
+    report.beginGroup(s.shr_Exports, total, "", offset: at, length: 0, open: true)
 
     var scan = header.next
     for shown
@@ -170,7 +170,7 @@ private func reportWasmExports(image: *BinaryImage, report: *BinaryReport, at: u
         let kind  = image.u8At(name.at + name.length)
         let index = wasmLeb(image, name.at + name.length + 1)
         let value = Format.toString("%", index.value)
-        report.field(scan, index.next - scan, name.text.toString(), value.toString(), wasmKindName(kind))
+        report.field(scan, index.next - scan, name.text, value, wasmKindName(kind))
         scan = index.next
     }
 
@@ -250,7 +250,7 @@ private func wasmLeb(image: *BinaryImage, at: u64)->WasmNumber
 
         let value = image.u8At(result.next)
         result.next  += 1
-        result.value |= cast(u64, (value & 0x7F)) << shift
+        result.value |= cast(u64, value & 0x7F) << shift
         if not (value & 0x80)
         {
             result.valid = true

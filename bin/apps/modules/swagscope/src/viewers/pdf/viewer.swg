@@ -131,7 +131,7 @@ private impl IWnd for PdfViewer
         {
             .outline.clear()
             for entry, index in .bookmarks do
-                .outline.add(entry.title.toString(), entry.level, index)
+                .outline.add(entry.title, entry.level, index)
             .outline.refresh()
         }
 
@@ -238,7 +238,7 @@ private impl PdfViewer
         if dialog.doModal() != Dialog.BtnOk do
             return
         let typed = dialog.text()
-        discard .goToTypedPage(typed.toString())
+        discard .goToTypedPage(typed)
     }
 
     mtd showZoomMenu()
@@ -303,10 +303,7 @@ private impl PdfViewer
             .dockStyle       = .Left
             .preferredSize.x = actionSize
             .toolTip         = pdfStrings().ui_Previous
-            .sigPressed      += func|view = me|(?)
-            {
-                view.pdfView.previousPage()
-            }
+            .sigPressed      += func|view = me|(?) { view.pdfView.previousPage() }
         }
 
         with .pageLabel = IconButton.create(.info, {}, {0, 0, PdfPageWidth, 32}, "scope.pdf.page", .CenterContent)
@@ -317,10 +314,7 @@ private impl PdfViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = pdfStrings().ui_GoToPage
-            .sigPressed += func|view = me|(?)
-            {
-                view.promptGoToPage()
-            }
+            .sigPressed += func|view = me|(?) { view.promptGoToPage() }
         }
 
         with .nextButton = IconButton.create(.info, .theme().icon(.ChevronRight, iconSize), {0, 0, actionSize, actionSize})
@@ -328,10 +322,7 @@ private impl PdfViewer
             .dockStyle       = .Left
             .preferredSize.x = actionSize
             .toolTip         = pdfStrings().ui_Next
-            .sigPressed      += func|view = me|(?)
-            {
-                view.pdfView.nextPage()
-            }
+            .sigPressed      += func|view = me|(?) { view.pdfView.nextPage() }
         }
     }
 
@@ -348,10 +339,7 @@ private impl PdfViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = pdfStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?)
-            {
-                view.showZoomMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
 
@@ -385,6 +373,7 @@ func createPdfViewer(host: Viewer.Host)
 {
     let services  = host.services()
     let infoWidth = pdfInfoWidth(host.contentParent().themeMetrics())
+
     with let info = Wnd.create'PdfInfoControls(host.createInfoGroup(infoWidth), {0, 0, infoWidth, 36})
     {
         .dockStyle       = .Left

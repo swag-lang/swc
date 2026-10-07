@@ -96,12 +96,12 @@ impl BinaryDocument
         head.beginGroup(s.rep_File, .report.formatName.toString(), .report.summary.toString(), offset: 0, length: .image.fileSize, open: true)
 
         let size = StrConv.toDisplaySize(.image.fileSize)
-        head.derived(s.rep_Size, size.toString())
+        head.derived(s.rep_Size, size)
 
         if .image.isBounded()
         {
             let read = StrConv.toDisplaySize(.image.bytes.count)
-            head.derived(s.rep_Read, read.toString(), s.rep_Bounded)
+            head.derived(s.rep_Read, read, s.rep_Bounded)
         }
 
         // The bytes and their printable rendering go in separate lanes: together they are wider
@@ -110,14 +110,14 @@ impl BinaryDocument
         if not magic.isEmpty()
         {
             let readable = .signatureAsText()
-            head.field(0, Math.min(.image.bytes.count, 16'u64), s.rep_FirstBytes, magic.toString(), readable.toString())
+            head.field(0, Math.min(.image.bytes.count, 16'u64), s.rep_FirstBytes, magic, readable)
         }
 
         if .image.bytes.count
         {
             let entropy = .entropy()
             let value   = Format.toString("%{f2} / 8", entropy)
-            head.derived(s.rep_Entropy, value.toString(), entropy > 7.2 ? s.rep_EntropyHigh : (entropy > 5 ? s.rep_EntropyMid : s.rep_EntropyLow))
+            head.derived(s.rep_Entropy, value, entropy > 7.2 ? s.rep_EntropyHigh : (entropy > 5 ? s.rep_EntropyMid : s.rep_EntropyLow))
         }
 
         if .image.truncated do
@@ -139,7 +139,7 @@ impl BinaryDocument
         for index in count
         {
             let value  = .image.bytes[index]
-            let digits = [cast(u8, (value >> 4)), value & 0xF]
+            let digits = [cast(u8, value >> 4), value & 0xF]
             if index do
                 text.add(' 'u8)
             for nibble in digits do

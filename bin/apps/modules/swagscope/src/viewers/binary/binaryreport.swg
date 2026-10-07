@@ -178,7 +178,7 @@ impl BinaryReport
         if total <= shown do
             return
         let text = Format.toString(binaryStrings().rep_NotListed, total - shown)
-        .note(text.toString())
+        .note(text)
     }
 
     // Returns the innermost row whose byte range contains `offset`, or `Swag.U64.Max`.

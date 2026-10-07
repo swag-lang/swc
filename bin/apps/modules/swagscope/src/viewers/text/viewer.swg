@@ -126,7 +126,7 @@ private func runTextStatistics(thread: Threading.Thread)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
 
-    var stream = catch File.openReadLive(view.fileName.toString()) as openError
+    var stream = catch File.openReadLive(view.fileName) as openError
     if openError != null
     {
         Atomic.exchange(&view.statisticsState, 2)
@@ -149,7 +149,7 @@ private func runTextStatistics(thread: Threading.Thread)
         if chunk.isEmpty() do
             break
 
-        counter.append(chunk.toString())
+        counter.append(chunk)
     }
 
     if thread.requestEnd do
@@ -535,12 +535,15 @@ impl TextViewer
 
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("75%", "scope.text.zoom75")
-        menu.addItem("100%", "scope.text.zoom100")
-        menu.addItem("125%", "scope.text.zoom125")
-        menu.addItem("150%", "scope.text.zoom150")
-        menu.addItem("200%", "scope.text.zoom200")
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem("75%", "scope.text.zoom75")
+            .addItem("100%", "scope.text.zoom100")
+            .addItem("125%", "scope.text.zoom125")
+            .addItem("150%", "scope.text.zoom150")
+            .addItem("200%", "scope.text.zoom200")
+        }
+
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.text.zoom75":  .setZoom(75)
@@ -662,7 +665,7 @@ impl TextViewer
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
 
-        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, (.bytesRead - .residentStart)) / cast(f32, .fileSize) : 0)
+        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, .bytesRead - .residentStart) / cast(f32, .fileSize) : 0)
         let residentEnd    = .residentOffsetY + residentHeight
         let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * TextStreamLookAhead
         let after          = .hasMore() and .bytesRead - .residentStart >= TextResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * TextStreamLookAhead > residentEnd
@@ -693,10 +696,7 @@ impl TextViewer
             .dockStyle = .Left
             .toolTip   = textStrings().ui_WrapOn
             .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|view = me|(?)
-            {
-                view.toggleWrap()
-            }
+            .sigCheckedChanged += func|view = me|(?) { view.toggleWrap() }
         }
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
@@ -710,10 +710,7 @@ impl TextViewer
                 .addItem(name)
             for candidate, index in TextEncodings where candidate == me.encoding do
                 .setSelectedIndex(cast(u32, index), notify: false)
-            .sigChanged += func|view = me|(?, index)
-            {
-                view.applyEncoding(TextEncodings[index])
-            }
+            .sigChanged += func|view = me|(?, index) { view.applyEncoding(TextEncodings[index]) }
         }
     }
 
@@ -731,10 +728,7 @@ impl TextViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = textStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?)
-            {
-                view.showZoomMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
 
@@ -747,10 +741,7 @@ impl TextViewer
             .marginLeft  = 12
             .marginRight = 12
             .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
-            .sigScrollPositionChanged += func|view = me|(?, oldPosition, newPosition)
-            {
-                view.followScroll(oldPosition, newPosition)
-            }
+            .sigScrollPositionChanged += func|view = me|(?, oldPosition, newPosition) { view.followScroll(oldPosition, newPosition) }
         }
     }
 
@@ -856,7 +847,7 @@ func createTextViewer(host: Viewer.Host)
 {
     let view = TextViewer.create(host)
     host.attachView(view)
-    host.setDetails(view.detailsText().toString())
+    host.setDetails(view.detailsText())
 
     with var search: Viewer.SearchApi
     {

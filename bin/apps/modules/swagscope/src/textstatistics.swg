@@ -76,7 +76,7 @@ impl TextStatisticsCounter
             let chunk = try stream.readTextChunk(256 * 1024, .Utf8)
             if chunk.isEmpty() do
                 return counter.finish()
-            counter.append(chunk.toString())
+            counter.append(chunk)
         }
     }
 }

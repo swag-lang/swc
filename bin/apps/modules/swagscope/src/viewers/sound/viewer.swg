@@ -180,7 +180,7 @@ func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: 
             sum  += level
         }
 
-        result[point] = {peak, sum / cast(f32, (last - first))}
+        result[point] = {peak, sum / cast(f32, last - first)}
     }
 
     return result
@@ -276,7 +276,7 @@ func waveformTickText(seconds, step: f32)->String
 {
     if seconds >= 60
     {
-        let minutes = cast(u32, (seconds / 60))
+        let minutes = cast(u32, seconds / 60)
         let rest    = cast(u32, Math.round(seconds - cast(f32, minutes) * 60))
         return Format.toString("%:%{02}", minutes, rest)
     }
@@ -325,11 +325,11 @@ private impl SoundWaveformView
             // The last graduation is pulled back inside the plot rather than dropped: a scale that
             // stops naming its end reads as a scale that was cut off.
             let text  = waveformTickText(seconds, step)
-            let width = Painter.measureString(text.toString(), font).width
+            let width = Painter.measureString(text, font).width
             let left  = Math.min(x, plot.right() - width)
             if left > written
             {
-                painter.drawString(left, baseY + WaveformTickHeight + 4, text.toString(), font, colors.label_TextFaint)
+                painter.drawString(left, baseY + WaveformTickHeight + 4, text, font, colors.label_TextFaint)
                 written = left + width + 12
             }
 
@@ -850,10 +850,7 @@ impl SoundViewer
             .dockStyle = .Left
             .toolTip   = soundStrings().ui_TipPlay
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                view.togglePlayback()
-            }
+            .sigPressed += func|view = me|(?) { view.togglePlayback() }
         }
 
         with .stopButton = IconButton.create(.commands, .theme().icon(.Stop, iconSize), {0, 0, buttonSize, buttonSize})
@@ -862,10 +859,7 @@ impl SoundViewer
             .margin.x  = 8
             .toolTip   = soundStrings().ui_TipStop
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                view.stopPlayback()
-            }
+            .sigPressed += func|view = me|(?) { view.stopPlayback() }
         }
 
         with .backwardButton = IconButton.create(.commands, .theme().icon(.SeekBackward, iconSize), {0, 0, buttonSize, buttonSize})
@@ -874,10 +868,7 @@ impl SoundViewer
             .margin.x  = 8
             .toolTip   = soundStrings().ui_TipBackward
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                view.seekRelative(-SoundSeekSeconds)
-            }
+            .sigPressed += func|view = me|(?) { view.seekRelative(-SoundSeekSeconds) }
         }
 
         with .forwardButton = IconButton.create(.commands, .theme().icon(.SeekForward, iconSize), {0, 0, buttonSize, buttonSize})
@@ -886,10 +877,7 @@ impl SoundViewer
             .margin.x  = 8
             .toolTip   = soundStrings().ui_TipForward
             .enable(false)
-            .sigPressed += func|view = me|(?)
-            {
-                view.seekRelative(SoundSeekSeconds)
-            }
+            .sigPressed += func|view = me|(?) { view.seekRelative(SoundSeekSeconds) }
         }
 
         with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
@@ -900,10 +888,7 @@ impl SoundViewer
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
             .enable(false)
-            .sigChanged += func|view = me|(slider)
-            {
-                view.setVolume(slider.value())
-            }
+            .sigChanged += func|view = me|(slider) { view.setVolume(slider.value()) }
         }
 
         with .muteButton = IconButton.create(.commands, .theme().icon(.Volume, iconSize), {0, 0, buttonSize, buttonSize}, flags: .Toggle)
@@ -913,10 +898,7 @@ impl SoundViewer
             .toolTip   = soundStrings().ui_TipMute
             .setCheckIndicator(.Frame)
             .enable(false)
-            .sigCheckedChanged += func|view = me|(button)
-            {
-                view.setMuted(button.isChecked)
-            }
+            .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
         }
 
         with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
@@ -932,16 +914,14 @@ impl SoundViewer
             .margin    = {12, 1, 12, 1}
             .toolTip   = soundStrings().ui_TipSeek
             .enable(false)
-            .sigEndChange += func|view = me|(slider)
-            {
-                view.seekSeconds(slider.value())
-            }
+            .sigEndChange += func|view = me|(slider) { view.seekSeconds(slider.value()) }
         }
     }
 
     func create(host: Viewer.Host)->*SoundViewer fail
     {
-        let services    = host.services()
+        let services = host.services()
+
         with let result = Wnd.create'SoundViewer(host.contentParent(), "scope.sound")
         {
             .backgroundStyle      = .View
@@ -982,7 +962,7 @@ private func runSoundViewerOpen(thread: Thread)
     let view    = cast(*SoundViewer, thread.userParam!)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
-    var sound = catch SoundFile.load(view.openFileName.toString(), preloadData: false) as openError
+    var sound = catch SoundFile.load(view.openFileName, preloadData: false) as openError
     if openError != null
     {
         view.openFailure = Errors.message(openError)
@@ -1003,7 +983,7 @@ func createSoundViewer(host: Viewer.Host)
     {
         let view = try SoundViewer.create(host)
         host.attachView(view)
-        host.setDetails(view.details.toString())
+        host.setDetails(view.details)
 
         with var lifecycle: Viewer.LifecycleApi
         {

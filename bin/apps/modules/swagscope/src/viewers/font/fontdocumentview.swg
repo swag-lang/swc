@@ -133,9 +133,9 @@ private impl FontDocumentView
         let family = .face!.familyName
         let style  = .face.styleName.isEmpty() ? fontStrings().ui_Regular : .face.styleName.toString()
 
-        painter.drawString(FontContentInset, .layout.nameTop, family.toString(), .fontName, colors.label_Text)
+        painter.drawString(FontContentInset, .layout.nameTop, family, .fontName, colors.label_Text)
         let metrics = Format.toString(fontStrings().ui_Metrics, style, .face.glyphCount, .face.unitsPerEm)
-        painter.drawString(FontContentInset, .layout.metricsTop, metrics.toString(), .fontCode, colors.label_TextFaint)
+        painter.drawString(FontContentInset, .layout.metricsTop, metrics, .fontCode, colors.label_TextFaint)
         painter.drawString(FontContentInset, .layout.captionTop, fontStrings().ui_Specimen, .fontLabel, colors.label_TextFaint)
 
         let sample = .sampleEdit.text()
@@ -143,7 +143,7 @@ private impl FontDocumentView
         {
             let top      = .layout.sampleTops[index]
             let sizeText = Format.toString("% px", size)
-            painter.drawString(FontContentInset, top + FontCellPadding, sizeText.toString(), .fontCode, colors.label_TextFaint)
+            painter.drawString(FontContentInset, top + FontCellPadding, sizeText, .fontCode, colors.label_TextFaint)
             painter.drawString(FontContentInset + FontSampleLabelWidth, top, sample, .sampleFont(size), colors.label_Text)
         }
     }
@@ -181,15 +181,15 @@ private impl FontDocumentView
                 painter.fillRoundRect(box, corner, corner, colors.wnd_Bk)
 
                 let codeTop   = box.bottom() - FontCellPadding - .fontCode.height
-                let codeWidth = Painter.measureString(cell.code.toString(), .fontCode).width
-                painter.drawString(box.horzCenter() - codeWidth * 0.5, codeTop, cell.code.toString(), .fontCode, colors.label_TextFaint)
+                let codeWidth = Painter.measureString(cell.code, .fontCode).width
+                painter.drawString(box.horzCenter() - codeWidth * 0.5, codeTop, cell.code, .fontCode, colors.label_TextFaint)
 
                 // The glyph is centered on the ink of its own line rather than on its line box, so a
                 // face that reserves room for accents it is not showing does not sit low in the cell
                 // while a compact one sits high.
-                let glyphWidth = Painter.measureString(cell.glyph.toString(), .fontGlyph).width
+                let glyphWidth = Painter.measureString(cell.glyph, .fontGlyph).width
                 let glyphTop   = .fontGlyph.opticalLineTop((box.y + FontCellPadding + codeTop) * 0.5)
-                painter.drawString(box.horzCenter() - glyphWidth * 0.5, glyphTop, cell.glyph.toString(), .fontGlyph, colors.label_Text)
+                painter.drawString(box.horzCenter() - glyphWidth * 0.5, glyphTop, cell.glyph, .fontGlyph, colors.label_Text)
             }
         }
     }
@@ -337,7 +337,7 @@ impl FontDocumentView
         .layout.columns = Math.max(1, cast(u32, ((usable + FontCellGap) / (FontCellWidth + FontCellGap))))
         .layout.rows    = (.cells.count + .layout.columns - 1) / .layout.columns
 
-        let gridWidth = cast(f32, .layout.columns) * FontCellWidth + cast(f32, (.layout.columns - 1)) * FontCellGap
+        let gridWidth = cast(f32, .layout.columns) * FontCellWidth + cast(f32, .layout.columns - 1) * FontCellGap
         .layout.gridLeft = Math.max(FontContentInset, (client.width - gridWidth) * 0.5)
 
         var grid = .fontCode.height

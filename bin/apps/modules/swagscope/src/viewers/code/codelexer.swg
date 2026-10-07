@@ -81,17 +81,17 @@ func codeShebang(source: string)->CodeShebang
     let lines = Tokenize.split(source, '\n'u8, maxSplit: 1)
     let line  = String.from(lines[0])
     let lower = line.toLower()
-    if Utf8.contains(lower.toString(), "python") do
+    if Utf8.contains(lower, "python") do
         return {true, .Python}
-    if Utf8.contains(lower.toString(), "ruby") do
+    if Utf8.contains(lower, "ruby") do
         return {true, .Ruby}
-    if Utf8.contains(lower.toString(), "perl") do
+    if Utf8.contains(lower, "perl") do
         return {true, .Perl}
-    if Utf8.contains(lower.toString(), "pwsh") or Utf8.contains(lower.toString(), "powershell") do
+    if Utf8.contains(lower, "pwsh") or Utf8.contains(lower, "powershell") do
         return {true, .PowerShell}
-    if Utf8.contains(lower.toString(), "deno") do
+    if Utf8.contains(lower, "deno") do
         return {true, .TypeScript}
-    if Utf8.contains(lower.toString(), "node") or Utf8.contains(lower.toString(), "bun") do
+    if Utf8.contains(lower, "node") or Utf8.contains(lower, "bun") do
         return {true, .JavaScript}
     return {true, .Shell}
 }
@@ -107,7 +107,7 @@ private func codeFileShebang(fileName: string)->CodeShebang
     let head = catch stream.readUtf8Chunk(512) as readError
     if readError != null do
         return {}
-    return codeShebang(head.toString())
+    return codeShebang(head)
 }
 
 // Reports whether the head of a `.m` file reads as Objective-C rather than MATLAB.
@@ -122,7 +122,7 @@ private func codeLooksLikeObjectiveC(fileName: string)->bool
     if readError != null do
         return false
     const Markers: [5] string = ["#import", "@interface", "@implementation", "@protocol", "@property"]
-    for marker in Markers where Utf8.contains(head.toString(), marker) do
+    for marker in Markers where Utf8.contains(head, marker) do
         return true
     return false
 }
@@ -600,7 +600,7 @@ impl IRichEditLexer for GenericCodeLexer
                         word += line.runeAt(index)
                     if .isCaseInsensitive() do
                         word = word.toLower()
-                    let found = .keywords.tryFind(word.toString())
+                    let found = .keywords.tryFind(word)
                     if found
                     {
                         codePaint(line, first, seek, .Keyword)

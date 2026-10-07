@@ -57,6 +57,19 @@ impl ViewerSession
         return true
     }
 
+    // Turns a session that failed into the standard error surface in `parent`, keeping only its reason.
+    //
+    // The windows the plugin had already created are destroyed first, so nothing it half-built
+    // stays behind the explanation.
+    mtd replaceWithFailure(parent: *Wnd)
+    {
+        var reason = #move .failureReason
+        .destroyWindows()
+        me[]  = {}
+        .failureReason = #move reason
+        .view = ViewerErrorView.create(parent, .failureReason)
+    }
+
     // Destroys every window the host created for this session, the document view last.
     //
     // The fields still name the destroyed windows afterwards; a caller that keeps the session
@@ -124,9 +137,12 @@ private impl ViewerPluginHost
 {
     mtd createGroup(parent: *Wnd, width: f32)->*Wnd
     {
-        let result = Wnd.create'Wnd(parent, {0, 0, width, 36})
-        result.backgroundStyle = .Transparent
-        result.preferredSize.x = width
+        with let result = Wnd.create'Wnd(parent, {0, 0, width, 36})
+        {
+            .backgroundStyle = .Transparent
+            .preferredSize.x = width
+        }
+
         return result
     }
 

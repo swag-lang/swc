@@ -61,7 +61,7 @@ private func loadFontViewerContent(fileName: string)->FontViewerContent fail
     result.face = try Face.load(result.bytes.toSlice())
 
     let cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(result.bytes.toSlice()))
-    result.typeFace = try TypeFace.create(cacheKey.toString(), result.bytes.toSlice())
+    result.typeFace = try TypeFace.create(cacheKey, result.bytes.toSlice())
     let style = result.face.styleName.isEmpty() ? fontStrings().ui_Regular : result.face.styleName.toString()
     if faceCount == 1 do
         result.details = Format.toString(fontStrings().ui_DetailsSingle, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm)
@@ -119,12 +119,15 @@ private impl FontViewer
 
     mtd showRangeMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(fontStrings().ui_BasicLatin, "scope.font.range.basic")
-        menu.addItem(fontStrings().ui_Latin1, "scope.font.range.latin1")
-        menu.addItem(fontStrings().ui_Greek, "scope.font.range.greek")
-        menu.addItem(fontStrings().ui_Cyrillic, "scope.font.range.cyrillic")
-        menu.addItem(fontStrings().ui_Symbols, "scope.font.range.symbols")
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem(fontStrings().ui_BasicLatin, "scope.font.range.basic")
+            .addItem(fontStrings().ui_Latin1, "scope.font.range.latin1")
+            .addItem(fontStrings().ui_Greek, "scope.font.range.greek")
+            .addItem(fontStrings().ui_Cyrillic, "scope.font.range.cyrillic")
+            .addItem(fontStrings().ui_Symbols, "scope.font.range.symbols")
+        }
+
         switch menu.doModal(.pageLabel, autoDestroy: true) orelse ""
         {
         case "scope.font.range.basic":    .document.goToCharacterPage(0x20)
@@ -266,10 +269,7 @@ impl FontViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().res.fontDefaultFs)
             .toolTip    = fontStrings().ui_CharacterRange
-            .sigPressed += func|view = me|(?)
-            {
-                view.showRangeMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showRangeMenu() }
         }
     }
 }

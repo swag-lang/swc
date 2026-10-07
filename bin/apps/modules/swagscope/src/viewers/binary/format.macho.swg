@@ -151,7 +151,7 @@ private func reportMachFat(image: *BinaryImage, report: *BinaryReport, wide: boo
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.mo_Fat, total.toString(), s.mo_FatDesc, offset: 0, length: 8 + count * step, open: true)
+    report.beginGroup(s.mo_Fat, total, s.mo_FatDesc, offset: 0, length: 8 + count * step, open: true)
 
     var names: String
     for index in shown
@@ -167,7 +167,7 @@ private func reportMachFat(image: *BinaryImage, report: *BinaryReport, wide: boo
             names += ", "
         names += machCpuName(cpu)
 
-        report.beginGroup(label.toString(), machCpuName(cpu), stored.toString(), offset: sliceAt, length: size, open: true)
+        report.beginGroup(label, machCpuName(cpu), stored, offset: sliceAt, length: size, open: true)
         report.hexField(entryAt, 4, "cputype", cast(u64, cpu), machCpuName(cpu))
         report.hexField(entryAt + 4, 4, "cpusubtype", cast(u64, image.u32At(entryAt + 4)))
         report.hexField(entryAt + 8, wide ? 8 : 4, "offset", sliceAt)
@@ -213,7 +213,7 @@ private func reportMachImage(image: *BinaryImage, report: *BinaryReport, at: u64
     report.hexField(headerAt + 12, 4, "filetype", cast(u64, result.kind), machFileTypeName(result.kind))
     report.numField(headerAt + 16, 4, "ncmds", count)
     report.sizeField(headerAt + 20, 4, "sizeofcmds", cmdSize)
-    report.hexField(headerAt + 24, 4, "flags", cast(u64, flags), names.toString())
+    report.hexField(headerAt + 24, 4, "flags", cast(u64, flags), names)
     report.endGroup()
 
     reportMachCommands(image, report, at, headerAt + (result.wide ? 32'u64 : 28), count, cmdSize, result.wide, open)
@@ -226,7 +226,7 @@ private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imag
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.mo_Commands, total.toString(), s.mo_CommandsDesc, offset: at, length: totalSize, open: open)
+    report.beginGroup(s.mo_Commands, total, s.mo_CommandsDesc, offset: at, length: totalSize, open: open)
 
     var libraries: Array'String
     var scan = at
@@ -254,7 +254,7 @@ private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imag
     if not libraries.isEmpty()
     {
         let counted = countText(libraries.count, s.word_Library, s.word_Libraries)
-        report.beginGroup(s.shr_Libraries, counted.toString(), "", open: open)
+        report.beginGroup(s.shr_Libraries, counted, "", open: open)
         for one in libraries do
             report.derived(one.toString(), "")
         report.endGroup()
@@ -285,7 +285,7 @@ private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, i
         let iniText  = machProtectionText(initial)
         let guard    = Format.toString(s.mo_Protection, maxText, iniText)
 
-        report.field(at + 8, 16, "segname", name.toString(), guard.toString())
+        report.field(at + 8, 16, "segname", name, guard)
         report.hexField(valueAt, step, "vmaddr", image.scalarAt(valueAt, step))
         report.sizeField(valueAt + step, step, "vmsize", image.scalarAt(valueAt + step, step))
         report.hexField(valueAt + step * 2, step, "fileoff", fileAt)
@@ -297,19 +297,19 @@ private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, i
         let offset  = cast(u64, image.u32At(at + 8))
         let path    = image.cstringAt(at + offset, size > offset ? size - offset : 0)
         let current = machVersionText(image.u32At(at + 16))
-        report.field(at + offset, path.length, "name", path.toString())
-        report.field(at + 16, 4, "current_version", current.toString())
+        report.field(at + offset, path.length, "name", path)
+        report.field(at + 16, 4, "current_version", current)
         if kind == 0x0C or kind == 0x18 do
             libraries.add(path)
 
     case 0x0E, 0x0F, 0x1C:
         let offset = cast(u64, image.u32At(at + 8))
         let path   = image.cstringAt(at + offset, size > offset ? size - offset : 0)
-        report.field(at + offset, path.length, kind == 0x1C ? "path" : "name", path.toString(), kind == 0x1C ? "" : s.shr_Interpreter)
+        report.field(at + offset, path.length, kind == 0x1C ? "path" : "name", path, kind == 0x1C ? "" : s.shr_Interpreter)
 
     case 0x1B:
         let identity = image.uuidTextAt(at + 8)
-        report.field(at + 8, 16, "uuid", identity.toString(), s.shr_BuildId)
+        report.field(at + 8, 16, "uuid", identity, s.shr_BuildId)
 
     case 0x28:
         report.hexField(at + 8, 8, "entryoff", image.u64At(at + 8), s.shr_Entry)
@@ -325,8 +325,8 @@ private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, i
         let minimum = machVersionText(image.u32At(at + 12))
         let sdk     = machVersionText(image.u32At(at + 16))
         report.numField(at + 8, 4, "platform", cast(u64, image.u32At(at + 8)))
-        report.field(at + 12, 4, "minos", minimum.toString())
-        report.field(at + 16, 4, "sdk", sdk.toString())
+        report.field(at + 12, 4, "minos", minimum)
+        report.field(at + 16, 4, "sdk", sdk)
     }
 }
 
@@ -340,7 +340,7 @@ private func reportMachSections(image: *BinaryImage, report: *BinaryReport, imag
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Section, s.word_Sections)
 
-    report.beginGroup(s.shr_Sections, total.toString(), "", offset: at, length: count * step)
+    report.beginGroup(s.shr_Sections, total, "", offset: at, length: count * step)
 
     for index in shown
     {
@@ -353,7 +353,7 @@ private func reportMachSections(image: *BinaryImage, report: *BinaryReport, imag
         let fileAt   = cast(u64, image.u32At(valueAt + wideStep * 2))
         let stored   = StrConv.toDisplaySize(size)
 
-        report.beginGroup(name.toString(), segment.toString(), stored.toString(), offset: imageAt + fileAt, length: size)
+        report.beginGroup(name, segment, stored, offset: imageAt + fileAt, length: size)
         report.hexField(valueAt, wideStep, "addr", image.scalarAt(valueAt, wideStep))
         report.sizeField(valueAt + wideStep, wideStep, "size", size)
         report.hexField(valueAt + wideStep * 2, 4, "offset", fileAt)

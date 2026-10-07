@@ -136,21 +136,29 @@ func writeZipFixture()->String
     host.setup(640, 480)
     defer host.shutdown()
 
-    let list = ListCtrl.createMultiColumns(&host.root)
-    list.addColumn("Name", 200)
-    list.addColumn("Size", 80)
-    list.compareLines = &compareArchiveTreeLines
+    with let list = ListCtrl.createMultiColumns(&host.root)
+    {
+        .addColumn("Name", 200)
+        .addColumn("Size", 80)
+        .compareLines = &compareArchiveTreeLines
+    }
 
-    let rootFile = list.createLine(null)
-    rootFile.setItem(0, "a.txt")
-    rootFile.setItem(1, "1 B")
-    rootFile.userData0 = cast(*void?, 1)
+    with let rootFile = list.createLine(null)
+    {
+        .setItem(0, "a.txt")
+        .setItem(1, "1 B")
+        .userData0 = cast(*void?, 1)
+    }
 
     let rootFolder = list.createLine("z-folder")
-    let childFile  = list.createLine(rootFolder)
-    childFile.setItem(0, "a.txt")
-    childFile.setItem(1, "1 B")
-    childFile.userData0 = cast(*void?, 2)
+
+    with let childFile = list.createLine(rootFolder)
+    {
+        .setItem(0, "a.txt")
+        .setItem(1, "1 B")
+        .userData0 = cast(*void?, 2)
+    }
+
     let childFolder = list.createLine("z-empty", parentLine: rootFolder)
 
     list.sort(0, persistent: true)
@@ -185,7 +193,7 @@ func writeZipFixture()->String
 
     for &entry in archive.entries
     {
-        let extension = Path.extension(entry.path.toString()) orelse ".bin"
+        let extension = Path.extension(entry.path) orelse ".bin"
         let output    = Gui.Testing.tempFilePath("scope-archive-entry-", extension)
         defer discard catch File.delete(output)
         expect extractZipEntry(archiveFile, entry, output)
@@ -241,13 +249,17 @@ func writeZipFixture()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let index  = createViewerPluginRegistry()
-    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.resize(1180, 720)
-    window.openFile(archiveFile)
+    let index = createViewerPluginRegistry()
+
+    with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    {
+        .resize(1180, 720)
+        .openFile(archiveFile)
+    }
+
     completeViewerWindowClassification(&host, window)
 
-    let viewer = assume cast (*ArchiveViewer, window.currentView)
+    let viewer = assume cast(*ArchiveViewer, window.currentView)
     while not viewer.load.isDone() do
         Threading.Thread.sleep(1'ms)
     host.fireTimer(viewer.loadTimer)
@@ -284,11 +296,11 @@ func writeZipFixture()->String
     host.fireTimer(viewer.previewTimer)
     Swag.assert(not viewer.previewFile.isEmpty())
 
-    let embedded = assume cast (*EmbeddedViewer, viewer.previewPane.children[0])
+    let embedded = assume cast(*EmbeddedViewer, viewer.previewPane.children[0])
     Swag.assert(embedded.choices[0].key == "text")
     Swag.assert(embedded.currentView != null)
 
-    let textView = assume cast (*TextViewer, embedded.currentView)
+    let textView = assume cast(*TextViewer, embedded.currentView)
     completeTextReads(&host, textView)
     host.fireTimer(textView.loadTimer)
 

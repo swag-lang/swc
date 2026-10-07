@@ -59,8 +59,9 @@ impl DocumentOutline
     {
         host.application().resources.addEmbedded(FrenchOutlineStringsName, FrenchOutlineStrings)
         Gui.registerStrings'DocumentOutlineStrings(&g_DocumentOutlineStrings, "scope.outline")
-        let theme       = host.contentParent().theme()
-        let side        = host.createSidePanel(276, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_DocumentOutlineStrings.title)
+        let theme = host.contentParent().theme()
+        let side  = host.createSidePanel(276, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_DocumentOutlineStrings.title)
+
         with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
         {
             .dockStyle       = .Center
@@ -69,7 +70,8 @@ impl DocumentOutline
             .toggle          = side.toggle
         }
 
-        let size        = themeCompactButtonSize(result.themeMetrics())
+        let size = themeCompactButtonSize(result.themeMetrics())
+
         with let header = Wnd.create'Wnd(result, {0, 0, 0, size})
         {
             .dockStyle       = .Top
@@ -151,9 +153,9 @@ impl DocumentOutline
         }
 
         // Every heading stays visible. Indentation expresses depth without disclosure controls.
-        let line = .list.createLine(label.toString())
+        let line = .list.createLine(label)
         line.level     = cast(u32, .levels.count)
-        line.userData0 = cast(*void, (target + 1))
+        line.userData0 = cast(*void, target + 1)
         .rows.add(line)
         .levels.add(level)
     }
@@ -184,7 +186,7 @@ impl DocumentOutline
         .headings.add(headings)
         .clear()
         for heading in headings do
-            .add(heading.title.toString(), heading.level, heading.sourceOffset)
+            .add(heading.title, heading.level, heading.sourceOffset)
         .refresh()
     }
 

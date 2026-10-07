@@ -26,7 +26,7 @@ func writeStreamedFile(size: u64)->String
     var payload: Array'u8
     payload.resize(size)
     for index in size do
-        payload[index] = cast(u8, (index & 0xFF))
+        payload[index] = cast(u8, index & 0xFF)
     discard expect File.writeAllBytes(fileName, payload.toSlice())
     return fileName
 }
@@ -43,7 +43,7 @@ func writePreviewFile()->String
     for 42 do
         payload.add(0)
     for index in 64 do
-        payload.add(cast(u8, (0xC0 + index % 0x40)))
+        payload.add(cast(u8, 0xC0 + index % 0x40))
     let text = "name=value; the text column stays readable"
     payload.add(cast(const [..] u8, text))
     for index in 128 do
@@ -58,7 +58,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     registerHexStrings(&host.app)
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
     var viewerSession = openTestViewer(hexViewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
-    let view          = assume cast (*HexViewer, viewerSession.view)
+    let view          = assume cast(*HexViewer, viewerSession.view)
     completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
     assertViewerInfoButton(view.zoomLabel!)
     view.dockStyle = .Center
@@ -104,7 +104,7 @@ func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*HexVi
     Swag.assert(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     completeHexViewerOpen(host, window)
-    return assume cast (*HexViewer, window.currentView)
+    return assume cast(*HexViewer, window.currentView)
 }
 
 func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
@@ -129,7 +129,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     var result = openTestViewer(hexViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let view = assume cast (*HexViewer, result.view)
+    let view = assume cast(*HexViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -281,11 +281,11 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     for one in result.strings
     {
         if one.kind == .Ascii and one.offset == 16 and one.length == ascii.count do
-            foundAscii = one.text.toString() == ascii
+            foundAscii = one.text == ascii
         if one.kind == .Utf16Little and one.offset == 64 and one.length == little.count * 2 do
-            foundLittle = one.text.toString() == little
+            foundLittle = one.text == little
         if one.kind == .Utf16Big and one.offset == 96 and one.length == big.count * 2 do
-            foundBig = one.text.toString() == big
+            foundBig = one.text == big
     }
 
     Swag.assert(foundAscii and foundLittle and foundBig)
@@ -473,7 +473,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     let last = StreamedFileSize - 1
     Swag.assert(doc.ensure(last - 31, 32))
-    Swag.assert(doc.byteAt(last) == cast(u8, (last & 0xFF)))
+    Swag.assert(doc.byteAt(last) == cast(u8, last & 0xFF))
     Swag.assert(doc.window.count <= HexWindowSize)
     Swag.assert(doc.windowStart > 0)
     Swag.assert(not doc.isResident(0))
@@ -653,10 +653,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
-    let grid = view.grid
-    grid.setBytesPerRow(16, false)
-    grid.moveCaret(0x41, false)
-    grid.moveCaret(0x44, true)
+
+    with let grid = view.grid
+    {
+        .setBytesPerRow(16, false)
+        .moveCaret(0x41, false)
+        .moveCaret(0x44, true)
+    }
 
     grid.copySelection(.Bytes)
     Swag.assert(Clipboard.getString() == "41 42 43 44")
@@ -768,9 +771,12 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
-    let grid = view.grid
-    grid.doc.fileSize = 0x1_0000_1234
-    grid.refreshLayout()
+
+    with let grid = view.grid
+    {
+        .doc.fileSize = 0x1_0000_1234
+        .refreshLayout()
+    }
 
     Swag.assert(grid.offsetDigits == 16)
     Swag.assert(grid.doc.fileSize > Swag.U32.Max)
@@ -827,9 +833,12 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     host.fireTimer(grid.selectionTimer)
     Swag.assert(grid.topRow > firstTop and grid.selectionLength() > 1)
 
-    let other = Wnd.create'Wnd(&host.root, "hex.capture.other", {0, 0, 40, 20})
-    other.focusPolicy = .Tab
-    other.setFocus()
+    with let other = Wnd.create'Wnd(&host.root, "hex.capture.other", {0, 0, 40, 20})
+    {
+        .focusPolicy = .Tab
+        .setFocus()
+    }
+
     Swag.assert(not grid.selecting and grid.selectionTimer == null and grid.mouseCapture() == null)
 }
 
@@ -958,10 +967,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let view = createTestViewer(&host, fileName, 860, 460)
-    view.grid.setBytesPerRow(16, false)
-    view.grid.moveCaret(0x80, false)
-    view.grid.moveCaret(0x89, true)
+    with let view = createTestViewer(&host, fileName, 860, 460)
+    {
+        .grid.setBytesPerRow(16, false)
+        .grid.moveCaret(0x80, false)
+        .grid.moveCaret(0x89, true)
+    }
+
     var searchHits: Array'Viewer.SearchMatch
     searchHits.add({offset: 0x15, length: 4})
     searchHits.add({offset: 0x78, length: 6})

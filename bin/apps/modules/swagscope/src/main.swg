@@ -37,7 +37,7 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     for plugin in registry.plugins where plugin.matchNames
     {
         for extension in plugin.selectors where extension[] != "*" and extension[].toString()[0] == '.' do
-            Env.associateFileExtension(extension[].toString(), ApplicationId, Env.executablePath())
+            Env.associateFileExtension(extension[], ApplicationId, Env.executablePath())
     }
 }
 
@@ -57,18 +57,9 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     // shared worker pool. Starting it here keeps that cost out of the first opened file.
     Swag.startWorkers()
 
-    let appIcon = expect Image.decode(".png", AppIcon)
-    g_App.setAppIcon(appIcon)
+    g_App.setAppIcon(expect Image.decode(".png", AppIcon))
+    g_App.setStatePath(Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "settings.scc"))
     registerAppStrings(&g_App.resources)
-
-    let stateRoot = Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag")
-    if not Directory.exists(stateRoot) do
-        discard catch Directory.create(stateRoot)
-    let stateFolder = Path.combine(stateRoot, "scope")
-    if not Directory.exists(stateFolder) do
-        discard catch Directory.create(stateFolder)
-    if Directory.exists(stateFolder) do
-        g_App.setStatePath(Path.combine(stateFolder, "settings.scc"))
 
     let surface = try g_App.createSurface(80, 50, ViewerMinWidth, 680, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
     g_App.theme.setSwagDark()
@@ -85,13 +76,13 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
         // The review owns termination after the last fixture. A compiler smoke frame bound would
         // otherwise be allowed to report success before a progressive viewer had finished.
         g_App.maxRunFrame = Swag.U32.Max
-        window.reviewSmokeFixtures(smokeDirectory.toString())
+        window.reviewSmokeFixtures(smokeDirectory)
     }
     else
     {
         let startupFile = viewerStartupFile(Env.arguments())
         if not startupFile.isEmpty() do
-            window.queueFile(startupFile.toString())
+            window.queueFile(startupFile)
     }
 
     surface.show()

@@ -47,7 +47,7 @@ private impl HexHistogramView
         let y        = point.y - geometry.origin.y
         if x < 0 or y < 0 or x >= geometry.pitch * 16 or y >= geometry.pitch * 16 do
             return Swag.U32.Max
-        return cast(u32, (y / geometry.pitch)) * 16 + cast(u32, (x / geometry.pitch))
+        return cast(u32, y / geometry.pitch) * 16 + cast(u32, x / geometry.pitch)
     }
 }
 
@@ -201,7 +201,7 @@ private impl HexAnalysisView
         let value = &.result.strings[index]
         line.setItem(0, .offsetText(value.offset).toString())
         line.setItem(1, .encodingName(value.kind))
-        line.setItem(2, value.text.toString())
+        line.setItem(2, value.text)
     }
 
     mtd navigateSelection(list: *ListCtrl)
@@ -249,6 +249,7 @@ private impl HexAnalysisView
     {
         let compactSize = themeCompactButtonSize(.themeMetrics())
         let rowIconSize = themeRowIconSize(.themeMetrics())
+
         with let header = Wnd.create'Wnd(me, {0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
@@ -259,10 +260,7 @@ private impl HexAnalysisView
         {
             .dockStyle  = .Right
             .toolTip    = hexStrings().ui_AnalysisClose
-            .sigPressed += func|view = me|(?)
-            {
-                view.sigClose.call(view)
-            }
+            .sigPressed += func|view = me|(?) { view.sigClose.call(view) }
         }
 
         with .cancelButton = IconButton.create(header, .theme().icon(.Stop, rowIconSize), {0, 0, compactSize, compactSize})
@@ -270,20 +268,14 @@ private impl HexAnalysisView
             .dockStyle = .Right
             .toolTip   = hexStrings().ui_AnalysisCancel
             .hide()
-            .sigPressed += func|view = me|(?)
-            {
-                view.sigCancel.call(view)
-            }
+            .sigPressed += func|view = me|(?) { view.sigCancel.call(view) }
         }
 
         with .analyzeButton = IconButton.create(header, .theme().icon(.Play, rowIconSize), {0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
             .toolTip    = hexStrings().ui_AnalysisRun
-            .sigPressed += func|view = me|(?)
-            {
-                view.sigAnalyze.call(view)
-            }
+            .sigPressed += func|view = me|(?) { view.sigAnalyze.call(view) }
         }
 
         with .titleLabel = Label.create(header, hexStrings().ui_Analysis, {0, 0, 0, compactSize})
@@ -404,10 +396,7 @@ impl HexAnalysisView
 
         with result.histogram = HexHistogramView.create(result)
         {
-            .sigByteChanged += func|view = result|(?, value)
-            {
-                view.updateByteDetail(value)
-            }
+            .sigByteChanged += func|view = result|(?, value) { view.updateByteDetail(value) }
         }
 
         with result.byteLabel = Label.create(result, hexStrings().ui_AnalysisByteHint, {0, 0, 0, HexAnalysisLabelHeight}, null, .SecondaryText | .Ellipsis)

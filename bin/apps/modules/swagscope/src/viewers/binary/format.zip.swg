@@ -79,7 +79,7 @@ func reportZipArchive(image: *BinaryImage, report: *BinaryReport)
     if commentLen
     {
         let comment = image.fixedTextAt(endAt + 22, Math.min(commentLen, 512'u64))
-        report.field(endAt + 22, commentLen, s.zip_Comment, comment.toString())
+        report.field(endAt + 22, commentLen, s.zip_Comment, comment)
     }
 
     // A Zip64 locator sits immediately in front of the record when the archive outgrew the fields
@@ -97,7 +97,7 @@ private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, si
     let end   = at + size
     let total = countText(declared, s.word_Entry, s.word_Entries)
 
-    report.beginGroup(s.zip_Directory, total.toString(), s.zip_DirectoryDesc, offset: at, length: size, open: true)
+    report.beginGroup(s.zip_Directory, total, s.zip_DirectoryDesc, offset: at, length: size, open: true)
 
     var scan     = at
     var shown    = 0'u64
@@ -128,9 +128,9 @@ private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, si
         // A name that ends in a separator is a folder the archive recorded rather than a payload,
         // and it has no bytes anywhere to point at.
         let folder = nameLen and (name.toString()[nameLen - 1] == '/'u8 or name.toString()[nameLen - 1] == '\\'u8)
-        report.beginGroup(name.toString(), folder ? s.zip_Folder : stored.toString(), zipMethodName(method), offset: folder ? Swag.U64.Max : localAt, length: folder ? 0 : compressed + 30 + nameLen)
+        report.beginGroup(name, folder ? s.zip_Folder : stored, zipMethodName(method), offset: folder ? Swag.U64.Max : localAt, length: folder ? 0 : compressed + 30 + nameLen)
 
-        report.field(scan + 12, 4, "Modified", stamp.toString())
+        report.field(scan + 12, 4, "Modified", stamp)
         report.numField(scan + 10, 2, s.zip_Method, cast(u64, method), zipMethodName(method))
         report.hexField(scan + 16, 4, "CRC-32", cast(u64, crc))
         report.sizeField(scan + 20, 4, "CompressedSize", compressed)
@@ -142,7 +142,7 @@ private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, si
         if plain and not folder
         {
             let ratio = Format.toString(s.zip_Ratio, compressed * 100 / plain)
-            report.derived(s.zip_Ratio, ratio.toString())
+            report.derived(s.zip_Ratio, ratio)
         }
 
         report.endGroup()

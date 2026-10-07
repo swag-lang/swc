@@ -78,7 +78,7 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
     var result: retval
     let extension = String.from(Path.extension(fileName) orelse "").toLower()
     result.information.add(.Image, group: true)
-    result.information.add(.Format, extension.toUpper().toString())
+    result.information.add(.Format, extension.toUpper())
     if extension == ".svg"
     {
         result.drawing      = try loadViewerDrawing(fileName)
@@ -485,7 +485,8 @@ private impl ImageViewer
     {
         let services     = host.services()
         let navigateFile = services.navigateFile
-        with let result  = Wnd.create'ImageViewer(host.contentParent(), "scope.image")
+
+        with let result = Wnd.create'ImageViewer(host.contentParent(), "scope.image")
         {
             .backgroundStyle      = .View
             .navigateFile         = navigateFile
@@ -521,10 +522,7 @@ private impl ImageViewer
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipPrevious
             .enable(me.navigateFile != null)
-            .sigPressed += func|view = me|(?)
-            {
-                view.navigate(-1)
-            }
+            .sigPressed += func|view = me|(?) { view.navigate(-1) }
         }
 
         with .nextButton = IconButton.create(.actions, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
@@ -532,10 +530,7 @@ private impl ImageViewer
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipNext
             .enable(me.navigateFile != null)
-            .sigPressed += func|view = me|(?)
-            {
-                view.navigate(1)
-            }
+            .sigPressed += func|view = me|(?) { view.navigate(1) }
         }
 
         with .transformButton = IconButton.create(.actions, .theme().icon(.Redo, themeActionIconSize(.themeMetrics())), {0, 0, themeDropDownButtonWidth(.themeMetrics()), themeActionButtonSize(.themeMetrics())}, flags: .CenterContent)
@@ -544,10 +539,7 @@ private impl ImageViewer
             .margin.x  = 8
             .toolTip   = imageStrings().ui_TipTransform
             .setArrowPosition(.RightUpward)
-            .sigPressed += func|view = me|(?)
-            {
-                view.showTransformMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showTransformMenu() }
         }
 
         with .playModeButton = Viewer.PlaybackButton.create(.actions, me, playback, showSlideDuration: true)
@@ -578,10 +570,7 @@ private impl ImageViewer
             .dockStyle = .Left
             .margin    = {6, 1, 6, 1}
             .hide()
-            .sigChanged += func|view = me|(slider)
-            {
-                view.imageView.setFrameIndex(cast(s32, Math.round(slider.value())))
-            }
+            .sigChanged += func|view = me|(slider) { view.imageView.setFrameIndex(cast(s32, Math.round(slider.value()))) }
         }
 
         with .frameLabel = Label.create(.actions, "", {0, 0, 58, 36}, null, .SecondaryText)
@@ -604,10 +593,7 @@ private impl ImageViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = imageStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?)
-            {
-                view.showZoomMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
 
@@ -630,7 +616,7 @@ private impl ImageViewer
             .sigDecodeFailed += func|view = me|(imageView)
             {
                 if view.reportFailure do
-                    view.reportFailure(view, imageView.movie.failureReason.toString())
+                    view.reportFailure(view, imageView.movie.failureReason)
             }
         }
     }

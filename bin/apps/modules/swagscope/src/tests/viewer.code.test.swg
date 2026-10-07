@@ -64,9 +64,9 @@ struct CodeLanguageSample
         host.shutdown()
     }
 
-    var result = openTestViewer(codeViewerPlugin(), &host.root, fileName.toString(), infoParent: &host.root)
+    var result = openTestViewer(codeViewerPlugin(), &host.root, fileName, infoParent: &host.root)
     Swag.assert(result.view != null and result.info != null)
-    let view = assume cast (*CodeViewer, result.view)
+    let view = assume cast(*CodeViewer, result.view)
     assertViewerInfoButton(view.zoomLabel!)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
 
@@ -136,9 +136,11 @@ struct CodeLanguageSample
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    let view = CodeViewer.create(&host.root, fileName)
-    view.resize(640, 360)
-    view.applyLayout()
+    with let view = CodeViewer.create(&host.root, fileName)
+    {
+        .resize(640, 360)
+        .applyLayout()
+    }
 
     let beforeEnd = view.editor.scrollPosition()
     var end       = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
@@ -162,9 +164,12 @@ struct CodeLanguageSample
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    let view = CodeViewer.create(&host.root, fileName)
-    view.resize(640, 360)
-    view.applyLayout()
+    with let view = CodeViewer.create(&host.root, fileName)
+    {
+        .resize(640, 360)
+        .applyLayout()
+    }
+
     discard host.render(view)
     view.updateEstimatedHeight()
 

@@ -106,7 +106,7 @@ impl ViewerReadingState
         }
 
         if key == "markdown" and session.info do
-            .zoom = assume cast (*MarkdownZoomButton, session.info.children[0]).zoomPercent
+            .zoom = assume cast(*MarkdownZoomButton, session.info.children[0]).zoomPercent
     }
 
     // Applies the recorded reading scale to the reloaded `session`, then arms [[ViewerReadingState.restore]].
@@ -130,7 +130,7 @@ impl ViewerReadingState
         }
 
         if .viewer == "markdown" and session.info do
-            assume cast (*MarkdownZoomButton, session.info.children[0]).applyZoom(.zoom)
+            assume cast(*MarkdownZoomButton, session.info.children[0]).applyZoom(.zoom)
         .restoring = true
         .contentSettingsApplied = false
     }

@@ -171,7 +171,7 @@ impl CodeViewer
             return
         }
 
-        .editor.addText(chunk.toString())
+        .editor.addText(chunk)
         let position = catch .stream.position() as positionError
         if positionError == null do
             .bytesRead = position
@@ -206,14 +206,14 @@ impl CodeViewer
 
             let previousHeight = Math.max(.virtualHeight, .editor.scrollableClientRect().height)
             .residentStart = actual
-            .editor.setText(chunk.toString())
+            .editor.setText(chunk)
             let position = catch .stream.position() as positionError
             .bytesRead     = positionError == null ? position : actual + chunk.length
             .hasText       = not chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
             if text.count do
-                Viewer.highlightRichEditMatch(.editor, chunk.toString(), requested - actual, text.count)
+                Viewer.highlightRichEditMatch(.editor, chunk, requested - actual, text.count)
             .scheduleMore()
             return true
         }
@@ -236,12 +236,15 @@ impl CodeViewer
     {
         if not .zoomLabel do
             return
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("75%", "scope.code.zoom75")
-        menu.addItem("100%", "scope.code.zoom100")
-        menu.addItem("125%", "scope.code.zoom125")
-        menu.addItem("150%", "scope.code.zoom150")
-        menu.addItem("200%", "scope.code.zoom200")
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem("75%", "scope.code.zoom75")
+            .addItem("100%", "scope.code.zoom100")
+            .addItem("125%", "scope.code.zoom125")
+            .addItem("150%", "scope.code.zoom150")
+            .addItem("200%", "scope.code.zoom200")
+        }
+
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.code.zoom75":  .setZoom(75)
@@ -291,7 +294,7 @@ impl CodeViewer
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
 
-        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, (.bytesRead - .residentStart)) / cast(f32, .fileSize) : 0)
+        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, .bytesRead - .residentStart) / cast(f32, .fileSize) : 0)
         let residentEnd    = .residentOffsetY + residentHeight
         let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * CodeStreamLookAhead
         let after          = .hasMore() and .bytesRead - .residentStart >= CodeResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * CodeStreamLookAhead > residentEnd
@@ -346,10 +349,7 @@ impl CodeViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = codeStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?)
-            {
-                view.showZoomMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
 
@@ -521,7 +521,7 @@ func createCodeViewer(host: Viewer.Host)
     let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(ViewerZoomSlotWidth))
     if not view.failureReason.isEmpty()
     {
-        host.reject(view.failureReason.toString())
+        host.reject(view.failureReason)
         view.destroy()
         return
     }

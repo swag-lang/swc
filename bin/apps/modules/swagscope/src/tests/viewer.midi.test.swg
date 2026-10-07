@@ -9,7 +9,7 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
 {
     let fileName = midiViewerFixturePath()
 
-    let document = expect loadMidiDocument(fileName.toString())
+    let document = expect loadMidiDocument(fileName)
     Swag.assert(document.format == 0 and document.division == 480)
     Swag.assert(document.tracks.count == 1 and document.tracks[0].name == "Piano Roll")
     Swag.assert(document.notes.count == 7 and document.tracks[0].noteCount == 7)
@@ -59,22 +59,27 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Top
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
+
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Top
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
 
     let fileName = midiViewerFixturePath()
-    var result   = openTestViewer(midiViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar, infoParent: infoBar)
+    var result   = openTestViewer(midiViewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = assume cast (*MidiViewer, result.view)
+    let viewer = assume cast(*MidiViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     assertViewerInfoButton(viewer.zoomLabel)
     Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
@@ -117,7 +122,7 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     defer host.shutdown()
     var result = openTestViewer(midiViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let viewer = assume cast (*MidiViewer, result.view)
+    let viewer = assume cast(*MidiViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

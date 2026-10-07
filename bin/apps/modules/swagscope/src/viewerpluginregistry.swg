@@ -105,7 +105,7 @@ impl ViewerPluginRegistry
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no icon document", plugin.key).toString())}
         if plugin.create == null do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no creation callback", plugin.key).toString())}
-        if plugin.smokeFixture.isEmpty() or (Path.fileName(plugin.smokeFixture.toString()) orelse "") != plugin.smokeFixture.toString() do
+        if plugin.smokeFixture.isEmpty() or (Path.fileName(plugin.smokeFixture) orelse "") != plugin.smokeFixture.toString() do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' needs one smoke-fixture basename", plugin.key).toString())}
         if plugin.selectors.isEmpty() and not plugin.probe do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no selector or content probe", plugin.key).toString())}
@@ -137,13 +137,13 @@ impl ViewerPluginRegistry
         let extension = String.from(Path.extension(fileName) orelse "").toLower()
         let baseName  = String.from(Path.fileName(fileName) orelse "").toLower()
 
-        for plugin, index in .plugins where .matches(plugin, baseName.toString(), extension.toString(), wildcard: false)
+        for plugin, index in .plugins where .matches(plugin, baseName, extension, wildcard: false)
         {
             pluginIndex[] = index
             return true
         }
 
-        for plugin, index in .plugins where .matches(plugin, baseName.toString(), extension.toString(), wildcard: true)
+        for plugin, index in .plugins where .matches(plugin, baseName, extension, wildcard: true)
         {
             pluginIndex[] = index
             return true
@@ -168,7 +168,7 @@ impl ViewerPluginRegistry
         let head    = readProbeHead(fileName)
         var content = Viewer.ProbeContent{fileName: fileName, head: head.toSlice(), claimedText: true}
 
-        for plugin, index in .plugins where plugin.matchNames and .matches(plugin, baseName.toString(), extension.toString(), wildcard: false)
+        for plugin, index in .plugins where plugin.matchNames and .matches(plugin, baseName, extension, wildcard: false)
         {
             result.add({index, plugin.key})
             matched[index]      = true
@@ -184,7 +184,7 @@ impl ViewerPluginRegistry
             content.claimedText = content.claimedText and plugin.textual
         }
 
-        for plugin, index in .plugins where not matched[index] and .matches(plugin, baseName.toString(), extension.toString(), wildcard: true) do
+        for plugin, index in .plugins where not matched[index] and .matches(plugin, baseName, extension, wildcard: true) do
             result.add({index, plugin.key})
         return result
     }
@@ -201,8 +201,8 @@ impl ViewerPluginRegistry
         var anyA, anyB: bool
         for plugin in .plugins where plugin.matchNames
         {
-            let matchA = .matches(plugin, baseA.toString(), extensionA.toString(), wildcard: false)
-            let matchB = .matches(plugin, baseB.toString(), extensionB.toString(), wildcard: false)
+            let matchA = .matches(plugin, baseA, extensionA, wildcard: false)
+            let matchB = .matches(plugin, baseB, extensionB, wildcard: false)
             if matchA and matchB do
                 return true
             anyA = anyA or matchA
@@ -219,7 +219,7 @@ impl ViewerPluginRegistry
     {
         let extension = String.from(Path.extension(fileName) orelse "").toLower()
         let baseName  = String.from(Path.fileName(fileName) orelse "").toLower()
-        for plugin in .plugins where plugin.matchNames and .matches(plugin, baseName.toString(), extension.toString(), wildcard: false) do
+        for plugin in .plugins where plugin.matchNames and .matches(plugin, baseName, extension, wildcard: false) do
             return true
         return false
     }

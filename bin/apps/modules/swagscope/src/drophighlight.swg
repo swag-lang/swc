@@ -39,10 +39,12 @@ impl ViewerDropHighlight
 {
     func create(parent: *Wnd)->*ViewerDropHighlight
     {
-        let result = Wnd.create'ViewerDropHighlight(parent, "scope.drop.highlight")
-        result.dockStyle       = .Center
-        result.backgroundStyle = .Transparent
-        result.wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
+        with let result = Wnd.create'ViewerDropHighlight(parent, "scope.drop.highlight")
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+            .wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
+        }
 
         with result.prompt = Label.create(result, appStrings().ui_DropTitle)
         {

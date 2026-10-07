@@ -44,7 +44,7 @@ using Core, Pixel, Gui
 
     var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    let view = assume cast (*TableViewer, result.view)
+    let view = assume cast(*TableViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
@@ -71,17 +71,17 @@ using Core, Pixel, Gui
     for 8 * 1024 do
         giant += "z"
 
-    let leading = tableCellPreviewRange(giant.toString())
+    let leading = tableCellPreviewRange(giant)
     Swag.assert(leading.start == 0 and leading.end <= TableCellPreviewBytes)
 
-    let focused = tableCellPreviewRange(giant.toString(), 8 * 1024)
+    let focused = tableCellPreviewRange(giant, 8 * 1024)
     Swag.assert(focused.start > 0 and focused.end - focused.start <= TableCellPreviewBytes)
     Swag.assert(focused.start <= 8 * 1024 and focused.end >= 8 * 1024 + ("needle").count)
 
     var unicode = String.from("x")
     for 400 do
         unicode += "\U0001F642"
-    let unicodeRange = tableCellPreviewRange(unicode.toString())
+    let unicodeRange = tableCellPreviewRange(unicode)
     Swag.assert(Utf8.isValid(unicode.toSlice()[unicodeRange.start until unicodeRange.end]))
 
     var view: TableViewer
@@ -122,7 +122,7 @@ using Core, Pixel, Gui
     Swag.assert(view.list.header.items[0]!.name.raw != oldHeading)
     Swag.assert(view.list.header.items[1]!.name.raw == "Column 2")
     Swag.assert(view.list.header.items[2]!.name.raw == Format.toString(tableStrings().ui_Column, 3))
-    Swag.assert(Utf8.contains(details.toString(), tableStrings().ui_Row))
+    Swag.assert(Utf8.contains(details, tableStrings().ui_Row))
     Swag.assert(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
@@ -146,7 +146,7 @@ using Core, Pixel, Gui
 
     var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
-    let view = assume cast (*TableViewer, result.view)
+    let view = assume cast(*TableViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
 

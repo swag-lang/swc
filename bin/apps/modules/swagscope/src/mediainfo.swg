@@ -167,13 +167,13 @@ impl MediaInfoData
                 }
 
                 for property in properties do
-                    .addText(property.name().toString(), property.value.toString())
+                    .addText(property.name(), property.value)
                 continue
             }
 
             var tag: String
             for byte in record.tag do
-                tag += cast(rune, (byte >= 32 ? byte : '?'))
+                tag += cast(rune, byte >= 32 ? byte : '?')
             if tag.isEmpty() do
                 tag = Format.toString("APP%", record.signature)
             let bytes = record.toSlice()
@@ -183,7 +183,7 @@ impl MediaInfoData
             if pngText
             {
                 for index in Math.min(bytes.count, 4096) do
-                    text += cast(rune, (bytes[index] >= 32 or bytes[index] == 10 or bytes[index] == 9 ? bytes[index] : ' '))
+                    text += cast(rune, bytes[index] >= 32 or bytes[index] == 10 or bytes[index] == 9 ? bytes[index] : ' ')
                 if bytes.count > 4096 do
                     text += "…"
             }
@@ -192,7 +192,7 @@ impl MediaInfoData
                 text = StrConv.toDisplaySize(bytes.count)
             }
 
-            .addText(tag.toString(), text.toString())
+            .addText(tag, text)
         }
     }
 }
@@ -221,8 +221,9 @@ impl MediaInfoPanel
     func create(host: Viewer.Host)->*MediaInfoPanel
     {
         registerMediaInfoStrings(host.application())
-        let theme       = host.contentParent().theme()
-        let side        = host.createSidePanel(368, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_MediaInfoStrings.title)
+        let theme = host.contentParent().theme()
+        let side  = host.createSidePanel(368, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_MediaInfoStrings.title)
+
         with let result = Wnd.create'MediaInfoPanel(side.content)
         {
             .dockStyle       = .Center
@@ -231,7 +232,8 @@ impl MediaInfoPanel
             .toggle          = side.toggle
         }
 
-        let size        = themeCompactButtonSize(result.themeMetrics())
+        let size = themeCompactButtonSize(result.themeMetrics())
+
         with let header = Wnd.create'Wnd(result, {0, 0, 0, size})
         {
             .dockStyle       = .Top
@@ -251,10 +253,7 @@ impl MediaInfoPanel
         with result.copyButton = IconButton.create(header, theme.icon(.Copy, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
         {
             .dockStyle  = .Right
-            .sigPressed += func|panel = result|(?)
-            {
-                Clipboard.addString(panel.text().toString())
-            }
+            .sigPressed += func|panel = result|(?) { Clipboard.addString(panel.text()) }
         }
 
         with result.title = Label.create(header, "")
@@ -311,7 +310,7 @@ impl MediaInfoPanel
             let line = .list.createLine(row.group ? null : parent)
             .lines.add(line)
             line.setItem(0, row.label())
-            line.setItem(1, row.value.toString())
+            line.setItem(1, row.value)
             if row.group
             {
                 parent = line

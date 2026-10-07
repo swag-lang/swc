@@ -281,7 +281,7 @@ impl MarkdownZoomButton
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = markdownStrings().ui_ZoomMenu
-            .sigPressed += func(button) { assume cast (*MarkdownZoomButton, button).showZoomMenu() }
+            .sigPressed += func(button) { assume cast(*MarkdownZoomButton, button).showZoomMenu() }
         }
 
         return result
@@ -317,12 +317,13 @@ func createMarkdownViewer(host: Viewer.Host)
     let view = Markdown.View.createFile(host.contentParent(), host.fileName(), Markdown.Style.theme())
     if not view.failureReason.isEmpty()
     {
-        host.reject(view.failureReason.toString())
+        host.reject(view.failureReason)
         view.destroy()
         return
     }
 
-    let commandGroup    = host.createCommandGroup(264)
+    let commandGroup = host.createCommandGroup(264)
+
     with let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
     {
         .dockStyle = .Right
@@ -340,9 +341,11 @@ func createMarkdownViewer(host: Viewer.Host)
         .setSelectedIndex(g_MarkdownViewerSettings.themeIndex, notify: false)
     }
 
-    let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(ViewerZoomSlotWidth), view, themeCombo, widthCombo)
-    zoomButton.outline = DocumentOutline.create(host)
-    zoomButton.outline.bindMarkdown(view, host.fileName())
+    with let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(ViewerZoomSlotWidth), view, themeCombo, widthCombo)
+    {
+        .outline = DocumentOutline.create(host)
+        .outline.bindMarkdown(view, host.fileName())
+    }
 
     view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(?, evt)
     {

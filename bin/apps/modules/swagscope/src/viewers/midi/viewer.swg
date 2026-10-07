@@ -64,7 +64,7 @@ private impl MidiViewer
         for track in .roll.document.tracks
         {
             let label = Format.toString(midiStrings().ui_TrackChoice, track.name, track.noteCount)
-            .trackCombo.addItem(label.toString())
+            .trackCombo.addItem(label)
         }
 
         .trackCombo.setSelectedIndex(selected == Swag.U32.Max ? 0 : selected, notify: false)
@@ -83,11 +83,7 @@ private impl MidiViewer
     mtd publishDocument(document: *MidiDocument)
     {
         .roll = MidiRollView.create(me, #move document[])
-        .roll.sigZoomChanged += func|view = me|(?)
-        {
-            view.refreshZoom()
-        }
-
+        .roll.sigZoomChanged += func|view = me|(?) { view.refreshZoom() }
         .fillTracks()
         .trackCombo.setSelectedIndex(0, notify: false)
         .applyLayout()
@@ -184,9 +180,10 @@ impl MidiViewer
 {
     func create(host: Viewer.Host)->*MidiViewer
     {
-        let services    = host.services()
-        let commands    = host.createCommandGroup(MidiCommandWidth)
-        let info        = host.createInfoGroup(ViewerZoomSlotWidth)
+        let services = host.services()
+        let commands = host.createCommandGroup(MidiCommandWidth)
+        let info     = host.createInfoGroup(ViewerZoomSlotWidth)
+
         with let result = Wnd.create'MidiViewer(host.contentParent(), "scope.midi")
         {
             .backgroundStyle      = .View
@@ -201,10 +198,7 @@ impl MidiViewer
         {
             .dockStyle  = .Left
             .toolTip    = midiStrings().ui_AllTracks
-            .sigChanged += func|view = result|(?, index)
-            {
-                view.roll.setTrack(index ? index - 1 : Swag.U32.Max)
-            }
+            .sigChanged += func|view = result|(?, index) { view.roll.setTrack(index ? index - 1 : Swag.U32.Max) }
         }
 
         with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.midi.zoom", .CenterContent)
@@ -216,10 +210,7 @@ impl MidiViewer
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = midiStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(?)
-            {
-                view.showZoomMenu()
-            }
+            .sigPressed += func|view = result|(?) { view.showZoomMenu() }
         }
 
         result.applyLayout()

@@ -39,15 +39,15 @@ impl ViewerChoiceLoad
         let operation = me
         .task.submit(func|operation|()
         {
-            var absolute = catch Path.absolute(operation.fileName.toString()) as pathError
+            var absolute = catch Path.absolute(operation.fileName) as pathError
             if pathError != null do
                 absolute = operation.fileName
             operation.result.absoluteFileName = #move absolute
-            operation.result.exists = File.exists(operation.result.absoluteFileName.toString())
+            operation.result.exists = File.exists(operation.result.absoluteFileName)
             if operation.result.exists
             {
-                operation.result.choices = operation.index!.choices(operation.result.absoluteFileName.toString())
-                let info = catch File.info(operation.result.absoluteFileName.toString()) as infoError
+                operation.result.choices = operation.index!.choices(operation.result.absoluteFileName)
+                let info = catch File.info(operation.result.absoluteFileName) as infoError
                 if infoError == null
                 {
                     operation.result.fileSize = StrConv.toDisplaySize(info.size)
@@ -58,7 +58,7 @@ impl ViewerChoiceLoad
             for one in operation.recent where File.exists(one[].toString()) do
                 operation.result.recent.add(one[])
 
-            let folder = Path.directoryName(operation.result.absoluteFileName.toString())
+            let folder = Path.directoryName(operation.result.absoluteFileName)
             if not folder do
                 return
             let files = catch Directory.enumerateFiles(folder) as listError

@@ -199,7 +199,7 @@ impl BinaryImage
             if index == 4 or index == 6 or index == 8 or index == 10 do
                 text.add('-'u8)
             let value  = .bytes[offset + (mixedEndian ? MixedOrder[index] : index)]
-            let digits = [cast(u8, (value >> 4)), value & 0xF]
+            let digits = [cast(u8, value >> 4), value & 0xF]
             for nibble in digits do
                 text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
         }

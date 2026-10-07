@@ -65,11 +65,11 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     for plugin, i in registry.plugins
     {
         Swag.assert((Path.fileName(plugin.smokeFixture.toString()) orelse "") == plugin.smokeFixture.toString())
-        let fixture = viewerRegistryFixturePath(plugin.smokeFixture.toString())
+        let fixture = viewerRegistryFixturePath(plugin.smokeFixture)
         Swag.assert(File.exists(fixture))
 
         var found: bool
-        for choice in registry.choices(fixture.toString()) where choice.key == plugin.key
+        for choice in registry.choices(fixture) where choice.key == plugin.key
         {
             found = true
             break

@@ -309,8 +309,8 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         if diskNumber do
             fail Errors.UnsupportedFormatError{"multi-disk ZIP entries are not supported"}
 
-        let decoded = zipText(nameBytes, cast(bool, (entry.flags & ZipFlagUtf8)))
-        entry.path = cleanZipPath(decoded.toString())
+        let decoded = zipText(nameBytes, cast(bool, entry.flags & ZipFlagUtf8))
+        entry.path = cleanZipPath(decoded)
         if entry.path.isEmpty()
         {
             at += totalLength
@@ -318,7 +318,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         }
 
         let external = try zipU32(data, at + 38)
-        entry.isDirectory = (nameBytes.count and (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)) or cast(bool, (external & 0x10))
+        entry.isDirectory = (nameBytes.count and (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)) or cast(bool, external & 0x10)
         if not entry.isDirectory
         {
             if entry.compressedSize > Swag.U64.Max - result.compressedSize or entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do

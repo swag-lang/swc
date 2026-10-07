@@ -49,17 +49,17 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
     var objects     = 0'u64
     var imports     = 0'u64
 
-    report.beginGroup(s.ar_Members, members.toString(), "", offset: 8, length: image.bytes.count - 8, open: true)
+    report.beginGroup(s.ar_Members, members, "", offset: 8, length: image.bytes.count - 8, open: true)
 
     for at in offsets
     {
         let rawName = image.fixedTextAt(at, 16)
         let size    = arDecimalAt(image, at + 48, 10)
         let dataAt  = at + ArHeaderSize
-        let name    = arMemberName(image, rawName.toString(), longNamesAt)
+        let name    = arMemberName(image, rawName, longNamesAt)
         let stored  = StrConv.toDisplaySize(size)
 
-        report.beginGroup(name.toString(), stored.toString(), "", offset: dataAt, length: size)
+        report.beginGroup(name, stored, "", offset: dataAt, length: size)
         reportArHeader(image, report, at, size)
 
         if rawName == "/" or rawName == "/SYM64/"
@@ -68,7 +68,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         }
         elif rawName == "//"
         {
-            report.derived(s.ar_LongNames, stored.toString())
+            report.derived(s.ar_LongNames, stored)
         }
         elif image.u16At(dataAt) == 0 and image.u16At(dataAt + 2) == 0xFFFF
         {
@@ -104,11 +104,11 @@ private func reportArHeader(image: *BinaryImage, report: *BinaryReport, at, size
     let owner    = image.fixedTextAt(at + 28, 12)
     let mode     = image.fixedTextAt(at + 40, 8)
 
-    report.field(at + 16, 12, s.ar_Modified, modified.toString())
+    report.field(at + 16, 12, s.ar_Modified, modified)
     if not owner.isEmpty() do
-        report.field(at + 28, 12, s.ar_Owner, owner.toString())
+        report.field(at + 28, 12, s.ar_Owner, owner)
     if not mode.isEmpty() do
-        report.field(at + 40, 8, s.ar_Mode, mode.toString())
+        report.field(at + 40, 8, s.ar_Mode, mode)
     report.numField(at + 48, 10, "Size", size)
 }
 
@@ -137,7 +137,7 @@ private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at
     }
 
     let symbols = countText(count, s.word_Symbol, s.word_Symbols)
-    report.field(at, 4, "NumberOfSymbols", symbols.toString())
+    report.field(at, 4, "NumberOfSymbols", symbols)
 
     let shown  = Math.min(count, BinaryListLimit)
     var nameAt = namesAt
@@ -148,7 +148,7 @@ private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at
             break
         let target = first ? cast(u64, image.u32At(offsetAt + index * 4)) : cast(u64, image.u16At(offsetAt + index * 2))
         let value  = first ? hexText(target, 8) : Format.toString("%", target)
-        report.field(nameAt, name.length + 1, name.toString(), value.toString())
+        report.field(nameAt, name.length + 1, name, value)
         nameAt += name.length + 1
     }
 
@@ -168,14 +168,14 @@ private func reportArImportMember(image: *BinaryImage, report: *BinaryReport, at
     let stamp   = epochText(cast(u64, image.u32At(at + 8)))
     let origin  = Format.toString(s.ar_ImportDll, library)
 
-    report.beginGroup(s.ar_Import, symbol.toString(), origin.toString(), offset: at, length: 20)
+    report.beginGroup(s.ar_Import, symbol, origin, offset: at, length: 20)
     report.hexField(at + 6, 2, "Machine", cast(u64, machine), peMachineName(machine))
-    report.field(at + 8, 4, "TimeDateStamp", stamp.toString())
+    report.field(at + 8, 4, "TimeDateStamp", stamp)
     report.sizeField(at + 12, 4, "SizeOfData", cast(u64, image.u32At(at + 12)))
     report.numField(at + 16, 2, "OrdinalOrHint", cast(u64, ordinal))
     report.hexField(at + 18, 2, "Type", cast(u64, flags), arImportTypeName(flags))
-    report.field(at + 20, symbol.length + 1, "Symbol", symbol.toString())
-    report.field(at + 20 + symbol.length + 1, library.length + 1, "Library", library.toString())
+    report.field(at + 20, symbol.length + 1, "Symbol", symbol)
+    report.field(at + 20 + symbol.length + 1, library.length + 1, "Library", library)
     report.endGroup()
 }
 
@@ -220,7 +220,7 @@ private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->S
         {
             if raw[index] < '0'u8 or raw[index] > '9'u8 do
                 break
-            offset = offset * 10 + cast(u64, (raw[index] - '0'u8))
+            offset = offset * 10 + cast(u64, raw[index] - '0'u8)
         }
 
         let name = image.cstringAt(longNamesAt + offset)
@@ -244,7 +244,7 @@ private func arDecimalAt(image: *BinaryImage, at, length: u64)->u64
             continue
         if value < '0'u8 or value > '9'u8 do
             break
-        result = result * 10 + cast(u64, (value - '0'u8))
+        result = result * 10 + cast(u64, value - '0'u8)
     }
 
     return result

@@ -42,7 +42,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
     report.sizeField(4, 4, "Length", headerLength)
     report.numField(8, 2, "Format", cast(u64, format), formatName)
     report.numField(10, 2, "Tracks", cast(u64, trackCount))
-    report.numField(12, 2, "Division", cast(u64, division), divisionText.toString())
+    report.numField(12, 2, "Division", cast(u64, division), divisionText)
     report.endGroup()
 
     var scan        = headerSize
@@ -73,7 +73,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
         {
             let label = Format.toString(s.midi_Track, tracks + 1)
             trackRow = report.rows.count
-            report.beginGroup(label.toString(), "", "", offset: bodyAt, length: length)
+            report.beginGroup(label, "", "", offset: bodyAt, length: length)
             report.field(scan, 4, "Chunk type", image.fixedTextAt(scan, 4).toString())
             report.sizeField(scan + 4, 4, "Length", length)
         }
@@ -207,7 +207,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
             {
                 let value  = StrConv.toDisplaySize(length.value)
                 let detail = Format.toString(binaryStrings().midi_At, result.lastTick)
-                report.field(scan, next - scan, status == 0xF0 ? "System Exclusive" : "System Exclusive continuation", value.toString(), detail.toString())
+                report.field(scan, next - scan, status == 0xF0 ? "System Exclusive" : "System Exclusive continuation", value, detail)
             }
 
             scan = next
@@ -235,7 +235,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
 private func reportMidiChannelEvent(image: *BinaryImage, report: *BinaryReport, at, next: u64, status: u8, dataAt, tick: u64)
 {
     let kind    = status >> 4
-    let channel = cast(u64, (status & 0x0F)) + 1
+    let channel = cast(u64, status & 0x0F) + 1
     let first   = cast(u64, image.u8At(dataAt))
     let second  = next - dataAt == 2 ? cast(u64, image.u8At(dataAt + 1)) : 0
     let detail  = Format.toString(binaryStrings().midi_AtChannel, tick, channel)
@@ -249,7 +249,7 @@ private func reportMidiChannelEvent(image: *BinaryImage, report: *BinaryReport, 
     case 0xE:           value = Format.toString("%", first | second << 7)
     }
 
-    report.field(at, next - at, midiChannelEventName(kind), value.toString(), detail.toString())
+    report.field(at, next - at, midiChannelEventName(kind), value, detail)
 }
 
 // Adds one meta event, decoding the musical metadata readers look for first.
@@ -264,7 +264,7 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *BinaryReport, tra
     case 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07:
         value = image.fixedTextAt(bodyAt, length)
         if kind == 0x03 and track.name.isEmpty() do
-            track.name = String.from(value.toString())
+            track.name = String.from(value)
 
     case 0x20, 0x21:
         if length do
@@ -307,7 +307,7 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *BinaryReport, tra
             value = StrConv.toDisplaySize(length)
     }
 
-    report.field(at, next - at, label, value.toString(), detail.toString())
+    report.field(at, next - at, label, value, detail)
 }
 
 // Reads the big-endian, seven-bits-per-byte integer used for delta times and payload lengths.
@@ -322,7 +322,7 @@ private func midiNumber(image: *BinaryImage, at, end: u64)->MidiNumber
             return result
         let value = image.u8At(result.next)
         result.next  += 1
-        result.value = (result.value << 7) | cast(u64, (value & 0x7F))
+        result.value = (result.value << 7) | cast(u64, value & 0x7F)
         if not (value & 0x80)
         {
             result.valid = true
@@ -350,8 +350,8 @@ private func midiDivisionText(value: u16)->String
     if not (value & 0x8000) do
         return Format.toString(binaryStrings().midi_TicksQuarter, value)
 
-    let frames = 256'u64 - cast(u64, (value >> 8))
-    let ticks  = cast(u64, (value & 0xFF))
+    let frames = 256'u64 - cast(u64, value >> 8)
+    let ticks  = cast(u64, value & 0xFF)
     return Format.toString(binaryStrings().midi_Smpte, frames, ticks)
 }
 

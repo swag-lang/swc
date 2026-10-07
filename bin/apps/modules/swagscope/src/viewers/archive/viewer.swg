@@ -83,7 +83,7 @@ impl ZipEntryExtract
         let operation = me
         .task.submit(func|operation|()
         {
-            catch extractZipEntry(operation.archiveFileName.toString(), &operation.entry, operation.destination.toString()) as extractError
+            catch extractZipEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractError
             operation.error = Errors.message(extractError)
         })
     }
@@ -202,14 +202,14 @@ private impl ArchiveViewer
                                    .archive.entries.count,
                                    StrConv.toDisplaySize(.archive.uncompressedSize),
                                    StrConv.toDisplaySize(.archive.compressedSize))
-        .reportDetails(me, text.toString())
+        .reportDetails(me, text)
     }
 
     mtd fileIcon(entry: const *ZipEntry)->Icon
     {
         if entry.isDirectory do
-            return .app().directoryIcon(entry.path.toString(), true)
-        return .app().fileIcon(entry.path.toString(), true)
+            return .app().directoryIcon(entry.path, true)
+        return .app().fileIcon(entry.path, true)
     }
 
     mtd publishArchive()
@@ -221,7 +221,7 @@ private impl ArchiveViewer
         var folders: HashTable'(String, *ListLine)
         for &entry, entryIndex in .archive.entries
         {
-            let parts = Tokenize.split(entry.path.toString(), '/'rune)
+            let parts = Tokenize.split(entry.path, '/'rune)
             var prefix: String
             var parent: *ListLine?
             for part, partIndex in parts
@@ -241,7 +241,7 @@ private impl ArchiveViewer
                         continue
                     }
 
-                    let line = .list.createLine(part, .app().directoryIcon(prefix.toString(), true), parent)
+                    let line = .list.createLine(part, .app().directoryIcon(prefix, true), parent)
                     folders.add(prefix, line)
                     parent = line
                     if isLeaf do
@@ -252,7 +252,7 @@ private impl ArchiveViewer
                 let line = .list.createLine(parent)
                 line.setItem(0, part, .fileIcon(entry))
                 line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize).toString())
-                line.userData0 = cast(*void?, (entryIndex + 1))
+                line.userData0 = cast(*void?, entryIndex + 1)
                 .entryLines[entryIndex] = line
             }
         }
@@ -335,7 +335,7 @@ private impl ArchiveViewer
             else
             {
                 let entry = &.archive.entries[.activePreview]
-                catch .embedded.open(.previewFile.toString(), entry.path.toString()) as openError
+                catch .embedded.open(.previewFile.toString(), entry.path) as openError
                 if openError != null
                 {
                     .showPreviewStatus(Format.toString("%\n%", archiveStrings().ui_PreviewError, Errors.message(openError)).toString())
@@ -365,13 +365,13 @@ private impl ArchiveViewer
         .pendingPreview = Swag.U64.Max
         .activePreview  = index
         let entry     = &.archive.entries[index]
-        var extension = String.from(Path.extension(entry.path.toString()) orelse ".bin")
+        var extension = String.from(Path.extension(entry.path) orelse ".bin")
         let safeName  = Format.toString("entry%", extension)
-        if extension.length > 24 or not Path.isValidFileName(safeName.toString()) do
+        if extension.length > 24 or not Path.isValidFileName(safeName) do
             extension = ".bin"
         var tempName = Format.toString("swagscope-archive-%", Guid64.random())
         tempName     += extension
-        .previewFile = Path.combine(Env.getSpecialDirectory(.Temp).toString(), tempName.toString())
+        .previewFile = Path.combine(Env.getSpecialDirectory(.Temp).toString(), tempName)
         .extract.start(.sourceFile.toString(), entry, .previewFile.toString())
     }
 
@@ -424,13 +424,13 @@ private impl ArchiveViewer
         if not line or line.items.isEmpty() do
             return false
         let name = Pixel.RichString.plainText(line.items[0]!.name.raw.toString())
-        return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name.toString(), 0, name.length, result)
+        return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name, 0, name.length, result)
     }
 
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for &entry, index in .archive.entries do
-            Viewer.collectTextMatches(entry.path.toString(), text, options, index, 0, 0, result)
+            Viewer.collectTextMatches(entry.path, text, options, index, 0, 0, result)
     }
 
     mtd clearSearch()
@@ -475,7 +475,8 @@ private impl ArchiveViewer
 
     func create(host: Viewer.Host)->*ArchiveViewer
     {
-        let services    = host.services()
+        let services = host.services()
+
         with let result = Wnd.create'ArchiveViewer(host.contentParent(), "scope.archive")
         {
             .backgroundStyle      = .View

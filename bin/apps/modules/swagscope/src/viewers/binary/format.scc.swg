@@ -46,11 +46,11 @@ func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: st
     let kind       = reader.kind().toString()
     let generation = reader.generation()
 
-    report.beginGroup(s.scc_Container, identity.toString(), "", open: true)
-    report.derived("ContainerKind", kind.toString())
-    report.derived("ContainerId", identity.toString())
+    report.beginGroup(s.scc_Container, identity, "", open: true)
+    report.derived("ContainerKind", kind)
+    report.derived("ContainerId", identity)
     let generationText = Format.toString("%", generation)
-    report.derived("Generation", generationText.toString())
+    report.derived("Generation", generationText)
     report.endGroup()
 
     reportSccManifest(report, reader.manifest())
@@ -63,21 +63,21 @@ func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: st
 private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manifest)
 {
     let s = binaryStrings()
-    report.beginGroup(s.scc_Manifest, manifest.name.toString(), "", open: true)
+    report.beginGroup(s.scc_Manifest, manifest.name, "", open: true)
 
     let version = Format.toString("%", manifest.version)
     let profile = Format.toString("%", manifest.profileVersion)
-    report.derived("Version", version.toString())
-    report.derived("ProfileVersion", profile.toString())
+    report.derived("Version", version)
+    report.derived("ProfileVersion", profile)
     if not manifest.description.isEmpty() do
-        report.derived("Description", manifest.description.toString())
+        report.derived("Description", manifest.description)
 
     let created  = manifest.createdAt.toString(.DateTimeIso)
     let modified = manifest.modifiedAt.toString(.DateTimeIso)
     if manifest.createdAt.isValid() do
-        report.derived(s.scc_Created, created.toString())
+        report.derived(s.scc_Created, created)
     if manifest.modifiedAt.isValid() do
-        report.derived(s.scc_Modified, modified.toString())
+        report.derived(s.scc_Modified, modified)
 
     if not manifest.tags.isEmpty()
     {
@@ -89,13 +89,13 @@ private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manif
             joined += tag.toString()
         }
 
-        report.derived(s.scc_Tags, joined.toString())
+        report.derived(s.scc_Tags, joined)
     }
 
     if not manifest.profileData.isEmpty()
     {
         let stored = StrConv.toDisplaySize(manifest.profileData.count)
-        report.derived(s.scc_Profile, stored.toString())
+        report.derived(s.scc_Profile, stored)
     }
 
     reportSccProperties(report, manifest.properties.toSlice())
@@ -110,12 +110,12 @@ private func reportSccProperties(report: *BinaryReport, properties: const [..] S
 
     let s     = binaryStrings()
     let total = countText(properties.count, s.word_Property, s.word_Properties)
-    report.beginGroup(s.scc_Properties, total.toString(), "")
+    report.beginGroup(s.scc_Properties, total, "")
 
     for property in properties
     {
         let value = sccValueText(&property.value)
-        report.derived(property.name.toString(), value.toString())
+        report.derived(property.name, value)
     }
 
     report.endGroup()
@@ -126,7 +126,7 @@ private func sccValueText(value: const *Scc.MetadataValue)->String
 {
     switch value.kind
     {
-    case .Text:     return String.from(value.textValue.toString())
+    case .Text:     return String.from(value.textValue)
     case .Signed:   return Format.toString("%", value.signedValue)
     case .Unsigned: return Format.toString("%", value.unsignedValue)
     case .Float:    return Format.toString("%", value.floatValue)
@@ -145,31 +145,31 @@ private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Ent
 
     let s     = binaryStrings()
     let total = countText(entries.count, s.word_Entry, s.word_Entries)
-    report.beginGroup(s.scc_Entries, total.toString(), "", open: true)
+    report.beginGroup(s.scc_Entries, total, "", open: true)
 
     for entry in entries
     {
         let kind = entry.kind == .Directory ? s.scc_Directory : s.scc_VirtualFile
-        report.beginGroup(entry.name.toString(), kind, "")
+        report.beginGroup(entry.name, kind, "")
 
         let identity = entry.id.toString()
-        report.derived("Id", identity.toString())
+        report.derived("Id", identity)
         if not entry.parentId.isNull()
         {
             let parent = entry.parentId.toString()
-            report.derived("ParentId", parent.toString())
+            report.derived("ParentId", parent)
         }
 
         if not entry.primaryChunk.isNull()
         {
             let chunk = entry.primaryChunk.toString()
-            report.derived("PrimaryChunk", chunk.toString())
+            report.derived("PrimaryChunk", chunk)
         }
 
         if not entry.variantChunks.isEmpty()
         {
             let variants = countText(entry.variantChunks.count, s.word_Chunk, s.word_Chunks)
-            report.derived("VariantChunks", variants.toString())
+            report.derived("VariantChunks", variants)
         }
 
         reportSccProperties(report, entry.properties.toSlice())
@@ -183,7 +183,7 @@ private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.Chunk
 {
     let s     = binaryStrings()
     let total = countText(chunks.count, s.word_Chunk, s.word_Chunks)
-    report.beginGroup(s.scc_Chunks, total.toString(), "", open: true)
+    report.beginGroup(s.scc_Chunks, total, "", open: true)
 
     for chunk in chunks
     {
@@ -192,30 +192,30 @@ private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.Chunk
         let codec    = sccCodecName(chunk.codecId)
 
         // The group covers the payload itself, so a search hit inside a chunk lands on that chunk.
-        report.beginGroup(identity.toString(), stored.toString(), codec, offset: chunk.offset, length: chunk.storedSize)
+        report.beginGroup(identity, stored, codec, offset: chunk.offset, length: chunk.storedSize)
 
         let typeId = chunk.typeId.toString()
         let roleId = chunk.roleId.toString()
-        report.derived("TypeId", typeId.toString())
-        report.derived("RoleId", roleId.toString())
+        report.derived("TypeId", typeId)
+        report.derived("RoleId", roleId)
         if not chunk.codecId.isNull()
         {
             let codecId = chunk.codecId.toString()
-            report.derived("CodecId", codecId.toString(), codec)
+            report.derived("CodecId", codecId, codec)
         }
 
         let schema = Format.toString("%", chunk.schemaVersion)
         let names  = sccChunkFlagsText(chunk.flags)
-        report.derived("SchemaVersion", schema.toString())
-        report.derived("Flags", names.toString())
+        report.derived("SchemaVersion", schema)
+        report.derived("Flags", names)
         report.hexField(chunk.offset, 8, "Offset", chunk.offset)
         report.sizeField(chunk.offset, 8, "StoredSize", chunk.storedSize)
         report.sizeField(chunk.offset, 8, "DecodedSize", chunk.decodedSize)
 
         let storedCrc  = hexText(cast(u64, chunk.storedChecksum), 8)
         let decodedCrc = hexText(cast(u64, chunk.decodedChecksum), 8)
-        report.derived("StoredChecksum", storedCrc.toString())
-        report.derived("DecodedChecksum", decodedCrc.toString())
+        report.derived("StoredChecksum", storedCrc)
+        report.derived("DecodedChecksum", decodedCrc)
         report.endGroup()
     }
 

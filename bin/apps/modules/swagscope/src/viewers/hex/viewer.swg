@@ -65,9 +65,9 @@ private func loadHexDocument(fileName: string)->HexDocument fail
 {
     var result: retval
     if not result.open(fileName) do
-        fail InvalidFormatError{Errors.mkString(result.failureReason.toString())}
+        fail InvalidFormatError{Errors.mkString(result.failureReason)}
     if result.fileSize and not result.ensure(0, Math.min(result.fileSize, HexWindowSize)) do
-        fail InvalidFormatError{Errors.mkString(result.failureReason.toString())}
+        fail InvalidFormatError{Errors.mkString(result.failureReason)}
     return #move result
 }
 
@@ -382,7 +382,8 @@ impl HexViewer
     {
         if not .zoomLabel do
             return
-        let base      = .themeMetrics().defaultFixedFontSize
+        let base = .themeMetrics().defaultFixedFontSize
+
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
             .addItem("75%", "scope.hex.zoom75")
@@ -462,7 +463,7 @@ impl HexViewer
         let offset  = .offsetText(.grid.caret)
         let size    = .grid.valueSize()
         let active  = size <= bytes.count ? formatHexScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) : String.from("--")
-        let percent = .grid.doc.fileSize > 1 ? cast(f64, .grid.caret) * 100 / cast(f64, (.grid.doc.fileSize - 1)) : 0
+        let percent = .grid.doc.fileSize > 1 ? cast(f64, .grid.caret) * 100 / cast(f64, .grid.doc.fileSize - 1) : 0
         label.setText(Format.toString("@% · %{f1}%% · % B · % %", offset, percent, .grid.selectionLength(), .activeValueTag(), active))
 
         var details = Format.toString("@% (%) · %{f1}%%\n[%..%] % B\n%", offset, .grid.caret, percent, .offsetText(.grid.selectionStart()), .offsetText(.grid.selectionEnd()), .grid.selectionLength(), .grid.bigEndian ? "BE" : "LE")
@@ -536,7 +537,8 @@ impl HexViewer
 {
     func create(host: Viewer.Host)->*HexViewer
     {
-        let services    = host.services()
+        let services = host.services()
+
         with let result = Wnd.create'HexViewer(host.contentParent(), "scope.hex")
         {
             .backgroundStyle      = .View
@@ -578,10 +580,7 @@ impl HexViewer
             .addItem("32")
             .addItem("64")
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(?, ?)
-            {
-                view.applyRowWidth()
-            }
+            .sigChanged += func|view = me|(?, ?) { view.applyRowWidth() }
         }
 
         with .widthCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
@@ -594,10 +593,7 @@ impl HexViewer
             .addItem(hexStrings().ui_Width32)
             .addItem(hexStrings().ui_Width64)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(?, ?)
-            {
-                view.rebuildFormats()
-            }
+            .sigChanged += func|view = me|(?, ?) { view.rebuildFormats() }
         }
 
         with .formatCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
@@ -609,10 +605,7 @@ impl HexViewer
             .addItem(hexStrings().ui_FormatUns)
             .addItem(hexStrings().ui_FormatSigned)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(?, ?)
-            {
-                view.applyValueMode()
-            }
+            .sigChanged += func|view = me|(?, ?) { view.applyValueMode() }
         }
 
         with .byteOrderCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
@@ -623,10 +616,7 @@ impl HexViewer
             .addItem(hexStrings().ui_EndianLittle)
             .addItem(hexStrings().ui_EndianBig)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(?, ?)
-            {
-                view.applyByteOrder()
-            }
+            .sigChanged += func|view = me|(?, ?) { view.applyByteOrder() }
         }
     }
 
@@ -685,10 +675,7 @@ impl HexViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = hexStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?)
-            {
-                view.showZoomMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
 
         with .inspectorLabel = Label.create(info, "", {0, 0, HexInspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
@@ -704,15 +691,8 @@ impl HexViewer
     {
         with .grid = HexGridView.create(me)
         {
-            .sigCaretChanged += func|view = me|(?)
-            {
-                view.refreshInspector()
-            }
-
-            .sigZoomChanged += func|view = me|(?)
-            {
-                view.refreshZoom()
-            }
+            .sigCaretChanged += func|view = me|(?) { view.refreshInspector() }
+            .sigZoomChanged  += func|view = me|(?) { view.refreshZoom() }
         }
     }
 }
@@ -723,7 +703,7 @@ func createHexViewer(host: Viewer.Host)
     let view = HexViewer.create(host)
 
     host.attachView(view)
-    host.setDetails(view.details.toString())
+    host.setDetails(view.details)
 
     with var search: Viewer.SearchApi
     {

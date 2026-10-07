@@ -38,7 +38,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
 
-    let view = assume cast (*FontViewer, result.view)
+    let view = assume cast(*FontViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.pageLabel.arrowPosition == .RightUpward)
     Swag.assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
@@ -70,16 +70,18 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
 
     let fixture = fontFixturePath()
     var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: commandBar)
     Swag.assert(result.view != null)
     commandBar.centerGroup = result.commands
-    let view = assume cast (*FontViewer, result.view)
+    let view = assume cast(*FontViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     view.commands.dockStyle = .None
@@ -110,7 +112,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     var result = openTestViewer(fontViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let view = assume cast (*FontViewer, result.view)
+    let view = assume cast(*FontViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }

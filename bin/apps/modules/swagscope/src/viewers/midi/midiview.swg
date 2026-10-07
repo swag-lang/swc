@@ -71,12 +71,12 @@ impl MidiRollView
         .lowKey    = cast(u8, Math.max(cast(s32, .document.minKey) - 2, 0))
         .highKey   = cast(u8, Math.min(cast(s32, .document.maxKey) + 2, 127))
         .plotTop   = MidiHeaderHeight + MidiAxisHeight
-        .rowHeight = Math.max((client.height - .plotTop - MidiContentInset) / cast(f32, (.highKey - .lowKey + 1)), 3)
+        .rowHeight = Math.max((client.height - .plotTop - MidiContentInset) / cast(f32, .highKey - .lowKey + 1), 3)
 
         if .document.division & 0x8000
         {
-            let encoded = cast(u8, (.document.division >> 8))
-            .beatTicks = cast(u64, (256'u32 - encoded)) * cast(u64, (.document.division & 0xFF))
+            let encoded = cast(u8, .document.division >> 8)
+            .beatTicks = cast(u64, 256'u32 - encoded) * cast(u64, .document.division & 0xFF)
         }
         else
         {
@@ -132,9 +132,9 @@ impl MidiRollView
         let colors = .themeColors()
         let left   = .scrollPos.x + MidiContentInset
         let title  = Format.toString("MIDI · format %", .document.format)
-        painter.drawString(left, 18, title.toString(), .titleFont, colors.label_Text)
+        painter.drawString(left, 18, title, .titleFont, colors.label_Text)
         let summary = .summaryText()
-        painter.drawString(left, 48, summary.toString(), .codeFont, colors.label_TextFaint)
+        painter.drawString(left, 48, summary, .codeFont, colors.label_TextFaint)
         painter.drawLine(left, MidiHeaderHeight - 1, .scrollPos.x + .clientRect().width - MidiContentInset, MidiHeaderHeight - 1, colors.border, 1)
     }
 
@@ -143,9 +143,9 @@ impl MidiRollView
         let colors     = .themeColors()
         let plotLeft   = MidiKeyboardWidth + MidiContentInset
         let plotRight  = plotLeft + .timelineWidth
-        let plotBottom = .plotTop + cast(f32, (.highKey - .lowKey + 1)) * .rowHeight
+        let plotBottom = .plotTop + cast(f32, .highKey - .lowKey + 1) * .rowHeight
 
-        for keyValue in cast(u32, (.highKey - .lowKey + 1))
+        for keyValue in cast(u32, .highKey - .lowKey + 1)
         {
             let key = cast(u8, (cast(u32, .highKey) - keyValue))
             let y   = .plotTop + cast(f32, keyValue) * .rowHeight
@@ -166,10 +166,10 @@ impl MidiRollView
         let maxBeat      = .document.durationTicks / .beatTicks + 1
         while beat < Math.min(lastBeat, maxBeat + 1)
         {
-            let x = plotLeft + cast(f32, (beat * .beatTicks)) * .pixelsPerTick
+            let x = plotLeft + cast(f32, beat * .beatTicks) * .pixelsPerTick
             painter.drawLine(x, MidiHeaderHeight, x, plotBottom, colors.border, 1)
             let label = Format.toString("%", beat + 1)
-            painter.drawString(x + 5, MidiHeaderHeight + 6, label.toString(), .codeFont, colors.label_TextFaint)
+            painter.drawString(x + 5, MidiHeaderHeight + 6, label, .codeFont, colors.label_TextFaint)
             beat += stride
         }
     }
@@ -187,11 +187,11 @@ impl MidiRollView
             let x = plotLeft + cast(f32, note.startTick) * .pixelsPerTick
             if x > .scrollPos.x + .clientRect().width do
                 break
-            let width = Math.max(cast(f32, (note.endTick - note.startTick)) * .pixelsPerTick, 2)
+            let width = Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
             if x + width < .scrollPos.x + MidiKeyboardWidth do
                 continue
-            let y        = .plotTop + cast(f32, (.highKey - note.key)) * .rowHeight + 1
-            let strength = 0.58'f32 + cast(f32, (note.track % 4)) * 0.09
+            let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
+            let strength = 0.58'f32 + cast(f32, note.track % 4) * 0.09
             let color    = Color.lerp(colors.view_Bk, alternate, strength)
             painter.fillRoundRect({x, y, width, Math.max(.rowHeight - 2, 1)}, 2, 2, color)
         }
@@ -204,7 +204,7 @@ impl MidiRollView
         painter.fillRect(left, MidiHeaderHeight, MidiKeyboardWidth + MidiContentInset, .clientRect().height - MidiHeaderHeight, colors.view_Bk)
         painter.drawString(left + MidiContentInset, MidiHeaderHeight + 6, midiStrings().ui_PianoRoll, .labelFont, colors.label_TextFaint)
 
-        for keyValue in cast(u32, (.highKey - .lowKey + 1))
+        for keyValue in cast(u32, .highKey - .lowKey + 1)
         {
             let key = cast(u8, (cast(u32, .highKey) - keyValue))
             let y   = .plotTop + cast(f32, keyValue) * .rowHeight
@@ -214,7 +214,7 @@ impl MidiRollView
             if key % 12 == 0 and .rowHeight >= 7
             {
                 let label = midiPitchName(key)
-                painter.drawString(left + MidiContentInset + 8, y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0), label.toString(), .codeFont, colors.label_TextLight)
+                painter.drawString(left + MidiContentInset + 8, y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0), label, .codeFont, colors.label_TextLight)
             }
         }
 

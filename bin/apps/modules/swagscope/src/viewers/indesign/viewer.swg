@@ -243,9 +243,9 @@ private func indesignPreviewPageNumber(bytes: const [..] u8, start, end: u64)->u
     for index in numberStart until numberEnd
     {
         let value = bytes[index]
-        if value < '0' or value > '9' or result > (Swag.U32.Max - cast(u32, (value - '0'))) / 10 do
+        if value < '0' or value > '9' or result > (Swag.U32.Max - cast(u32, value - '0')) / 10 do
             return 0
-        result = result * 10 + cast(u32, (value - '0'))
+        result = result * 10 + cast(u32, value - '0')
     }
 
     return result == Swag.U32.Max ? 0 : result
@@ -452,7 +452,7 @@ private func loadIndesignPreview(fileName: string, preview: const *IndesignPrevi
     if payload.isEmpty() do
         fail InvalidFormatError{indesignStrings().err_Preview}
 
-    let previewBytes = catch Base64.decode(payload.toString()) as base64Error
+    let previewBytes = catch Base64.decode(payload) as base64Error
     if base64Error != null or previewBytes.count < 4 or previewBytes[0] != 0xFF or previewBytes[1] != 0xD8 or previewBytes[previewBytes.count - 2] != 0xFF or previewBytes[previewBytes.count - 1] != 0xD9 do
         fail InvalidFormatError{indesignStrings().err_Preview}
 
@@ -492,7 +492,7 @@ private impl IndesignPreviewLoad
         let operation = me
         .task.submit(func|operation|()
         {
-            operation.value = catch loadIndesignPreview(operation.fileName.toString(), &operation.preview) as loadError
+            operation.value = catch loadIndesignPreview(operation.fileName, &operation.preview) as loadError
             operation.error = Errors.message(loadError)
         })
     }
@@ -960,15 +960,19 @@ private impl IndesignViewer
         let dialog = EditDlg.createSingleLine(.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
-        discard .goToTypedPage(dialog.text().toString())
+        discard .goToTypedPage(dialog.text())
     }
 
     mtd showPageMenu()
     {
         let strings = indesignStrings()
-        let menu    = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(strings.ui_GoToPage, "scope.indesign.goToPage", rightName: "Ctrl+G")
-        menu.addSeparator()
+
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem(strings.ui_GoToPage, "scope.indesign.goToPage", rightName: "Ctrl+G")
+            .addSeparator()
+        }
+
         var commands: Array'String
         commands.reserve(.pageCount())
         for index in .pageCount()
@@ -1195,7 +1199,8 @@ impl IndesignViewer
 {
     func create(host: Viewer.Host)->*IndesignViewer
     {
-        let services    = host.services()
+        let services = host.services()
+
         with let result = Wnd.create'IndesignViewer(host.contentParent(), "scope.indesign")
         {
             .backgroundStyle      = .View
@@ -1211,10 +1216,7 @@ impl IndesignViewer
         {
             .backgroundStyle = .View
             .dockStyle       = .Center
-            .sigZoomChanged  += func|view = result|(?)
-            {
-                view.refreshZoom()
-            }
+            .sigZoomChanged  += func|view = result|(?) { view.refreshZoom() }
         }
 
         result.hookOnChildEvent = func|view = result|(?, evt)
@@ -1304,10 +1306,7 @@ impl IndesignViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = indesignStrings().ui_ChoosePage
-            .sigPressed += func|view = me|(?)
-            {
-                view.showPageMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showPageMenu() }
         }
     }
 
@@ -1324,10 +1323,7 @@ impl IndesignViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = indesignStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?)
-            {
-                view.showZoomMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
 }

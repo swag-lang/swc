@@ -51,12 +51,28 @@ private func reportEmbeddedDetails(view: *Wnd, details: string)
 
 private func reportEmbeddedChromeChanged(view: *Wnd)
 {
-    let embedded = embeddedViewerFor(view)
-    embedded.commandBar.centerContent()
-    embedded.applyLayout()
+    with let embedded = embeddedViewerFor(view)
+    {
+        .commandBar.centerContent()
+        .applyLayout()
+    }
 }
 
 private func reportEmbeddedLoadingChanged(?: *Wnd) {}
+
+// Returns the services a viewer embedded in a document reaches its host through.
+private func embeddedHostServices()->Viewer.HostServices
+{
+    with var result: retval
+    {
+        .reportFailure        = &reportEmbeddedFailure
+        .reportDetails        = &reportEmbeddedDetails
+        .reportChromeChanged  = &reportEmbeddedChromeChanged
+        .reportLoadingChanged = &reportEmbeddedLoadingChanged
+    }
+
+    return result
+}
 
 impl Viewer.Embedded for EmbeddedViewer
 {
@@ -184,34 +200,27 @@ private impl EmbeddedViewer
 
         let choice = &.choices[index]
         let plugin = &.owner.index.plugins[choice.pluginIndex]
-        var next: ViewerSession
-        var host   = ViewerPluginHost{
-            session: &next,
-            documentParent: .document,
-            sidePanelParent: me,
-            actionParent: .header,
-            infoParent: .infoLane,
-            commandParent: .commandBar,
-            sourceFileName: .fileName.toString(),
-            pluginIcon: .owner.pluginIcon(plugin, themeActionIconSize(.themeMetrics())),
-            window: .owner,
-            hostServices: {
-                reportFailure: &reportEmbeddedFailure,
-                reportDetails: &reportEmbeddedDetails,
-                reportChromeChanged: &reportEmbeddedChromeChanged,
-                reportLoadingChanged: &reportEmbeddedLoadingChanged}}
+        var next:      ViewerSession
+        with var host: ViewerPluginHost
+        {
+            .session         = &next
+            .documentParent  = me.document
+            .sidePanelParent = me
+            .actionParent    = me.header
+            .infoParent      = me.infoLane
+            .commandParent   = me.commandBar
+            .sourceFileName  = me.fileName
+            .pluginIcon      = me.owner.pluginIcon(plugin, themeActionIconSize(me.themeMetrics()))
+            .window          = me.owner
+            .hostServices    = embeddedHostServices()
+        }
+
         let pluginHost: Viewer.Host = &host
         catch next.create(plugin, pluginHost) as viewerError
         if viewerError != null do
             next.failureReason = Errors.message(viewerError)
-        if not next.failureReason.isEmpty()
-        {
-            let reason = #move next.failureReason
-            next.destroyWindows()
-            next      = {}
-            next.failureReason = #move reason
-            next.view = ViewerErrorView.create(.document, next.failureReason.toString())
-        }
+        if not next.failureReason.isEmpty() do
+            next.replaceWithFailure(.document)
 
         if not next.view do
             return false
@@ -250,10 +259,12 @@ private impl EmbeddedViewer
 
     func create(parent: *Wnd, owner: *ViewerWindow)->*EmbeddedViewer
     {
-        let result = Wnd.create'EmbeddedViewer(parent, "scope.embedded")
-        result.backgroundStyle = .View
-        result.dockStyle       = .Center
-        result.owner           = owner
+        with let result = Wnd.create'EmbeddedViewer(parent, "scope.embedded")
+        {
+            .backgroundStyle = .View
+            .dockStyle       = .Center
+            .owner           = owner
+        }
 
         with result.header = Wnd.create'Wnd(result, {0, 0, 0, EmbeddedHeaderHeight})
         {

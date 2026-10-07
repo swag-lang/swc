@@ -482,7 +482,7 @@ private func openDocumentPositiveAttribute(attributes, name: string, maximum: u6
     let value = openDocumentAttribute(attributes, name)
     if value.isEmpty() do
         return 1
-    let parsed = catch StrConv.parseU64(value.toString()) as parseError
+    let parsed = catch StrConv.parseU64(value) as parseError
     if parseError != null or parsed.eat != value.count or not parsed.value do
         return 1
     return Math.min(parsed.value, maximum)
@@ -559,7 +559,7 @@ private func openDocumentInlineImageMediaType(uri: string)->string
     for mediaType in ["bmp", "gif", "x-icon", "jpeg", "png", "tiff", "webp"]
     {
         let prefix = Format.toString("data:image/%;base64,", mediaType)
-        if Utf8.startsWith(lowercase.toString(), prefix.toString()) do
+        if Utf8.startsWith(lowercase, prefix) do
             return mediaType
     }
 
@@ -590,7 +590,7 @@ private func openDocumentHtmlAttribute(value: string)->String
 private func openDocumentExternalHref(href: string)->String
 {
     let decoded = openDocumentDecodeXmlText(href)
-    if not Utf8.startsWith(decoded.toString(), "http://", .Latin1NoCase) and not Utf8.startsWith(decoded.toString(), "https://", .Latin1NoCase) do
+    if not Utf8.startsWith(decoded, "http://", .Latin1NoCase) and not Utf8.startsWith(decoded, "https://", .Latin1NoCase) do
         return {}
     for character in decoded
     {
@@ -719,9 +719,9 @@ private impl OpenDocumentReader
             style.strike = strike != "none"
 
         let position = openDocumentAttribute(attributes, "style:text-position")
-        if Utf8.startsWith(position.toString(), "sub") do
+        if Utf8.startsWith(position, "sub") do
             style.position = .Subscript
-        elif Utf8.startsWith(position.toString(), "super") do
+        elif Utf8.startsWith(position, "super") do
             style.position = .Superscript
         elif not position.isEmpty() do
             style.position = .Normal
@@ -746,7 +746,7 @@ private impl OpenDocumentReader
     {
         if tag.name == "text:list-style"
         {
-            let name = openDocumentAttribute(tag.attributes.toString(), "style:name")
+            let name = openDocumentAttribute(tag.attributes, "style:name")
             if name.isEmpty() do
                 return
             .listStyleActive = true
@@ -779,9 +779,9 @@ private impl OpenDocumentReader
         if not .styleActive do
             return
         if tag.name == "style:text-properties" do
-            .applyTextStyleProperties(&.style, tag.attributes.toString())
+            .applyTextStyleProperties(&.style, tag.attributes)
         elif tag.name == "style:paragraph-properties" do
-            .applyParagraphStyleProperties(&.style, tag.attributes.toString())
+            .applyParagraphStyleProperties(&.style, tag.attributes)
     }
 
     mtd finishTextStyle(tag: const *OpenDocumentTag)
@@ -810,7 +810,7 @@ private impl OpenDocumentReader
         if not style.fontSize.isEmpty()
         {
             .appendHtml("<span style=\"font-size:")
-            .appendHtml(style.fontSize.toString())
+            .appendHtml(style.fontSize)
             .appendHtml("\">")
         }
 
@@ -881,7 +881,7 @@ private impl OpenDocumentReader
     {
         let target = .bookmarkTarget(openDocumentAttribute(attributes, "text:name").toString())
         if not target.isEmpty() do
-            .appendHtml(Format.toString("<span id=\"%\"></span>", target.toString()))
+            .appendHtml(Format.toString("<span id=\"%\"></span>", target))
     }
 
     mtd linkHref(attributes: string)->String
@@ -889,13 +889,13 @@ private impl OpenDocumentReader
         let href = openDocumentAttribute(attributes, "xlink:href")
         if href.isEmpty() do
             return {}
-        if Utf8.startsWith(href.toString(), "#")
+        if Utf8.startsWith(href, "#")
         {
             let target = .bookmarkTarget(href[1 to])
-            return target.isEmpty() ? "" : Format.toString("#%", target.toString())
+            return target.isEmpty() ? "" : Format.toString("#%", target)
         }
 
-        return openDocumentExternalHref(href.toString())
+        return openDocumentExternalHref(href)
     }
 
     mtd appendParagraphAlignment(attributes: string)
@@ -904,7 +904,7 @@ private impl OpenDocumentReader
         if not alignment.isEmpty()
         {
             .appendHtml(" align=\"")
-            .appendHtml(alignment.toString())
+            .appendHtml(alignment)
             .appendHtml("\"")
         }
     }
@@ -933,8 +933,8 @@ private impl OpenDocumentReader
     mtd imageUri(attributes: string)->String
     {
         let href = openDocumentAttribute(attributes, "xlink:href")
-        if Utf8.startsWith(href.toString(), "data:image/", .Latin1NoCase) do
-            return .inlineImageUri(href.toString())
+        if Utf8.startsWith(href, "data:image/", .Latin1NoCase) do
+            return .inlineImageUri(href)
         for image in .images where image.path == href do
             return image.uri
         return {}
@@ -949,17 +949,17 @@ private impl OpenDocumentReader
         if not .imageSizeStack.isEmpty() do
             size = .imageSizeStack.back()
         .appendHtml("<img src=\"")
-        .appendHtml(uri.toString())
+        .appendHtml(uri)
         if not size.width.isEmpty()
         {
             .appendHtml("\" width=\"")
-            .appendHtml(size.width.toString())
+            .appendHtml(size.width)
         }
 
         if not size.height.isEmpty()
         {
             .appendHtml("\" height=\"")
-            .appendHtml(size.height.toString())
+            .appendHtml(size.height)
         }
 
         .appendHtml("\">")
@@ -997,20 +997,20 @@ private impl OpenDocumentReader
         switch tag.name.toString()
         {
         case "text:h":
-            .headingLevel = openDocumentPositiveAttribute(tag.attributes.toString(), "text:outline-level", 6)
+            .headingLevel = openDocumentPositiveAttribute(tag.attributes, "text:outline-level", 6)
             .appendHtml(Format.toString("<h%", .headingLevel))
-            .appendParagraphAlignment(tag.attributes.toString())
+            .appendParagraphAlignment(tag.attributes)
             .appendHtml(">")
-            .appendTextStyleStart(tag.attributes.toString())
+            .appendTextStyleStart(tag.attributes)
 
         case "text:p":
             .appendHtml("<p")
-            .appendParagraphAlignment(tag.attributes.toString())
+            .appendParagraphAlignment(tag.attributes)
             .appendHtml(">")
-            .appendTextStyleStart(tag.attributes.toString())
+            .appendTextStyleStart(tag.attributes)
 
         case "text:span":
-            .appendTextStyleStart(tag.attributes.toString())
+            .appendTextStyleStart(tag.attributes)
 
         case "text:note-citation":
             .appendHtml("<sup>")
@@ -1020,16 +1020,16 @@ private impl OpenDocumentReader
 
         case "text:a":
             .appendHtml("<a")
-            let href = .linkHref(tag.attributes.toString())
+            let href = .linkHref(tag.attributes)
             if not href.isEmpty() do
-                .appendHtml(Format.toString(" href=\"%\"", href.toString()))
+                .appendHtml(Format.toString(" href=\"%\"", href))
             .appendHtml(">")
 
         case "text:bookmark", "text:bookmark-start":
-            .appendBookmark(tag.attributes.toString())
+            .appendBookmark(tag.attributes)
 
         case "text:list":
-            let numbered = .listUsesNumbers(tag.attributes.toString())
+            let numbered = .listUsesNumbers(tag.attributes)
             .listStack.add(numbered)
             .appendHtml(numbered ? "<ol>" : "<ul>")
 
@@ -1043,18 +1043,18 @@ private impl OpenDocumentReader
             .appendHtml("&#9;")
 
         case "text:s":
-            .appendSpaces(tag.attributes.toString())
+            .appendSpaces(tag.attributes)
 
         case "draw:frame":
-            .imageSizeStack.add(openDocumentImageSize(tag.attributes.toString()))
+            .imageSizeStack.add(openDocumentImageSize(tag.attributes))
 
         case "draw:image":
-            .appendImage(tag.attributes.toString())
+            .appendImage(tag.attributes)
 
         case "table:table":
-            let name = openDocumentAttribute(tag.attributes.toString(), "table:name")
+            let name = openDocumentAttribute(tag.attributes, "table:name")
             .appendHtml("<section><h2>")
-            .appendHtml(name.toString())
+            .appendHtml(name)
             .appendHtml("</h2><table>")
 
         case "table:table-header-rows":
@@ -1064,19 +1064,19 @@ private impl OpenDocumentReader
             .appendHtml("<tr>")
 
         case "table:table-cell", "table:covered-table-cell":
-            let repeated = openDocumentRepeated(tag.attributes.toString(), "table:number-columns-repeated")
+            let repeated = openDocumentRepeated(tag.attributes, "table:number-columns-repeated")
             if .tableHeaderRows do
                 .appendHtml(repeated == 1 ? "<th>" : Format.toString("<th colspan=\"%\">", repeated))
             else do
                 .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
             if tag.selfClosing do
-                .appendHtml(openDocumentCellValue(tag.attributes.toString()).toString())
+                .appendHtml(openDocumentCellValue(tag.attributes).toString())
 
         case "draw:page":
             if not .slideActive
             {
                 .slideActive = true
-                .slide.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes.toString(), "draw:name").toString())
+                .slide.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes, "draw:name").toString())
                 .appendHtml("<article><section>")
             }
         }
@@ -1183,18 +1183,18 @@ private impl OpenDocumentReader
             if not .activeSheet
             {
                 .activeSheet = true
-                .sheet.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes.toString(), "table:name").toString())
+                .sheet.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes, "table:name").toString())
             }
 
         case "table:table-row" where .activeSheet:
             .row       = {}
-            .rowRepeat = openDocumentRepeated(tag.attributes.toString(), "table:number-rows-repeated")
+            .rowRepeat = openDocumentRepeated(tag.attributes, "table:number-rows-repeated")
 
         case "table:table-cell", "table:covered-table-cell" where .activeSheet:
             .cell.clear()
-            .cellFallback = openDocumentDecodeXmlText(openDocumentCellValue(tag.attributes.toString()).toString())
+            .cellFallback = openDocumentDecodeXmlText(openDocumentCellValue(tag.attributes).toString())
             .cellActive   = true
-            .cellRepeat   = openDocumentRepeated(tag.attributes.toString(), "table:number-columns-repeated")
+            .cellRepeat   = openDocumentRepeated(tag.attributes, "table:number-columns-repeated")
             if tag.selfClosing do
                 .cell += .cellFallback
 
@@ -1205,7 +1205,7 @@ private impl OpenDocumentReader
             .cell += '\t'
 
         case "text:s" where .cellActive:
-            .appendSpaces(tag.attributes.toString())
+            .appendSpaces(tag.attributes)
         }
     }
 
@@ -1472,7 +1472,7 @@ private func loadOpenDocumentImages(fileName: string, archive: const *ZipArchive
             break
         if not entry.path.startsWith("Pictures/", .Latin1NoCase) do
             continue
-        let mediaType = openDocumentImageMediaType(entry.path.toString())
+        let mediaType = openDocumentImageMediaType(entry.path)
         if mediaType == "" or entry.uncompressedSize > OpenDocumentImageLimit or entry.uncompressedSize > OpenDocumentImageLimit - total do
             continue
 
@@ -1546,7 +1546,7 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
             metadata = catch parseOpenDocumentMetadata(cast(string, metadataBytes.toSlice()))
     }
 
-    return try parseOpenDocumentContentWithImages(cast(string, bytes.toSlice()), styleSource.toString(), kind, #move images, #move metadata)
+    return try parseOpenDocumentContentWithImages(cast(string, bytes.toSlice()), styleSource, kind, #move images, #move metadata)
 }
 
 // Shows an OpenDocument file on the reader surface of its kind, decoding it away from the GUI thread.
@@ -1668,12 +1668,15 @@ private impl OpenDocumentViewer
 
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("75%", "scope.opendocument.zoom75")
-        menu.addItem("100%", "scope.opendocument.zoom100")
-        menu.addItem("125%", "scope.opendocument.zoom125")
-        menu.addItem("150%", "scope.opendocument.zoom150")
-        menu.addItem("200%", "scope.opendocument.zoom200")
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem("75%", "scope.opendocument.zoom75")
+            .addItem("100%", "scope.opendocument.zoom100")
+            .addItem("125%", "scope.opendocument.zoom125")
+            .addItem("150%", "scope.opendocument.zoom150")
+            .addItem("200%", "scope.opendocument.zoom200")
+        }
+
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.opendocument.zoom75":  .setZoom(75)
@@ -1904,7 +1907,7 @@ private impl OpenDocumentViewer
     mtd collectPresentationMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for slide, index in .document.slides do
-            Viewer.collectTextMatches(slide.html.toString(), text, options, index, 0, 0, result)
+            Viewer.collectTextMatches(slide.html, text, options, index, 0, 0, result)
     }
 
     mtd publishDocument()
@@ -1939,19 +1942,16 @@ private impl OpenDocumentViewer
                 if .document.kind == .Spreadsheet
                 {
                     for sheet, index in .document.sheets do
-                        .outline.add(sheet.name.toString(), 1, index)
+                        .outline.add(sheet.name, 1, index)
                 }
                 else
                 {
                     for slide, index in .document.slides do
-                        .outline.add(slide.name.toString(), 1, index)
+                        .outline.add(slide.name, 1, index)
                 }
 
                 .outline.refresh()
-                .outline.sigSelected += func|view = me|(?, index)
-                {
-                    discard view.showPage(index, true)
-                }
+                .outline.sigSelected += func|view = me|(?, index) { discard view.showPage(index, true) }
             }
         }
 
@@ -2044,7 +2044,8 @@ private impl OpenDocumentViewer
 
     func create(host: Viewer.Host)->*OpenDocumentViewer
     {
-        let services    = host.services()
+        let services = host.services()
+
         with let result = Wnd.create'OpenDocumentViewer(host.contentParent(), "scope.opendocument")
         {
             .backgroundStyle      = .View
@@ -2099,10 +2100,7 @@ private impl OpenDocumentViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = openDocumentStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?)
-            {
-                view.showZoomMenu()
-            }
+            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
 
@@ -2116,10 +2114,7 @@ private impl OpenDocumentViewer
             .dockStyle = .Left
             .hide()
             .toolTip    = openDocumentStrings().ui_TipSheet
-            .sigChanged += func|view = me|(?, index)
-            {
-                discard view.showPage(index, true)
-            }
+            .sigChanged += func|view = me|(?, index) { discard view.showPage(index, true) }
         }
     }
 }

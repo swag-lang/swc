@@ -1208,7 +1208,7 @@ namespace
     {
         SWC_RESULT(codeGen.emitTemporaryDropsForFailure(target.scopeRef));
         if (target.kind == FallibleTarget::Kind::Handler)
-            return codeGen.emitDeferredActionsUntilScopeRef(target.scopeRef);
+            return codeGen.emitDeferredActionsUntilScopeRef(target.scopeRef, false);
         return codeGen.emitDeferredActionsForReturn();
     }
 
@@ -1403,6 +1403,9 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
     if (!runtimePushErr)
         return raiseInternalCodeGenError(codeGen, "missing runtime helper '__pushErr'", nodeRef);
     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePushErr, std::span<const MicroReg>{}));
+    // Return, break and continue bypass the wrapper's normal completion. Restore its
+    // outer error frame after the body's cleanup, just as on ordinary success.
+    codeGen.registerErrorScopePop();
 
     return Result::Continue;
 }

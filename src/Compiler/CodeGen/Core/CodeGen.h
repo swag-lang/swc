@@ -99,6 +99,7 @@ struct CodeGenDeferredAction
     {
         DeferStmt,
         ImplicitDrop,
+        PopErrorScope,
     };
 
     Kind                  kind         = Kind::DeferStmt;
@@ -442,19 +443,20 @@ public:
     void                      pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
     Result                    popDeferScope();
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
+    void                      registerErrorScopePop();
     void                      registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo = nullptr);
     void                      initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);
     void                      registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos);
     bool                      hasDeferredStatements() const { return hasDeferredStatements_; }
     Result                    emitDeferredActionsForReturn();
-    Result                    emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef);
+    Result                    emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef, bool popErrorScope = true);
     Result                    emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);
     Result                    emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
     Result                    emitDeferredActionsUntilOwner(AstNodeRef CodeGenDeferScope::* ownerField, AstNodeRef ownerRef);
     Result                    emitDeferredActionsDownTo(size_t stopScopeIndex);
     Result                    emitNodeNow(AstNodeRef nodeRef);
     void                      invalidateNodePayloadRegs(AstNodeRef nodeRef);
-    bool                      containsNodeId(AstNodeRef nodeRef, AstNodeId nodeId);
+    bool                      containsDeferredActions(AstNodeRef nodeRef);
     bool                      currentInstructionBlocksFallthrough() const;
     bool                      inDeferredEmission() const { return deferredEmitDepth_ != 0; }
 
@@ -501,8 +503,8 @@ private:
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
     Result emitConstant(AstNodeRef nodeRef);
     Result emitDeferredAction(const CodeGenDeferredAction& action);
-    Result emitDeferredActionsInScope(size_t scopeIndex, size_t actionCount);
-    Result emitDeferredActionsFrom(size_t startScopeIndex, size_t startActionCount, size_t stopScopeIndex, bool hasStopScope);
+    Result emitDeferredActionsInScope(size_t scopeIndex, size_t actionCount, bool popErrorScope = true);
+    Result emitDeferredActionsFrom(size_t startScopeIndex, size_t startActionCount, size_t stopScopeIndex, bool hasStopScope, bool popStopErrorScope = true);
     bool   findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const;
     void   mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const;
 

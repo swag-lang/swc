@@ -544,7 +544,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         currentDeferredAddressGeneration_ = 0;
         nextDeferredAddressGeneration_    = 1;
         // The drop test reads the function's variables; the other one walks its whole body.
-        hasDeferredStatements_ = functionHasImplicitDrops(*this, symbolFunc) || containsNodeId(root, AstNodeId::DeferStmt);
+        hasDeferredStatements_ = functionHasImplicitDrops(*this, symbolFunc) || containsDeferredActions(root);
         variablePayloads_.clear();
         moveElisionVars_.clear();
         elidedImplicitDrops_.clear();
@@ -1455,6 +1455,13 @@ void CodeGen::registerDefer(const AstNodeRef deferStmtRef, const AstNodeRef body
     action.modifierFlags = modifierFlags;
 }
 
+void CodeGen::registerErrorScopePop()
+{
+    SWC_ASSERT(!deferScopes_.empty());
+    auto& action = deferScopes_.back().actions.emplace_back();
+    action.kind  = CodeGenDeferredAction::Kind::PopErrorScope;
+}
+
 void CodeGen::registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo)
 {
     if (!hasDeferredStatements_)
@@ -1512,6 +1519,15 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
 {
     switch (action.kind)
     {
+        case CodeGenDeferredAction::Kind::PopErrorScope:
+        {
+            const IdentifierRef idRef = idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::PopErr);
+            SWC_ASSERT(idRef.isValid());
+            const SymbolFunction* popErr = compiler().runtimeFunctionSymbol(idRef);
+            SWC_ASSERT(popErr != nullptr);
+            return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(*this, *popErr, std::span<const MicroReg>{});
+        }
+
         case CodeGenDeferredAction::Kind::DeferStmt:
         {
             if (action.bodyRef.isInvalid())
@@ -1583,7 +1599,7 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
     return Result::Continue;
 }
 
-Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t actionCount)
+Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t actionCount, const bool popErrorScope)
 {
     SWC_ASSERT(scopeIndex < deferScopes_.size());
     if (scopeIndex >= deferScopes_.size())
@@ -1602,7 +1618,9 @@ Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t
         // Emitting a deferred body can grow the scope stack. Keep no reference into it alive
         // across that emission, and copy the action before its owning scope can move.
         const CodeGenDeferredAction action = deferScopes_[scopeIndex].actions[i - 1];
-        result                             = emitDeferredAction(action);
+        if (action.kind == CodeGenDeferredAction::Kind::PopErrorScope && !popErrorScope)
+            continue;
+        result = emitDeferredAction(action);
         if (result != Result::Continue || currentInstructionBlocksFallthrough())
             break;
     }
@@ -1611,7 +1629,7 @@ Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t
     return result;
 }
 
-Result CodeGen::emitDeferredActionsFrom(const size_t startScopeIndex, const size_t startActionCount, const size_t stopScopeIndex, const bool hasStopScope)
+Result CodeGen::emitDeferredActionsFrom(const size_t startScopeIndex, const size_t startActionCount, const size_t stopScopeIndex, const bool hasStopScope, const bool popStopErrorScope)
 {
     if (startScopeIndex >= deferScopes_.size())
         return Result::Continue;
@@ -1627,7 +1645,7 @@ Result CodeGen::emitDeferredActionsFrom(const size_t startScopeIndex, const size
             if (cursor.scopeIndex == scopeIndex)
                 actionCount = std::min(actionCount, cursor.nextActionCount);
         }
-        SWC_RESULT(emitDeferredActionsInScope(scopeIndex, actionCount));
+        SWC_RESULT(emitDeferredActionsInScope(scopeIndex, actionCount, !hasStopScope || scopeIndex != stopScopeIndex || popStopErrorScope));
         if (currentInstructionBlocksFallthrough() || (hasStopScope && scopeIndex == stopScopeIndex))
             break;
     }
@@ -1662,7 +1680,7 @@ Result CodeGen::popDeferScope()
     // Keep the scope and its cursor live while an action runs. An early exit from that
     // action must still be able to finish this scope's remaining cleanup exactly once.
     if (!currentInstructionBlocksFallthrough())
-        SWC_RESULT(emitDeferredActionsInScope(deferScopes_.size() - 1, deferScopes_.back().actions.size()));
+        SWC_RESULT(emitDeferredActionsInScope(deferScopes_.size() - 1, deferScopes_.back().actions.size(), false));
     deferScopes_.pop_back();
     return Result::Continue;
 }
@@ -1678,7 +1696,7 @@ Result CodeGen::emitDeferredActionsForReturn()
     return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), 0, false);
 }
 
-Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef)
+Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef, const bool popErrorScope)
 {
     if (!hasDeferredStatements_)
         return Result::Continue;
@@ -1691,7 +1709,8 @@ Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef)
     if (!findInnermostDeferScopeIndex(scopeRef, stopScopeIndex))
         return Result::Continue;
 
-    return emitDeferredActionsDownTo(stopScopeIndex);
+    // A failure jumps into its handler; that handler still owns the pushed frame.
+    return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true, popErrorScope);
 }
 
 Result CodeGen::emitDeferredActionsDownTo(size_t stopScopeIndex)
@@ -1792,7 +1811,7 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
     }
 }
 
-bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
+bool CodeGen::containsDeferredActions(AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return false;
@@ -1816,7 +1835,7 @@ bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
             continue;
 
         const AstNode& currentNode = ast().node(currentRef);
-        if (currentNode.id() == nodeId)
+        if (currentNode.id() == AstNodeId::DeferStmt || currentNode.id() == AstNodeId::ErrorManagementExpr || currentNode.id() == AstNodeId::ErrorManagementStmt)
             return true;
 
         currentNode.collectChildrenFromAst(stack, ast());
